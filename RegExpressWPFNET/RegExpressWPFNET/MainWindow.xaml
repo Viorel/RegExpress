@@ -1,0 +1,163 @@
+﻿<Window x:Class="RegExpressWPFNET.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RegExpressWPFNET"
+        mc:Ignorable="d"
+        Title="RegExpress" Height="450" Width="800" Loaded="Window_Loaded">
+
+    <Window.CommandBindings>
+        <CommandBinding Command="{x:Static local:MainWindow.NewTabCommand}" CanExecute="NewTabCommand_CanExecute" Executed="NewTabCommand_Execute"/>
+        <CommandBinding Command="{x:Static local:MainWindow.CloseTabCommand}" CanExecute="CloseTabCommand_CanExecute" Executed="CloseTabCommand_Execute"/>
+        <CommandBinding Command="{x:Static local:MainWindow.DuplicateTabCommand}" CanExecute="DuplicateTabCommand_CanExecute" Executed="DuplicateTabCommand_Execute"/>
+        <CommandBinding Command="{x:Static local:MainWindow.GoToOptionsCommand}" CanExecute="GoToOptionsCommand_CanExecute" Executed="GoToOptionsCommand_Execute"/>
+    </Window.CommandBindings>
+
+    <Window.InputBindings>
+        <KeyBinding Command="{x:Static local:MainWindow.NewTabCommand}" Modifiers="Ctrl" Key="N"/>
+        <KeyBinding Command="{x:Static local:MainWindow.CloseTabCommand}" Modifiers="Ctrl" Key="F4"/>
+        <KeyBinding Command="{x:Static local:MainWindow.DuplicateTabCommand}" Modifiers="Ctrl" Key="D" />
+        <KeyBinding Command="{x:Static local:MainWindow.GoToOptionsCommand}" Modifiers="" Key="F4" />
+    </Window.InputBindings>
+
+    <Grid Margin="0 1 0 0">
+
+        <TextBlock x:Name="textBlockInfo" Text="Loading..." TextAlignment="Center" VerticalAlignment="Center"/>
+
+        <TabControl x:Name="tabControl" Visibility="Hidden">
+
+            <TabControl.Resources>
+
+                <DataTemplate x:Key="TabTemplate" DataType="TabItem">
+
+                    <DataTemplate.Triggers>
+                        <EventTrigger RoutedEvent="Binding.TargetUpdated">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation 
+                                        Storyboard.TargetName="TabCaption" 
+                                        Storyboard.TargetProperty="Opacity" 
+                                        From="0" 
+                                        To="1"  
+                                        Duration="00:00:01.33" />
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </DataTemplate.Triggers>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Label x:Name="TabCaption" 
+                               Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Header, NotifyOnTargetUpdated=True}"
+                               />
+                        <!--<TextBox x:Name="TabNameEditor" Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Header, Mode=OneWay}"/>-->
+
+                        <!-- ╳ ⛌ ⛒ ❌ ⨯ ×  ➕ -->
+
+                        <Button x:Name="btnDeleteTab" 
+                                Content="⨯" 
+                                ToolTip="Close tab"
+                                Margin="3 0 0 0"
+                                Command="{x:Static local:MainWindow.CloseTabCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=.}" 
+                                IsTabStop="False"
+                                >
+
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            Margin="0"
+                                            Padding="3 1"
+                                            BorderThickness="1"
+                                            >
+
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+
+                                                <Style.Triggers>
+
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=IsSelected}" Value="False"/>
+                                                            <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=IsMouseOver}" Value="False"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Visibility" Value="Hidden"/>
+                                                    </MultiDataTrigger>
+
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"/>
+                                                        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}"/>
+                                                    </Trigger>
+
+                                                    <Trigger Property="IsMouseOver" Value="False">
+                                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                                    </Trigger>
+
+                                                </Style.Triggers>
+
+                                            </Style>
+                                        </Border.Style>
+
+                                        <ContentPresenter VerticalAlignment="Center"/>
+
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
+                </DataTemplate>
+            </TabControl.Resources>
+
+
+            <TabItem Header="Regex 1" HeaderTemplate="{StaticResource TabTemplate}">
+                <Grid Background="#FFE5E5E5"/>
+            </TabItem>
+
+            <TabItem x:Name="tabItemNew" Header="[NEW]">
+                <TabItem.Template>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Margin" Value="0"/>
+                                    <Setter Property="BorderThickness" Value="1 1 1 0"/>
+                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=IsSelected}" Value="True">
+                                            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <Button x:Name="btnNewTab" 
+                                    Content="➕"
+                                    ToolTip="New Tab"
+                                    Margin="5 4"
+                                    Padding="5 1"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    BorderBrush="Transparent"
+                                    IsTabStop="False" 
+                                    HorizontalContentAlignment="Left"
+                                    Command="{x:Static local:MainWindow.NewTabCommand}"
+                                    >
+                            </Button>
+                        </Border>
+                    </ControlTemplate>
+                </TabItem.Template>
+
+                <Button Content="Add New Tab" 
+                        Margin="10,14,0,0" 
+                        Padding="19 5" 
+                        Width="Auto" 
+                        Height="Auto" 
+                        HorizontalAlignment="Left" 
+                        VerticalAlignment="Top"
+                        Command="{x:Static local:MainWindow.NewTabCommand}" />
+            </TabItem>
+        </TabControl>
+    </Grid>
+
+</Window>

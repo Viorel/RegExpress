@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33516.290
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RegExpressWPFNET", "RegExpressWPFNET\RegExpressWPFNET.csproj", "{1FC75DB1-75DB-43DE-A0F8-F61C8C01C06A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A} = {F9BC3D3D-A569-4D81-9B63-F0B3D45C847A}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RegExpressLibrary", "RegExpressLibrary\RegExpressLibrary.csproj", "{6EA59B67-323A-438F-AA39-8FDFF40B91B1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RegexEngines", "RegexEngines", "{91ED61CD-C8DA-4845-80E0-A892A0A80E14}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetRegexEngine", "RegexEngines\DotNetRegexEngine\DotNetRegexEngine.csproj", "{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1FC75DB1-75DB-43DE-A0F8-F61C8C01C06A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FC75DB1-75DB-43DE-A0F8-F61C8C01C06A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FC75DB1-75DB-43DE-A0F8-F61C8C01C06A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FC75DB1-75DB-43DE-A0F8-F61C8C01C06A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6EA59B67-323A-438F-AA39-8FDFF40B91B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6EA59B67-323A-438F-AA39-8FDFF40B91B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6EA59B67-323A-438F-AA39-8FDFF40B91B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6EA59B67-323A-438F-AA39-8FDFF40B91B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A} = {91ED61CD-C8DA-4845-80E0-A892A0A80E14}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2EA46475-3CEB-45D5-AAE9-525FCE04340B}
+	EndGlobalSection
+EndGlobal
