@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\RegExpressLibrary\RegExpressLibrary.csproj">
+        <ProjectReference Include="..\..\..\RegExpressLibrary\RegExpressLibrary.csproj">
             <Private>false</Private>
             <ExcludeAssets>runtime</ExcludeAssets>
         </ProjectReference>
