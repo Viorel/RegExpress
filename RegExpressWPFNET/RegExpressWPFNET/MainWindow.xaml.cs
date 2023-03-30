@@ -87,6 +87,26 @@ namespace RegExpressWPFNET
                     PluginLoadContext load_context = new PluginLoadContext( plugin_absolute_path );
 
                     var assembly = load_context.LoadFromAssemblyName( new AssemblyName( System.IO.Path.GetFileNameWithoutExtension( plugin_absolute_path ) ) );
+
+                    var plugin_type = typeof( IRegexPlugin );
+
+                    foreach( Type type in assembly.GetTypes( ) )
+                    {
+                        if( plugin_type.IsAssignableFrom( type ) )
+                        {
+                            try
+                            {
+                                Debug.WriteLine( $"Making plugin \"{type.FullName}\"..." );
+                                IRegexPlugin plugin = (IRegexPlugin)Activator.CreateInstance( type )!;
+                                mRegexPlugins.Add( plugin );
+                            }
+                            catch( Exception exc )
+                            {
+                                MessageBox.Show( $"Failed to create plugin \"{plugin_path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
+                            }
+                        }
+                    }
+
                 }
                 catch( Exception exc )
                 {

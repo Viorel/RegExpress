@@ -3,7 +3,7 @@ using System.Diagnostics;
 using RegExpressLibrary;
 
 
-namespace DotNet7Plugin
+namespace DotNET7Plugin
 {
     public class Plugin : IRegexPlugin
     {

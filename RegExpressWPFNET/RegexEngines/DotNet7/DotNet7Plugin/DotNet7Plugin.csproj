@@ -17,7 +17,7 @@
     </ItemGroup>
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-      <Exec Command="@xcopy /D /R /Y &quot;$(TargetPath)&quot; &quot;$(SolutionDir)RegExpressWPFNET\$(OutDir)Engines\*&quot;" />
+      <Exec Command="@xcopy /D /R /Y &quot;$(TargetPath)&quot; &quot;$(SolutionDir)RegExpressWPFNET\$(OutDir)Engines\DotNET7\*&quot;" />
     </Target>
 
 </Project>
