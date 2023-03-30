@@ -36,7 +36,7 @@ namespace RegExpressWPFNET
         public static readonly RoutedUICommand DuplicateTabCommand = new( );
         public static readonly RoutedUICommand GoToOptionsCommand = new( );
 
-        readonly List<IRegexPlugin> mRegexPlugins = new List<IRegexPlugin>( );
+        readonly List<IRegexPlugin> mRegexPlugins = new( );
 
         public MainWindow( )
         {
@@ -53,6 +53,8 @@ namespace RegExpressWPFNET
             Debug.Assert( tabControl.Visibility == Visibility.Collapsed );
             Debug.Assert( !mRegexPlugins.Any( ) );
 
+            // Load plugins
+
             DateTime start_time = DateTime.UtcNow;
 
             string[]? plugin_paths;
@@ -66,14 +68,15 @@ namespace RegExpressWPFNET
                 using FileStream plugins_stream = File.OpenRead( plugins_path );
 
                 plugin_paths = await JsonSerializer.DeserializeAsync<string[]>( plugins_stream );
-                Debug.WriteLine( $"Total {plugin_paths!.Count( )} paths" );
+                Debug.WriteLine( $"Total {plugin_paths!.Length} paths" );
             }
             catch( Exception exc )
             {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
                 MessageBox.Show( $"Failed to load plugins.\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
 
                 Close( );
-
                 return;
             }
 
@@ -84,7 +87,7 @@ namespace RegExpressWPFNET
                 {
                     Debug.WriteLine( $"Trying to load plugin \"{plugin_absolute_path}\"..." );
 
-                    PluginLoadContext load_context = new PluginLoadContext( plugin_absolute_path );
+                    PluginLoadContext load_context = new( plugin_absolute_path );
 
                     var assembly = load_context.LoadFromAssemblyName( new AssemblyName( System.IO.Path.GetFileNameWithoutExtension( plugin_absolute_path ) ) );
 
@@ -102,6 +105,8 @@ namespace RegExpressWPFNET
                             }
                             catch( Exception exc )
                             {
+                                if( Debugger.IsAttached ) Debugger.Break( );
+
                                 MessageBox.Show( $"Failed to create plugin \"{plugin_path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
                             }
                         }
@@ -110,11 +115,19 @@ namespace RegExpressWPFNET
                 }
                 catch( Exception exc )
                 {
+                    if( Debugger.IsAttached ) Debugger.Break( );
+
                     MessageBox.Show( $"Failed to load plugin \"{plugin_path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
                 }
             }
 
-            Debug.WriteLine( $"Total {mRegexPlugins.Count( )} plugins" );
+#if DEBUG
+            Debug.WriteLine( $"Total {mRegexPlugins.Count} {( mRegexPlugins.Count == 1 ? "plugin" : "plugins" )}:" );
+            foreach( var p in mRegexPlugins )
+            {
+                Debug.WriteLine( $"   {p.Name} {p.Version}" );
+            }
+#endif
 
             const int minimum_elapsed = 1111;
 

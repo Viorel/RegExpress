@@ -7,7 +7,7 @@ namespace DotNET7Plugin
 {
     public class Plugin : IRegexPlugin
     {
-        static readonly Lazy<string> LazyVersion = new Lazy<string>( GetVersion );
+        static readonly Lazy<string> LazyVersion = new( GetVersion );
 
         #region IRegexPlugin
 
