@@ -211,6 +211,24 @@ namespace RegExpressWPFNET
         }
 
 
+        private void tabControlMain_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            if( !IsFullyLoaded ) return;
+
+            TabItem? old_tab_item = e.RemovedItems?.AsQueryable( ).OfType<TabItem>( ).SingleOrDefault( );
+            UCMain? old_uc_main = old_tab_item?.Content as UCMain;
+
+            TabItem? new_tab_item = e.AddedItems?.AsQueryable( ).OfType<TabItem>( ).SingleOrDefault( );
+            UCMain? new_uc_main = new_tab_item?.Content as UCMain;
+
+            if( old_uc_main != null && new_uc_main != null )
+            {
+                var old_metrics = old_uc_main.GetMetrics( );
+                new_uc_main.ApplyMetrics( old_metrics, full: false );
+            }
+        }
+
+
         private void Window_Closing( object sender, System.ComponentModel.CancelEventArgs e )
         {
             AutoSaveLoop.SignalRewind( );
@@ -285,6 +303,7 @@ namespace RegExpressWPFNET
 
         private void GoToOptionsCommand_Execute( object sender, ExecutedRoutedEventArgs e )
         {
+            GoToOptions( );
         }
 
         #endregion
@@ -570,6 +589,21 @@ namespace RegExpressWPFNET
                 tabControl.SelectedItem = new_tab_item;
 
                 RenumberTabs( );
+            }
+        }
+
+
+        void GoToOptions( )
+        {
+            var uc_main = GetActiveUCMain( );
+
+            if( uc_main == null )
+            {
+                Debug.Assert( false );
+            }
+            else
+            {
+                uc_main.GoToOptions( );
             }
         }
 

@@ -29,7 +29,7 @@
 
         <TextBlock x:Name="textBlockInfo" Text="Loading..." TextAlignment="Center" VerticalAlignment="Center"/>
 
-        <TabControl x:Name="tabControl" Visibility="Hidden">
+        <TabControl x:Name="tabControl" Visibility="Hidden" SelectionChanged="tabControlMain_SelectionChanged">
 
             <TabControl.Resources>
 
