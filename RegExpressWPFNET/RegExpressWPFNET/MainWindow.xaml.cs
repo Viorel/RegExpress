@@ -231,6 +231,8 @@ namespace RegExpressWPFNET
         }
 
 
+        #region Commands
+
         private void NewTabCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
         {
             e.CanExecute = true;
@@ -245,13 +247,22 @@ namespace RegExpressWPFNET
 
         private void CloseTabCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
         {
-            e.CanExecute = true;
+            e.CanExecute = ( tabControl.SelectedItem as TabItem )?.Content is UCMain;
         }
 
 
         private void CloseTabCommand_Execute( object sender, ExecutedRoutedEventArgs e )
         {
-            SystemSounds.Beep.Play( );
+            TabItem? tab_item = ( e.Parameter as TabItem ) ?? tabControl.SelectedItem as TabItem;
+
+            if( tab_item != null && tab_item.Content is UCMain )
+            {
+                CloseTab( tab_item );
+            }
+            else
+            {
+                SystemSounds.Beep.Play( );
+            }
         }
 
 
@@ -275,6 +286,7 @@ namespace RegExpressWPFNET
         {
         }
 
+        #endregion
 
         IReadOnlyList<IRegexEngine> CreateEngines( )
         {
@@ -385,7 +397,6 @@ namespace RegExpressWPFNET
         }
 
 
-        [SuppressMessage( "Design", "CA1031:Do not catch general exception types", Justification = "<Pending>" )]
         void TryRestoreWindowPlacement( )
         {
             try
@@ -482,6 +493,53 @@ namespace RegExpressWPFNET
 
             return new_tab_item;
         }
+
+
+        void CloseTab( TabItem tabItem )
+        {
+            var index = tabControl.Items.IndexOf( tabItem );
+
+            tabControl.SelectedItem = tabItem;
+
+            var r = MessageBox.Show( this, "Remove this tab?", "WARNING",
+                MessageBoxButton.OKCancel, MessageBoxImage.Exclamation,
+                MessageBoxResult.OK, MessageBoxOptions.None );
+
+            if( r != MessageBoxResult.OK ) return;
+
+            UCMain uc_main = (UCMain)tabItem.Content;
+
+            uc_main.Shutdown( );
+
+            tabControl.Items.Remove( tabItem );
+
+            if( tabControl.Items[index] == tabItemNew ) --index;
+
+            if( index < 0 )
+            {
+                CreateTab( null );
+                index = 0;
+            }
+
+            tabControl.SelectedIndex = index;
+
+            RenumberTabs( );
+        }
+
+
+        void RenumberTabs( )
+        {
+            var main_tabs = tabControl.Items.OfType<TabItem>( ).Where( t => t.Content is UCMain );
+            int i = 0;
+            foreach( var tab in main_tabs )
+            {
+                var name = "Regex " + ( ++i );
+                if( !name.Equals( tab.Header ) ) tab.Header = name; // ('If' to avoid effects)
+            }
+        }
+
+
+
 
         #endregion
 
