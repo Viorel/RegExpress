@@ -1,0 +1,62 @@
+﻿<UserControl x:Class="DotNET7Plugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:DotNET7Plugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="223" d:DesignWidth="194.333" 
+             Loaded="UserControl_Loaded">
+    <Grid>
+        <StackPanel>
+            <StackPanel>
+                <StackPanel.Resources>
+                    <Style TargetType="CheckBox">
+                        <EventSetter Event="Checked" Handler="CbOption_Changed"/>
+                        <EventSetter Event="Unchecked" Handler="CbOption_Changed"/>
+                    </Style>
+                </StackPanel.Resources>
+                <CheckBox IsChecked="{Binding CultureInvariant}">
+                    <ui:TextAndNote Text="CultureInvariant"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding ECMAScript}">
+                    <ui:TextAndNote Text="ECMAScript"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding ExplicitCapture}">
+                    <ui:TextAndNote Text="ExplicitCapture"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding IgnoreCase}">
+                    <ui:TextAndNote Text="IgnoreCase"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding IgnorePatternWhitespace}">
+                    <ui:TextAndNote Text="IgnorePatternWhitespace"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding Multiline}">
+                    <ui:TextAndNote Text="Multiline" Note="'^', '$' at '\n' too"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding RightToLeft}">
+                    <ui:TextAndNote Text="RightToLeft"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding Singleline}">
+                    <ui:TextAndNote Text="Singleline" Note="'.' matches '\n' too"/>
+                </CheckBox>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
+                <StackPanel.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </StackPanel.LayoutTransform>
+                <Label Content="Timeout:" Target="{Binding ElementName=cbxTimeout}"/>
+                <ComboBox x:Name="cbxTimeout" SelectedValuePath="Tag" SelectedValue="{Binding TimeoutMs, FallbackValue='10000'}" VerticalAlignment="Center" SelectionChanged="cbxTimeout_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
+                    <ComboBoxItem Tag="1000" Content="1 s"/>
+                    <ComboBoxItem Tag="2000" Content="2 s"/>
+                    <ComboBoxItem Tag="5000" Content="5 s"/>
+                    <ComboBoxItem Tag="10000" Content="10 s" IsSelected="True"/>
+                    <ComboBoxItem Tag="15000" Content="15 s"/>
+                    <ComboBoxItem Tag="30000" Content="30 s"/>
+                </ComboBox>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>
+    

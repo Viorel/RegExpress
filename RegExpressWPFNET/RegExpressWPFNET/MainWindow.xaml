@@ -5,7 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RegExpressWPFNET"
         mc:Ignorable="d"
-        Title="RegExpress" Height="450" Width="800" Loaded="Window_Loaded">
+        Title="RegExpress" Height="450" Width="800" 
+        SourceInitialized="Window_SourceInitialized"
+        Loaded="Window_Loaded"
+        Closing="Window_Closing"  
+        >
 
     <Window.CommandBindings>
         <CommandBinding Command="{x:Static local:MainWindow.NewTabCommand}" CanExecute="NewTabCommand_CanExecute" Executed="NewTabCommand_Execute"/>
@@ -110,9 +114,10 @@
             </TabControl.Resources>
 
 
-            <TabItem Header="Regex 1" HeaderTemplate="{StaticResource TabTemplate}">
-                <Grid Background="#FFE5E5E5"/>
+            <TabItem x:Name="tabInitial" Header="Regex 1" HeaderTemplate="{StaticResource TabTemplate}">
+
             </TabItem>
+
 
             <TabItem x:Name="tabItemNew" Header="[NEW]">
                 <TabItem.Template>

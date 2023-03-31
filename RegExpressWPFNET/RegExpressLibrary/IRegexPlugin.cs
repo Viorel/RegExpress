@@ -1,11 +1,10 @@
 using System;
+using System.Collections.Generic;
 
 namespace RegExpressLibrary
 {
     public interface IRegexPlugin
     {
-        string Id { get; }
-        string Name { get; }
-        string Version { get; }
+        IReadOnlyList<IRegexEngine> GetEngines();
     }
 }
