@@ -190,7 +190,7 @@ namespace RegExpressWPFNET
 
                 tabControl.Items.Remove( tabInitial );
 
-                CreateTab( null );
+                AddNewTab( null );
             }
 
 
@@ -241,7 +241,7 @@ namespace RegExpressWPFNET
 
         private void NewTabCommand_Execute( object sender, ExecutedRoutedEventArgs e )
         {
-            CreateTab( null );
+            AddNewTab( null );
         }
 
 
@@ -274,6 +274,7 @@ namespace RegExpressWPFNET
 
         private void DuplicateTabCommand_Execute( object sender, ExecutedRoutedEventArgs e )
         {
+            DuplicateTab( );
         }
 
         private void GoToOptionsCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
@@ -448,7 +449,7 @@ namespace RegExpressWPFNET
 
         #region Tabs
 
-        TabItem CreateTab( TabData? tabData )
+        TabItem AddNewTab( TabData? tabData )
         {
             int max =
                 tabControl.Items
@@ -517,7 +518,7 @@ namespace RegExpressWPFNET
 
             if( index < 0 )
             {
-                CreateTab( null );
+                AddNewTab( null );
                 index = 0;
             }
 
@@ -539,7 +540,38 @@ namespace RegExpressWPFNET
         }
 
 
+        void DuplicateTab( )
+        {
+            TabItem? new_tab_item = null;
+            var tab_data = new TabData( );
 
+            TabItem? selected_tab_item = tabControl.SelectedItem as TabItem;
+
+            if( selected_tab_item != null && selected_tab_item.Content is UCMain )
+            {
+                var uc_main = (UCMain)selected_tab_item.Content;
+                uc_main.ExportTabData( tab_data );
+                new_tab_item = AddNewTab( tab_data );
+
+                if( tabControl.Items.IndexOf( new_tab_item ) != tabControl.Items.IndexOf( selected_tab_item ) + 1 )
+                {
+                    tabControl.Items.Remove( new_tab_item );
+                    int i = tabControl.Items.IndexOf( selected_tab_item );
+                    tabControl.Items.Insert( i + 1, new_tab_item );
+                }
+            }
+
+            if( new_tab_item == null )
+            {
+                SystemSounds.Beep.Play( );
+            }
+            else
+            {
+                tabControl.SelectedItem = new_tab_item;
+
+                RenumberTabs( );
+            }
+        }
 
         #endregion
 
