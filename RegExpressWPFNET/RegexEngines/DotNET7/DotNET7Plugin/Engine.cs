@@ -74,7 +74,7 @@ namespace DotNET7Plugin
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json )!;
+                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonOptions )!;
                 }
                 catch
                 {

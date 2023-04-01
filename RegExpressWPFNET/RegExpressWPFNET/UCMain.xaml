@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:RegExpressWPFNET"
         mc:Ignorable="d"
         Width="800" 
-        Height="550" 
+        Height="450" 
         Loaded="UserControl_Loaded" 
         Unloaded="UserControl_Unloaded"
         IsVisibleChanged="UserControl_IsVisibleChanged" 
@@ -26,7 +26,7 @@
                 <RowDefinition Height="5" />
                 <RowDefinition Height="*" MinHeight="33" />
                 <RowDefinition Height="5" />
-                <RowDefinition x:Name="BottomRow" Height="276" MinHeight="33" />
+                <RowDefinition x:Name="BottomRow" Height="230" MinHeight="33" />
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0" Margin="0 0 0 1">

@@ -495,7 +495,7 @@ namespace RegExpressWPFNET
 
                     // TODO: if no exact match, identify the most appropriate engine
 
-                    options = tabData.CustomOptions.FirstOrDefault( o => o.CombinedId == eng.CombinedId )?.Options;
+                    options = tabData.CustomOptions?.FirstOrDefault( o => o.CombinedId == eng.CombinedId )?.Options;
 
                     if( options != null )
                     {

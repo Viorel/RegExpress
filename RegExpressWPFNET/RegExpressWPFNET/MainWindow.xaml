@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RegExpressWPFNET"
         mc:Ignorable="d"
-        Title="RegExpress" Height="450" Width="800" 
+        Title="RegExpress" Height="500" Width="800" 
         SourceInitialized="Window_SourceInitialized"
         Loaded="Window_Loaded"
         Closing="Window_Closing"  

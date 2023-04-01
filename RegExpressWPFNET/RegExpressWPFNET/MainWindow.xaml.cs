@@ -163,40 +163,53 @@ namespace RegExpressWPFNET
 
             // --- Load saved data
 
-            //...
+            AllTabData? all_tab_data = null;
+            string my_file = GetMyDataFile( );
 
-            if( false )
+            try
             {
-
+                using( var s = File.OpenRead( my_file ) )
+                {
+                    all_tab_data = JsonSerializer.Deserialize<AllTabData>( s, JsonOptions );
+                }
             }
-            else
+            catch( DirectoryNotFoundException )
+            {
+                // ignore
+            }
+            catch( FileNotFoundException )
+            {
+                // ignore
+            }
+            catch( Exception exc )
+            {
+                _ = exc;
+                if( Debugger.IsAttached ) Debugger.Break( );
+            }
+
+            tabControl.Items.Remove( tabInitial );
+
+            if( all_tab_data == null || !all_tab_data.Tabs.Any( ) )
             {
                 // No saved data
 
-                //TabItem new_tab_item = new( )
-                //{
-                //    Header = "Regex 1",
-                //    HeaderTemplate = (DataTemplate)tabControl.Resources["TabTemplate"]
-                //};
-                //
-                //var uc_main = new UCMain( mEngines )
-                //{
-                //    Width = double.NaN,
-                //    Height = double.NaN
-                //};
-                //uc_main.Changed += UCMain_Changed;
-                //
-                //new_tab_item.Content = uc_main;
-                //
-                //tabControl.Items.Insert( tabControl.Items.IndexOf( tabItemNew ), new_tab_item );
-                //tabControl.SelectedItem = new_tab_item;
-
-                tabControl.Items.Remove( tabInitial );
-
                 AddNewTab( null );
             }
+            else
+            {
+                Debug.Assert( all_tab_data.Tabs.Any( ) );
 
+                TabItem first_tab = null;
 
+                foreach( var tab_data in all_tab_data.Tabs )
+                {
+                    TabItem tab = AddNewTab( tab_data );
+
+                    if( first_tab == null ) first_tab = tab;
+                }
+
+                if( first_tab != null ) tabControl.SelectedItem = first_tab;
+            }
 
             // --- Delay effect
 
@@ -329,6 +342,16 @@ namespace RegExpressWPFNET
             Dispatcher.InvokeAsync( SaveAllTabData, DispatcherPriority.ApplicationIdle );
         }
 
+
+        string GetMyDataFile( )
+        {
+            string user_config_path = ConfigurationManager.OpenExeConfiguration( ConfigurationUserLevel.PerUserRoamingAndLocal ).FilePath;
+            string my_file = Path.Combine( Path.GetDirectoryName( user_config_path )!, "RegExpressData.json" );
+
+            return my_file;
+        }
+
+
         void SaveAllTabData( )
         {
             try
@@ -345,9 +368,7 @@ namespace RegExpressWPFNET
                 }
 
                 string json = JsonSerializer.Serialize( all_data, JsonOptions );
-
-                string user_config_path = ConfigurationManager.OpenExeConfiguration( ConfigurationUserLevel.PerUserRoamingAndLocal ).FilePath;
-                string my_file = Path.Combine( Path.GetDirectoryName( user_config_path )!, "RegExpressData.json" );
+                string my_file = GetMyDataFile( );
 
                 File.WriteAllText( my_file, json );
 
