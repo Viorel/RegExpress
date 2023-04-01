@@ -129,8 +129,9 @@ namespace RegExpressWPFNET
 
                 tabData.Pattern = InitialTabData.Pattern;
                 tabData.Text = InitialTabData.Text;
-                tabData.ActiveEngineId = InitialTabData.ActiveEngineId;
-                tabData.AllRegexOptions = InitialTabData.AllRegexOptions ?? new Dictionary<(string Kind, Version Version), string?>( );
+                tabData.ActiveKind = InitialTabData.ActiveKind;
+                tabData.ActiveVersion = InitialTabData.ActiveVersion;
+                tabData.CustomOptions = InitialTabData.CustomOptions ?? new( );
                 tabData.ShowFirstMatchOnly = InitialTabData.ShowFirstMatchOnly;
                 tabData.ShowSucceededGroupsOnly = InitialTabData.ShowSucceededGroupsOnly;
                 tabData.ShowCaptures = InitialTabData.ShowCaptures;
@@ -142,7 +143,8 @@ namespace RegExpressWPFNET
             {
                 tabData.Pattern = ucPattern.GetBaseTextData( "\n" ).Text;
                 tabData.Text = ucText.GetBaseTextData( "\n" ).Text;
-                tabData.ActiveEngineId = CurrentRegexEngine.CombinedId;
+                tabData.ActiveKind = CurrentRegexEngine.Kind;
+                tabData.ActiveVersion = CurrentRegexEngine.Version;
                 tabData.ShowFirstMatchOnly = cbShowFirstOnly.IsChecked == true;
                 tabData.ShowSucceededGroupsOnly = cbShowSucceededGroupsOnly.IsChecked == true;
                 tabData.ShowCaptures = cbShowCaptures.IsChecked == true;
@@ -152,9 +154,11 @@ namespace RegExpressWPFNET
 
                 // save options of active and inactive engines
 
+                tabData.CustomOptions = new( );
+
                 foreach( var engine in RegexEngines )
                 {
-                    tabData.AllRegexOptions[engine.CombinedId] = engine.ExportOptions( );
+                    tabData.CustomOptions.Add( new CustomOptions { Kind = engine.Kind, Version = engine.Version, Options = engine.ExportOptions( ) } );
                 }
             }
         }
@@ -478,7 +482,7 @@ namespace RegExpressWPFNET
             {
                 // TODO: if no exact match, identify the most appropriate engine
 
-                IRegexEngine? engine = RegexEngines.SingleOrDefault( eng => eng.CombinedId == tabData.ActiveEngineId );
+                IRegexEngine? engine = RegexEngines.SingleOrDefault( eng => eng.CombinedId == tabData.ActiveCombinedId );
                 if( engine == null ) engine = DefaultRegexEngine;
 
                 CurrentRegexEngine = engine;
@@ -491,7 +495,9 @@ namespace RegExpressWPFNET
 
                     // TODO: if no exact match, identify the most appropriate engine
 
-                    if( tabData.AllRegexOptions?.TryGetValue( eng.CombinedId, out options ) == true )
+                    options = tabData.CustomOptions.FirstOrDefault( o => o.CombinedId == eng.CombinedId )?.Options;
+
+                    if( options != null )
                     {
                         eng.ImportOptions( options );
                     }

@@ -10,17 +10,17 @@ namespace DotNET7Plugin
 {
     class Options
     {
-        public bool IgnoreCase { get; set; }
-        public bool Multiline { get; set; }
-        public bool ExplicitCapture { get; set; }
-        public bool Compiled { get; set; }
-        public bool Singleline { get; set; }
-        public bool IgnorePatternWhitespace { get; set; }
-        public bool RightToLeft { get; set; }
-        public bool ECMAScript { get; set; }
-        public bool CultureInvariant { get; set; }
+        public bool IgnoreCase;
+        public bool Multiline;
+        public bool ExplicitCapture;
+        public bool Compiled;
+        public bool Singleline;
+        public bool IgnorePatternWhitespace;
+        public bool RightToLeft;
+        public bool ECMAScript;
+        public bool CultureInvariant;
 
-        public long TimeoutMs { get; set; } = 10_000;
+        public long TimeoutMs = 10_000;
 
 
         [JsonIgnore]

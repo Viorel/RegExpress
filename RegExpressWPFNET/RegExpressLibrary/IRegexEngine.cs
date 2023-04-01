@@ -15,25 +15,23 @@ namespace RegExpressLibrary
 
     public interface IRegexEngine
     {
+        event RegexEngineOptionsChanged? OptionsChanged;
+
         string Kind { get; }
 
         Version Version { get; }
 
-        string Name { get; }
-
-
         (string Kind, Version Version) CombinedId => (Kind, Version);
 
+        string Name { get; }
 
         RegexEngineCapabilityEnum Capabilities { get; }
 
         string? NoteForCaptures { get; }
 
-        event RegexEngineOptionsChanged? OptionsChanged;
-
         Control GetOptionsControl( );
 
-        string? ExportOptions( ); // (json)
+        string? ExportOptions( ); // (JSON)
 
         void ImportOptions( string? json );
 
@@ -44,6 +42,5 @@ namespace RegExpressLibrary
         GenericOptions GetGenericOptions( );
 
         IReadOnlyList<(string variantName, FeatureMatrix fm)> GetFeatureMatrices( );
-
     }
 }

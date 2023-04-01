@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace RegExpressWPFNET.Code
 {
-    internal class RawJSONConverter : JsonConverter<string>
+    internal class RawJsonConverter : JsonConverter<string>
     {
         public override string? Read( ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options )
         {

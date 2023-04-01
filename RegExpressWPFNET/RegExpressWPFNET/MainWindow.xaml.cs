@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.DirectoryServices.ActiveDirectory;
 using System.Globalization;
 using System.IO;
+using System.IO.IsolatedStorage;
 using System.Linq;
 using System.Media;
 using System.Reflection;
@@ -26,7 +28,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using RegExpressLibrary;
 using RegExpressWPFNET.Code;
-
+using Path = System.IO.Path;
 
 namespace RegExpressWPFNET
 {
@@ -45,6 +47,7 @@ namespace RegExpressWPFNET
         public static readonly RoutedUICommand GoToOptionsCommand = new( );
 
         readonly List<IRegexPlugin> mRegexPlugins = new( );
+        static readonly JsonSerializerOptions JsonOptions = new( ) { IncludeFields = true, WriteIndented = true };
 
         public MainWindow( )
         {
@@ -82,11 +85,11 @@ namespace RegExpressWPFNET
             DateTime start_time = DateTime.UtcNow;
 
             string[]? plugin_paths;
-            string exe_path = System.IO.Path.GetDirectoryName( Assembly.GetEntryAssembly( )!.Location )!;
+            string exe_path = Path.GetDirectoryName( Assembly.GetEntryAssembly( )!.Location )!;
 
             try
             {
-                string plugins_path = System.IO.Path.Combine( exe_path, "Plugins.json" );
+                string plugins_path = Path.Combine( exe_path, "Plugins.json" );
                 Debug.WriteLine( $"Loading \"{plugins_path}\"..." );
 
                 using FileStream plugins_stream = File.OpenRead( plugins_path );
@@ -106,14 +109,14 @@ namespace RegExpressWPFNET
 
             foreach( var plugin_path in plugin_paths! )
             {
-                var plugin_absolute_path = System.IO.Path.Combine( exe_path, plugin_path );
+                var plugin_absolute_path = Path.Combine( exe_path, plugin_path );
                 try
                 {
                     Debug.WriteLine( $"Trying to load plugin \"{plugin_absolute_path}\"..." );
 
                     PluginLoadContext load_context = new( plugin_absolute_path );
 
-                    var assembly = load_context.LoadFromAssemblyName( new AssemblyName( System.IO.Path.GetFileNameWithoutExtension( plugin_absolute_path ) ) );
+                    var assembly = load_context.LoadFromAssemblyName( new AssemblyName( Path.GetFileNameWithoutExtension( plugin_absolute_path ) ) );
 
                     var plugin_type = typeof( IRegexPlugin );
 
@@ -328,7 +331,49 @@ namespace RegExpressWPFNET
 
         void SaveAllTabData( )
         {
-            //........
+            try
+            {
+
+                var all_data = new AllTabData( );
+                var uc_main_controls = tabControl.Items.OfType<TabItem>( ).Select( t => t.Content as UCMain ).Where( m => m != null );
+
+                foreach( var uc_main in uc_main_controls )
+                {
+                    var tab_data = new TabData( );
+                    uc_main!.ExportTabData( tab_data );
+                    all_data.Tabs.Add( tab_data );
+                }
+
+                string json = JsonSerializer.Serialize( all_data, JsonOptions );
+
+                string user_config_path = ConfigurationManager.OpenExeConfiguration( ConfigurationUserLevel.PerUserRoamingAndLocal ).FilePath;
+                string my_file = Path.Combine( Path.GetDirectoryName( user_config_path )!, "RegExpressData.json" );
+
+                File.WriteAllText( my_file, json );
+
+                /*
+                // An alternative (different folder)
+                using( IsolatedStorageFile user_store = IsolatedStorageFile.GetUserStoreForApplication( ) )
+                {
+                    using( IsolatedStorageFileStream f = user_store.CreateFile( "RegExpressData.json" ) )
+                    {
+                        Debug.WriteLine( $"Saving data to \"{f.Name}\"..." );
+
+                        using( var sw = new StreamWriter( f ) )
+                        {
+                            sw.WriteLine( json );
+                        }
+                    }
+                }
+                */
+            }
+            catch( Exception exc )
+            {
+                _ = exc;
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                // ignore
+            }
         }
 
         UCMain? GetActiveUCMain( )

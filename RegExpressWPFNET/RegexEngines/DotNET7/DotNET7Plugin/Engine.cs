@@ -18,6 +18,7 @@ namespace DotNET7Plugin
         static readonly Lazy<Version> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
+        static readonly JsonSerializerOptions JsonOptions = new( ) { IncludeFields = true, WriteIndented = true };
 
 
         public Engine( )
@@ -55,7 +56,7 @@ namespace DotNET7Plugin
         public string? ExportOptions( )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options );
+            string json = JsonSerializer.Serialize( options, JsonOptions );
 
             return json;
         }
