@@ -131,7 +131,7 @@ namespace RegExpressWPFNET
                 tabData.Text = InitialTabData.Text;
                 tabData.ActiveKind = InitialTabData.ActiveKind;
                 tabData.ActiveVersion = InitialTabData.ActiveVersion;
-                tabData.CustomOptions = InitialTabData.CustomOptions ?? new( );
+                tabData.EngineOptions = InitialTabData.EngineOptions ?? new( );
                 tabData.ShowFirstMatchOnly = InitialTabData.ShowFirstMatchOnly;
                 tabData.ShowSucceededGroupsOnly = InitialTabData.ShowSucceededGroupsOnly;
                 tabData.ShowCaptures = InitialTabData.ShowCaptures;
@@ -154,11 +154,11 @@ namespace RegExpressWPFNET
 
                 // save options of active and inactive engines
 
-                tabData.CustomOptions = new( );
+                tabData.EngineOptions = new( );
 
                 foreach( var engine in RegexEngines )
                 {
-                    tabData.CustomOptions.Add( new CustomOptions { Kind = engine.Kind, Version = engine.Version, Options = engine.ExportOptions( ) } );
+                    tabData.EngineOptions.Add( new EngineOptions { Kind = engine.Kind, Version = engine.Version, Options = engine.ExportOptions( ) } );
                 }
             }
         }
@@ -495,7 +495,7 @@ namespace RegExpressWPFNET
 
                     // TODO: if no exact match, identify the most appropriate engine
 
-                    options = tabData.CustomOptions?.FirstOrDefault( o => o.CombinedId == eng.CombinedId )?.Options;
+                    options = tabData.EngineOptions?.FirstOrDefault( o => o.CombinedId == eng.CombinedId )?.Options;
 
                     if( options != null )
                     {

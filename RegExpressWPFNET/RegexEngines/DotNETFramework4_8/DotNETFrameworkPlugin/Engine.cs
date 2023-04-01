@@ -7,11 +7,11 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Controls;
-using DotNETPlugin.Matches;
+using DotNETFrameworkPlugin.Matches;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 
-namespace DotNETPlugin
+namespace DotNETFrameworkPlugin
 {
     class Engine : IRegexEngine
     {
@@ -35,11 +35,11 @@ namespace DotNETPlugin
 
         #region IRegexEngine
 
-        public string Kind => ".NET";
+        public string Kind => ".NETFramework";
 
         public Version Version => LazyVersion.Value;
 
-        public string Name => "Regex, .NET";
+        public string Name => "Regex, .NET Framework";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.ScrollErrorsToEnd;
 
@@ -92,13 +92,8 @@ namespace DotNETPlugin
         public IMatcher ParsePattern( string pattern )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
-            RegexOptions regex_native_options = options.NativeOptions;
-            TimeSpan timeout = TimeSpan.FromMilliseconds( options.TimeoutMs );
-            if( timeout <= TimeSpan.Zero ) timeout = TimeSpan.FromSeconds( 10 );
 
-            var regex = new Regex( pattern, regex_native_options, timeout );
-
-            return new Matcher( regex );
+            return new Matcher( pattern, options );
 
         }
 
@@ -133,18 +128,9 @@ namespace DotNETPlugin
 
         static Version? GetVersion( )
         {
-            try
-            {
-                return Environment.Version;
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
+            return Matcher.GetVersion( );
         }
+
 
         static FeatureMatrix BuildFeatureMatrix( )
         {

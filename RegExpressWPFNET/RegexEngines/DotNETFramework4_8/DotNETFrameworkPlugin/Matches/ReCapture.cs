@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using RegExpressLibrary.Matches;
 
-namespace DotNETPlugin.Matches
+namespace DotNETFrameworkPlugin.Matches
 {
 	class ReCapture : ICapture
 	{

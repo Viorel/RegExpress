@@ -13,6 +13,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotNET7Plugin", "RegexEngin
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DotNET7", "DotNET7", "{0DF51056-4F38-43E2-AC41-D26B92EC0D89}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DotNETFramework4_8", "DotNETFramework4_8", "{BBE52FDE-20A4-4BBC-A830-ECFC8C1D224A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotNETFrameworkPlugin", "RegexEngines\DotNETFramework4_8\DotNETFrameworkPlugin\DotNETFrameworkPlugin.csproj", "{E5747E4E-FF67-4677-8958-7258A1DBD034}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNETFrameworkConsole", "RegexEngines\DotNETFramework4_8\DotNETFrameworkConsole\DotNETFrameworkConsole.csproj", "{4129F02D-F0EA-4235-A8E7-DDD591DAE7F6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +37,14 @@ Global
 		{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5747E4E-FF67-4677-8958-7258A1DBD034}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5747E4E-FF67-4677-8958-7258A1DBD034}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5747E4E-FF67-4677-8958-7258A1DBD034}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5747E4E-FF67-4677-8958-7258A1DBD034}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4129F02D-F0EA-4235-A8E7-DDD591DAE7F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4129F02D-F0EA-4235-A8E7-DDD591DAE7F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4129F02D-F0EA-4235-A8E7-DDD591DAE7F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4129F02D-F0EA-4235-A8E7-DDD591DAE7F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -38,9 +52,13 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A} = {0DF51056-4F38-43E2-AC41-D26B92EC0D89}
 		{0DF51056-4F38-43E2-AC41-D26B92EC0D89} = {91ED61CD-C8DA-4845-80E0-A892A0A80E14}
+		{BBE52FDE-20A4-4BBC-A830-ECFC8C1D224A} = {91ED61CD-C8DA-4845-80E0-A892A0A80E14}
+		{E5747E4E-FF67-4677-8958-7258A1DBD034} = {BBE52FDE-20A4-4BBC-A830-ECFC8C1D224A}
+		{4129F02D-F0EA-4235-A8E7-DDD591DAE7F6} = {BBE52FDE-20A4-4BBC-A830-ECFC8C1D224A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                SolutionGuid = {E9D3D84A-8875-4CC9-9AD2-81298DE7ECEB}
-		                                                SolutionGuid = {2EA46475-3CEB-45D5-AAE9-525FCE04340B}
+		                SolutionGuid = {61D058A2-B4A0-4779-9C73-27CFEBE9BF66}
+		                                SolutionGuid = {E9D3D84A-8875-4CC9-9AD2-81298DE7ECEB}
+		                                                                SolutionGuid = {2EA46475-3CEB-45D5-AAE9-525FCE04340B}
 	EndGlobalSection
 EndGlobal

@@ -9,7 +9,7 @@ using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 
 
-namespace DotNET7Plugin.Matches
+namespace DotNETPlugin.Matches
 {
 	class Matcher : IMatcher
 	{

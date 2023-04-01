@@ -14,7 +14,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using RegExpressLibrary;
 
-namespace DotNETPlugin
+namespace DotNETFrameworkPlugin
 {
     /// <summary>
     /// Interaction logic for UCOptions.xaml

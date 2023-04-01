@@ -47,7 +47,7 @@ namespace RegExpressWPFNET
         public static readonly RoutedUICommand GoToOptionsCommand = new( );
 
         readonly List<IRegexPlugin> mRegexPlugins = new( );
-        static readonly JsonSerializerOptions JsonOptions = new( ) { IncludeFields = true, WriteIndented = true };
+        static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, WriteIndented = true };
 
         public MainWindow( )
         {
@@ -94,7 +94,7 @@ namespace RegExpressWPFNET
 
                 using FileStream plugins_stream = File.OpenRead( plugins_path );
 
-                plugin_paths = await JsonSerializer.DeserializeAsync<string[]>( plugins_stream );
+                plugin_paths = await JsonSerializer.DeserializeAsync<string[]>( plugins_stream, JsonOptions );
                 Debug.WriteLine( $"Total {plugin_paths!.Length} paths" );
             }
             catch( Exception exc )

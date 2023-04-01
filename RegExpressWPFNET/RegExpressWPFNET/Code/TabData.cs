@@ -22,7 +22,7 @@ namespace RegExpressWPFNET.Code
         [JsonIgnore]
         public (string Kind, Version Version) ActiveCombinedId => (ActiveKind, ActiveVersion);
 
-        public List<CustomOptions> CustomOptions;
+        public List<EngineOptions> EngineOptions;
         public bool ShowFirstMatchOnly;
         public bool ShowSucceededGroupsOnly;
         public bool ShowCaptures;
@@ -32,7 +32,7 @@ namespace RegExpressWPFNET.Code
     }
 
 
-    public sealed class CustomOptions
+    public sealed class EngineOptions
     {
         public string Kind;
         public Version Version;
