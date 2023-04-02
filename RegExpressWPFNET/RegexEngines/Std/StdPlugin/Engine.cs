@@ -7,17 +7,16 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Controls;
-using DotNETPlugin.Matches;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 
-namespace DotNETPlugin
+namespace DotStdPlugin
 {
     class Engine : IRegexEngine
     {
         static readonly Lazy<Version> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
+        static readonly LazyData<GrammarEnum, FeatureMatrix> LazyFeatureMatrix = new LazyData<GrammarEnum, FeatureMatrix>( BuildFeatureMatrix );
         static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, ReadCommentHandling = JsonCommentHandling.Skip, WriteIndented = true };
 
 
@@ -35,13 +34,13 @@ namespace DotNETPlugin
 
         #region IRegexEngine
 
-        public string Kind => ".NET";
+        public string Kind => "Std";
 
         public Version Version => LazyVersion.Value;
 
-        public string Name => "Regex, .NET";
+        public string Name => "std::wregex";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.ScrollErrorsToEnd;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 
         public string? NoteForCaptures => null;
 
@@ -92,34 +91,45 @@ namespace DotNETPlugin
         public IMatcher ParsePattern( string pattern )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
-            RegexOptions regex_native_options = options.NativeOptions;
-            TimeSpan timeout = TimeSpan.FromMilliseconds( options.TimeoutMs );
-            if( timeout <= TimeSpan.Zero ) timeout = TimeSpan.FromSeconds( 10 );
 
-            var regex = new Regex( pattern, regex_native_options, timeout );
-
-            return new Matcher( regex );
+            return new Matcher( pattern, options );
 
         }
 
         public FeatureMatrix GetFeatureMatrix( )
         {
-            return LazyFeatureMatrix.Value;
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+
+            return LazyFeatureMatrix.GetValue( options.Grammar );
         }
+
 
         public GenericOptions GetGenericOptions( )
         {
-            var options = mOptionsControl.Value.GetSelectedOptions( );
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
 
             return new GenericOptions
             {
-                XLevel = options.IgnorePatternWhitespace ? XLevelEnum.x : XLevelEnum.none,
+                XLevel = XLevelEnum.none,
+                AllowEmptySets = options.Grammar == GrammarEnum.ECMAScript,
             };
         }
 
+
         public IReadOnlyList<(string variantName, FeatureMatrix fm)> GetFeatureMatrices( )
         {
-            return new List<(string, FeatureMatrix)> { (null, GetFeatureMatrix( )) };
+            var list = new List<(string, FeatureMatrix)>( );
+
+            foreach( GrammarEnum grammar in Enum.GetValues( typeof( GrammarEnum ) ) )
+            {
+                if( grammar == GrammarEnum.None ) continue;
+
+                var fm = LazyFeatureMatrix.GetValue( grammar );
+
+                list.Add( (Enum.GetName( typeof( GrammarEnum ), grammar ), fm) );
+            }
+
+            return list;
         }
 
         #endregion
@@ -133,126 +143,130 @@ namespace DotNETPlugin
 
         static Version? GetVersion( )
         {
-            try
-            {
-                return Environment.Version;
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
+            return new Version( 1, 0, 0 );
+            //return Matcher.GetVersion( );
         }
 
-        static FeatureMatrix BuildFeatureMatrix( )
+
+        private static FeatureMatrix BuildFeatureMatrix( GrammarEnum grammar )
         {
             return new FeatureMatrix
             {
-                Parentheses = FeatureMatrix.PunctuationEnum.Normal,
+                Parentheses = grammar == GrammarEnum.extended ||
+                                grammar == GrammarEnum.ECMAScript ||
+                                grammar == GrammarEnum.egrep ||
+                                grammar == GrammarEnum.awk ? FeatureMatrix.PunctuationEnum.Normal
+                                :
+                                grammar == GrammarEnum.basic ||
+                                grammar == GrammarEnum.grep ? FeatureMatrix.PunctuationEnum.Backslashed
+                                :
+                                FeatureMatrix.PunctuationEnum.None,
 
                 Brackets = true,
                 ExtendedBrackets = false,
 
-                VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                VerticalLine = grammar == GrammarEnum.extended ||
+                                            grammar == GrammarEnum.ECMAScript ||
+                                            grammar == GrammarEnum.egrep ||
+                                            grammar == GrammarEnum.awk ? FeatureMatrix.PunctuationEnum.Normal
+                                            : FeatureMatrix.PunctuationEnum.None,
 
-                InlineComments = true,
-                XModeComments = true,
+                InlineComments = false,
+                XModeComments = false,
                 InsideSets_XModeComments = false,
 
-                Flags = true,
-                ScopedFlags = true,
+                Flags = false,
+                ScopedFlags = false,
                 CircumflexFlags = false,
                 ScopedCircumflexFlags = false,
-                XFlag = true,
+                XFlag = false,
                 XXFlag = false,
 
                 Literal_QE = false,
                 InsideSets_Literal_QE = false,
 
-                Esc_a = true,
-                Esc_b = false,
-                Esc_e = true,
-                Esc_f = true,
-                Esc_n = true,
-                Esc_r = true,
-                Esc_t = true,
-                Esc_v = true,
+                Esc_a = grammar == GrammarEnum.awk,
+                Esc_b = grammar == GrammarEnum.awk,
+                Esc_e = false,
+                Esc_f = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
+                Esc_n = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
+                Esc_r = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
+                Esc_t = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
+                Esc_v = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = true,
+                Esc_Octal_1_3 = grammar == GrammarEnum.awk,
+                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
-                Esc_x2 = true,
+                Esc_x2 = grammar == GrammarEnum.ECMAScript,
                 Esc_xBrace = false,
-                Esc_u4 = true,
+                Esc_u4 = grammar == GrammarEnum.ECMAScript,
                 Esc_U8 = false,
                 Esc_uBrace = false,
                 Esc_UBrace = false,
-                Esc_c1 = true,
+                Esc_c1 = grammar == GrammarEnum.ECMAScript,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
                 GenericEscape = true,
 
-                InsideSets_Esc_a = true,
-                InsideSets_Esc_b = true, // (not documented?)
-                InsideSets_Esc_e = true,
-                InsideSets_Esc_f = true,
-                InsideSets_Esc_n = true,
-                InsideSets_Esc_r = true,
-                InsideSets_Esc_t = true,
-                InsideSets_Esc_v = true,
+                InsideSets_Esc_a = grammar == GrammarEnum.awk,
+                InsideSets_Esc_b = grammar == GrammarEnum.awk,
+                InsideSets_Esc_e = false,
+                InsideSets_Esc_f = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
+                InsideSets_Esc_n = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
+                InsideSets_Esc_r = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
+                InsideSets_Esc_t = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
+                InsideSets_Esc_v = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = true,
+                InsideSets_Esc_Octal_1_3 = false,
                 InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
-                InsideSets_Esc_x2 = true,
+                InsideSets_Esc_x2 = grammar == GrammarEnum.ECMAScript,
                 InsideSets_Esc_xBrace = false,
-                InsideSets_Esc_u4 = true,
+                InsideSets_Esc_u4 = grammar == GrammarEnum.ECMAScript,
                 InsideSets_Esc_U8 = false,
                 InsideSets_Esc_uBrace = false,
                 InsideSets_Esc_UBrace = false,
-                InsideSets_Esc_c1 = true,
+                InsideSets_Esc_c1 = grammar == GrammarEnum.ECMAScript,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = grammar == GrammarEnum.ECMAScript,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
                 Class_Ccp = false,
-                Class_dD = true,
+                Class_dD = grammar == GrammarEnum.ECMAScript,
                 Class_hHhexa = false,
                 Class_hHhorspace = false,
                 Class_lL = false,
                 Class_N = false,
                 Class_O = false,
                 Class_R = false,
-                Class_sS = true,
+                Class_sS = grammar == GrammarEnum.ECMAScript,
                 Class_sSx = false,
                 Class_uU = false,
                 Class_vV = false,
-                Class_wW = true,
+                Class_wW = grammar == GrammarEnum.ECMAScript,
                 Class_X = false,
                 Class_Not = false,
                 Class_pP = false,
-                Class_pPBrace = true,
+                Class_pPBrace = false,
 
-                InsideSets_Class_dD = true,
+                InsideSets_Class_dD = grammar == GrammarEnum.ECMAScript,
                 InsideSets_Class_hHhexa = false,
                 InsideSets_Class_hHhorspace = false,
                 InsideSets_Class_lL = false,
                 InsideSets_Class_R = false,
-                InsideSets_Class_sS = true,
+                InsideSets_Class_sS = grammar == GrammarEnum.ECMAScript,
                 InsideSets_Class_sSx = false,
                 InsideSets_Class_uU = false,
                 InsideSets_Class_vV = false,
-                InsideSets_Class_wW = true,
+                InsideSets_Class_wW = grammar == GrammarEnum.ECMAScript,
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
-                InsideSets_Class_pPBrace = true,
-                InsideSets_Class = false,
-                InsideSets_Equivalence = false,
-                InsideSets_Collating = false,
+                InsideSets_Class_pPBrace = false,
+                InsideSets_Class = true,
+                InsideSets_Equivalence = true,
+                InsideSets_Collating = true,
 
                 InsideSets_Operators = false,
                 InsideSets_OperatorsExtended = false,
@@ -269,11 +283,11 @@ namespace DotNETPlugin
 
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
-                Anchor_A = true,
-                Anchor_Z = true,
-                Anchor_z = true,
-                Anchor_G = true,
-                Anchor_bB = true,
+                Anchor_A = false,
+                Anchor_Z = false,
+                Anchor_z = false,
+                Anchor_G = false,
+                Anchor_bB = grammar == GrammarEnum.ECMAScript,
                 Anchor_bg = false,
                 Anchor_bBBrace = false,
                 Anchor_K = false,
@@ -281,26 +295,27 @@ namespace DotNETPlugin
                 Anchor_GraveApos = false,
                 Anchor_yY = false,
 
-                NamedGroup_Apos = true,
-                NamedGroup_LtGt = true,
+                NamedGroup_Apos = false,
+                NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
 
-                NoncapturingGroup = true,
-                PositiveLookahead = true,
-                NegativeLookahead = true,
-                PositiveLookbehind = true,
-                NegativeLookbehind = true,
-                AtomicGroup = true,
+                NoncapturingGroup = grammar == GrammarEnum.ECMAScript,
+                PositiveLookahead = grammar == GrammarEnum.ECMAScript,
+                NegativeLookahead = grammar == GrammarEnum.ECMAScript,
+                PositiveLookbehind = false,
+                NegativeLookbehind = false,
+                AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,
                 NonatomicPositiveLookbehind = false,
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = true,
-                Backref_Num = false,
-                Backref_kApos = true,
-                Backref_kLtGt = true,
+                Backref_1_9 = grammar == GrammarEnum.basic || grammar == GrammarEnum.grep,
+                Backref_Num = grammar == GrammarEnum.ECMAScript,
+
+                Backref_kApos = false,
+                Backref_kLtGt = false,
                 Backref_kBrace = false,
                 Backref_kNum = false,
                 Backref_kNegNum = false,
@@ -319,16 +334,29 @@ namespace DotNETPlugin
                 Recursive_PGtName = false,
 
                 Quantifier_Asterisk = true,
-                Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
-                Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
-                Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
+                Quantifier_Plus = grammar == GrammarEnum.extended ||
+                                                grammar == GrammarEnum.ECMAScript ||
+                                                grammar == GrammarEnum.egrep ||
+                                                grammar == GrammarEnum.awk ? FeatureMatrix.PunctuationEnum.Normal : FeatureMatrix.PunctuationEnum.None,
+                Quantifier_Question = grammar == GrammarEnum.extended ||
+                                                grammar == GrammarEnum.ECMAScript ||
+                                                grammar == GrammarEnum.egrep ||
+                                                grammar == GrammarEnum.awk ? FeatureMatrix.PunctuationEnum.Normal : FeatureMatrix.PunctuationEnum.None,
+                Quantifier_Braces = grammar == GrammarEnum.extended ||
+                                                grammar == GrammarEnum.ECMAScript ||
+                                                grammar == GrammarEnum.egrep ||
+                                                grammar == GrammarEnum.awk ? FeatureMatrix.PunctuationEnum.Normal
+                                                :
+                                                grammar == GrammarEnum.basic ||
+                                                grammar == GrammarEnum.grep ? FeatureMatrix.PunctuationEnum.Backslashed
+                                                : FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
                 Quantifier_LowAbbrev = false,
 
-                Conditional_BackrefByNumber = true,
+                Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
                 Conditional_Pattern = false,
-                Conditional_PatternOrBackrefByName = true,
+                Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = false,
                 Conditional_BackrefByName_LtGt = false,
                 Conditional_R = false,
@@ -341,7 +369,7 @@ namespace DotNETPlugin
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,
-                EmptySet = false,
+                EmptySet = grammar == GrammarEnum.ECMAScript,
             };
         }
     }

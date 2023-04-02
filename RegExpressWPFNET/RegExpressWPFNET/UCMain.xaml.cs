@@ -858,7 +858,10 @@ namespace RegExpressWPFNET
         void UpdateOptions( IRegexEngine engine )
         {
             pnlRegexOptions.Children.Clear( );
-            pnlRegexOptions.Children.Add( engine.GetOptionsControl( ) );
+            Control options_control = engine.GetOptionsControl( );
+            options_control.Width = double.NaN; // ignore sizes
+            options_control.Height = double.NaN;
+            pnlRegexOptions.Children.Add( options_control );
 
             RegexEngineCapabilityEnum caps = engine.Capabilities;
             bool groups_supported = !caps.HasFlag( RegexEngineCapabilityEnum.NoGroups );

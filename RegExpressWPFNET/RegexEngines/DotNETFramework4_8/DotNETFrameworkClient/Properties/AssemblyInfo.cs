@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle( "DotNETFramework4_8Console" )]
+[assembly: AssemblyTitle( "DotNETFrameworkClient" )]
 [assembly: AssemblyDescription( "" )]
 [assembly: AssemblyConfiguration( "" )]
 [assembly: AssemblyCompany( "" )]
-[assembly: AssemblyProduct( "DotNETFramework4_8Console" )]
+[assembly: AssemblyProduct( "DotNETFrameworkClient" )]
 [assembly: AssemblyCopyright( "Copyright ©  2023" )]
 [assembly: AssemblyTrademark( "" )]
 [assembly: AssemblyCulture( "" )]

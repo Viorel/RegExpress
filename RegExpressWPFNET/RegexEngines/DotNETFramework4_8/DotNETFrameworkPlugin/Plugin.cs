@@ -9,6 +9,7 @@ namespace DotNETFrameworkPlugin
     public class Plugin : IRegexPlugin
     {
         #region IRegexPlugin
+
         public IReadOnlyList<IRegexEngine> GetEngines( )
         {
             return new[] { new Engine( ) };

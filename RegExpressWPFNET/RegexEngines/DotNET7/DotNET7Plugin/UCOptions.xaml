@@ -6,7 +6,6 @@
              xmlns:local="clr-namespace:DotNETPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="223" d:DesignWidth="194.333" 
              Loaded="UserControl_Loaded">
     <Grid>
         <StackPanel>

@@ -1,0 +1,106 @@
+﻿<UserControl x:Class="DotStdPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:DotStdPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="359.77" d:DesignWidth="316.194" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style x:Key="MyCheckbox" TargetType="CheckBox">
+            <EventSetter Event="Checked" Handler="CheckBox_Changed"/>
+            <EventSetter Event="Unchecked" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel VerticalAlignment="Top">
+            <StackPanel Orientation="Horizontal" Margin="0 0 0 6">
+                <StackPanel.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </StackPanel.LayoutTransform>
+                <Label Content="Grammar:" Target="{Binding ElementName=cbxGrammar}"/>
+                <ComboBox x:Name="cbxGrammar" SelectedValuePath="Tag" SelectedValue="{Binding Grammar, FallbackValue='ECMAScript'}" VerticalAlignment="Center" SelectionChanged="cbxGrammar_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
+                    <ComboBoxItem Tag ="ECMAScript" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                    <ComboBoxItem Tag ="basic" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="extended" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="awk" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="grep" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="egrep" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                </ComboBox>
+            </StackPanel>
+
+            <Label Margin="0 4 0 0" Padding="0">
+                <Italic>syntax_option_type</Italic>
+            </Label>
+
+            <StackPanel x:Name="pnl2" Orientation="Vertical" Margin="0 4 0 0">
+                <CheckBox IsChecked="{Binding icase}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="icase" Note="make matches case-insensitive"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding nosubs}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="nosubs" Note="do not keep track of the contents of capture groups"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding optimize}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="optimize" Note="emphasize speed of matching rather than speed of regular expression compilation"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding collate}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="collate" Note="make matches locale-sensitive"/>
+                </CheckBox>
+                <CheckBox Style="{StaticResource MyCheckbox}" IsEnabled="False">
+                    <ui:TextAndNote Text="multiline" Note="(not supported by std::wregex)"/>
+                </CheckBox>
+            </StackPanel>
+
+            <Label Margin="0 4 0 0" Padding="0">
+                <Italic>match_flag_type</Italic>
+            </Label>
+
+            <StackPanel x:Name="pnl1" Orientation="Vertical" Margin="0 2 0 0">
+                <CheckBox IsChecked="{Binding match_not_bol}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="match_not_bol" Note="do not treat the first position in the target sequence as the beginning of a line"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding match_not_eol}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="match_not_eol" Note="do not treat the past-the-end position in the target sequence as the end of a line"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding match_not_bow}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="match_not_bow" Note="do not treat the first position in the target sequence as the beginning of a word"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding match_not_eow}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="match_not_eow" Note="do not treat the past-the-end position in the target sequence as the end of a word"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding match_any}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="match_any" Note="if more than one match is possible any match is acceptable"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding match_not_null}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="match_not_null" Note="do not treat an empty subsequence as a match"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding match_continuous}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="match_continuous" Note="do not search for matches other than at the beginning of the target sequence"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding match_prev_avail}" Style="{StaticResource MyCheckbox}">
+                    <ui:TextAndNote Text="match_prev_avail" Note="'--first' is a valid iterator; ignore match_not_bol and match_not_bow if set"/>
+                </CheckBox>
+            </StackPanel>
+
+            <StackPanel Orientation="Vertical" Margin="0 4 0 0">
+                <StackPanel.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </StackPanel.LayoutTransform>
+                <Label Content="__REGEX__MAX__STACK__COUNT:" Target="{Binding ElementName=tbREGEX_MAX_STACK_COUNT}" FontStyle="Italic" HorizontalAlignment="Left" Margin="0 0 0 1" Padding="0"/>
+                <TextBox x:Name="tbREGEX_MAX_STACK_COUNT" Text="{Binding REGEX_MAX_STACK_COUNT, UpdateSourceTrigger=PropertyChanged}" Width="150" HorizontalAlignment="Left" TextChanged="tbREGEX_MAX_STACK_COUNT_TextChanged"  />
+                <Label Content="__REGEX__MAX__COMPLEXITY__COUNT:" Target="{Binding ElementName=tbREGEX_MAX_COMPLEXITY_COUNT}" FontStyle="Italic" HorizontalAlignment="Left" Margin="0 3 0 1" Padding="0"/>
+                <TextBox x:Name="tbREGEX_MAX_COMPLEXITY_COUNT" Text="{Binding REGEX_MAX_COMPLEXITY_COUNT, UpdateSourceTrigger=PropertyChanged}" Width="150" HorizontalAlignment="Left" TextChanged="tbREGEX_MAX_COMPLEXITY_COUNT_TextChanged"  />
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>
+    

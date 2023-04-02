@@ -47,7 +47,7 @@ namespace RegExpressWPFNET
         public static readonly RoutedUICommand GoToOptionsCommand = new( );
 
         readonly List<IRegexPlugin> mRegexPlugins = new( );
-        static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, WriteIndented = true };
+        static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, ReadCommentHandling = JsonCommentHandling.Skip, WriteIndented = true };
 
         public MainWindow( )
         {
