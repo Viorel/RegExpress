@@ -23,7 +23,7 @@ namespace DotStdPlugin
 
     class Options
     {
-        public GrammarEnum Grammar { get; set; }
+        public GrammarEnum Grammar { get; set; } = GrammarEnum.ECMAScript;
 
 
         public bool icase { get; set; }
@@ -32,7 +32,6 @@ namespace DotStdPlugin
         public bool collate { get; set; }
 
 
-        public bool match_default { get; set; }
         public bool match_not_bol { get; set; }
         public bool match_not_eol { get; set; }
         public bool match_not_bow { get; set; }
@@ -44,7 +43,7 @@ namespace DotStdPlugin
 
 
         public string REGEX_MAX_STACK_COUNT { get; set; }
-        public string REGEX_MAX_COMPLEXITY_COUNT { get;set; }
+        public string REGEX_MAX_COMPLEXITY_COUNT { get; set; }
 
 
         public Options Clone( )

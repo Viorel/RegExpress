@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -28,7 +29,7 @@ namespace DotStdPlugin
         {
             public int index { get; set; }
             public int length { get; set; }
-            public List<ClientGroup> groups { get; set; } = new List<ClientGroup>();
+            public List<ClientGroup> groups { get; set; } = new List<ClientGroup>( );
         }
 
 
@@ -38,7 +39,7 @@ namespace DotStdPlugin
             public int index { get; set; }
             public int length { get; set; }
             public string name { get; set; }
-            public List<ClientCapture> captures { get; set; } = new List<ClientCapture>();
+            public List<ClientCapture> captures { get; set; } = new List<ClientCapture>( );
         }
 
 
@@ -53,7 +54,7 @@ namespace DotStdPlugin
         readonly Options Options;
 
 
-        public Matcher(string pattern, Options options)
+        public Matcher( string pattern, Options options )
         {
             Pattern = pattern;
             Options = options;
@@ -62,87 +63,169 @@ namespace DotStdPlugin
 
         #region IMatcher
 
-        public RegexMatches Matches(string text, ICancellable cnc)
+        public RegexMatches Matches( string text, ICancellable cnc )
         {
-            var data = new { cmd = "m", text, pattern = Pattern, options = Options };
-
-            string json = JsonSerializer.Serialize(data);
-
-            string stdout_contents;
-            string stderr_contents;
-
-            bool r = ProcessUtilities.InvokeExe(cnc, GetClientExePath(), null, json, out stdout_contents, out stderr_contents, EncodingEnum.UTF8);
-
-            if (!string.IsNullOrWhiteSpace(stderr_contents))
+            bool eREGEX_MAX_COMPLEXITY_COUNT = string.IsNullOrWhiteSpace( Options.REGEX_MAX_COMPLEXITY_COUNT );
+            Int32 REGEX_MAX_COMPLEXITY_COUNT = 0;
+            if( !eREGEX_MAX_COMPLEXITY_COUNT )
             {
-                throw new Exception(stderr_contents);
+                if( !Int32.TryParse( Options.REGEX_MAX_COMPLEXITY_COUNT, out REGEX_MAX_COMPLEXITY_COUNT ) )
+                {
+                    throw new Exception( "Invalid '_REGEX_MAX_COMPLEXITY_COUNT'." );
+                }
             }
 
-            ClientMatch[] client_matches = JsonSerializer.Deserialize<ClientMatch[]>(stdout_contents);
-
-            SimpleMatch[] matches = new SimpleMatch[client_matches.Length];
-            SimpleTextGetter text_getter = new SimpleTextGetter(text);
-
-            for (int i = 0; i < client_matches.Length; i++)
+            bool eREGEX_MAX_STACK_COUNT = string.IsNullOrWhiteSpace( Options.REGEX_MAX_STACK_COUNT );
+            Int32 REGEX_MAX_STACK_COUNT = 0;
+            if( !eREGEX_MAX_STACK_COUNT )
             {
-                ClientMatch m = client_matches[i];
-                SimpleMatch sm = SimpleMatch.Create(m.index, m.length, text_getter);
-
-                foreach (var g in m.groups)
+                if( !Int32.TryParse( Options.REGEX_MAX_STACK_COUNT, out REGEX_MAX_STACK_COUNT ) )
                 {
-                    var sg = sm.AddGroup(g.index, g.length, g.success, g.name ?? string.Empty);
+                    throw new Exception( "Invalid '_REGEX_MAX_STACK_COUNT'." );
+                }
+            }
 
-                    foreach (var c in g.captures)
+
+            MemoryStream stdout_contents;
+            string stderr_contents;
+
+
+            Action<Stream> stdin_writer = s =>
+            {
+                using( var bw = new BinaryWriter( s, Encoding.Unicode, leaveOpen: false ) )
+                {
+                    bw.Write( "m" );
+                    //bw.Write( (byte)0 ); // "version"
+                    bw.Write( Pattern );
+                    bw.Write( text );
+
+                    bw.Write( Enum.GetName( Options.Grammar )! );
+
+                    bw.Write( Convert.ToByte( Options.icase ) );
+                    bw.Write( Convert.ToByte( Options.nosubs ) );
+                    bw.Write( Convert.ToByte( Options.optimize ) );
+                    bw.Write( Convert.ToByte( Options.collate ) );
+
+                    bw.Write( Convert.ToByte( Options.match_not_bol ) );
+                    bw.Write( Convert.ToByte( Options.match_not_eol ) );
+                    bw.Write( Convert.ToByte( Options.match_not_bow ) );
+                    bw.Write( Convert.ToByte( Options.match_not_eow ) );
+                    bw.Write( Convert.ToByte( Options.match_any ) );
+                    bw.Write( Convert.ToByte( Options.match_not_null ) );
+                    bw.Write( Convert.ToByte( Options.match_continuous ) );
+                    bw.Write( Convert.ToByte( Options.match_prev_avail ) );
+
+
+                    if( eREGEX_MAX_COMPLEXITY_COUNT )
                     {
-                        sg.AddCapture(c.index, c.length);
+                        bw.Write( (byte)0 );
+                    }
+                    else
+                    {
+                        bw.Write( (byte)1 );
+                        bw.Write( REGEX_MAX_COMPLEXITY_COUNT );
+                    }
+
+                    if( eREGEX_MAX_COMPLEXITY_COUNT )
+                    {
+                        bw.Write( (byte)0 );
+                    }
+                    else
+                    {
+                        bw.Write( (byte)1 );
+                        bw.Write( REGEX_MAX_STACK_COUNT );
+                    }
+                }
+            };
+
+            if( !ProcessUtilities.InvokeExe( cnc, GetClientExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            {
+                return RegexMatches.Empty;
+            }
+
+            if( !string.IsNullOrWhiteSpace( stderr_contents ) )
+            {
+                throw new Exception( stderr_contents );
+            }
+
+            using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
+            {
+
+                List<IMatch> matches = new List<IMatch>( );
+                ISimpleTextGetter stg = new SimpleTextGetter( text );
+                SimpleMatch current_match = null;
+
+                if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response." );
+
+                bool done = false;
+
+                while( !done )
+                {
+                    switch( br.ReadByte( ) )
+                    {
+                    case (byte)'m':
+                    {
+                        Int64 position = br.ReadInt64( );
+                        Int64 length = br.ReadInt64( );
+                        current_match = SimpleMatch.Create( (int)position, (int)length, stg );
+                        matches.Add( current_match );
+                    }
+                    break;
+                    case (byte)'g':
+                    {
+                        if( current_match == null ) throw new Exception( "Invalid response." );
+                        Int64 position = br.ReadInt64( );
+                        Int64 length = br.ReadInt64( );
+                        current_match.AddGroup( (int)position, (int)length, position >= 0, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ) );
+                    }
+                    break;
+                    case (byte)'e':
+                        done = true;
+                        break;
+                    default:
+                        throw new Exception( "Invalid response." );
                     }
                 }
 
-                matches[i] = sm;
+                return new RegexMatches( matches.Count, matches );
             }
-
-            return new RegexMatches(matches.Length, matches);
         }
 
         #endregion IMatcher
 
 
-        public static Version GetVersion()
+        public static Version GetVersion( ICancellable cnc )
         {
-            try
+            MemoryStream stdout_contents;
+            string stderr_contents;
+
+            Action<Stream> stdinWriter = s =>
             {
-                string stdout_contents;
-                string stderr_contents;
-
-                if (!ProcessUtilities.InvokeExe(NonCancellable.Instance, GetClientExePath(), null, @"{""cmd"":""v""}", out stdout_contents, out stderr_contents, EncodingEnum.UTF8))
+                using( var bw = new BinaryWriter( s, Encoding.Unicode, leaveOpen: false ) )
                 {
-                    return null;
+                    bw.Write( "v" );
                 }
+            };
 
-                if (!string.IsNullOrWhiteSpace(stderr_contents))
-                {
-                    throw new Exception(stderr_contents);
-                }
-
-                VersionResponse response = JsonSerializer.Deserialize<VersionResponse>(stdout_contents)!;
-
-                return response.version;
+            if( !ProcessUtilities.InvokeExe( cnc, GetClientExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            {
+                return new Version( 0, 0 );
             }
-            catch (Exception exc)
-            {
-                _ = exc;
-                if (Debugger.IsAttached) Debugger.Break();
 
-                return null;
+            using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
+            {
+                string version_s = br.ReadString( );
+
+                return Version.TryParse( version_s, out Version? version ) ? version : new Version( 0, 0 );
             }
         }
 
 
-        static string GetClientExePath()
+        static string GetClientExePath( )
         {
-            string assembly_location = Assembly.GetExecutingAssembly().Location;
-            string assembly_dir = Path.GetDirectoryName(assembly_location)!;
-            string client_exe = Path.Combine(assembly_dir, @"StdClient.bin");
+            string assembly_location = Assembly.GetExecutingAssembly( ).Location;
+            string assembly_dir = Path.GetDirectoryName( assembly_location )!;
+            string client_exe = Path.Combine( assembly_dir, @"StdClient.bin" );
 
             return client_exe;
         }

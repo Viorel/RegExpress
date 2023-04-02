@@ -31,3 +31,11 @@ xcopy /D /R /Y "%BaseDir%\DotNETFrameworkClient\bin\%Configuration%\*.config" "%
 xcopy /D /R /Y "%BaseDir%\DotNETFrameworkClient\bin\%Configuration%\*.dll" "%EnginesTargetDir%\DotNETFramework4_8\Client\*"
 rem xcopy /D /R /Y "%BaseDir%\DotNETFrameworkClient\bin\%Configuration%\*.config" "%EnginesTargetDir%\DotNETFramework4_8\*.bin"
 
+
+rem -- STD --
+
+set BaseDir=%SolutionDir%\RegexEngines\Std
+xcopy /D /R /Y "%BaseDir%\StdPlugin\bin\%Configuration%\%TargetFramework%\StdPlugin.dll" "%EnginesTargetDir%\Std\*"
+xcopy /D /R /Y "%BaseDir%\StdClient\bin\%Configuration%\%Platform%\StdClient.exe" "%EnginesTargetDir%\Std\*.bin"
+
+

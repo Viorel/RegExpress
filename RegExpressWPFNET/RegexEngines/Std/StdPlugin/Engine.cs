@@ -143,8 +143,7 @@ namespace DotStdPlugin
 
         static Version? GetVersion( )
         {
-            return new Version( 1, 0, 0 );
-            //return Matcher.GetVersion( );
+            return Matcher.GetVersion( NonCancellable.Instance );
         }
 
 

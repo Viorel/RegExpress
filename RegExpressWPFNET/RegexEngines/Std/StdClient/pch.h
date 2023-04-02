@@ -9,9 +9,20 @@
 
 // add headers that you want to pre-compile here
 
+#include <crtversion.h>
+#include <strsafe.h>
 #include <iostream>
 
 #include "RegExpressCppLibraryPCH.h"
 
+#include <codecvt>
+
+extern long Variable_REGEX_MAX_STACK_COUNT;
+extern long Variable_REGEX_MAX_COMPLEXITY_COUNT;
+
+#define _REGEX_MAX_STACK_COUNT          Variable_REGEX_MAX_STACK_COUNT
+#define _REGEX_MAX_COMPLEXITY_COUNT     Variable_REGEX_MAX_COMPLEXITY_COUNT
+
+#include <regex>
 
 #endif //PCH_H
