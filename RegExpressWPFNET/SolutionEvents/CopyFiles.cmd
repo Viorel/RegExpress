@@ -26,8 +26,9 @@ rem -- .NET Framework 4.8 --
 
 set BaseDir=%SolutionDir%\RegexEngines\DotNETFramework4_8
 xcopy /D /R /Y "%BaseDir%\DotNETFrameworkPlugin\bin\%Configuration%\%TargetFramework%\DotNETFrameworkPlugin.dll" "%EnginesTargetDir%\DotNETFramework4_8\*"
-xcopy /D /R /Y "%BaseDir%\DotNETFrameworkClient\bin\%Configuration%\DotNETFrameworkClient.exe" "%EnginesTargetDir%\DotNETFramework4_8\Client\*"
-xcopy /D /R /Y "%BaseDir%\DotNETFrameworkClient\bin\%Configuration%\*.config" "%EnginesTargetDir%\DotNETFramework4_8\Client\*"
+xcopy /D /R /Y "%BaseDir%\DotNETFrameworkClient\bin\%Configuration%\DotNETFrameworkClient.exe" "%EnginesTargetDir%\DotNETFramework4_8\Client\*.bin"
+xcopy /D /R /Y "%BaseDir%\DotNETFrameworkClient\bin\%Configuration%\DotNETFrameworkClient.exe.config" "%EnginesTargetDir%\DotNETFramework4_8\Client\*"
+ren "%EnginesTargetDir%\DotNETFramework4_8\Client\DotNETFrameworkClient.exe.config" "DotNETFrameworkClient.bin.config"
 xcopy /D /R /Y "%BaseDir%\DotNETFrameworkClient\bin\%Configuration%\*.dll" "%EnginesTargetDir%\DotNETFramework4_8\Client\*"
 rem xcopy /D /R /Y "%BaseDir%\DotNETFrameworkClient\bin\%Configuration%\*.config" "%EnginesTargetDir%\DotNETFramework4_8\*.bin"
 

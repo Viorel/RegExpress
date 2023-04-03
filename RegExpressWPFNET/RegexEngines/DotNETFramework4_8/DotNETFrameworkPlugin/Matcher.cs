@@ -142,7 +142,7 @@ namespace DotNETFrameworkPlugin
         {
             string assembly_location = Assembly.GetExecutingAssembly().Location;
             string assembly_dir = Path.GetDirectoryName(assembly_location)!;
-            string client_exe = Path.Combine(assembly_dir, "Client", @"DotNETFrameworkClient.exe"  );
+            string client_exe = Path.Combine(assembly_dir, "Client", @"DotNETFrameworkClient.bin"  );
 
             return client_exe;
         }
