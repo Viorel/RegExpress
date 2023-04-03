@@ -257,7 +257,6 @@ int main( )
                 Variable_REGEX_MAX_STACK_COUNT = Default_REGEX_MAX_STACK_COUNT;
             }
 
-
             DoMatch( outbw, pattern, text, regex_flags, match_flags );
 
 

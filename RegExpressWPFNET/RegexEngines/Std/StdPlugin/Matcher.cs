@@ -71,7 +71,7 @@ namespace DotStdPlugin
             {
                 if( !Int32.TryParse( Options.REGEX_MAX_COMPLEXITY_COUNT, out REGEX_MAX_COMPLEXITY_COUNT ) )
                 {
-                    throw new Exception( "Invalid '_REGEX_MAX_COMPLEXITY_COUNT'." );
+                    throw new Exception( "Invalid option: '_REGEX_MAX_COMPLEXITY_COUNT'." );
                 }
             }
 
@@ -81,7 +81,7 @@ namespace DotStdPlugin
             {
                 if( !Int32.TryParse( Options.REGEX_MAX_STACK_COUNT, out REGEX_MAX_STACK_COUNT ) )
                 {
-                    throw new Exception( "Invalid '_REGEX_MAX_STACK_COUNT'." );
+                    throw new Exception( "Invalid option: '_REGEX_MAX_STACK_COUNT'." );
                 }
             }
 
@@ -165,18 +165,19 @@ namespace DotStdPlugin
                     {
                     case (byte)'m':
                     {
-                        Int64 position = br.ReadInt64( );
+                        Int64 index = br.ReadInt64( );
                         Int64 length = br.ReadInt64( );
-                        current_match = SimpleMatch.Create( (int)position, (int)length, stg );
+                        current_match = SimpleMatch.Create( (int)index, (int)length, stg );
                         matches.Add( current_match );
                     }
                     break;
                     case (byte)'g':
                     {
                         if( current_match == null ) throw new Exception( "Invalid response." );
-                        Int64 position = br.ReadInt64( );
+                        Int64 index = br.ReadInt64( );
                         Int64 length = br.ReadInt64( );
-                        current_match.AddGroup( (int)position, (int)length, position >= 0, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ) );
+                        bool success = index >= 0;
+                        current_match.AddGroup( success ? (int)index : 0, success ? (int)length : 0, success, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ) );
                     }
                     break;
                     case (byte)'e':
