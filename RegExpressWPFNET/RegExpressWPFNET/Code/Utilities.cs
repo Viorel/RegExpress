@@ -55,7 +55,6 @@ namespace RegExpressWPFNET.Code
 		}
 
 
-		[System.Diagnostics.CodeAnalysis.SuppressMessage( "Design", "CA1031:Do not catch general exception types", Justification = "<Pending>" )]
 		public static void DbgSaveXAML( string filename, FlowDocument doc )
 		{
 			try
@@ -75,7 +74,6 @@ namespace RegExpressWPFNET.Code
 		}
 
 
-		[System.Diagnostics.CodeAnalysis.SuppressMessage( "Design", "CA1031:Do not catch general exception types", Justification = "<Pending>" )]
 		public static void DbgLoadXAML( FlowDocument doc, string filename )
 		{
 			try

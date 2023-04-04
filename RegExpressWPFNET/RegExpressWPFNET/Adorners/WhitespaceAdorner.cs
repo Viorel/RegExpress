@@ -300,7 +300,6 @@ namespace RegExpressWPFNET.Adorners
 		}
 
 
-		[System.Diagnostics.CodeAnalysis.SuppressMessage( "Design", "CA1031:Do not catch general exception types", Justification = "<Pending>" )]
 		void ThreadProc( ICancellable cnc )
 		{
 			if( !mShowWhitespaces ) return;

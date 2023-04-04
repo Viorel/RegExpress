@@ -164,7 +164,6 @@ namespace RegExpressWPFNET
         }
 
 
-        [SuppressMessage( "Design", "CA1024:Use properties where appropriate", Justification = "<Pending>" )]
         public TabMetrics GetMetrics( )
         {
             var metrics = new TabMetrics
@@ -565,7 +564,6 @@ namespace RegExpressWPFNET
         }
 
 
-        [SuppressMessage( "Design", "CA1031:Do not catch general exception types", Justification = "<Pending>" )]
         void FindMatchesThreadProc( ICancellable cnc )
         {
             string eol = null;
