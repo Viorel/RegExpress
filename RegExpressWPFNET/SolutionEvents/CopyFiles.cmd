@@ -47,3 +47,9 @@ xcopy /D /R /Y "%BaseDir%\RE2Plugin\bin\%Configuration%\%TargetFramework%\RE2Plu
 xcopy /D /R /Y "%BaseDir%\RE2Client\bin\%Configuration%\%Platform%\RE2Client.exe" "%EnginesTargetDir%\RE2\*.bin"
 
 
+rem -- SubReg --
+
+set BaseDir=%SolutionDir%\RegexEngines\SubReg
+xcopy /D /R /Y "%BaseDir%\SubRegPlugin\bin\%Configuration%\%TargetFramework%\SubRegPlugin.dll" "%EnginesTargetDir%\SubReg\*"
+xcopy /D /R /Y "%BaseDir%\SubRegClient\bin\%Configuration%\%Platform%\SubRegClient.exe" "%EnginesTargetDir%\SubReg\*.bin"
+
