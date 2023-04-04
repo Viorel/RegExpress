@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RegExpressWPFNET": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

@@ -21,7 +21,7 @@ namespace DotNETPlugin
     /// </summary>
     public partial class UCOptions : UserControl
     {
-        internal event EventHandler<RegexEngineOptionsChangedArgs> Changed;
+        internal event EventHandler<RegexEngineOptionsChangedArgs>? Changed;
 
         bool IsFullyLoaded = false;
         int ChangeCounter = 0;
@@ -63,10 +63,7 @@ namespace DotNETPlugin
 
         internal Options GetSelectedOptions( )
         {
-            if( Dispatcher.CheckAccess( ) )
-                return Options;
-            else
-                return Options.Clone( );
+            return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
         }
 
 

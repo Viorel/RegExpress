@@ -75,7 +75,7 @@ void BinaryWriterA::Write( LPCSTR s, uint32_t charlen )
 
 void BinaryWriterA::Write( const std::string& s )
 {
-    Write( s.data( ), CheckedCast( s.size( ) * sizeof( s[0] ) ) );
+    Write( s.data( ), CheckedCast( s.size( ) ) );
 }
 
 
@@ -101,6 +101,6 @@ void BinaryWriterW::Write( LPCWSTR s, uint32_t charlen )
 
 void BinaryWriterW::Write( const std::wstring& s )
 {
-    Write( s.data( ), CheckedCast( s.size( ) * sizeof( s[0] ) ) );
+    Write( s.data( ), CheckedCast( s.size( ) ) );
 }
 

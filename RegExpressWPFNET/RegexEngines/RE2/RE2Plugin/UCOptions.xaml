@@ -1,0 +1,66 @@
+﻿<UserControl x:Class="RE2Plugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:RE2Plugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="359.77" d:DesignWidth="316.194" 
+             Loaded="UserControl_Loaded">
+
+    <Grid>
+        <Grid.Resources>
+            <Style TargetType="CheckBox">
+                <EventSetter Event="Checked" Handler="CheckBox_Changed"/>
+                <EventSetter Event="Unchecked" Handler="CheckBox_Changed"/>
+            </Style>
+        </Grid.Resources>
+
+        <StackPanel VerticalAlignment="Top">
+            <CheckBox IsChecked="{Binding posix_syntax}">
+                <ui:TextAndNote Text="posix_syntax" Note="restrict regexps to POSIX egrep syntax"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding longest_match}">
+                <ui:TextAndNote Text="longest_match" Note="search for longest match, not first match"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding literal}">
+                <ui:TextAndNote Text="literal" Note="interpret string as literal, not regexp"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding never_nl}">
+                <ui:TextAndNote Text="never_nl" Note="never match \n, even if it is in regexp"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding dot_nl}">
+                <ui:TextAndNote Text="dot_nl" Note="dot matches everything including new line"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding never_capture}">
+                <ui:TextAndNote Text="never_capture" Note="parse all parens as non-capturing"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding case_sensitive}">
+                <ui:TextAndNote Text="case_sensitive" Note="match is case-sensitive (regexp can override with (?i) unless in posix_syntax mode)"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding perl_classes}">
+                <ui:TextAndNote Text="perl_classes" Note="allow Perl's \d \s \w \D \S \W"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding word_boundary}">
+                <ui:TextAndNote Text="word_boundary" Note="allow Perl's \b \B (word boundary and not)"/>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding one_line}">
+                <ui:TextAndNote Text="one_line" Note="^ and $ only match beginning and end of text"/>
+            </CheckBox>
+
+            <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
+                <StackPanel.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </StackPanel.LayoutTransform>
+                <Label Content="Anchor:" Target="{Binding ElementName=cbxAnchor}"/>
+                <ComboBox x:Name="cbxAnchor" SelectedValuePath="Tag" SelectedValue="{Binding anchor, FallbackValue='UNANCHORED'}" VerticalAlignment="Center" SelectionChanged="cbxAnchor_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
+                    <ComboBoxItem Tag ="UNANCHORED" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                    <ComboBoxItem Tag ="ANCHOR_START" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="ANCHOR_BOTH" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                </ComboBox>
+            </StackPanel>
+
+        </StackPanel>
+    </Grid>
+</UserControl>

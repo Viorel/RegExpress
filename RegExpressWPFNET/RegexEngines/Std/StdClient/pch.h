@@ -15,8 +15,6 @@
 
 #include "RegExpressCppLibraryPCH.h"
 
-#include <codecvt>
-
 extern long Variable_REGEX_MAX_STACK_COUNT;
 extern long Variable_REGEX_MAX_COMPLEXITY_COUNT;
 

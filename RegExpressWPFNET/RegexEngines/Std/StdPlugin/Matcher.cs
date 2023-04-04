@@ -19,36 +19,6 @@ namespace DotStdPlugin
 {
     class Matcher : IMatcher
     {
-        class VersionResponse
-        {
-            public Version version { get; set; }
-        }
-
-
-        class ClientMatch
-        {
-            public int index { get; set; }
-            public int length { get; set; }
-            public List<ClientGroup> groups { get; set; } = new List<ClientGroup>( );
-        }
-
-
-        class ClientGroup
-        {
-            public bool success { get; set; }
-            public int index { get; set; }
-            public int length { get; set; }
-            public string name { get; set; }
-            public List<ClientCapture> captures { get; set; } = new List<ClientCapture>( );
-        }
-
-
-        class ClientCapture
-        {
-            public int index { get; set; }
-            public int length { get; set; }
-        }
-
 
         readonly string Pattern;
         readonly Options Options;
@@ -96,6 +66,8 @@ namespace DotStdPlugin
                 {
                     bw.Write( "m" );
                     //bw.Write( (byte)0 ); // "version"
+                    bw.Write( (byte)'b' );
+
                     bw.Write( Pattern );
                     bw.Write( text );
 
@@ -135,6 +107,8 @@ namespace DotStdPlugin
                         bw.Write( (byte)1 );
                         bw.Write( REGEX_MAX_STACK_COUNT );
                     }
+
+                    bw.Write( (byte)'e' );
                 }
             };
 

@@ -40,3 +40,10 @@ xcopy /D /R /Y "%BaseDir%\StdPlugin\bin\%Configuration%\%TargetFramework%\StdPlu
 xcopy /D /R /Y "%BaseDir%\StdClient\bin\%Configuration%\%Platform%\StdClient.exe" "%EnginesTargetDir%\Std\*.bin"
 
 
+rem -- RE2 --
+
+set BaseDir=%SolutionDir%\RegexEngines\RE2
+xcopy /D /R /Y "%BaseDir%\RE2Plugin\bin\%Configuration%\%TargetFramework%\RE2Plugin.dll" "%EnginesTargetDir%\RE2\*"
+xcopy /D /R /Y "%BaseDir%\RE2Client\bin\%Configuration%\%Platform%\RE2Client.exe" "%EnginesTargetDir%\RE2\*.bin"
+
+

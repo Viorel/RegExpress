@@ -77,6 +77,23 @@ namespace
 
 
         template<>
+        static inline int32_t CheckedCast( const int64_t& v )
+        {
+            if( v > std::numeric_limits<int32_t>::max( ) )
+            {
+                throw std::runtime_error( "'int32_t' overflow: " + std::to_string( v ) );
+            }
+
+            if( v < std::numeric_limits<int32_t>::min( ) )
+            {
+                throw std::runtime_error( "'int32_t' underflow: " + std::to_string( v ) );
+            }
+
+            return (int32_t)v;
+        }
+
+
+        template<>
         static inline uint32_t CheckedCast( const uint32_t& v )
         {
             return v;
@@ -103,6 +120,13 @@ namespace
 }
 
 
+/// <summary>
+/// Usage 'CheckedCast(some_value)', not 'CheckedCast&lt;some_type>(some_value)'.
+/// The target type is determined from context.
+/// </summary>
+/// <typeparam name="FROM">(Type determined automatically)</typeparam>
+/// <param name="v">The value to convert</param>
+/// <returns></returns>
 template<typename FROM>
 inline CheckedCastHelper<FROM> CheckedCast( const FROM& v )
 {

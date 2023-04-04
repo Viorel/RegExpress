@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="RE2">
+      <UniqueIdentifier>{56c81779-84b8-49d8-abbe-6e0c351a59f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RE2\util">
+      <UniqueIdentifier>{be268794-ad7a-4041-86ef-203a56821ef2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RE2\re2">
+      <UniqueIdentifier>{d22244d3-64e1-499e-9704-944f6e6880f3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="RE2Client.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\util\strutil.cc">
+      <Filter>RE2\util</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\util\rune.cc">
+      <Filter>RE2\util</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\bitmap256.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\bitstate.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\compile.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\dfa.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\filtered_re2.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\mimics_pcre.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\nfa.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\onepass.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\parse.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\perl_groups.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\prefilter.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\prefilter_tree.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\prog.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\re2.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\regexp.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\set.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\simplify.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\stringpiece.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\tostring.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\unicode_casefold.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2-min\re2\unicode_groups.cc">
+      <Filter>RE2\re2</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

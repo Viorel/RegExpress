@@ -4,4 +4,10 @@
 #define NOMINMAX
 #include <Windows.h>
 #include <cassert>
+#include <stdexcept>
 #include <limits>
+#include <string>
+#include <vector>
+#include <cuchar>
+#include <format>
+

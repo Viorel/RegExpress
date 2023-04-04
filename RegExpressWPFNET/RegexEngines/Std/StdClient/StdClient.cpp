@@ -7,17 +7,10 @@
 #include "BinaryWriter.h"
 #include "StreamWriter.h"
 #include "CheckedCast.h"
+#include "Convert.h"
 
 
 using namespace std;
-
-
-static wstring Utf8ToWString( const char* s )
-{
-    wstring_convert<codecvt_utf8<wchar_t>> myconv;
-
-    return myconv.from_bytes( s );
-}
 
 
 #define TO_STR2(s) L#s
@@ -132,7 +125,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
         // things done in filter
     }
 
-    throw std::exception( error_text );
+    throw std::runtime_error( error_text );
 }
 
 
@@ -179,7 +172,6 @@ int main( )
 
             // see "crtversion.h"
 
-            //auto v = std::to_wstring( _VC_CRT_MAJOR_VERSION ) + L".";// , _VC_CRT_MINOR_VERSION, _VC_CRT_BUILD_VERSION );
             auto v = TO_STR( _VC_CRT_MAJOR_VERSION ) L"." TO_STR( _VC_CRT_MINOR_VERSION ) L"." TO_STR( _VC_CRT_BUILD_VERSION );
 
             outbw.Write( v );
@@ -189,43 +181,25 @@ int main( )
 
         if( command == L"m" )
         {
+            if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [1]." );
+
             std::wstring pattern = inbr.ReadString( );
             std::wstring text = inbr.ReadString( );
-
 
             wregex::flag_type regex_flags{};
 
             std::wstring grammar_s = inbr.ReadString( );
-            if( grammar_s == L"ECMAScript" )
-            {
-                regex_flags |= regex_constants::syntax_option_type::ECMAScript;
-            }
-            else if( grammar_s == L"basic" )
-            {
-                regex_flags |= regex_constants::syntax_option_type::basic;
-            }
-            else if( grammar_s == L"extended" )
-            {
-                regex_flags |= regex_constants::syntax_option_type::extended;
-            }
-            else if( grammar_s == L"awk" )
-            {
-                regex_flags |= regex_constants::syntax_option_type::awk;
-            }
-            else if( grammar_s == L"grep" )
-            {
-                regex_flags |= regex_constants::syntax_option_type::grep;
-            }
-            else if( grammar_s == L"egrep" )
-            {
-                regex_flags |= regex_constants::syntax_option_type::egrep;
-            }
+            if( grammar_s == L"ECMAScript" ) regex_flags |= regex_constants::syntax_option_type::ECMAScript;
+            else if( grammar_s == L"basic" ) regex_flags |= regex_constants::syntax_option_type::basic;
+            else if( grammar_s == L"extended" ) regex_flags |= regex_constants::syntax_option_type::extended;
+            else if( grammar_s == L"awk" ) regex_flags |= regex_constants::syntax_option_type::awk;
+            else if( grammar_s == L"grep" ) regex_flags |= regex_constants::syntax_option_type::grep;
+            else if( grammar_s == L"egrep" ) regex_flags |= regex_constants::syntax_option_type::egrep;
 
             if( inbr.ReadByte( ) ) regex_flags |= regex_constants::syntax_option_type::icase;
             if( inbr.ReadByte( ) ) regex_flags |= regex_constants::syntax_option_type::nosubs;
             if( inbr.ReadByte( ) ) regex_flags |= regex_constants::syntax_option_type::optimize;
             if( inbr.ReadByte( ) ) regex_flags |= regex_constants::syntax_option_type::collate;
-
 
             regex_constants::match_flag_type match_flags = regex_constants::match_flag_type::match_default;
 
@@ -237,7 +211,6 @@ int main( )
             if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_not_null;
             if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_continuous;
             if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_prev_avail;
-
 
             if( inbr.ReadByte( ) )
             {
@@ -257,8 +230,10 @@ int main( )
                 Variable_REGEX_MAX_STACK_COUNT = Default_REGEX_MAX_STACK_COUNT;
             }
 
-            DoMatch( outbw, pattern, text, regex_flags, match_flags );
+            if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
+
+            DoMatch( outbw, pattern, text, regex_flags, match_flags );
 
             return 0;
         }
