@@ -10,7 +10,7 @@ using System.Windows.Controls;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 
-namespace DotStdPlugin
+namespace StdPlugin
 {
     class Engine : IRegexEngine
     {

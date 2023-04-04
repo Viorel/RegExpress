@@ -15,7 +15,7 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.Matches.Simple;
 
 
-namespace DotStdPlugin
+namespace StdPlugin
 {
     class Matcher : IMatcher
     {

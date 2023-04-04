@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 
-namespace DotStdPlugin
+namespace StdPlugin
 {
     enum GrammarEnum
     {

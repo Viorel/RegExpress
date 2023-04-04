@@ -14,7 +14,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using RegExpressLibrary;
 
-namespace DotStdPlugin
+namespace StdPlugin
 {
     /// <summary>
     /// Interaction logic for UCOptions.xaml
