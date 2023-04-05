@@ -34,8 +34,8 @@ namespace RegExpressWPFNET
 
         readonly IReadOnlyList<IRegexEngine> RegexEngines;
         readonly IRegexEngine DefaultRegexEngine;
-
         IRegexEngine CurrentRegexEngine = null;
+        readonly HashSet<IRegexEngine> RegexEnginesUsed = new( );
 
         bool IsFullyLoaded = false;
         bool IsInChange = false;
@@ -158,7 +158,10 @@ namespace RegExpressWPFNET
 
                 foreach( var engine in RegexEngines )
                 {
-                    tabData.EngineOptions.Add( new EngineOptions { Kind = engine.Kind, Version = engine.Version, Options = engine.ExportOptions( ) } );
+                    if( RegexEnginesUsed.Contains( engine ) )
+                    {
+                        tabData.EngineOptions.Add( new EngineOptions { Kind = engine.Kind, Version = engine.Version, Options = engine.ExportOptions( ) } );
+                    }
                 }
             }
         }
@@ -387,6 +390,7 @@ namespace RegExpressWPFNET
             if( object.ReferenceEquals( sender, CurrentRegexEngine ) )
             {
                 HandleOptionsChange( preferImmediateReaction: args?.PreferImmediateReaction == true );
+                RegexEnginesUsed.Add( CurrentRegexEngine );
             }
             else
             {
@@ -499,6 +503,7 @@ namespace RegExpressWPFNET
                     if( options != null )
                     {
                         eng.ImportOptions( options );
+                        RegexEnginesUsed.Add( eng );
                     }
                 }
 
