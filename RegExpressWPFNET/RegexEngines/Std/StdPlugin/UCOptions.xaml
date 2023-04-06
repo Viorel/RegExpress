@@ -9,13 +9,13 @@
              d:DesignHeight="359.77" d:DesignWidth="316.194" 
              Loaded="UserControl_Loaded">
 
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
     <Grid>
-        <Grid.Resources>
-            <Style TargetType="CheckBox">
-                <EventSetter Event="Checked" Handler="CheckBox_Changed"/>
-                <EventSetter Event="Unchecked" Handler="CheckBox_Changed"/>
-            </Style>
-        </Grid.Resources>
         <StackPanel VerticalAlignment="Top">
             <StackPanel Orientation="Horizontal" Margin="0 0 0 6">
                 <StackPanel.LayoutTransform>
@@ -37,21 +37,11 @@
             </Label>
 
             <StackPanel x:Name="pnl2" Orientation="Vertical" Margin="0 4 0 0">
-                <CheckBox IsChecked="{Binding icase}">
-                    <ui:TextAndNote Text="icase" Note="make matches case-insensitive"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding nosubs}">
-                    <ui:TextAndNote Text="nosubs" Note="do not keep track of the contents of capture groups"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding optimize}">
-                    <ui:TextAndNote Text="optimize" Note="emphasize speed of matching rather than speed of regular expression compilation"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding collate}">
-                    <ui:TextAndNote Text="collate" Note="make matches locale-sensitive"/>
-                </CheckBox>
-                <CheckBox IsEnabled="False">
-                    <ui:TextAndNote Text="multiline" Note="(not supported by std::wregex)"/>
-                </CheckBox>
+                <ui:CheckboxWithNote IsChecked="{Binding icase}" Text="icase" Note="make matches case-insensitive"/>
+                <ui:CheckboxWithNote IsChecked="{Binding nosubs}" Text="nosubs" Note="do not keep track of the contents of capture groups"/>
+                <ui:CheckboxWithNote IsChecked="{Binding optimize}" Text="optimize" Note="emphasize speed of matching rather than speed of regular expression compilation"/>
+                <ui:CheckboxWithNote IsChecked="{Binding collate}" Text="collate" Note="make matches locale-sensitive"/>
+                <ui:CheckboxWithNote IsEnabled="False" Text="multiline" Note="(not supported by std::wregex)"/>
             </StackPanel>
 
             <Label Margin="0 4 0 0" Padding="0">
@@ -59,30 +49,14 @@
             </Label>
 
             <StackPanel x:Name="pnl1" Orientation="Vertical" Margin="0 2 0 0">
-                <CheckBox IsChecked="{Binding match_not_bol}">
-                    <ui:TextAndNote Text="match_not_bol" Note="do not treat the first position in the target sequence as the beginning of a line"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding match_not_eol}">
-                    <ui:TextAndNote Text="match_not_eol" Note="do not treat the past-the-end position in the target sequence as the end of a line"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding match_not_bow}">
-                    <ui:TextAndNote Text="match_not_bow" Note="do not treat the first position in the target sequence as the beginning of a word"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding match_not_eow}">
-                    <ui:TextAndNote Text="match_not_eow" Note="do not treat the past-the-end position in the target sequence as the end of a word"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding match_any}">
-                    <ui:TextAndNote Text="match_any" Note="if more than one match is possible any match is acceptable"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding match_not_null}">
-                    <ui:TextAndNote Text="match_not_null" Note="do not treat an empty subsequence as a match"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding match_continuous}">
-                    <ui:TextAndNote Text="match_continuous" Note="do not search for matches other than at the beginning of the target sequence"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding match_prev_avail}">
-                    <ui:TextAndNote Text="match_prev_avail" Note="'--first' is a valid iterator; ignore match_not_bol and match_not_bow if set"/>
-                </CheckBox>
+                <ui:CheckboxWithNote IsChecked="{Binding match_not_bol}" Text="match_not_bol" Note="do not treat the first position in the target sequence as the beginning of a line"/>
+                <ui:CheckboxWithNote IsChecked="{Binding match_not_eol}" Text="match_not_eol" Note="do not treat the past-the-end position in the target sequence as the end of a line"/>
+                <ui:CheckboxWithNote IsChecked="{Binding match_not_bow}" Text="match_not_bow" Note="do not treat the first position in the target sequence as the beginning of a word"/>
+                <ui:CheckboxWithNote IsChecked="{Binding match_not_eow}" Text="match_not_eow" Note="do not treat the past-the-end position in the target sequence as the end of a word"/>
+                <ui:CheckboxWithNote IsChecked="{Binding match_any}" Text="match_any" Note="if more than one match is possible any match is acceptable"/>
+                <ui:CheckboxWithNote IsChecked="{Binding match_not_null}" Text="match_not_null" Note="do not treat an empty subsequence as a match"/>
+                <ui:CheckboxWithNote IsChecked="{Binding match_continuous}" Text="match_continuous" Note="do not search for matches other than at the beginning of the target sequence"/>
+                <ui:CheckboxWithNote IsChecked="{Binding match_prev_avail}" Text="match_prev_avail" Note="'--first' is a valid iterator; ignore match_not_bol and match_not_bow if set"/>
             </StackPanel>
 
             <StackPanel Orientation="Vertical" Margin="0 4 0 0">

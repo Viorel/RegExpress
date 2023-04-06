@@ -21,7 +21,7 @@ namespace RegExpressWPFNET.Code
 
         public override void Write( Utf8JsonWriter writer, string value, JsonSerializerOptions options )
         {
-            writer.WriteRawValue( value );
+            writer.WriteRawValue( Environment.NewLine + value );
         }
     }
 }

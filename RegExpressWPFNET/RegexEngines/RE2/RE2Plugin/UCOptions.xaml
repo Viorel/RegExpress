@@ -9,45 +9,24 @@
              d:DesignHeight="359.77" d:DesignWidth="316.194" 
              Loaded="UserControl_Loaded">
 
-    <Grid>
-        <Grid.Resources>
-            <Style TargetType="CheckBox">
-                <EventSetter Event="Checked" Handler="CheckBox_Changed"/>
-                <EventSetter Event="Unchecked" Handler="CheckBox_Changed"/>
-            </Style>
-        </Grid.Resources>
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
 
+    <Grid>
         <StackPanel VerticalAlignment="Top">
-            <CheckBox IsChecked="{Binding posix_syntax}">
-                <ui:TextAndNote Text="posix_syntax" Note="restrict regexps to POSIX egrep syntax"/>
-            </CheckBox>
-            <CheckBox IsChecked="{Binding longest_match}">
-                <ui:TextAndNote Text="longest_match" Note="search for longest match, not first match"/>
-            </CheckBox>
-            <CheckBox IsChecked="{Binding literal}">
-                <ui:TextAndNote Text="literal" Note="interpret string as literal, not regexp"/>
-            </CheckBox>
-            <CheckBox IsChecked="{Binding never_nl}">
-                <ui:TextAndNote Text="never_nl" Note="never match \n, even if it is in regexp"/>
-            </CheckBox>
-            <CheckBox IsChecked="{Binding dot_nl}">
-                <ui:TextAndNote Text="dot_nl" Note="dot matches everything including new line"/>
-            </CheckBox>
-            <CheckBox IsChecked="{Binding never_capture}">
-                <ui:TextAndNote Text="never_capture" Note="parse all parens as non-capturing"/>
-            </CheckBox>
-            <CheckBox IsChecked="{Binding case_sensitive}">
-                <ui:TextAndNote Text="case_sensitive" Note="match is case-sensitive (regexp can override with (?i) unless in posix_syntax mode)"/>
-            </CheckBox>
-            <CheckBox IsChecked="{Binding perl_classes}">
-                <ui:TextAndNote Text="perl_classes" Note="allow Perl's \d \s \w \D \S \W"/>
-            </CheckBox>
-            <CheckBox IsChecked="{Binding word_boundary}">
-                <ui:TextAndNote Text="word_boundary" Note="allow Perl's \b \B (word boundary and not)"/>
-            </CheckBox>
-            <CheckBox IsChecked="{Binding one_line}">
-                <ui:TextAndNote Text="one_line" Note="^ and $ only match beginning and end of text"/>
-            </CheckBox>
+            <ui:CheckboxWithNote IsChecked="{Binding posix_syntax}" Text="posix_syntax" Note="restrict regexps to POSIX egrep syntax"/>
+            <ui:CheckboxWithNote IsChecked="{Binding longest_match}" Text="longest_match" Note="search for longest match, not first match"/>
+            <ui:CheckboxWithNote IsChecked="{Binding literal}" Text="literal" Note="interpret string as literal, not regexp"/>
+            <ui:CheckboxWithNote IsChecked="{Binding never_nl}" Text="never_nl" Note="never match \n, even if it is in regexp"/>
+            <ui:CheckboxWithNote IsChecked="{Binding dot_nl}" Text="dot_nl" Note="dot matches everything including new line"/>
+            <ui:CheckboxWithNote IsChecked="{Binding never_capture}" Text="never_capture" Note="parse all parens as non-capturing"/>
+            <ui:CheckboxWithNote IsChecked="{Binding case_sensitive}" Text="case_sensitive" Note="match is case-sensitive (regexp can override with (?i) unless in posix_syntax mode)"/>
+            <ui:CheckboxWithNote IsChecked="{Binding perl_classes}" Text="perl_classes" Note="allow Perl's \d \s \w \D \S \W"/>
+            <ui:CheckboxWithNote IsChecked="{Binding word_boundary}" Text="word_boundary" Note="allow Perl's \b \B (word boundary and not)"/>
+            <ui:CheckboxWithNote IsChecked="{Binding one_line}" Text="one_line" Note="^ and $ only match beginning and end of text"/>
 
             <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
                 <StackPanel.LayoutTransform>

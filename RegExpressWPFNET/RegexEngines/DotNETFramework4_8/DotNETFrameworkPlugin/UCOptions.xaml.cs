@@ -43,7 +43,7 @@ namespace DotNETFrameworkPlugin
         }
 
 
-        private void CbOption_Changed( object sender, RoutedEventArgs e )
+        private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
             if( !IsFullyLoaded ) return;
             if( ChangeCounter != 0 ) return;

@@ -7,39 +7,24 @@
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
              Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
     <Grid>
         <StackPanel>
             <StackPanel>
-                <StackPanel.Resources>
-                    <Style TargetType="CheckBox">
-                        <EventSetter Event="Checked" Handler="CbOption_Changed"/>
-                        <EventSetter Event="Unchecked" Handler="CbOption_Changed"/>
-                    </Style>
-                </StackPanel.Resources>
-                <CheckBox IsChecked="{Binding CultureInvariant}">
-                    <ui:TextAndNote Text="CultureInvariant"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding ECMAScript}">
-                    <ui:TextAndNote Text="ECMAScript"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding ExplicitCapture}">
-                    <ui:TextAndNote Text="ExplicitCapture"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding IgnoreCase}">
-                    <ui:TextAndNote Text="IgnoreCase"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding IgnorePatternWhitespace}">
-                    <ui:TextAndNote Text="IgnorePatternWhitespace"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding Multiline}">
-                    <ui:TextAndNote Text="Multiline" Note="'^', '$' at '\n' too"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding RightToLeft}">
-                    <ui:TextAndNote Text="RightToLeft"/>
-                </CheckBox>
-                <CheckBox IsChecked="{Binding Singleline}">
-                    <ui:TextAndNote Text="Singleline" Note="'.' matches '\n' too"/>
-                </CheckBox>
+                <ui:CheckboxWithNote IsChecked="{Binding CultureInvariant}" Text="CultureInvariant"/>
+                <ui:CheckboxWithNote IsChecked="{Binding ECMAScript}" Text="ECMAScript"/>
+                <ui:CheckboxWithNote IsChecked="{Binding ExplicitCapture}" Text="ExplicitCapture"/>
+                <ui:CheckboxWithNote IsChecked="{Binding IgnoreCase}" Text="IgnoreCase"/>
+                <ui:CheckboxWithNote IsChecked="{Binding IgnorePatternWhitespace}" Text="IgnorePatternWhitespace"/>
+                <ui:CheckboxWithNote IsChecked="{Binding Multiline}" Text="Multiline" Note="'^', '$' at '\n' too"/>
+                <ui:CheckboxWithNote IsChecked="{Binding RightToLeft}" Text="RightToLeft"/>
+                <ui:CheckboxWithNote IsChecked="{Binding Singleline}" Text="Singleline" Note="'.' matches '\n' too"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
                 <StackPanel.LayoutTransform>
