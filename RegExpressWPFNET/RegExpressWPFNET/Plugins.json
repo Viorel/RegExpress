@@ -4,4 +4,5 @@
   "Engines\\Std\\StdPlugin.dll",
   "Engines\\RE2\\RE2Plugin.dll",
   "Engines\\SubReg\\SubRegPlugin.dll",
+  "Engines\\PCRE2\\PCRE2Plugin.dll",
 ]

@@ -53,3 +53,10 @@ set BaseDir=%SolutionDir%\RegexEngines\SubReg
 xcopy /D /R /Y "%BaseDir%\SubRegPlugin\bin\%Configuration%\%TargetFramework%\SubRegPlugin.dll" "%EnginesTargetDir%\SubReg\*"
 xcopy /D /R /Y "%BaseDir%\SubRegClient\bin\%Configuration%\%Platform%\SubRegClient.exe" "%EnginesTargetDir%\SubReg\*.bin"
 
+
+rem -- PCRE2 --
+
+set BaseDir=%SolutionDir%\RegexEngines\PCRE2
+xcopy /D /R /Y "%BaseDir%\PCRE2Plugin\bin\%Configuration%\%TargetFramework%\PCRE2Plugin.dll" "%EnginesTargetDir%\PCRE2\*"
+xcopy /D /R /Y "%BaseDir%\PCRE2Client\bin\%Configuration%\%Platform%\PCRE2Client.exe" "%EnginesTargetDir%\PCRE2\*.bin"
+
