@@ -494,7 +494,6 @@ int main( )
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_NO_START_OPTIMIZE;
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_UCP;
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_UNGREEDY;
-            if( inbr.ReadByte( ) ) compile_options |= PCRE2_USE_OFFSET_LIMIT;
 
             // Extra compile options
 

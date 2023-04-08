@@ -49,7 +49,7 @@ namespace PCRE2Plugin
         //public bool PCRE2_NO_UTF_CHECK {get;set;}
         public bool PCRE2_UCP { get; set; }
         public bool PCRE2_UNGREEDY { get; set; }
-        public bool PCRE2_USE_OFFSET_LIMIT { get; set; }
+        //public bool PCRE2_USE_OFFSET_LIMIT { get; set; }
         //public bool PCRE2_UTF {get;set;}
 
 

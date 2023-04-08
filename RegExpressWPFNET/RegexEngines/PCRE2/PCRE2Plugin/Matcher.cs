@@ -78,7 +78,6 @@ namespace PCRE2Plugin
                     bw.Write( Convert.ToByte( Options.PCRE2_NO_START_OPTIMIZE ) );
                     bw.Write( Convert.ToByte( Options.PCRE2_UCP ) );
                     bw.Write( Convert.ToByte( Options.PCRE2_UNGREEDY ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_USE_OFFSET_LIMIT ) );
 
                     // Extra compile options
 
