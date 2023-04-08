@@ -60,3 +60,10 @@ set BaseDir=%SolutionDir%\RegexEngines\PCRE2
 xcopy /D /R /Y "%BaseDir%\PCRE2Plugin\bin\%Configuration%\%TargetFramework%\PCRE2Plugin.dll" "%EnginesTargetDir%\PCRE2\*"
 xcopy /D /R /Y "%BaseDir%\PCRE2Client\bin\%Configuration%\%Platform%\PCRE2Client.exe" "%EnginesTargetDir%\PCRE2\*.bin"
 
+
+rem -- Boost --
+
+set BaseDir=%SolutionDir%\RegexEngines\Boost
+xcopy /D /R /Y "%BaseDir%\BoostPlugin\bin\%Configuration%\%TargetFramework%\BoostPlugin.dll" "%EnginesTargetDir%\Boost\*"
+xcopy /D /R /Y "%BaseDir%\BoostClient\bin\%Configuration%\%Platform%\BoostClient.exe" "%EnginesTargetDir%\Boost\*.bin"
+

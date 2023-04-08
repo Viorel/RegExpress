@@ -17,6 +17,9 @@
 #include <iostream>
 #include <format>
 
+#include "ForcedInclude.h"
+#include "pcre2.h"
+
 #include "RegExpressCppLibraryPCH.h"
 
 

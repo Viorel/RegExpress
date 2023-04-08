@@ -38,7 +38,7 @@
                 <StackPanel Grid.Row="0" Style="{StaticResource StackPanelWithLabels}" >
                     <TextBlock Text="Pattern" Style="{StaticResource Labels}" VerticalAlignment="Center" />
                 </StackPanel>
-                <local:UCPattern x:Name="ucPattern" Grid.Row="1" TextChanged="UcPattern_TextChanged"  />
+                <local:UCPattern x:Name="ucPattern" Grid.Row="1" TextChanged="UcPattern_TextChanged" Margin="0 4 0 0"  />
             </Grid>
 
             <GridSplitter Grid.Row="1" IsTabStop="False" />

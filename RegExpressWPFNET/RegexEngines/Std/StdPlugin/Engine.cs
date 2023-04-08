@@ -16,7 +16,7 @@ namespace StdPlugin
     {
         static readonly Lazy<Version> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly LazyData<GrammarEnum, FeatureMatrix> LazyFeatureMatrix = new LazyData<GrammarEnum, FeatureMatrix>( BuildFeatureMatrix );
+        static readonly LazyData<GrammarEnum, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
         static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, ReadCommentHandling = JsonCommentHandling.Skip, WriteIndented = true };
 
 

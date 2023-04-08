@@ -46,9 +46,9 @@ namespace RegExpressLibrary.UI
                 typeMetadata: new FrameworkPropertyMetadata(
                     defaultValue: false,
                     flags: FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
-                    propertyChangedCallback: pccb ) );
+                    propertyChangedCallback: IsCheckedChangedCallback ) );
 
-        private static void pccb( DependencyObject d, DependencyPropertyChangedEventArgs e )
+        private static void IsCheckedChangedCallback( DependencyObject d, DependencyPropertyChangedEventArgs e )
         {
             ( (CheckboxWithNote)d ).RaiseEvent( new RoutedEventArgs( ChangedEvent ) );
         }
@@ -61,6 +61,25 @@ namespace RegExpressLibrary.UI
 
 
         // (See: https://stackoverflow.com/questions/18158500/usercontrol-dependency-property-design-time)
+
+
+        public static readonly DependencyProperty PropProperty =
+            DependencyProperty.Register( nameof( Prop ), typeof( string ), typeof( CheckboxWithNote ),
+                new PropertyMetadata( defaultValue: null, propertyChangedCallback: PropChangedCallback ) );
+
+        private static void PropChangedCallback( DependencyObject d, DependencyPropertyChangedEventArgs e )
+        {
+            CheckboxWithNote This = (CheckboxWithNote)d;
+
+            This.ApplyProp( );
+        }
+
+
+        public string Prop
+        {
+            get { return (string)GetValue( PropProperty ); }
+            set { SetValue( PropProperty, value ); }
+        }
 
 
         public static readonly DependencyProperty TextProperty =
@@ -81,5 +100,26 @@ namespace RegExpressLibrary.UI
             get { return (string)GetValue( NoteProperty ); }
             set { SetValue( NoteProperty, value ); }
         }
+
+        private void userControl_DataContextChanged( object sender, DependencyPropertyChangedEventArgs e )
+        {
+            ApplyProp( );
+        }
+
+
+        private void ApplyProp( )
+        {
+            if( string.IsNullOrWhiteSpace( Prop ) ) return;
+
+            var binding = new Binding( Prop );
+
+            SetBinding( IsCheckedProperty, binding );
+            //if( string.IsNullOrWhiteSpace( Text ) )
+            {
+                Text = Prop;
+            }
+        }
+
+
     }
 }

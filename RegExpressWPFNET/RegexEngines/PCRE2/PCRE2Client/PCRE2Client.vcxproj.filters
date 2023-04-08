@@ -140,7 +140,7 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ForceInclude.h">
+    <ClInclude Include="ForcedInclude.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

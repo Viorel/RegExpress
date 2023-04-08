@@ -1,0 +1,94 @@
+﻿<UserControl x:Class="BoostPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:BoostPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="520" d:DesignWidth="570" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel>
+
+            <StackPanel Orientation="Horizontal" >
+                <StackPanel.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </StackPanel.LayoutTransform>
+
+                <Label Content="Grammar:" Target="{Binding ElementName=cbxGrammar}" VerticalAlignment="Center"/>
+                <ComboBox x:Name="cbxGrammar" SelectedValuePath="Tag" SelectedValue="{Binding Grammar, FallbackValue='ECMAScript'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxGrammar_SelectionChanged">
+                    <ComboBoxItem Tag ="normal" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="ECMAScript" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                    <ComboBoxItem Tag ="JavaScript" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="JScript" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="perl" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <Separator/>
+                    <ComboBoxItem Tag ="extended" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="egrep" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="awk" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <Separator/>
+                    <ComboBoxItem Tag ="basic" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="sed" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="grep" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="emacs" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <Separator/>
+                    <ComboBoxItem Tag ="literal" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                </ComboBox>
+            </StackPanel>
+
+            <Label Margin="0 3 0 0" Padding="0">
+                <Italic>Syntax Options</Italic>
+            </Label>
+            <StackPanel>
+                <ui:CheckboxWithNote Prop="icase" Note="without regard to case"/>
+                <ui:CheckboxWithNote Prop="nosubs" Note="no sub-expression matches are to be stored"/>
+                <ui:CheckboxWithNote Prop="optimize" Note="currently has no effect for Boost.Regex"/>
+                <ui:CheckboxWithNote Prop="collate" Note="character ranges of the form [a-b] should be locale sensitive"/>
+                <ui:CheckboxWithNote Prop="no_except" Note="prevents from throwing an exception when an invalid expression is encountered"/>
+                <ui:CheckboxWithNote Prop="no_mod_m" Note="disable m modifier"/>
+                <ui:CheckboxWithNote Prop="no_mod_s" Note="force s modifier off"/>
+                <ui:CheckboxWithNote Prop="mod_s" Note="match &quot;.&quot; against a newline character"/>
+                <ui:CheckboxWithNote Prop="mod_x" Note="causes unescaped whitespace in the expression to be ignored"/>
+                <ui:CheckboxWithNote Prop="no_empty_expressions" Note="empty expressions/alternatives are prohibited"/>
+            </StackPanel>
+
+            <Label Margin="0 3 0 0" Padding="0">
+                <Italic>Match Options</Italic>
+            </Label>
+            <StackPanel x:Name="pnlExtraCompileOptions">
+                <ui:CheckboxWithNote Prop="match_not_bob" Note="&quot;\A&quot; and &quot;\`&quot; should not match against the sub-sequence [first,first)"/>
+                <ui:CheckboxWithNote Prop="match_not_eob" Note="&quot;\'&quot;, &quot;\z&quot; and &quot;\Z&quot; should not match against the sub-sequence [last,last)"/>
+                <ui:CheckboxWithNote Prop="match_not_bol" Note="&quot;^&quot; should not be matched against the sub-sequence [first,first)"/>
+                <ui:CheckboxWithNote Prop="match_not_eol" Note="&quot;$&quot; should not be matched against the sub-sequence [last,last)"/>
+                <ui:CheckboxWithNote Prop="match_not_bow" Note="&quot;\&lt;&quot; and &quot;\b&quot; should not be matched against the sub-sequence [first,first)"/>
+                <ui:CheckboxWithNote Prop="match_not_eow" Note="&quot;\>&quot; and &quot;\b&quot; should not be matched against the sub-sequence [last,last)"/>
+                <ui:CheckboxWithNote Prop="match_any" Note="any match is an acceptable result"/>
+                <ui:CheckboxWithNote Prop="match_not_null" Note="the expression can not be matched against an empty sequence"/>
+                <ui:CheckboxWithNote Prop="match_continuous" Note="the expression must match a sub-sequence that begins at first"/>
+                <ui:CheckboxWithNote Prop="match_partial" Note="find partial matches"/>
+                <ui:CheckboxWithNote Prop="match_extra" Note="retain all available capture information"/>
+                <ui:CheckboxWithNote Prop="match_single_line" Note="^ only matches at the start of the text, $ only matches at the end of the text"/>
+                <ui:CheckboxWithNote Prop="match_prev_avail" Note="valid expression assumed before the start of text"/>
+                <ui:CheckboxWithNote Prop="match_not_dot_newline" Note="&quot;.&quot; does not match a newline character"/>
+                <ui:CheckboxWithNote Prop="match_not_dot_null" Note="&quot;.&quot; does not match a character null '\0'"/>
+                <ui:CheckboxWithNote Prop="match_posix" Note="expression should be matched according to the POSIX leftmost-longest rule"/>
+                <ui:CheckboxWithNote Prop="match_perl" Note="the expression should be matched according to the Perl matching rules"/>
+                <ui:CheckboxWithNote Prop="match_nosubs" Note="don't trap marked subs"/>
+            </StackPanel>
+
+        </StackPanel>
+    </Grid>
+</UserControl>

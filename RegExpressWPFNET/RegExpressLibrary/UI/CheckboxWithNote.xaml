@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RegExpressLibrary.UI"
              mc:Ignorable="d" 
              d:DesignHeight="18" d:DesignWidth="200"
-             x:Name="userControl"
+             x:Name="userControl" DataContextChanged="userControl_DataContextChanged"
              >
     <Grid>
         <CheckBox IsChecked="{Binding IsChecked, ElementName=userControl}">
