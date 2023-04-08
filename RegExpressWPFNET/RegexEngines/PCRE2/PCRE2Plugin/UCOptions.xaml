@@ -39,61 +39,61 @@
                 <Italic>Compile Options</Italic>
             </Label>
             <StackPanel>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_ANCHORED}" Text="PCRE2_ANCHORED" Note="Force pattern anchoring"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_ALLOW_EMPTY_CLASS}" Text="PCRE2_ALLOW_EMPTY_CLASS" Note="Allow empty classes"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_ALT_BSUX}" Text="PCRE2_ALT_BSUX" Note="Alternative handling of \u, \U, and \x"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_ALT_CIRCUMFLEX}" Text="PCRE2_ALT_CIRCUMFLEX" Note="Alternative handling of ^ in multiline mode"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_ALT_VERBNAMES}" Text="PCRE2_ALT_VERBNAMES" Note="Process backslashes in verb names"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_CASELESS}" Text="PCRE2_CASELESS" Note="Do caseless matching"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_DOLLAR_ENDONLY}" Text="PCRE2_DOLLAR_ENDONLY" Note="$ not to match newline at end"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_DOTALL}" Text="PCRE2_DOTALL" Note=". matches anything including NL"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_DUPNAMES}" Text="PCRE2_DUPNAMES" Note="Allow duplicate names for subpatterns"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_ENDANCHORED}" Text="PCRE2_ENDANCHORED" Note="Pattern can match only at end of subject"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_EXTENDED}" Text="PCRE2_EXTENDED" Note="Ignore white space and # comments"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_EXTENDED_MORE}" Text="PCRE2_EXTENDED_MORE" Note="Like PCRE2_EXTENDED, but additionally ignore spaces within [ ]"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_FIRSTLINE}" Text="PCRE2_FIRSTLINE" Note="Force matching to be before newline"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_LITERAL}" Text="PCRE2_LITERAL" Note="Pattern characters are all literal"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_MATCH_UNSET_BACKREF}" Text="PCRE2_MATCH_UNSET_BACKREF" Note="Match unset backreferences"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_MULTILINE}" Text="PCRE2_MULTILINE" Note="^ and $ match newlines within data"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NEVER_BACKSLASH_C}" Text="PCRE2_NEVER_BACKSLASH_C" Note="Lock out the use of \C in patterns"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NEVER_UCP}" Text="PCRE2_NEVER_UCP" Note="Lock out PCRE2_UCP, e.g. via (*UCP)"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NEVER_UTF}" Text="PCRE2_NEVER_UTF" Note="Lock out PCRE2_UTF, e.g. via (*UTF)"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NO_AUTO_CAPTURE}" Text="PCRE2_NO_AUTO_CAPTURE" Note="Disable numbered capturing parentheses (named ones available)"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NO_AUTO_POSSESS}" Text="PCRE2_NO_AUTO_POSSESS" Note="Disable auto-possessification"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NO_DOTSTAR_ANCHOR}" Text="PCRE2_NO_DOTSTAR_ANCHOR" Note="Disable automatic anchoring for .*"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NO_START_OPTIMIZE}" Text="PCRE2_NO_START_OPTIMIZE" Note="Disable match-time start optimizations"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_UCP}" Text="PCRE2_UCP" Note="Use Unicode properties for \d, \w, etc."/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_UNGREEDY}" Text="PCRE2_UNGREEDY" Note="Invert greediness of quantifiers"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_USE_OFFSET_LIMIT}" Text="PCRE2_USE_OFFSET_LIMIT" Note="Enable offset limit for unanchored matching"/>
+                <ui:CheckboxWithNote Prop="PCRE2_ANCHORED" Note="Force pattern anchoring"/>
+                <ui:CheckboxWithNote Prop="PCRE2_ALLOW_EMPTY_CLASS" Note="Allow empty classes"/>
+                <ui:CheckboxWithNote Prop="PCRE2_ALT_BSUX" Note="Alternative handling of \u, \U, and \x"/>
+                <ui:CheckboxWithNote Prop="PCRE2_ALT_CIRCUMFLEX" Note="Alternative handling of ^ in multiline mode"/>
+                <ui:CheckboxWithNote Prop="PCRE2_ALT_VERBNAMES" Note="Process backslashes in verb names"/>
+                <ui:CheckboxWithNote Prop="PCRE2_CASELESS" Note="Do caseless matching"/>
+                <ui:CheckboxWithNote Prop="PCRE2_DOLLAR_ENDONLY" Note="$ not to match newline at end"/>
+                <ui:CheckboxWithNote Prop="PCRE2_DOTALL" Note=". matches anything including NL"/>
+                <ui:CheckboxWithNote Prop="PCRE2_DUPNAMES" Note="Allow duplicate names for subpatterns"/>
+                <ui:CheckboxWithNote Prop="PCRE2_ENDANCHORED" Note="Pattern can match only at end of subject"/>
+                <ui:CheckboxWithNote Prop="PCRE2_EXTENDED" Note="Ignore white space and # comments"/>
+                <ui:CheckboxWithNote Prop="PCRE2_EXTENDED_MORE" Note="Like PCRE2_EXTENDED, but additionally ignore spaces within [ ]"/>
+                <ui:CheckboxWithNote Prop="PCRE2_FIRSTLINE" Note="Force matching to be before newline"/>
+                <ui:CheckboxWithNote Prop="PCRE2_LITERAL" Note="Pattern characters are all literal"/>
+                <ui:CheckboxWithNote Prop="PCRE2_MATCH_UNSET_BACKREF" Note="Match unset backreferences"/>
+                <ui:CheckboxWithNote Prop="PCRE2_MULTILINE" Note="^ and $ match newlines within data"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NEVER_BACKSLASH_C" Note="Lock out the use of \C in patterns"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NEVER_UCP" Note="Lock out PCRE2_UCP, e.g. via (*UCP)"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NEVER_UTF" Note="Lock out PCRE2_UTF, e.g. via (*UTF)"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NO_AUTO_CAPTURE" Note="Disable numbered capturing parentheses (named ones available)"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NO_AUTO_POSSESS" Note="Disable auto-possessification"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NO_DOTSTAR_ANCHOR" Note="Disable automatic anchoring for .*"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NO_START_OPTIMIZE" Note="Disable match-time start optimizations"/>
+                <ui:CheckboxWithNote Prop="PCRE2_UCP" Note="Use Unicode properties for \d, \w, etc."/>
+                <ui:CheckboxWithNote Prop="PCRE2_UNGREEDY" Note="Invert greediness of quantifiers"/>
+                <ui:CheckboxWithNote Prop="PCRE2_USE_OFFSET_LIMIT" Note="Enable offset limit for unanchored matching"/>
             </StackPanel>
 
             <Label Margin="0 3 0 0" Padding="0">
                 <Italic>Extra Compile Options</Italic>
             </Label>
             <StackPanel x:Name="pnlExtraCompileOptions">
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES}" Text="PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES" Note="Allow \x{df800} to \x{dfff} in UTF-8 and UTF-32 modes"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_EXTRA_ALT_BSUX}" Text="PCRE2_EXTRA_ALT_BSUX" Note="Extended alternate \u, \U, and \x handling"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL}" Text="PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL" Note="Treat all invalid escapes as a literal following character"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_EXTRA_ESCAPED_CR_IS_LF}" Text="PCRE2_EXTRA_ESCAPED_CR_IS_LF" Note="Interpret \r as \n"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_EXTRA_MATCH_LINE}" Text="PCRE2_EXTRA_MATCH_LINE" Note="Pattern matches whole lines"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_EXTRA_MATCH_WORD}" Text="PCRE2_EXTRA_MATCH_WORD" Note="Pattern matches &quot;words&quot;"/>
+                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES" Note="Allow \x{df800} to \x{dfff} in UTF-8 and UTF-32 modes"/>
+                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALT_BSUX" Note="Extended alternate \u, \U, and \x handling"/>
+                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL" Note="Treat all invalid escapes as a literal following character"/>
+                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ESCAPED_CR_IS_LF" Note="Interpret \r as \n"/>
+                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_MATCH_LINE" Note="Pattern matches whole lines"/>
+                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_MATCH_WORD" Note="Pattern matches &quot;words&quot;"/>
             </StackPanel>
 
             <Label Margin="0 3 0 0" Padding="0">
                 <Italic>Matcher Options</Italic>
             </Label>
             <StackPanel x:Name="pnlMatchOptions">
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_ANCHORED_mo}" Text="PCRE2_ANCHORED" Note="Match only at the first position"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_COPY_MATCHED_SUBJECT}" Text="PCRE2_COPY_MATCHED_SUBJECT" Note="On success, make a private subject copy"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_ENDANCHORED_mo}" Text="PCRE2_ENDANCHORED" Note="Pattern can match only at end of subject"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NOTBOL}" Text="PCRE2_NOTBOL" Note="Subject string is not the beginning of a line"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NOTEOL}" Text="PCRE2_NOTEOL" Note="Subject string is not the end of a line"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NOTEMPTY}" Text="PCRE2_NOTEMPTY" Note="An empty string is not a valid match"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NOTEMPTY_ATSTART}" Text="PCRE2_NOTEMPTY_ATSTART" Note="An empty string at the start of the subject is not a valid match"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_NO_JIT}" Text="PCRE2_NO_JIT" Note="Do not use JIT matching"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_PARTIAL_HARD}" Text="PCRE2_PARTIAL_HARD" Note="Return PCRE2_ERROR_PARTIAL for a partial match even if there is a full match"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_PARTIAL_SOFT}" Text="PCRE2_PARTIAL_SOFT" Note="Return PCRE2_ERROR_PARTIAL for a partial match if no full matches are found"/>
-                <ui:CheckboxWithNote IsChecked="{Binding PCRE2_DFA_SHORTEST}" Text="PCRE2_DFA_SHORTEST" Note="Return only the shortest match"/>
+                <ui:CheckboxWithNote Prop="PCRE2_ANCHORED_mo" Text="PCRE2_ANCHORED" Note="Match only at the first position"/>
+                <ui:CheckboxWithNote Prop="PCRE2_COPY_MATCHED_SUBJECT" Note="On success, make a private subject copy"/>
+                <ui:CheckboxWithNote Prop="PCRE2_ENDANCHORED_mo" Text="PCRE2_ENDANCHORED" Note="Pattern can match only at end of subject"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NOTBOL" Note="Subject string is not the beginning of a line"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NOTEOL" Note="Subject string is not the end of a line"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NOTEMPTY" Note="An empty string is not a valid match"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NOTEMPTY_ATSTART" Note="An empty string at the start of the subject is not a valid match"/>
+                <ui:CheckboxWithNote Prop="PCRE2_NO_JIT" Note="Do not use JIT matching"/>
+                <ui:CheckboxWithNote Prop="PCRE2_PARTIAL_HARD" Note="Return PCRE2_ERROR_PARTIAL for a partial match even if there is a full match"/>
+                <ui:CheckboxWithNote Prop="PCRE2_PARTIAL_SOFT" Note="Return PCRE2_ERROR_PARTIAL for a partial match if no full matches are found"/>
+                <ui:CheckboxWithNote Prop="PCRE2_DFA_SHORTEST" Note="Return only the shortest match"/>
             </StackPanel>
 
         </StackPanel>

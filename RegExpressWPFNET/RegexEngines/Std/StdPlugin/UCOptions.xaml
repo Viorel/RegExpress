@@ -37,10 +37,10 @@
             </Label>
 
             <StackPanel x:Name="pnl2" Orientation="Vertical" Margin="0 4 0 0">
-                <ui:CheckboxWithNote IsChecked="{Binding icase}" Text="icase" Note="make matches case-insensitive"/>
-                <ui:CheckboxWithNote IsChecked="{Binding nosubs}" Text="nosubs" Note="do not keep track of the contents of capture groups"/>
-                <ui:CheckboxWithNote IsChecked="{Binding optimize}" Text="optimize" Note="emphasize speed of matching rather than speed of regular expression compilation"/>
-                <ui:CheckboxWithNote IsChecked="{Binding collate}" Text="collate" Note="make matches locale-sensitive"/>
+                <ui:CheckboxWithNote Prop="icase" Note="make matches case-insensitive"/>
+                <ui:CheckboxWithNote Prop="nosubs" Note="do not keep track of the contents of capture groups"/>
+                <ui:CheckboxWithNote Prop="optimize" Note="emphasize speed of matching rather than speed of regular expression compilation"/>
+                <ui:CheckboxWithNote Prop="collate" Note="make matches locale-sensitive"/>
                 <ui:CheckboxWithNote IsEnabled="False" Text="multiline" Note="(not supported by std::wregex)"/>
             </StackPanel>
 
@@ -49,14 +49,14 @@
             </Label>
 
             <StackPanel x:Name="pnl1" Orientation="Vertical" Margin="0 2 0 0">
-                <ui:CheckboxWithNote IsChecked="{Binding match_not_bol}" Text="match_not_bol" Note="do not treat the first position in the target sequence as the beginning of a line"/>
-                <ui:CheckboxWithNote IsChecked="{Binding match_not_eol}" Text="match_not_eol" Note="do not treat the past-the-end position in the target sequence as the end of a line"/>
-                <ui:CheckboxWithNote IsChecked="{Binding match_not_bow}" Text="match_not_bow" Note="do not treat the first position in the target sequence as the beginning of a word"/>
-                <ui:CheckboxWithNote IsChecked="{Binding match_not_eow}" Text="match_not_eow" Note="do not treat the past-the-end position in the target sequence as the end of a word"/>
-                <ui:CheckboxWithNote IsChecked="{Binding match_any}" Text="match_any" Note="if more than one match is possible any match is acceptable"/>
-                <ui:CheckboxWithNote IsChecked="{Binding match_not_null}" Text="match_not_null" Note="do not treat an empty subsequence as a match"/>
-                <ui:CheckboxWithNote IsChecked="{Binding match_continuous}" Text="match_continuous" Note="do not search for matches other than at the beginning of the target sequence"/>
-                <ui:CheckboxWithNote IsChecked="{Binding match_prev_avail}" Text="match_prev_avail" Note="'--first' is a valid iterator; ignore match_not_bol and match_not_bow if set"/>
+                <ui:CheckboxWithNote Prop="match_not_bol" Note="do not treat the first position in the target sequence as the beginning of a line"/>
+                <ui:CheckboxWithNote Prop="match_not_eol" Note="do not treat the past-the-end position in the target sequence as the end of a line"/>
+                <ui:CheckboxWithNote Prop="match_not_bow" Note="do not treat the first position in the target sequence as the beginning of a word"/>
+                <ui:CheckboxWithNote Prop="match_not_eow" Note="do not treat the past-the-end position in the target sequence as the end of a word"/>
+                <ui:CheckboxWithNote Prop="match_any" Note="if more than one match is possible any match is acceptable"/>
+                <ui:CheckboxWithNote Prop="match_not_null" Note="do not treat an empty subsequence as a match"/>
+                <ui:CheckboxWithNote Prop="match_continuous" Note="do not search for matches other than at the beginning of the target sequence"/>
+                <ui:CheckboxWithNote Prop="match_prev_avail" Note="'--first' is a valid iterator; ignore match_not_bol and match_not_bow if set"/>
             </StackPanel>
 
             <StackPanel Orientation="Vertical" Margin="0 4 0 0">

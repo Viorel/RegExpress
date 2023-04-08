@@ -17,14 +17,14 @@
     <Grid>
         <StackPanel>
             <StackPanel>
-                <ui:CheckboxWithNote IsChecked="{Binding CultureInvariant}" Text="CultureInvariant"/>
-                <ui:CheckboxWithNote IsChecked="{Binding ECMAScript}" Text="ECMAScript"/>
-                <ui:CheckboxWithNote IsChecked="{Binding ExplicitCapture}" Text="ExplicitCapture"/>
-                <ui:CheckboxWithNote IsChecked="{Binding IgnoreCase}" Text="IgnoreCase"/>
-                <ui:CheckboxWithNote IsChecked="{Binding IgnorePatternWhitespace}" Text="IgnorePatternWhitespace"/>
-                <ui:CheckboxWithNote IsChecked="{Binding Multiline}" Text="Multiline" Note="'^', '$' at '\n' too"/>
-                <ui:CheckboxWithNote IsChecked="{Binding RightToLeft}" Text="RightToLeft"/>
-                <ui:CheckboxWithNote IsChecked="{Binding Singleline}" Text="Singleline" Note="'.' matches '\n' too"/>
+                <ui:CheckboxWithNote Prop="CultureInvariant"/>
+                <ui:CheckboxWithNote Prop="ECMAScript"/>
+                <ui:CheckboxWithNote Prop="ExplicitCapture"/>
+                <ui:CheckboxWithNote Prop="IgnoreCase"/>
+                <ui:CheckboxWithNote Prop="IgnorePatternWhitespace"/>
+                <ui:CheckboxWithNote Prop="Multiline" Note="'^', '$' at '\n' too"/>
+                <ui:CheckboxWithNote Prop="RightToLeft" />
+                <ui:CheckboxWithNote Prop="Singleline" Note="'.' matches '\n' too"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
                 <StackPanel.LayoutTransform>

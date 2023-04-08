@@ -11,24 +11,24 @@
     <Grid>
         <CheckBox IsChecked="{Binding IsChecked, ElementName=userControl}">
             <TextBlock x:Name="textBlock" HorizontalAlignment="Left" VerticalAlignment="Top">
-            <Run Text="{Binding Text, ElementName=userControl, Mode=OneWay, FallbackValue='Text'}"/>
-            <Run>
-                <Run.Style>
-                    <Style TargetType="Run">
-                        <Setter Property="Text" Value="{Binding Note, ElementName=userControl, Mode=OneWay, FallbackValue='', StringFormat=' – {0}'}"/>
-                        <Setter Property="Foreground">
-                            <Setter.Value>
-                                <SolidColorBrush Opacity="0.77" Color="{x:Static SystemColors.ControlTextColor}"/>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Note, ElementName=userControl, Mode=OneWay}" Value="">
-                                <Setter Property="Text" Value=""/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Run.Style>
-            </Run>
+                <Run x:Name="run" Text="Sample text"/>
+                <Run>
+                    <Run.Style>
+                        <Style TargetType="Run">
+                            <Setter Property="Text" Value="{Binding Note, ElementName=userControl, Mode=OneWay, FallbackValue='', StringFormat=' – {0}'}"/>
+                            <Setter Property="Foreground">
+                                <Setter.Value>
+                                    <SolidColorBrush Opacity="0.77" Color="{x:Static SystemColors.ControlTextColor}"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Note, ElementName=userControl, Mode=OneWay}" Value="">
+                                    <Setter Property="Text" Value=""/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Run.Style>
+                </Run>
             </TextBlock>
         </CheckBox>
     </Grid>

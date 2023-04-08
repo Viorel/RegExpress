@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -46,17 +47,17 @@ namespace RegExpressLibrary.UI
                 typeMetadata: new FrameworkPropertyMetadata(
                     defaultValue: false,
                     flags: FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
-                    propertyChangedCallback: IsCheckedChangedCallback ) );
-
-        private static void IsCheckedChangedCallback( DependencyObject d, DependencyPropertyChangedEventArgs e )
-        {
-            ( (CheckboxWithNote)d ).RaiseEvent( new RoutedEventArgs( ChangedEvent ) );
-        }
+                    propertyChangedCallback: IsChecked_Changed ) );
 
         public bool? IsChecked
         {
             get { return (bool?)GetValue( IsCheckedProperty ); }
             set { SetValue( IsCheckedProperty, value ); }
+        }
+
+        private static void IsChecked_Changed( DependencyObject d, DependencyPropertyChangedEventArgs e )
+        {
+            ( (CheckboxWithNote)d ).RaiseEvent( new RoutedEventArgs( ChangedEvent ) );
         }
 
 
@@ -65,15 +66,7 @@ namespace RegExpressLibrary.UI
 
         public static readonly DependencyProperty PropProperty =
             DependencyProperty.Register( nameof( Prop ), typeof( string ), typeof( CheckboxWithNote ),
-                new PropertyMetadata( defaultValue: null, propertyChangedCallback: PropChangedCallback ) );
-
-        private static void PropChangedCallback( DependencyObject d, DependencyPropertyChangedEventArgs e )
-        {
-            CheckboxWithNote This = (CheckboxWithNote)d;
-
-            This.ApplyProp( );
-        }
-
+                new PropertyMetadata( defaultValue: null, propertyChangedCallback: Prop_Changed ) );
 
         public string Prop
         {
@@ -81,15 +74,34 @@ namespace RegExpressLibrary.UI
             set { SetValue( PropProperty, value ); }
         }
 
+        private static void Prop_Changed( DependencyObject d, DependencyPropertyChangedEventArgs e )
+        {
+            CheckboxWithNote This = (CheckboxWithNote)d;
+
+            This.ApplyProp( );
+        }
+
 
         public static readonly DependencyProperty TextProperty =
-            DependencyProperty.Register( nameof( Text ), typeof( string ), typeof( CheckboxWithNote ), new PropertyMetadata( "(text undefined)" ) );
+            DependencyProperty.Register( nameof( Text ), typeof( string ), typeof( CheckboxWithNote ),
+                new FrameworkPropertyMetadata( 
+                    defaultValue: "", 
+                    propertyChangedCallback: Text_Changed
+                    ) );
 
         public string Text
         {
             get { return (string)GetValue( TextProperty ); }
             set { SetValue( TextProperty, value ); }
         }
+
+        private static void Text_Changed( DependencyObject d, DependencyPropertyChangedEventArgs e )
+        {
+            CheckboxWithNote This = (CheckboxWithNote)d;
+
+            This.AdjustCheckboxText( );
+        }
+
 
 
         public static readonly DependencyProperty NoteProperty =
@@ -112,14 +124,16 @@ namespace RegExpressLibrary.UI
             if( string.IsNullOrWhiteSpace( Prop ) ) return;
 
             var binding = new Binding( Prop );
-
             SetBinding( IsCheckedProperty, binding );
-            //if( string.IsNullOrWhiteSpace( Text ) )
-            {
-                Text = Prop;
-            }
+
+            AdjustCheckboxText( );
         }
 
+
+        void AdjustCheckboxText( )
+        {
+            run.Text = string.IsNullOrWhiteSpace( Text ) ? Prop : Text;
+        }
 
     }
 }
