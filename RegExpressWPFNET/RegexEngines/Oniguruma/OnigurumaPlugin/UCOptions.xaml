@@ -1,0 +1,116 @@
+﻿<UserControl x:Class="OnigurumaPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:OnigurumaPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="520" d:DesignWidth="570" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel>
+
+            <StackPanel Orientation="Horizontal" >
+                <StackPanel.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </StackPanel.LayoutTransform>
+
+                <Label Content="Syntax:" Target="{Binding ElementName=cbxSyntax}" VerticalAlignment="Center"/>
+                <ComboBox x:Name="cbxSyntax" SelectedValuePath="Tag" SelectedValue="{Binding Syntax, FallbackValue='ONIG_SYNTAX_ONIGURUMA'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxSyntax_SelectionChanged">
+
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_ONIGURUMA" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="Oniguruma"/>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_ASIS" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="plain text"/>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_POSIX_BASIC" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="POSIX Basic RE"/>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_POSIX_EXTENDED" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="POSIX Extended RE"/>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_EMACS" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="Emacs"/>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_GREP" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="grep"/>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_GNU_REGEX" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="GNU regex"/>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_JAVA" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="Java (Sun java.util.regex)"/>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_PERL" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="Perl"/>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_PERL_NG" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="Perl + named group"/>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_RUBY" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="Ruby"/>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag ="ONIG_SYNTAX_PYTHON" >
+                        <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note="Python"/>
+                    </ComboBoxItem>
+                </ComboBox>
+            </StackPanel>
+
+            <Label Margin="0 3 0 0" Padding="0">
+                <Italic>Compile-time options</Italic>
+            </Label>
+            <StackPanel>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_SINGLELINE" Note="'^' -> '\A', '$' -> '\Z'"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_MULTILINE" Note="'.' match with newline"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_IGNORECASE" Note="ambiguity match on"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_EXTEND" Note="extended pattern form"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_FIND_LONGEST" Note="find longest match"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_FIND_NOT_EMPTY" Note="ignore empty match"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_NEGATE_SINGLELINE" Note="clear ONIG_OPTION_SINGLELINE"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_DONT_CAPTURE_GROUP" Note="only named group captured"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_CAPTURE_GROUP" Note="named and no-named group captured"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_IGNORECASE_IS_ASCII" Note="limit IGNORECASE ((?i)) to a range of ASCII characters"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_WORD_IS_ASCII" Note="ASCII only word (\w, \p{Word}, [[:word:]]), ASCII only word bound (\b)"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_DIGIT_IS_ASCII" Note="ASCII only digit (\d, \p{Digit}, [[:digit:]])"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_SPACE_IS_ASCII" Note="ASCII only space (\s, \p{Space}, [[:space:]])"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_POSIX_IS_ASCII" Note="ASCII only POSIX properties"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER" Note="Extended Grapheme Cluster mode"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_TEXT_SEGMENT_WORD" Note="Word mode"/>
+            </StackPanel>
+
+            <Label Margin="0 3 0 0" Padding="0">
+                <Italic>Search-time options</Italic>
+            </Label>
+            <StackPanel>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_NOTBOL" Note="string head isn't considered as begin of line and begin of string"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_NOTEOL" Note="string end isn't considered as end of line and end of string"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_NOT_BEGIN_STRING" Note="string head isn't considered as begin of string (* fail \A)"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_NOT_END_STRING" Note="string end isn't considered as end of string (* fail \z, \Z)"/>
+                <ui:CheckboxWithNote Prop="ONIG_OPTION_NOT_BEGIN_POSITION" Note="string head isn't considered as start position of search (* fail \G)"/>
+            </StackPanel>
+
+            <Label Margin="0 3 0 0" Padding="0">
+                <Italic>Configuration</Italic>
+            </Label>
+            <StackPanel>
+                <ui:CheckboxWithNote Prop="ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY" Note="enable (?@…) and (?@&lt;name>…)"/>
+                <ui:CheckboxWithNote Prop="ONIG_SYN_STRICT_CHECK_BACKREF" Note="error on invalid backrefs"/>
+            </StackPanel>
+
+        </StackPanel>
+    </Grid>
+</UserControl>

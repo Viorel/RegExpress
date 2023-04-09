@@ -6,4 +6,5 @@
   "Engines\\SubReg\\SubRegPlugin.dll",
   "Engines\\PCRE2\\PCRE2Plugin.dll",
   "Engines\\Boost\\BoostPlugin.dll",
+  "Engines\\Oniguruma\\OnigurumaPlugin.dll",
 ]

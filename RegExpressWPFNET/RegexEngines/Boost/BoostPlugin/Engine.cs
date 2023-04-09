@@ -133,9 +133,6 @@ namespace BoostPlugin
             }
 
             return list;
-
-
-
         }
 
         #endregion

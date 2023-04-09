@@ -348,3 +348,12 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+
+
+# My exceptions
+!RegExpressWPFNET/RegexEngines/Boost/BoostClient/Boost-min/**
+!RegExpressWPFNET/RegexEngines/Oniguruma/OnigurumaClient/Oniguruma-min/**
+!RegExpressWPFNET/RegexEngines/PCRE2/PCRE2Client/PCRE2-min/**
+!RegExpressWPFNET/RegexEngines/RE2/RE2Client/RE2-min/**
+!RegExpressWPFNET/RegexEngines/SubReg/SubRegClient/SubReg-min/**

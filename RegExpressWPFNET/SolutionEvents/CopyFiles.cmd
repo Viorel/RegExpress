@@ -67,3 +67,11 @@ set BaseDir=%SolutionDir%\RegexEngines\Boost
 xcopy /D /R /Y "%BaseDir%\BoostPlugin\bin\%Configuration%\%TargetFramework%\BoostPlugin.dll" "%EnginesTargetDir%\Boost\*"
 xcopy /D /R /Y "%BaseDir%\BoostClient\bin\%Configuration%\%Platform%\BoostClient.exe" "%EnginesTargetDir%\Boost\*.bin"
 
+
+rem -- Oniguruma --
+
+set BaseDir=%SolutionDir%\RegexEngines\Oniguruma
+xcopy /D /R /Y "%BaseDir%\OnigurumaPlugin\bin\%Configuration%\%TargetFramework%\OnigurumaPlugin.dll" "%EnginesTargetDir%\Oniguruma\*"
+xcopy /D /R /Y "%BaseDir%\OnigurumaClient\bin\%Configuration%\%Platform%\OnigurumaClient.exe" "%EnginesTargetDir%\Oniguruma\*.bin"
+
+
