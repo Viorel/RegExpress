@@ -18,7 +18,6 @@ namespace DotNETPlugin
         static readonly Lazy<Version> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
-        static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, ReadCommentHandling = JsonCommentHandling.Skip, WriteIndented = true };
 
 
         public Engine( )
@@ -56,7 +55,7 @@ namespace DotNETPlugin
         public string? ExportOptions( )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonOptions );
+            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
 
             return json;
         }
@@ -74,7 +73,7 @@ namespace DotNETPlugin
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonOptions )!;
+                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {

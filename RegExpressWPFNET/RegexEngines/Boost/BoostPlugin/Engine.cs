@@ -18,7 +18,6 @@ namespace BoostPlugin
         static readonly Lazy<Version> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly LazyData<GrammarEnum, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
-        static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, ReadCommentHandling = JsonCommentHandling.Skip, WriteIndented = true };
 
 
         public Engine( )
@@ -57,7 +56,7 @@ namespace BoostPlugin
         public string? ExportOptions( )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonOptions );
+            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
 
             return json;
         }
@@ -75,7 +74,7 @@ namespace BoostPlugin
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonOptions )!;
+                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {

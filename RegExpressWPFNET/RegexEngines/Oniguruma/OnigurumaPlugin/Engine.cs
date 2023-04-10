@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Controls;
@@ -18,7 +19,6 @@ namespace OnigurumaPlugin
         static readonly Lazy<Version> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         //...        static readonly Dictionary<string, FeatureMatrix> CachedFeatureMatrices = new Dictionary<string, FeatureMatrix>( );
-        static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, ReadCommentHandling = JsonCommentHandling.Skip, WriteIndented = true };
 
 
         public Engine( )
@@ -57,7 +57,7 @@ namespace OnigurumaPlugin
         public string? ExportOptions( )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonOptions );
+            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
 
             return json;
         }
@@ -75,7 +75,7 @@ namespace OnigurumaPlugin
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonOptions )!;
+                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {
