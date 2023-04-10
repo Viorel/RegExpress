@@ -371,7 +371,20 @@ namespace RegExpressWPFNET
                 string json = JsonSerializer.Serialize( all_data, JsonOptions );
                 string my_file = GetMyDataFile( );
 
-                File.WriteAllText( my_file, json );
+                try
+                {
+                    File.WriteAllText( my_file, json );
+                }
+                catch( DirectoryNotFoundException )
+                {
+                    // on first launch, before settings are saved, the folder is missing;
+                    // try to create it, then re-save the data
+
+                    var fi = new FileInfo( my_file );
+                    fi.Directory!.Create( );
+
+                    File.WriteAllText( my_file, json );
+                }
 
                 /*
                 // An alternative (different folder)
