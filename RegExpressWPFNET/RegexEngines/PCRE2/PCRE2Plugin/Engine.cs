@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Controls;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
-
+using RegExpressLibrary.SyntaxColouring;
 
 namespace PCRE2Plugin
 {
@@ -45,6 +45,7 @@ namespace PCRE2Plugin
         public string? NoteForCaptures => null;
 
         public event RegexEngineOptionsChanged? OptionsChanged;
+        public event EventHandler? FeatureMatrixReady;
 
 
         public Control GetOptionsControl( )
@@ -97,13 +98,8 @@ namespace PCRE2Plugin
 
         }
 
-        public FeatureMatrix GetFeatureMatrix( )
-        {
-            return LazyFeatureMatrix.Value;
-        }
 
-
-        public GenericOptions GetGenericOptions( )
+        public SyntaxOptions GetSyntaxOptions( )
         {
             var options = mOptionsControl.Value.GetSelectedOptions( );
 
@@ -112,18 +108,13 @@ namespace PCRE2Plugin
             bool is_extended_more = options.PCRE2_EXTENDED_MORE;
             bool allow_empty_set = options.PCRE2_ALLOW_EMPTY_CLASS;
 
-            return new GenericOptions
+            return new SyntaxOptions
             {
                 Literal = is_literal,
                 XLevel = is_extended_more ? XLevelEnum.xx : is_extended ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = allow_empty_set,
+                FeatureMatrix = LazyFeatureMatrix.Value
             };
-        }
-
-
-        public IReadOnlyList<(string variantName, FeatureMatrix fm)> GetFeatureMatrices( )
-        {
-            return new List<(string, FeatureMatrix)> { (null, GetFeatureMatrix( )) };
         }
 
         #endregion
@@ -279,6 +270,8 @@ namespace PCRE2Plugin
                 NamedGroup_Apos = true,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = true,
+                NamedGroup_AtApos = false,
+                NamedGroup_AtLtGt = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,

@@ -357,3 +357,6 @@ MigrationBackup/
 !RegExpressWPFNET/RegexEngines/PCRE2/PCRE2Client/PCRE2-min/**
 !RegExpressWPFNET/RegexEngines/RE2/RE2Client/RE2-min/**
 !RegExpressWPFNET/RegexEngines/SubReg/SubRegClient/SubReg-min/**
+!RegExpressWPFNET/RegexEngines/Oniguruma/OnigurumaClient/Oniguruma-min/**
+
+

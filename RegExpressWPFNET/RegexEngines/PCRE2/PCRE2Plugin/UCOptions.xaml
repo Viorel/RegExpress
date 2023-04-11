@@ -29,7 +29,7 @@
                 </StackPanel.LayoutTransform>
 
                 <Label Content="Algorithm:" Target="{Binding ElementName=cbxAlgorithm}" VerticalAlignment="Center"/>
-                <ComboBox x:Name="cbxAlgorithm" SelectedValuePath="Tag" SelectedValue="{Binding Anchor, FallbackValue='Standard'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxAlgorithm_SelectionChanged">
+                <ComboBox x:Name="cbxAlgorithm" SelectedValuePath="Tag" SelectedValue="{Binding Algorithm, FallbackValue='Standard'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxAlgorithm_SelectionChanged">
                     <ComboBoxItem Tag ="Standard" Content="Perl-compatible" IsSelected="True" />
                     <ComboBoxItem Tag ="DFA" Content="DFA" />
                 </ComboBox>
@@ -64,7 +64,6 @@
                 <ui:CheckboxWithNote Prop="PCRE2_NO_START_OPTIMIZE" Note="Disable match-time start optimizations"/>
                 <ui:CheckboxWithNote Prop="PCRE2_UCP" Note="Use Unicode properties for \d, \w, etc."/>
                 <ui:CheckboxWithNote Prop="PCRE2_UNGREEDY" Note="Invert greediness of quantifiers"/>
-                <ui:CheckboxWithNote Prop="PCRE2_USE_OFFSET_LIMIT" Note="Enable offset limit for unanchored matching"/>
             </StackPanel>
 
             <Label Margin="0 3 0 0" Padding="0">

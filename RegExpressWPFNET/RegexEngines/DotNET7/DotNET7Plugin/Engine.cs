@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using DotNETPlugin.Matches;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.SyntaxColouring;
 
 namespace DotNETPlugin
 {
@@ -45,6 +46,7 @@ namespace DotNETPlugin
         public string? NoteForCaptures => null;
 
         public event RegexEngineOptionsChanged? OptionsChanged;
+        public event EventHandler? FeatureMatrixReady;
 
         public Control GetOptionsControl( )
         {
@@ -101,24 +103,16 @@ namespace DotNETPlugin
 
         }
 
-        public FeatureMatrix GetFeatureMatrix( )
-        {
-            return LazyFeatureMatrix.Value;
-        }
 
-        public GenericOptions GetGenericOptions( )
+        public SyntaxOptions GetSyntaxOptions( )
         {
             var options = mOptionsControl.Value.GetSelectedOptions( );
 
-            return new GenericOptions
+            return new SyntaxOptions
             {
                 XLevel = options.IgnorePatternWhitespace ? XLevelEnum.x : XLevelEnum.none,
+                FeatureMatrix = LazyFeatureMatrix.Value
             };
-        }
-
-        public IReadOnlyList<(string variantName, FeatureMatrix fm)> GetFeatureMatrices( )
-        {
-            return new List<(string, FeatureMatrix)> { (null, GetFeatureMatrix( )) };
         }
 
         #endregion
@@ -284,6 +278,8 @@ namespace DotNETPlugin
                 NamedGroup_Apos = true,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
+                NamedGroup_AtApos = false,
+                NamedGroup_AtLtGt = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,

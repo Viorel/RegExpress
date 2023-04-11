@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -46,7 +47,7 @@ namespace RegExpressLibrary.SyntaxColouring
         }
 
 
-        public PatternBuilder Add( string pattern )
+        public PatternBuilder Add( [StringSyntax( StringSyntaxAttribute.Regex )] string pattern )
         {
             if( string.IsNullOrEmpty( pattern ) ) return this;
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -11,7 +12,23 @@ namespace RegExpressLibrary.SyntaxColouring
 {
     public static class SyntaxColourer
     {
-        readonly static Dictionary<Key, Regex> CachedRegexes = new Dictionary<Key, Regex>( );
+        readonly static Dictionary<Key, Regex> CachedRegexes = new( );
+
+
+        //...
+        //class KeyEqualityComparer : IEqualityComparer<Key>
+        //{
+        //    public bool Equals( Key x, Key y )
+        //    {
+        //        throw new NotImplementedException( );
+        //    }
+        //
+        //    public int GetHashCode( [DisallowNull] Key x )
+        //    {
+        //        return x.fm.GetHashCode( ) ^ x.xlevel.GetHashCode( ) ^ x.allow_empty_sets.GetHashCode( );
+        //    }
+        //}
+
 
         class ScopeInfo
         {
@@ -23,23 +40,22 @@ namespace RegExpressLibrary.SyntaxColouring
         {
             internal FeatureMatrix fm;
             internal XLevelEnum xlevel;
-            internal bool aes;
+            internal bool allow_empty_sets;
         }
 
 
-
-
-        public static void ColourisePattern( ICancellable cnc, ColouredSegments colouredSegments, string pattern, Segment visibleSegment,
-            FeatureMatrix fm, GenericOptions opt )
+        public static void ColourisePattern( ICancellable cnc, ColouredSegments colouredSegments, string pattern, Segment visibleSegment, SyntaxOptions syntaxOptions )
         {
             Debug.Assert( typeof( FeatureMatrix ).IsValueType );
 
-            if( opt.Literal ) return;
+            if( syntaxOptions.Literal ) return;
+
+            FeatureMatrix fm = syntaxOptions.FeatureMatrix;
 
             Stack<ScopeInfo> scope_stack = new Stack<ScopeInfo>( );
             scope_stack.Push( new ScopeInfo
             {
-                XLevel = opt.XLevel,
+                XLevel = syntaxOptions.XLevel,
             } );
 
             int index = 0;
@@ -57,7 +73,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 if( cnc.IsCancellationRequested ) return;
 
                 var scope = scope_stack.Peek( );
-                var regex = GetCachedRegex( fm, scope.XLevel, opt.AllowEmptySets );
+                var regex = GetCachedRegex( fm, scope.XLevel, syntaxOptions.AllowEmptySets );
 
                 var m = regex.Match( pattern, index );
                 if( !m.Success ) break;
@@ -156,9 +172,11 @@ namespace RegExpressLibrary.SyntaxColouring
 
 
         public static void HighlightPattern( ICancellable cnc, Highlights highlights, string pattern, int selectionStart, int selectionEnd, Segment visibleSegment,
-            FeatureMatrix fm, GenericOptions opt )
+            SyntaxOptions syntaxOptions )
         {
-            if( opt.Literal ) return;
+            if( syntaxOptions.Literal ) return;
+
+            FeatureMatrix fm = syntaxOptions.FeatureMatrix;
 
             int par_size = fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal ? 1 : fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed ? 2 : 0;
             int bracket_size = 1;
@@ -171,7 +189,7 @@ namespace RegExpressLibrary.SyntaxColouring
             Stack<ScopeInfo> scope_stack = new Stack<ScopeInfo>( );
             scope_stack.Push( new ScopeInfo
             {
-                XLevel = opt.XLevel,
+                XLevel = syntaxOptions.XLevel,
             } );
 
             int index = 0;
@@ -189,7 +207,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 if( cnc.IsCancellationRequested ) return;
 
                 var scope = scope_stack.Peek( );
-                var regex = GetCachedRegex( fm, scope.XLevel, opt.AllowEmptySets );
+                var regex = GetCachedRegex( fm, scope.XLevel, syntaxOptions.AllowEmptySets );
 
                 var m = regex.Match( pattern, index );
                 if( !m.Success ) break;
@@ -281,7 +299,7 @@ namespace RegExpressLibrary.SyntaxColouring
             Regex re = null;
             lock( CachedRegexes )
             {
-                var key = new Key { fm = fm, xlevel = xlevel, aes = allow_empty_set };
+                var key = new Key { fm = fm, xlevel = xlevel, allow_empty_sets = allow_empty_set };
 
                 if( !CachedRegexes.TryGetValue( key, out re ) )
                 {
@@ -305,74 +323,60 @@ namespace RegExpressLibrary.SyntaxColouring
             {
                 if( fm.Esc_oBrace )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\o(\{[^\}]*\}?)?" ); // octal
                 }
                 if( fm.Esc_Octal0_1_3 )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\0[0-7]{0,3}" ); // octal 1-3 digits
                 }
                 if( fm.Esc_Octal_1_3 )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\[0-7]{1,3}" ); // octal 1-3 digits
                 }
                 if( fm.Esc_Octal_2_3 )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\[0-7]{2,3}" ); // octal 2-3 digits
                 }
                 if( fm.Esc_xBrace )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\x\{[^\}]*\}?" ); // hexa
                 }
                 if( fm.Esc_x2 )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\x[0-9a-fA-F]{0,2}" ); // hexa, two digits
                 }
                 if( fm.Esc_uBrace )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\u\{([^}]+\}?)?" );
                 }
                 if( fm.Esc_UBrace )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\U\{([^}]+\}?)?" );
                 }
                 if( fm.Esc_u4 )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\u[0-9a-fA-F]{0,4}" ); // hexa, four digits
                 }
                 if( fm.Esc_U8 )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\U[0-9a-fA-F]{0,8}" ); // hexa, eight digits
                 }
                 if( fm.Esc_c1 )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\c.?" ); // control char
                 }
                 if( fm.Esc_CMinus )
                 {
-                    // language=regex
                     pb_character_escape.Add( @"\\C(-.?)?" ); // control char
                 }
                 if( fm.Esc_NBrace )
                 {
                     if( fm.Class_N )
                     {
-                        // language=regex
                         pb_character_escape.Add( @"\\N\{ [^}]* \}?" ); // symbolic name
                     }
                     else
                     {
-                        // language=regex
                         pb_character_escape.Add( @"\\N(\{ [^}]* \}?)?" ); // symbolic name
                     }
                 }
@@ -389,7 +393,6 @@ namespace RegExpressLibrary.SyntaxColouring
                     );
                 if( chars.Length > 0 )
                 {
-                    // language=regex
                     pb_character_escape.Add( $@"\\[{chars}]" );
                 }
             }
@@ -402,14 +405,11 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     if( fm.Class_pP )
                     {
-                        // language=regex
                         pb_character_class.Add( @"\\[pP][^\{]" ); // property, short name
-                        // language=regex
                         pb_character_class.Add( @"\\[pP]( \{ [^}]* \}? )?" ); // property
                     }
                     else
                     {
-                        // language=regex
                         pb_character_class.Add( @"\\[pP] \{ [^}]* \}?" ); // property
                     }
                 }
@@ -417,14 +417,12 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     if( fm.Class_pP )
                     {
-                        // language=regex
                         pb_character_class.Add( @"\\[pP].?" ); // property, short name
                     }
                 }
 
                 if( fm.Class_sSx )
                 {
-                    // language=regex
                     pb_character_class.Add( @"\\[sS].?" ); // syntax group
                 }
 
@@ -444,13 +442,11 @@ namespace RegExpressLibrary.SyntaxColouring
                     );
                 if( chars.Length > 0 )
                 {
-                    // language=regex
                     pb_character_class.Add( $@"\\[{chars}]" );
                 }
 
                 if( fm.Class_Not )
                 {
-                    // language=regex
                     pb_character_class.Add( @"\\!(\\?.)?" );
                 }
             }
@@ -462,67 +458,54 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     if( fm.InsideSets_Esc_oBrace )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\o(\{[^\}]*\}?)?" ); // octal
                     }
                     if( fm.InsideSets_Esc_Octal0_1_3 )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\0[0-7]{0,3}" ); // octal 1-3 digits
                     }
                     if( fm.InsideSets_Esc_Octal_1_3 )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\[0-7]{1,3}" ); // octal 1-3 digits
                     }
                     if( fm.InsideSets_Esc_Octal_2_3 )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\[0-7]{2,3}" ); // octal 2-3 digits
                     }
                     if( fm.InsideSets_Esc_xBrace )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\x\{[^\}]*\}?" ); // hexa
                     }
                     if( fm.InsideSets_Esc_x2 )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\x[0-9a-fA-F]{0,2}" ); // hexa, two digits
                     }
                     if( fm.InsideSets_Esc_uBrace )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\u\{([^}]+\}?)?" );
                     }
                     if( fm.InsideSets_Esc_UBrace )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\U\{([^}]+\}?)?" );
                     }
                     if( fm.InsideSets_Esc_u4 )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\u[0-9a-fA-F]{0,4}" ); // hexa, four digits
                     }
                     if( fm.InsideSets_Esc_U8 )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\U[0-9a-fA-F]{0,8}" ); // hexa, eight digits
                     }
                     if( fm.InsideSets_Esc_c1 )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\c.?" ); // control char
                     }
                     if( fm.InsideSets_Esc_CMinus )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\C(-.?)?" ); // control char
                     }
                     if( fm.InsideSets_Esc_NBrace )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\N\{ [^}]* \}?" ); // symbolic name
                     }
 
@@ -538,7 +521,6 @@ namespace RegExpressLibrary.SyntaxColouring
                             );
                     if( chars.Length > 0 )
                     {
-                        // language=regex
                         pb_inside_sets.Add( String.Format( @"\\[{0}]", chars ) );
                     }
                 }
@@ -550,14 +532,11 @@ namespace RegExpressLibrary.SyntaxColouring
                     {
                         if( fm.InsideSets_Class_pP )
                         {
-                            // language=regex
                             pb_inside_sets.Add( @"\\[pP][^\{]" ); // property, short name
-                            // language=regex
                             pb_inside_sets.Add( @"\\[pP]( \{ [^}]* \}? )?" ); // property
                         }
                         else
                         {
-                            // language=regex
                             pb_inside_sets.Add( @"\\[pP] \{ [^}]* \}?" ); // property
                         }
                     }
@@ -565,14 +544,12 @@ namespace RegExpressLibrary.SyntaxColouring
                     {
                         if( fm.InsideSets_Class_pP )
                         {
-                            // language=regex
                             pb_inside_sets.Add( @"\\[pP].?" ); // property, short name
                         }
                     }
 
                     if( fm.InsideSets_Class_sSx )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\\[sS].?" ); // syntax group
                     }
 
@@ -589,23 +566,19 @@ namespace RegExpressLibrary.SyntaxColouring
                         );
                     if( chars.Length > 0 )
                     {
-                        // language=regex
                         pb_inside_sets.Add( $@"\\[{chars}]" );
                     }
 
                     if( fm.InsideSets_Class )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\[: [^:]* : (\] | $)" );
                     }
                     if( fm.InsideSets_Equivalence )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\[= [^=]* = (\] | $)" );
                     }
                     if( fm.InsideSets_Collating )
                     {
-                        // language=regex
                         pb_inside_sets.Add( @"\[\. [^.]* \. (\] | $)" );
                     }
                 }
@@ -614,7 +587,6 @@ namespace RegExpressLibrary.SyntaxColouring
                 // -- identity escape
                 if( fm.InsideSets_GenericEscape )
                 {
-                    // language=regex
                     pb_inside_sets.Add( @"(?<escape>\\.?)" );
                 }
             }
@@ -624,52 +596,42 @@ namespace RegExpressLibrary.SyntaxColouring
             {
                 if( fm.InsideSets_Operator_DoubleAmpersand )
                 {
-                    // language=regex
                     pb_set_operators.Add( @"&&" );
                 }
                 if( fm.InsideSets_Operator_DoubleVerticalLine )
                 {
-                    // language=regex
                     pb_set_operators.Add( @"\|\|" );
                 }
                 if( fm.InsideSets_Operator_DoubleMinus )
                 {
-                    // language=regex
                     pb_set_operators.Add( @"--" );
                 }
                 if( fm.InsideSets_Operator_DoubleTilde )
                 {
-                    // language=regex
                     pb_set_operators.Add( @"~~" );
                 }
                 if( fm.InsideSets_Operator_Ampersand )
                 {
-                    // language=regex
                     pb_set_operators.Add( @"&" );
                 }
                 if( fm.InsideSets_Operator_Plus )
                 {
-                    // language=regex
                     pb_set_operators.Add( @"\+" );
                 }
                 if( fm.InsideSets_Operator_VerticalLine )
                 {
-                    // language=regex
                     pb_set_operators.Add( @"\|" );
                 }
                 if( fm.InsideSets_Operator_Minus )
                 {
-                    // language=regex
                     pb_set_operators.Add( @"\-" );
                 }
                 if( fm.InsideSets_Operator_Circumflex )
                 {
-                    // language=regex
                     pb_set_operators.Add( @"\^" );
                 }
                 if( fm.InsideSets_Operator_Exclamation )
                 {
-                    // language=regex
                     pb_set_operators.Add( @"!" );
                 }
             }
@@ -677,7 +639,6 @@ namespace RegExpressLibrary.SyntaxColouring
 
             if( fm.EmptySet && allowEmptySet )
             {
-                // language=regex
                 pb.Add( @"(?<lbracket>\[\^?)(?<rbracket>\])" ); // [], [^]
             }
 
@@ -693,9 +654,7 @@ namespace RegExpressLibrary.SyntaxColouring
 
             if( fm.Brackets )
             {
-                // language=regex
                 string comm = fm.InsideSets_XModeComments && is_xmode ? @"((?<comment>\#.*?)(\n|\r|$)) |" : "";
-                // language=regex
                 string qs = fm.InsideSets_Literal_QE ? @"(?<qs>\\Q.*?(\\E|$)) |" : "";
 
                 if( fm.InsideSets_Operators )
@@ -758,11 +717,9 @@ namespace RegExpressLibrary.SyntaxColouring
                 switch( fm.Parentheses )
                 {
                 case FeatureMatrix.PunctuationEnum.Normal:
-                    // language=regex
                     pb.Add( @"(?<comment>\(\?\# [^\)]* \)?)" );
                     break;
                 case FeatureMatrix.PunctuationEnum.Backslashed:
-                    // language=regex
                     pb.Add( @"(?<comment>\\\(\?\# ((?!\\\)).)* (\\\))? )" );
                     break;
                 default:
@@ -772,7 +729,6 @@ namespace RegExpressLibrary.SyntaxColouring
 
             if( fm.XModeComments && is_xmode )
             {
-                // language=regex
                 pb.Add( @"(?<comment>\#.*?)(\n|\r|$)" );
             }
 
@@ -785,27 +741,22 @@ namespace RegExpressLibrary.SyntaxColouring
                 case FeatureMatrix.PunctuationEnum.Normal:
                     if( fm.Recursive_Num )
                     {
-                        // language=regex
                         pb.Add( @"\(\? (?<name>\d+) \)?" );
                     }
                     if( fm.Recursive_PlusMinusNum )
                     {
-                        // language=regex
                         pb.Add( @"\(\? (?<name>[+\-]\d+) \)?" );
                     }
                     if( fm.Recursive_R )
                     {
-                        // language=regex
                         pb.Add( @"\(\? R \)?" );
                     }
                     if( fm.Recursive_Name )
                     {
-                        // language=regex
                         pb.Add( @"\(\? & ((?<name>[^)]+) \)?)?" );
                     }
                     if( fm.Recursive_PGtName )
                     {
-                        // language=regex
                         pb.Add( @"\(\? P > ((?<name>[^)]+) \)?)?" );
                     }
                     break;
@@ -816,7 +767,6 @@ namespace RegExpressLibrary.SyntaxColouring
                     }
                     if( fm.Recursive_PlusMinusNum )
                     {
-                        // language=regex
                         pb.Add( @"\\\(\? (?<name>[+\-]\d+) (\\ \)?)?" );
                     }
                     if( fm.Recursive_R )
@@ -842,75 +792,61 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     if( fm.Backref_kApos )
                     {
-                        // language=regex
                         pb.Add( @"\\k \s* ' ((?<name>[^']*) '?)?" );
                     }
                     if( fm.Backref_kLtGt )
                     {
-                        // language=regex
                         pb.Add( @"\\k \s* < ((?<name>[^>]*) >?)?" );
                     }
                     if( fm.Backref_kNum )
                     {
-                        // language=regex
                         pb.Add( @"\\k (?<name>\d+)" );
                     }
                     if( fm.Backref_kNegNum )
                     {
-                        // language=regex
                         pb.Add( @"\\k (?<name>-\d+)" );
                     }
                     if( fm.Backref_Num )
                     {
-                        // language=regex
                         pb.Add( @"\\ (?<name>[1-9]\d*)" );
                     }
                     if( fm.Backref_1_9 )
                     {
                         if( fm.Esc_Octal_2_3 )
                         {
-                            // language=regex
                             pb.Add( @"(?<name>\\[1-9])(?![0-7])" );
                         }
                         else
                         {
-                            // language=regex
                             pb.Add( @"\\(?<name>[1-9])" );
                         }
                     }
                     if( fm.Backref_gApos )
                     {
-                        // language=regex
                         pb.Add( @"\\g \s* ' ((?<name>[^']*) '?)?" );
                     }
                     if( fm.Backref_gLtGt )
                     {
-                        // language=regex
                         pb.Add( @"\\g \s* < ((?<name>[^>]*) >?)?" );
                     }
                     if( fm.Backref_gNum )
                     {
-                        // language=regex
                         pb.Add( @"\\g (?<name>\d+)" );
                     }
                     if( fm.Backref_gNegNum )
                     {
-                        // language=regex
                         pb.Add( @"\\g (?<name>-\d+)" );
                     }
                     if( fm.Backref_gBrace )
                     {
-                        // language=regex
                         pb.Add( @"\\g \s* \{ ((?<name>[^}]*) \}?)? " );
                     }
                     if( fm.Backref_kBrace )
                     {
-                        // language=regex
                         pb.Add( @"\\k \s* \{ ((?<name>[^}]*) \}?)? " );
                     }
                     if( fm.Backref_PEqName )
                     {
-                        // language=regex
                         pb.Add( @"\( \s* \? \s* P \s* = ((?<name>[^)]*) \)?)? " );
                     }
                 }
@@ -918,75 +854,61 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     if( fm.Backref_kApos )
                     {
-                        // language=regex
                         pb.Add( @"\\k ' ((?<name>[^']*) '?)?" );
                     }
                     if( fm.Backref_kLtGt )
                     {
-                        // language=regex
                         pb.Add( @"\\k < ((?<name>[^>]*) >?)?" );
                     }
                     if( fm.Backref_kNum )
                     {
-                        // language=regex
                         pb.Add( @"\\k (?<name>\d+)" );
                     }
                     if( fm.Backref_kNegNum )
                     {
-                        // language=regex
                         pb.Add( @"\\k (?<name>-\d+)" );
                     }
                     if( fm.Backref_Num )
                     {
-                        // language=regex
                         pb.Add( @"\\ (?<name>[1-9]\d*)" );
                     }
                     if( fm.Backref_1_9 )
                     {
                         if( fm.Esc_Octal_2_3 )
                         {
-                            // language=regex
                             pb.Add( @"(?<name>\\[1-9])(?![0-7])" );
                         }
                         else
                         {
-                            // language=regex
                             pb.Add( @"\\(?<name>[1-9])" );
                         }
                     }
                     if( fm.Backref_gApos )
                     {
-                        // language=regex
                         pb.Add( @"\\g ' ((?<name>[^']*) '?)?" );
                     }
                     if( fm.Backref_gLtGt )
                     {
-                        // language=regex
                         pb.Add( @"\\g < ((?<name>[^>]*) >?)?" );
                     }
                     if( fm.Backref_gNum )
                     {
-                        // language=regex
                         pb.Add( @"\\g (?<name>\d+)" );
                     }
                     if( fm.Backref_gNegNum )
                     {
-                        // language=regex
                         pb.Add( @"\\g (?<name>-\d+)" );
                     }
                     if( fm.Backref_gBrace )
                     {
-                        // language=regex
                         pb.Add( @"\\g\{ ((?<name>[^}]*) \}?)? " );
                     }
                     if( fm.Backref_kBrace )
                     {
-                        // language=regex
                         pb.Add( @"\\k\{ ((?<name>[^}]*) \}?)? " );
                     }
                     if( fm.Backref_PEqName )
                     {
-                        // language=regex
                         pb.Add( @"\(\? P = ((?<name>[^)]*) \)?)? " );
                     }
                 }
@@ -998,11 +920,9 @@ namespace RegExpressLibrary.SyntaxColouring
                 switch( fm.Parentheses )
                 {
                 case FeatureMatrix.PunctuationEnum.Normal:
-                    // language=regex
                     pb.Add( @"(?<flags>\(\? (?<on>(?!R\))[a-zA-Z]+)? (?<dash>-)? (?<off>[a-zA-Z]+)? (\) | $) (?(on)|(?(dash)(?(off)|(?!))|(?!))) )" );
                     break;
                 case FeatureMatrix.PunctuationEnum.Backslashed:
-                    // language=regex
                     pb.Add( @"(?<flags>\\\(\? (?<on>(?!R\))[a-zA-Z]+)? (?<dash>-)? (?<off>[a-zA-Z]+)? (\\\) | $) (?(on)|(?(dash)(?(off)|(?!))|(?!))) )" );
                     break;
                 default:
@@ -1014,11 +934,9 @@ namespace RegExpressLibrary.SyntaxColouring
                 switch( fm.Parentheses )
                 {
                 case FeatureMatrix.PunctuationEnum.Normal:
-                    // language=regex
                     pb.Add( @"(?<flags>\(\? (?<on>[a-zA-Z]+)? (?<dash>-)? (?<off>[a-zA-Z]+)? ((?<colon>:) | $) (?(on)|(?(dash)|(?(off)|(?!)))) )" );
                     break;
                 case FeatureMatrix.PunctuationEnum.Backslashed:
-                    // language=regex
                     pb.Add( @"(?<flags>\\\(\? (?<on>[a-zA-Z]+)? (?<dash>-)? (?<off>[a-zA-Z]+)? ((?<colon>:) | $) (?(on)|(?(dash)|(?(off)|(?!)))) )" );
                     break;
                 default:
@@ -1030,14 +948,12 @@ namespace RegExpressLibrary.SyntaxColouring
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<flags>\(\? (?<circumflex>\^) (?<on>[a-zA-Z]+)? (?<dash>-)? (?<off>[a-zA-Z]+)? (?<rp>\))? (?(circumflex)|(?(on)|(?(dash)|(?(off)|(?!))))) )" );
             }
             if( fm.ScopedCircumflexFlags )
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<flags>\(\? (?<circumflex>\^) (?<on>[a-zA-Z]+)? (?<dash>-)? (?<off>[a-zA-Z]+)? (?<colon>:)? (?(circumflex)|(?(on)|(?(dash)|(?(off)|(?!))))) )" );
             }
 
@@ -1050,67 +966,54 @@ namespace RegExpressLibrary.SyntaxColouring
                     {
                         if( fm.NoncapturingGroup )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s*:" );
                         }
                         if( fm.PositiveLookahead )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s*=" );
                         }
                         if( fm.NegativeLookahead )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s*!" );
                         }
                         if( fm.PositiveLookbehind )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s*<\s*=" );
                         }
                         if( fm.NegativeLookbehind )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s*<\s*!" );
                         }
                         if( fm.AtomicGroup )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s*>" );
                         }
                         if( fm.BranchReset )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s*\|" );
                         }
                         if( fm.NonatomicPositiveLookahead )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s*\*" );
                         }
                         if( fm.NonatomicPositiveLookbehind )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s*<\s*\*" );
                         }
                         if( fm.AbsentOperator )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s*~" );
                         }
                         if( fm.NamedGroup_Apos )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s* ' ((?<name>[^']*) '?)?" );
                         }
                         if( fm.NamedGroup_LtGt )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s* < ((?<name>[^>]*) >?)?" );
                         }
                         if( fm.NamedGroup_PLtGt )
                         {
-                            // language=regex
                             pb.Add( @"\(\s*\?\s* P \s* < ((?<name>[^>]*) >?)?" );
                         }
                     }
@@ -1118,68 +1021,63 @@ namespace RegExpressLibrary.SyntaxColouring
                     {
                         if( fm.NoncapturingGroup )
                         {
-                            // language=regex
                             pb.Add( @"\(\?:" );
                         }
                         if( fm.PositiveLookahead )
                         {
-                            // language=regex
                             pb.Add( @"\(\?=" );
                         }
                         if( fm.NegativeLookahead )
                         {
-                            // language=regex
                             pb.Add( @"\(\?!" );
                         }
                         if( fm.PositiveLookbehind )
                         {
-                            // language=regex
                             pb.Add( @"\(\?<=" );
                         }
                         if( fm.NegativeLookbehind )
                         {
-                            // language=regex
                             pb.Add( @"\(\?<!" );
                         }
                         if( fm.AtomicGroup )
                         {
-                            // language=regex
                             pb.Add( @"\(\?>" );
                         }
                         if( fm.BranchReset )
                         {
-                            // language=regex
                             pb.Add( @"\(\?\|" );
                         }
                         if( fm.NonatomicPositiveLookahead )
                         {
-                            // language=regex
                             pb.Add( @"\(\?\*" );
                         }
                         if( fm.NonatomicPositiveLookbehind )
                         {
-                            // language=regex
                             pb.Add( @"\(\?<\*" );
                         }
                         if( fm.AbsentOperator )
                         {
-                            // language=regex
                             pb.Add( @"\(\?~" );
                         }
                         if( fm.NamedGroup_Apos )
                         {
-                            // language=regex
                             pb.Add( @"\(\? ' ((?<name>[^']*) '?)?" );
                         }
                         if( fm.NamedGroup_LtGt )
                         {
-                            // language=regex
                             pb.Add( @"\(\? < ((?<name>[^>]*) >?)?" );
                         }
                         if( fm.NamedGroup_PLtGt )
                         {
-                            // language=regex
                             pb.Add( @"\(\? P < ((?<name>[^>]*) >?)?" );
+                        }
+                        if( fm.NamedGroup_AtApos )
+                        {
+                            pb.Add( @"\(\? @ ' ((?<name>[^']*) '?)?" );
+                        }
+                        if( fm.NamedGroup_AtLtGt )
+                        {
+                            pb.Add( @"\(\? @ < ((?<name>[^>]*) >?)?" );
                         }
                     }
                     break;
@@ -1192,67 +1090,54 @@ namespace RegExpressLibrary.SyntaxColouring
                     {
                         if( fm.NoncapturingGroup )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\?:" );
                         }
                         if( fm.PositiveLookahead )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\?=" );
                         }
                         if( fm.NegativeLookahead )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\?!" );
                         }
                         if( fm.PositiveLookbehind )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\?<=" );
                         }
                         if( fm.NegativeLookbehind )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\?<!" );
                         }
                         if( fm.AtomicGroup )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\?>" );
                         }
                         if( fm.BranchReset )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\?\|" );
                         }
                         if( fm.NonatomicPositiveLookahead )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\?\*" );
                         }
                         if( fm.NonatomicPositiveLookbehind )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\?<\*" );
                         }
                         if( fm.AbsentOperator )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\?~" );
                         }
                         if( fm.NamedGroup_Apos )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\? ' ((?<name>[^']*) '?)?" );
                         }
                         if( fm.NamedGroup_LtGt )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\? < ((?<name>[^>]*) >?)?" );
                         }
                         if( fm.NamedGroup_PLtGt )
                         {
-                            // language=regex
                             pb.Add( @"\\\(\? P < ((?<name>[^>]*) >?)?" );
                         }
                     }
@@ -1319,70 +1204,60 @@ namespace RegExpressLibrary.SyntaxColouring
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<lpar>\(\?\( (?<name>[+\-]?\d+) \) )" );
             }
             if( fm.Conditional_BackrefByName )
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<lpar>\(\?\( (?![<']) (?!R&) (?!VERSION [>=]) (?<name>[^)])+ \) )" );
             }
             if( fm.Conditional_PatternOrBackrefByName )
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<lpar>\(\?) (?=\()" );
             }
             if( fm.Conditional_BackrefByName_Apos )
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<lpar>\(\?\( ' ((?<name>[^']+) (' \)?)?)? )" );
             }
             if( fm.Conditional_BackrefByName_LtGt )
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<lpar>\(\?\( < ((?<name>[^>]+) (> \)?)?)? )" );
             }
             if( fm.Conditional_RName )
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<lpar>\(\?\( R& ((?<name>[^)]+) \)?)? )" );
             }
             if( fm.Conditional_R )
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<lpar>\(\?\( R ((?<name>\d*) \)?)? )" );
             }
             if( fm.Conditional_DEFINE )
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<lpar>\(\?\( DEFINE \)? )" );
             }
             if( fm.Conditional_VERSION )
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<lpar>\(\?\( VERSION >? (= (\d+(\.\d+)? \)?)?)? )" );
             }
             if( fm.Conditional_Pattern )
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<lpar>\(\?) (?=\()" );
             }
 
@@ -1390,9 +1265,7 @@ namespace RegExpressLibrary.SyntaxColouring
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<sym>\(\* (PRUNE | SKIP | MARK | THEN | COMMIT | FAIL | F | ACCEPT | UTF8? | UCP ) ((: [^)]+)? \)?)? )" );
-                // language=regex
                 pb.Add( @"(?<sym>\(\*: ([^)]+ \)?)? )" );
             }
 
@@ -1400,7 +1273,6 @@ namespace RegExpressLibrary.SyntaxColouring
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.Add( @"(?<lpar> \(\* [^:]+ :? )" );
             }
 
@@ -1408,7 +1280,6 @@ namespace RegExpressLibrary.SyntaxColouring
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.AddGroup( "sym", @"\(\?\)" );
             }
 
@@ -1416,7 +1287,6 @@ namespace RegExpressLibrary.SyntaxColouring
             {
                 if( fm.Parentheses != FeatureMatrix.PunctuationEnum.Normal ) throw new InvalidOperationException( );
 
-                // language=regex
                 pb.AddGroup( "sym", @"\(\? \s+ \)" );
             }
 
@@ -1424,18 +1294,15 @@ namespace RegExpressLibrary.SyntaxColouring
             {
                 if( fm.Quantifier_Asterisk )
                 {
-                    // language=regex
                     pb.Add( @"\*" );
                 }
 
                 switch( fm.Quantifier_Plus )
                 {
                 case FeatureMatrix.PunctuationEnum.Normal:
-                    // language=regex
                     pb.Add( @"\+" );
                     break;
                 case FeatureMatrix.PunctuationEnum.Backslashed:
-                    // language=regex
                     pb.Add( @"\\\+" );
                     break;
                 }
@@ -1443,11 +1310,9 @@ namespace RegExpressLibrary.SyntaxColouring
                 switch( fm.Quantifier_Question )
                 {
                 case FeatureMatrix.PunctuationEnum.Normal:
-                    // language=regex
                     pb.Add( @"\?" );
                     break;
                 case FeatureMatrix.PunctuationEnum.Backslashed:
-                    // language=regex
                     pb.Add( @"\\\?" );
                     break;
                 }
@@ -1457,21 +1322,17 @@ namespace RegExpressLibrary.SyntaxColouring
                 case FeatureMatrix.PunctuationEnum.Normal:
                     if( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.Both || ( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.XModeOnly && is_xmode ) )
                     {
-                        // language=regex
                         pb.Add( @"\{ \s* \d+ (\s*,\s* \d*)? \s* \}" ); // (if does not match, then it is not a quantifier)
                         if( fm.Quantifier_LowAbbrev )
                         {
-                            // language=regex
                             pb.Add( @"\{ \s*,\s* \d+ \s* \}" );
                         }
                     }
                     else
                     {
-                        // language=regex
                         pb.Add( @"\{ \d+(,\d*)? \}" ); // (if does not match, then it is not a quantifier)
                         if( fm.Quantifier_LowAbbrev )
                         {
-                            // language=regex
                             pb.Add( @"\{ ,\d+ \}" );
                         }
                     }
@@ -1479,21 +1340,17 @@ namespace RegExpressLibrary.SyntaxColouring
                 case FeatureMatrix.PunctuationEnum.Backslashed:
                     if( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.Both || ( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.XModeOnly && is_xmode ) )
                     {
-                        // language=regex
                         pb.Add( @"\\\{ \s* \d+(\s*,\s* \d*)? \s* \\\}?" );
                         if( fm.Quantifier_LowAbbrev )
                         {
-                            // language=regex
                             pb.Add( @"\\\{ \s*,\s* \d+ \s* \\\}" );
                         }
                     }
                     else
                     {
-                        // language=regex
                         pb.Add( @"\\\{ \d+(,\d*)? \\\}?" );
                         if( fm.Quantifier_LowAbbrev )
                         {
-                            // language=regex
                             pb.Add( @"\\\{ ,\d+ \\\}" );
                         }
                     }
@@ -1504,17 +1361,13 @@ namespace RegExpressLibrary.SyntaxColouring
 
             if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal )
             {
-                // language=regex
                 pb.Add( @"(?<lpar>\()" );
-                // language=regex
                 pb.Add( @"(?<rpar>\))" );
             }
 
             if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed )
             {
-                // language=regex
                 pb.Add( @"(?<lpar>\\\()" );
-                // language=regex
                 pb.Add( @"(?<rpar>\\\))" );
             }
 
@@ -1523,67 +1376,54 @@ namespace RegExpressLibrary.SyntaxColouring
             {
                 if( fm.Anchor_Circumflex )
                 {
-                    // language=regex
                     pb.Add( @"\^" );
                 }
                 if( fm.Anchor_Dollar )
                 {
-                    // language=regex
                     pb.Add( @"\$" );
                 }
                 if( fm.Anchor_A )
                 {
-                    // language=regex
                     pb.Add( @"\\A" );
                 }
                 if( fm.Anchor_Z )
                 {
-                    // language=regex
                     pb.Add( @"\\Z" );
                 }
                 if( fm.Anchor_z )
                 {
-                    // language=regex
                     pb.Add( @"\\z" );
                 }
                 if( fm.Anchor_G )
                 {
-                    // language=regex
                     pb.Add( @"\\G" );
                 }
                 if( fm.Anchor_bg )
                 {
-                    // language=regex
                     pb.Add( @"\\b\{(g\}?)?" );
                 }
                 if( fm.Anchor_bBBrace )
                 {
-                    // language=regex
                     pb.Add( @"\\[bB] (\{ ( [^}]+ \}?)?)?" );
                 }
                 if( fm.Anchor_bB )
                 {
-                    // language=regex
                     pb.Add( @"\\[bB]" );
                 }
                 if( fm.Anchor_K )
                 {
-                    // language=regex
                     pb.Add( @"\\K" );
                 }
                 if( fm.Anchor_LtGt )
                 {
-                    // language=regex
                     pb.Add( @"\\[<>]" );
                 }
                 if( fm.Anchor_GraveApos )
                 {
-                    // language=regex
                     pb.Add( @"\\[`']" );
                 }
                 if( fm.Anchor_yY )
                 {
-                    // language=regex
                     pb.Add( @"\\[yY]" );
                 }
             }
@@ -1591,24 +1431,20 @@ namespace RegExpressLibrary.SyntaxColouring
 
             if( fm.Class_Dot )
             {
-                // language=regex
                 pb.Add( @"(?<class>\.)" );
             }
 
             if( fm.VerticalLine == FeatureMatrix.PunctuationEnum.Normal )
             {
-                // language=regex
                 pb.Add( @"(?<sym>\|)" );
             }
             if( fm.VerticalLine == FeatureMatrix.PunctuationEnum.Backslashed )
             {
-                // language=regex
                 pb.Add( @"(?<sym>\\\|)" );
             }
 
             if( fm.Literal_QE )
             {
-                // language=regex
                 pb.Add( @"(?<qs>\\Q .*? (\\E | $))" );
             }
 
@@ -1618,7 +1454,6 @@ namespace RegExpressLibrary.SyntaxColouring
             // -- identity escape
             if( fm.GenericEscape )
             {
-                // language=regex
                 pb.Add( @"(?<escape>\\.?)" ); // generic'\...'
             }
 

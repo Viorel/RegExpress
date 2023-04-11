@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Controls;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
-
+using RegExpressLibrary.SyntaxColouring;
 
 namespace BoostPlugin
 {
@@ -45,6 +45,7 @@ namespace BoostPlugin
         public string? NoteForCaptures => "requires ‘match_extra’";
 
         public event RegexEngineOptionsChanged? OptionsChanged;
+        public event EventHandler? FeatureMatrixReady;
 
 
         public Control GetOptionsControl( )
@@ -97,41 +98,16 @@ namespace BoostPlugin
 
         }
 
-        public FeatureMatrix GetFeatureMatrix( )
+        public SyntaxOptions GetSyntaxOptions( )
         {
             var options = mOptionsControl.Value.GetSelectedOptions( );
 
-            return LazyFeatureMatrix.GetValue( options.Grammar );
-        }
-
-
-        public GenericOptions GetGenericOptions( )
-        {
-            var options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return new GenericOptions
+            return new SyntaxOptions
             {
                 Literal = options.Grammar == GrammarEnum.literal,
                 XLevel = options.mod_x ? XLevelEnum.x : XLevelEnum.none,
+                FeatureMatrix = LazyFeatureMatrix.GetValue( options.Grammar )
             };
-        }
-
-
-        public IReadOnlyList<(string variantName, FeatureMatrix fm)> GetFeatureMatrices( )
-        {
-            var list = new List<(string, FeatureMatrix)>( );
-
-            foreach( GrammarEnum grammar in Enum.GetValues( typeof( GrammarEnum ) ) )
-            {
-                if( grammar == GrammarEnum.None ) continue;
-                if( grammar == GrammarEnum.literal ) continue;
-
-                var fm = LazyFeatureMatrix.GetValue( grammar );
-
-                list.Add( (Enum.GetName( typeof( GrammarEnum ), grammar ), fm) );
-            }
-
-            return list;
         }
 
         #endregion
@@ -310,6 +286,8 @@ namespace BoostPlugin
                 NamedGroup_Apos = is_perl || is_emacs,
                 NamedGroup_LtGt = is_perl || is_emacs,
                 NamedGroup_PLtGt = false,
+                NamedGroup_AtApos = false,
+                NamedGroup_AtLtGt = false,
 
                 NoncapturingGroup = is_perl || is_emacs,
                 PositiveLookahead = is_perl || is_emacs,

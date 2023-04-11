@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Controls;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
-
+using RegExpressLibrary.SyntaxColouring;
 
 namespace SubRegPlugin
 {
@@ -45,6 +45,7 @@ namespace SubRegPlugin
         public string? NoteForCaptures => null;
 
         public event RegexEngineOptionsChanged? OptionsChanged;
+        public event EventHandler? FeatureMatrixReady;
 
 
         public Control GetOptionsControl( )
@@ -97,24 +98,16 @@ namespace SubRegPlugin
 
         }
 
-        public FeatureMatrix GetFeatureMatrix( )
-        {
-            return LazyFeatureMatrix.Value;
-        }
 
-
-        public GenericOptions GetGenericOptions( )
+        public SyntaxOptions GetSyntaxOptions( )
         {
-            return new GenericOptions
+            var options = mOptionsControl.Value.GetSelectedOptions( );
+
+            return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
+                FeatureMatrix = LazyFeatureMatrix.Value
             };
-        }
-
-
-        public IReadOnlyList<(string variantName, FeatureMatrix fm)> GetFeatureMatrices( )
-        {
-            return new List<(string, FeatureMatrix)> { (null, GetFeatureMatrix( )) };
         }
 
         #endregion
@@ -254,6 +247,8 @@ namespace SubRegPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
+                NamedGroup_AtApos = false,
+                NamedGroup_AtLtGt = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,

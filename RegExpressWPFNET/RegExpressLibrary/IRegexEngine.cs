@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using RegExpressLibrary.Matches;
-
+using RegExpressLibrary.SyntaxColouring;
 
 namespace RegExpressLibrary
 {
@@ -16,6 +16,7 @@ namespace RegExpressLibrary
     public interface IRegexEngine
     {
         event RegexEngineOptionsChanged? OptionsChanged;
+        event EventHandler? FeatureMatrixReady;
 
         string Kind { get; }
 
@@ -37,10 +38,7 @@ namespace RegExpressLibrary
 
         IMatcher ParsePattern( string pattern );
 
-        FeatureMatrix GetFeatureMatrix( );
+        SyntaxOptions GetSyntaxOptions( );
 
-        GenericOptions GetGenericOptions( );
-
-        IReadOnlyList<(string variantName, FeatureMatrix fm)> GetFeatureMatrices( );
     }
 }

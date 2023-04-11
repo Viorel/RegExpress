@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Controls;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.SyntaxColouring;
 
 namespace StdPlugin
 {
@@ -44,6 +45,7 @@ namespace StdPlugin
         public string? NoteForCaptures => null;
 
         public event RegexEngineOptionsChanged? OptionsChanged;
+        public event EventHandler? FeatureMatrixReady;
 
         public Control GetOptionsControl( )
         {
@@ -95,40 +97,17 @@ namespace StdPlugin
 
         }
 
-        public FeatureMatrix GetFeatureMatrix( )
+
+        public SyntaxOptions GetSyntaxOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            var options = mOptionsControl.Value.GetSelectedOptions( );
 
-            return LazyFeatureMatrix.GetValue( options.Grammar );
-        }
-
-
-        public GenericOptions GetGenericOptions( )
-        {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return new GenericOptions
+            return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
                 AllowEmptySets = options.Grammar == GrammarEnum.ECMAScript,
+                FeatureMatrix = LazyFeatureMatrix.GetValue( options.Grammar )
             };
-        }
-
-
-        public IReadOnlyList<(string variantName, FeatureMatrix fm)> GetFeatureMatrices( )
-        {
-            var list = new List<(string, FeatureMatrix)>( );
-
-            foreach( GrammarEnum grammar in Enum.GetValues( typeof( GrammarEnum ) ) )
-            {
-                if( grammar == GrammarEnum.None ) continue;
-
-                var fm = LazyFeatureMatrix.GetValue( grammar );
-
-                list.Add( (Enum.GetName( typeof( GrammarEnum ), grammar ), fm) );
-            }
-
-            return list;
         }
 
         #endregion
@@ -296,6 +275,8 @@ namespace StdPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
+                NamedGroup_AtApos = false,
+                NamedGroup_AtLtGt = false,
 
                 NoncapturingGroup = grammar == GrammarEnum.ECMAScript,
                 PositiveLookahead = grammar == GrammarEnum.ECMAScript,

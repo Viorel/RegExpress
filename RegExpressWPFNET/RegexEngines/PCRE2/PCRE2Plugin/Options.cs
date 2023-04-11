@@ -14,6 +14,7 @@ namespace PCRE2Plugin
         DFA,
     }
 
+
     internal class Options
     {
         public AlgorithmEnum Algorithm { get; set; } = AlgorithmEnum.Standard;

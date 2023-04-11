@@ -344,6 +344,185 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 }
 
 
+void ReadOptions( BinaryReaderW& inbr, decltype( ONIG_SYNTAX_ONIGURUMA )* syntax, OnigOptionType* compile_options, decltype( ONIG_OPTION_NONE )* search_options,
+    bool* fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY, bool* fONIG_SYN_STRICT_CHECK_BACKREF )
+{
+    std::wstring syntax_s = inbr.ReadString( );
+
+    *syntax = ONIG_SYNTAX_ONIGURUMA;
+    if( syntax_s == L"ONIG_SYNTAX_ONIGURUMA" ) *syntax = ONIG_SYNTAX_ONIGURUMA;
+    else if( syntax_s == L"ONIG_SYNTAX_ASIS" ) *syntax = ONIG_SYNTAX_ASIS;
+    else if( syntax_s == L"ONIG_SYNTAX_POSIX_BASIC" ) *syntax = ONIG_SYNTAX_POSIX_BASIC;
+    else if( syntax_s == L"ONIG_SYNTAX_POSIX_EXTENDED" ) *syntax = ONIG_SYNTAX_POSIX_EXTENDED;
+    else if( syntax_s == L"ONIG_SYNTAX_EMACS" ) *syntax = ONIG_SYNTAX_EMACS;
+    else if( syntax_s == L"ONIG_SYNTAX_GREP" ) *syntax = ONIG_SYNTAX_GREP;
+    else if( syntax_s == L"ONIG_SYNTAX_GNU_REGEX" ) *syntax = ONIG_SYNTAX_GNU_REGEX;
+    else if( syntax_s == L"ONIG_SYNTAX_JAVA" ) *syntax = ONIG_SYNTAX_JAVA;
+    else if( syntax_s == L"ONIG_SYNTAX_PERL" ) *syntax = ONIG_SYNTAX_PERL;
+    else if( syntax_s == L"ONIG_SYNTAX_PERL_NG" ) *syntax = ONIG_SYNTAX_PERL_NG;
+    else if( syntax_s == L"ONIG_SYNTAX_RUBY" ) *syntax = ONIG_SYNTAX_RUBY;
+    else if( syntax_s == L"ONIG_SYNTAX_PYTHON" ) *syntax = ONIG_SYNTAX_PYTHON;
+
+
+    // Compile-time options
+
+    *compile_options = ONIG_OPTION_NONE;
+
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_SINGLELINE;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_MULTILINE;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_IGNORECASE;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_EXTEND;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_FIND_LONGEST;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_FIND_NOT_EMPTY;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_NEGATE_SINGLELINE;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_DONT_CAPTURE_GROUP;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_CAPTURE_GROUP;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_IGNORECASE_IS_ASCII;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_WORD_IS_ASCII;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_DIGIT_IS_ASCII;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_SPACE_IS_ASCII;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_POSIX_IS_ASCII;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_TEXT_SEGMENT_WORD;
+
+    // Search-time options
+
+    *search_options = ONIG_OPTION_NONE;
+
+    if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOTBOL;
+    if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOTEOL;
+    if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOT_BEGIN_STRING;
+    if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOT_END_STRING;
+    if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOT_BEGIN_POSITION;
+
+    // Configuration
+
+    *fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = inbr.ReadByte( ) != 0;
+    *fONIG_SYN_STRICT_CHECK_BACKREF = inbr.ReadByte( ) != 0;
+}
+
+
+
+
+#define ALL_DATA_FLAGS \
+    DECLARE_OP( ONIG_SYN_OP_VARIABLE_META_CHARACTERS )                   \
+    DECLARE_OP( ONIG_SYN_OP_DOT_ANYCHAR )                                \
+    DECLARE_OP( ONIG_SYN_OP_ASTERISK_ZERO_INF )                          \
+    DECLARE_OP( ONIG_SYN_OP_ESC_ASTERISK_ZERO_INF )                      \
+    DECLARE_OP( ONIG_SYN_OP_PLUS_ONE_INF )                               \
+    DECLARE_OP( ONIG_SYN_OP_ESC_PLUS_ONE_INF )                           \
+    DECLARE_OP( ONIG_SYN_OP_QMARK_ZERO_ONE )                             \
+    DECLARE_OP( ONIG_SYN_OP_ESC_QMARK_ZERO_ONE )                         \
+    DECLARE_OP( ONIG_SYN_OP_BRACE_INTERVAL )                             \
+    DECLARE_OP( ONIG_SYN_OP_ESC_BRACE_INTERVAL )                         \
+    DECLARE_OP( ONIG_SYN_OP_VBAR_ALT )                                   \
+    DECLARE_OP( ONIG_SYN_OP_ESC_VBAR_ALT )                               \
+    DECLARE_OP( ONIG_SYN_OP_LPAREN_SUBEXP )                              \
+    DECLARE_OP( ONIG_SYN_OP_ESC_LPAREN_SUBEXP )                          \
+    DECLARE_OP( ONIG_SYN_OP_ESC_AZ_BUF_ANCHOR )                          \
+    DECLARE_OP( ONIG_SYN_OP_ESC_CAPITAL_G_BEGIN_ANCHOR )                 \
+    DECLARE_OP( ONIG_SYN_OP_DECIMAL_BACKREF )                            \
+    DECLARE_OP( ONIG_SYN_OP_BRACKET_CC )                                 \
+    DECLARE_OP( ONIG_SYN_OP_ESC_W_WORD )                                 \
+    DECLARE_OP( ONIG_SYN_OP_ESC_LTGT_WORD_BEGIN_END )                    \
+    DECLARE_OP( ONIG_SYN_OP_ESC_B_WORD_BOUND )                           \
+    DECLARE_OP( ONIG_SYN_OP_ESC_S_WHITE_SPACE )                          \
+    DECLARE_OP( ONIG_SYN_OP_ESC_D_DIGIT )                                \
+    DECLARE_OP( ONIG_SYN_OP_LINE_ANCHOR )                                \
+    DECLARE_OP( ONIG_SYN_OP_POSIX_BRACKET )                              \
+    DECLARE_OP( ONIG_SYN_OP_QMARK_NON_GREEDY )                           \
+    DECLARE_OP( ONIG_SYN_OP_ESC_CONTROL_CHARS )                          \
+    DECLARE_OP( ONIG_SYN_OP_ESC_C_CONTROL )                              \
+    DECLARE_OP( ONIG_SYN_OP_ESC_OCTAL3 )                                 \
+    DECLARE_OP( ONIG_SYN_OP_ESC_X_HEX2 )                                 \
+    DECLARE_OP( ONIG_SYN_OP_ESC_X_BRACE_HEX8 )                           \
+    DECLARE_OP( ONIG_SYN_OP_ESC_O_BRACE_OCTAL )                          \
+\
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_CAPITAL_Q_QUOTE )                      \
+    DECLARE_OP2( ONIG_SYN_OP2_QMARK_GROUP_EFFECT )                       \
+    DECLARE_OP2( ONIG_SYN_OP2_OPTION_PERL )                              \
+    DECLARE_OP2( ONIG_SYN_OP2_OPTION_RUBY )                              \
+    DECLARE_OP2( ONIG_SYN_OP2_PLUS_POSSESSIVE_REPEAT )                   \
+    DECLARE_OP2( ONIG_SYN_OP2_PLUS_POSSESSIVE_INTERVAL )                 \
+    DECLARE_OP2( ONIG_SYN_OP2_CCLASS_SET_OP )                            \
+    DECLARE_OP2( ONIG_SYN_OP2_QMARK_LT_NAMED_GROUP )                     \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_K_NAMED_BACKREF )                      \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_G_SUBEXP_CALL )                        \
+    DECLARE_OP2( ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY )                   \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_CAPITAL_C_BAR_CONTROL )                \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_CAPITAL_M_BAR_META )                   \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_V_VTAB )                               \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_U_HEX4 )                               \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_GNU_BUF_ANCHOR )                       \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_P_BRACE_CHAR_PROPERTY )                \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_P_BRACE_CIRCUMFLEX_NOT )               \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_H_XDIGIT )                             \
+    DECLARE_OP2( ONIG_SYN_OP2_INEFFECTIVE_ESCAPE )                       \
+    DECLARE_OP2( ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE )                     \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_CAPITAL_K_KEEP )                       \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_CAPITAL_R_GENERAL_NEWLINE )            \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_CAPITAL_N_O_SUPER_DOT )                \
+    DECLARE_OP2( ONIG_SYN_OP2_QMARK_TILDE_ABSENT_GROUP )                 \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_X_Y_GRAPHEME_CLUSTER )                 \
+    DECLARE_OP2( ONIG_SYN_OP2_ESC_X_Y_TEXT_SEGMENT )                     \
+    DECLARE_OP2( ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL )                   \
+    DECLARE_OP2( ONIG_SYN_OP2_QMARK_BRACE_CALLOUT_CONTENTS )             \
+    DECLARE_OP2( ONIG_SYN_OP2_ASTERISK_CALLOUT_NAME )                    \
+    DECLARE_OP2( ONIG_SYN_OP2_OPTION_ONIGURUMA )                         \
+    DECLARE_OP2( ONIG_SYN_OP2_QMARK_CAPITAL_P_NAME )                     \
+\
+    DECLARE_BEHAVIOUR( ONIG_SYN_BACKSLASH_ESCAPE_IN_CC )                 \
+    DECLARE_BEHAVIOUR( ONIG_SYN_ALLOW_INTERVAL_LOW_ABBREV )              \
+\
+    DECLARE_COMPILE_OPTION( ONIG_OPTION_EXTEND )                         
+
+
+#pragma pack(push, 1)
+struct Details
+{
+#define DECLARE_OP(name) bool f##name;
+#define DECLARE_OP2(name) bool f##name;
+#define DECLARE_BEHAVIOUR(name) bool f##name;
+#define DECLARE_COMPILE_OPTION(name) bool f##name;
+
+    ALL_DATA_FLAGS
+
+#undef DECLARE_OP
+#undef DECLARE_OP2
+#undef DECLARE_BEHAVIOUR
+#undef DECLARE_COMPILE_OPTION
+
+        Details( OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions )
+    {
+#define DECLARE_OP(name) f##name = (adjustedSyntax.op & name) != 0;
+#define DECLARE_OP2(name) f##name = (adjustedSyntax.op2 & name) != 0;
+#define DECLARE_BEHAVIOUR(name) f##name = (adjustedSyntax.behavior & name) != 0;
+#define DECLARE_COMPILE_OPTION(name) f##name = (compileOptions & name) != 0;
+
+        ALL_DATA_FLAGS
+
+#undef DECLARE_OP
+#undef DECLARE_OP2
+#undef DECLARE_BEHAVIOUR
+#undef DECLARE_COMPILE_OPTION
+    }
+
+};
+#pragma pack(pop)
+
+
+void WriteDetails( BinaryWriterW& outbw, /*const*/ OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions )
+{
+    Details details( adjustedSyntax, compileOptions );
+
+    outbw.WriteT<char>( 'b' );
+
+    outbw.WriteT( details );
+
+    outbw.WriteT<char>( 'e' );
+}
+
+
 int main( )
 {
     auto herr = GetStdHandle( STD_ERROR_HANDLE );
@@ -389,69 +568,22 @@ int main( )
 
             return 0;
         }
-
-        if( command == L"m" )
+        else if( command == L"m" )
         {
             if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [1]." );
 
             std::wstring pattern = inbr.ReadString( );
             std::wstring text = inbr.ReadString( );
 
-            std::wstring syntax_s = inbr.ReadString( );
-
             auto syntax = ONIG_SYNTAX_ONIGURUMA;
-            if( syntax_s == L"ONIG_SYNTAX_ONIGURUMA" ) syntax = ONIG_SYNTAX_ONIGURUMA;
-            else if( syntax_s == L"ONIG_SYNTAX_ASIS" ) syntax = ONIG_SYNTAX_ASIS;
-            else if( syntax_s == L"ONIG_SYNTAX_POSIX_BASIC" ) syntax = ONIG_SYNTAX_POSIX_BASIC;
-            else if( syntax_s == L"ONIG_SYNTAX_POSIX_EXTENDED" ) syntax = ONIG_SYNTAX_POSIX_EXTENDED;
-            else if( syntax_s == L"ONIG_SYNTAX_EMACS" ) syntax = ONIG_SYNTAX_EMACS;
-            else if( syntax_s == L"ONIG_SYNTAX_GREP" ) syntax = ONIG_SYNTAX_GREP;
-            else if( syntax_s == L"ONIG_SYNTAX_GNU_REGEX" ) syntax = ONIG_SYNTAX_GNU_REGEX;
-            else if( syntax_s == L"ONIG_SYNTAX_JAVA" ) syntax = ONIG_SYNTAX_JAVA;
-            else if( syntax_s == L"ONIG_SYNTAX_PERL" ) syntax = ONIG_SYNTAX_PERL;
-            else if( syntax_s == L"ONIG_SYNTAX_PERL_NG" ) syntax = ONIG_SYNTAX_PERL_NG;
-            else if( syntax_s == L"ONIG_SYNTAX_RUBY" ) syntax = ONIG_SYNTAX_RUBY;
-            else if( syntax_s == L"ONIG_SYNTAX_PYTHON" ) syntax = ONIG_SYNTAX_PYTHON;
-
-
-            // Compile-time options
-
             OnigOptionType compile_options = ONIG_OPTION_NONE;
-
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_SINGLELINE;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_MULTILINE;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_IGNORECASE;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_EXTEND;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_FIND_LONGEST;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_FIND_NOT_EMPTY;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_NEGATE_SINGLELINE;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_DONT_CAPTURE_GROUP;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_CAPTURE_GROUP;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_IGNORECASE_IS_ASCII;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_WORD_IS_ASCII;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_DIGIT_IS_ASCII;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_SPACE_IS_ASCII;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_POSIX_IS_ASCII;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER;
-            if( inbr.ReadByte( ) ) compile_options |= ONIG_OPTION_TEXT_SEGMENT_WORD;
-
-            // Search-time options
-
             auto search_options = ONIG_OPTION_NONE;
+            bool fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = false;
+            bool fONIG_SYN_STRICT_CHECK_BACKREF = false;
 
-            if( inbr.ReadByte( ) ) search_options |= ONIG_OPTION_NOTBOL;
-            if( inbr.ReadByte( ) ) search_options |= ONIG_OPTION_NOTEOL;
-            if( inbr.ReadByte( ) ) search_options |= ONIG_OPTION_NOT_BEGIN_STRING;
-            if( inbr.ReadByte( ) ) search_options |= ONIG_OPTION_NOT_END_STRING;
-            if( inbr.ReadByte( ) ) search_options |= ONIG_OPTION_NOT_BEGIN_POSITION;
-
-            // Configuration
-
-            bool fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = inbr.ReadByte( ) != 0;
-            bool fONIG_SYN_STRICT_CHECK_BACKREF = inbr.ReadByte( ) != 0;
+            ReadOptions( inbr, &syntax, &compile_options, &search_options, &fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY, &fONIG_SYN_STRICT_CHECK_BACKREF );
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
-
 
             OnigSyntaxType adjusted_syntax{};
             onig_copy_syntax( &adjusted_syntax, syntax );
@@ -459,8 +591,31 @@ int main( )
             if( fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY ) adjusted_syntax.op2 |= ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY;
             if( fONIG_SYN_STRICT_CHECK_BACKREF ) adjusted_syntax.behavior |= ONIG_SYN_STRICT_CHECK_BACKREF;
 
-
             DoMatch( outbw, pattern, text, adjusted_syntax, compile_options, search_options );
+
+            return 0;
+        }
+        else if( command == L"d" )
+        {
+            if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [D1]." );
+
+            auto syntax = ONIG_SYNTAX_ONIGURUMA;
+            OnigOptionType compile_options = ONIG_OPTION_NONE;
+            auto search_options = ONIG_OPTION_NONE;
+            bool fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = false;
+            bool fONIG_SYN_STRICT_CHECK_BACKREF = false;
+
+            ReadOptions( inbr, &syntax, &compile_options, &search_options, &fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY, &fONIG_SYN_STRICT_CHECK_BACKREF );
+
+            if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [D2]." );
+
+            OnigSyntaxType adjusted_syntax{};
+            onig_copy_syntax( &adjusted_syntax, syntax );
+
+            if( fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY ) adjusted_syntax.op2 |= ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY;
+            if( fONIG_SYN_STRICT_CHECK_BACKREF ) adjusted_syntax.behavior |= ONIG_SYN_STRICT_CHECK_BACKREF;
+
+            WriteDetails( outbw, adjusted_syntax, compile_options );
 
             return 0;
         }

@@ -132,14 +132,34 @@ namespace RegExpressWPFNET
 
             lock( this )
             {
+                if( mRegexEngine != null )
+                {
+                    mRegexEngine.FeatureMatrixReady -= UCPattern_FeatureMatrixReady;
+                }
+
                 mRegexEngine = engine;
                 mEol = eol;
+
+                if( mRegexEngine != null )
+                {
+                    mRegexEngine.FeatureMatrixReady -= UCPattern_FeatureMatrixReady; //
+                    mRegexEngine.FeatureMatrixReady += UCPattern_FeatureMatrixReady;
+                }
             }
 
             if( IsLoaded )
             {
                 RecolouringLoop.SignalWaitAndExecute( );
                 HighlightingLoop.SignalWaitAndExecute( );
+            }
+        }
+
+
+        private void UCPattern_FeatureMatrixReady( object? sender, EventArgs e )
+        {
+            if( object.ReferenceEquals( sender, mRegexEngine ) )
+            {
+                RecolouringLoop.SignalWaitAndExecute( );
             }
         }
 
@@ -354,8 +374,7 @@ namespace RegExpressWPFNET
             var visible_segment = new Segment( top_index, bottom_index - top_index + 1 );
             var segments_to_colourise = new ColouredSegments( );
 
-            SyntaxColourer.ColourisePattern( cnc, segments_to_colourise, td.Text, visible_segment,
-                regex_engine.GetFeatureMatrix( ), regex_engine.GetGenericOptions( ) );
+            SyntaxColourer.ColourisePattern( cnc, segments_to_colourise, td.Text, visible_segment, regex_engine.GetSyntaxOptions( ) );
 
             if( cnc.IsCancellationRequested ) return;
 
@@ -541,8 +560,7 @@ namespace RegExpressWPFNET
                 var visible_segment = new Segment( top_index, bottom_index - top_index + 1 );
                 highlights = new Highlights( );
 
-                SyntaxColourer.HighlightPattern( cnc, highlights, td.Text, td.SelectionStart, td.SelectionEnd, visible_segment,
-                    regex_engine.GetFeatureMatrix( ), regex_engine.GetGenericOptions( ) );
+                SyntaxColourer.HighlightPattern( cnc, highlights, td.Text, td.SelectionStart, td.SelectionEnd, visible_segment, regex_engine.GetSyntaxOptions( ) );
             }
 
             if( cnc.IsCancellationRequested ) return;

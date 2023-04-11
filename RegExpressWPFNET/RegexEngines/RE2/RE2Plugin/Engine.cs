@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Controls;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
-
+using RegExpressLibrary.SyntaxColouring;
 
 namespace RE2Plugin
 {
@@ -45,6 +45,7 @@ namespace RE2Plugin
         public string? NoteForCaptures => null;
 
         public event RegexEngineOptionsChanged? OptionsChanged;
+        public event EventHandler? FeatureMatrixReady;
 
 
         public Control GetOptionsControl( )
@@ -97,27 +98,17 @@ namespace RE2Plugin
 
         }
 
-        public FeatureMatrix GetFeatureMatrix( )
+
+        public SyntaxOptions GetSyntaxOptions( )
         {
-            return LazyFeatureMatrix.Value;
-        }
+            var options = mOptionsControl.Value.GetSelectedOptions( );
 
-
-        public GenericOptions GetGenericOptions( )
-        {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return new GenericOptions
+            return new SyntaxOptions
             {
                 Literal = options.literal,
                 XLevel = XLevelEnum.none,
+                FeatureMatrix = LazyFeatureMatrix.Value
             };
-        }
-
-
-        public IReadOnlyList<(string variantName, FeatureMatrix fm)> GetFeatureMatrices( )
-        {
-            return new List<(string, FeatureMatrix)> { (null, GetFeatureMatrix( )) };
         }
 
         #endregion
@@ -273,6 +264,8 @@ namespace RE2Plugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = true,
+                NamedGroup_AtApos = false,
+                NamedGroup_AtLtGt = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = false,
