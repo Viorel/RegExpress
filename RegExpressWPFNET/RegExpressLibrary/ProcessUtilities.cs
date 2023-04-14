@@ -147,16 +147,38 @@ namespace RegExpressLibrary
 
                 Thread writing_thread = new Thread( ( ) =>
                 {
-                    stdinWriter( p.StandardInput.BaseStream );
-                } );
-                writing_thread.IsBackground = true;
+                    try
+                    {
+                        stdinWriter( p.StandardInput.BaseStream );
+                    }
+                    catch( Exception exc )
+                    {
+                        if( Debugger.IsAttached ) Debugger.Break( );
+                        throw;
+                    }
+                } )
+                {
+                    Name = "rxStdinWriting",
+                    IsBackground = true
+                };
                 writing_thread.Start( );
 
                 Thread reading_thread = new Thread( ( ) =>
                 {
-                    p.StandardOutput.BaseStream.CopyTo( stdout_ms );
-                } );
-                reading_thread.IsBackground = true;
+                    try
+                    {
+                        p.StandardOutput.BaseStream.CopyTo( stdout_ms );
+                    }
+                    catch( Exception exc )
+                    {
+                        if( Debugger.IsAttached ) Debugger.Break( );
+                        throw;
+                    }
+                } )
+                {
+                    Name = "rxStdoutReading",
+                    IsBackground = true
+                };
                 reading_thread.Start( );
 
 
@@ -234,7 +256,7 @@ namespace RegExpressLibrary
             try
             {
                 if( !thread.Join( 11 ) ) thread.Interrupt( );
-                if( !thread.Join( 11 ) ) thread.Abort( );
+                // NOT SUPPORTED: if( !thread.Join( 11 ) ) thread.Abort( );
                 thread.Join( 11 );
             }
             catch( Exception exc )

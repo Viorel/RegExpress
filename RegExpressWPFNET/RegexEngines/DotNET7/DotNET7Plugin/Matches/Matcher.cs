@@ -56,6 +56,7 @@ namespace DotNETPlugin.Matches
 				}
 			} )
 			{
+				Name = "xDotNET Matcher",
 				IsBackground = true
 			};
 

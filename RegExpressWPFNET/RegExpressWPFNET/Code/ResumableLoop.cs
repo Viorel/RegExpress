@@ -50,7 +50,7 @@ namespace RegExpressWPFNET.Code
             {
                 IsBackground = true,
                 Priority = ThreadPriority.BelowNormal,
-                Name = nameof( ResumableLoop )
+                Name = "rxResumableLoop"
             };
 
             TheThread.Start( );

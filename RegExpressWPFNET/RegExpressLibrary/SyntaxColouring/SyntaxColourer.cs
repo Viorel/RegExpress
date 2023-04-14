@@ -12,23 +12,19 @@ namespace RegExpressLibrary.SyntaxColouring
 {
     public static class SyntaxColourer
     {
+        struct Key
+        {
+            internal FeatureMatrix fm; // ('struct', to simplify the calculation of hash code)
+            internal XLevelEnum xlevel;
+            internal bool allow_empty_sets;
+
+            static Key()
+            {
+                Debug.Assert( typeof( FeatureMatrix ).IsValueType );
+            }
+        }
+
         readonly static Dictionary<Key, Regex> CachedRegexes = new( );
-
-
-        //...
-        //class KeyEqualityComparer : IEqualityComparer<Key>
-        //{
-        //    public bool Equals( Key x, Key y )
-        //    {
-        //        throw new NotImplementedException( );
-        //    }
-        //
-        //    public int GetHashCode( [DisallowNull] Key x )
-        //    {
-        //        return x.fm.GetHashCode( ) ^ x.xlevel.GetHashCode( ) ^ x.allow_empty_sets.GetHashCode( );
-        //    }
-        //}
-
 
         class ScopeInfo
         {
@@ -36,18 +32,8 @@ namespace RegExpressLibrary.SyntaxColouring
         }
 
 
-        struct Key
-        {
-            internal FeatureMatrix fm;
-            internal XLevelEnum xlevel;
-            internal bool allow_empty_sets;
-        }
-
-
         public static void ColourisePattern( ICancellable cnc, ColouredSegments colouredSegments, string pattern, Segment visibleSegment, SyntaxOptions syntaxOptions )
         {
-            Debug.Assert( typeof( FeatureMatrix ).IsValueType );
-
             if( syntaxOptions.Literal ) return;
 
             FeatureMatrix fm = syntaxOptions.FeatureMatrix;

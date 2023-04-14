@@ -363,7 +363,6 @@ void ReadOptions( BinaryReaderW& inbr, decltype( ONIG_SYNTAX_ONIGURUMA )* syntax
     else if( syntax_s == L"ONIG_SYNTAX_RUBY" ) *syntax = ONIG_SYNTAX_RUBY;
     else if( syntax_s == L"ONIG_SYNTAX_PYTHON" ) *syntax = ONIG_SYNTAX_PYTHON;
 
-
     // Compile-time options
 
     *compile_options = ONIG_OPTION_NONE;
@@ -506,7 +505,6 @@ struct Details
 #undef DECLARE_BEHAVIOUR
 #undef DECLARE_COMPILE_OPTION
     }
-
 };
 #pragma pack(pop)
 

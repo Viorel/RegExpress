@@ -613,7 +613,7 @@ namespace RegExpressWPFNET
                     UITaskHelper.BeginInvoke( this, CancellationToken.None, ( ) => ucMatches.ShowMatchingInProgress( true ) );
 
                     parsed_pattern = engine.ParsePattern( pattern );
-                    var indeterminate_progress_thread = new Thread( IndeterminateProgressThreadProc ) { IsBackground = true };
+                    var indeterminate_progress_thread = new Thread( IndeterminateProgressThreadProc ) { Name = "rxIndeterminate", IsBackground = true };
                     try
                     {
                         indeterminate_progress_thread.Start( );

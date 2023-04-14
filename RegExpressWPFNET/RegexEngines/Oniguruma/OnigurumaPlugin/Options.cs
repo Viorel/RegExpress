@@ -26,7 +26,6 @@ namespace OnigurumaPlugin
     }
 
 
-    //..........[StructLayout( LayoutKind.Sequential )]
     internal class Options
     {
         public SyntaxEnum Syntax { get; set; } = SyntaxEnum.ONIG_SYNTAX_ONIGURUMA;

@@ -14,13 +14,13 @@ using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
+
 namespace OnigurumaPlugin
 {
     class Engine : IRegexEngine
     {
         static readonly Lazy<Version> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        //...        static readonly Dictionary<string, FeatureMatrix> CachedFeatureMatrices = new Dictionary<string, FeatureMatrix>( );
 
 
         public Engine( )
@@ -138,17 +138,6 @@ namespace OnigurumaPlugin
 
         FeatureMatrix TryGetFeatureMatrix( Key key )
         {
-            //.........
-            var fm = MakeFeatureMatrix( key.Options );
-
-            return fm;
-
-
-
-
-
-
-
             lock( smFeatureMatrices )
             {
                 bool is_failed = false;
