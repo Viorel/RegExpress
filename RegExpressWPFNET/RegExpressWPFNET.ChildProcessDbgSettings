@@ -2,9 +2,10 @@
 <ChildProcessDebuggingSettings IsEnabled="false" xmlns="http://schemas.microsoft.com/vstudio/ChildProcessDebuggingSettings/2014">
   <DefaultRule EngineFilter="[inherit]" />
   <Rule IsEnabled="false" ProcessName="RE2Client.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
-  <Rule IsEnabled="true" ProcessName="StdClient.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
+  <Rule IsEnabled="false" ProcessName="StdClient.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="PCRE2Client.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="BoostClient.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="OnigurumaClient.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="DotNETFrameworkClient.bin" CommandLine="" EngineFilter="{fb0d4648-f776-4980-95f8-bb7f36ebc1ee}" />
+  <Rule IsEnabled="true" ProcessName="SubRegClient.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
 </ChildProcessDebuggingSettings>

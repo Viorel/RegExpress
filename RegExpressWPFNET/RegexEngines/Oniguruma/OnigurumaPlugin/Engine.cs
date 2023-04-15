@@ -203,8 +203,6 @@ namespace OnigurumaPlugin
             {
                 Details? details = Matcher.GetDetails( NonCancellable.Instance, options );
 
-                Console.Beep( ); //.................
-
                 return BuildFeatureMatrix( options.Syntax, details! );
             }
             catch( Exception exc )

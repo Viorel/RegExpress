@@ -21,8 +21,6 @@ using namespace std;
 #define TO_STR(s) TO_STR2(s)
 
 
-
-
 static void WriteMatch( BinaryWriterW& outbw, pcre2_code* re, PCRE2_SIZE* ovector, int rc )
 {
     if( ovector[0] > ovector[1] )
@@ -408,8 +406,14 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 }
 
 
-int main( )
+int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPWSTR    lpCmdLine,
+    _In_ int       nCmdShow )
 {
+    UNREFERENCED_PARAMETER( hPrevInstance );
+    UNREFERENCED_PARAMETER( lpCmdLine );
+
     auto herr = GetStdHandle( STD_ERROR_HANDLE );
     if( herr == INVALID_HANDLE_VALUE )
     {

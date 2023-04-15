@@ -521,8 +521,14 @@ void WriteDetails( BinaryWriterW& outbw, /*const*/ OnigSyntaxType& adjustedSynta
 }
 
 
-int main( )
+int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPWSTR    lpCmdLine,
+    _In_ int       nCmdShow )
 {
+    UNREFERENCED_PARAMETER( hPrevInstance );
+    UNREFERENCED_PARAMETER( lpCmdLine );
+
     auto herr = GetStdHandle( STD_ERROR_HANDLE );
     if( herr == INVALID_HANDLE_VALUE )
     {
