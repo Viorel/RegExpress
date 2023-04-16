@@ -121,7 +121,7 @@
                                     </TransformGroup>
                                 </StackPanel.LayoutTransform>
                                 <Label Content="Engine: " VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cbxEngine" VerticalAlignment="Center" SelectionChanged="cbxEngine_SelectionChanged" MaxDropDownHeight="Auto">
+                                <ComboBox x:Name="cbxEngine" VerticalAlignment="Center" SelectionChanged="cbxEngine_SelectionChanged" MaxDropDownHeight="Auto" MinWidth="64">
                                     <!-- NOTE. The 'Tag' is the 'Id' of engine; see 'IRegexEngine.Id' -->
                                     <!-- (filled programmatically) -->
                                 </ComboBox>
@@ -132,10 +132,10 @@
                             </Grid>
                             <Separator/>
                             <StackPanel Margin="3 0 0 0">
-                                <CheckBox x:Name="cbShowFirstOnly" Content="Show first match only" Checked="CbOption_CheckedChanged" Unchecked="CbOption_CheckedChanged"/>
-                                <CheckBox x:Name="cbShowSucceededGroupsOnly" Content="Show succeeded groups only" Checked="CbOption_CheckedChanged" Unchecked="CbOption_CheckedChanged"/>
-                                <CheckBox x:Name="cbShowSucceededGroupsOnlyDisabledUnchecked" Content="Show succeeded groups only" IsEnabled="False" />
-                                <CheckBox x:Name="cbShowCaptures" Checked="CbOption_CheckedChanged" Unchecked="CbOption_CheckedChanged">
+                                <CheckBox x:Name="cbShowFirstOnly" Content="Show first match only" Checked="CbOption_CheckedChanged" Unchecked="CbOption_CheckedChanged" HorizontalAlignment="Left"/>
+                                <CheckBox x:Name="cbShowSucceededGroupsOnly" Content="Show succeeded groups only" Checked="CbOption_CheckedChanged" Unchecked="CbOption_CheckedChanged" HorizontalAlignment="Left"/>
+                                <CheckBox x:Name="cbShowSucceededGroupsOnlyDisabledUnchecked" Content="Show succeeded groups only" IsEnabled="False" HorizontalAlignment="Left" />
+                                <CheckBox x:Name="cbShowCaptures" Checked="CbOption_CheckedChanged" Unchecked="CbOption_CheckedChanged" HorizontalAlignment="Left">
                                     <TextBlock>
                                         <Run>Show captures</Run>
                                         <Run x:Name="runShowCapturesNote">
@@ -147,7 +147,7 @@
                                     </TextBlock>
                                 </CheckBox>
                                 <CheckBox x:Name="cbShowCapturesDisabledUnchecked" Content="Show captures" IsEnabled="False" Visibility="Collapsed"/>
-                                <CheckBox x:Name="cbShowWhitespaces" Checked="CbShowWhitespaces_CheckedChanged" Unchecked="CbShowWhitespaces_CheckedChanged">
+                                <CheckBox x:Name="cbShowWhitespaces" Checked="CbShowWhitespaces_CheckedChanged" Unchecked="CbShowWhitespaces_CheckedChanged" HorizontalAlignment="Left">
                                     <TextBlock>
                                             Show whitespaces 
                                             <Span x:Name="lblWarnings">
