@@ -36,20 +36,20 @@ namespace RegExpressWPFNET.Code
 
 		public static double ToPixels( string value )
 		{
-			return (double)LengthConverter.ConvertFromInvariantString( value );
+			return (double)LengthConverter.ConvertFromInvariantString( value )!;
 		}
 
 
 		public static double ToPoints( string value )
 		{
-			double r = (double)LengthConverter.ConvertFrom( "1pt" );
+			double r = (double)LengthConverter.ConvertFrom( "1pt" )!;
 
 			return ToPixels(value) * r;
 		}
 
 
 		[Conditional( "DEBUG" )]
-		public static void DbgSimpleLog( Exception exc, [CallerFilePath] string filePath = null, [CallerMemberName] string memberName = null, [CallerLineNumber] int lineNumber = 0 )
+		public static void DbgSimpleLog( Exception exc, [CallerFilePath] string? filePath = null, [CallerMemberName] string? memberName = null, [CallerLineNumber] int lineNumber = 0 )
 		{
 			Debug.WriteLine( $"*** {exc.GetType( ).Name} in {memberName}:{lineNumber}" );
 		}

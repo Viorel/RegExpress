@@ -26,8 +26,8 @@ namespace DotNETPlugin.Matches
 		public RegexMatches Matches( string text, ICancellable cnc )
 		{
 			bool cancelled = false;
-			Exception exception = null;
-			ReMatch[] matches = null;
+			Exception? exception = null;
+			ReMatch[]? matches = null;
 
 			var thread = new Thread( ( ) =>
 			{
@@ -80,7 +80,7 @@ namespace DotNETPlugin.Matches
 
 			if( cancelled || cnc.IsCancellationRequested ) return RegexMatches.Empty;
 
-			return new RegexMatches( matches.Length, matches );
+			return new RegexMatches( matches!.Length, matches );
 		}
 
 		#endregion IMatcher

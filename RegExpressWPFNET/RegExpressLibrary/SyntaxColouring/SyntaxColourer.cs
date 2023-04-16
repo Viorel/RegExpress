@@ -282,7 +282,7 @@ namespace RegExpressLibrary.SyntaxColouring
 
         static Regex GetCachedRegex( FeatureMatrix fm, XLevelEnum xlevel, bool allow_empty_set )
         {
-            Regex re = null;
+            Regex? re = null;
             lock( CachedRegexes )
             {
                 var key = new Key { fm = fm, xlevel = xlevel, allow_empty_sets = allow_empty_set };

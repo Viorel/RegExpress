@@ -63,10 +63,10 @@ namespace RegExpressWPFNET
         Segment LeftHighlightedCurlyBrace = Segment.Empty;
         Segment RightHighlightedCurlyBrace = Segment.Empty;
 
-        IRegexEngine mRegexEngine;
-        string mEol;
+        IRegexEngine? mRegexEngine;
+        string? mEol;
 
-        public event EventHandler TextChanged;
+        public event EventHandler? TextChanged;
 
 
         public UCPattern( )
@@ -118,7 +118,7 @@ namespace RegExpressWPFNET
         }
 
 
-        public void SetText( string value )
+        public void SetText( string? value )
         {
             RtbUtilities.SetText( rtb, value );
 
@@ -222,7 +222,7 @@ namespace RegExpressWPFNET
             RecolouringLoop.SignalWaitAndExecute( );
             HighlightingLoop.SignalWaitAndExecute( );
 
-            TextChanged?.Invoke( this, null );
+            TextChanged?.Invoke( this, EventArgs.Empty );
         }
 
 
@@ -306,8 +306,8 @@ namespace RegExpressWPFNET
 
         void RecolouringThreadProc( ICancellable cnc )
         {
-            IRegexEngine regex_engine;
-            string eol;
+            IRegexEngine? regex_engine;
+            string? eol;
 
             lock( this )
             {
@@ -317,7 +317,7 @@ namespace RegExpressWPFNET
 
             if( regex_engine == null ) return;
 
-            TextData td = null;
+            TextData? td = null;
             Rect clip_rect = Rect.Empty;
             int top_index = 0;
             int bottom_index = 0;
@@ -487,8 +487,8 @@ namespace RegExpressWPFNET
 
         void HighlightingThreadProc( ICancellable cnc )
         {
-            IRegexEngine regex_engine;
-            string eol;
+            IRegexEngine? regex_engine;
+            string? eol;
 
             lock( this )
             {
@@ -498,7 +498,7 @@ namespace RegExpressWPFNET
 
             if( regex_engine == null ) return;
 
-            TextData td = null;
+            TextData? td = null;
             Rect clip_rect = Rect.Empty;
             int top_index = 0;
             int bottom_index = 0;
@@ -553,7 +553,7 @@ namespace RegExpressWPFNET
             Debug.Assert( bottom_index >= top_index );
             Debug.Assert( bottom_index <= td.Text.Length );
 
-            Highlights highlights = null;
+            Highlights? highlights = null;
 
             if( is_focused )
             {

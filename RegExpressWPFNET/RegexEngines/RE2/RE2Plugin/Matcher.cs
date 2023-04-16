@@ -35,8 +35,8 @@ namespace RE2Plugin
 
         public RegexMatches Matches( string text, ICancellable cnc )
         {
-            MemoryStream stdout_contents;
-            string stderr_contents;
+            MemoryStream? stdout_contents;
+            string? stderr_contents;
 
 
             Action<Stream> stdin_writer = s =>
@@ -72,16 +72,17 @@ namespace RE2Plugin
                 return RegexMatches.Empty;
             }
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) )
-            {
-                throw new Exception( stderr_contents );
-            }
+            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+
+            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+
+            if( stdout_contents == null ) throw new Exception( "Null response" );
 
             using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
             {
                 List<IMatch> matches = new List<IMatch>( );
                 ISimpleTextGetter stg = new SimpleTextGetter( text );
-                SimpleMatch current_match = null;
+                SimpleMatch? current_match = null;
 
                 if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response." );
 
@@ -119,17 +120,15 @@ namespace RE2Plugin
 
                 return new RegexMatches( matches.Count, matches );
             }
-
-            return RegexMatches.Empty;
         }
 
         #endregion IMatcher
 
 
-        public static Version GetVersion( ICancellable cnc )
+        public static Version? GetVersion( ICancellable cnc )
         {
-            MemoryStream stdout_contents;
-            string stderr_contents;
+            MemoryStream? stdout_contents;
+            string? stderr_contents;
 
             Action<Stream> stdinWriter = s =>
             {
@@ -141,14 +140,20 @@ namespace RE2Plugin
 
             if( !ProcessUtilities.InvokeExe( cnc, GetClientExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
             {
-                return new Version( 0, 0 );
+                return null;
             }
+
+            if( cnc.IsCancellationRequested ) return null;
+
+            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+
+            if( stdout_contents == null ) throw new Exception( "Null response" );
 
             using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
             {
                 string version_s = br.ReadString( );
 
-                return Version.TryParse( version_s, out Version? version ) ? version : new Version( 0, 0 );
+                return Version.TryParse( version_s, out Version? version ) ? version : null;
             }
         }
 

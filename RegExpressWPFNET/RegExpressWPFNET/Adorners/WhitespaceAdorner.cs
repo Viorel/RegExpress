@@ -305,7 +305,7 @@ namespace RegExpressWPFNET.Adorners
 			if( !mShowWhitespaces ) return;
 
 			var rtb = Rtb;
-			TextData td = null;
+			TextData? td = null;
 			Rect clip_rect = Rect.Empty;
 			int top_index = 0;
 

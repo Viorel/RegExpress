@@ -88,7 +88,7 @@ namespace RegExpressWPFNET.Code
         const int MAX_SEGMENT_LENGTH = 100;
 
 
-        public static void SetText( RichTextBox rtb, string text )
+        public static void SetText( RichTextBox rtb, string? text )
         {
             using( rtb.DeclareChangeBlock( ) )
             {
@@ -287,7 +287,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        public static bool ApplyStyle( ICancellable reh, ChangeEventHelper ceh, ProgressBar pb, TextData td, IReadOnlyList<(Segment segment, StyleInfo styleInfo)> segmentsAndStyles )
+        public static bool ApplyStyle( ICancellable reh, ChangeEventHelper ceh, ProgressBar? pb, TextData td, IReadOnlyList<(Segment segment, StyleInfo styleInfo)> segmentsAndStyles )
         {
             // split into smaller segments
 
@@ -366,7 +366,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        public static bool ApplyStyle( ICancellable reh, ChangeEventHelper ceh, ProgressBar pb, TextData td, IList<Segment> segments0, StyleInfo styleInfo )
+        public static bool ApplyStyle( ICancellable reh, ChangeEventHelper ceh, ProgressBar? pb, TextData td, IList<Segment> segments0, StyleInfo styleInfo )
         {
             // split into smaller segments
 

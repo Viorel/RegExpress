@@ -19,7 +19,7 @@ namespace OnigurumaPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<Version> LazyVersion = new( GetVersion );
+        static readonly Lazy<Version?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
 
 
@@ -39,7 +39,7 @@ namespace OnigurumaPlugin
 
         public string Kind => "Oniguruma";
 
-        public Version Version => LazyVersion.Value;
+        public Version? Version => LazyVersion.Value;
 
         public string Name => "Oniguruma";
 
@@ -111,7 +111,7 @@ namespace OnigurumaPlugin
             {
                 Literal = is_literal,
                 XLevel = options.ONIG_OPTION_EXTEND ? XLevelEnum.x : XLevelEnum.none,
-                FeatureMatrix = is_literal ? mLastFeatureMatrix = default : TryGetFeatureMatrix( new Key { Options = options } )
+                FeatureMatrix = is_literal ? mLastFeatureMatrix = default : TryGetFeatureMatrix( new Key( options ) )
             };
         }
 
@@ -119,6 +119,11 @@ namespace OnigurumaPlugin
         class Key
         {
             public Options Options { get; init; }
+
+            public Key( Options options )
+            {
+                Options = options;
+            }
 
             public override bool Equals( object? obj )
             {

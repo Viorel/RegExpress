@@ -15,7 +15,7 @@ namespace StdPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<Version> LazyVersion = new( GetVersion );
+        static readonly Lazy<Version?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly LazyData<GrammarEnum, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
@@ -36,7 +36,7 @@ namespace StdPlugin
 
         public string Kind => "Std";
 
-        public Version Version => LazyVersion.Value;
+        public Version? Version => LazyVersion.Value;
 
         public string Name => "std::wregex";
 
@@ -45,7 +45,9 @@ namespace StdPlugin
         public string? NoteForCaptures => null;
 
         public event RegexEngineOptionsChanged? OptionsChanged;
+#pragma warning disable 0067
         public event EventHandler? FeatureMatrixReady;
+#pragma warning restore 0067
 
         public Control GetOptionsControl( )
         {

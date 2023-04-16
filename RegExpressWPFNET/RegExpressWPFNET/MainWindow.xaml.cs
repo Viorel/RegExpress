@@ -200,7 +200,7 @@ namespace RegExpressWPFNET
             {
                 Debug.Assert( all_tab_data.Tabs.Any( ) );
 
-                TabItem first_tab = null;
+                TabItem? first_tab = null;
 
                 foreach( var tab_data in all_tab_data.Tabs )
                 {
@@ -214,7 +214,7 @@ namespace RegExpressWPFNET
 
             // --- Delay effect
 
-            const int minimum_elapsed = 1111;
+            const int minimum_elapsed = 555;
 
             var elapsed = DateTime.UtcNow - start_time;
 
@@ -331,7 +331,7 @@ namespace RegExpressWPFNET
         }
 
 
-        void UCMain_Changed( object sender, EventArgs e )
+        void UCMain_Changed( object? sender, EventArgs e )
         {
             if( !IsFullyLoaded ) return;
 

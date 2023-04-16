@@ -42,7 +42,7 @@ namespace RegExpressLibrary.Matches.Simple
 
 		public bool Success { get; } = true; // TODO: reconsider the inheritance
 
-		public string Name { get; } // TODO: reconsider the inheritance
+		public string Name { get; } = ""; // TODO: reconsider the inheritance
 
 		#endregion IMatch
 

@@ -15,7 +15,7 @@ namespace BoostPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<Version> LazyVersion = new( GetVersion );
+        static readonly Lazy<Version?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly LazyData<GrammarEnum, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
@@ -36,7 +36,7 @@ namespace BoostPlugin
 
         public string Kind => "Boost";
 
-        public Version Version => LazyVersion.Value;
+        public Version? Version => LazyVersion.Value;
 
         public string Name => "Boost.Regex";
 
@@ -45,7 +45,9 @@ namespace BoostPlugin
         public string? NoteForCaptures => "requires ‘match_extra’";
 
         public event RegexEngineOptionsChanged? OptionsChanged;
+#pragma warning disable 0067
         public event EventHandler? FeatureMatrixReady;
+#pragma warning restore 0067
 
 
         public Control GetOptionsControl( )

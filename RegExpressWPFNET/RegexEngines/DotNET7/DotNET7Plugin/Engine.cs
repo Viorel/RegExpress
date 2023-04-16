@@ -16,7 +16,7 @@ namespace DotNETPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<Version> LazyVersion = new( GetVersion );
+        static readonly Lazy<Version?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
@@ -37,7 +37,7 @@ namespace DotNETPlugin
 
         public string Kind => ".NET";
 
-        public Version Version => LazyVersion.Value;
+        public Version? Version => LazyVersion.Value;
 
         public string Name => "Regex, .NET";
 
@@ -46,7 +46,9 @@ namespace DotNETPlugin
         public string? NoteForCaptures => null;
 
         public event RegexEngineOptionsChanged? OptionsChanged;
+#pragma warning disable 0067
         public event EventHandler? FeatureMatrixReady;
+#pragma warning restore 0067
 
         public Control GetOptionsControl( )
         {

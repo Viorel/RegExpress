@@ -34,16 +34,16 @@ namespace RegExpressWPFNET
 
         readonly IReadOnlyList<IRegexEngine> RegexEngines;
         readonly IRegexEngine DefaultRegexEngine;
-        IRegexEngine CurrentRegexEngine = null;
+        IRegexEngine? CurrentRegexEngine = null;
         readonly HashSet<IRegexEngine> RegexEnginesUsed = new( );
 
         bool IsFullyLoaded = false;
         bool IsInChange = false;
-        TabData InitialTabData = null;
+        TabData? InitialTabData = null;
         bool ucTextHadFocus = false;
 
-        public event EventHandler Changed;
-        public event EventHandler NewTabClicked;
+        public event EventHandler? Changed;
+        public event EventHandler? NewTabClicked;
 
 
         public UCMain( IReadOnlyList<IRegexEngine> engines )
@@ -86,7 +86,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void HandleShutdownStarted( object sender, EventArgs e )
+        private void HandleShutdownStarted( object? sender, EventArgs e )
         {
             Shutdown( );
         }
@@ -143,7 +143,7 @@ namespace RegExpressWPFNET
             {
                 tabData.Pattern = ucPattern.GetBaseTextData( "\n" ).Text;
                 tabData.Text = ucText.GetBaseTextData( "\n" ).Text;
-                tabData.ActiveKind = CurrentRegexEngine.Kind;
+                tabData.ActiveKind = CurrentRegexEngine!.Kind;
                 tabData.ActiveVersion = CurrentRegexEngine.Version;
                 tabData.ShowFirstMatchOnly = cbShowFirstOnly.IsChecked == true;
                 tabData.ShowSucceededGroupsOnly = cbShowSucceededGroupsOnly.IsChecked == true;
@@ -261,7 +261,7 @@ namespace RegExpressWPFNET
 
         private void BtnNewTab_Click( object sender, EventArgs e )
         {
-            NewTabClicked?.Invoke( this, null );
+            NewTabClicked?.Invoke( this, EventArgs.Empty );
         }
 
 
@@ -273,7 +273,7 @@ namespace RegExpressWPFNET
             FindMatchesLoop.SignalWaitAndExecute( );
             UpdateWhitespaceWarningLoop.SignalWaitAndExecute( );
 
-            Changed?.Invoke( this, null );
+            Changed?.Invoke( this, EventArgs.Empty );
         }
 
 
@@ -286,7 +286,7 @@ namespace RegExpressWPFNET
             ShowTextInfoLoop.SignalWaitAndExecute( );
             UpdateWhitespaceWarningLoop.SignalWaitAndExecute( );
 
-            Changed?.Invoke( this, null );
+            Changed?.Invoke( this, EventArgs.Empty );
         }
 
 
@@ -372,7 +372,7 @@ namespace RegExpressWPFNET
             if( !IsFullyLoaded ) return;
             if( IsInChange ) return;
 
-            CurrentRegexEngine = RegexEngines.Single( eng => eng.CombinedId.Equals( ( (ComboBoxItem)e.AddedItems[0] ).Tag ) );
+            CurrentRegexEngine = RegexEngines.Single( eng => eng.CombinedId.Equals( ( (ComboBoxItem)e.AddedItems[0]! ).Tag ) );
 
             ShowOverlappingMatchesWarning( false );
 
@@ -410,7 +410,7 @@ namespace RegExpressWPFNET
             if( !IsFullyLoaded ) return;
             if( IsInChange ) return;
 
-            ucPattern.SetRegexOptions( CurrentRegexEngine, GetEolOption( ) );
+            ucPattern.SetRegexOptions( CurrentRegexEngine!, GetEolOption( ) );
 
             if( preferImmediateReaction )
             {
@@ -424,7 +424,7 @@ namespace RegExpressWPFNET
                 FindMatchesLoop.SignalWaitAndExecute( );
             }
 
-            Changed?.Invoke( this, null );
+            Changed?.Invoke( this, EventArgs.Empty );
         }
 
 
@@ -438,7 +438,7 @@ namespace RegExpressWPFNET
 
             UpdateWhitespaceWarningLoop.SignalWaitAndExecute( );
 
-            Changed?.Invoke( this, null );
+            Changed?.Invoke( this, EventArgs.Empty );
         }
 
 
@@ -465,11 +465,11 @@ namespace RegExpressWPFNET
             if( !IsFullyLoaded ) return;
             if( IsInChange ) return;
 
-            ucPattern.SetRegexOptions( CurrentRegexEngine, GetEolOption( ) );
+            ucPattern.SetRegexOptions( CurrentRegexEngine!, GetEolOption( ) );
             FindMatchesLoop.SignalWaitAndExecute( );
             ShowTextInfoLoop.SignalWaitAndExecute( );
 
-            Changed?.Invoke( this, null );
+            Changed?.Invoke( this, EventArgs.Empty );
         }
 
 
@@ -512,6 +512,8 @@ namespace RegExpressWPFNET
                 cbShowCaptures.IsChecked = tabData.ShowCaptures;
                 cbShowWhitespaces.IsChecked = tabData.ShowWhiteSpaces;
 
+                string eol = tabData.Eol ?? "\r\n";
+
                 foreach( var item in cbxEol.Items.Cast<ComboBoxItem>( ) )
                 {
                     item.IsSelected = (string)item.Tag == tabData.Eol;
@@ -523,7 +525,7 @@ namespace RegExpressWPFNET
 
                 ucPattern.SetFocus( );
 
-                ucPattern.SetRegexOptions( CurrentRegexEngine, tabData.Eol );
+                ucPattern.SetRegexOptions( CurrentRegexEngine, eol );
                 ucPattern.SetText( tabData.Pattern );
                 ucText.SetText( tabData.Text );
 
@@ -571,11 +573,11 @@ namespace RegExpressWPFNET
 
         void FindMatchesThreadProc( ICancellable cnc )
         {
-            string eol = null;
-            string pattern = null;
-            string text = null;
+            string eol = "\r\n";
+            string pattern = "";
+            string text = "";
             bool first_only = false;
-            IRegexEngine engine = null;
+            IRegexEngine? engine = null;
 
             UITaskHelper.Invoke( this,
                 ( ) =>
@@ -596,7 +598,7 @@ namespace RegExpressWPFNET
                 UITaskHelper.BeginInvoke( this,
                     ( ) =>
                     {
-                        ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) );
+                        ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) );
                         ucMatches.ShowNoPattern( );
                         lblMatches.Text = "Matches";
                         ShowOverlappingMatchesWarning( false );
@@ -604,21 +606,21 @@ namespace RegExpressWPFNET
             }
             else
             {
-                IMatcher parsed_pattern = null;
-                RegexMatches matches = null;
+                IMatcher? parsed_pattern = null;
+                RegexMatches matches = RegexMatches.Empty;
                 bool is_good = false;
 
                 try
                 {
                     UITaskHelper.BeginInvoke( this, CancellationToken.None, ( ) => ucMatches.ShowMatchingInProgress( true ) );
 
-                    parsed_pattern = engine.ParsePattern( pattern );
+                    parsed_pattern = engine!.ParsePattern( pattern );
                     var indeterminate_progress_thread = new Thread( IndeterminateProgressThreadProc ) { Name = "rxIndeterminate", IsBackground = true };
                     try
                     {
                         indeterminate_progress_thread.Start( );
 
-                        matches = parsed_pattern.Matches( text, cnc );
+                        matches = parsed_pattern.Matches( text ?? "", cnc );
                     }
                     finally
                     {
@@ -634,7 +636,7 @@ namespace RegExpressWPFNET
                     UITaskHelper.BeginInvoke( this, CancellationToken.None,
                         ( ) =>
                         {
-                            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) );
+                            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) );
                             ucMatches.ShowError( exc, engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.ScrollErrorsToEnd ) );
                             lblMatches.Text = "Error";
                             ShowOverlappingMatchesWarning( false );
@@ -661,7 +663,7 @@ namespace RegExpressWPFNET
 
                     bool is_overlapping = false;
 
-                    if( engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) )
+                    if( engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) )
                     {
                         var segments = new List<Segment>( );
 
@@ -709,7 +711,7 @@ namespace RegExpressWPFNET
                             ucMatches.ShowIndeterminateProgress( true );
                             ucMatches.ShowInfo( "The engine is busy, please wait…", true );
                             var engine = CurrentRegexEngine;
-                            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) );
+                            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) );
                         } );
             }
             catch( ThreadInterruptedException )
@@ -792,8 +794,8 @@ namespace RegExpressWPFNET
         {
             bool has_whitespaces = false;
             bool show_whitespaces_option = false;
-            string eol = null;
-            BaseTextData td = null;
+            string eol = "\r\n";
+            BaseTextData? td = null;
 
             UITaskHelper.Invoke( this,
                 ( ) =>
@@ -807,7 +809,7 @@ namespace RegExpressWPFNET
 
             if( cnc.IsCancellationRequested ) return;
 
-            has_whitespaces = RegexHasWhitespace.IsMatch( td.Text );
+            has_whitespaces = RegexHasWhitespace.IsMatch( td!.Text );
 
             if( !has_whitespaces )
             {
@@ -881,7 +883,7 @@ namespace RegExpressWPFNET
             cbShowCapturesDisabledUnchecked.Visibility = !captures_supported ? Visibility.Visible : Visibility.Collapsed;
 
             // inelegant, but works
-            string capture_note = engine.NoteForCaptures;
+            string? capture_note = engine.NoteForCaptures;
 
             runShowCapturesNote.Text = !string.IsNullOrWhiteSpace( capture_note ) ? " (" + capture_note + ")" : string.Empty;
 

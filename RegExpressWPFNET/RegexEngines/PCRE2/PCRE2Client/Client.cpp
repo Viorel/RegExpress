@@ -56,7 +56,7 @@ static void WriteMatch( BinaryWriterW& outbw, pcre2_code* re, PCRE2_SIZE* ovecto
 
         PCRE2_SPTR p = name_table;
         for( int i = 0;
-            i < namecount;
+            i < (int)CheckedCast( namecount );
             i++, p += name_entry_size )
         {
             int n = *( (int16_t*)p );
@@ -75,8 +75,8 @@ static void WriteMatch( BinaryWriterW& outbw, pcre2_code* re, PCRE2_SIZE* ovecto
     }
 
     outbw.WriteT<char>( 'm' );
-    outbw.WriteT<int32_t>( ovector[0] );
-    outbw.WriteT<int32_t>( ovector[1] - ovector[0] );
+    outbw.WriteT<int32_t>( CheckedCast( ovector[0] ) );
+    outbw.WriteT<int32_t>( CheckedCast( ovector[1] - ovector[0] ) );
 
     // groups (including the default one)
 
@@ -86,8 +86,8 @@ static void WriteMatch( BinaryWriterW& outbw, pcre2_code* re, PCRE2_SIZE* ovecto
         auto index = ovector[2 * i];
         bool success = index != -1;
         outbw.WriteT<char>( success );
-        outbw.WriteT<int32_t>( success ? ovector[2 * i] : 0 );
-        outbw.WriteT<int32_t>( success ? ovector[2 * i + 1] - ovector[2 * i] : 0 );
+        outbw.WriteT<int32_t>( CheckedCast( success ? ovector[2 * i] : 0 ) );
+        outbw.WriteT<int32_t>( CheckedCast( success ? ovector[2 * i + 1] - ovector[2 * i] : 0 ) );
         if( i < names.size( ) && !names[i].empty( ) )
         {
             outbw.Write( names[i] );
@@ -107,7 +107,7 @@ static void WriteMatch( BinaryWriterW& outbw, pcre2_code* re, PCRE2_SIZE* ovecto
             PCRE2_INFO_CAPTURECOUNT,
             &capturecount ) == 0 )
         {
-            for( int i = rc; i <= capturecount; ++i )
+            for( int i = rc; i <= (int)CheckedCast( capturecount ); ++i )
             {
                 outbw.WriteT<char>( 'g' );
                 outbw.WriteT<char>( 0 );

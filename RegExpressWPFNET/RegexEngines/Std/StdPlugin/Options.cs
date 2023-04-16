@@ -42,8 +42,8 @@ namespace StdPlugin
         public bool match_prev_avail { get; set; }
 
 
-        public string REGEX_MAX_STACK_COUNT { get; set; }
-        public string REGEX_MAX_COMPLEXITY_COUNT { get; set; }
+        public string? REGEX_MAX_STACK_COUNT { get; set; }
+        public string? REGEX_MAX_COMPLEXITY_COUNT { get; set; }
 
 
         public Options Clone( )

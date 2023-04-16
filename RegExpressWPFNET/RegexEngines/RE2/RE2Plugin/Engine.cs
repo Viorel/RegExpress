@@ -15,9 +15,9 @@ namespace RE2Plugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<Version> LazyVersion = new( GetVersion );
+        static readonly Lazy<Version?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
 
         public Engine( )
@@ -36,7 +36,7 @@ namespace RE2Plugin
 
         public string Kind => "RE2";
 
-        public Version Version => LazyVersion.Value;
+        public Version? Version => LazyVersion.Value;
 
         public string Name => "RE2";
 
@@ -45,7 +45,9 @@ namespace RE2Plugin
         public string? NoteForCaptures => null;
 
         public event RegexEngineOptionsChanged? OptionsChanged;
+#pragma warning disable 0067
         public event EventHandler? FeatureMatrixReady;
+#pragma warning restore 0067
 
 
         public Control GetOptionsControl( )

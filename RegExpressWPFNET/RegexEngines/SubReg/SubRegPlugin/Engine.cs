@@ -15,7 +15,7 @@ namespace SubRegPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<Version> LazyVersion = new( GetVersion );
+        static readonly Lazy<Version?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
@@ -36,7 +36,7 @@ namespace SubRegPlugin
 
         public string Kind => "SubReg";
 
-        public Version Version => LazyVersion.Value;
+        public Version? Version => LazyVersion.Value;
 
         public string Name => "SubReg";
 
@@ -45,7 +45,9 @@ namespace SubRegPlugin
         public string? NoteForCaptures => null;
 
         public event RegexEngineOptionsChanged? OptionsChanged;
+#pragma warning disable 0067
         public event EventHandler? FeatureMatrixReady;
+#pragma warning restore 0067
 
 
         public Control GetOptionsControl( )

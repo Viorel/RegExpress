@@ -20,9 +20,9 @@ namespace RegExpressLibrary
 
         string Kind { get; }
 
-        Version Version { get; }
+        Version? Version { get; }
 
-        (string Kind, Version Version) CombinedId => (Kind, Version);
+        (string Kind, Version? Version) CombinedId => (Kind, Version);
 
         string Name { get; }
 

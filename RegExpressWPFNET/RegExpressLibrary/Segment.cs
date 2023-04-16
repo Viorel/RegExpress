@@ -152,7 +152,7 @@ namespace RegExpressLibrary
             return Length == 0 ? $"(empty at {Index})" : $"({Index}..{Index + Length - 1})";
         }
 
-        public override bool Equals( object obj )
+        public override bool Equals( object? obj )
         {
             if( !( obj is Segment ) ) return false;
 

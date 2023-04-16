@@ -46,20 +46,20 @@ namespace RegExpressWPFNET
 
         bool AlreadyLoaded = false;
 
-        string LastText;
-        RegexMatches LastMatches;
+        string? LastText;
+        RegexMatches? LastMatches;
         bool LastShowCaptures;
-        string LastEol;
+        string? LastEol;
         bool LastPotentialOverlaps;
-        UnderlineInfo LastExternalUnderlineInfo;
+        UnderlineInfo? LastExternalUnderlineInfo;
         bool LastExternalUnderlineSetSelection;
 
         readonly StyleInfo NormalStyleInfo;
         readonly StyleInfo[] HighlightStyleInfos;
 
-        public event EventHandler TextChanged;
-        public event EventHandler SelectionChanged;
-        public event EventHandler LocalUnderliningFinished;
+        public event EventHandler? TextChanged;
+        public event EventHandler? SelectionChanged;
+        public event EventHandler? LocalUnderliningFinished;
 
 
         public UCText( )
@@ -116,7 +116,7 @@ namespace RegExpressWPFNET
         }
 
 
-        public void SetText( string value )
+        public void SetText( string? value )
         {
             RtbUtilities.SetText( rtb, value );
 
@@ -128,10 +128,10 @@ namespace RegExpressWPFNET
         {
             if( matches == null ) throw new ArgumentNullException( nameof( matches ) );
 
-            string last_text;
-            RegexMatches last_matches;
+            string? last_text;
+            RegexMatches? last_matches;
             bool last_show_captures;
-            string last_eol;
+            string? last_eol;
             bool last_potential_overlaps;
 
             lock( this )
@@ -203,7 +203,7 @@ namespace RegExpressWPFNET
                 return Enumerable.Empty<Segment>( ).ToList( );
             }
 
-            TextData td = null;
+            TextData? td = null;
 
             if( !CheckAccess( ) )
             {
@@ -217,7 +217,7 @@ namespace RegExpressWPFNET
                 td = rtb.GetTextData( LastEol );
             }
 
-            return GetUnderliningInfo( NonCancellable.Instance, td, LastMatches, LastShowCaptures );
+            return GetUnderliningInfo( NonCancellable.Instance, td!, LastMatches, LastShowCaptures );
         }
 
 
@@ -276,7 +276,7 @@ namespace RegExpressWPFNET
 
             UndoRedoHelper.HandleSelectionChanged( );
 
-            SelectionChanged?.Invoke( this, null );
+            SelectionChanged?.Invoke( this, EventArgs.Empty );
 
             ShowDebugInformation( ); // #if DEBUG
         }
@@ -303,7 +303,7 @@ namespace RegExpressWPFNET
 
             MatchesUpdatedEvent.Reset( );
 
-            TextChanged?.Invoke( this, null );
+            TextChanged?.Invoke( this, EventArgs.Empty );
         }
 
 
@@ -472,8 +472,8 @@ namespace RegExpressWPFNET
 
         void RecolouringThreadProc( ICancellable cnc )
         {
-            RegexMatches matches;
-            string eol;
+            RegexMatches? matches;
+            string? eol;
             bool show_captures;
             bool potential_overlaps;
 
@@ -485,7 +485,7 @@ namespace RegExpressWPFNET
                 potential_overlaps = LastPotentialOverlaps;
             }
 
-            TextData td = null;
+            TextData? td = null;
             Rect clip_rect = Rect.Empty;
             int top_index = 0;
             int bottom_index = 0;
@@ -601,8 +601,8 @@ namespace RegExpressWPFNET
             MatchesUpdatedEvent.WaitOne( 444 );
 
             bool is_focussed = false;
-            RegexMatches matches;
-            string eol;
+            RegexMatches? matches;
+            string? eol;
             bool show_captures;
 
             lock( this )
@@ -614,7 +614,7 @@ namespace RegExpressWPFNET
 
             if( matches == null ) return;
 
-            TextData td = null;
+            TextData? td = null;
 
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
@@ -624,16 +624,16 @@ namespace RegExpressWPFNET
 
             if( cnc.IsCancellationRequested ) return;
 
-            List<Segment> segments_to_underline = null;
+            List<Segment>? segments_to_underline = null;
 
             if( is_focussed )
             {
-                segments_to_underline = GetUnderliningInfo( cnc, td, matches, show_captures ).ToList( );
+                segments_to_underline = GetUnderliningInfo( cnc, td!, matches, show_captures ).ToList( );
             }
 
             if( cnc.IsCancellationRequested ) return;
 
-            IReadOnlyList<(TextPointer start, TextPointer end)> ranges_to_underline = null;
+            IReadOnlyList<(TextPointer start, TextPointer end)>? ranges_to_underline = null;
 
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
              {
@@ -641,7 +641,7 @@ namespace RegExpressWPFNET
                                  segments_to_underline
                                      ?.Select( s =>
                                      {
-                                         var t = td.TextPointers.GetTextPointers( s.Index, s.Index + s.Length );
+                                         var t = td!.TextPointers.GetTextPointers( s.Index, s.Index + s.Length );
                                          return (t.Item1, t.Item2);
                                      } )
                                      ?.ToList( );
@@ -657,7 +657,7 @@ namespace RegExpressWPFNET
             {
                 ChangeEventHelper.BeginInvoke( CancellationToken.None, ( ) =>
                             {
-                                LocalUnderliningFinished?.Invoke( this, null );
+                                LocalUnderliningFinished?.Invoke( this, EventArgs.Empty );
                             } );
             }
         }
@@ -665,8 +665,8 @@ namespace RegExpressWPFNET
 
         void ExternalUnderliningThreadProc( ICancellable cnc )
         {
-            string eol;
-            UnderlineInfo underline_info;
+            string? eol;
+            UnderlineInfo? underline_info;
             bool set_selection;
 
             lock( this )
@@ -676,7 +676,7 @@ namespace RegExpressWPFNET
                 set_selection = LastExternalUnderlineSetSelection;
             }
 
-            TextData td = null;
+            TextData? td = null;
 
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
@@ -685,7 +685,7 @@ namespace RegExpressWPFNET
 
             if( cnc.IsCancellationRequested ) return;
 
-            IReadOnlyList<(TextPointer start, TextPointer end)> ranges_to_underline = null;
+            IReadOnlyList<(TextPointer start, TextPointer end)>? ranges_to_underline = null;
 
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
@@ -693,7 +693,7 @@ namespace RegExpressWPFNET
                                 underline_info?.Segments
                                     ?.Select( s =>
                                     {
-                                        var t = td.TextPointers.GetTextPointers( s.Index, s.Index + s.Length );
+                                        var t = td!.TextPointers.GetTextPointers( s.Index, s.Index + s.Length );
                                         return (t.Item1, t.Item2);
                                     } )
                                     ?.ToList( );
@@ -710,7 +710,7 @@ namespace RegExpressWPFNET
                 ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
                 {
                     var first = underline_info.Segments.First( );
-                    var range = td.Range( first.Index, first.Length );
+                    var range = td!.Range( first.Index, first.Length );
 
                     RtbUtilities.BringIntoViewInvoked( cnc, rtb, range.Start, range.End, fullHorizontalScrollIfInvisible: true );
 

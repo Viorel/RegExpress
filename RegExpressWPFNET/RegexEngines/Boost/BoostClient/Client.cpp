@@ -23,8 +23,8 @@ static void WriteMatch( BinaryWriterW& outbw, const boost::wcmatch& match, const
 
     outbw.WriteT<char>( 'm' );
 
-    outbw.WriteT<int32_t>( match.position( ) );
-    outbw.WriteT<int32_t>( match.length( ) );
+    outbw.WriteT<int32_t>( CheckedCast( match.position( ) ) );
+    outbw.WriteT<int32_t>( CheckedCast( match.length( ) ) );
 
     int j = 0;
 
@@ -46,8 +46,8 @@ static void WriteMatch( BinaryWriterW& outbw, const boost::wcmatch& match, const
 
         outbw.WriteT<char>( 'g' );
         outbw.WriteT<char>( submatch.matched );
-        outbw.WriteT<int32_t>( submatch.matched ? match.position( j ) : 0 );
-        outbw.WriteT<int32_t>( submatch.matched ? submatch.length( ) : 0 );
+        outbw.WriteT<int32_t>( CheckedCast( submatch.matched ? match.position( j ) : 0 ) );
+        outbw.WriteT<int32_t>( CheckedCast( submatch.matched ? submatch.length( ) : 0 ) );
         outbw.Write( name );
 
         for( const boost::wcsub_match& c : submatch.captures( ) )
@@ -60,8 +60,8 @@ static void WriteMatch( BinaryWriterW& outbw, const boost::wcmatch& match, const
             if( index < match.position( ) ) continue;
 
             outbw.WriteT<char>( 'c' );
-            outbw.WriteT<int32_t>( index );
-            outbw.WriteT<int32_t>( c.length( ) );
+            outbw.WriteT<int32_t>( CheckedCast( index ) );
+            outbw.WriteT<int32_t>( CheckedCast( c.length( ) ) );
         }
     }
 }

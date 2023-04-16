@@ -88,7 +88,7 @@ namespace RegExpressWPFNET.Code
         //---
 
 
-        TextPointer FindTextPointerB( Section section, ref int remainingIndex )
+        TextPointer? FindTextPointerB( Section section, ref int remainingIndex )
         {
             foreach( var block in section.Blocks )
             {
@@ -101,7 +101,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        TextPointer FindTextPointerB( Paragraph paragraph, ref int remainingIndex )
+        TextPointer? FindTextPointerB( Paragraph paragraph, ref int remainingIndex )
         {
             if( remainingIndex <= 0 ) return paragraph.ContentStart.GetInsertionPosition( LogicalDirection.Forward );
 
@@ -119,7 +119,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        TextPointer FindTextPointerI( Span span, ref int remainingIndex )
+        TextPointer? FindTextPointerI( Span span, ref int remainingIndex )
         {
             foreach( var inline in span.Inlines )
             {
@@ -131,7 +131,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        TextPointer FindTextPointerI( Run run, ref int remainingIndex )
+        TextPointer? FindTextPointerI( Run run, ref int remainingIndex )
         {
             // Unfortunately, '\r[\n]' and '\n' are possible inside Run 
             //Debug.Assert( !run.Text.Contains( '\r' ) );
@@ -172,7 +172,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        TextPointer FindTextPointerI( LineBreak lb, ref int remainingIndex )
+        TextPointer? FindTextPointerI( LineBreak lb, ref int remainingIndex )
         {
             if( remainingIndex <= 0 ) return lb.ElementStart;
 
@@ -187,8 +187,8 @@ namespace RegExpressWPFNET.Code
 
         struct RangeData
         {
-            public TextPointer Pointer1;
-            public TextPointer Pointer2;
+            public TextPointer? Pointer1;
+            public TextPointer? Pointer2;
             public int Remaining1;
             public int Remaining2;
 

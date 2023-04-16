@@ -27,10 +27,10 @@ namespace RegExpressLibrary.SyntaxColouring
         int LengthBeforeGroup;
         int LengthAfterGroupHeader;
 
-        Dictionary<string, bool?> Variables = null;
+        Dictionary<string, bool?>? Variables = null;
 
 #if DEBUG
-        string dbgCurrentGroup;
+        string? dbgCurrentGroup;
 #endif
 
         static PatternBuilder( )
@@ -205,7 +205,7 @@ namespace RegExpressLibrary.SyntaxColouring
 
         [Obsolete( "Make sure you do not call accidentally 'ToString' instead of 'ToPattern'" )]
 #pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
-        public override string ToString( )
+        public override string? ToString( )
 #pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
         {
             return base.ToString( );

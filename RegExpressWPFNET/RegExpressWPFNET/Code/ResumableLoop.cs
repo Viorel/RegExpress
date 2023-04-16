@@ -28,7 +28,7 @@ namespace RegExpressWPFNET.Code
         readonly AutoResetEvent[] Events;
         readonly Action<ICancellable> Action;
         readonly int[] Timeouts;
-        readonly Thread TheThread = null;
+        readonly Thread TheThread;
         Command CancellingCommand = Command.None;
 
 

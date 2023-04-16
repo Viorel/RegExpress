@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace BoostPlugin
 {
-
     enum GrammarEnum
     {
         None = 0,

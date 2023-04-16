@@ -23,7 +23,7 @@ namespace RegExpressLibrary
         static readonly Encoding UnicodeEncoding = new UnicodeEncoding( bigEndian: false, byteOrderMark: false, throwOnInvalidBytes: true );
 
 
-        public static bool InvokeExe( ICancellable cnc, string exePath, string arguments, Action<StreamWriter> stdinWriter, out string stdoutContents, out string stderrContents, EncodingEnum encoding0 )
+        public static bool InvokeExe( ICancellable cnc, string exePath, string? arguments, Action<StreamWriter> stdinWriter, out string? stdoutContents, out string? stderrContents, EncodingEnum encoding0 )
         {
             var output_sb = new StringBuilder( );
             var error_sb = new StringBuilder( );
@@ -115,7 +115,7 @@ namespace RegExpressLibrary
         }
 
 
-        public static bool InvokeExe( ICancellable cnc, string exePath, string arguments, Action<Stream> stdinWriter, out MemoryStream stdoutContents, out string stderrContents, EncodingEnum encoding0 )
+        public static bool InvokeExe( ICancellable cnc, string exePath, string? arguments, Action<Stream> stdinWriter, out MemoryStream? stdoutContents, out string? stderrContents, EncodingEnum encoding0 )
         {
             var stdout_ms = new MemoryStream( );
             var error_sb = new StringBuilder( );
@@ -153,6 +153,7 @@ namespace RegExpressLibrary
                     }
                     catch( Exception exc )
                     {
+                        _ = exc;
                         if( Debugger.IsAttached ) Debugger.Break( );
                         throw;
                     }
@@ -171,6 +172,7 @@ namespace RegExpressLibrary
                     }
                     catch( Exception exc )
                     {
+                        _ = exc;
                         if( Debugger.IsAttached ) Debugger.Break( );
                         throw;
                     }
@@ -245,7 +247,7 @@ namespace RegExpressLibrary
         }
 
 
-        public static bool InvokeExe( ICancellable cnc, string exePath, string arguments, string stdinContents, out string stdoutContents, out string stderrContents, EncodingEnum encoding0 )
+        public static bool InvokeExe( ICancellable cnc, string exePath, string? arguments, string stdinContents, out string? stdoutContents, out string? stderrContents, EncodingEnum encoding0 )
         {
             return InvokeExe( cnc, exePath, arguments, ( sw ) => sw.Write( stdinContents ), out stdoutContents, out stderrContents, encoding0 );
         }

@@ -101,6 +101,18 @@ namespace
 
 
         template<>
+        static inline int32_t CheckedCast( const uint32_t& v )
+        {
+            if( v > (uint32_t)std::numeric_limits<int32_t>::max( ) )
+            {
+                throw std::runtime_error( "'int32_t' overflow: " + std::to_string( v ) );
+            }
+
+            return (int32_t)v;
+        }
+
+
+        template<>
         static inline unsigned long CheckedCast( const uint32_t& v ) // (also to DWORD)
         {
             static_assert( sizeof( unsigned long ) == sizeof( uint32_t ), "" );
@@ -132,4 +144,11 @@ inline CheckedCastHelper<FROM> CheckedCast( const FROM& v )
 {
     return CheckedCastHelper<FROM>( v );
 }
+
+// just an idea:
+//template<typename TO, typename FROM>
+//inline TO CheckedCastTo( const FROM& v )
+//{
+//    return (TO)CheckedCast( v );
+//}
 

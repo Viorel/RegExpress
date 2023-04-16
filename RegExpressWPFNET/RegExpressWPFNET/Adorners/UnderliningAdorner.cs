@@ -18,7 +18,7 @@ namespace RegExpressWPFNET.Adorners
 	{
 		readonly Pen Pen = new Pen( Brushes.Fuchsia, 1 );
 
-		IReadOnlyList<(TextPointer start, TextPointer end)> Ranges = null;
+		IReadOnlyList<(TextPointer start, TextPointer end)>? Ranges = null;
 
 		readonly GeometryGroup GeometryGroup = new GeometryGroup( );
 		bool MustRecalculateSegments = true;
@@ -42,7 +42,7 @@ namespace RegExpressWPFNET.Adorners
 		}
 
 
-		public void SetRangesToUnderline( IReadOnlyList<(TextPointer start, TextPointer end)> ranges )
+		public void SetRangesToUnderline( IReadOnlyList<(TextPointer start, TextPointer end)>? ranges )
 		{
 			if( IsDbgDisabled ) return;
 
@@ -175,7 +175,7 @@ namespace RegExpressWPFNET.Adorners
 							Point prev_point_b = start_point_b;
 							Point prev_point_f = start_point_f;
 
-							LineGeometry current_line = null;
+							LineGeometry? current_line = null;
 
 							for(
 								var tp = start.GetNextInsertionPosition( LogicalDirection.Forward );
