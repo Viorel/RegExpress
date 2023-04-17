@@ -8,7 +8,15 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <None Remove="RegExpress.ico" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\RegExpressLibrary\RegExpressLibrary.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Resource Include="RegExpress.ico" />
     </ItemGroup>
 
     <ItemGroup>

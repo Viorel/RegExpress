@@ -798,7 +798,7 @@ namespace RegExpressWPFNET
                     {
                         int text_elements = td.LengthInTextElements;
 
-                        string s = $"(Length: {td.Text.Length:#,##0}";
+                        string s = $"Length: {td.Text.Length:#,##0}";
 
                         if( text_elements != td.Text.Length )
                         {
@@ -809,8 +809,6 @@ namespace RegExpressWPFNET
                         {
                             s += $", Index: {td.SelectionStart:#,##0}";
                         }
-
-                        s += ")";
 
                         lblTextInfo.Text = s;
                     }
