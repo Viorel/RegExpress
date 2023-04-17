@@ -29,6 +29,7 @@ namespace RegExpressWPFNET.Code
         public bool ShowWhiteSpaces;
         public string? Eol;
         public TabMetrics Metrics;
+        public bool Wrap;
     }
 
 

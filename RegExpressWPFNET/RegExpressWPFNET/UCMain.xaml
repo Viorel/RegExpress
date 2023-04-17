@@ -103,10 +103,20 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*" MinHeight="33"/>
                 </Grid.RowDefinitions>
-
-                <StackPanel Grid.Row="0" Style="{StaticResource StackPanelWithLabels}">
-                    <TextBlock Text="Options" Style="{StaticResource Labels}"/>
-                </StackPanel>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Style="{StaticResource StackPanelWithLabels}">
+                        <TextBlock Text="Options" Style="{StaticResource Labels}"/>
+                    </StackPanel>
+                    <CheckBox x:Name="chbxWrap" Grid.Column="1" Content="Wrap" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0 3 2 0" Checked="chbxWrap_Checked" Unchecked="chbxWrap_Unchecked">
+                        <CheckBox.LayoutTransform>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                        </CheckBox.LayoutTransform>
+                    </CheckBox>
+                </Grid>
 
                 <Border Grid.Row="1" BorderThickness="1" BorderBrush="#FFABADB3" Margin="0,4,0,0">
                     <ScrollViewer x:Name="svOptions" Margin="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">

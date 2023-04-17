@@ -138,6 +138,7 @@ namespace RegExpressWPFNET
                 tabData.ShowWhiteSpaces = InitialTabData.ShowWhiteSpaces;
                 tabData.Eol = InitialTabData.Eol;
                 tabData.Metrics = InitialTabData.Metrics;
+                tabData.Wrap = InitialTabData.Wrap;
             }
             else
             {
@@ -151,6 +152,7 @@ namespace RegExpressWPFNET
                 tabData.ShowWhiteSpaces = cbShowWhitespaces.IsChecked == true;
                 tabData.Eol = GetEolOption( );
                 tabData.Metrics = GetMetrics( );
+                tabData.Wrap = chbxWrap.IsChecked == true;
 
                 // save options of active and inactive engines
 
@@ -192,7 +194,14 @@ namespace RegExpressWPFNET
 
             if( InitialTabData != null )
             {
-                InitialTabData.Metrics = metrics;
+                if( full )
+                {
+                    InitialTabData.Metrics = metrics;
+                }
+                else
+                {
+                    InitialTabData.Metrics.RightColumnWidth = metrics.RightColumnWidth;
+                }
             }
         }
 
@@ -373,6 +382,17 @@ namespace RegExpressWPFNET
         }
 
 
+        private void chbxWrap_Checked( object sender, RoutedEventArgs e )
+        {
+            svOptions.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+        }
+
+        private void chbxWrap_Unchecked( object sender, RoutedEventArgs e )
+        {
+            svOptions.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
+        }
+
+
         private void cbxEngine_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             if( !IsFullyLoaded ) return;
@@ -536,6 +556,8 @@ namespace RegExpressWPFNET
                 ucText.SetText( tabData.Text );
 
                 ApplyMetrics( tabData.Metrics, full: true );
+
+                chbxWrap.IsChecked = tabData.Wrap;
             }
             finally
             {
