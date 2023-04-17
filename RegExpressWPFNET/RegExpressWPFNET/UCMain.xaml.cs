@@ -183,10 +183,16 @@ namespace RegExpressWPFNET
         public void ApplyMetrics( TabMetrics metrics, bool full )
         {
             if( metrics.RightColumnWidth > 20 ) RightColumn.Width = new GridLength( metrics.RightColumnWidth );
+
             if( full )
             {
                 if( metrics.TopRowHeight > 20 ) TopRow.Height = new GridLength( metrics.TopRowHeight );
                 if( metrics.BottomRowHeight > 20 ) BottomRow.Height = new GridLength( metrics.BottomRowHeight );
+            }
+
+            if( InitialTabData != null )
+            {
+                InitialTabData.Metrics = metrics;
             }
         }
 
