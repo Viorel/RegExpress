@@ -314,7 +314,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void ucText_GotKeyboardFocus( object sender, KeyboardFocusChangedEventArgs e )
+        private void UcText_GotKeyboardFocus( object sender, KeyboardFocusChangedEventArgs e )
         {
             if( !IsFullyLoaded ) return;
             if( IsInChange ) return;
@@ -362,7 +362,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void ucMatches_Cancelled( object sender, EventArgs e )
+        private void UcMatches_Cancelled( object sender, EventArgs e )
         {
             if( !IsFullyLoaded ) return;
             if( IsInChange ) return;
@@ -382,18 +382,19 @@ namespace RegExpressWPFNET
         }
 
 
-        private void chbxWrap_Checked( object sender, RoutedEventArgs e )
+        private void ChbxWrap_Checked( object sender, RoutedEventArgs e )
         {
             svOptions.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
         }
 
-        private void chbxWrap_Unchecked( object sender, RoutedEventArgs e )
+
+        private void ChbxWrap_Unchecked( object sender, RoutedEventArgs e )
         {
             svOptions.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
         }
 
 
-        private void cbxEngine_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        private void CbxEngine_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             if( !IsFullyLoaded ) return;
             if( IsInChange ) return;
@@ -512,7 +513,7 @@ namespace RegExpressWPFNET
                 // TODO: if no exact match, identify the most appropriate engine
 
                 IRegexEngine? engine = RegexEngines.SingleOrDefault( eng => eng.CombinedId == tabData.ActiveCombinedId );
-                if( engine == null ) engine = DefaultRegexEngine;
+                engine ??= DefaultRegexEngine;
 
                 CurrentRegexEngine = engine;
                 SetEngineOption( engine );

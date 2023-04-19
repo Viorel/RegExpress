@@ -9,7 +9,7 @@ namespace RegExpressLibrary.Matches.Simple
 {
 	public sealed class SimpleGroup : SimpleBase, IGroup
 	{
-		readonly List<ICapture> mCaptures = new List<ICapture>( );
+		readonly List<ICapture> mCaptures = new( );
 
 
 		internal SimpleGroup( int index, int length, ISimpleTextGetter textGetter,

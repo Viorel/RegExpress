@@ -16,11 +16,11 @@ namespace RegExpressWPFNET.Adorners
 {
 	class UnderliningAdorner : Adorner
 	{
-		readonly Pen Pen = new Pen( Brushes.Fuchsia, 1 );
+		readonly Pen Pen = new( Brushes.Fuchsia, 1 );
 
 		IReadOnlyList<(TextPointer start, TextPointer end)>? Ranges = null;
 
-		readonly GeometryGroup GeometryGroup = new GeometryGroup( );
+		readonly GeometryGroup GeometryGroup = new( );
 		bool MustRecalculateSegments = true;
 
 		internal bool IsDbgDisabled { get; set; } // (disable this adorner for debugging purposes)

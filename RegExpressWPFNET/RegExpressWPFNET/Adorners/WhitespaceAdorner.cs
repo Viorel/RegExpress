@@ -22,19 +22,19 @@ namespace RegExpressWPFNET.Adorners
 	{
 		readonly ChangeEventHelper ChangeEventHelper;
 		readonly Brush WsBrush = Brushes.LightSeaGreen;
-		readonly Pen TabPen = new Pen( Brushes.LightSeaGreen, 1 );
-		readonly Pen EolPen = new Pen( Brushes.LightSeaGreen, 1 );
-		readonly Pen EofPen = new Pen( Brushes.LightSeaGreen, 1 );
+		readonly Pen TabPen = new( Brushes.LightSeaGreen, 1 );
+		readonly Pen EolPen = new( Brushes.LightSeaGreen, 1 );
+		readonly Pen EofPen = new( Brushes.LightSeaGreen, 1 );
 		readonly Brush EofBrush = Brushes.Transparent;
 
 		readonly char[] SpacesAndTabs = new[] { ' ', '\t' }; // (For performance reasons, we only consider regular spaces)
-		readonly Regex EolRegex = new Regex( @"(?>\r\n|\n\r|\r|\n)", RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace );
+		readonly Regex EolRegex = new( @"(?>\r\n|\n\r|\r|\n)", RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace );
 
 		readonly ResumableLoop Loop;
 
-		List<Rect> PositionsSpaces = new List<Rect>( );
-		List<Rect> PositionsTabs = new List<Rect>( );
-		List<Rect> PositionsEols = new List<Rect>( );
+		List<Rect> PositionsSpaces = new( );
+		List<Rect> PositionsTabs = new( );
+		List<Rect> PositionsEols = new( );
 		Rect PositionEof = Rect.Empty;
 		bool mShowWhitespaces = false;
 		int PreviousTextChangedTime = Environment.TickCount;
@@ -90,13 +90,10 @@ namespace RegExpressWPFNET.Adorners
 		}
 
 
-		MyRichTextBox Rtb
-		{
-			get { return (MyRichTextBox)AdornedElement; }
-		}
+        MyRichTextBox Rtb => (MyRichTextBox)AdornedElement;
 
 
-		private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
+        private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
 		{
 			if( IsDbgDisabled ) return;
 			if( ChangeEventHelper == null || ChangeEventHelper.IsInChange ) return;
@@ -241,8 +238,8 @@ namespace RegExpressWPFNET.Adorners
 		}
 
 
-		void DrawSpace( DrawingContext dc, Rect rect )
-		{
+		void DrawSpace( DrawingContext dc, Rect rect ) // draw a '·'
+        {
 			const int DOT_SIZE = 2;
 
 			var x = rect.Left + rect.Width / 2;
@@ -253,8 +250,8 @@ namespace RegExpressWPFNET.Adorners
 		}
 
 
-		void DrawTab( DrawingContext dc, Rect rect )
-		{
+		void DrawTab( DrawingContext dc, Rect rect ) // draw a '→'
+        {
 			const int ARROW_WIDTH = 6;
 
 			var half_pen = TabPen.Thickness / 2;
@@ -268,8 +265,8 @@ namespace RegExpressWPFNET.Adorners
 		}
 
 
-		void DrawEol( DrawingContext dc, Rect eol_rect )
-		{
+		void DrawEol( DrawingContext dc, Rect eol_rect ) // draw a '↲' 
+        {
 			const int EOL_WIDTH = 6;
 
 			var half_pen = EolPen.Thickness / 2;
@@ -284,8 +281,8 @@ namespace RegExpressWPFNET.Adorners
 		}
 
 
-		void DrawEof( DrawingContext dc, Rect rect )
-		{
+		void DrawEof( DrawingContext dc, Rect rect ) // draw a '▯'
+        {
 			const double EOF_WIDTH = 4;
 
 			double h = Math.Ceiling( rect.Height * 0.3 );
@@ -353,10 +350,10 @@ namespace RegExpressWPFNET.Adorners
 
 			var rtb = Rtb;
 
-			List<Rect> positions_spaces = new List<Rect>( );
-			List<Rect> positions_tabs = new List<Rect>( );
+			List<Rect> positions_spaces = new( );
+			List<Rect> positions_tabs = new( );
 
-			List<int> indices = new List<int>( );
+			List<int> indices = new( );
 
 			for( var i = td.Text.IndexOfAny( SpacesAndTabs, topIndex );
 				i >= 0;
@@ -469,7 +466,7 @@ namespace RegExpressWPFNET.Adorners
 
 			var rtb = Rtb;
 
-			List<Rect> positions_eols = new List<Rect>( );
+			List<Rect> positions_eols = new( );
 
 			// lines with no right-to-left segments
 
@@ -553,7 +550,7 @@ namespace RegExpressWPFNET.Adorners
 					if( should_continue ) continue;
 					if( should_break ) break;
 
-					Rect eol_rect = new Rect( new Point( max_x, left_rect.Top ), left_rect.Size );
+					Rect eol_rect = new( new Point( max_x, left_rect.Top ), left_rect.Size );
 					eol_rect.Offset( rtb.HorizontalOffset, rtb.VerticalOffset );
 
 					positions_eols.Add( eol_rect );

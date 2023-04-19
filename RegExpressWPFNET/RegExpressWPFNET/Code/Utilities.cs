@@ -14,7 +14,7 @@ namespace RegExpressWPFNET.Code
 {
 	static class Utilities
 	{
-		static readonly LengthConverter LengthConverter = new LengthConverter( );
+		static readonly LengthConverter LengthConverter = new( );
 
 
 		public static int LineNumber( [CallerLineNumber] int lineNumber = 0 )
@@ -30,7 +30,7 @@ namespace RegExpressWPFNET.Code
 
 			if( from >= toExcluding ) return string.Empty;
 
-			return text.Substring( from, toExcluding - from );
+			return text[from..toExcluding];
 		}
 
 

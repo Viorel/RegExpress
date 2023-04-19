@@ -12,9 +12,9 @@
 
         <AdornerDecorator>
             <RichTextBox x:Name="rtbMatches" Panel.ZIndex="1" Style="{StaticResource Matches}" 
-                         SelectionChanged="rtbMatches_SelectionChanged" 
-                         GotFocus="rtbMatches_GotFocus" 
-                         LostFocus="rtbMatches_LostFocus" 
+                         SelectionChanged="RtbMatches_SelectionChanged" 
+                         GotFocus="RtbMatches_GotFocus" 
+                         LostFocus="RtbMatches_LostFocus" 
                          IsUndoEnabled="False" 
                          IsReadOnly="True" 
                          IsReadOnlyCaretVisible="True" 
@@ -49,7 +49,7 @@
                     <Run x:Name="runInfo" />
                 </Paragraph>
                 <BlockUIContainer Margin="4">
-                    <Button x:Name="btnCancel" Content="Cancel" Width="59" FontFamily="Segoe UI" FontSize="11" FontStyle="Normal" BorderThickness="1" HorizontalAlignment="Left" Click="btnCancel_Click" />
+                    <Button x:Name="btnCancel" Content="Cancel" Width="59" FontFamily="Segoe UI" FontSize="11" FontStyle="Normal" BorderThickness="1" HorizontalAlignment="Left" Click="BtnCancel_Click" />
                 </BlockUIContainer>
             </FlowDocument>
         </RichTextBox>
@@ -64,8 +64,8 @@
 
         <StackPanel x:Name="pnlDebug" Panel.ZIndex="20" Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right" Background="#FFF4D8B8" Margin="10 5" Visibility="Collapsed">
             <Label x:Name="lblDbgInfo">(Debug information here)</Label>
-            <Button x:Name="btnDbgSave" Content="save" Click="btnDbgSave_Click" />
-            <Button x:Name="btnDbgLoad" Content="load" Click="btnDbgLoad_Click" />
+            <Button x:Name="btnDbgSave" Content="save" Click="BtnDbgSave_Click" />
+            <Button x:Name="btnDbgLoad" Content="load" Click="BtnDbgLoad_Click" />
         </StackPanel>
 
         <Grid x:Name="pnlHourglass" Panel.ZIndex="30" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0 0 0 1" Opacity="0.44" Visibility="Hidden" >

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary.SyntaxColouring
 {
-    public struct FeatureMatrix
+    public readonly struct FeatureMatrix
     // ('struct', to simplify the calculation of hash code)
     {
         public enum PunctuationEnum

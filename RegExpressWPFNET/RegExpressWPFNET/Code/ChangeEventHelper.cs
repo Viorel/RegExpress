@@ -30,13 +30,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        public bool IsInChange
-        {
-            get
-            {
-                return mChangeIndex != 0;
-            }
-        }
+        public bool IsInChange => mChangeIndex != 0;
 
 
         public Task BeginInvoke( CancellationToken ct, Action action )

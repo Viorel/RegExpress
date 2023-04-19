@@ -11,7 +11,7 @@ namespace RegExpressWPFNET.Code
 {
 	internal static class UnicodeUtilities
 	{
-		static BitArray RorALarray = new BitArray( 0xFFFF + 1, false );
+		static readonly BitArray RorALarray = new( 0xFFFF + 1, false );
 
 
 		static UnicodeUtilities( )

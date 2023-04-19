@@ -46,7 +46,7 @@ namespace RegExpressWPFNET.Code
 
             //return ValueTuple.Create( GetTextPointer( index1 ), GetTextPointer( index2 ) );	//
 
-            RangeData rd = new RangeData( index1, index2 );
+            RangeData rd = new( index1, index2 );
 
             foreach( var block in Doc.Blocks )
             {

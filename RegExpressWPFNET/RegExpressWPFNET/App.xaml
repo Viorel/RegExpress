@@ -48,7 +48,7 @@
             <Setter Property="Background" Value="{StaticResource NormalBackground}"/>
             <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
             <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
-            <Setter Property="Padding" Value="1 0 0 0"/>
+            <Setter Property="Padding" Value="1 2 0 0"/>
             <Style.Resources>
                 <Style TargetType="Paragraph">
                     <Setter Property="Padding" Value="1 0 0 0"/>

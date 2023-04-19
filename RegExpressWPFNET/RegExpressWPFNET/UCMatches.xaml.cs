@@ -23,6 +23,7 @@ using RegExpressLibrary.SyntaxColouring;
 using RegExpressWPFNET.Adorners;
 using RegExpressWPFNET.Code;
 
+
 namespace RegExpressWPFNET
 {
     /// <summary>
@@ -72,7 +73,7 @@ namespace RegExpressWPFNET
             internal readonly Segment MatchSegment;
             internal readonly Span Span;
             internal readonly Inline ValueInline;
-            internal readonly List<GroupInfo> GroupInfos = new List<GroupInfo>( );
+            internal readonly List<GroupInfo> GroupInfos = new( );
 
             public MatchInfo( Segment matchSegment, Span span, Inline valueInline )
             {
@@ -91,7 +92,7 @@ namespace RegExpressWPFNET
             internal readonly Segment GroupSegment;
             internal readonly Span Span;
             internal readonly Inline ValueInline;
-            internal readonly List<CaptureInfo> CaptureInfos = new List<CaptureInfo>( );
+            internal readonly List<CaptureInfo> CaptureInfos = new( );
 
             public GroupInfo( MatchInfo parent, bool isSuccess, Segment groupSegment, Span span, Inline valueInline )
             {
@@ -123,7 +124,7 @@ namespace RegExpressWPFNET
             internal override MatchInfo GetMatchInfo( ) => Parent.GetMatchInfo( );
         }
 
-        readonly List<MatchInfo> MatchInfos = new List<MatchInfo>( );
+        readonly List<MatchInfo> MatchInfos = new( );
 
 
         public event EventHandler? SelectionChanged;
@@ -405,13 +406,13 @@ namespace RegExpressWPFNET
         }
 
 
-        private void btnCancel_Click( object sender, RoutedEventArgs e )
+        private void BtnCancel_Click( object sender, RoutedEventArgs e )
         {
             Cancelled?.Invoke( this, EventArgs.Empty );
         }
 
 
-        private void rtbMatches_SelectionChanged( object sender, RoutedEventArgs e )
+        private void RtbMatches_SelectionChanged( object sender, RoutedEventArgs e )
         {
             if( !IsLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
@@ -425,7 +426,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtbMatches_GotFocus( object sender, RoutedEventArgs e )
+        private void RtbMatches_GotFocus( object sender, RoutedEventArgs e )
         {
             LocalUnderliningLoop.SignalWaitAndExecute( );
             ExternalUnderliningLoop.SignalWaitAndExecute( );
@@ -434,8 +435,7 @@ namespace RegExpressWPFNET
 
             if( Properties.Settings.Default.BringCaretIntoView )
             {
-                var p = rtbMatches.CaretPosition.Parent as FrameworkContentElement;
-                if( p != null )
+                if( rtbMatches.CaretPosition.Parent is FrameworkContentElement p )
                 {
                     p.BringIntoView( );
                 }
@@ -443,7 +443,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtbMatches_LostFocus( object sender, RoutedEventArgs e )
+        private void RtbMatches_LostFocus( object sender, RoutedEventArgs e )
         {
             LocalUnderliningLoop.SignalWaitAndExecute( );
         }
@@ -493,8 +493,10 @@ namespace RegExpressWPFNET
                 if( secMatches.Blocks.Count > matches.Count )
                 {
                     // remove unneeded paragraphs
-                    var r = new TextRange( secMatches.Blocks.ElementAt( matches.Count ).ElementStart, secMatches.ContentEnd );
-                    r.Text = "";
+                    var r = new TextRange( secMatches.Blocks.ElementAt( matches.Count ).ElementStart, secMatches.ContentEnd )
+                    {
+                        Text = ""
+                    };
                 }
 
                 CancelInfo( );
@@ -542,7 +544,7 @@ namespace RegExpressWPFNET
                 Paragraph? para = null;
                 Run? run = null;
                 MatchInfo? match_info = null;
-                RunBuilder match_run_builder = new RunBuilder( MatchValueSpecialStyleInfo );
+                RunBuilder match_run_builder = new( MatchValueSpecialStyleInfo );
 
                 var highlight_style = HighlightStyleInfos[match_number % HighlightStyleInfos.Length];
                 var highlight_light_style = HighlightLightStyleInfos[match_number % HighlightStyleInfos.Length];
@@ -600,7 +602,7 @@ namespace RegExpressWPFNET
 
                 // show groups
 
-                RunBuilder sibling_run_builder = new RunBuilder( null );
+                RunBuilder sibling_run_builder = new( null );
 
                 foreach( var group in ordered_groups )
                 {
@@ -827,8 +829,8 @@ namespace RegExpressWPFNET
                 public bool isSpecial;
             }
 
-            readonly StringBuilder sb = new StringBuilder( );
-            readonly List<MyRun> runs = new List<MyRun>( );
+            readonly StringBuilder sb = new( );
+            readonly List<MyRun> runs = new( );
             readonly StyleInfo? specialStyleInfo;
             bool isPreviousSpecial = false;
 
@@ -1015,7 +1017,7 @@ namespace RegExpressWPFNET
 
         List<Info> GetUnderliningInfos( ICancellable cnc )
         {
-            List<Info> infos = new List<Info>( );
+            List<Info> infos = new( );
 
             TextSelection sel = rtbMatches.Selection;
 
@@ -1230,8 +1232,7 @@ namespace RegExpressWPFNET
             ShowIndeterminateProgress( false );
         }
 
-
-        int EvaluateLeftWidth( RegexMatches matches, bool showSucceededGroupsOnly )
+        static int EvaluateLeftWidth( RegexMatches matches, bool showSucceededGroupsOnly )
         {
             if( matches == null ) return MIN_LEFT_WIDTH;
 
@@ -1274,7 +1275,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void btnDbgSave_Click( object sender, RoutedEventArgs e )
+        private void BtnDbgSave_Click( object sender, RoutedEventArgs e )
         {
 #if DEBUG
             rtbMatches.Focus( );
@@ -1286,7 +1287,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void btnDbgLoad_Click( object sender, RoutedEventArgs e )
+        private void BtnDbgLoad_Click( object sender, RoutedEventArgs e )
         {
 #if DEBUG
             rtbMatches.Focus( );

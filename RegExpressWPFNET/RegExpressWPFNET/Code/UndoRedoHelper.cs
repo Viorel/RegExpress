@@ -72,7 +72,7 @@ namespace RegExpressWPFNET.Code
         readonly List<UndoItem> UndoList = new( );
         readonly List<UndoItem> RedoList = new( );
         string? PreviousText;
-        SelectionInfo PreviousSelection = new SelectionInfo( 0, 0 );
+        SelectionInfo PreviousSelection = new( 0, 0 );
         bool IsUndoOrRedo = false;
         bool IsTrackingTextChange = false;
 
@@ -245,8 +245,8 @@ namespace RegExpressWPFNET.Code
 
         static Diff GetDiff( string? first, string? second )
         {
-            first = first ?? string.Empty;
-            second = second ?? string.Empty;
+            first ??= string.Empty;
+            second ??= string.Empty;
 
             int i = 0;
             while( i < first.Length && i < second.Length && first[i] == second[i] ) ++i;

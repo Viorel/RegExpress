@@ -53,7 +53,7 @@ namespace RegExpressWPFNET.Controls
         }
 
 
-        internal TextData GetTextData( string? eol, [CallerMemberName] string? caller = null, [CallerLineNumber] int line = 0, [CallerFilePath] string? file = null )
+        internal TextData GetTextData( string? eol) //, [CallerMemberName] string? caller = null, [CallerLineNumber] int line = 0, [CallerFilePath] string? file = null )
         {
             var t1 = Environment.TickCount;
 

@@ -22,15 +22,11 @@ namespace RegExpressWPFNET.Code
 
     public class BaseTextData
     {
-#pragma warning disable CA1051 // Do not declare visible instance fields
-
         private int mLengthInTextElements = -1;
 
         public readonly string Text; // (lines are separated by EOL specified in the call of 'GetBaseTextData' and 'GetTextData',
         public readonly string Eol;  //  which is also kept in 'Eol')
         internal readonly TextPointers TextPointers; // (maps string index of 'Text' to 'TextPointer')
-
-#pragma warning restore CA1051 // Do not declare visible instance fields
 
         internal BaseTextData( string text, string eol, TextPointers pointers )
         {
@@ -66,12 +62,9 @@ namespace RegExpressWPFNET.Code
 
     public sealed class TextData : BaseTextData
     {
-#pragma warning disable CA1051 // Do not declare visible instance fields
-
         public readonly int SelectionStart;
         public readonly int SelectionEnd;
 
-#pragma warning restore CA1051 // Do not declare visible instance fields
 
         internal TextData( string text, string eol, TextPointers pointers, int selectionStart, int selectionEnd )
             : base( text, eol, pointers )
@@ -628,9 +621,9 @@ namespace RegExpressWPFNET.Code
                 absolute_rect = rect;
             }
 
-            Rect viewport = new Rect( new Size( rtb.ViewportWidth, rtb.ViewportHeight ) ); // (relative)
+            Rect viewport = new( new Size( rtb.ViewportWidth, rtb.ViewportHeight ) ); // (relative)
 
-            Thickness padding = new Thickness( 4 );
+            Thickness padding = new( 4 );
 
             if( relative_rect.Bottom > viewport.Bottom - padding.Bottom )
             {

@@ -100,8 +100,8 @@ namespace RegExpressLibrary.SyntaxColouring
                     XLevelEnum? new_xlevel = circumflex ? (XLevelEnum?)XLevelEnum.none : null;
 
                     if( fm.XXFlag && on.Contains( "xx" ) ) new_xlevel = XLevelEnum.xx;
-                    else if( fm.XFlag && on.Contains( "x" ) ) new_xlevel = XLevelEnum.x;
-                    if( ( fm.XFlag || fm.XXFlag ) && off.Contains( "x" ) ) new_xlevel = XLevelEnum.none; // (including "-xx")
+                    else if( fm.XFlag && on.Contains( 'x' ) ) new_xlevel = XLevelEnum.x;
+                    if( ( fm.XFlag || fm.XXFlag ) && off.Contains( 'x' ) ) new_xlevel = XLevelEnum.none; // (including "-xx")
 
                     if( colon )
                     {
@@ -169,10 +169,10 @@ namespace RegExpressLibrary.SyntaxColouring
 
             if( par_size == 0 && bracket_size == 0 ) return;
 
-            List<HighlightHelper.Par> parentheses = new List<HighlightHelper.Par>( );
-            List<HighlightHelper.Par> brackets = new List<HighlightHelper.Par>( );
+            List<HighlightHelper.Par> parentheses = new( );
+            List<HighlightHelper.Par> brackets = new( );
 
-            Stack<ScopeInfo> scope_stack = new Stack<ScopeInfo>( );
+            Stack<ScopeInfo> scope_stack = new( );
             scope_stack.Push( new ScopeInfo
             {
                 XLevel = syntaxOptions.XLevel,
@@ -277,7 +277,6 @@ namespace RegExpressLibrary.SyntaxColouring
 
             HighlightHelper.CommonHighlighting( cnc, highlights, selectionStart, selectionEnd, visibleSegment, parentheses, par_size, brackets, bracket_size );
         }
-
 
 
         static Regex GetCachedRegex( FeatureMatrix fm, XLevelEnum xlevel, bool allow_empty_set )

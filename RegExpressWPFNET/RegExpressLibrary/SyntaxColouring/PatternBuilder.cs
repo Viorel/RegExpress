@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
+
 namespace RegExpressLibrary.SyntaxColouring
 {
     public sealed class PatternBuilder
@@ -115,9 +116,9 @@ namespace RegExpressLibrary.SyntaxColouring
             if( Sb.Length > Prefix.Length ) Sb.Append( Or );
 
             if( string.IsNullOrEmpty( name ) )
-                Sb.Append( "(" );
+                Sb.Append( '(' );
             else
-                Sb.Append( @"(?<" ).Append( name ).Append( @">" );
+                Sb.Append( @"(?<" ).Append( name ).Append( '>' );
 
             LengthAfterGroupHeader = Sb.Length;
 

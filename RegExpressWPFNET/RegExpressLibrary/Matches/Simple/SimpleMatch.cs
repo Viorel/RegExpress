@@ -9,7 +9,7 @@ namespace RegExpressLibrary.Matches.Simple
 {
 	public sealed class SimpleMatch : SimpleBase, IMatch
 	{
-		readonly List<IGroup> mGroups = new List<IGroup>( );
+		readonly List<IGroup> mGroups = new( );
 
 
 		private SimpleMatch( int index, int length, ISimpleTextGetter textGetter )
@@ -84,7 +84,6 @@ namespace RegExpressLibrary.Matches.Simple
 		{
 			( (SimpleGroup)mGroups[index] ).SetName( name );
 		}
-
 
 	}
 }

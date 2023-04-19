@@ -205,7 +205,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_TextChanged( object sender, TextChangedEventArgs e )
+        private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
         {
             if( !IsLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
@@ -226,7 +226,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_SelectionChanged( object sender, RoutedEventArgs e )
+        private void Rtb_SelectionChanged( object sender, RoutedEventArgs e )
         {
             if( !IsLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
@@ -237,7 +237,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_ScrollChanged( object sender, ScrollChangedEventArgs e )
+        private void Rtb_ScrollChanged( object sender, ScrollChangedEventArgs e )
         {
             if( !IsLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
@@ -247,7 +247,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_SizeChanged( object sender, SizeChangedEventArgs e )
+        private void Rtb_SizeChanged( object sender, SizeChangedEventArgs e )
         {
             if( !IsLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
@@ -257,7 +257,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_GotFocus( object sender, RoutedEventArgs e )
+        private void Rtb_GotFocus( object sender, RoutedEventArgs e )
         {
             if( !IsLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
@@ -266,8 +266,7 @@ namespace RegExpressWPFNET
 
             if( Properties.Settings.Default.BringCaretIntoView )
             {
-                var p = rtb.CaretPosition?.Parent as FrameworkContentElement;
-                if( p != null )
+                if( rtb.CaretPosition?.Parent is FrameworkContentElement p )
                 {
                     p.BringIntoView( );
                 }
@@ -275,7 +274,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_LostFocus( object sender, RoutedEventArgs e )
+        private void Rtb_LostFocus( object sender, RoutedEventArgs e )
         {
             if( !IsLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
@@ -284,7 +283,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_Pasting( object sender, DataObjectPastingEventArgs e )
+        private void Rtb_Pasting( object sender, DataObjectPastingEventArgs e )
         {
             if( e.DataObject.GetDataPresent( DataFormats.UnicodeText ) )
             {
@@ -301,7 +300,7 @@ namespace RegExpressWPFNET
         }
 
 
-        readonly object HighlighterLocker = new object( );
+        readonly object HighlighterLocker = new( );
 
 
         void RecolouringThreadProc( ICancellable cnc )
@@ -590,8 +589,7 @@ namespace RegExpressWPFNET
             } );
         }
 
-
-        void TryHighlight( ref Segment currentSegment, Segment newSegment, TextData td, StyleInfo styleInfo, StyleInfo unhighlightStyleInfo )
+        static void TryHighlight( ref Segment currentSegment, Segment newSegment, TextData td, StyleInfo styleInfo, StyleInfo unhighlightStyleInfo )
         {
             // TODO: avoid flickering
 

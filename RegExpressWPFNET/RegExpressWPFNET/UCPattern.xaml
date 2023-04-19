@@ -17,13 +17,13 @@
         <AdornerDecorator>
             <local_controls:MyRichTextBox x:Name="rtb" 
                      Margin="0" 
-                     SelectionChanged="rtb_SelectionChanged" 
-                     TextChanged="rtb_TextChanged" 
-                     ScrollViewer.ScrollChanged="rtb_ScrollChanged"
-                     SizeChanged="rtb_SizeChanged"
-                     GotFocus="rtb_GotFocus" 
-                     LostFocus="rtb_LostFocus" 
-                     DataObject.Pasting="rtb_Pasting" 
+                     SelectionChanged="Rtb_SelectionChanged" 
+                     TextChanged="Rtb_TextChanged" 
+                     ScrollViewer.ScrollChanged="Rtb_ScrollChanged"
+                     SizeChanged="Rtb_SizeChanged"
+                     GotFocus="Rtb_GotFocus" 
+                     LostFocus="Rtb_LostFocus" 
+                     DataObject.Pasting="Rtb_Pasting" 
                      IsUndoEnabled="False" >
 
                 <FlowDocument>

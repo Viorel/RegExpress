@@ -19,13 +19,13 @@
         <AdornerDecorator>
             <local_controls:MyRichTextBox x:Name="rtb" 
                      Panel.ZIndex="1" 
-                     TextChanged="rtb_TextChanged" 
-                     SelectionChanged="rtb_SelectionChanged" 
-                     ScrollViewer.ScrollChanged="rtb_ScrollChanged"
-                     SizeChanged="rtb_SizeChanged"
-                     GotFocus="rtb_GotFocus" 
-                     LostFocus="rtb_LostFocus" 
-                     DataObject.Pasting="rtb_Pasting" 
+                     TextChanged="Rtb_TextChanged" 
+                     SelectionChanged="Rtb_SelectionChanged" 
+                     ScrollViewer.ScrollChanged="Rtb_ScrollChanged"
+                     SizeChanged="Rtb_SizeChanged"
+                     GotFocus="Rtb_GotFocus" 
+                     LostFocus="Rtb_LostFocus" 
+                     DataObject.Pasting="Rtb_Pasting" 
                      IsUndoEnabled="False" >
 
                 <FlowDocument>
@@ -38,11 +38,11 @@
 
         <StackPanel x:Name="pnlDebug" Panel.ZIndex="10" Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right" Background="#FFF4D8B8" Margin="0 40 0 0">
             <Label x:Name="lblDbgInfo">(Debug information here)</Label>
-            <Button x:Name="btnDbgInsertB" Content="ib" Click="btnDbgInsertB_Click" />
-            <Button x:Name="btnDbgInsertF" Content="if" Click="btnDbgInsertF_Click" />
-            <Button x:Name="btnDbgNextInsert" Content="ni" Click="btnDbgNextInsert_Click" />
-            <Button x:Name="btnDbgNextContext" Content="nc" Click="btnDbgNextContext_Click" />
-            <Button x:Name="btnDbgSave" Content="save" Click="btnDbgSave_Click" />
+            <Button x:Name="btnDbgInsertB" Content="ib" Click="BtnDbgInsertB_Click" />
+            <Button x:Name="btnDbgInsertF" Content="if" Click="BtnDbgInsertF_Click" />
+            <Button x:Name="btnDbgNextInsert" Content="ni" Click="BtnDbgNextInsert_Click" />
+            <Button x:Name="btnDbgNextContext" Content="nc" Click="BtnDbgNextContext_Click" />
+            <Button x:Name="btnDbgSave" Content="save" Click="BtnDbgSave_Click" />
         </StackPanel>
 
     </Grid>

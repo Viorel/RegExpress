@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
+
 namespace RegExpressLibrary
 {
 

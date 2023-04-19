@@ -32,10 +32,7 @@ namespace RegExpressLibrary
         public bool IsEmpty => Length == 0;
         public int End => Index + Length;
 
-        public bool Contains( int x )
-        {
-            return !IsEmpty && x >= Index && x < End;
-        }
+        public bool Contains( int x ) => !IsEmpty && x >= Index && x < End;
 
 
         public bool Intersects( Segment b )
@@ -56,7 +53,7 @@ namespace RegExpressLibrary
         //}
 
 
-        public static Segment Empty => new Segment( 0, 0 );
+        public static readonly Segment Empty = new( 0, 0 );
 
 
         public static Segment Intersection( Segment a, Segment b )
@@ -152,6 +149,7 @@ namespace RegExpressLibrary
             return Length == 0 ? $"(empty at {Index})" : $"({Index}..{Index + Length - 1})";
         }
 
+
         public override bool Equals( object? obj )
         {
             if( !( obj is Segment ) ) return false;
@@ -161,9 +159,10 @@ namespace RegExpressLibrary
             return Index == a.Index && Length == a.Length;
         }
 
+
         public override int GetHashCode( )
         {
-            return unchecked(Index ^ Length);
+            return HashCode.Combine( Index, Length );
         }
 
         #endregion Object

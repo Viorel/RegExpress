@@ -17,7 +17,7 @@ namespace RegExpressLibrary.SyntaxColouring
             Right
         }
 
-        public struct Par
+        public readonly struct Par
         {
             public readonly int Index;
             private readonly ParKindEnum Kind;

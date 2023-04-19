@@ -266,7 +266,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_SelectionChanged( object sender, RoutedEventArgs e )
+        private void Rtb_SelectionChanged( object sender, RoutedEventArgs e )
         {
             if( !IsLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
@@ -282,7 +282,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_TextChanged( object sender, TextChangedEventArgs e )
+        private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
         {
             if( !IsLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
@@ -307,7 +307,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_ScrollChanged( object sender, ScrollChangedEventArgs e )
+        private void Rtb_ScrollChanged( object sender, ScrollChangedEventArgs e )
         {
             if( !IsLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
@@ -316,7 +316,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_SizeChanged( object sender, SizeChangedEventArgs e )
+        private void Rtb_SizeChanged( object sender, SizeChangedEventArgs e )
         {
             if( !AlreadyLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
@@ -325,15 +325,14 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_GotFocus( object sender, RoutedEventArgs e )
+        private void Rtb_GotFocus( object sender, RoutedEventArgs e )
         {
             LocalUnderliningLoop.SignalWaitAndExecute( );
             ExternalUnderliningLoop.SignalWaitAndExecute( );
 
             if( Properties.Settings.Default.BringCaretIntoView )
             {
-                var p = rtb.CaretPosition.Parent as FrameworkContentElement;
-                if( p != null )
+                if( rtb.CaretPosition.Parent is FrameworkContentElement p )
                 {
                     p.BringIntoView( );
                 }
@@ -341,13 +340,13 @@ namespace RegExpressWPFNET
         }
 
 
-        private void rtb_LostFocus( object sender, RoutedEventArgs e )
+        private void Rtb_LostFocus( object sender, RoutedEventArgs e )
         {
             LocalUnderliningLoop.SignalWaitAndExecute( );
         }
 
 
-        private void rtb_Pasting( object sender, DataObjectPastingEventArgs e )
+        private void Rtb_Pasting( object sender, DataObjectPastingEventArgs e )
         {
             if( e.DataObject.GetDataPresent( DataFormats.UnicodeText ) )
             {
@@ -364,7 +363,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void btnDbgSave_Click( object sender, RoutedEventArgs e )
+        private void BtnDbgSave_Click( object sender, RoutedEventArgs e )
         {
 #if DEBUG
             rtb.Focus( );
@@ -376,7 +375,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void btnDbgInsertB_Click( object sender, RoutedEventArgs e )
+        private void BtnDbgInsertB_Click( object sender, RoutedEventArgs e )
         {
 #if DEBUG
             var p = rtb.Selection.Start.GetInsertionPosition( LogicalDirection.Backward );
@@ -392,7 +391,7 @@ namespace RegExpressWPFNET
 #endif
         }
 
-        private void btnDbgInsertF_Click( object sender, RoutedEventArgs e )
+        private void BtnDbgInsertF_Click( object sender, RoutedEventArgs e )
         {
 #if DEBUG
             var p = rtb.Selection.Start.GetInsertionPosition( LogicalDirection.Forward );
@@ -409,7 +408,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void btnDbgNextInsert_Click( object sender, RoutedEventArgs e )
+        private void BtnDbgNextInsert_Click( object sender, RoutedEventArgs e )
         {
 #if DEBUG
             var p = rtb.Selection.Start.GetNextInsertionPosition( LogicalDirection.Forward );
@@ -425,7 +424,7 @@ namespace RegExpressWPFNET
 #endif
         }
 
-        private void btnDbgNextContext_Click( object sender, RoutedEventArgs e )
+        private void BtnDbgNextContext_Click( object sender, RoutedEventArgs e )
         {
 #if DEBUG
             var p = rtb.Selection.Start.GetNextContextPosition( LogicalDirection.Forward );
@@ -450,9 +449,9 @@ namespace RegExpressWPFNET
             SaveUsingEncoder( visual, fileName, encoder );
         }
 
-        void SaveUsingEncoder( FrameworkElement visual, string fileName, BitmapEncoder encoder )
+        static void SaveUsingEncoder( FrameworkElement visual, string fileName, BitmapEncoder encoder )
         {
-            RenderTargetBitmap bitmap = new RenderTargetBitmap(
+            RenderTargetBitmap bitmap = new(
                 (int)visual.ActualWidth,
                 (int)visual.ActualHeight,
                 96,
@@ -541,8 +540,10 @@ namespace RegExpressWPFNET
             // (NOTE. Overlaps are possible in this example: (?=(..))
 
             var segments_and_styles = new List<(Segment segment, StyleInfo styleInfo)>( );
-            var segments_to_uncolour = new List<Segment>( );
-            segments_to_uncolour.Add( new Segment( top_index, bottom_index - top_index + 1 ) );
+            var segments_to_uncolour = new List<Segment>
+            {
+                new Segment( top_index, bottom_index - top_index + 1 )
+            };
 
             if( matches != null && matches.Count > 0 )
             {

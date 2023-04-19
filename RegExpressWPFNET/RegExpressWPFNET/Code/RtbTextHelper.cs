@@ -13,7 +13,7 @@ namespace RegExpressWPFNET.Code
     {
         readonly FlowDocument Doc;
         readonly string Eol;
-        readonly StringBuilder Sb = new StringBuilder( );
+        readonly StringBuilder Sb = new( );
         bool IsAnotherParagraph = false;
 
 
@@ -114,7 +114,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        void ProcessInline( LineBreak lb )
+        void ProcessInline( LineBreak lb) // unused 'lb' is here for dynamic dispatch
         {
             Sb.Append( Eol );
         }

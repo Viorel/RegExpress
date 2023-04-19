@@ -11,7 +11,7 @@ namespace RegExpressWPFNET.Code
 {
     public sealed class StyleInfo
     {
-        readonly List<(DependencyProperty prop, object val)> mValues = new List<(DependencyProperty, object)>( );
+        readonly List<(DependencyProperty prop, object val)> mValues = new( );
 
 
         public StyleInfo( string key )

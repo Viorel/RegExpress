@@ -21,10 +21,10 @@ namespace RegExpressWPFNET.Code
             Execute,
         }
 
-        readonly AutoResetEvent TerminateEvent = new AutoResetEvent( initialState: false );
-        readonly AutoResetEvent RewindEvent = new AutoResetEvent( initialState: false );
-        readonly AutoResetEvent WaitAndExecuteEvent = new AutoResetEvent( initialState: false );
-        readonly AutoResetEvent ExecuteEvent = new AutoResetEvent( initialState: false );
+        readonly AutoResetEvent TerminateEvent = new( initialState: false );
+        readonly AutoResetEvent RewindEvent = new( initialState: false );
+        readonly AutoResetEvent WaitAndExecuteEvent = new( initialState: false );
+        readonly AutoResetEvent ExecuteEvent = new( initialState: false );
         readonly AutoResetEvent[] Events;
         readonly Action<ICancellable> Action;
         readonly int[] Timeouts;

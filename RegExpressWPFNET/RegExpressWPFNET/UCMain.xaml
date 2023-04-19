@@ -64,7 +64,7 @@
                             </TextBlock.LayoutTransform>
                         </TextBlock>
                     </StackPanel>
-                    <local:UCText x:Name="ucText" Grid.Row="1" Margin="0,0,0,0" TextChanged="UcText_TextChanged" SelectionChanged="UcText_SelectionChanged" LostFocus="UcText_LostFocus" LocalUnderliningFinished="UcText_LocalUnderliningFinished" GotKeyboardFocus="ucText_GotKeyboardFocus" />
+                    <local:UCText x:Name="ucText" Grid.Row="1" Margin="0,0,0,0" TextChanged="UcText_TextChanged" SelectionChanged="UcText_SelectionChanged" LostFocus="UcText_LostFocus" LocalUnderliningFinished="UcText_LocalUnderliningFinished" GotKeyboardFocus="UcText_GotKeyboardFocus" />
                 </Grid>
             </Grid>
 
@@ -90,7 +90,7 @@
                         </TextBlock>
                     </StackPanel>
                 </Grid>
-                <local:UCMatches x:Name="ucMatches" Grid.Row="1" Margin="0,0,0,0" SelectionChanged="UcMatches_SelectionChanged" Cancelled="ucMatches_Cancelled" LostFocus="UcMatches_LostFocus"/>
+                <local:UCMatches x:Name="ucMatches" Grid.Row="1" Margin="0,0,0,0" SelectionChanged="UcMatches_SelectionChanged" Cancelled="UcMatches_Cancelled" LostFocus="UcMatches_LostFocus"/>
             </Grid>
         </Grid>
 
@@ -111,7 +111,7 @@
                     <StackPanel Grid.Column="0" Style="{StaticResource StackPanelWithLabels}">
                         <TextBlock Text="Options" Style="{StaticResource Labels}"/>
                     </StackPanel>
-                    <CheckBox x:Name="chbxWrap" Grid.Column="1" Content="Wrap" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0 3 2 0" Checked="chbxWrap_Checked" Unchecked="chbxWrap_Unchecked">
+                    <CheckBox x:Name="chbxWrap" Grid.Column="1" Content="Wrap" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0 3 2 0" Checked="ChbxWrap_Checked" Unchecked="ChbxWrap_Unchecked">
                         <CheckBox.LayoutTransform>
                             <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                         </CheckBox.LayoutTransform>
@@ -131,7 +131,7 @@
                                     </TransformGroup>
                                 </StackPanel.LayoutTransform>
                                 <Label Content="Engine: " VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cbxEngine" VerticalAlignment="Center" SelectionChanged="cbxEngine_SelectionChanged" MaxDropDownHeight="Auto" MinWidth="64">
+                                <ComboBox x:Name="cbxEngine" VerticalAlignment="Center" SelectionChanged="CbxEngine_SelectionChanged" MaxDropDownHeight="Auto" MinWidth="64">
                                     <!-- NOTE. The 'Tag' is the 'Id' of engine; see 'IRegexEngine.Id' -->
                                     <!-- (filled programmatically) -->
                                 </ComboBox>

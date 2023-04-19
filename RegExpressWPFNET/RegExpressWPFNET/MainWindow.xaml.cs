@@ -206,7 +206,7 @@ namespace RegExpressWPFNET
                 {
                     TabItem tab = AddNewTab( tab_data );
 
-                    if( first_tab == null ) first_tab = tab;
+                    first_tab ??= tab;
                 }
 
                 if( first_tab != null ) tabControl.SelectedItem = first_tab;
@@ -343,8 +343,7 @@ namespace RegExpressWPFNET
             Dispatcher.InvokeAsync( SaveAllTabData, DispatcherPriority.ApplicationIdle );
         }
 
-
-        string GetMyDataFile( )
+        static string GetMyDataFile( )
         {
             string user_config_path = ConfigurationManager.OpenExeConfiguration( ConfigurationUserLevel.PerUserRoamingAndLocal ).FilePath;
             string my_file = Path.Combine( Path.GetDirectoryName( user_config_path )!, "RegExpressData.json" );
@@ -411,13 +410,14 @@ namespace RegExpressWPFNET
             }
         }
 
+
         UCMain? GetActiveUCMain( )
         {
             TabItem? selected_tab_item = tabControl.IsVisible ? tabControl.SelectedItem as TabItem : null;
 
-            if( selected_tab_item != null && selected_tab_item.Content is UCMain )
+            if( selected_tab_item != null && selected_tab_item.Content is UCMain uc_main )
             {
-                return (UCMain)selected_tab_item.Content;
+                return uc_main;
             }
 
             return null;
@@ -481,7 +481,7 @@ namespace RegExpressWPFNET
 
         static bool IsVisibleOnAnyMonitor( Point px )
         {
-            POINT p = new POINT { X = (int)px.X, Y = (int)px.Y };
+            POINT p = new( ) { X = (int)px.X, Y = (int)px.Y };
 
             return MonitorFromPoint( p, MONITOR_DEFAULTTONULL ) != IntPtr.Zero;
         }
@@ -501,7 +501,7 @@ namespace RegExpressWPFNET
         {
             try
             {
-                Rect r = new Rect( Properties.Settings.Default.RestoreBoundsXY.X, Properties.Settings.Default.RestoreBoundsXY.Y, Properties.Settings.Default.RestoreBoundsWH.Width, Properties.Settings.Default.RestoreBoundsWH.Height );
+                Rect r = new( Properties.Settings.Default.RestoreBoundsXY.X, Properties.Settings.Default.RestoreBoundsXY.Y, Properties.Settings.Default.RestoreBoundsWH.Width, Properties.Settings.Default.RestoreBoundsWH.Height );
 
                 if( !r.IsEmpty && r.Width > 0 && r.Height > 0 )
                 {
@@ -569,11 +569,12 @@ namespace RegExpressWPFNET
                     .Concat( new[] { 0 } )
                     .Max( );
 
-
-            var new_tab_item = new TabItem( );
-            //new_tab_item.Header = string.IsNullOrWhiteSpace( tab_data?.Name ) ? $"Tab {max + 1}" : tab_data.Name;
-            new_tab_item.Header = $"Regex {max + 1}";
-            new_tab_item.HeaderTemplate = (DataTemplate)tabControl.Resources["TabTemplate"];
+            var new_tab_item = new TabItem
+            {
+                //Header = string.IsNullOrWhiteSpace( tab_data?.Name ) ? $"Tab {max + 1}" : tab_data.Name;
+                Header = $"Regex {max + 1}",
+                HeaderTemplate = (DataTemplate)tabControl.Resources["TabTemplate"]
+            };
 
             var uc_main = new UCMain( CreateEngines( ) )
             {
@@ -644,11 +645,8 @@ namespace RegExpressWPFNET
             TabItem? new_tab_item = null;
             var tab_data = new TabData( );
 
-            TabItem? selected_tab_item = tabControl.SelectedItem as TabItem;
-
-            if( selected_tab_item != null && selected_tab_item.Content is UCMain )
+            if( tabControl.SelectedItem is TabItem selected_tab_item && selected_tab_item.Content is UCMain uc_main )
             {
-                var uc_main = (UCMain)selected_tab_item.Content;
                 uc_main.ExportTabData( tab_data );
                 new_tab_item = AddNewTab( tab_data );
 
