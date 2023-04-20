@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 
 namespace DotNETFrameworkConsole
@@ -97,7 +98,29 @@ namespace DotNETFrameworkConsole
 
         private static void GetVersion( )
         {
-            var response = new { version = Environment.Version };
+            TargetFrameworkAttribute targetFrameworkAttribute = Assembly
+                .GetExecutingAssembly( )
+                .GetCustomAttributes<TargetFrameworkAttribute>( )
+                .SingleOrDefault( );
+
+            Version version = null;
+
+            if( targetFrameworkAttribute != null )
+            {
+                Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+)?(\.\d+)?)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );
+
+                if( m.Success )
+                {
+                    Version.TryParse( m.Groups["version"].Value, out version );
+                }
+            }
+
+            if( version == null )
+            {
+                version = new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ); // not interested in revision
+            }
+
+            var response = new { version };
             var response_string = JsonSerializer.Serialize( response );
 
             Console.Out.WriteLine( response_string );
