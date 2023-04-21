@@ -53,7 +53,7 @@ namespace RegExpressWPFNET
 
         bool AlreadyLoaded = false;
 
-        const int MIN_LEFT_WIDTH = 24;
+        const int MIN_LEFT_WIDTH = 18;
 
         string? LastText;
         RegexMatches LastMatches = RegexMatches.Empty;

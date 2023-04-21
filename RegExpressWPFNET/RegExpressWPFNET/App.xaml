@@ -38,6 +38,14 @@
             </Style.Triggers>
         </Style>
 
+        <Style TargetType="Border" x:Key="RtbBorder">
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#FFABADB3"/>
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="1"/>
+        </Style>
+
         <Style TargetType="RichTextBox" PresentationOptions:Freeze="True">
             <Setter Property="FontFamily" Value="Courier New"/>
             <Setter Property="FontSize" Value="16"/>
@@ -46,6 +54,8 @@
             <Setter Property="TextOptions.TextRenderingMode" Value="Aliased"/>
             <Setter Property="Foreground" Value="Black"/>
             <Setter Property="Background" Value="{StaticResource NormalBackground}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
             <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
             <Setter Property="Padding" Value="1 2 0 0"/>

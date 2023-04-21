@@ -38,7 +38,9 @@
                 <StackPanel Grid.Row="0" Style="{StaticResource StackPanelWithLabels}" >
                     <TextBlock Text="Pattern" Style="{StaticResource Labels}" VerticalAlignment="Center" />
                 </StackPanel>
-                <local:UCPattern x:Name="ucPattern" Grid.Row="1" TextChanged="UcPattern_TextChanged" Margin="0 4 0 0"  />
+                <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
+                    <local:UCPattern x:Name="ucPattern" TextChanged="UcPattern_TextChanged" />
+                </Border>
             </Grid>
 
             <GridSplitter Grid.Row="1" IsTabStop="False" />
@@ -53,7 +55,7 @@
 
                     <StackPanel Grid.Row="0" Style="{StaticResource StackPanelWithLabels}">
                         <TextBlock Text="Text" Style="{StaticResource Labels}"/>
-                        <TextBlock x:Name="lblTextInfo" Text="(Length)" Margin="16 0 0 0" >
+                        <TextBlock x:Name="lblTextInfo" Text="(Length)" Margin="16 1 0 0" >
                             <TextBlock.LayoutTransform>
                                 <TransformGroup>
                                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
@@ -64,7 +66,9 @@
                             </TextBlock.LayoutTransform>
                         </TextBlock>
                     </StackPanel>
-                    <local:UCText x:Name="ucText" Grid.Row="1" Margin="0,0,0,0" TextChanged="UcText_TextChanged" SelectionChanged="UcText_SelectionChanged" LostFocus="UcText_LostFocus" LocalUnderliningFinished="UcText_LocalUnderliningFinished" GotKeyboardFocus="UcText_GotKeyboardFocus" />
+                    <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
+                        <local:UCText x:Name="ucText" TextChanged="UcText_TextChanged" SelectionChanged="UcText_SelectionChanged" LostFocus="UcText_LostFocus" LocalUnderliningFinished="UcText_LocalUnderliningFinished" GotKeyboardFocus="UcText_GotKeyboardFocus" />
+                    </Border>
                 </Grid>
             </Grid>
 
@@ -90,7 +94,9 @@
                         </TextBlock>
                     </StackPanel>
                 </Grid>
-                <local:UCMatches x:Name="ucMatches" Grid.Row="1" Margin="0,0,0,0" SelectionChanged="UcMatches_SelectionChanged" Cancelled="UcMatches_Cancelled" LostFocus="UcMatches_LostFocus"/>
+                <Border Grid.Row="1" Margin="0" Style="{StaticResource RtbBorder}">
+                    <local:UCMatches x:Name="ucMatches" SelectionChanged="UcMatches_SelectionChanged" Cancelled="UcMatches_Cancelled" LostFocus="UcMatches_LostFocus"/>
+                </Border>
             </Grid>
         </Grid>
 
@@ -118,7 +124,7 @@
                     </CheckBox>
                 </Grid>
 
-                <Border Grid.Row="1" BorderThickness="1" BorderBrush="#FFABADB3" Margin="0,4,0,0">
+                <Border Grid.Row="1" BorderThickness="1" BorderBrush="#FFABADB3" Margin="0">
                     <ScrollViewer x:Name="svOptions" Margin="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                         <StackPanel >
                             <StackPanel Orientation="Horizontal" Margin="0 2 0 0">
