@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RegExpressWPFNET"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Icon="/RegExpress.ico"
         Title="RegExpress" Height="500" Width="800" 
@@ -28,11 +29,37 @@
 
     <Grid Margin="0 1 0 0">
 
-        <TextBlock x:Name="textBlockInfo" Text="Loading..." TextAlignment="Center" VerticalAlignment="Center"/>
+        <TextBlock x:Name="textBlockInfo" Text="Loading..." TextAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="2"/>
 
-        <TabControl x:Name="tabControl" Visibility="Hidden" SelectionChanged="tabControlMain_SelectionChanged">
+        <TabControl x:Name="tabControl" Visibility="Visible" SelectionChanged="tabControlMain_SelectionChanged" Panel.ZIndex="1">
 
             <TabControl.Resources>
+
+                <Style TargetType="TabItem">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <!--The four values of CornerRadius represent the four corners of the TabItem.-->
+                                <Border Name="Border" BorderThickness="1 1 1 0" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}" CornerRadius="4 4 0 0" Margin="0 0 0 0">
+                                    <ContentPresenter x:Name="ContentSite"  
+                                        VerticalAlignment="Center"  
+                                        HorizontalAlignment="Center"  
+                                        ContentSource="Header"  
+                                        Margin="10 2"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}" />
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="False">
+                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" />
+                                        <Setter TargetName="Border" Property="Margin" Value="0 3 0 0" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
 
                 <DataTemplate x:Key="TabTemplate" DataType="TabItem">
 
@@ -75,6 +102,7 @@
                                             Margin="0"
                                             Padding="3 1"
                                             BorderThickness="1"
+                                            CornerRadius="2"
                                             >
 
                                         <Border.Style>
@@ -114,7 +142,6 @@
                 </DataTemplate>
             </TabControl.Resources>
 
-
             <TabItem x:Name="tabInitial" Header="Regex 1" HeaderTemplate="{StaticResource TabTemplate}">
 
             </TabItem>
@@ -129,11 +156,11 @@
                                     <Setter Property="Margin" Value="0"/>
                                     <Setter Property="BorderThickness" Value="1 1 1 0"/>
                                     <Setter Property="BorderBrush" Value="Transparent"/>
-                                    <Style.Triggers>
+                                    <!--<Style.Triggers>
                                         <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=IsSelected}" Value="True">
                                             <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"/>
                                         </DataTrigger>
-                                    </Style.Triggers>
+                                    </Style.Triggers>-->
                                 </Style>
                             </Border.Style>
 
@@ -149,6 +176,16 @@
                                     HorizontalContentAlignment="Left"
                                     Command="{x:Static local:MainWindow.NewTabCommand}"
                                     >
+                                <Button.Resources>
+                                    <sys:Int32 x:Key="Radius">4</sys:Int32>
+                                </Button.Resources>
+                                <Button.Clip>
+                                    <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                        <Binding Path="ActualWidth"  RelativeSource="{RelativeSource Self}"/>
+                                        <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
+                                        <Binding Source="{StaticResource Radius}"/>
+                                    </MultiBinding>
+                                </Button.Clip>
                             </Button>
                         </Border>
                     </ControlTemplate>

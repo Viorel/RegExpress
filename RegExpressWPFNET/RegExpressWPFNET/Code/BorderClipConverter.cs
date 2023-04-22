@@ -20,14 +20,29 @@ namespace RegExpressWPFNET.Code
             double width = (double)values[0];
             double height = (double)values[1];
 
-            CornerRadius corner_radius = (CornerRadius)values[2];
-            Debug.Assert( corner_radius.TopRight == corner_radius.TopLeft );
-            Debug.Assert( corner_radius.BottomLeft == corner_radius.TopLeft );
-            Debug.Assert( corner_radius.BottomRight == corner_radius.TopLeft );
+            double radius = 0;
 
-            double radius = corner_radius.TopLeft;
+            switch( values[2] )
+            {
+            case double dbl:
+                radius = dbl;
+                break;
+            case int i:
+                radius = i;
+                break;
+            case CornerRadius corner_radius:
+                Debug.Assert( corner_radius.TopRight == corner_radius.TopLeft );
+                Debug.Assert( corner_radius.BottomLeft == corner_radius.TopLeft );
+                Debug.Assert( corner_radius.BottomRight == corner_radius.TopLeft );
 
-            var geometry = new RectangleGeometry( new Rect( 0, 0, width, height), radius, radius );
+                radius = corner_radius.TopLeft;
+                break;
+            default:
+                Debug.Assert( false );
+                break;
+            }
+
+            var geometry = new RectangleGeometry( new Rect( 0, 0, width, height ), radius, radius );
             geometry.Freeze( );
 
             return geometry;

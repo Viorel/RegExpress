@@ -39,10 +39,10 @@
             </Style.Triggers>
         </Style>
 
-        <Style TargetType="Border" x:Key="RtbBorder">
+        <Style x:Key="RtbBorder" TargetType="Border">
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="BorderBrush" Value="LightGray"/>
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Padding" Value="0"/>
         </Style>

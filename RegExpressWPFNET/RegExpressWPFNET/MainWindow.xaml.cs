@@ -55,7 +55,7 @@ namespace RegExpressWPFNET
             InitializeComponent( );
 
             textBlockInfo.Visibility = Visibility.Visible;
-            tabControl.Visibility = Visibility.Collapsed;
+            tabControl.Visibility = Visibility.Hidden;
 
             var MIN_INTERVAL = TimeSpan.FromSeconds( 5 );
             var interval = Properties.Settings.Default.AutoSaveInterval;
@@ -78,7 +78,7 @@ namespace RegExpressWPFNET
             IsFullyLoaded = true;
 
             Debug.Assert( textBlockInfo.Visibility == Visibility.Visible );
-            Debug.Assert( tabControl.Visibility == Visibility.Collapsed );
+            Debug.Assert( tabControl.Visibility != Visibility.Visible );
             Debug.Assert( !mRegexPlugins.Any( ) );
 
             // --- Load plugins
