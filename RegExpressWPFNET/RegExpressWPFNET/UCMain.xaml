@@ -39,7 +39,15 @@
                     <TextBlock Text="Pattern" Style="{StaticResource Labels}" VerticalAlignment="Center" />
                 </StackPanel>
                 <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
-                    <local:UCPattern x:Name="ucPattern" TextChanged="UcPattern_TextChanged" />
+                    <local:UCPattern x:Name="ucPattern" TextChanged="UcPattern_TextChanged" >
+                        <local:UCPattern.Clip>
+                            <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                <Binding Path="ActualWidth"  RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="CornerRadius" RelativeSource="{RelativeSource AncestorType=Border}"/>
+                            </MultiBinding>
+                        </local:UCPattern.Clip>
+                    </local:UCPattern>
                 </Border>
             </Grid>
 
@@ -67,7 +75,15 @@
                         </TextBlock>
                     </StackPanel>
                     <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
-                        <local:UCText x:Name="ucText" TextChanged="UcText_TextChanged" SelectionChanged="UcText_SelectionChanged" LostFocus="UcText_LostFocus" LocalUnderliningFinished="UcText_LocalUnderliningFinished" GotKeyboardFocus="UcText_GotKeyboardFocus" />
+                        <local:UCText x:Name="ucText" TextChanged="UcText_TextChanged" SelectionChanged="UcText_SelectionChanged" LostFocus="UcText_LostFocus" LocalUnderliningFinished="UcText_LocalUnderliningFinished" GotKeyboardFocus="UcText_GotKeyboardFocus" >
+                            <local:UCText.Clip>
+                                <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                    <Binding Path="ActualWidth"  RelativeSource="{RelativeSource Self}"/>
+                                    <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
+                                    <Binding Path="CornerRadius" RelativeSource="{RelativeSource AncestorType=Border}"/>
+                                </MultiBinding>
+                            </local:UCText.Clip>
+                        </local:UCText>
                     </Border>
                 </Grid>
             </Grid>
@@ -94,8 +110,16 @@
                         </TextBlock>
                     </StackPanel>
                 </Grid>
-                <Border Grid.Row="1" Margin="0" Style="{StaticResource RtbBorder}">
-                    <local:UCMatches x:Name="ucMatches" SelectionChanged="UcMatches_SelectionChanged" Cancelled="UcMatches_Cancelled" LostFocus="UcMatches_LostFocus"/>
+                <Border Grid.Row="1" Margin="0" Style="{StaticResource RtbBorder}" >
+                    <local:UCMatches x:Name="ucMatches" SelectionChanged="UcMatches_SelectionChanged" Cancelled="UcMatches_Cancelled" LostFocus="UcMatches_LostFocus">
+                        <local:UCMatches.Clip>
+                            <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                <Binding Path="ActualWidth"  RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="CornerRadius" RelativeSource="{RelativeSource AncestorType=Border}"/>
+                            </MultiBinding>
+                        </local:UCMatches.Clip>
+                    </local:UCMatches>
                 </Border>
             </Grid>
         </Grid>
@@ -124,8 +148,15 @@
                     </CheckBox>
                 </Grid>
 
-                <Border Grid.Row="1" BorderThickness="1" BorderBrush="#FFABADB3" Margin="0">
+                <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
                     <ScrollViewer x:Name="svOptions" Margin="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer.Clip>
+                            <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                <Binding Path="ActualWidth"  RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="CornerRadius" RelativeSource="{RelativeSource AncestorType=Border}"/>
+                            </MultiBinding>
+                        </ScrollViewer.Clip>
                         <StackPanel >
                             <StackPanel Orientation="Horizontal" Margin="0 2 0 0">
                                 <StackPanel.LayoutTransform>
