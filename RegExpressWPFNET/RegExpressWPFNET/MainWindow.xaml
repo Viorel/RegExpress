@@ -173,7 +173,9 @@
                                     BorderThickness="0"
                                     BorderBrush="Transparent"
                                     IsTabStop="False" 
-                                    HorizontalContentAlignment="Left"
+                                    HorizontalContentAlignment="Center"
+                                    HorizontalAlignment="Left"
+                                    Width="33"
                                     Command="{x:Static local:MainWindow.NewTabCommand}"
                                     >
                                 <Button.Resources>
