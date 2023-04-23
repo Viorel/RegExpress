@@ -361,9 +361,8 @@ namespace RegExpressWPFNET
         {
             try
             {
-
                 var all_data = new AllTabData( );
-                var uc_main_controls = tabControl.Items.OfType<TabItem>( ).Select( t => t.Content as UCMain ).Where( m => m != null );
+                var uc_main_controls = GetMainTabs( ).Select( t => (UCMain)t.Content );
 
                 foreach( var uc_main in uc_main_controls )
                 {
@@ -556,8 +555,7 @@ namespace RegExpressWPFNET
         TabItem AddNewTab( TabData? tabData )
         {
             int max =
-                tabControl.Items
-                    .OfType<TabItem>( )
+                GetMainTabs( )
                     .Where( i => i != tabItemNew && i.Header is string )
                     .Select( i =>
                     {
@@ -603,15 +601,22 @@ namespace RegExpressWPFNET
 
         void CloseTab( TabItem tabItem )
         {
-            var index = tabControl.Items.IndexOf( tabItem );
+            Debug.Assert( tabItem.Content is UCMain );
 
             tabControl.SelectedItem = tabItem;
 
-            var r = MessageBox.Show( this, "Remove this tab?", "WARNING",
+            TabItem[] main_tabs = GetMainTabs( ).ToArray( );
+            int index = Array.IndexOf( main_tabs, tabItem );
+
+            var r = MessageBox.Show( this,
+                //main_tabs.Count( ) == 1 ? "Clear this tab?" : "Remove this tab?",
+                "Remove this tab?",
+                "WARNING",
                 MessageBoxButton.OKCancel, MessageBoxImage.Exclamation,
                 MessageBoxResult.OK, MessageBoxOptions.None );
 
             if( r != MessageBoxResult.OK ) return;
+
 
             UCMain uc_main = (UCMain)tabItem.Content;
 
@@ -624,15 +629,26 @@ namespace RegExpressWPFNET
 
             tabControl.Items.Remove( tabItem );
 
-            if( tabControl.Items[index] == tabItemNew ) --index;
+            TabItem? tab_item_to_select = null;
 
-            if( index < 0 )
+            if( index + 1 < main_tabs.Length )
             {
-                AddNewTab( null );
-                index = 0;
+                tab_item_to_select = main_tabs[index + 1];
+            }
+            else
+            {
+                if( index - 1 >= 0 )
+                {
+                    tab_item_to_select = main_tabs[index - 1];
+                }
             }
 
-            tabControl.SelectedIndex = index;
+            if( tab_item_to_select == null )
+            {
+                tab_item_to_select = AddNewTab( null );
+            }
+
+            tabControl.SelectedItem = tab_item_to_select;
 
             RenumberTabs( );
         }
@@ -640,13 +656,18 @@ namespace RegExpressWPFNET
 
         void RenumberTabs( )
         {
-            var main_tabs = tabControl.Items.OfType<TabItem>( ).Where( t => t.Content is UCMain );
             int i = 0;
-            foreach( var tab in main_tabs )
+            foreach( var tab in GetMainTabs( ) )
             {
                 var name = "Regex " + ( ++i );
                 if( !name.Equals( tab.Header ) ) tab.Header = name; // ('If' to avoid effects)
             }
+        }
+
+
+        IEnumerable<TabItem> GetMainTabs( )
+        {
+            return tabControl.Items.OfType<TabItem>( ).Where( t => t.Visibility == Visibility.Visible && t.Content is UCMain );
         }
 
 
