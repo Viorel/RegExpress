@@ -188,6 +188,11 @@ namespace RegExpressWPFNET
                 if( Debugger.IsAttached ) Debugger.Break( );
             }
 
+#if DEBUG
+            // (https://github.com/dotnet/wpf/issues/6440, https://stackoverflow.com/questions/14419248/cannot-find-source-for-binding)
+            tabInitial.Template = null;
+#endif
+
             tabControl.Items.Remove( tabInitial );
 
             if( all_tab_data == null || !all_tab_data.Tabs.Any( ) )
@@ -611,6 +616,11 @@ namespace RegExpressWPFNET
             UCMain uc_main = (UCMain)tabItem.Content;
 
             uc_main.Shutdown( );
+
+#if DEBUG
+            // (https://github.com/dotnet/wpf/issues/6440, https://stackoverflow.com/questions/14419248/cannot-find-source-for-binding)
+            tabItem.Template = null;
+#endif
 
             tabControl.Items.Remove( tabItem );
 
