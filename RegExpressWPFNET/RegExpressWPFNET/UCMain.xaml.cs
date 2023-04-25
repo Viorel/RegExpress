@@ -694,6 +694,7 @@ namespace RegExpressWPFNET
 
                     if( engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) )
                     {
+                        // For example, the Hyperscan engine, when pattern is "...", any text, and no 'HS_FLAG_SOM_LEFTMOST' option
                         var segments = new List<Segment>( );
 
                         foreach( var m in matches_to_show.Matches )

@@ -72,9 +72,9 @@
                                 <ControlTemplate TargetType="Button">
                                     <Border HorizontalAlignment="Center" 
                                             VerticalAlignment="Center"
-                                            Margin="0"
-                                            Padding="3 1"
-                                            BorderThickness="1"
+                                            Margin="0 1 0 0"
+                                            Padding="4 2"
+                                            BorderThickness="0"
                                             CornerRadius="2"
                                             >
 
@@ -90,12 +90,11 @@
                                                     </MultiDataTrigger>
 
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"/>
-                                                        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}"/>
+                                                        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}"/>
                                                     </Trigger>
 
                                                     <Trigger Property="IsMouseOver" Value="False">
-                                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                                        <Setter Property="Background" Value="Transparent"/>
                                                     </Trigger>
                                                 </Style.Triggers>
                                             </Style>
