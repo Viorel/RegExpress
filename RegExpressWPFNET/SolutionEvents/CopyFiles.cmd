@@ -58,7 +58,7 @@ rem -- PCRE2 --
 
 set BaseDir=%SolutionDir%\RegexEngines\PCRE2
 xcopy /D /R /Y "%BaseDir%\PCRE2Plugin\bin\%Configuration%\%TargetFramework%\PCRE2Plugin.dll" "%EnginesTargetDir%\PCRE2\*"
-xcopy /D /R /Y "%BaseDir%\PCRE2Client\bin\%Configuration%\%Platform%\PCRE2Client.exe" "%EnginesTargetDir%\PCRE2\*.bin"
+xcopy /D /R /Y "%BaseDir%\PCRE2Worker\bin\%Configuration%\%Platform%\PCRE2Worker.exe" "%EnginesTargetDir%\PCRE2\*.bin"
 
 
 rem -- Boost --
@@ -72,8 +72,8 @@ rem -- Oniguruma --
 
 set BaseDir=%SolutionDir%\RegexEngines\Oniguruma
 xcopy /D /R /Y "%BaseDir%\OnigurumaPlugin\bin\%Configuration%\%TargetFramework%\OnigurumaPlugin.dll" "%EnginesTargetDir%\Oniguruma\*"
-xcopy /D /R /Y "%BaseDir%\OnigurumaClient\bin\%Configuration%\%Platform%\OnigurumaClient.exe" "%EnginesTargetDir%\Oniguruma\*.bin"
+xcopy /D /R /Y "%BaseDir%\OnigurumaWorker\bin\%Configuration%\%Platform%\OnigurumaWorker.exe" "%EnginesTargetDir%\Oniguruma\*.bin"
 rem//....
-xcopy /D /R /Y "%BaseDir%\OnigurumaClient\bin\%Configuration%\%Platform%\OnigurumaClient.pdb" "%EnginesTargetDir%\Oniguruma\*"
+xcopy /D /R /Y "%BaseDir%\OnigurumaWorker\bin\%Configuration%\%Platform%\OnigurumaWorker.pdb" "%EnginesTargetDir%\Oniguruma\*"
 
 

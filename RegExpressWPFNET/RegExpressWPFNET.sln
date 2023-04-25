@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RegExpressWPFNET", "RegExpressWPFNET\RegExpressWPFNET.csproj", "{1FC75DB1-75DB-43DE-A0F8-F61C8C01C06A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{886C3F35-3EF7-4CC7-9274-244D45A1BA5A} = {886C3F35-3EF7-4CC7-9274-244D45A1BA5A}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RegExpressLibrary", "RegExpressLibrary\RegExpressLibrary.csproj", "{6EA59B67-323A-438F-AA39-8FDFF40B91B1}"
 EndProject
@@ -16,18 +19,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DotNETFramework4_8", "DotNETFramework4_8", "{BBE52FDE-20A4-4BBC-A830-ECFC8C1D224A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotNETFrameworkPlugin", "RegexEngines\DotNETFramework4_8\DotNETFrameworkPlugin\DotNETFrameworkPlugin.csproj", "{E5747E4E-FF67-4677-8958-7258A1DBD034}"
-	ProjectSection(ProjectDependencies) = postProject
-		{4129F02D-F0EA-4235-A8E7-DDD591DAE7F6} = {4129F02D-F0EA-4235-A8E7-DDD591DAE7F6}
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNETFrameworkWorker", "RegexEngines\DotNETFramework4_8\DotNETFrameworkWorker\DotNETFrameworkWorker.csproj", "{4129F02D-F0EA-4235-A8E7-DDD591DAE7F6}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Std", "Std", "{004B6777-295A-469A-A243-F530BAB76E68}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StdPlugin", "RegexEngines\Std\StdPlugin\StdPlugin.csproj", "{554445F3-E572-4567-A0B7-90C3522031E8}"
-	ProjectSection(ProjectDependencies) = postProject
-		{092CCEF1-3957-472D-B166-2F9CE8CFD534} = {092CCEF1-3957-472D-B166-2F9CE8CFD534}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StdClient", "RegexEngines\Std\StdClient\StdClient.vcxproj", "{092CCEF1-3957-472D-B166-2F9CE8CFD534}"
 EndProject
@@ -37,7 +34,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SolutionEvents", "SolutionE
 	ProjectSection(ProjectDependencies) = postProject
 		{0822A476-EA00-4036-A308-BF470B6F83F8} = {0822A476-EA00-4036-A308-BF470B6F83F8}
 		{092CCEF1-3957-472D-B166-2F9CE8CFD534} = {092CCEF1-3957-472D-B166-2F9CE8CFD534}
-		{1FC75DB1-75DB-43DE-A0F8-F61C8C01C06A} = {1FC75DB1-75DB-43DE-A0F8-F61C8C01C06A}
 		{20C02C99-4E1E-4494-B222-6FF42FCD131F} = {20C02C99-4E1E-4494-B222-6FF42FCD131F}
 		{21E036E6-459B-497F-8365-EC795000D990} = {21E036E6-459B-497F-8365-EC795000D990}
 		{25E13377-C8E4-4538-9A12-6AD6F931517A} = {25E13377-C8E4-4538-9A12-6AD6F931517A}
@@ -56,9 +52,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RE2", "RE2", "{237A868B-0057-4A16-927B-26B230ED20F0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RE2Plugin", "RegexEngines\RE2\RE2Plugin\RE2Plugin.csproj", "{20C02C99-4E1E-4494-B222-6FF42FCD131F}"
-	ProjectSection(ProjectDependencies) = postProject
-		{21E036E6-459B-497F-8365-EC795000D990} = {21E036E6-459B-497F-8365-EC795000D990}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RE2Client", "RegexEngines\RE2\RE2Client\RE2Client.vcxproj", "{21E036E6-459B-497F-8365-EC795000D990}"
 EndProject
@@ -67,36 +60,24 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SubRegClient", "RegexEngines\SubReg\SubRegClient\SubRegClient.vcxproj", "{3888FF1F-608F-466A-B19A-8A1D22178172}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SubRegPlugin", "RegexEngines\SubReg\SubRegPlugin\SubRegPlugin.csproj", "{0822A476-EA00-4036-A308-BF470B6F83F8}"
-	ProjectSection(ProjectDependencies) = postProject
-		{3888FF1F-608F-466A-B19A-8A1D22178172} = {3888FF1F-608F-466A-B19A-8A1D22178172}
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PCRE2", "PCRE2", "{7D31FB02-A57F-4CD4-BC64-76B2EE1D6EC6}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PCRE2Client", "RegexEngines\PCRE2\PCRE2Client\PCRE2Client.vcxproj", "{4DECB5E2-208B-4363-A1F7-A993211DF5C6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PCRE2Worker", "RegexEngines\PCRE2\PCRE2Worker\PCRE2Worker.vcxproj", "{4DECB5E2-208B-4363-A1F7-A993211DF5C6}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PCRE2Plugin", "RegexEngines\PCRE2\PCRE2Plugin\PCRE2Plugin.csproj", "{25E13377-C8E4-4538-9A12-6AD6F931517A}"
-	ProjectSection(ProjectDependencies) = postProject
-		{4DECB5E2-208B-4363-A1F7-A993211DF5C6} = {4DECB5E2-208B-4363-A1F7-A993211DF5C6}
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Boost", "Boost", "{57224A01-1FDA-4978-90C6-7746E7F91EF6}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BoostWorker", "RegexEngines\Boost\BoostWorker\BoostWorker.vcxproj", "{2DC8DDA0-AFD5-46C3-825D-0055D385C792}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BoostPlugin", "RegexEngines\Boost\BoostPlugin\BoostPlugin.csproj", "{C16DCFDA-02DA-4833-BAEB-5C3D956D9E81}"
-	ProjectSection(ProjectDependencies) = postProject
-		{2DC8DDA0-AFD5-46C3-825D-0055D385C792} = {2DC8DDA0-AFD5-46C3-825D-0055D385C792}
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Oniguruma", "Oniguruma", "{1EDFF718-7B5B-4683-B9AA-2844A778F8FB}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OnigurumaClient", "RegexEngines\Oniguruma\OnigurumaClient\OnigurumaClient.vcxproj", "{B34E75EF-A5E9-4512-83DA-E9596CEE05D5}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OnigurumaWorker", "RegexEngines\Oniguruma\OnigurumaWorker\OnigurumaWorker.vcxproj", "{B34E75EF-A5E9-4512-83DA-E9596CEE05D5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnigurumaPlugin", "RegexEngines\Oniguruma\OnigurumaPlugin\OnigurumaPlugin.csproj", "{5C838583-43C5-462F-976B-492386B786DB}"
-	ProjectSection(ProjectDependencies) = postProject
-		{B34E75EF-A5E9-4512-83DA-E9596CEE05D5} = {B34E75EF-A5E9-4512-83DA-E9596CEE05D5}
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -366,11 +347,13 @@ Global
 		{5C838583-43C5-462F-976B-492386B786DB} = {1EDFF718-7B5B-4683-B9AA-2844A778F8FB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                                                SolutionGuid = {6A4D0C5C-3CCE-4AC5-8106-6AB052CFFED9}
-		                                                                SolutionGuid = {61D058A2-B4A0-4779-9C73-27CFEBE9BF66}
-		                                                                                SolutionGuid = {E9D3D84A-8875-4CC9-9AD2-81298DE7ECEB}
-		                                                                                                                SolutionGuid = {2EA46475-3CEB-45D5-AAE9-525FCE04340B}
-		                                SolutionGuid = {6FBF80B0-D822-4ADB-80F5-E1166CF987C5}
-		                SolutionGuid = {470781F3-C4B3-4F30-8880-319AEAD13AFE}
+		                SolutionGuid = {7CA7DF49-7C29-43E0-8CCF-A57AE8197508}
+		                                                                SolutionGuid = {470781F3-C4B3-4F30-8880-319AEAD13AFE}
+		                                                                                SolutionGuid = {6FBF80B0-D822-4ADB-80F5-E1166CF987C5}
+		                                                                                                                                                                SolutionGuid = {2EA46475-3CEB-45D5-AAE9-525FCE04340B}
+		                                                                                                                                SolutionGuid = {E9D3D84A-8875-4CC9-9AD2-81298DE7ECEB}
+		                                                                                                                SolutionGuid = {61D058A2-B4A0-4779-9C73-27CFEBE9BF66}
+		                                                                                                SolutionGuid = {6A4D0C5C-3CCE-4AC5-8106-6AB052CFFED9}
+		                                SolutionGuid = {D9183121-E1C4-4C5D-A2AA-D59E0370107C}
 	EndGlobalSection
 EndGlobal

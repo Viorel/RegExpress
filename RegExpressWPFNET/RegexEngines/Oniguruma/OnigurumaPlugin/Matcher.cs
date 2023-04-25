@@ -57,7 +57,7 @@ namespace OnigurumaPlugin
                 }
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetClientExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
             {
                 return RegexMatches.Empty;
             }
@@ -138,7 +138,7 @@ namespace OnigurumaPlugin
                 }
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetClientExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
             {
                 return null;
             }
@@ -214,7 +214,7 @@ namespace OnigurumaPlugin
                 }
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetClientExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
             {
                 return default;
             }
@@ -251,13 +251,13 @@ namespace OnigurumaPlugin
         }
 
 
-        static string GetClientExePath( )
+        static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string client_exe = Path.Combine( assembly_dir, @"OnigurumaClient.bin" );
+            string worker_exe = Path.Combine( assembly_dir, @"OnigurumaWorker.bin" );
 
-            return client_exe;
+            return worker_exe;
         }
 
     }
