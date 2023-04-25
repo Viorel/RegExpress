@@ -209,7 +209,7 @@ namespace BoostPlugin
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string client_exe = Path.Combine( assembly_dir, @"BoostClient.bin" );
+            string client_exe = Path.Combine( assembly_dir, @"BoostWorker.bin" );
 
             return client_exe;
         }

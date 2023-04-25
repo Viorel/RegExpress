@@ -65,7 +65,7 @@ rem -- Boost --
 
 set BaseDir=%SolutionDir%\RegexEngines\Boost
 xcopy /D /R /Y "%BaseDir%\BoostPlugin\bin\%Configuration%\%TargetFramework%\BoostPlugin.dll" "%EnginesTargetDir%\Boost\*"
-xcopy /D /R /Y "%BaseDir%\BoostClient\bin\%Configuration%\%Platform%\BoostClient.exe" "%EnginesTargetDir%\Boost\*.bin"
+xcopy /D /R /Y "%BaseDir%\BoostWorker\bin\%Configuration%\%Platform%\BoostWorker.exe" "%EnginesTargetDir%\Boost\*.bin"
 
 
 rem -- Oniguruma --
