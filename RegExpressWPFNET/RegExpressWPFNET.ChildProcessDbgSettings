@@ -6,6 +6,6 @@
   <Rule IsEnabled="false" ProcessName="PCRE2Client.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="BoostWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="OnigurumaClient.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
-  <Rule IsEnabled="true" ProcessName="DotNETFrameworkClient.bin" CommandLine="" EngineFilter="{fb0d4648-f776-4980-95f8-bb7f36ebc1ee}" />
+  <Rule IsEnabled="false" ProcessName="DotNETFrameworkWorker.bin" CommandLine="" EngineFilter="{fb0d4648-f776-4980-95f8-bb7f36ebc1ee}" />
   <Rule IsEnabled="false" ProcessName="SubRegClient.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
 </ChildProcessDebuggingSettings>

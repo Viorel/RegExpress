@@ -24,25 +24,25 @@ namespace DotNETFrameworkPlugin
         }
 
 
-        class ClientMatch
+        class WorkerMatch
         {
             public int index { get; init; }
             public int length { get; init; }
-            public List<ClientGroup> groups { get; init; } = new List<ClientGroup>( );
+            public List<WorkerGroup> groups { get; init; } = new List<WorkerGroup>( );
         }
 
 
-        class ClientGroup
+        class WorkerGroup
         {
             public bool success { get; init; }
             public int index { get; init; }
             public int length { get; init; }
             public string? name { get; init; }
-            public List<ClientCapture> captures { get; init; } = new List<ClientCapture>( );
+            public List<WorkerCapture> captures { get; init; } = new List<WorkerCapture>( );
         }
 
 
-        class ClientCapture
+        class WorkerCapture
         {
             public int index { get; init; }
             public int length { get; init; }
@@ -71,7 +71,7 @@ namespace DotNETFrameworkPlugin
             string? stdout_contents;
             string? stderr_contents;
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetClientExePath( ), null, json, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, json, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
             {
                 return RegexMatches.Empty;
             }
@@ -82,14 +82,14 @@ namespace DotNETFrameworkPlugin
 
             if( stdout_contents == null ) throw new Exception( "Null response" );
 
-            ClientMatch[]? client_matches = JsonSerializer.Deserialize<ClientMatch[]>( stdout_contents! );
+            WorkerMatch[]? worker_matches = JsonSerializer.Deserialize<WorkerMatch[]>( stdout_contents! );
 
-            SimpleMatch[] matches = new SimpleMatch[client_matches!.Length];
+            SimpleMatch[] matches = new SimpleMatch[worker_matches!.Length];
             SimpleTextGetter text_getter = new SimpleTextGetter( text );
 
-            for( int i = 0; i < client_matches.Length; i++ )
+            for( int i = 0; i < worker_matches.Length; i++ )
             {
-                ClientMatch m = client_matches[i];
+                WorkerMatch m = worker_matches[i];
                 SimpleMatch sm = SimpleMatch.Create( m.index, m.length, text_getter );
 
                 foreach( var g in m.groups )
@@ -118,7 +118,7 @@ namespace DotNETFrameworkPlugin
                 string? stdout_contents;
                 string? stderr_contents;
 
-                if( !ProcessUtilities.InvokeExe( cnc, GetClientExePath( ), null, @"{""cmd"":""v""}", out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+                if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, @"{""cmd"":""v""}", out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
                 {
                     return null;
                 }
@@ -143,13 +143,13 @@ namespace DotNETFrameworkPlugin
         }
 
 
-        static string GetClientExePath( )
+        static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string client_exe = Path.Combine( assembly_dir, "Client", @"DotNETFrameworkClient.bin" );
+            string worker_exe = Path.Combine( assembly_dir, "Worker", @"DotNETFrameworkWorker.bin" );
 
-            return client_exe;
+            return worker_exe;
         }
 
     }

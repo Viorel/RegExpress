@@ -38,25 +38,25 @@ namespace DotNETFrameworkConsole
         }
 
 
-        class RetMatch
+        class WorkerMatch
         {
             public int index { get; set; }
             public int length { get; set; }
-            public List<RetGroup> groups { get; set; } = new List<RetGroup>( );
+            public List<WorkerGroup> groups { get; set; } = new List<WorkerGroup>( );
         }
 
 
-        class RetGroup
+        class WorkerGroup
         {
             public bool success { get; set; }
             public int index { get; set; }
             public int length { get; set; }
             public string name { get; set; }
-            public List<RetCapture> captures { get; set; } = new List<RetCapture>( );
+            public List<WorkerCapture> captures { get; set; } = new List<WorkerCapture>( );
         }
 
 
-        class RetCapture
+        class WorkerCapture
         {
             public int index { get; set; }
             public int length { get; set; }
@@ -139,30 +139,30 @@ namespace DotNETFrameworkConsole
             TimeSpan timeout = inputArgs.options == null ? Regex.InfiniteMatchTimeout : TimeSpan.FromMilliseconds( inputArgs.options.TimeoutMs );
 
             var re = new Regex( inputArgs.pattern, options, timeout );
-            var ret_matches = new List<RetMatch>( );
+            var worker_matches = new List<WorkerMatch>( );
 
             foreach( Match m in re.Matches( inputArgs.text ) )
             {
                 Debug.Assert( m.Success );
 
-                var ret_match = new RetMatch { index = m.Index, length = m.Length };
+                var worker_match = new WorkerMatch { index = m.Index, length = m.Length };
 
                 foreach( Group g in m.Groups )
                 {
-                    var ret_group = new RetGroup { success = g.Success, index = g.Index, length = g.Length, name = g.Name };
+                    var worker_group = new WorkerGroup { success = g.Success, index = g.Index, length = g.Length, name = g.Name };
 
                     foreach( Capture c in g.Captures )
                     {
-                        ret_group.captures.Add( new RetCapture { index = c.Index, length = c.Length } );
+                        worker_group.captures.Add( new WorkerCapture { index = c.Index, length = c.Length } );
                     }
 
-                    ret_match.groups.Add( ret_group );
+                    worker_match.groups.Add( worker_group );
                 }
 
-                ret_matches.Add( ret_match );
+                worker_matches.Add( worker_match );
             }
 
-            string ret_json = JsonSerializer.Serialize( ret_matches );
+            string ret_json = JsonSerializer.Serialize( worker_matches );
 
             Console.Out.WriteLine( ret_json );
         }
