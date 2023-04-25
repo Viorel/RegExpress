@@ -37,7 +37,7 @@ rem -- STD --
 
 set BaseDir=%SolutionDir%\RegexEngines\Std
 xcopy /D /R /Y "%BaseDir%\StdPlugin\bin\%Configuration%\%TargetFramework%\StdPlugin.dll" "%EnginesTargetDir%\Std\*"
-xcopy /D /R /Y "%BaseDir%\StdClient\bin\%Configuration%\%Platform%\StdClient.exe" "%EnginesTargetDir%\Std\*.bin"
+xcopy /D /R /Y "%BaseDir%\StdWorker\bin\%Configuration%\%Platform%\StdWorker.exe" "%EnginesTargetDir%\Std\*.bin"
 
 
 rem -- RE2 --
