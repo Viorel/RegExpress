@@ -44,7 +44,7 @@ rem -- RE2 --
 
 set BaseDir=%SolutionDir%\RegexEngines\RE2
 xcopy /D /R /Y "%BaseDir%\RE2Plugin\bin\%Configuration%\%TargetFramework%\RE2Plugin.dll" "%EnginesTargetDir%\RE2\*"
-xcopy /D /R /Y "%BaseDir%\RE2Client\bin\%Configuration%\%Platform%\RE2Client.exe" "%EnginesTargetDir%\RE2\*.bin"
+xcopy /D /R /Y "%BaseDir%\RE2Worker\bin\%Configuration%\%Platform%\RE2Worker.exe" "%EnginesTargetDir%\RE2\*.bin"
 
 
 rem -- SubReg --

@@ -67,7 +67,7 @@ namespace RE2Plugin
                 }
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetClientExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
             {
                 return RegexMatches.Empty;
             }
@@ -138,7 +138,7 @@ namespace RE2Plugin
                 }
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetClientExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
             {
                 return null;
             }
@@ -158,13 +158,13 @@ namespace RE2Plugin
         }
 
 
-        static string GetClientExePath( )
+        static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string client_exe = Path.Combine( assembly_dir, @"RE2Client.bin" );
+            string worker_exe = Path.Combine( assembly_dir, @"RE2Worker.bin" );
 
-            return client_exe;
+            return worker_exe;
         }
 
     }
