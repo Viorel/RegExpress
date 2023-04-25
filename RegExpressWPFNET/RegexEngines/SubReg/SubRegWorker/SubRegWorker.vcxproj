@@ -22,7 +22,7 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{3888FF1F-608F-466A-B19A-8A1D22178172}</ProjectGuid>
-    <RootNamespace>SubRegClient</RootNamespace>
+    <RootNamespace>SubRegWorker</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -183,7 +183,7 @@
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsCpp</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsCpp</CompileAs>
     </ClCompile>
-    <ClCompile Include="Client.cpp" />
+    <ClCompile Include="Worker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />

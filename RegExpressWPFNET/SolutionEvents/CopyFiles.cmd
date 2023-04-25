@@ -51,7 +51,7 @@ rem -- SubReg --
 
 set BaseDir=%SolutionDir%\RegexEngines\SubReg
 xcopy /D /R /Y "%BaseDir%\SubRegPlugin\bin\%Configuration%\%TargetFramework%\SubRegPlugin.dll" "%EnginesTargetDir%\SubReg\*"
-xcopy /D /R /Y "%BaseDir%\SubRegClient\bin\%Configuration%\%Platform%\SubRegClient.exe" "%EnginesTargetDir%\SubReg\*.bin"
+xcopy /D /R /Y "%BaseDir%\SubRegWorker\bin\%Configuration%\%Platform%\SubRegWorker.exe" "%EnginesTargetDir%\SubReg\*.bin"
 
 
 rem -- PCRE2 --
