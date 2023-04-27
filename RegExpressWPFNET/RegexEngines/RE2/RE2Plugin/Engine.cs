@@ -15,7 +15,7 @@ namespace RE2Plugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<Version?> LazyVersion = new( GetVersion );
+        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
@@ -36,7 +36,7 @@ namespace RE2Plugin
 
         public string Kind => "RE2";
 
-        public Version? Version => LazyVersion.Value;
+        public string? Version => LazyVersion.Value;
 
         public string Name => "RE2";
 
@@ -122,7 +122,7 @@ namespace RE2Plugin
         }
 
 
-        static Version? GetVersion( )
+        static string? GetVersion( )
         {
             return Matcher.GetVersion( NonCancellable.Instance );
         }

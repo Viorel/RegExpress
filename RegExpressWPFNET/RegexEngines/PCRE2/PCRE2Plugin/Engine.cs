@@ -15,7 +15,7 @@ namespace PCRE2Plugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<Version?> LazyVersion = new( GetVersion );
+        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
@@ -36,7 +36,7 @@ namespace PCRE2Plugin
 
         public string Kind => "PCRE2";
 
-        public Version? Version => LazyVersion.Value;
+        public string? Version => LazyVersion.Value;
 
         public string Name => "PCRE2";
 
@@ -128,7 +128,7 @@ namespace PCRE2Plugin
         }
 
 
-        static Version? GetVersion( )
+        static string? GetVersion( )
         {
             return Matcher.GetVersion( NonCancellable.Instance );
         }

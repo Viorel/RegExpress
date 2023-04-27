@@ -15,7 +15,7 @@ namespace StdPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<Version?> LazyVersion = new( GetVersion );
+        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly LazyData<GrammarEnum, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
@@ -36,7 +36,7 @@ namespace StdPlugin
 
         public string Kind => "Std";
 
-        public Version? Version => LazyVersion.Value;
+        public string? Version => LazyVersion.Value;
 
         public string Name => "std::wregex";
 
@@ -121,7 +121,7 @@ namespace StdPlugin
         }
 
 
-        static Version? GetVersion( )
+        static string? GetVersion( )
         {
             return Matcher.GetVersion( NonCancellable.Instance );
         }

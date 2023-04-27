@@ -103,21 +103,25 @@ namespace DotNETFrameworkConsole
                 .GetCustomAttributes<TargetFrameworkAttribute>( )
                 .SingleOrDefault( );
 
-            Version version = null;
+            string version = null;
 
             if( targetFrameworkAttribute != null )
             {
-                Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+)?(\.\d+)?)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );
+                Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+)?)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );
 
                 if( m.Success )
                 {
-                    Version.TryParse( m.Groups["version"].Value, out version );
+                    version = m.Groups["version"].Value;
                 }
             }
 
             if( version == null )
             {
-                version = new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ); // not interested in revision
+                version = new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ).ToString( ); // not interested in revision
+            }
+            else
+            {
+                version += " (" + new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ) + ")";
             }
 
             var response = new { version };

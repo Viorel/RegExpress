@@ -18,7 +18,7 @@ namespace DotNETPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<Version?> LazyVersion = new( GetVersion );
+        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
@@ -39,7 +39,7 @@ namespace DotNETPlugin
 
         public string Kind => ".NET";
 
-        public Version? Version => LazyVersion.Value;
+        public string? Version => LazyVersion.Value;
 
         public string Name => "Regex, .NET";
 
@@ -128,7 +128,7 @@ namespace DotNETPlugin
         }
 
 
-        static Version? GetVersion( )
+        static string? GetVersion( )
         {
             try
             {
@@ -137,21 +137,25 @@ namespace DotNETPlugin
                     .GetCustomAttributes<TargetFrameworkAttribute>( )?
                     .SingleOrDefault( );
 
-                Version? version = null;
+                string? version = null;
 
                 if( targetFrameworkAttribute != null )
                 {
-                    Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+)?(\.\d+)?)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );
+                    Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+)?)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );
 
                     if( m.Success )
                     {
-                        Version.TryParse( m.Groups["version"].Value, out version );
+                        version = m.Groups["version"].Value;
                     }
                 }
 
                 if( version == null )
                 {
-                    version = new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ); // not interested in revision
+                    version = new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ).ToString( ); // not interested in revision
+                }
+                else
+                {
+                    version += " (" + new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ) + ")";
                 }
 
                 return version;

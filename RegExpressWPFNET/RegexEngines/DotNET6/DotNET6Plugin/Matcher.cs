@@ -20,7 +20,7 @@ namespace DotNETFrameworkPlugin
     {
         class VersionResponse
         {
-            public Version? version { get; init; }
+            public string? version { get; init; }
         }
 
 
@@ -111,7 +111,7 @@ namespace DotNETFrameworkPlugin
         #endregion IMatcher
 
 
-        public static Version? GetVersion( ICancellable cnc )
+        public static string? GetVersion( ICancellable cnc )
         {
             try
             {

@@ -15,7 +15,7 @@ namespace DotNETFrameworkPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<Version?> LazyVersion = new( GetVersion );
+        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
@@ -36,7 +36,7 @@ namespace DotNETFrameworkPlugin
 
         public string Kind => ".NETFramework";
 
-        public Version? Version => LazyVersion.Value;
+        public string? Version => LazyVersion.Value;
 
         public string Name => "Regex, .NET Framework";
 
@@ -120,7 +120,7 @@ namespace DotNETFrameworkPlugin
         }
 
 
-        static Version? GetVersion( )
+        static string? GetVersion( )
         {
             return Matcher.GetVersion( NonCancellable.Instance );
         }

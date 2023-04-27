@@ -164,7 +164,7 @@ namespace PCRE2Plugin
         #endregion IMatcher
 
 
-        public static Version? GetVersion( ICancellable cnc )
+        public static string? GetVersion( ICancellable cnc )
         {
             MemoryStream? stdout_contents;
             string? stderr_contents;
@@ -192,7 +192,7 @@ namespace PCRE2Plugin
             {
                 string version_s = br.ReadString( );
 
-                return Version.TryParse( version_s, out Version? version ) ? version : null;
+                return version_s;
             }
         }
 

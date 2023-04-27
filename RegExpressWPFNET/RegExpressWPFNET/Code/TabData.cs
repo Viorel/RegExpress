@@ -17,10 +17,10 @@ namespace RegExpressWPFNET.Code
         public string? Pattern;
         public string? Text;
         public string? ActiveKind;
-        public Version? ActiveVersion;
+        public string? ActiveVersion;
 
         [JsonIgnore]
-        public (string? Kind, Version? Version) ActiveCombinedId => (ActiveKind, ActiveVersion);
+        public (string? Kind, string? Version) ActiveCombinedId => (ActiveKind, ActiveVersion);
 
         public List<EngineOptions>? EngineOptions;
         public bool ShowFirstMatchOnly;
@@ -42,10 +42,10 @@ namespace RegExpressWPFNET.Code
     public sealed class EngineOptions
     {
         public string? Kind;
-        public Version? Version;
+        public string? Version;
 
         [JsonIgnore]
-        public (string? Kind, Version? Version) CombinedId => (Kind, Version);
+        public (string? Kind, string? Version) CombinedId => (Kind, Version);
 
 
         [JsonConverter( typeof( RawJsonConverter ) )]

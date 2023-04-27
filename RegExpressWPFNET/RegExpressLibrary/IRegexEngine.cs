@@ -21,9 +21,9 @@ namespace RegExpressLibrary
 
         string Kind { get; }
 
-        Version? Version { get; }
+        string? Version { get; }
 
-        (string Kind, Version? Version) CombinedId => (Kind, Version);
+        (string Kind, string? Version) CombinedId => (Kind, Version);
 
         string Name { get; }
 
