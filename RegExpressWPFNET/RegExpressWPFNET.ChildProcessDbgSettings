@@ -8,4 +8,5 @@
   <Rule IsEnabled="false" ProcessName="OnigurumaWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="DotNETFrameworkWorker.bin" CommandLine="" EngineFilter="{fb0d4648-f776-4980-95f8-bb7f36ebc1ee}" />
   <Rule IsEnabled="false" ProcessName="SubRegClient.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
+  <Rule IsEnabled="false" ProcessName="DotNET6Worker.bin" CommandLine="" EngineFilter="{2e36f1d4-b23c-435d-ab41-18e608940038}" />
 </ChildProcessDebuggingSettings>

@@ -1,0 +1,46 @@
+﻿<UserControl x:Class="DotNETFrameworkPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:DotNETFrameworkPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             Loaded="UserControl_Loaded" Height="162" Width="202">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+    
+    <Grid>
+        <StackPanel>
+            <StackPanel>
+                <ui:CheckboxWithNote Prop="CultureInvariant"/>
+                <ui:CheckboxWithNote Prop="ECMAScript"/>
+                <ui:CheckboxWithNote Prop="ExplicitCapture"/>
+                <ui:CheckboxWithNote Prop="IgnoreCase"/>
+                <ui:CheckboxWithNote Prop="IgnorePatternWhitespace"/>
+                <ui:CheckboxWithNote Prop="Multiline" Note="'^', '$' at '\n' too"/>
+                <ui:CheckboxWithNote Prop="RightToLeft"/>
+                <ui:CheckboxWithNote Prop="Singleline" Note="'.' matches '\n' too"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
+                <StackPanel.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </StackPanel.LayoutTransform>
+                <Label Content="Timeout:" Target="{Binding ElementName=cbxTimeout}"/>
+                <ComboBox x:Name="cbxTimeout" SelectedValuePath="Tag" SelectedValue="{Binding TimeoutMs, FallbackValue='10000'}" VerticalAlignment="Center" SelectionChanged="cbxTimeout_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
+                    <ComboBoxItem Tag="1000" Content="1 s"/>
+                    <ComboBoxItem Tag="2000" Content="2 s"/>
+                    <ComboBoxItem Tag="5000" Content="5 s"/>
+                    <ComboBoxItem Tag="10000" Content="10 s" IsSelected="True"/>
+                    <ComboBoxItem Tag="15000" Content="15 s"/>
+                    <ComboBoxItem Tag="30000" Content="30 s"/>
+                </ComboBox>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>
+    

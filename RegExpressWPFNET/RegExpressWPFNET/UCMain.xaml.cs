@@ -69,10 +69,12 @@ namespace RegExpressWPFNET
             {
                 eng.OptionsChanged += Engine_OptionsChanged;
 
+                string content = eng.Name + " " + ( eng.Version?.ToString( ) ?? "unknown version" );
+
                 var cbxi = new ComboBoxItem
                 {
                     Tag = eng.CombinedId,
-                    Content = eng.Name + " " + ( eng.Version?.ToString( ) ?? "unknown version" ),
+                    Content = content,
                     IsSelected = eng.CombinedId == DefaultRegexEngine.CombinedId,
                 };
 

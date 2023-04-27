@@ -22,6 +22,16 @@ set BaseDir=%SolutionDir%\RegexEngines\DotNET7
 xcopy /D /R /Y "%BaseDir%\DotNET7Plugin\bin\%Configuration%\%TargetFramework%\DotNET7Plugin.dll" "%EnginesTargetDir%\DotNET7\*"
 
 
+rem -- .NET 6 --
+
+set BaseDir=%SolutionDir%\RegexEngines\DotNET6
+xcopy /D /R /Y "%BaseDir%\DotNET6Plugin\bin\%Configuration%\%TargetFramework%\DotNET6Plugin.dll" "%EnginesTargetDir%\DotNET6\*"
+xcopy /D /R /Y "%BaseDir%\DotNET6Worker\bin\%Configuration%\net6.0\DotNET6Worker.dll" "%EnginesTargetDir%\DotNET6\Worker\*"
+xcopy /D /R /Y "%BaseDir%\DotNET6Worker\bin\%Configuration%\net6.0\DotNET6Worker.exe" "%EnginesTargetDir%\DotNET6\Worker\*.bin"
+xcopy /D /R /Y "%BaseDir%\DotNET6Worker\bin\%Configuration%\net6.0\DotNET6Worker.deps.json" "%EnginesTargetDir%\DotNET6\Worker\*"
+xcopy /D /R /Y "%BaseDir%\DotNET6Worker\bin\%Configuration%\net6.0\DotNET6Worker.runtimeconfig.json" "%EnginesTargetDir%\DotNET6\Worker\*"
+
+
 rem -- .NET Framework 4.8 --
 
 set BaseDir=%SolutionDir%\RegexEngines\DotNETFramework4_8
