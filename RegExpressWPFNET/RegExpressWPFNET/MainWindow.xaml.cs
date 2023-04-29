@@ -46,6 +46,8 @@ namespace RegExpressWPFNET
         public static readonly RoutedUICommand CloseTabCommand = new( );
         public static readonly RoutedUICommand DuplicateTabCommand = new( );
         public static readonly RoutedUICommand GoToOptionsCommand = new( );
+        public static readonly RoutedUICommand MoveTabLeftCommand = new( );
+        public static readonly RoutedUICommand MoveTabRightCommand = new( );
 
         readonly List<IRegexPlugin> mRegexPlugins = new( );
         static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, ReadCommentHandling = JsonCommentHandling.Skip, WriteIndented = true };
@@ -326,6 +328,97 @@ namespace RegExpressWPFNET
         private void GoToOptionsCommand_Execute( object sender, ExecutedRoutedEventArgs e )
         {
             GoToOptions( );
+        }
+
+
+        private void MoveTabLeftCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
+        {
+            e.CanExecute = true; // (checking performed by command)
+        }
+
+
+        private void MoveTabLeftCommand_Execute( object sender, ExecutedRoutedEventArgs e )
+        {
+            TabItem? current_tab = tabControl.SelectedItem as TabItem;
+
+            if( current_tab == null || current_tab.Content is not UCMain )
+            {
+                SystemSounds.Beep.Play( );
+
+                return;
+            }
+
+            int prev_tab_index = -1;
+
+            for( int i = 0; i < tabControl.Items.IndexOf( current_tab ); i++ )
+            {
+                TabItem tab = (TabItem)tabControl.Items[i];
+
+                if( !tab.IsVisible ) continue;
+                if( tab == tabItemNew ) continue;
+
+                prev_tab_index = i;
+            }
+
+            if( prev_tab_index < 0 )
+            {
+                SystemSounds.Beep.Play( );
+
+                return;
+            }
+
+            tabControl.Items.Remove( current_tab );
+            tabControl.Items.Insert( prev_tab_index, current_tab );
+
+            RenumberTabs( );
+
+            current_tab.IsSelected = true;
+        }
+
+
+        private void MoveTabRightCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
+        {
+            e.CanExecute = true; // (checking performed by command)
+        }
+
+
+        private void MoveTabRightCommand_Execute( object sender, ExecutedRoutedEventArgs e )
+        {
+            TabItem? current_tab = tabControl.SelectedItem as TabItem;
+
+            if( current_tab == null || current_tab.Content is not UCMain )
+            {
+                SystemSounds.Beep.Play( );
+
+                return;
+            }
+
+            int next_tab_index = -1;
+
+            for( int i = tabControl.Items.IndexOf( current_tab ) + 1; i < tabControl.Items.Count; i++ )
+            {
+                TabItem tab = (TabItem)tabControl.Items[i];
+
+                if( !tab.IsVisible ) continue;
+                if( tab == tabItemNew ) continue;
+
+                next_tab_index = i;
+                break;
+            }
+
+            if( next_tab_index < 0 )
+            {
+                SystemSounds.Beep.Play( );
+
+                return;
+            }
+
+            tabControl.Items.Remove( current_tab );
+            tabControl.Items.Insert( next_tab_index, current_tab );
+
+            RenumberTabs( );
+
+            current_tab.IsSelected = true;
         }
 
         #endregion

@@ -102,15 +102,15 @@ namespace DotNET6Worker
 
             string? version = null;
 
-            if( targetFrameworkAttribute != null )
-            {
-                Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+)?)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );
+            //if( targetFrameworkAttribute != null )
+            //{
+            //    Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+)?)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );
 
-                if( m.Success )
-                {
-                    version = m.Groups["version"].Value;
-                }
-            }
+            //    if( m.Success )
+            //    {
+            //        version = m.Groups["version"].Value;
+            //    }
+            //}
 
             if( version == null )
             {

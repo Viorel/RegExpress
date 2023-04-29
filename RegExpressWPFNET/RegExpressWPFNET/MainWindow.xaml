@@ -18,6 +18,8 @@
         <CommandBinding Command="{x:Static local:MainWindow.CloseTabCommand}" CanExecute="CloseTabCommand_CanExecute" Executed="CloseTabCommand_Execute"/>
         <CommandBinding Command="{x:Static local:MainWindow.DuplicateTabCommand}" CanExecute="DuplicateTabCommand_CanExecute" Executed="DuplicateTabCommand_Execute"/>
         <CommandBinding Command="{x:Static local:MainWindow.GoToOptionsCommand}" CanExecute="GoToOptionsCommand_CanExecute" Executed="GoToOptionsCommand_Execute"/>
+        <CommandBinding Command="{x:Static local:MainWindow.MoveTabLeftCommand}" CanExecute="MoveTabLeftCommand_CanExecute" Executed="MoveTabLeftCommand_Execute"/>
+        <CommandBinding Command="{x:Static local:MainWindow.MoveTabRightCommand}" CanExecute="MoveTabRightCommand_CanExecute" Executed="MoveTabRightCommand_Execute"/>
     </Window.CommandBindings>
 
     <Window.InputBindings>
@@ -25,6 +27,8 @@
         <KeyBinding Command="{x:Static local:MainWindow.CloseTabCommand}" Modifiers="Ctrl" Key="F4"/>
         <KeyBinding Command="{x:Static local:MainWindow.DuplicateTabCommand}" Modifiers="Ctrl" Key="D" />
         <KeyBinding Command="{x:Static local:MainWindow.GoToOptionsCommand}" Modifiers="" Key="F4" />
+        <KeyBinding Command="{x:Static local:MainWindow.MoveTabLeftCommand}" Modifiers="Ctrl+Shift+Alt" Key="Left" />
+        <KeyBinding Command="{x:Static local:MainWindow.MoveTabRightCommand}" Modifiers="Ctrl+Shift+Alt" Key="Right" />
     </Window.InputBindings>
 
     <Grid Margin="0 1 0 0">

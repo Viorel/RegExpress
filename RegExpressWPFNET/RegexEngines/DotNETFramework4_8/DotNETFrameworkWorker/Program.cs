@@ -121,7 +121,7 @@ namespace DotNETFrameworkConsole
             }
             else
             {
-                version += " (" + new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ) + ")";
+                //version += " (" + new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ) + ")";
             }
 
             var response = new { version };
