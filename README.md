@@ -1,6 +1,6 @@
 ﻿# RegExpress
 
-A tester for Regular Expressions. Made in Visual Studio 2022 using C#, WPF, .NET 7.
+A tester for Regular Expressions. Made in Visual Studio 2022 using C#, C++, WPF, .NET 7.
 
 It includes the following Regular Expression engines:
 
@@ -20,9 +20,10 @@ Sample:
 
 ![Screenshot of RegExpress](Screenshot1.png)
 
-The regular expressions are saved and loaded automatically. Press the “➕” button to open more tabs.
+The regular expressions are saved and loaded automatically. Press the “➕” button to open more tabs. Use the **Options** area to
+select and configure the Regular Expression engine.
 
-The code can be rebuilt using Visual Studio 2022. The sources contain code written in C#, C, and C++. The next Visual Studio workloads are required:
+The program can be built using Visual Studio 2022. The sources contain code written in C#, C, and C++. The following Visual Studio workloads are required:
 
 * .NET desktop development,
 * Desktop development with C++.
