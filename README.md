@@ -1,4 +1,4 @@
-# RegExpress
+﻿# RegExpress
 
 A tester for Regular Expressions. Made in Visual Studio 2022 using C#, WPF, .NET 7.
 
@@ -20,5 +20,20 @@ Sample:
 
 ![Screenshot of RegExpress](Screenshot1.png)
 
+The regular expressions are saved and loaded automatically. Press the “➕” button to open more tabs.
+
+The code can be rebuilt using Visual Studio 2022. The sources contain code written in C#, C, and C++. The next Visual Studio workloads are required:
+
+* .NET desktop development,
+* Desktop development with C++.
+
+The minimal sources of third-party regular expression libraries are included.
+
+The **main** GIT branch contains the latest sources.
+
 <br/>
-<br/>
+
+
+> _This version is based on .NET 7._<br/>
+> _There is an [alternative](https://github.com/Viorel/RegExpress) made in .NET Framework 4.8._ <br/> 
+> _It contains additional engines: ICU, Perl, Python, Rust, D, WebView2, Hyperscan, Chimera and Swift._
