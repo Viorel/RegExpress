@@ -132,13 +132,13 @@ namespace DotNETPlugin
         {
             try
             {
-                TargetFrameworkAttribute? targetFrameworkAttribute = Assembly
-                    .GetExecutingAssembly( )
-                    .GetCustomAttributes<TargetFrameworkAttribute>( )?
-                    .SingleOrDefault( );
-
                 string? version = null;
 
+                // Uncomment to show the target version too.
+                //TargetFrameworkAttribute? targetFrameworkAttribute = Assembly
+                //    .GetExecutingAssembly( )
+                //    .GetCustomAttributes<TargetFrameworkAttribute>( )?
+                //    .SingleOrDefault( );
                 //if( targetFrameworkAttribute != null )
                 //{
                 //    Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+)?)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );

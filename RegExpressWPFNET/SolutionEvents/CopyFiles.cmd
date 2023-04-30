@@ -83,7 +83,5 @@ rem -- Oniguruma --
 set BaseDir=%SolutionDir%\RegexEngines\Oniguruma
 xcopy /D /R /Y "%BaseDir%\OnigurumaPlugin\bin\%Configuration%\%TargetFramework%\OnigurumaPlugin.dll" "%EnginesTargetDir%\Oniguruma\*"
 xcopy /D /R /Y "%BaseDir%\OnigurumaWorker\bin\%Configuration%\%Platform%\OnigurumaWorker.exe" "%EnginesTargetDir%\Oniguruma\*.bin"
-rem//....
-xcopy /D /R /Y "%BaseDir%\OnigurumaWorker\bin\%Configuration%\%Platform%\OnigurumaWorker.pdb" "%EnginesTargetDir%\Oniguruma\*"
 
 

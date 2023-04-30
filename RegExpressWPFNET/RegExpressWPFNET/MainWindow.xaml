@@ -141,7 +141,7 @@
 
                             <Button x:Name="btnNewTab" 
                                     Content="➕"
-                                    ToolTip="New Tab"
+                                    ToolTip="New tab"
                                     Margin="5 4"
                                     Padding="5 1"
                                     Background="Transparent"

@@ -12,10 +12,10 @@ namespace DotNET6Worker
     {
         class InputArgs
         {
-            public string cmd { get; set; }
-            public string pattern { get; set; }
-            public string text { get; set; }
-            public Options options { get; set; }
+            public string? cmd { get; set; }
+            public string? pattern { get; set; }
+            public string? text { get; set; }
+            public Options? options { get; set; }
         }
 
 
@@ -48,7 +48,7 @@ namespace DotNET6Worker
             public bool success { get; set; }
             public int index { get; set; }
             public int length { get; set; }
-            public string name { get; set; }
+            public string? name { get; set; }
             public List<WorkerCapture> captures { get; set; } = new List<WorkerCapture>( );
         }
 
@@ -95,13 +95,13 @@ namespace DotNET6Worker
 
         private static void GetVersion( )
         {
-            TargetFrameworkAttribute? targetFrameworkAttribute = Assembly
-                .GetExecutingAssembly( )
-                .GetCustomAttributes<TargetFrameworkAttribute>( )
-                .SingleOrDefault( );
-
             string? version = null;
 
+            // Uncomment to show the target version too.
+            //TargetFrameworkAttribute? targetFrameworkAttribute = Assembly
+            //    .GetExecutingAssembly( )
+            //    .GetCustomAttributes<TargetFrameworkAttribute>( )
+            //    .SingleOrDefault( );
             //if( targetFrameworkAttribute != null )
             //{
             //    Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+)?)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );
@@ -139,10 +139,10 @@ namespace DotNET6Worker
             RegexOptions options = ConvertOptions( inputArgs.options );
             TimeSpan timeout = inputArgs.options == null ? Regex.InfiniteMatchTimeout : TimeSpan.FromMilliseconds( inputArgs.options.TimeoutMs );
 
-            var re = new Regex( inputArgs.pattern, options, timeout );
+            var re = new Regex( inputArgs.pattern ?? "", options, timeout );
             var worker_matches = new List<WorkerMatch>( );
 
-            foreach( Match m in re.Matches( inputArgs.text ) )
+            foreach( Match m in re.Matches( inputArgs.text ?? "" ) )
             {
                 Debug.Assert( m.Success );
 
@@ -169,7 +169,7 @@ namespace DotNET6Worker
         }
 
 
-        private static RegexOptions ConvertOptions( Options options )
+        private static RegexOptions ConvertOptions( Options? options )
         {
             RegexOptions o = RegexOptions.None;
 
