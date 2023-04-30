@@ -35,5 +35,4 @@ The **main** GIT branch contains the latest sources.
 
 
 > _This version is based on .NET 7._<br/>
-> _There is an [alternative](https://github.com/Viorel/RegExpress_WPFFW) made in .NET Framework 4.8._ <br/> 
-> _It contains additional engines: ICU, Perl, Python, Rust, D, WebView2, Hyperscan, Chimera and Swift._
+> _There is an [alternative](https://github.com/Viorel/RegExpress_WPFFW) made in .NET Framework 4.8. It contains additional engines: ICU, Perl, Python, Rust, D, WebView2, Hyperscan, Chimera and Swift._
