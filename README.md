@@ -13,6 +13,7 @@ It includes the following Regular Expression engines:
 * **[RE2](https://github.com/google/re2)** C++ Library 2023-03-01 from Google
 * **[Oniguruma](https://github.com/kkos/oniguruma)** Regular Expression Library 6.9.8
 * **[SubReg](https://github.com/mattbucknall/subreg)** 2022-01-01
+* **_RegExp_** JavaScript object from [Microsoft Edge WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/)
 
 <br/>
 
@@ -30,7 +31,7 @@ The program can be built using Visual Studio 2022. The sources contain code writ
 
 The minimal sources of third-party regular expression libraries are included.
 
-The **main** GIT branch contains the latest sources.
+The **main** GIT branch contains the latest sources. Solution file: **RegExpressWPFNET.sln**.
 
 <br/>
 

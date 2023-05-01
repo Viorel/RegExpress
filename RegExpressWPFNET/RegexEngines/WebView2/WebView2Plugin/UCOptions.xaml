@@ -1,0 +1,31 @@
+﻿<UserControl x:Class="WebView2Plugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:WebView2Plugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="100" d:DesignWidth="530" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel VerticalAlignment="Top">
+
+            <StackPanel x:Name="pnl2" Orientation="Vertical" Margin="0 4 0 0">
+                <ui:CheckboxWithNote Prop="i" Note="ignore case"/>
+                <ui:CheckboxWithNote Prop="m" Note="multiline; treat beginning and end characters (&#x2018;^&#x2019; and &#x2018;$&#x2019;) as working over multiple lines"/>
+                <ui:CheckboxWithNote Prop="s" Note="&#x201C;dotAll&#x201D;; allows &#x2018;.&#x2019; to match newlines"/>
+                <ui:CheckboxWithNote Prop="u" Note="unicode; treat pattern as a sequence of Unicode code points"/>
+            </StackPanel>
+
+        </StackPanel>
+    </Grid>
+</UserControl>
+    

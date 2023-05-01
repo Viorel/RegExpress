@@ -1,12 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<ChildProcessDebuggingSettings IsEnabled="false" xmlns="http://schemas.microsoft.com/vstudio/ChildProcessDebuggingSettings/2014">
+<ChildProcessDebuggingSettings IsEnabled="true" xmlns="http://schemas.microsoft.com/vstudio/ChildProcessDebuggingSettings/2014">
   <DefaultRule EngineFilter="[inherit]" />
-  <Rule IsEnabled="false" ProcessName="RE2Client.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
-  <Rule IsEnabled="false" ProcessName="StdClient.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
+  <Rule IsEnabled="false" ProcessName="RE2Worker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
+  <Rule IsEnabled="false" ProcessName="StdWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="PCRE2Worker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="BoostWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="OnigurumaWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="DotNETFrameworkWorker.bin" CommandLine="" EngineFilter="{fb0d4648-f776-4980-95f8-bb7f36ebc1ee}" />
-  <Rule IsEnabled="false" ProcessName="SubRegClient.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
+  <Rule IsEnabled="false" ProcessName="SubRegWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="DotNET6Worker.bin" CommandLine="" EngineFilter="{2e36f1d4-b23c-435d-ab41-18e608940038}" />
+  <Rule IsEnabled="true" ProcessName="WebView2Worker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
 </ChildProcessDebuggingSettings>

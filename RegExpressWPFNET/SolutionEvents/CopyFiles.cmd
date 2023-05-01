@@ -9,7 +9,7 @@ set ThisCmdPath=%~dp0
 rem echo %ConfigurationName%
 rem echo %ThisCmdPath%
 
-set SolutionDir=%ThisCmdPath%\..
+set SolutionDir=%ThisCmdPath%..
 set EnginesTargetDir=%SolutionDir%\RegExpressWPFNET\bin\%Configuration%\%TargetFramework%\Engines
 
 rem echo %SolutionDir%
@@ -85,3 +85,9 @@ xcopy /D /R /Y "%BaseDir%\OnigurumaPlugin\bin\%Configuration%\%TargetFramework%\
 xcopy /D /R /Y "%BaseDir%\OnigurumaWorker\bin\%Configuration%\%Platform%\OnigurumaWorker.exe" "%EnginesTargetDir%\Oniguruma\*.bin"
 
 
+rem -- WebView2 --
+
+set BaseDir=%SolutionDir%\RegexEngines\WebView2
+xcopy /D /R /Y "%BaseDir%\WebView2Plugin\bin\%Configuration%\%TargetFramework%\WebView2Plugin.dll" "%EnginesTargetDir%\WebView2\*"
+xcopy /D /R /Y "%BaseDir%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Worker.exe" "%EnginesTargetDir%\WebView2\*.bin"
+xcopy /D /R /Y "%BaseDir%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Loader.dll" "%EnginesTargetDir%\WebView2\*"
