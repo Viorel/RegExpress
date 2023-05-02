@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:WebView2Plugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="100" d:DesignWidth="530" 
+             d:DesignHeight="150" d:DesignWidth="530" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -20,9 +20,29 @@
 
             <StackPanel x:Name="pnl2" Orientation="Vertical" Margin="0 4 0 0">
                 <ui:CheckboxWithNote Prop="i" Note="ignore case"/>
-                <ui:CheckboxWithNote Prop="m" Note="multiline; treat beginning and end characters (&#x2018;^&#x2019; and &#x2018;$&#x2019;) as working over multiple lines"/>
-                <ui:CheckboxWithNote Prop="s" Note="&#x201C;dotAll&#x201D;; allows &#x2018;.&#x2019; to match newlines"/>
-                <ui:CheckboxWithNote Prop="u" Note="unicode; treat pattern as a sequence of Unicode code points"/>
+                <ui:CheckboxWithNote Prop="m" Note="allows ‘^’ and ‘$’ to match newline characters"/>
+                <ui:CheckboxWithNote Prop="s" Note="allows ‘.’ to match newline characters"/>
+                <ui:CheckboxWithNote Prop="u" Note="treats pattern as a sequence of Unicode code points"/>
+                <ui:CheckboxWithNote Prop="y" Note="“sticky” search"/>
+                <ui:CheckboxWithNote Prop="g" Note="global search"/>
+                <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0 4 0 0" >
+                    <StackPanel.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </StackPanel.LayoutTransform>
+
+                    <Label Content="Function:" Target="{Binding ElementName=cbxFunction}" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="cbxFunction" SelectedValuePath="Tag" SelectedValue="{Binding Function, FallbackValue='MatchAll'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxFunction_SelectionChanged">
+                        <ComboBoxItem Tag ="MatchAll" Content="String.prototype.matchAll"/>
+                        <ComboBoxItem Tag ="Exec" Content="RegExp.prototype.exec"/>
+                    </ComboBox>
+                </StackPanel>
             </StackPanel>
 
         </StackPanel>

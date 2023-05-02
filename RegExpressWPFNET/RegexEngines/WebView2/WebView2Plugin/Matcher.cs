@@ -64,7 +64,10 @@ namespace WebView2Plugin
                 Options.i ? "i" : "",
                 Options.m ? "m" : "",
                 Options.s ? "s" : "",
-                Options.u ? "u" : ""
+                Options.u ? "u" : "",
+                Options.y ? "y" : "",
+                Options.g ? "g" : "",
+                Options.Function == FunctionEnum.Exec ? "E" : ""
                 );
 
             string? stdout_contents;
@@ -91,7 +94,7 @@ namespace WebView2Plugin
                 throw new Exception( stderr_contents );
             }
 
-            ResponseMatches? client_response = JsonSerializer.Deserialize<ResponseMatches>( stdout_contents );
+            ResponseMatches? client_response = JsonSerializer.Deserialize<ResponseMatches>( stdout_contents! );
 
             if( client_response == null )
             {
@@ -174,9 +177,20 @@ namespace WebView2Plugin
             {
                 try
                 {
-                    var v = JsonSerializer.Deserialize<ResponseVersion>( stdout_contents );
+                    ResponseVersion? v = JsonSerializer.Deserialize<ResponseVersion>( stdout_contents );
 
                     version = v!.Version;
+
+                    // keep up to three components
+
+                    if( version != null )
+                    {
+                        var m = Regex.Match( version, @"^(?<v>\d+([.]\d+([.]\d+)?)?)([.]\d+)*$", RegexOptions.ExplicitCapture | RegexOptions.Compiled );
+                        if( m.Success )
+                        {
+                            version = m.Groups["v"].Value;
+                        }
+                    }
                 }
                 catch( Exception )
                 {
@@ -207,7 +221,7 @@ namespace WebView2Plugin
 
                     var possible_indices_this_group = new List<int>( );
 
-                    for( var i = 1; i < m.Indices.Count; ++i )
+                    for( var i = 1; i < m.Indices!.Count; ++i )
                     {
                         if( m.Indices[i] == null ) continue;
 
@@ -217,7 +231,7 @@ namespace WebView2Plugin
                         }
                     }
 
-                    HashSet<int> existing_possible_indices;
+                    HashSet<int>? existing_possible_indices;
 
                     if( !possible_indices.TryGetValue( group_name, out existing_possible_indices ) )
                     {

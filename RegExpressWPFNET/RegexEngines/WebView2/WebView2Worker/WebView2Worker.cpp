@@ -330,7 +330,7 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
 
                         bool use_exec = flags_adjusted.erase( std::remove( flags_adjusted.begin( ), flags_adjusted.end( ), L'E' ), flags_adjusted.end( ) ) != flags_adjusted.end( );
 
-                        flags_adjusted += L"gd";
+                        flags_adjusted += L"d"; // to generates start and end indices for matches
 
                         std::wstring script;
 

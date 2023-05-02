@@ -53,15 +53,15 @@ namespace WebView2Plugin
         }
 
 
-        private void cbxGrammar_SelectionChanged( object sender, SelectionChangedEventArgs e )
-        {
-            Notify( preferImmediateReaction: true );
-        }
-
-
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
+        }
+
+
+        private void cbxFunction_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
         }
 
 
@@ -85,5 +85,6 @@ namespace WebView2Plugin
                 --ChangeCounter;
             }
         }
+
     }
 }
