@@ -4,16 +4,16 @@ A tester for Regular Expressions. Made in Visual Studio 2022 using C#, C++, WPF,
 
 It includes the following Regular Expression engines:
 
-* **[_Regex_](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-7.0)** class from .NET 7
-* **[_Regex_](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-6.0)** class from .NET 6
-* **[_Regex_](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8)** class from .NET Framework 4.8
-* **[_wregex_](https://docs.microsoft.com/en-us/cpp/standard-library/regex)** class from Standard Template Library
-* **[Boost.Regex](https://www.boost.org/doc/libs/1_75_0/libs/regex/doc/html/index.html)** from Boost C++ Libraries 1.81.0
-* **[PCRE2](https://pcre.org/)** Open Source Regex Library 10.42
-* **[RE2](https://github.com/google/re2)** C++ Library 2023-03-01 from Google
-* **[Oniguruma](https://github.com/kkos/oniguruma)** Regular Expression Library 6.9.8
-* **[SubReg](https://github.com/mattbucknall/subreg)** 2022-01-01
-* **_RegExp_** JavaScript object from [Microsoft Edge WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/)
+* **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-7.0)** class from .NET 7.
+* **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-6.0)** class from .NET 6.
+* **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8)** class from .NET Framework 4.8.
+* **[wregex](https://docs.microsoft.com/en-us/cpp/standard-library/regex)** class from Standard Template Library.
+* **[Boost.Regex](https://www.boost.org/doc/libs/1_75_0/libs/regex/doc/html/index.html)** from Boost C++ Libraries 1.81.0.
+* **[PCRE2](https://pcre.org/)** Open Source Regex Library 10.42.
+* **[RE2](https://github.com/google/re2)** C++ Library 2023-03-01 from Google.
+* **[Oniguruma](https://github.com/kkos/oniguruma)** Regular Expression Library 6.9.8.
+* **[SubReg](https://github.com/mattbucknall/subreg)** 2022-01-01.
+* **[RegExp](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)** JavaScript object from Microsoft Edge [WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
 
 <br/>
 
@@ -24,17 +24,23 @@ Sample:
 The regular expressions are saved and loaded automatically. Press the “➕” button to open more tabs. Use the **Options** area to
 select and configure the Regular Expression engine.
 
-The program can be built using Visual Studio 2022. The sources contain code written in C#, C, and C++. The following Visual Studio workloads are required:
+The program can be built using Visual Studio 2022. The sources contain code written in C# and C++. The following Visual Studio workloads are required:
 
-* .NET desktop development,
+* .NET desktop development.
 * Desktop development with C++.
 
 The minimal sources of third-party regular expression libraries are included.
 
-The **main** GIT branch contains the latest sources. Solution file: **RegExpressWPFNET.sln**.
+Details:
+
+* Principal GIT branch: **main**.
+* Solution file: **RegExpressWPFNET.sln**.
+* Startup project: **RegExpressWPFNET**.
+* Configurations: **“Debug, Any CPU”** and **“Release, Any CPU”**. The C++ projects use **“x64”**.
+* Operating Systems: **Windows 11**, **Windows 10**.
 
 <br/>
 
 
 > _This version is based on .NET 7._<br/>
-> _There is an [alternative](https://github.com/Viorel/RegExpress_WPFFW) made in .NET Framework 4.8. It contains additional engines: ICU, Perl, Python, Rust, D, WebView2, Hyperscan, Chimera and Swift._
+> _There is an [alternative](https://github.com/Viorel/RegExpress_WPFFW) made in .NET Framework 4.8. It contains additional engines: ICU, Perl, Python, Rust, D, Hyperscan, Chimera and Swift._
