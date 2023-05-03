@@ -76,11 +76,11 @@ namespace WebView2Plugin
             Action<StreamWriter> stdin_writer = new Action<StreamWriter>( sw =>
             {
                 sw.Write( "m \"" );
-                WriteJavaScriptString( sw, Pattern );
+                sw.Write( ToJavaScriptString( Pattern ) );
                 sw.Write( "\" \"" );
                 sw.Write( flags );
                 sw.Write( "\" \"" );
-                WriteJavaScriptString( sw, text );
+                sw.Write( ToJavaScriptString( text ) );
                 sw.Write( "\"" );
             } );
 
@@ -280,20 +280,9 @@ namespace WebView2Plugin
         }
 
 
-        private static void WriteJavaScriptString( TextWriter sw, string text )
+        private static string ToJavaScriptString( string text )
         {
-            foreach( var c in text )
-            {
-                if( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' ) ||
-                    "`~!@#$%*()-_=+[]{};:',./?".Contains( c ) )
-                {
-                    sw.Write( c );
-                }
-                else
-                {
-                    sw.Write( "\\u{0:X4}", unchecked((uint)c) );
-                }
-            }
+            return Encoding.UTF8.GetString( JsonEncodedText.Encode( text ).EncodedUtf8Bytes );
         }
 
 

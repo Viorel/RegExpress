@@ -1,1 +1,1 @@
-@h.bat m "abc" "" "xyz"
+@h.bat m "abc" "g" "xyz"

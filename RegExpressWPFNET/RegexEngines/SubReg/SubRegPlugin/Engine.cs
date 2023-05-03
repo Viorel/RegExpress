@@ -103,7 +103,7 @@ namespace SubRegPlugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            var options = mOptionsControl.Value.GetSelectedOptions( );
+            //var options = mOptionsControl.Value.GetSelectedOptions( );
 
             return new SyntaxOptions
             {

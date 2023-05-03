@@ -1,1 +1,1 @@
-@h.bat m "?test" "" "xyz"
+@h.bat m "?test" "g" "xyz"

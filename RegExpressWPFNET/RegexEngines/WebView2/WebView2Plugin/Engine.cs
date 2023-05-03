@@ -104,10 +104,13 @@ namespace WebView2Plugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
+            var options = mOptionsControl.Value.GetSelectedOptions( );
+
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
                 AllowEmptySets = true,
+                FeatureMatrix = ( options.u ? LazyFeatureMatrixWithUFlag : LazyFeatureMatrixNoUFlag ).Value
             };
         }
 
