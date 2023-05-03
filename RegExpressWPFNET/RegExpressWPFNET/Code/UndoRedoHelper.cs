@@ -14,7 +14,7 @@ using RegExpressWPFNET.Controls;
 
 namespace RegExpressWPFNET.Code
 {
-    internal sealed class UndoRedoHelper
+    internal sealed partial class UndoRedoHelper
     {
         class Diff
         {
@@ -162,7 +162,7 @@ namespace RegExpressWPFNET.Code
                 using( Rtb.DeclareChangeBlock( ) )
                 {
                     var range = td.Range( last.Diff.Position, last.Diff.Add.Length );
-                    range.Text = Regex.Replace( last.Diff.Remove, @"\r\n|\n", "\r" ); // (it does not like '\n')
+                    range.Text = EolRegex( ).Replace( last.Diff.Remove, "\r" ); // (it does not like '\n')
                     range.ClearAllProperties( );
                 }
 
@@ -203,7 +203,7 @@ namespace RegExpressWPFNET.Code
                 using( Rtb.DeclareChangeBlock( ) )
                 {
                     var range = td.Range( last.Diff.Position, last.Diff.Remove.Length );
-                    range.Text = Regex.Replace( last.Diff.Add, @"\r\n|\n", "\r" ); // (it does not like '\n')
+                    range.Text = EolRegex( ).Replace( last.Diff.Add, "\r" ); // (it does not like '\n')
                     range.ClearAllProperties( );
                 }
 
@@ -281,5 +281,9 @@ namespace RegExpressWPFNET.Code
             return s.Remove( d.Position, d.Remove.Length ).Insert( d.Position, d.Add );
         }
         */
+
+
+        [GeneratedRegex( @"\r\n|\n" )]
+        private static partial Regex EolRegex( );
     }
 }

@@ -691,7 +691,7 @@ namespace RegExpressWPFNET
                     .Where( i => i != tabItemNew && i.Header is string )
                     .Select( i =>
                     {
-                        var m = Regex.Match( (string)i.Header, @"^Regex\s*(\d+)$" );
+                        var m = HeaderParserRegex( ).Match( (string)i.Header );
                         if( m.Success )
                         {
                             return int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
@@ -847,6 +847,10 @@ namespace RegExpressWPFNET
                 uc_main.GoToOptions( );
             }
         }
+
+
+        [GeneratedRegex( @"^Regex\s*(\d+)$" )]
+        private static partial Regex HeaderParserRegex( );
 
         #endregion
 

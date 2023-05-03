@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary.SyntaxColouring
 {
-    public sealed class PatternBuilder
+    public sealed partial class PatternBuilder
     {
         readonly StringBuilder Sb;
 #if DEBUG
@@ -22,8 +22,7 @@ namespace RegExpressLibrary.SyntaxColouring
 		const string Or = "|";
 		const string Suffix = ")";
 #endif
-        public const string AlwaysFailsPattern = "(?!)";
-        public static readonly Regex AlwaysFailsRegex;
+        const string AlwaysFailsPattern = "(?!)";
 
         int LengthBeforeGroup;
         int LengthAfterGroupHeader;
@@ -33,12 +32,6 @@ namespace RegExpressLibrary.SyntaxColouring
 #if DEBUG
         string? dbgCurrentGroup;
 #endif
-
-        static PatternBuilder( )
-        {
-            AlwaysFailsRegex = new Regex( AlwaysFailsPattern, RegexOptions.Compiled );
-        }
-
 
         public PatternBuilder( )
         {
@@ -211,6 +204,5 @@ namespace RegExpressLibrary.SyntaxColouring
         {
             return base.ToString( );
         }
-
     }
 }

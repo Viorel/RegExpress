@@ -18,7 +18,7 @@ using RegExpressWPFNET.Controls;
 
 namespace RegExpressWPFNET.Adorners
 {
-	class WhitespaceAdorner : Adorner
+    partial class WhitespaceAdorner : Adorner
 	{
 		readonly ChangeEventHelper ChangeEventHelper;
 		readonly Brush WsBrush = Brushes.LightSeaGreen;
@@ -28,7 +28,6 @@ namespace RegExpressWPFNET.Adorners
 		readonly Brush EofBrush = Brushes.Transparent;
 
 		readonly char[] SpacesAndTabs = new[] { ' ', '\t' }; // (For performance reasons, we only consider regular spaces)
-		readonly Regex EolRegex = new( @"(?>\r\n|\n\r|\r|\n)", RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace );
 
 		readonly ResumableLoop Loop;
 
@@ -470,7 +469,7 @@ namespace RegExpressWPFNET.Adorners
 
 			// lines with no right-to-left segments
 
-			var matches = EolRegex.Matches( td.Text );
+			var matches = EolRegex().Matches( td.Text );
 
 			for( int i = 0; i < matches.Count; ++i )
 			{
@@ -674,5 +673,9 @@ namespace RegExpressWPFNET.Adorners
 
 			return true;
 		}
-	}
+
+
+        [GeneratedRegex( @"(?>\r\n|\n\r|\r|\n)", RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace )]
+        private static partial Regex EolRegex( );
+    }
 }

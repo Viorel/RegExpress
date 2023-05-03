@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace RegExpressWPFNET.Code
 {
-	internal static class UnicodeUtilities
+	internal static partial class UnicodeUtilities
 	{
 		static readonly BitArray RorALarray = new( 0xFFFF + 1, false );
 
@@ -58,7 +58,7 @@ namespace RegExpressWPFNET.Code
    FE76-FEFC
 ";
 
-			foreach( Match m in Regex.Matches( RorALranges, @"(?'first'[0-9A-F]{4})(-(?'second'[0-9A-F]{4}))?" ) )
+			foreach( Match m in SplitRegex( ).Matches( RorALranges ) )
 			{
 				int start = Convert.ToInt32( m.Groups["first"].Value, 16 );
 				var g = m.Groups["second"];
@@ -76,5 +76,9 @@ namespace RegExpressWPFNET.Code
 		{
 			return RorALarray[c];
 		}
-	}
+
+
+        [GeneratedRegex( @"(?'first'[0-9A-F]{4})(-(?'second'[0-9A-F]{4}))?" )]
+        private static partial Regex SplitRegex( );
+    }
 }

@@ -75,7 +75,7 @@ namespace RegExpressWPFNET.Code
     }
 
 
-    public static class RtbUtilities
+    public static partial class RtbUtilities
     {
         const int MAX_BLOCKING_TIME_MS = 222;
         const int MAX_SEGMENT_LENGTH = 100;
@@ -87,7 +87,7 @@ namespace RegExpressWPFNET.Code
             {
                 rtb.Document.Blocks.Clear( );
 
-                foreach( var s in Regex.Split( text ?? "", @"\r\n|\n\r|\r|\n" ) )
+                foreach( var s in SplitLinesRegex( ).Split( text ?? "" ) )
                 {
                     rtb.Document.Blocks.Add( new Paragraph( new Run( s ) ) );
                 }
@@ -673,5 +673,9 @@ namespace RegExpressWPFNET.Code
         {
             Debug.Assert( eol == "\r\n" || eol == "\n\r" || eol == "\r" || eol == "\n" );
         }
+
+
+        [GeneratedRegex( @"\r\n|\n\r|\r|\n" )]
+        private static partial Regex SplitLinesRegex( );
     }
 }

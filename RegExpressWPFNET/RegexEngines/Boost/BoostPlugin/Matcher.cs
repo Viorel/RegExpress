@@ -18,7 +18,7 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace BoostPlugin
 {
-    class Matcher : IMatcher
+    partial class Matcher : IMatcher
     {
         readonly string Pattern;
         readonly Options Options;
@@ -37,7 +37,7 @@ namespace BoostPlugin
         {
             // try identifying group names
 
-            var regex_group_names = new Regex( @"\(\? ((?'a'')|<) (?'n'.*?) (?(a)'|>)", RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace );
+            var regex_group_names = FindGroupsRegex( );
 
             string[] possible_group_names =
                 regex_group_names
@@ -110,9 +110,9 @@ namespace BoostPlugin
             }
 
             if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
-            
+
             if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
-            
+
             if( stdout_contents == null ) throw new Exception( "Null response" );
 
             using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
@@ -214,5 +214,8 @@ namespace BoostPlugin
             return worker_exe;
         }
 
+
+        [GeneratedRegex( "\\(\\? ((?'a'')|<) (?'n'.*?) (?(a)'|>)", RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace )]
+        private static partial Regex FindGroupsRegex( );
     }
 }

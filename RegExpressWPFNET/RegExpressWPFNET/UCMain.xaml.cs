@@ -29,7 +29,7 @@ namespace RegExpressWPFNET
         readonly ResumableLoop UpdateWhitespaceWarningLoop;
         readonly ResumableLoop ShowTextInfoLoop;
 
-        readonly Regex RegexHasWhitespace = new Regex( "\t|([ ](\r|\n|$))|((\r|\n)$)", RegexOptions.Compiled | RegexOptions.ExplicitCapture );
+        readonly Regex RegexHasWhitespace = HasWhitespaceRegex( );
 
 
         readonly IReadOnlyList<IRegexEngine> RegexEngines;
@@ -968,6 +968,10 @@ namespace RegExpressWPFNET
         }
 
         #endregion IDisposable Support
+
+
+        [GeneratedRegex( @"\t|([ ](\r|\n|$))|((\r|\n)$)", RegexOptions.ExplicitCapture )]
+        private static partial Regex HasWhitespaceRegex( );
 
     }
 }

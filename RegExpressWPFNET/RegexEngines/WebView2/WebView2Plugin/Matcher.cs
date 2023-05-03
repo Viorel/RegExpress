@@ -18,7 +18,7 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace WebView2Plugin
 {
-    class Matcher : IMatcher
+    partial class Matcher : IMatcher
     {
 
         public class ResponseVersion
@@ -185,7 +185,7 @@ namespace WebView2Plugin
 
                     if( version != null )
                     {
-                        var m = Regex.Match( version, @"^(?<v>\d+([.]\d+([.]\d+)?)?)([.]\d+)*$", RegexOptions.ExplicitCapture | RegexOptions.Compiled );
+                        var m = SimplifyVersionRegex( ).Match( version );
                         if( m.Success )
                         {
                             version = m.Groups["v"].Value;
@@ -294,5 +294,9 @@ namespace WebView2Plugin
 
             return worker_exe;
         }
+
+
+        [GeneratedRegex( @"^(?<v>\d+([.]\d+([.]\d+)?)?)([.]\d+)*$", RegexOptions.ExplicitCapture )]
+        private static partial Regex SimplifyVersionRegex( );
     }
 }
