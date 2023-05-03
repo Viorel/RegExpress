@@ -103,13 +103,17 @@ namespace SubRegPlugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            //var options = mOptionsControl.Value.GetSelectedOptions( );
-
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
                 FeatureMatrix = LazyFeatureMatrix.Value
             };
+        }
+
+
+        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        {
+            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
         }
 
         #endregion

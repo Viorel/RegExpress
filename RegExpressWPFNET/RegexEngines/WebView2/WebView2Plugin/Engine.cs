@@ -114,6 +114,17 @@ namespace WebView2Plugin
             };
         }
 
+        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        {
+            var list = new List<(string?, FeatureMatrix)>
+            {
+                ("“u” flag", LazyFeatureMatrixWithUFlag.Value),
+                ("no “u” flag", LazyFeatureMatrixNoUFlag.Value)
+            };
+
+            return list;
+        }
+
         #endregion
 
 

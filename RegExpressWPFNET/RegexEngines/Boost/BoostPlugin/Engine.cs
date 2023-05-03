@@ -112,6 +112,24 @@ namespace BoostPlugin
             };
         }
 
+
+        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        {
+            var list = new List<(string?, FeatureMatrix)>( );
+
+            foreach( GrammarEnum grammar in Enum.GetValues( typeof( GrammarEnum ) ) )
+            {
+                if( grammar == GrammarEnum.None ) continue;
+                if( grammar == GrammarEnum.literal ) continue;
+
+                var fm = LazyFeatureMatrix.GetValue( grammar );
+
+                list.Add( (Enum.GetName( typeof( GrammarEnum ), grammar ), fm)! );
+            }
+
+            return list;
+        }
+
         #endregion
 
 

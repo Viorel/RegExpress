@@ -119,6 +119,12 @@ namespace DotNETPlugin
             };
         }
 
+
+        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        {
+            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+        }
+
         #endregion
 
 

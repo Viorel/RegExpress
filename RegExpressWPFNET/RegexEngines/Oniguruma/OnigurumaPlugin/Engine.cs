@@ -116,6 +116,28 @@ namespace OnigurumaPlugin
         }
 
 
+        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        {
+            var list = new List<(string?, FeatureMatrix)>( );
+
+            foreach( SyntaxEnum syntax in Enum.GetValues<SyntaxEnum>( ) )
+            {
+                if( syntax == SyntaxEnum.None ) continue;
+                if( syntax == SyntaxEnum.ONIG_SYNTAX_ASIS ) continue;
+
+                string syntax_name = Enum.GetName( syntax )!;
+                string variant = syntax_name.StartsWith( "ONIG_SYNTAX_" ) ? syntax_name.Substring( "ONIG_SYNTAX_".Length ) : syntax_name;
+
+                list.Add( (variant, MakeFeatureMatrix( new Options { Syntax = syntax } )) );
+            }
+
+            return list;
+        }
+
+
+        #endregion
+
+
         class Key
         {
             public Options Options { get; init; }
@@ -186,8 +208,6 @@ namespace OnigurumaPlugin
                 return mLastFeatureMatrix;
             }
         }
-
-        #endregion
 
 
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )

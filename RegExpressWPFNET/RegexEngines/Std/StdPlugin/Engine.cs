@@ -112,6 +112,21 @@ namespace StdPlugin
             };
         }
 
+
+        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        {
+            var list = new List<(string?, FeatureMatrix)>( );
+
+            foreach( GrammarEnum grammar in Enum.GetValues<GrammarEnum>( ) )
+            {
+                if( grammar == GrammarEnum.None ) continue;
+
+                list.Add( (Enum.GetName( grammar ), LazyFeatureMatrix.GetValue( grammar )) );
+            }
+
+            return list;
+        }
+
         #endregion
 
 

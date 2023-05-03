@@ -41,5 +41,6 @@ namespace RegExpressLibrary
 
         SyntaxOptions GetSyntaxOptions( );
 
+        IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( );
     }
 }
