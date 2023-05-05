@@ -454,7 +454,7 @@ tbody > tr > td:nth-child(2)
         }
 
 
-        static void WriteRow( XmlWriter xw, string shortDesc, string desc,
+        static void WriteRow( XmlWriter xw, string shortDesc, string? desc,
             IEnumerable<IRegexEngine> engines, List<IReadOnlyList<(string variantName, FeatureMatrix fm)>> allMatrices,
             Func<FeatureMatrix, bool> func )
         {

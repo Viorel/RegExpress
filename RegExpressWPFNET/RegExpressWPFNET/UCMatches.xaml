@@ -7,8 +7,8 @@
              mc:Ignorable="d" 
              d:DesignHeight="200" d:DesignWidth="500" Loaded="UserControl_Loaded">
     <Grid>
-        <ProgressBar x:Name="pbProgress" Panel.ZIndex="2" VerticalAlignment="Top" Visibility="Hidden" Style="{StaticResource ProgressBar1}"  />
-        <ProgressBar x:Name="pbProgressIndeterminate" Panel.ZIndex="10" VerticalAlignment="Top" Visibility="Hidden" Style="{StaticResource ProgressBar1}" IsIndeterminate="True"  />
+        <ProgressBar x:Name="pbProgress" Panel.ZIndex="2" VerticalAlignment="Top" Visibility="Hidden" Style="{StaticResource ProgressBar1}" />
+        <ProgressBar x:Name="pbProgressIndeterminate" Panel.ZIndex="10" VerticalAlignment="Top" Visibility="Hidden" Style="{StaticResource ProgressBar1}" IsIndeterminate="True" />
 
         <AdornerDecorator>
             <RichTextBox x:Name="rtbMatches" Panel.ZIndex="1" Style="{StaticResource Matches}" 

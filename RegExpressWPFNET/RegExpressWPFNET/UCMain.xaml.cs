@@ -512,10 +512,43 @@ namespace RegExpressWPFNET
 
             try
             {
-                // TODO: if no exact match, identify the most appropriate engine
-
                 IRegexEngine? engine = RegexEngines.SingleOrDefault( eng => eng.CombinedId == tabData.ActiveCombinedId );
-                engine ??= DefaultRegexEngine;
+
+                // if no exact match, identify the most appropriate engine
+
+                if( engine == null )
+                {
+                    var candidates =
+                        RegexEngines
+                            .Where( eng => eng.Kind == tabData.ActiveKind )
+                            .Select( eng => { Version.TryParse( eng.Version, out Version? version ); return new { Version = version, Engine = eng }; } )
+                            //.Where( d => d.Version != null )
+                            .OrderBy( d => d.Version )
+                            .ToArray( );
+
+                    Version? tab_data_version;
+
+                    if( !Version.TryParse( tabData.ActiveVersion, out tab_data_version ) )
+                    {
+                        engine = candidates.LastOrDefault( )?.Engine;
+                    }
+                    else
+                    {
+                        foreach( var candidate in candidates )
+                        {
+                            if( tab_data_version <= candidate.Version )
+                            {
+                                engine = candidate.Engine;
+
+                                break;
+                            }
+                        }
+
+                        engine ??= candidates.LastOrDefault( )?.Engine;
+                    }
+                }
+
+                engine ??= DefaultRegexEngine; // use the default engine 
 
                 CurrentRegexEngine = engine;
                 SetEngineOption( engine );
@@ -525,9 +558,40 @@ namespace RegExpressWPFNET
                 {
                     string? options = null;
 
-                    // TODO: if no exact match, identify the most appropriate engine
-
                     options = tabData.EngineOptions?.FirstOrDefault( o => o.CombinedId == eng.CombinedId )?.Options;
+
+                    // if no exact match, identify the most appropriate engine
+
+                    if( options == null && tabData.EngineOptions != null )
+                    {
+                        var candidates = tabData.EngineOptions
+                            .Where( o => o.Kind == eng.Kind )
+                            .Select( o => { Version.TryParse( o.Version, out Version? version ); return new { Version = version, o.Options }; } )
+                            .OrderBy( o => o.Version )
+                            .ToArray( );
+
+                        Version? engine_version;
+
+                        if( !Version.TryParse( eng.Version, out engine_version ) )
+                        {
+                            options = candidates.LastOrDefault( )?.Options;
+                        }
+                        else
+                        {
+                            foreach( var candidate in candidates )
+                            {
+                                if( engine_version >= candidate.Version  )
+                                {
+                                    options = candidate.Options;
+
+                                    break;
+                                }
+                            }
+
+                            options ??= candidates.LastOrDefault( )?.Options;
+                        }
+
+                    }
 
                     if( options != null )
                     {

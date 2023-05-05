@@ -111,7 +111,7 @@
                     </StackPanel>
                 </Grid>
                 <Border Grid.Row="1" Margin="0" Style="{StaticResource RtbBorder}" >
-                    <local:UCMatches x:Name="ucMatches" SelectionChanged="UcMatches_SelectionChanged" Cancelled="UcMatches_Cancelled" LostFocus="UcMatches_LostFocus">
+                    <local:UCMatches x:Name="ucMatches" SelectionChanged="UcMatches_SelectionChanged" Cancelled="UcMatches_Cancelled" LostFocus="UcMatches_LostFocus" Margin="0 -0.05 0 0">
                         <local:UCMatches.Clip>
                             <MultiBinding Converter="{StaticResource BorderClipConverter}">
                                 <Binding Path="ActualWidth"  RelativeSource="{RelativeSource Self}"/>

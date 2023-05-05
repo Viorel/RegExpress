@@ -12,7 +12,7 @@ namespace RegExpressWPFNET.Code
 {
 	// See: https://www.codeproject.com/articles/692963/how-to-get-rid-of-dispatcher-invoke, with adjustments
 
-	class UITaskHelper
+	static class UITaskHelper
 	{
 
 		/// <summary>
