@@ -11,6 +11,7 @@ using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
+
 namespace PCRE2Plugin
 {
     class Engine : IRegexEngine

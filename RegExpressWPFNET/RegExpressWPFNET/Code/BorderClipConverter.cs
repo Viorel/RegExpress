@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows;
 using System.Diagnostics;
 
+
 namespace RegExpressWPFNET.Code
 {
     // See: https://stackoverflow.com/questions/5649875/how-to-make-the-border-trim-the-child-elements

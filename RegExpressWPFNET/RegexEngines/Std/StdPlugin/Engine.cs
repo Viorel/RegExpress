@@ -11,6 +11,7 @@ using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
+
 namespace StdPlugin
 {
     class Engine : IRegexEngine
