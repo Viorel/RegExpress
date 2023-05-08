@@ -14,6 +14,7 @@ using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
+
 namespace DotNETPlugin
 {
     class Engine : IRegexEngine

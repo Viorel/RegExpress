@@ -1,9 +1,9 @@
-﻿<UserControl x:Class="DotNETFrameworkPlugin.UCOptions"
+﻿<UserControl x:Class="DotNET6Plugin.UCOptions"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:DotNETFrameworkPlugin"
+             xmlns:local="clr-namespace:DotNET6Plugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
              Loaded="UserControl_Loaded" Height="162" Width="202">

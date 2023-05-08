@@ -14,7 +14,7 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.Matches.Simple;
 
 
-namespace DotNETFrameworkPlugin
+namespace DotNET6Plugin
 {
     class Matcher : IMatcher
     {

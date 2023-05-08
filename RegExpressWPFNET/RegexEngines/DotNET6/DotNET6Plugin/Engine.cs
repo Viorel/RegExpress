@@ -12,7 +12,7 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
 
-namespace DotNETFrameworkPlugin
+namespace DotNET6Plugin
 {
     class Engine : IRegexEngine
     {

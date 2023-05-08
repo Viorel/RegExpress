@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 
-namespace DotNETFrameworkPlugin
+namespace DotNET6Plugin
 {
     class Options
     {
