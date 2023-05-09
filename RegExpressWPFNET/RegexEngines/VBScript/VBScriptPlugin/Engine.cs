@@ -2,26 +2,23 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Controls;
-using DotNETPlugin.Matches;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
 
-namespace DotNETPlugin
+namespace VBScriptPlugin
 {
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
 
         public Engine( )
@@ -38,13 +35,13 @@ namespace DotNETPlugin
 
         #region IRegexEngine
 
-        public string Kind => ".NET";
+        public string Kind => "VBScript";
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "Regex, .NET";
+        public string Name => "VBScript RegExp";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.ScrollErrorsToEnd;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures;
 
         public string? NoteForCaptures => null;
 
@@ -98,24 +95,17 @@ namespace DotNETPlugin
         public IMatcher ParsePattern( string pattern )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
-            RegexOptions regex_native_options = options.NativeOptions;
-            TimeSpan timeout = TimeSpan.FromMilliseconds( options.TimeoutMs );
-            if( timeout <= TimeSpan.Zero ) timeout = TimeSpan.FromSeconds( 10 );
 
-            var regex = new Regex( pattern, regex_native_options, timeout );
-
-            return new Matcher( regex );
+            return new Matcher( pattern, options );
 
         }
 
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            var options = mOptionsControl.Value.GetSelectedOptions( );
-
             return new SyntaxOptions
             {
-                XLevel = options.IgnorePatternWhitespace ? XLevelEnum.x : XLevelEnum.none,
+                XLevel = XLevelEnum.none,
                 FeatureMatrix = LazyFeatureMatrix.Value
             };
         }
@@ -137,43 +127,7 @@ namespace DotNETPlugin
 
         static string? GetVersion( )
         {
-            try
-            {
-                string? version = null;
-
-                // Uncomment to show the target version too.
-                //TargetFrameworkAttribute? targetFrameworkAttribute = Assembly
-                //    .GetExecutingAssembly( )
-                //    .GetCustomAttributes<TargetFrameworkAttribute>( )?
-                //    .SingleOrDefault( );
-                //if( targetFrameworkAttribute != null )
-                //{
-                //    Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+)?)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );
-
-                //    if( m.Success )
-                //    {
-                //        version = m.Groups["version"].Value;
-                //    }
-                //}
-
-                if( version == null )
-                {
-                    version = new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ).ToString( ); // not interested in revision
-                }
-                else
-                {
-                    version += " (" + new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ) + ")";
-                }
-
-                return version;
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
+            return Matcher.GetVersion( NonCancellable.Instance );
         }
 
 
@@ -188,23 +142,23 @@ namespace DotNETPlugin
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
 
-                InlineComments = true,
-                XModeComments = true,
+                InlineComments = false,
+                XModeComments = false,
                 InsideSets_XModeComments = false,
 
-                Flags = true,
-                ScopedFlags = true,
+                Flags = false,
+                ScopedFlags = false,
                 CircumflexFlags = false,
                 ScopedCircumflexFlags = false,
-                XFlag = true,
+                XFlag = false,
                 XXFlag = false,
 
                 Literal_QE = false,
                 InsideSets_Literal_QE = false,
 
-                Esc_a = true,
+                Esc_a = false,
                 Esc_b = false,
-                Esc_e = true,
+                Esc_e = false,
                 Esc_f = true,
                 Esc_n = true,
                 Esc_r = true,
@@ -212,7 +166,7 @@ namespace DotNETPlugin
                 Esc_v = true,
                 Esc_Octal0_1_3 = false,
                 Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = true,
+                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = false,
@@ -221,21 +175,21 @@ namespace DotNETPlugin
                 Esc_uBrace = false,
                 Esc_UBrace = false,
                 Esc_c1 = true,
-                Esc_C1 = false,
+                Esc_C1 = true,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
                 GenericEscape = true,
 
-                InsideSets_Esc_a = true,
-                InsideSets_Esc_b = true, // (not documented?)
-                InsideSets_Esc_e = true,
+                InsideSets_Esc_a = false,
+                InsideSets_Esc_b = false,
+                InsideSets_Esc_e = false,
                 InsideSets_Esc_f = true,
                 InsideSets_Esc_n = true,
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = true,
+                InsideSets_Esc_Octal_1_3 = false,
                 InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
@@ -245,7 +199,7 @@ namespace DotNETPlugin
                 InsideSets_Esc_uBrace = false,
                 InsideSets_Esc_UBrace = false,
                 InsideSets_Esc_c1 = true,
-                InsideSets_Esc_C1 = false,
+                InsideSets_Esc_C1 = true,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
                 InsideSets_GenericEscape = true,
@@ -268,7 +222,7 @@ namespace DotNETPlugin
                 Class_X = false,
                 Class_Not = false,
                 Class_pP = false,
-                Class_pPBrace = true,
+                Class_pPBrace = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -282,7 +236,7 @@ namespace DotNETPlugin
                 InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
-                InsideSets_Class_pPBrace = true,
+                InsideSets_Class_pPBrace = false,
                 InsideSets_Class = false,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
@@ -302,10 +256,10 @@ namespace DotNETPlugin
 
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
-                Anchor_A = true,
-                Anchor_Z = true,
-                Anchor_z = true,
-                Anchor_G = true,
+                Anchor_A = false,
+                Anchor_Z = false,
+                Anchor_z = false,
+                Anchor_G = false,
                 Anchor_bB = true,
                 Anchor_bg = false,
                 Anchor_bBBrace = false,
@@ -314,8 +268,8 @@ namespace DotNETPlugin
                 Anchor_GraveApos = false,
                 Anchor_yY = false,
 
-                NamedGroup_Apos = true,
-                NamedGroup_LtGt = true,
+                NamedGroup_Apos = false,
+                NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
@@ -323,9 +277,9 @@ namespace DotNETPlugin
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
                 NegativeLookahead = true,
-                PositiveLookbehind = true,
-                NegativeLookbehind = true,
-                AtomicGroup = true,
+                PositiveLookbehind = false,
+                NegativeLookbehind = false,
+                AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,
                 NonatomicPositiveLookbehind = false,
@@ -333,9 +287,9 @@ namespace DotNETPlugin
                 AllowSpacesInGroups = false,
 
                 Backref_1_9 = true,
-                Backref_Num = false,
-                Backref_kApos = true,
-                Backref_kLtGt = true,
+                Backref_Num = true,
+                Backref_kApos = false,
+                Backref_kLtGt = false,
                 Backref_kBrace = false,
                 Backref_kNum = false,
                 Backref_kNegNum = false,
@@ -360,10 +314,10 @@ namespace DotNETPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
                 Quantifier_LowAbbrev = false,
 
-                Conditional_BackrefByNumber = true,
+                Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
                 Conditional_Pattern = false,
-                Conditional_PatternOrBackrefByName = true,
+                Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = false,
                 Conditional_BackrefByName_LtGt = false,
                 Conditional_R = false,

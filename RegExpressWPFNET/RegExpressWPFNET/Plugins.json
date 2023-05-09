@@ -9,4 +9,5 @@
   "Engines\\Boost\\BoostPlugin.dll",
   "Engines\\Oniguruma\\OnigurumaPlugin.dll",
   "Engines\\WebView2\\WebView2Plugin.dll",
+  "Engines\\VBScript\\VBScriptPlugin.dll"
 ]

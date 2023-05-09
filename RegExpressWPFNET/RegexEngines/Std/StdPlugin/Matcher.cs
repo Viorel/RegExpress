@@ -194,8 +194,6 @@ namespace StdPlugin
 
             if( stdout_contents == null ) throw new Exception( "Null response" );
 
-
-
             using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
             {
                 string version_s = br.ReadString( );

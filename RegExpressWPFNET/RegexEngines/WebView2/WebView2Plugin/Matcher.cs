@@ -84,7 +84,7 @@ namespace WebView2Plugin
                 sw.Write( "\"" );
             } );
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), "i", stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), new[] { "i" }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
             {
                 return RegexMatches.Empty; // (cancelled)
             }
@@ -167,7 +167,7 @@ namespace WebView2Plugin
 
             string? version;
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), "v", "", out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) ||
+            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), new[] { "v" }, "", out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) ||
                 !string.IsNullOrWhiteSpace( stderr_contents ) ||
                 string.IsNullOrWhiteSpace( stdout_contents ) )
             {

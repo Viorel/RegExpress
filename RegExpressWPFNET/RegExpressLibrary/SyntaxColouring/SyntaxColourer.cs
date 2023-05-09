@@ -350,6 +350,10 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     pb_character_escape.Add( @"\\c.?" ); // control char
                 }
+                if( fm.Esc_C1 )
+                {
+                    pb_character_escape.Add( @"\\C.?" ); // control char
+                }
                 if( fm.Esc_CMinus )
                 {
                     pb_character_escape.Add( @"\\C(-.?)?" ); // control char
@@ -484,6 +488,10 @@ namespace RegExpressLibrary.SyntaxColouring
                     if( fm.InsideSets_Esc_c1 )
                     {
                         pb_inside_sets.Add( @"\\c.?" ); // control char
+                    }
+                    if( fm.InsideSets_Esc_C1 )
+                    {
+                        pb_inside_sets.Add( @"\\C.?" ); // control char
                     }
                     if( fm.InsideSets_Esc_CMinus )
                     {

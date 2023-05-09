@@ -91,3 +91,10 @@ set BaseDir=%SolutionDir%\RegexEngines\WebView2
 xcopy /D /R /Y "%BaseDir%\WebView2Plugin\bin\%Configuration%\%TargetFramework%\WebView2Plugin.dll" "%EnginesTargetDir%\WebView2\*"
 xcopy /D /R /Y "%BaseDir%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Worker.exe" "%EnginesTargetDir%\WebView2\*.bin"
 xcopy /D /R /Y "%BaseDir%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Loader.dll" "%EnginesTargetDir%\WebView2\*"
+
+
+rem -- VBScript --
+
+set BaseDir=%SolutionDir%\RegexEngines\VBScript
+xcopy /D /R /Y "%BaseDir%\VBScriptPlugin\bin\%Configuration%\%TargetFramework%\VBScriptPlugin.dll" "%EnginesTargetDir%\VBScript\*"
+xcopy /D /R /Y "%BaseDir%\VBScriptWorker\VBScriptWorker.vbs" "%EnginesTargetDir%\VBScript\*"
