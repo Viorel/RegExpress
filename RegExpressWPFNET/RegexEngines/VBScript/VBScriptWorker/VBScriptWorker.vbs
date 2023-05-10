@@ -21,7 +21,7 @@ If command = "v" Then
 
 End If
 
-If command = "m" Then
+If command = "m" Or command = "e" Then
 
     If WScript.Arguments.Count < 4 Then
         stderr.WriteLine "Bad arguments"
@@ -34,8 +34,12 @@ If command = "m" Then
     text = WScript.Arguments(2)
     options = WScript.Arguments(3)
 
-    Dim re
+    If command = "e" Then
+        pattern = Eval(Replace(pattern, "'", """"))
+        text = Eval(Replace(text, "'", """"))
+    End If
 
+    Dim re
     Set re = New RegExp
 
     re.Pattern = pattern
@@ -51,12 +55,25 @@ If command = "m" Then
     Dim m
     For Each m In ms
 
-        stdout.WriteLine "m " & m.FirstIndex & " " & m.Length ' & " '" & m.Value & "'"
+        stdout.WriteLine "m " & m.FirstIndex & " " & m.Length '& " '" & m.Value & "'"
 
-        '  Dim sm
-        '  For Each sm in m.SubMatches
-        '        WScript.Echo "sm '" & sm & "'"
-        '  Next
+        Dim sm
+        For Each sm in m.SubMatches
+            Dim s, i
+            s = ""
+            For i = 1 To Len(sm)
+                Dim c
+                c = Mid(sm, i, 1)
+                Dim a
+                u = AscW(c)
+                If (u >= AscW("a") And u <= AscW("z")) Or (u >= AscW("A") And u <= AscW("Z")) Or (u >= AscW("0") And u <= AscW("9")) Then
+                    s = s & c
+                Else
+                    s = s & "\u" & Left("000", 4 - Len(Hex(u))) & Hex(u)
+                End If
+            Next
+            stdout.WriteLine  "s """ & s & """"
+        Next
 
     Next
 

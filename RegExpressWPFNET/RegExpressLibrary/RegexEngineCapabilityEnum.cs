@@ -11,7 +11,7 @@ namespace RegExpressLibrary
     public enum RegexEngineCapabilityEnum
     {
         Default = 0,
-        NoGroups = 1 << 1,
+        NoGroupDetails = 1 << 1, // (no index, no success flag)
         NoCaptures = 1 << 2,
         CombineSurrogatePairs = 1 << 3,
         ScrollErrorsToEnd = 1 << 4,

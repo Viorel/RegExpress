@@ -7,24 +7,48 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary.Matches.Simple
 {
-	public class SimpleTextGetter : ISimpleTextGetter
-	{
-		readonly string Text;
+    public sealed class SimpleTextGetter : ISimpleTextGetter
+    {
+        readonly string Text;
 
-		public SimpleTextGetter( string text )
-		{
-			Text = text;
-		}
+        public SimpleTextGetter( string text )
+        {
+            Text = text;
+        }
 
 
-		#region ISimpleTextGetter
+        #region ISimpleTextGetter
 
-		public string GetText( int index, int length )
-		{
-			return Text.Substring( index, length );
-		}
+        public string GetText( int index, int length )
+        {
+            return Text.Substring( index, length );
+        }
 
-		#endregion ISimpleTextGetter
+        #endregion ISimpleTextGetter
 
-	}
+    }
+
+
+    public sealed class SimpleTextGetterWithOffset : ISimpleTextGetter
+    {
+        readonly string Text;
+        readonly int Offset;
+
+        public SimpleTextGetterWithOffset( int offset, string text )
+        {
+            Text = text;
+            Offset = offset;
+        }
+
+
+        #region ISimpleTextGetter
+
+        public string GetText( int index, int length )
+        {
+            return Text.Substring( index - Offset, length );
+        }
+
+        #endregion ISimpleTextGetter
+    }
+
 }

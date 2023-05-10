@@ -71,7 +71,16 @@ namespace RegExpressLibrary.Matches.Simple
 		}
 
 
-		public SimpleGroup AddGroup( int index, int length, int textIndex, int textLength, bool success, string name )
+        public SimpleGroup AddGroup( int index, int length, bool success, string name, ISimpleTextGetter stg )
+        {
+            var group = new SimpleGroup( index, length, stg, success, name );
+            mGroups.Add( group );
+
+            return group;
+        }
+
+
+        public SimpleGroup AddGroup( int index, int length, int textIndex, int textLength, bool success, string name )
 		{
 			var group = new SimpleGroup( index, length, textIndex, textLength, TextGetter, success, name );
 			mGroups.Add( group );

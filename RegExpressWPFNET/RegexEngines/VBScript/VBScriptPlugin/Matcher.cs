@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +21,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace VBScriptPlugin
 {
-    class Matcher : IMatcher
+    partial class Matcher : IMatcher
     {
 
         readonly string Pattern;
@@ -43,7 +46,7 @@ namespace VBScriptPlugin
             if( Options.IgnoreCase ) options += "i";
             if( Options.Global ) options += "g";
 
-            if( !ProcessUtilities.InvokeExe( cnc, "cscript.exe", new[] { "/nologo", GetWorkerPath( ), "m", Pattern, text, options }, "", out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            if( !ProcessUtilities.InvokeExe( cnc, "cscript.exe", new[] { "/nologo", GetWorkerPath( ), "e", ToArg( Pattern ), ToArg( text ), options }, "", out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
             {
                 return RegexMatches.Empty;
             }
@@ -54,7 +57,7 @@ namespace VBScriptPlugin
             {
                 // Possible: <path>\VBScriptWorker.vbs(31, 1) Microsoft VBScript runtime error: <text of error>
 
-                var m = Regex.Match( stderr_contents, @"\\VBScriptWorker\.vbs\s*\(\d+,\s*\d+\)\s*(?<err>Microsoft VBScript runtime error:.*)" );
+                var m = ErrorRegex( ).Match( stderr_contents );
                 if( m.Success )
                 {
                     throw new Exception( m.Groups["err"].Value );
@@ -70,23 +73,46 @@ namespace VBScriptPlugin
             var matches = new List<SimpleMatch>( );
             var stg = new SimpleTextGetter( text );
 
+            SimpleMatch? current_match = null;
+
             foreach( var line in lines )
             {
-                var m = Regex.Match( line, @"^m\s+(\d+)\s+(\d+)" );
-                if( !m.Success )
+                var m = MatchRegex( ).Match( line );
+                if( m.Success )
                 {
-#if DEBUG
-                    throw new Exception( $"Bad response: '{line}'." );
-#else
-                    throw new Exception( "Bad response." );
-#endif
+                    current_match = SimpleMatch.Create( int.Parse( m.Groups[1].Value ), int.Parse( m.Groups[2].Value ), stg );
+
+                    current_match.AddGroup( current_match.Index, current_match.Length, true, "" ); // default group
+
+                    matches.Add( current_match );
                 }
+                else
+                {
+                    var sm = SubmatchRegex( ).Match( line );
+                    if( sm.Success )
+                    {
+                        if( current_match == null ) throw new InvalidOperationException( );
 
-                var sm = SimpleMatch.Create( int.Parse( m.Groups[1].Value ), int.Parse( m.Groups[2].Value ), stg );
+                        //int index = current_match.Index + int.Parse( sm.Groups[1].Value ) - 1;
+                        //int length = int.Parse( sm.Groups[2].Value );
 
-                sm.AddGroup( sm.Index, sm.Length, true, "" ); // default group
+                        //current_match.AddGroup( index, length, true, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ) );
 
-                matches.Add( sm );
+
+                        string value = sm.Groups[1].Value;
+                        value = JsonNode.Parse( value )!.GetValue<string>( );
+
+                        current_match.AddGroup( current_match.Index, value.Length, true, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ), new SimpleTextGetterWithOffset( current_match.Index, value ) );
+                    }
+                    else
+                    {
+#if DEBUG
+                        throw new Exception( $"Bad response: '{line}'." );
+#else
+                        throw new Exception( "Bad response." );
+#endif
+                    }
+                }
             }
 
             return new RegexMatches( matches.Count, matches );
@@ -111,7 +137,65 @@ namespace VBScriptPlugin
 
             if( stdout_contents == null ) throw new Exception( "Null response" );
 
-            return stdout_contents.Trim();
+            return stdout_contents.Trim( );
+        }
+
+
+        static string ToArg( string text )
+        {
+            StringBuilder sb = new( );
+            bool is_open_segment = false;
+
+            foreach( char c in text )
+            {
+                if( char.IsAsciiLetterOrDigit( c ) )
+                {
+                    if( is_open_segment )
+                    {
+                        sb.Append( c );
+                    }
+                    else
+                    {
+                        if( sb.Length == 0 )
+                        {
+                            sb.Append( '\'' ).Append( c );
+                        }
+                        else
+                        {
+                            sb.Append( "&'" ).Append( c );
+                        }
+
+                        is_open_segment = true;
+                    }
+                }
+                else
+                {
+                    if( is_open_segment )
+                    {
+                        sb.Append( '\'' );
+                    }
+
+                    if( sb.Length != 0 )
+                    {
+                        sb.Append( '&' );
+                    }
+
+                    sb.Append( "ChrW(&H" ).Append( ( (uint)c ).ToString( "X" ) ).Append( ')' );
+
+                    is_open_segment = false;
+                }
+            }
+
+            if( is_open_segment )
+            {
+                sb.Append( '\'' );
+            }
+
+            string r = sb.ToString( );
+
+            if( r.Length == 0 ) r = "''";
+
+            return r;
         }
 
 
@@ -124,5 +208,14 @@ namespace VBScriptPlugin
             return worker_path;
         }
 
+
+        [GeneratedRegex( @"\\VBScriptWorker\.vbs\s*\(\d+,\s*\d+\)\s*(?<err>Microsoft VBScript runtime error:.*)" )]
+        private static partial Regex ErrorRegex( );
+
+        [GeneratedRegex( @"^m\s+(\d+)\s+(\d+)" )]
+        private static partial Regex MatchRegex( );
+
+        [GeneratedRegex( @"^s\s+("".*"")" )]
+        private static partial Regex SubmatchRegex( );
     }
 }

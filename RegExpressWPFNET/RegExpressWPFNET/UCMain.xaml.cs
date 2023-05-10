@@ -343,7 +343,7 @@ namespace RegExpressWPFNET
         {
             if( ucText.IsKeyboardFocusWithin )
             {
-                var underlining_info = ucText.GetUnderliningInfo( );
+                IReadOnlyList<Segment> underlining_info = ucText.GetUnderliningInfo( );
                 ucMatches.SetExternalUnderlining( underlining_info, setSelection: Properties.Settings.Default.MoveCaretToUnderlinedText );
             }
             else
@@ -580,7 +580,7 @@ namespace RegExpressWPFNET
                         {
                             foreach( var candidate in candidates )
                             {
-                                if( engine_version >= candidate.Version  )
+                                if( engine_version >= candidate.Version )
                                 {
                                     options = candidate.Options;
 
@@ -693,7 +693,7 @@ namespace RegExpressWPFNET
                 UITaskHelper.BeginInvoke( this,
                     ( ) =>
                     {
-                        ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) );
+                        ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ), noGroupDetails: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupDetails ) );
                         ucMatches.ShowNoPattern( );
                         lblMatches.Text = "Matches";
                         ShowOverlappingMatchesWarning( false );
@@ -731,7 +731,7 @@ namespace RegExpressWPFNET
                     UITaskHelper.BeginInvoke( this, CancellationToken.None,
                         ( ) =>
                         {
-                            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) );
+                            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ), noGroupDetails: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupDetails ) );
                             ucMatches.ShowError( exc, engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.ScrollErrorsToEnd ) );
                             lblMatches.Text = "Error";
                             ShowOverlappingMatchesWarning( false );
@@ -784,8 +784,10 @@ namespace RegExpressWPFNET
                     UITaskHelper.BeginInvoke( this,
                                     ( ) =>
                                     {
-                                        ucText.SetMatches( matches_to_show, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) );
-                                        ucMatches.SetMatches( text, matches_to_show, first_only, cbShowSucceededGroupsOnly.IsChecked == true, cbShowCaptures.IsChecked == true );
+                                        bool no_group_details = engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupDetails );
+
+                                        ucText.SetMatches( matches_to_show, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ), noGroupDetails: no_group_details );
+                                        ucMatches.SetMatches( text, matches_to_show, first_only, cbShowSucceededGroupsOnly.IsChecked == true, cbShowCaptures.IsChecked == true, no_group_details );
 
                                         lblMatches.Text = count == 0 ? "Matches" : count == 1 ? "1 match" : $"{count:#,##0} matches";
                                         ShowOverlappingMatchesWarning( is_overlapping );
@@ -807,7 +809,7 @@ namespace RegExpressWPFNET
                             ucMatches.ShowIndeterminateProgress( true );
                             ucMatches.ShowInfo( "The engine is busy, please wait…", true );
                             var engine = CurrentRegexEngine;
-                            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ) );
+                            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ), noGroupDetails: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupDetails ) );
                         } );
             }
             catch( ThreadInterruptedException )
@@ -963,13 +965,13 @@ namespace RegExpressWPFNET
             pnlRegexOptions.Children.Add( options_control );
 
             RegexEngineCapabilityEnum caps = engine.Capabilities;
-            bool groups_supported = !caps.HasFlag( RegexEngineCapabilityEnum.NoGroups );
+            bool group_details_supported = !caps.HasFlag( RegexEngineCapabilityEnum.NoGroupDetails );
             bool captures_supported = !caps.HasFlag( RegexEngineCapabilityEnum.NoCaptures );
 
             // showing unchecked checkbox when disabled
-            cbShowSucceededGroupsOnly.IsEnabled = groups_supported; //?
-            cbShowSucceededGroupsOnly.Visibility = groups_supported ? Visibility.Visible : Visibility.Collapsed;
-            cbShowSucceededGroupsOnlyDisabledUnchecked.Visibility = !groups_supported ? Visibility.Visible : Visibility.Collapsed;
+            cbShowSucceededGroupsOnly.IsEnabled = group_details_supported; //?
+            cbShowSucceededGroupsOnly.Visibility = group_details_supported ? Visibility.Visible : Visibility.Collapsed;
+            cbShowSucceededGroupsOnlyDisabledUnchecked.Visibility = !group_details_supported ? Visibility.Visible : Visibility.Collapsed;
 
             // showing unchecked checkbox when disabled
             cbShowCaptures.IsEnabled = captures_supported; //?

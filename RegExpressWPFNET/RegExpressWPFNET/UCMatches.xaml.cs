@@ -60,6 +60,7 @@ namespace RegExpressWPFNET
         bool LastShowFirstOnly;
         bool LastShowSucceededGroupsOnly;
         bool LastShowCaptures;
+        bool LastNoGroupDetails;
         IReadOnlyList<Segment>? LastExternalUnderliningSegments;
         bool LastExternalUnderliningSetSelection;
 
@@ -93,14 +94,16 @@ namespace RegExpressWPFNET
             internal readonly Span Span;
             internal readonly Inline ValueInline;
             internal readonly List<CaptureInfo> CaptureInfos = new( );
+            internal readonly bool NoGroupDetails;
 
-            public GroupInfo( MatchInfo parent, bool isSuccess, Segment groupSegment, Span span, Inline valueInline )
+            public GroupInfo( MatchInfo parent, bool isSuccess, Segment groupSegment, Span span, Inline valueInline, bool noGroupDetails )
             {
                 Parent = parent;
                 IsSuccess = isSuccess;
                 GroupSegment = groupSegment;
                 Span = span;
                 ValueInline = valueInline;
+                NoGroupDetails = noGroupDetails;
             }
 
             internal override MatchInfo GetMatchInfo( ) => Parent.GetMatchInfo( );
@@ -262,7 +265,7 @@ namespace RegExpressWPFNET
         }
 
 
-        public void SetMatches( string text, RegexMatches matches, bool showFirstOnly, bool showSucceededGroupsOnly, bool showCaptures )
+        public void SetMatches( string text, RegexMatches matches, bool showFirstOnly, bool showSucceededGroupsOnly, bool showCaptures, bool noGroupDetails )
         {
             if( matches == null ) throw new ArgumentNullException( nameof( matches ) );
 
@@ -280,6 +283,7 @@ namespace RegExpressWPFNET
                         showFirstOnly == LastShowFirstOnly &&
                         showSucceededGroupsOnly == LastShowSucceededGroupsOnly &&
                         showCaptures == LastShowCaptures &&
+                        noGroupDetails == LastNoGroupDetails &&
                         new_groups.SequenceEqual( old_groups ) &&
                         new_captures.SequenceEqual( old_captures ) )
                     {
@@ -307,6 +311,7 @@ namespace RegExpressWPFNET
                 LastShowCaptures = showCaptures;
                 LastShowFirstOnly = showFirstOnly;
                 LastShowSucceededGroupsOnly = showSucceededGroupsOnly;
+                LastNoGroupDetails = noGroupDetails;
                 LastExternalUnderliningSegments = null;
             }
 
@@ -372,7 +377,7 @@ namespace RegExpressWPFNET
                     segments.Add( mi.MatchSegment );
                     return new UnderlineInfo( segments );
                 case GroupInfo gi:
-                    if( gi.IsSuccess ) segments.Add( gi.GroupSegment );
+                    if( !gi.NoGroupDetails ) if( gi.IsSuccess ) segments.Add( gi.GroupSegment );
                     return new UnderlineInfo( segments );
                 case CaptureInfo ci:
                     segments.Add( ci.CaptureSegment );
@@ -466,6 +471,7 @@ namespace RegExpressWPFNET
             bool show_captures;
             bool show_succeeded_groups_only;
             bool show_first_only;
+            bool no_group_details;
 
             lock( this )
             {
@@ -474,6 +480,7 @@ namespace RegExpressWPFNET
                 show_captures = LastShowCaptures;
                 show_succeeded_groups_only = LastShowSucceededGroupsOnly;
                 show_first_only = LastShowFirstOnly;
+                no_group_details = LastNoGroupDetails;
             }
 
 
@@ -527,7 +534,7 @@ namespace RegExpressWPFNET
 
                 var ordered_groups =
                                     match.Groups
-                                        .Skip( 1 ) // skip match
+                                        .Skip( 1 ) // skip main group (full match)
                                         .Where( g => g.Success || !show_succeeded_groups_only )
                                         //OrderBy( g => g.Success ? g.Index : match.Index )
                                         .ToList( );
@@ -639,9 +646,22 @@ namespace RegExpressWPFNET
                         }
                         else
                         {
-                            string left = Utilities.SubstringFromTo( text, match.TextIndex, group.TextIndex );
-                            string middle = group.Value;
-                            string right = Utilities.SubstringFromTo( text, group.TextIndex + group.TextLength, Math.Max( match.TextIndex + match.TextLength, group.TextIndex + group.TextLength ) );
+                            string left;
+                            string middle;
+                            string right;
+
+                            if( no_group_details )
+                            {
+                                left = "";
+                                middle = group.Value;
+                                right = "";
+                            }
+                            else
+                            {
+                                left = Utilities.SubstringFromTo( text, match.TextIndex, group.TextIndex );
+                                middle = group.Value;
+                                right = Utilities.SubstringFromTo( text, group.TextIndex + group.TextLength, Math.Max( match.TextIndex + match.TextLength, group.TextIndex + group.TextLength ) );
+                            }
 
                             inl = sibling_run_builder.Build( left, span.ContentEnd );
                             inl.Style( GroupSiblingValueStyleInfo );
@@ -657,14 +677,17 @@ namespace RegExpressWPFNET
 
                         if( group.Success )
                         {
-                            run = new Run( $"\x200E  （{group.Index}, {group.Length}）", span.ContentEnd );
-                            run.Style( MatchNormalStyleInfo, LocationStyleInfo );
+                            if( !no_group_details )
+                            {
+                                run = new Run( $"\x200E  （{group.Index}, {group.Length}）", span.ContentEnd );
+                                run.Style( MatchNormalStyleInfo, LocationStyleInfo );
+                            }
                         }
 
                         para!.Inlines.Add( span );
                         _ = new LineBreak( span.ElementEnd ); // (after span)
 
-                        var group_info = new GroupInfo( parent: match_info!, isSuccess: group.Success, groupSegment: new Segment( group.TextIndex, group.TextLength ), span: span, valueInline: value_inline );
+                        var group_info = new GroupInfo( parent: match_info!, isSuccess: group.Success, groupSegment: new Segment( group.TextIndex, group.TextLength ), span: span, valueInline: value_inline, noGroupDetails: no_group_details );
 
                         span.Tag = group_info;
 
@@ -1049,7 +1072,7 @@ namespace RegExpressWPFNET
                     infos.Add( mi );
                     return infos;
                 case GroupInfo gi:
-                    infos.Add( gi );
+                    if( !gi.NoGroupDetails ) infos.Add( gi );
                     return infos;
                 case CaptureInfo ci:
                     infos.Add( ci );
@@ -1113,11 +1136,13 @@ namespace RegExpressWPFNET
         {
             IReadOnlyList<Segment>? segments0;
             bool set_selection;
+            bool no_group_details;
 
             lock( this )
             {
                 segments0 = LastExternalUnderliningSegments;
                 set_selection = LastExternalUnderliningSetSelection;
+                no_group_details = LastNoGroupDetails;
             }
 
             var inlines_to_underline = new List<(Inline inline, Info info)>( );
@@ -1130,22 +1155,25 @@ namespace RegExpressWPFNET
                 {
                     foreach( var mi in MatchInfos )
                     {
-                        foreach( var gi in mi.GroupInfos )
+                        if( !no_group_details )
                         {
-                            if( cnc.IsCancellationRequested ) break;
-
-                            if( segments.Contains( gi.GroupSegment ) )
-                            {
-                                inlines_to_underline.Add( (gi.ValueInline, gi) );
-                            }
-
-                            foreach( var ci in gi.CaptureInfos )
+                            foreach( var gi in mi.GroupInfos )
                             {
                                 if( cnc.IsCancellationRequested ) break;
 
-                                if( segments.Contains( ci.CaptureSegment ) )
+                                if( segments.Contains( gi.GroupSegment ) )
                                 {
-                                    inlines_to_underline.Add( (ci.ValueInline, ci) );
+                                    inlines_to_underline.Add( (gi.ValueInline, gi) );
+                                }
+
+                                foreach( var ci in gi.CaptureInfos )
+                                {
+                                    if( cnc.IsCancellationRequested ) break;
+
+                                    if( segments.Contains( ci.CaptureSegment ) )
+                                    {
+                                        inlines_to_underline.Add( (ci.ValueInline, ci) );
+                                    }
                                 }
                             }
                         }
@@ -1235,6 +1263,7 @@ namespace RegExpressWPFNET
             pbProgress.Visibility = Visibility.Hidden;
             ShowIndeterminateProgress( false );
         }
+
 
         static int EvaluateLeftWidth( RegexMatches matches, bool showSucceededGroupsOnly )
         {

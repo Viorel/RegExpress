@@ -53,6 +53,7 @@ namespace RegExpressWPFNET
         bool LastPotentialOverlaps;
         UnderlineInfo? LastExternalUnderlineInfo;
         bool LastExternalUnderlineSetSelection;
+        bool LastNoGroupDetails;
 
         readonly StyleInfo NormalStyleInfo;
         readonly StyleInfo[] HighlightStyleInfos;
@@ -124,7 +125,7 @@ namespace RegExpressWPFNET
         }
 
 
-        public void SetMatches( RegexMatches matches, bool showCaptures, string eol, bool potentialOverlaps )
+        public void SetMatches( RegexMatches matches, bool showCaptures, string eol, bool potentialOverlaps, bool noGroupDetails )
         {
             if( matches == null ) throw new ArgumentNullException( nameof( matches ) );
 
@@ -133,6 +134,7 @@ namespace RegExpressWPFNET
             bool last_show_captures;
             string? last_eol;
             bool last_potential_overlaps;
+            bool last_no_group_details;
 
             lock( this )
             {
@@ -141,6 +143,7 @@ namespace RegExpressWPFNET
                 last_show_captures = LastShowCaptures;
                 last_eol = LastEol;
                 last_potential_overlaps = LastPotentialOverlaps;
+                last_no_group_details = LastNoGroupDetails;
             }
 
             string text = GetBaseTextData( eol ).Text;
@@ -154,6 +157,7 @@ namespace RegExpressWPFNET
                     showCaptures == last_show_captures &&
                     eol == last_eol &&
                     potentialOverlaps == last_potential_overlaps &&
+                    noGroupDetails == last_no_group_details &&
                     new_groups.SequenceEqual( old_groups ) )
                 {
                     lock( this )
@@ -180,6 +184,7 @@ namespace RegExpressWPFNET
                 LastEol = eol;
                 LastPotentialOverlaps = potentialOverlaps;
                 LastExternalUnderlineInfo = null;
+                LastNoGroupDetails = noGroupDetails;
             }
 
             MatchesUpdatedEvent.Set( );
@@ -217,7 +222,7 @@ namespace RegExpressWPFNET
                 td = rtb.GetTextData( LastEol );
             }
 
-            return GetUnderliningInfo( NonCancellable.Instance, td!, LastMatches, LastShowCaptures );
+            return GetUnderliningInfo( NonCancellable.Instance, td!, LastMatches, LastShowCaptures, LastNoGroupDetails );
         }
 
 
@@ -605,12 +610,14 @@ namespace RegExpressWPFNET
             RegexMatches? matches;
             string? eol;
             bool show_captures;
+            bool no_group_details;
 
             lock( this )
             {
                 matches = LastMatches;
                 eol = LastEol;
                 show_captures = LastShowCaptures;
+                no_group_details = LastNoGroupDetails;
             }
 
             if( matches == null ) return;
@@ -629,7 +636,7 @@ namespace RegExpressWPFNET
 
             if( is_focussed )
             {
-                segments_to_underline = GetUnderliningInfo( cnc, td!, matches, show_captures ).ToList( );
+                segments_to_underline = GetUnderliningInfo( cnc, td!, matches, show_captures, no_group_details ).ToList( );
             }
 
             if( cnc.IsCancellationRequested ) return;
@@ -725,7 +732,7 @@ namespace RegExpressWPFNET
         }
 
 
-        static IReadOnlyList<Segment> GetUnderliningInfo( ICancellable reh, TextData td, RegexMatches matches, bool showCaptures )
+        static IReadOnlyList<Segment> GetUnderliningInfo( ICancellable reh, TextData td, RegexMatches matches, bool showCaptures, bool noGroupDetails )
         {
             var items = new List<Segment>( );
 
@@ -739,30 +746,33 @@ namespace RegExpressWPFNET
 
                 bool found = false;
 
-                foreach( IGroup group in match.Groups.Skip( 1 ) )
+                if( !noGroupDetails )
                 {
-                    if( reh.IsCancellationRequested ) break;
-
-                    if( !group.Success ) continue;
-
-                    if( showCaptures )
+                    foreach( IGroup group in match.Groups.Skip( 1 ) )
                     {
-                        foreach( ICapture capture in group.Captures )
-                        {
-                            if( reh.IsCancellationRequested ) break;
+                        if( reh.IsCancellationRequested ) break;
 
-                            if( td.SelectionStart >= capture.TextIndex && td.SelectionStart <= capture.TextIndex + capture.TextLength )
+                        if( !group.Success ) continue;
+
+                        if( showCaptures )
+                        {
+                            foreach( ICapture capture in group.Captures )
                             {
-                                items.Add( new Segment( capture.TextIndex, capture.TextLength ) );
-                                found = true;
+                                if( reh.IsCancellationRequested ) break;
+
+                                if( td.SelectionStart >= capture.TextIndex && td.SelectionStart <= capture.TextIndex + capture.TextLength )
+                                {
+                                    items.Add( new Segment( capture.TextIndex, capture.TextLength ) );
+                                    found = true;
+                                }
                             }
                         }
-                    }
 
-                    if( td.SelectionStart >= group.TextIndex && td.SelectionStart <= group.TextIndex + group.TextLength )
-                    {
-                        items.Add( new Segment( group.TextIndex, group.TextLength ) );
-                        found = true;
+                        if( td.SelectionStart >= group.TextIndex && td.SelectionStart <= group.TextIndex + group.TextLength )
+                        {
+                            items.Add( new Segment( group.TextIndex, group.TextLength ) );
+                            found = true;
+                        }
                     }
                 }
 
