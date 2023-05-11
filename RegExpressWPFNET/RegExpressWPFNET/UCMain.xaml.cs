@@ -28,9 +28,9 @@ namespace RegExpressWPFNET
         readonly ResumableLoop FindMatchesLoop;
         readonly ResumableLoop UpdateWhitespaceWarningLoop;
         readonly ResumableLoop ShowTextInfoLoop;
+        readonly ManualResetEvent StopIndeterminateProgressPreparationEvent = new( false );
 
         readonly Regex RegexHasWhitespace = HasWhitespaceRegex( );
-
 
         readonly IReadOnlyList<IRegexEngine> RegexEngines;
         readonly IRegexEngine DefaultRegexEngine;
@@ -710,6 +710,7 @@ namespace RegExpressWPFNET
                     UITaskHelper.BeginInvoke( this, CancellationToken.None, ( ) => ucMatches.ShowMatchingInProgress( true ) );
 
                     parsed_pattern = engine!.ParsePattern( pattern );
+                    StopIndeterminateProgressPreparationEvent.Reset( );
                     var indeterminate_progress_thread = new Thread( IndeterminateProgressThreadProc ) { Name = "rxIndeterminate", IsBackground = true };
                     try
                     {
@@ -801,7 +802,7 @@ namespace RegExpressWPFNET
         {
             try
             {
-                Thread.Sleep( 2222 );
+                if( StopIndeterminateProgressPreparationEvent.WaitOne( 2222 ) ) return; // (Sleep)
 
                 UITaskHelper.Invoke( this, CancellationToken.None,
                         ( ) =>
@@ -834,6 +835,8 @@ namespace RegExpressWPFNET
         {
             try
             {
+                StopIndeterminateProgressPreparationEvent.Set( );
+                indeterminateProgressThread.Join( 111 );
                 indeterminateProgressThread.Interrupt( );
                 indeterminateProgressThread.Join( 333 );
                 //NOT SUPPORTED: indeterminateProgressThread.Abort( );
