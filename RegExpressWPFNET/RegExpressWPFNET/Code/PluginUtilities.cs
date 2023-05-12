@@ -39,4 +39,20 @@ namespace RegExpressWPFNET.Code
             return libraryPath != null ? LoadUnmanagedDllFromPath( libraryPath ) : IntPtr.Zero;
         }
     }
+
+
+    // "engines.json" file
+
+    class EnginesData
+    {
+        public EngineData[] engines { get; set; }
+    }
+
+
+    class EngineData
+    {
+        public string path { get; set; }
+        public bool no_fm { get; set; } // do not include this engine to "Feature Matrix"
+    }
+
 }

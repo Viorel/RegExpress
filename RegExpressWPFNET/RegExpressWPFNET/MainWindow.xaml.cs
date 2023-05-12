@@ -53,6 +53,8 @@ namespace RegExpressWPFNET
 
         readonly List<IRegexPlugin> mRegexPlugins = new( );
         static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, ReadCommentHandling = JsonCommentHandling.Skip, WriteIndented = true };
+        bool IsError = false;
+        readonly HashSet<string> NoFmAssemblies = new( StringComparer.InvariantCultureIgnoreCase );
 
         public MainWindow( )
         {
@@ -89,67 +91,76 @@ namespace RegExpressWPFNET
 
             DateTime start_time = DateTime.UtcNow;
 
-            string[]? plugin_paths;
+            EnginesData? engines_data;
             string exe_path = Path.GetDirectoryName( Assembly.GetEntryAssembly( )!.Location )!;
+
+            string engines_path = Path.Combine( exe_path, "Engines.json" );
+            Debug.WriteLine( $"Loading \"{engines_path}\"..." );
 
             try
             {
-                string plugins_path = Path.Combine( exe_path, "Plugins.json" );
-                Debug.WriteLine( $"Loading \"{plugins_path}\"..." );
+                using FileStream plugins_stream = File.OpenRead( engines_path );
 
-                using FileStream plugins_stream = File.OpenRead( plugins_path );
-
-                plugin_paths = await JsonSerializer.DeserializeAsync<string[]>( plugins_stream, JsonOptions );
-                Debug.WriteLine( $"Total {plugin_paths!.Length} paths" );
+                engines_data = await JsonSerializer.DeserializeAsync<EnginesData>( plugins_stream, JsonOptions );
+                Debug.WriteLine( $"Total {engines_data?.engines?.Length} paths" );
             }
             catch( Exception exc )
             {
                 if( Debugger.IsAttached ) Debugger.Break( );
 
-                MessageBox.Show( $"Failed to load plugins.\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
+                MessageBox.Show( $"Failed to load plugins using '{engines_path}'.\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
 
+                IsError = true;
                 Close( );
                 return;
             }
 
-            foreach( var plugin_path in plugin_paths! )
+            if( engines_data?.engines != null )
             {
-                var plugin_absolute_path = Path.Combine( exe_path, plugin_path );
-                try
+                foreach( EngineData engine_data in engines_data.engines )
                 {
-                    Debug.WriteLine( $"Trying to load plugin \"{plugin_absolute_path}\"..." );
+                    string plugin_absolute_path = Path.Combine( exe_path, engine_data.path );
 
-                    PluginLoadContext load_context = new( plugin_absolute_path );
-
-                    var assembly = load_context.LoadFromAssemblyName( new AssemblyName( Path.GetFileNameWithoutExtension( plugin_absolute_path ) ) );
-
-                    var plugin_type = typeof( IRegexPlugin );
-
-                    foreach( Type type in assembly.GetTypes( ) )
+                    try
                     {
-                        if( plugin_type.IsAssignableFrom( type ) )
-                        {
-                            try
-                            {
-                                Debug.WriteLine( $"Making plugin \"{type.FullName}\"..." );
-                                IRegexPlugin plugin = (IRegexPlugin)Activator.CreateInstance( type )!;
-                                mRegexPlugins.Add( plugin );
-                            }
-                            catch( Exception exc )
-                            {
-                                if( Debugger.IsAttached ) Debugger.Break( );
+                        Debug.WriteLine( $"Trying to load plugin \"{plugin_absolute_path}\"..." );
 
-                                MessageBox.Show( $"Failed to create plugin \"{plugin_path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
+                        PluginLoadContext load_context = new( plugin_absolute_path );
+
+                        var assembly = load_context.LoadFromAssemblyName( new AssemblyName( Path.GetFileNameWithoutExtension( plugin_absolute_path ) ) );
+
+                        var plugin_type = typeof( IRegexPlugin );
+
+                        foreach( Type type in assembly.GetTypes( ) )
+                        {
+                            if( plugin_type.IsAssignableFrom( type ) )
+                            {
+                                try
+                                {
+                                    Debug.WriteLine( $"Making plugin \"{type.FullName}\"..." );
+                                    IRegexPlugin plugin = (IRegexPlugin)Activator.CreateInstance( type )!;
+                                    mRegexPlugins.Add( plugin );
+                                }
+                                catch( Exception exc )
+                                {
+                                    if( Debugger.IsAttached ) Debugger.Break( );
+
+                                    MessageBox.Show( $"Failed to create plugin \"{engine_data.path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
+                                }
+
+                                if( engine_data.no_fm )
+                                {
+                                    NoFmAssemblies.Add( type.AssemblyQualifiedName! );
+                                }
                             }
                         }
                     }
+                    catch( Exception exc )
+                    {
+                        if( Debugger.IsAttached ) Debugger.Break( );
 
-                }
-                catch( Exception exc )
-                {
-                    if( Debugger.IsAttached ) Debugger.Break( );
-
-                    MessageBox.Show( $"Failed to load plugin \"{plugin_path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
+                        MessageBox.Show( $"Failed to load plugin \"{engine_data.path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
+                    }
                 }
             }
 
@@ -164,7 +175,14 @@ namespace RegExpressWPFNET
                 }
             }
 #endif
+            if( mRegexPlugins.Count == 0 )
+            {
+                MessageBox.Show( $"No engines loaded using '{engines_path}'.\r\n", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
 
+                IsError = true;
+                Close( );
+                return;
+            }
 
             // --- Load saved data
 
@@ -259,19 +277,22 @@ namespace RegExpressWPFNET
         {
             AutoSaveLoop.SignalRewind( );
 
-            try
+            if( !IsError ) // avoid overwritting details in case of errors
             {
-                SaveAllTabData( );
-            }
-            catch( Exception exc )
-            {
-                if( Debugger.IsAttached ) Debugger.Break( );
-                else Debug.Fail( exc.Message, exc.ToString( ) );
+                try
+                {
+                    SaveAllTabData( );
+                }
+                catch( Exception exc )
+                {
+                    if( Debugger.IsAttached ) Debugger.Break( );
+                    else Debug.Fail( exc.Message, exc.ToString( ) );
 
-                // ignore
-            }
+                    // ignore
+                }
 
-            SaveWindowPlacement( );
+                SaveWindowPlacement( );
+            }
         }
 
 
@@ -434,7 +455,7 @@ namespace RegExpressWPFNET
         {
             try
             {
-                var engines = CreateEngines( );
+                var engines = CreateEngines( excludeNoFm: true );
 
                 string path = Path.Combine( Path.GetTempPath( ), Guid.NewGuid( ).ToString( "N" ) + ".html" );
 
@@ -462,9 +483,9 @@ namespace RegExpressWPFNET
         #endregion
 
 
-        IReadOnlyList<IRegexEngine> CreateEngines( )
+        IReadOnlyList<IRegexEngine> CreateEngines( bool excludeNoFm = false )
         {
-            return mRegexPlugins.SelectMany( p => p.GetEngines( ) ).ToArray( );
+            return mRegexPlugins.Where( p => !excludeNoFm || !NoFmAssemblies.Contains( p.GetType( ).AssemblyQualifiedName! ) ).SelectMany( p => p.GetEngines( ) ).ToArray( );
         }
 
 

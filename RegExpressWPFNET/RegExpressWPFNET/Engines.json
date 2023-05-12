@@ -1,0 +1,39 @@
+{
+  "engines": [
+    {
+      "path": "Engines\\DotNET7\\DotNET7Plugin.dll"
+    },
+    {
+      "path": "Engines\\DotNET6\\DotNET6Plugin.dll",
+      "no_fm": true
+    },
+    {
+      "path": "Engines\\DotNETFramework4_8\\DotNETFrameworkPlugin.dll",
+      "no_fm": true
+    },
+    {
+      "path": "Engines\\Std\\StdPlugin.dll"
+    },
+    {
+      "path": "Engines\\RE2\\RE2Plugin.dll"
+    },
+    {
+      "path": "Engines\\SubReg\\SubRegPlugin.dll"
+    },
+    {
+      "path": "Engines\\PCRE2\\PCRE2Plugin.dll"
+    },
+    {
+      "path": "Engines\\Boost\\BoostPlugin.dll"
+    },
+    {
+      "path": "Engines\\Oniguruma\\OnigurumaPlugin.dll"
+    },
+    {
+      "path": "Engines\\WebView2\\WebView2Plugin.dll"
+    },
+    {
+      "path": "Engines\\VBScript\\VBScriptPlugin.dll"
+    }
+  ]
+}
