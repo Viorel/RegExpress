@@ -48,7 +48,13 @@ namespace RegExpressWPFNET.Code
                     {
                         if( mLengthInTextElements < 0 )
                         {
-                            var si = new StringInfo( Text );
+                            //var si = new StringInfo( Text );
+
+                            // For some reasons, "\r\n" is counted as one element (in contrast to .NET Framework 4.8)
+                            // Workaround:
+                            var si = new StringInfo( Text.Replace( "\r", "x" ) );
+                            // TODO: Reconsider in next versions of .NET
+
                             mLengthInTextElements = si.LengthInTextElements;
                         }
                     }
