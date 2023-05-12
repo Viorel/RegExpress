@@ -45,13 +45,13 @@ namespace RegExpressWPFNET.Code
 
     class EnginesData
     {
-        public EngineData[] engines { get; set; }
+        public EngineData[]? engines { get; set; }
     }
 
 
     class EngineData
     {
-        public string path { get; set; }
+        public string? path { get; set; }
         public bool no_fm { get; set; } // do not include this engine to "Feature Matrix"
     }
 

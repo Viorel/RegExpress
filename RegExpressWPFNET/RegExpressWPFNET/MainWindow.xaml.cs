@@ -119,7 +119,7 @@ namespace RegExpressWPFNET
             {
                 foreach( EngineData engine_data in engines_data.engines )
                 {
-                    string plugin_absolute_path = Path.Combine( exe_path, engine_data.path );
+                    string plugin_absolute_path = Path.Combine( exe_path, engine_data.path! );
 
                     try
                     {

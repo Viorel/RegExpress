@@ -100,7 +100,16 @@ namespace VBScriptPlugin
 
 
                         string value = sm.Groups[1].Value;
-                        value = JsonNode.Parse( value )!.GetValue<string>( );
+
+                        //value = JsonNode.Parse( value )!.GetValue<string>( ); // does not work with incomplete surrogate pairs
+                        //value = CSharpScript.EvaluateAsync<string>( value ).Result; // too large dependencies
+
+                        Debug.Assert( value.StartsWith( '"' ));
+                        Debug.Assert( value.EndsWith( '"' ));
+
+                        value = value[1..^1];
+
+                        value = Regex.Replace( value, @"\\u([0-9A-Fa-f]{4})", m => ( (char)Convert.ToUInt16( m.Groups[1].Value, 16 ) ).ToString( ) );
 
                         current_match.AddGroup( current_match.Index, value.Length, true, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ), new SimpleTextGetterWithOffset( current_match.Index, value ) );
                     }
