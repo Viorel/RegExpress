@@ -567,7 +567,11 @@ namespace RegExpressWPFNET
                 ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
                 {
                     pbProgress.Value = match_number;
-                    if( Environment.TickCount >= show_pb_time ) pbProgress.Visibility = Visibility.Visible;
+                    if( Environment.TickCount >= show_pb_time )
+                    {
+                        if( cnc.IsCancellationRequested ) return;
+                        pbProgress.Visibility = Visibility.Visible;
+                    }
 
                     var span = new Span( );
 
