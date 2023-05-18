@@ -1,4 +1,5 @@
 #include "pch.h"
+
 #include "BinaryWriter.h"
 #include "StreamWriter.h"
 #include "CheckedCast.h"

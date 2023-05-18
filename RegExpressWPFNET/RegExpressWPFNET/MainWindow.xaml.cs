@@ -515,12 +515,13 @@ namespace RegExpressWPFNET
             try
             {
                 var all_data = new AllTabData( );
-                var uc_main_controls = GetMainTabs( ).Select( t => (UCMain)t.Content );
+                var main_controls = GetMainTabs( ).Select( t => new { t.Header, uc_main = (UCMain)t.Content } );
 
-                foreach( var uc_main in uc_main_controls )
+                foreach( var main_control in main_controls )
                 {
                     var tab_data = new TabData( );
-                    uc_main!.ExportTabData( tab_data );
+                    main_control.uc_main!.ExportTabData( tab_data );
+                    tab_data.Name = main_control.Header.ToString( );
                     all_data.Tabs.Add( tab_data );
                 }
 

@@ -81,13 +81,10 @@ namespace RegExpressWPFNET.Adorners
 		}
 
 
-		RichTextBox Rtb
-		{
-			get { return (RichTextBox)AdornedElement; }
-		}
+        RichTextBox Rtb => (RichTextBox)AdornedElement;
 
 
-		private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
+        private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
 		{
 			MustRecalculateSegments = true;
 			DelayedInvalidateVisual( );

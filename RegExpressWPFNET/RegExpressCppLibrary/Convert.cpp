@@ -124,9 +124,7 @@ std::string WStringToUtf8( const std::wstring& s, std::vector<int>* indices )
     indices->reserve( s.length( ) + 1 );
 
     mbstate_t mbstate = { 0 };
-    char* const buffer = (char*)_alloca( MB_CUR_MAX );
-
-    if( buffer == nullptr ) throw std::runtime_error( "Cannot allocate on stack." );
+    char buffer[MB_LEN_MAX] = { 0 };
 
     size_t bytes_written = 0;
     bool is_surrogate_pair = false;
@@ -142,6 +140,7 @@ std::string WStringToUtf8( const std::wstring& s, std::vector<int>* indices )
         }
 
         size_t size_converted = c16rtomb( buffer, *p, &mbstate );
+        assert( size_converted <= MB_LEN_MAX );
 
         if( size_converted == (size_t)-1 )
         {

@@ -1,7 +1,8 @@
 
-Dim fso, stdout, stderr
+Dim fso, stdin, stdout, stderr
 
 Set fso = CreateObject("Scripting.FileSystemObject")
+Set stdin = fso.GetStandardStream(0)
 Set stdout = fso.GetStandardStream(1)
 Set stderr = fso.GetStandardStream(2)
 
@@ -21,20 +22,30 @@ If command = "v" Then
 
 End If
 
-If command = "m" Or command = "e" Then
+If command = "m" Or command = "e" Or command = "x" Then
 
-    If WScript.Arguments.Count < 4 Then
+    If (command = "m" Or command = "e") And WScript.Arguments.Count < 4 Then
         stderr.WriteLine "Bad arguments"
         WScript.Quit
     End If
 
     Dim pattern, text, options
 
-    pattern = WScript.Arguments(1)
-    text = WScript.Arguments(2)
-    options = WScript.Arguments(3)
+    If command = "m" Or command = "e" Then 
+        pattern = WScript.Arguments(1)
+        text = WScript.Arguments(2)
+        options = WScript.Arguments(3)
+    Else
+        Dim inp
+        inp = stdin.ReadAll()
+        Dim arr
+        arr = Split(inp, ChrW(&H1F))
+        pattern = arr(0)
+        text = arr(1)
+        options = arr(2)
+    End If
 
-    If command = "e" Then
+    If command = "e" Or command = "x" Then
         pattern = Eval(Replace(pattern, "'", """"))
         text = Eval(Replace(text, "'", """"))
     End If

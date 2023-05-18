@@ -46,7 +46,16 @@ namespace VBScriptPlugin
             if( Options.IgnoreCase ) options += "i";
             if( Options.Global ) options += "g";
 
-            if( !ProcessUtilities.InvokeExe( cnc, "cscript.exe", new[] { "/nologo", GetWorkerPath( ), "e", ToArg( Pattern ), ToArg( text ), options }, "", out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            Action<StreamWriter> stdin_writer = new Action<StreamWriter>( sw =>
+            {
+                sw.Write( ToArg( Pattern ) );
+                sw.Write( "\u001F" );
+                sw.Write( ToArg( text ) );
+                sw.Write( "\u001F" );
+                sw.Write( options );
+            } );
+
+            if( !ProcessUtilities.InvokeExe( cnc, "cscript.exe", new[] { "/nologo", GetWorkerPath( ), "x" }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
             {
                 return RegexMatches.Empty;
             }
@@ -104,8 +113,8 @@ namespace VBScriptPlugin
                         //value = JsonNode.Parse( value )!.GetValue<string>( ); // does not work with incomplete surrogate pairs
                         //value = CSharpScript.EvaluateAsync<string>( value ).Result; // too large dependencies
 
-                        Debug.Assert( value.StartsWith( '"' ));
-                        Debug.Assert( value.EndsWith( '"' ));
+                        Debug.Assert( value.StartsWith( '"' ) );
+                        Debug.Assert( value.EndsWith( '"' ) );
 
                         value = value[1..^1];
 

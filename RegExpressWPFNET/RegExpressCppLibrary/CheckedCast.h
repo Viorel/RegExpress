@@ -133,8 +133,9 @@ namespace
 
 
 /// <summary>
-/// Usage 'CheckedCast(some_value)', not 'CheckedCast&lt;some_type>(some_value)'.
-/// The target type is determined from context.
+/// <para>Usage: 'CheckedCast(some_value)', not 'CheckedCast&lt;some_type>(some_value)'.
+/// The target type is determined from context.</para>
+/// <para>Example: <c>int x = 1234; char c = CheckedCast(x);</c> </para>
 /// </summary>
 /// <typeparam name="FROM">(Type determined automatically)</typeparam>
 /// <param name="v">The value to convert</param>

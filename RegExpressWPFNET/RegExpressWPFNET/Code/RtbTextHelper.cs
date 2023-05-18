@@ -114,7 +114,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        void ProcessInline( LineBreak lb) // unused 'lb' is here for dynamic dispatch
+        void ProcessInline( LineBreak _) // unused '_' is here for dynamic dispatch
         {
             Sb.Append( Eol );
         }

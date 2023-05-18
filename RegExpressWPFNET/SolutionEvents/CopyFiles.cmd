@@ -38,7 +38,7 @@ set BaseDir=%SolutionDir%\RegexEngines\DotNETFramework4_8
 xcopy /D /R /Y "%BaseDir%\DotNETFrameworkPlugin\bin\%Configuration%\%TargetFramework%\DotNETFrameworkPlugin.dll" "%EnginesTargetDir%\DotNETFramework4_8\*"
 xcopy /D /R /Y "%BaseDir%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe" "%EnginesTargetDir%\DotNETFramework4_8\Worker\*.bin"
 xcopy /D /R /Y "%BaseDir%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe.config" "%EnginesTargetDir%\DotNETFramework4_8\Worker\*"
-ren "%EnginesTargetDir%\DotNETFramework4_8\Worker\DotNETFrameworkWorker.exe.config" "DotNETFrameworkWorker.bin.config"
+copy /Y "%EnginesTargetDir%\DotNETFramework4_8\Worker\DotNETFrameworkWorker.exe.config" "%EnginesTargetDir%\DotNETFramework4_8\Worker\DotNETFrameworkWorker.bin.config"
 xcopy /D /R /Y "%BaseDir%\DotNETFrameworkWorker\bin\%Configuration%\*.dll" "%EnginesTargetDir%\DotNETFramework4_8\Worker\*"
 rem xcopy /D /R /Y "%BaseDir%\DotNETFrameworkWorker\bin\%Configuration%\*.config" "%EnginesTargetDir%\DotNETFramework4_8\*.bin"
 
