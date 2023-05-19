@@ -606,7 +606,7 @@ namespace RegExpressWPFNET
             // if matches are outdated, then wait a while
             MatchesUpdatedEvent.WaitOne( 444 );
 
-            bool is_focussed = false;
+            bool is_focused = false;
             RegexMatches? matches;
             string? eol;
             bool show_captures;
@@ -626,15 +626,15 @@ namespace RegExpressWPFNET
 
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
-                is_focussed = rtb.IsFocused;
-                if( is_focussed ) td = rtb.GetTextData( eol );
+                is_focused = rtb.IsFocused;
+                if( is_focused ) td = rtb.GetTextData( eol );
             } );
 
             if( cnc.IsCancellationRequested ) return;
 
             List<Segment>? segments_to_underline = null;
 
-            if( is_focussed )
+            if( is_focused )
             {
                 segments_to_underline = GetUnderliningInfo( cnc, td!, matches, show_captures, no_group_details ).ToList( );
             }
@@ -661,7 +661,7 @@ namespace RegExpressWPFNET
 
             if( cnc.IsCancellationRequested ) return;
 
-            if( is_focussed )
+            if( is_focused )
             {
                 ChangeEventHelper.BeginInvoke( CancellationToken.None, ( ) =>
                             {

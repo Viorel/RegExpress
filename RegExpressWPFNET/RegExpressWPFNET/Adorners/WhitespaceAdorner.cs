@@ -19,660 +19,660 @@ using RegExpressWPFNET.Controls;
 namespace RegExpressWPFNET.Adorners
 {
     partial class WhitespaceAdorner : Adorner
-	{
-		readonly ChangeEventHelper ChangeEventHelper;
-		readonly Brush WsBrush = Brushes.LightSeaGreen;
-		readonly Pen TabPen = new( Brushes.LightSeaGreen, 1 );
-		readonly Pen EolPen = new( Brushes.LightSeaGreen, 1 );
-		readonly Pen EofPen = new( Brushes.LightSeaGreen, 1 );
-		readonly Brush EofBrush = Brushes.Transparent;
+    {
+        readonly ChangeEventHelper ChangeEventHelper;
+        readonly Brush WsBrush = Brushes.LightSeaGreen;
+        readonly Pen TabPen = new( Brushes.LightSeaGreen, 1 );
+        readonly Pen EolPen = new( Brushes.LightSeaGreen, 1 );
+        readonly Pen EofPen = new( Brushes.LightSeaGreen, 1 );
+        readonly Brush EofBrush = Brushes.Transparent;
 
-		readonly char[] SpacesAndTabs = new[] { ' ', '\t' }; // (For performance reasons, we only consider regular spaces)
+        readonly char[] SpacesAndTabs = new[] { ' ', '\t' }; // (For performance reasons, we only consider regular spaces)
 
-		readonly ResumableLoop Loop;
+        readonly ResumableLoop Loop;
 
-		List<Rect> PositionsSpaces = new( );
-		List<Rect> PositionsTabs = new( );
-		List<Rect> PositionsEols = new( );
-		Rect PositionEof = Rect.Empty;
-		bool mShowWhitespaces = false;
-		int PreviousTextChangedTime = Environment.TickCount;
+        List<Rect> PositionsSpaces = new( );
+        List<Rect> PositionsTabs = new( );
+        List<Rect> PositionsEols = new( );
+        Rect PositionEof = Rect.Empty;
+        bool mShowWhitespaces = false;
+        int PreviousTextChangedTime = Environment.TickCount;
 
-		internal bool IsDbgDisabled { get; set; } // (disable this adorner for debugging purposes)
-
-
-		public WhitespaceAdorner( MyRichTextBox rtb, ChangeEventHelper ceh ) : base( rtb )
-		{
-			ChangeEventHelper = ceh;
-			Debug.Assert( ChangeEventHelper != null );
-
-			WsBrush.Freeze( );
-			TabPen.Freeze( );
-			EolPen.Freeze( );
-			EofPen.Freeze( );
-			EofBrush.Freeze( );
-
-			IsHitTestVisible = false;
-
-			Rtb.TextChanged += Rtb_TextChanged;
-			Rtb.AddHandler( ScrollViewer.ScrollChangedEvent, new RoutedEventHandler( Rtb_ScrollChanged ), true );
-
-			Loop = new ResumableLoop( ThreadProc, 33, 33, 444 );
-		}
+        internal bool IsDbgDisabled { get; set; } // (disable this adorner for debugging purposes)
 
 
-		public void ShowWhiteSpaces( bool yes )
-		{
-			if( IsDbgDisabled ) return;
+        public WhitespaceAdorner( MyRichTextBox rtb, ChangeEventHelper ceh ) : base( rtb )
+        {
+            ChangeEventHelper = ceh;
+            Debug.Assert( ChangeEventHelper != null );
 
-			lock( this )
-			{
-				mShowWhitespaces = yes;
+            WsBrush.Freeze( );
+            TabPen.Freeze( );
+            EolPen.Freeze( );
+            EofPen.Freeze( );
+            EofBrush.Freeze( );
 
-				Loop.SignalWaitAndExecute( );
-			}
+            IsHitTestVisible = false;
 
-			// switching to "No" is handled here; the thread does not deal with it
+            Rtb.TextChanged += Rtb_TextChanged;
+            Rtb.AddHandler( ScrollViewer.ScrollChangedEvent, new RoutedEventHandler( Rtb_ScrollChanged ), true );
 
-			if( !mShowWhitespaces )
-			{
-				lock( this )
-				{
-					PositionsSpaces.Clear( );
-					PositionsTabs.Clear( );
-					PositionsEols.Clear( );
-					PositionEof = Rect.Empty;
-				}
+            Loop = new ResumableLoop( ThreadProc, 33, 33, 444 );
+        }
 
-				DelayedInvalidateVisual( );
-			}
-		}
+
+        public void ShowWhiteSpaces( bool yes )
+        {
+            if( IsDbgDisabled ) return;
+
+            lock( this )
+            {
+                mShowWhitespaces = yes;
+
+                Loop.SignalWaitAndExecute( );
+            }
+
+            // switching to "No" is handled here; the thread does not deal with it
+
+            if( !mShowWhitespaces )
+            {
+                lock( this )
+                {
+                    PositionsSpaces.Clear( );
+                    PositionsTabs.Clear( );
+                    PositionsEols.Clear( );
+                    PositionEof = Rect.Empty;
+                }
+
+                DelayedInvalidateVisual( );
+            }
+        }
 
 
         MyRichTextBox Rtb => (MyRichTextBox)AdornedElement;
 
 
         private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
-		{
-			if( IsDbgDisabled ) return;
-			if( ChangeEventHelper == null || ChangeEventHelper.IsInChange ) return;
-			if( !mShowWhitespaces ) return;
-
-			// invalidate some areas, but not too offen
-
-			if( Environment.TickCount - PreviousTextChangedTime > 777 )
-			{
-				var rtb = Rtb;
-
-				foreach( var change in e.Changes )
-				{
-					TextPointer start = rtb.Document.ContentStart.GetPositionAtOffset( change.Offset );
-					if( start == null ) continue;
-
-					TextPointer end = start.GetPositionAtOffset( Math.Max( change.RemovedLength, change.AddedLength ) );
-					if( end == null ) continue;
-
-					var start_rect = start.GetCharacterRect( LogicalDirection.Forward );
-					var end_rect = end.GetCharacterRect( LogicalDirection.Backward );
-					var change_rect = Rect.Union( start_rect, end_rect );
-					if( change_rect.IsEmpty ) continue;
-
-					//
-					change_rect = new Rect( change_rect.Left, change_rect.Top, rtb.ViewportWidth, change_rect.Height );
-					change_rect.Offset( rtb.HorizontalOffset, rtb.VerticalOffset );
-
-					lock( this )
-					{
-						for( int i = 0; i < PositionsSpaces.Count; ++i )
-						{
-							Rect r = PositionsSpaces[i];
-							if( r.IntersectsWith( change_rect ) )
-							{
-								PositionsSpaces[i] = Rect.Empty;
-							}
-						}
-
-						for( int i = 0; i < PositionsEols.Count; ++i )
-						{
-							Rect r = PositionsEols[i];
-							if( r.IntersectsWith( change_rect ) )
-							{
-								PositionsEols[i] = Rect.Empty;
-							}
-						}
-
-						if( PositionEof.IntersectsWith( change_rect ) )
-						{
-							PositionEof = Rect.Empty;
-						}
-					}
-				}
-
-				InvalidateVisual( );
-			}
-
-			PreviousTextChangedTime = Environment.TickCount;
-
-			Loop.SignalWaitAndExecute( );
-		}
-
-
-		private void Rtb_ScrollChanged( object sender, RoutedEventArgs e )
-		{
-			if( IsDbgDisabled ) return;
-			if( ChangeEventHelper == null || ChangeEventHelper.IsInChange ) return;
-			if( !mShowWhitespaces ) return;
-
-			InvalidateVisual( ); // to redraw what we already have, in new positions
-			Loop.SignalWaitAndExecute( );
-		}
-
-
-		protected override void OnRender( DrawingContext drawingContext )
-		{
-			base.OnRender( drawingContext );  // (probably nothing)
-
-			if( IsDbgDisabled ) return;
-			if( !mShowWhitespaces ) return;
-
-			var dc = drawingContext;
-			var rtb = Rtb;
-			var clip_rect = new Rect( new Size( rtb.ViewportWidth, rtb.ViewportHeight ) );
-
-			dc.PushClip( new RectangleGeometry( clip_rect ) );
-
-			var t = new TranslateTransform( -rtb.HorizontalOffset, -rtb.VerticalOffset );
-			dc.PushTransform( t );
-
-			// make copies
-			List<Rect> positions_spaces;
-			List<Rect> positions_tabs;
-			List<Rect> positions_eols;
-			lock( this )
-			{
-				positions_spaces = PositionsSpaces.ToList( );
-				positions_tabs = PositionsTabs.ToList( );
-				positions_eols = PositionsEols.ToList( );
-			}
-
-			foreach( var rect in positions_spaces )
-			{
-				if( !rect.IsEmpty ) DrawSpace( dc, rect );
-			}
-
-			foreach( var rect in positions_tabs )
-			{
-				if( !rect.IsEmpty ) DrawTab( dc, rect );
-			}
-
-			foreach( var rect in positions_eols )
-			{
-				if( !rect.IsEmpty ) DrawEol( dc, rect );
-			}
-
-			if( !PositionEof.IsEmpty )
-			{
-				DrawEof( dc, PositionEof );
-			}
-
-			dc.Pop( ); // (transform)
-			dc.Pop( ); // (clip)
-		}
-
-
-		protected override void OnRenderSizeChanged( SizeChangedInfo sizeInfo )
-		{
-			base.OnRenderSizeChanged( sizeInfo );
-
-			if( IsDbgDisabled ) return;
-
-			DelayedInvalidateVisual( );
-			Loop.SignalWaitAndExecute( );
-		}
-
-
-		void DelayedInvalidateVisual( )
-		{
-			Dispatcher.BeginInvoke( DispatcherPriority.Background, new Action( InvalidateVisual ) );
-		}
-
-
-		void DrawSpace( DrawingContext dc, Rect rect ) // draw a '·'
         {
-			const int DOT_SIZE = 2;
+            if( IsDbgDisabled ) return;
+            if( ChangeEventHelper == null || ChangeEventHelper.IsInChange ) return;
+            if( !mShowWhitespaces ) return;
 
-			var x = rect.Left + rect.Width / 2;
-			var y = Math.Floor( rect.Top + rect.Height / 2 - DOT_SIZE / 2 );
-			var dot_rect = new Rect( x, y, DOT_SIZE, DOT_SIZE );
+            // invalidate some areas, but not too often
 
-			dc.DrawRectangle( WsBrush, null, dot_rect );
-		}
+            if( Environment.TickCount - PreviousTextChangedTime > 777 )
+            {
+                var rtb = Rtb;
+
+                foreach( var change in e.Changes )
+                {
+                    TextPointer start = rtb.Document.ContentStart.GetPositionAtOffset( change.Offset );
+                    if( start == null ) continue;
+
+                    TextPointer end = start.GetPositionAtOffset( Math.Max( change.RemovedLength, change.AddedLength ) );
+                    if( end == null ) continue;
+
+                    var start_rect = start.GetCharacterRect( LogicalDirection.Forward );
+                    var end_rect = end.GetCharacterRect( LogicalDirection.Backward );
+                    var change_rect = Rect.Union( start_rect, end_rect );
+                    if( change_rect.IsEmpty ) continue;
+
+                    //
+                    change_rect = new Rect( change_rect.Left, change_rect.Top, rtb.ViewportWidth, change_rect.Height );
+                    change_rect.Offset( rtb.HorizontalOffset, rtb.VerticalOffset );
+
+                    lock( this )
+                    {
+                        for( int i = 0; i < PositionsSpaces.Count; ++i )
+                        {
+                            Rect r = PositionsSpaces[i];
+                            if( r.IntersectsWith( change_rect ) )
+                            {
+                                PositionsSpaces[i] = Rect.Empty;
+                            }
+                        }
+
+                        for( int i = 0; i < PositionsEols.Count; ++i )
+                        {
+                            Rect r = PositionsEols[i];
+                            if( r.IntersectsWith( change_rect ) )
+                            {
+                                PositionsEols[i] = Rect.Empty;
+                            }
+                        }
+
+                        if( PositionEof.IntersectsWith( change_rect ) )
+                        {
+                            PositionEof = Rect.Empty;
+                        }
+                    }
+                }
+
+                InvalidateVisual( );
+            }
+
+            PreviousTextChangedTime = Environment.TickCount;
+
+            Loop.SignalWaitAndExecute( );
+        }
 
 
-		void DrawTab( DrawingContext dc, Rect rect ) // draw a '→'
+        private void Rtb_ScrollChanged( object sender, RoutedEventArgs e )
         {
-			const int ARROW_WIDTH = 6;
+            if( IsDbgDisabled ) return;
+            if( ChangeEventHelper == null || ChangeEventHelper.IsInChange ) return;
+            if( !mShowWhitespaces ) return;
 
-			var half_pen = TabPen.Thickness / 2;
-
-			var x = Math.Ceiling( rect.Left ) + half_pen;
-			var y = Math.Ceiling( rect.Top + rect.Height / 2 ) - half_pen;
-
-			dc.DrawLine( TabPen, new Point( x, y ), new Point( x + ARROW_WIDTH, y ) );
-			dc.DrawLine( TabPen, new Point( x + ARROW_WIDTH / 2, y - ARROW_WIDTH / 2 ), new Point( x + ARROW_WIDTH, y ) );
-			dc.DrawLine( TabPen, new Point( x + ARROW_WIDTH / 2, y + ARROW_WIDTH / 2 ), new Point( x + ARROW_WIDTH, y ) );
-		}
+            InvalidateVisual( ); // to redraw what we already have, in new positions
+            Loop.SignalWaitAndExecute( );
+        }
 
 
-		void DrawEol( DrawingContext dc, Rect eol_rect ) // draw a '↲' 
+        protected override void OnRender( DrawingContext drawingContext )
         {
-			const int EOL_WIDTH = 6;
+            base.OnRender( drawingContext );  // (probably nothing)
 
-			var half_pen = EolPen.Thickness / 2;
+            if( IsDbgDisabled ) return;
+            if( !mShowWhitespaces ) return;
 
-			var x = Math.Ceiling( eol_rect.Left + 2 ) + half_pen;
-			var y = Math.Ceiling( eol_rect.Top + eol_rect.Height / 2 ) - half_pen;
+            var dc = drawingContext;
+            var rtb = Rtb;
+            var clip_rect = new Rect( new Size( rtb.ViewportWidth, rtb.ViewportHeight ) );
 
-			dc.DrawLine( EolPen, new Point( x, y ), new Point( x + EOL_WIDTH, y ) );
-			dc.DrawLine( EolPen, new Point( x + EOL_WIDTH, y ), new Point( x + EOL_WIDTH, y - eol_rect.Height * 0.35 ) );
-			dc.DrawLine( EolPen, new Point( x, y ), new Point( x + EOL_WIDTH / 2, y - EOL_WIDTH / 2 ) );
-			dc.DrawLine( EolPen, new Point( x, y ), new Point( x + EOL_WIDTH / 2, y + EOL_WIDTH / 2 ) );
-		}
+            dc.PushClip( new RectangleGeometry( clip_rect ) );
+
+            var t = new TranslateTransform( -rtb.HorizontalOffset, -rtb.VerticalOffset );
+            dc.PushTransform( t );
+
+            // make copies
+            List<Rect> positions_spaces;
+            List<Rect> positions_tabs;
+            List<Rect> positions_eols;
+            lock( this )
+            {
+                positions_spaces = PositionsSpaces.ToList( );
+                positions_tabs = PositionsTabs.ToList( );
+                positions_eols = PositionsEols.ToList( );
+            }
+
+            foreach( var rect in positions_spaces )
+            {
+                if( !rect.IsEmpty ) DrawSpace( dc, rect );
+            }
+
+            foreach( var rect in positions_tabs )
+            {
+                if( !rect.IsEmpty ) DrawTab( dc, rect );
+            }
+
+            foreach( var rect in positions_eols )
+            {
+                if( !rect.IsEmpty ) DrawEol( dc, rect );
+            }
+
+            if( !PositionEof.IsEmpty )
+            {
+                DrawEof( dc, PositionEof );
+            }
+
+            dc.Pop( ); // (transform)
+            dc.Pop( ); // (clip)
+        }
 
 
-		void DrawEof( DrawingContext dc, Rect rect ) // draw a '▯'
+        protected override void OnRenderSizeChanged( SizeChangedInfo sizeInfo )
         {
-			const double EOF_WIDTH = 4;
+            base.OnRenderSizeChanged( sizeInfo );
 
-			double h = Math.Ceiling( rect.Height * 0.3 );
-			double half_pen = EofPen.Thickness / 2;
+            if( IsDbgDisabled ) return;
 
-			var x = Math.Ceiling( rect.Left + 2 ) + half_pen;
-			var y = Math.Floor( rect.Top + ( rect.Height - h ) / 2 ) - half_pen;
+            DelayedInvalidateVisual( );
+            Loop.SignalWaitAndExecute( );
+        }
 
-			var eof_rect = new Rect( x, y, EOF_WIDTH, h );
 
-			dc.DrawRectangle( EofBrush, EofPen, eof_rect );
-		}
+        void DelayedInvalidateVisual( )
+        {
+            Dispatcher.BeginInvoke( DispatcherPriority.Background, new Action( InvalidateVisual ) );
+        }
 
 
-		void ThreadProc( ICancellable cnc )
-		{
-			if( !mShowWhitespaces ) return;
+        void DrawSpace( DrawingContext dc, Rect rect ) // draw a '·'
+        {
+            const int DOT_SIZE = 2;
 
-			var rtb = Rtb;
-			TextData? td = null;
-			Rect clip_rect = Rect.Empty;
-			int top_index = 0;
+            var x = rect.Left + rect.Width / 2;
+            var y = Math.Floor( rect.Top + rect.Height / 2 - DOT_SIZE / 2 );
+            var dot_rect = new Rect( x, y, DOT_SIZE, DOT_SIZE );
 
-			UITaskHelper.Invoke( rtb,
-				( ) =>
-				{
-					td = null;
+            dc.DrawRectangle( WsBrush, null, dot_rect );
+        }
 
-					var start_doc = rtb.Document.ContentStart;
-					var end_doc = rtb.Document.ContentStart;
 
-					if( !start_doc.HasValidLayout || !end_doc.HasValidLayout ) return;
+        void DrawTab( DrawingContext dc, Rect rect ) // draw a '→'
+        {
+            const int ARROW_WIDTH = 6;
 
-					var td0 = rtb.GetTextData( null );
+            var half_pen = TabPen.Thickness / 2;
 
-					if( cnc.IsCancellationRequested ) return;
+            var x = Math.Ceiling( rect.Left ) + half_pen;
+            var y = Math.Ceiling( rect.Top + rect.Height / 2 ) - half_pen;
 
-					td = td0;
-					clip_rect = new Rect( new Size( rtb.ViewportWidth, rtb.ViewportHeight ) );
+            dc.DrawLine( TabPen, new Point( x, y ), new Point( x + ARROW_WIDTH, y ) );
+            dc.DrawLine( TabPen, new Point( x + ARROW_WIDTH / 2, y - ARROW_WIDTH / 2 ), new Point( x + ARROW_WIDTH, y ) );
+            dc.DrawLine( TabPen, new Point( x + ARROW_WIDTH / 2, y + ARROW_WIDTH / 2 ), new Point( x + ARROW_WIDTH, y ) );
+        }
 
-					TextPointer start_pointer = rtb.GetPositionFromPoint( new Point( 0, 0 ), snapToText: true ).GetLineStartPosition( -1, out int unused );
-					top_index = td.TextPointers.GetIndex( start_pointer, LogicalDirection.Backward );
-					if( top_index < 0 ) top_index = 0;
-				} );
 
-			if( cnc.IsCancellationRequested ) return;
+        void DrawEol( DrawingContext dc, Rect eol_rect ) // draw a '↲' 
+        {
+            const int EOL_WIDTH = 6;
 
-			if( td != null )
-			{
-				CollectEols( cnc, td, clip_rect, top_index );
-				if( cnc.IsCancellationRequested ) return;
+            var half_pen = EolPen.Thickness / 2;
 
-				CollectEof( cnc, td, clip_rect, top_index );
-				if( cnc.IsCancellationRequested ) return;
+            var x = Math.Ceiling( eol_rect.Left + 2 ) + half_pen;
+            var y = Math.Ceiling( eol_rect.Top + eol_rect.Height / 2 ) - half_pen;
 
-				CollectSpaces( cnc, td, clip_rect, top_index );
-			}
+            dc.DrawLine( EolPen, new Point( x, y ), new Point( x + EOL_WIDTH, y ) );
+            dc.DrawLine( EolPen, new Point( x + EOL_WIDTH, y ), new Point( x + EOL_WIDTH, y - eol_rect.Height * 0.35 ) );
+            dc.DrawLine( EolPen, new Point( x, y ), new Point( x + EOL_WIDTH / 2, y - EOL_WIDTH / 2 ) );
+            dc.DrawLine( EolPen, new Point( x, y ), new Point( x + EOL_WIDTH / 2, y + EOL_WIDTH / 2 ) );
+        }
 
-		}
 
+        void DrawEof( DrawingContext dc, Rect rect ) // draw a '▯'
+        {
+            const double EOF_WIDTH = 4;
 
-		bool CollectSpaces( ICancellable cnc, TextData td, Rect clipRect, int topIndex )
-		{
-			if( cnc.IsCancellationRequested ) return false;
+            double h = Math.Ceiling( rect.Height * 0.3 );
+            double half_pen = EofPen.Thickness / 2;
 
-			var rtb = Rtb;
+            var x = Math.Ceiling( rect.Left + 2 ) + half_pen;
+            var y = Math.Floor( rect.Top + ( rect.Height - h ) / 2 ) - half_pen;
 
-			List<Rect> positions_spaces = new( );
-			List<Rect> positions_tabs = new( );
+            var eof_rect = new Rect( x, y, EOF_WIDTH, h );
 
-			List<int> indices = new( );
+            dc.DrawRectangle( EofBrush, EofPen, eof_rect );
+        }
 
-			for( var i = td.Text.IndexOfAny( SpacesAndTabs, topIndex );
-				i >= 0;
-				i = td.Text.IndexOfAny( SpacesAndTabs, i + 1 ) )
-			{
-				if( cnc.IsCancellationRequested ) return false;
 
-				indices.Add( i );
-			}
+        void ThreadProc( ICancellable cnc )
+        {
+            if( !mShowWhitespaces ) return;
 
-			var intermediate_results1 = new List<(int index, Rect left, Rect right)>( );
-			var intermediate_results2 = new List<(int index, Rect left, Rect right)>( );
-			int current_i = 0;
+            var rtb = Rtb;
+            TextData? td = null;
+            Rect clip_rect = Rect.Empty;
+            int top_index = 0;
 
-			void do_things( )
-			{
-				Debug.Assert( !intermediate_results1.Any( ) );
+            UITaskHelper.Invoke( rtb,
+                ( ) =>
+                {
+                    td = null;
 
-				var end_time = Environment.TickCount + 22;
-				do
-				{
-					if( current_i >= indices.Count ) break;
+                    var start_doc = rtb.Document.ContentStart;
+                    var end_doc = rtb.Document.ContentStart;
 
-					if( cnc.IsCancellationRequested ) return;
+                    if( !start_doc.HasValidLayout || !end_doc.HasValidLayout ) return;
 
-					var index = indices[current_i];
-					var tps = td.TextPointers.GetTextPointers( index, index + 1 );
-					var left = tps.Item1;
-					var right = tps.Item2;
+                    var td0 = rtb.GetTextData( null );
 
-					var left_rect = left.GetCharacterRect( LogicalDirection.Forward );
-					var right_rect = right.GetCharacterRect( LogicalDirection.Backward );
+                    if( cnc.IsCancellationRequested ) return;
 
-					intermediate_results1.Add( (index, left_rect, right_rect) );
+                    td = td0;
+                    clip_rect = new Rect( new Size( rtb.ViewportWidth, rtb.ViewportHeight ) );
 
-					if( left_rect.Top > clipRect.Bottom ) break;
+                    TextPointer start_pointer = rtb.GetPositionFromPoint( new Point( 0, 0 ), snapToText: true ).GetLineStartPosition( -1, out int unused );
+                    top_index = td.TextPointers.GetIndex( start_pointer, LogicalDirection.Backward );
+                    if( top_index < 0 ) top_index = 0;
+                } );
 
-					++current_i;
+            if( cnc.IsCancellationRequested ) return;
 
-				} while( Environment.TickCount < end_time );
-			}
+            if( td != null )
+            {
+                CollectEols( cnc, td, clip_rect, top_index );
+                if( cnc.IsCancellationRequested ) return;
 
-			if( cnc.IsCancellationRequested ) return false;
+                CollectEof( cnc, td, clip_rect, top_index );
+                if( cnc.IsCancellationRequested ) return;
 
-			var d = UITaskHelper.BeginInvoke( rtb, do_things );
+                CollectSpaces( cnc, td, clip_rect, top_index );
+            }
 
-			for(; ; )
-			{
-				d.Wait( );
+        }
 
-				if( cnc.IsCancellationRequested ) return false;
 
-				(intermediate_results1, intermediate_results2) = (intermediate_results2, intermediate_results1);
+        bool CollectSpaces( ICancellable cnc, TextData td, Rect clipRect, int topIndex )
+        {
+            if( cnc.IsCancellationRequested ) return false;
 
-				if( !intermediate_results2.Any( ) ) break;
+            var rtb = Rtb;
 
-				d = UITaskHelper.BeginInvoke( rtb, do_things );
+            List<Rect> positions_spaces = new( );
+            List<Rect> positions_tabs = new( );
 
-				bool should_break = false;
+            List<int> indices = new( );
 
-				Debug.Assert( !Rtb.Dispatcher.CheckAccess( ) );
+            for( var i = td.Text.IndexOfAny( SpacesAndTabs, topIndex );
+                i >= 0;
+                i = td.Text.IndexOfAny( SpacesAndTabs, i + 1 ) )
+            {
+                if( cnc.IsCancellationRequested ) return false;
 
-				foreach( var (index, left_rect, right_rect) in intermediate_results2 )
-				{
-					if( cnc.IsCancellationRequested ) return false;
+                indices.Add( i );
+            }
 
-					if( right_rect.Bottom < clipRect.Top ) continue;
-					if( left_rect.Top > clipRect.Bottom )
-					{
-						should_break = true;
-						break;
-					}
+            var intermediate_results1 = new List<(int index, Rect left, Rect right)>( );
+            var intermediate_results2 = new List<(int index, Rect left, Rect right)>( );
+            int current_i = 0;
 
-					switch( td.Text[index] )
-					{
-					case '\t':
-						positions_tabs.Add( Rect.Offset( left_rect, rtb.HorizontalOffset, rtb.VerticalOffset ) );
-						break;
+            void do_things( )
+            {
+                Debug.Assert( !intermediate_results1.Any( ) );
 
-					default: // (space)
-						var r = new Rect( left_rect.TopLeft, right_rect.BottomRight );
-						r.Offset( rtb.HorizontalOffset, rtb.VerticalOffset );
-						positions_spaces.Add( r );
-						break;
-					}
-				}
+                var end_time = Environment.TickCount + 22;
+                do
+                {
+                    if( current_i >= indices.Count ) break;
 
-				if( should_break ) break;
+                    if( cnc.IsCancellationRequested ) return;
 
-				intermediate_results2.Clear( );
-			}
+                    var index = indices[current_i];
+                    var tps = td.TextPointers.GetTextPointers( index, index + 1 );
+                    var left = tps.Item1;
+                    var right = tps.Item2;
 
-			if( cnc.IsCancellationRequested ) return false;
+                    var left_rect = left.GetCharacterRect( LogicalDirection.Forward );
+                    var right_rect = right.GetCharacterRect( LogicalDirection.Backward );
 
-			lock( this )
-			{
-				PositionsSpaces = positions_spaces;
-				PositionsTabs = positions_tabs;
-			}
+                    intermediate_results1.Add( (index, left_rect, right_rect) );
 
-			DelayedInvalidateVisual( );
+                    if( left_rect.Top > clipRect.Bottom ) break;
 
-			return true;
-		}
+                    ++current_i;
 
+                } while( Environment.TickCount < end_time );
+            }
 
-		bool CollectEols( ICancellable cnc, TextData td, Rect clip_rect, int top_index )
-		{
-			if( cnc.IsCancellationRequested ) return false;
+            if( cnc.IsCancellationRequested ) return false;
 
-			var rtb = Rtb;
+            var d = UITaskHelper.BeginInvoke( rtb, do_things );
 
-			List<Rect> positions_eols = new( );
+            for(; ; )
+            {
+                d.Wait( );
 
-			// lines with no right-to-left segments
+                if( cnc.IsCancellationRequested ) return false;
 
-			var matches = EolRegex().Matches( td.Text );
+                (intermediate_results1, intermediate_results2) = (intermediate_results2, intermediate_results1);
 
-			for( int i = 0; i < matches.Count; ++i )
-			{
-				if( cnc.IsCancellationRequested ) return false;
+                if( !intermediate_results2.Any( ) ) break;
 
-				int index = matches[i].Index;
+                d = UITaskHelper.BeginInvoke( rtb, do_things );
 
-				if( index < top_index ) continue;
+                bool should_break = false;
 
-				int previous_index = i == 0 ? 0 : matches[i - 1].Index;
+                Debug.Assert( !Rtb.Dispatcher.CheckAccess( ) );
 
-				bool has_RTL = false;
+                foreach( var (index, left_rect, right_rect) in intermediate_results2 )
+                {
+                    if( cnc.IsCancellationRequested ) return false;
 
-				for( int k = previous_index; k < index; ++k )
-				{
-					if( cnc.IsCancellationRequested ) return false;
+                    if( right_rect.Bottom < clipRect.Top ) continue;
+                    if( left_rect.Top > clipRect.Bottom )
+                    {
+                        should_break = true;
+                        break;
+                    }
 
-					if( UnicodeUtilities.IsRTL( td.Text[k] ) )
-					{
-						has_RTL = true;
-						break;
-					}
-				}
+                    switch( td.Text[index] )
+                    {
+                    case '\t':
+                        positions_tabs.Add( Rect.Offset( left_rect, rtb.HorizontalOffset, rtb.VerticalOffset ) );
+                        break;
 
-				if( has_RTL )
-				{
-					// RTL needs more navigation to find the rightmost X
+                    default: // (space)
+                        var r = new Rect( left_rect.TopLeft, right_rect.BottomRight );
+                        r.Offset( rtb.HorizontalOffset, rtb.VerticalOffset );
+                        positions_spaces.Add( r );
+                        break;
+                    }
+                }
 
-					Rect left_rect = Rect.Empty;
-					double max_x = double.NaN;
+                if( should_break ) break;
 
-					bool should_continue = false;
-					bool should_break = false;
+                intermediate_results2.Clear( );
+            }
 
-					UITaskHelper.Invoke( rtb,
-						( ) =>
-						{
-							TextPointer left = td.TextPointers.GetTextPointer( index );
+            if( cnc.IsCancellationRequested ) return false;
 
-							left_rect = left.GetCharacterRect( LogicalDirection.Forward );
+            lock( this )
+            {
+                PositionsSpaces = positions_spaces;
+                PositionsTabs = positions_tabs;
+            }
 
-							if( left_rect.Bottom < clip_rect.Top ) { should_continue = true; return; }
-							if( left_rect.Top > clip_rect.Bottom ) { should_break = true; return; }
+            DelayedInvalidateVisual( );
 
-							max_x = left_rect.Left;
+            return true;
+        }
 
-							for( var tp = left.GetInsertionPosition( LogicalDirection.Backward ); ; )
-							{
-								if( cnc.IsCancellationRequested ) return;
 
-								tp = tp.GetNextInsertionPosition( LogicalDirection.Backward );
-								if( tp == null ) break;
+        bool CollectEols( ICancellable cnc, TextData td, Rect clip_rect, int top_index )
+        {
+            if( cnc.IsCancellationRequested ) return false;
 
-								// WORKAROUND for lines like "0ראל", when "0" is matched and highlighted
-								tp = tp.GetInsertionPosition( LogicalDirection.Forward );
+            var rtb = Rtb;
 
-								var rect_b = tp.GetCharacterRect( LogicalDirection.Backward );
-								var rect_f = tp.GetCharacterRect( LogicalDirection.Forward );
+            List<Rect> positions_eols = new( );
 
-								if( cnc.IsCancellationRequested ) return;
+            // lines with no right-to-left segments
 
-								if( rect_b.Bottom < left_rect.Top && rect_f.Bottom < left_rect.Top ) break;
+            var matches = EolRegex( ).Matches( td.Text );
 
-								if( rect_b.Bottom > left_rect.Top )
-								{
-									if( max_x < rect_b.Left ) max_x = rect_b.Left;
-								}
+            for( int i = 0; i < matches.Count; ++i )
+            {
+                if( cnc.IsCancellationRequested ) return false;
 
-								if( rect_f.Bottom > left_rect.Top )
-								{
-									if( max_x < rect_f.Left ) max_x = rect_f.Left;
-								}
-							}
-						} );
+                int index = matches[i].Index;
 
-					if( cnc.IsCancellationRequested ) return false;
-					if( should_continue ) continue;
-					if( should_break ) break;
+                if( index < top_index ) continue;
 
-					Rect eol_rect = new( new Point( max_x, left_rect.Top ), left_rect.Size );
-					eol_rect.Offset( rtb.HorizontalOffset, rtb.VerticalOffset );
+                int previous_index = i == 0 ? 0 : matches[i - 1].Index;
 
-					positions_eols.Add( eol_rect );
-				}
-				else
-				{
-					// no RTL; quick answer
+                bool has_RTL = false;
 
-					Rect eol_rect = Rect.Empty;
+                for( int k = previous_index; k < index; ++k )
+                {
+                    if( cnc.IsCancellationRequested ) return false;
 
-					UITaskHelper.Invoke( rtb,
-						( ) =>
-						{
-							TextPointer left = td.TextPointers.GetTextPointer( index );
+                    if( UnicodeUtilities.IsRTL( td.Text[k] ) )
+                    {
+                        has_RTL = true;
+                        break;
+                    }
+                }
 
-							eol_rect = left.GetCharacterRect( LogicalDirection.Forward );
-						} );
+                if( has_RTL )
+                {
+                    // RTL needs more navigation to find the rightmost X
 
-					if( eol_rect.Bottom < clip_rect.Top ) continue;
-					if( eol_rect.Top > clip_rect.Bottom ) break;
+                    Rect left_rect = Rect.Empty;
+                    double max_x = double.NaN;
 
-					eol_rect.Offset( rtb.HorizontalOffset, rtb.VerticalOffset );
+                    bool should_continue = false;
+                    bool should_break = false;
 
-					positions_eols.Add( eol_rect );
-				}
-			}
+                    UITaskHelper.Invoke( rtb,
+                        ( ) =>
+                        {
+                            TextPointer left = td.TextPointers.GetTextPointer( index );
 
-			if( cnc.IsCancellationRequested ) return false;
+                            left_rect = left.GetCharacterRect( LogicalDirection.Forward );
 
-			lock( this )
-			{
-				PositionsEols = positions_eols;
-			}
+                            if( left_rect.Bottom < clip_rect.Top ) { should_continue = true; return; }
+                            if( left_rect.Top > clip_rect.Bottom ) { should_break = true; return; }
 
-			DelayedInvalidateVisual( );
+                            max_x = left_rect.Left;
 
-			return true;
-		}
+                            for( var tp = left.GetInsertionPosition( LogicalDirection.Backward ); ; )
+                            {
+                                if( cnc.IsCancellationRequested ) return;
 
+                                tp = tp.GetNextInsertionPosition( LogicalDirection.Backward );
+                                if( tp == null ) break;
 
-		bool CollectEof( ICancellable cnc, TextData td, Rect clip_rect, int top_index )
-		{
-			if( cnc.IsCancellationRequested ) return false;
+                                // WORKAROUND for lines like "0ראל", when "0" is matched and highlighted
+                                tp = tp.GetInsertionPosition( LogicalDirection.Forward );
 
-			var rtb = Rtb;
+                                var rect_b = tp.GetCharacterRect( LogicalDirection.Backward );
+                                var rect_f = tp.GetCharacterRect( LogicalDirection.Forward );
 
-			double max_x = double.NaN;
-			Rect end_rect = Rect.Empty;
+                                if( cnc.IsCancellationRequested ) return;
 
-			UITaskHelper.Invoke( rtb,
-				( ) =>
-				{
-					var end = rtb.Document.ContentEnd;
-					end_rect = end.GetCharacterRect( LogicalDirection.Forward ); // (no width)
+                                if( rect_b.Bottom < left_rect.Top && rect_f.Bottom < left_rect.Top ) break;
 
-					if( end_rect.Bottom < clip_rect.Top || end_rect.Top > clip_rect.Bottom ) return;
+                                if( rect_b.Bottom > left_rect.Top )
+                                {
+                                    if( max_x < rect_b.Left ) max_x = rect_b.Left;
+                                }
 
-					max_x = end_rect.Left;
+                                if( rect_f.Bottom > left_rect.Top )
+                                {
+                                    if( max_x < rect_f.Left ) max_x = rect_f.Left;
+                                }
+                            }
+                        } );
 
-					// if no RTL, then return a quick answer
+                    if( cnc.IsCancellationRequested ) return false;
+                    if( should_continue ) continue;
+                    if( should_break ) break;
 
-					var begin_line = end.GetLineStartPosition( 0 );
-					if( begin_line != null )
-					{
-						var r = new TextRange( begin_line, end );
-						var text = r.Text;
-						bool has_RTL = false;
+                    Rect eol_rect = new( new Point( max_x, left_rect.Top ), left_rect.Size );
+                    eol_rect.Offset( rtb.HorizontalOffset, rtb.VerticalOffset );
 
-						for( int k = 0; k < text.Length; ++k )
-						{
-							if( cnc.IsCancellationRequested ) return;
+                    positions_eols.Add( eol_rect );
+                }
+                else
+                {
+                    // no RTL; quick answer
 
-							if( UnicodeUtilities.IsRTL( text[k] ) )
-							{
-								has_RTL = true;
-								break;
-							}
-						}
+                    Rect eol_rect = Rect.Empty;
 
-						if( !has_RTL )
-						{
-							return;
-						}
-					}
+                    UITaskHelper.Invoke( rtb,
+                        ( ) =>
+                        {
+                            TextPointer left = td.TextPointers.GetTextPointer( index );
 
-					// we have RTL segments that need additional navigation to find the rightmost X
+                            eol_rect = left.GetCharacterRect( LogicalDirection.Forward );
+                        } );
 
-					for( var tp = end; ; )
-					{
-						if( cnc.IsCancellationRequested ) return;
+                    if( eol_rect.Bottom < clip_rect.Top ) continue;
+                    if( eol_rect.Top > clip_rect.Bottom ) break;
 
-						tp = tp.GetNextInsertionPosition( LogicalDirection.Backward );
-						if( tp == null ) break;
+                    eol_rect.Offset( rtb.HorizontalOffset, rtb.VerticalOffset );
 
-						// WORKAROUND for lines like "0ראל", when "0" is matched and highlighted
-						tp = tp.GetInsertionPosition( LogicalDirection.Forward );
+                    positions_eols.Add( eol_rect );
+                }
+            }
 
-						var rect = tp.GetCharacterRect( LogicalDirection.Forward );
-						if( rect.Bottom < end_rect.Bottom ) break;
+            if( cnc.IsCancellationRequested ) return false;
 
-						if( max_x < rect.Left ) max_x = rect.Left;
-					}
-				} );
+            lock( this )
+            {
+                PositionsEols = positions_eols;
+            }
 
-			if( cnc.IsCancellationRequested ) return false;
+            DelayedInvalidateVisual( );
 
-			lock( this )
-			{
-				if( double.IsNaN( max_x ) )
-				{
-					PositionEof = Rect.Empty;
-				}
-				else
-				{
-					PositionEof = new Rect( new Point( max_x, end_rect.Top ), end_rect.Size );
-					PositionEof.Offset( rtb.HorizontalOffset, rtb.VerticalOffset );
-				}
-			}
+            return true;
+        }
 
-			DelayedInvalidateVisual( );
 
-			return true;
-		}
+        bool CollectEof( ICancellable cnc, TextData td, Rect clip_rect, int top_index )
+        {
+            if( cnc.IsCancellationRequested ) return false;
+
+            var rtb = Rtb;
+
+            double max_x = double.NaN;
+            Rect end_rect = Rect.Empty;
+
+            UITaskHelper.Invoke( rtb,
+                ( ) =>
+                {
+                    var end = rtb.Document.ContentEnd;
+                    end_rect = end.GetCharacterRect( LogicalDirection.Forward ); // (no width)
+
+                    if( end_rect.Bottom < clip_rect.Top || end_rect.Top > clip_rect.Bottom ) return;
+
+                    max_x = end_rect.Left;
+
+                    // if no RTL, then return a quick answer
+
+                    var begin_line = end.GetLineStartPosition( 0 );
+                    if( begin_line != null )
+                    {
+                        var r = new TextRange( begin_line, end );
+                        var text = r.Text;
+                        bool has_RTL = false;
+
+                        for( int k = 0; k < text.Length; ++k )
+                        {
+                            if( cnc.IsCancellationRequested ) return;
+
+                            if( UnicodeUtilities.IsRTL( text[k] ) )
+                            {
+                                has_RTL = true;
+                                break;
+                            }
+                        }
+
+                        if( !has_RTL )
+                        {
+                            return;
+                        }
+                    }
+
+                    // we have RTL segments that need additional navigation to find the rightmost X
+
+                    for( var tp = end; ; )
+                    {
+                        if( cnc.IsCancellationRequested ) return;
+
+                        tp = tp.GetNextInsertionPosition( LogicalDirection.Backward );
+                        if( tp == null ) break;
+
+                        // WORKAROUND for lines like "0ראל", when "0" is matched and highlighted
+                        tp = tp.GetInsertionPosition( LogicalDirection.Forward );
+
+                        var rect = tp.GetCharacterRect( LogicalDirection.Forward );
+                        if( rect.Bottom < end_rect.Bottom ) break;
+
+                        if( max_x < rect.Left ) max_x = rect.Left;
+                    }
+                } );
+
+            if( cnc.IsCancellationRequested ) return false;
+
+            lock( this )
+            {
+                if( double.IsNaN( max_x ) )
+                {
+                    PositionEof = Rect.Empty;
+                }
+                else
+                {
+                    PositionEof = new Rect( new Point( max_x, end_rect.Top ), end_rect.Size );
+                    PositionEof.Offset( rtb.HorizontalOffset, rtb.VerticalOffset );
+                }
+            }
+
+            DelayedInvalidateVisual( );
+
+            return true;
+        }
 
 
         [GeneratedRegex( @"(?>\r\n|\n\r|\r|\n)", RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace )]

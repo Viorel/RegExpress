@@ -262,7 +262,7 @@ namespace RegExpressWPFNET.Adorners
 
 							GeometryGroup.Children.Add( new LineGeometry( new Point( x, y ), new Point( x, y - CAPS_HEIGHT ) ) );
 
-							if( GeometryGroup.Children.Count > 1 ) // (i.e. has horisontal lines too)
+							if( GeometryGroup.Children.Count > 1 ) // (i.e. has horizontal lines too)
 							{
 								x = end_point_b.X;
 								y = end_point_b.Y - half_pen;

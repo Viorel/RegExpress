@@ -277,7 +277,7 @@ namespace RegExpressWPFNET
         {
             AutoSaveLoop.SignalRewind( );
 
-            if( !IsError ) // avoid overwritting details in case of errors
+            if( !IsError ) // avoid overwriting details in case of errors
             {
                 try
                 {

@@ -363,7 +363,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                             throw std::runtime_error( WStringToUtf8( std::format( L"Error {}: {}.", rc, (wchar_t*)buffer ) ) );
                         }
 
-                        /* Match succeded */
+                        /* Match succeeded */
 
 
                         /* The match succeeded, but the output vector wasn't big enough. This

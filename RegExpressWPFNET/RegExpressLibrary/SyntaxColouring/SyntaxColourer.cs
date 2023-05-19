@@ -79,7 +79,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     if( scope_stack.Count == 1 )
                     {
-                        // unballanced ')'
+                        // unbalanced ')'
 
                         //.......
                         // TODO: show as error?
@@ -230,7 +230,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     if( scope_stack.Count == 1 )
                     {
-                        // unballanced ')'
+                        // unbalanced ')'
 
                         //.......
                         // TODO: show as error?
@@ -660,7 +660,7 @@ namespace RegExpressLibrary.SyntaxColouring
   (?<lbracket>\[ \^?) {0} (?<c>) \]? | ( {1} {2} {3} | {4} | [^\[\]] )+ | (?<rbracket>\]) (?<-c>)
 )*
 #(?(c)(?!))
-(?<rbracket>\])?", // (use '#(?(c)(?!))' to detect ballanced brackets only)
+(?<rbracket>\])?", // (use '#(?(c)(?!))' to detect balanced brackets only)
                     class_check,
                     comm,
                     qs,
@@ -691,7 +691,7 @@ namespace RegExpressLibrary.SyntaxColouring
   (?<lbracket>\[ \^?) {0} (?<c>) \]? | ( {1} | {2} | [^\[\]] )+ | (?<rbracket>\]) (?<-c>)
 )*
 #(?(c)(?!))
-((?<rbracket>\])(?<rpar>\))?)?", // (use '#(?(c)(?!))' to detect ballanced brackets only)
+((?<rbracket>\])(?<rpar>\))?)?", // (use '#(?(c)(?!))' to detect balanced brackets only)
                     class_check,
                     pb_set_operators.ToPattern( ),
                     pb_inside_sets.ToPattern( ) ) );
