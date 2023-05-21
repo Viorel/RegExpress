@@ -14,6 +14,7 @@ It includes the following Regular Expression engines:
 * **[Oniguruma](https://github.com/kkos/oniguruma)** Regular Expression Library 6.9.8.
 * **[SubReg](https://github.com/mattbucknall/subreg)** 2022-01-01.
 * **[RegExp](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)** JavaScript object from Microsoft Edge [WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
+* **[RegExp](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85))** VBScript object used in Access, Excel, Word.
 
 <br/>
 
