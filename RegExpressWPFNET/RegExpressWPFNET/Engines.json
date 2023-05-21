@@ -34,6 +34,9 @@
     },
     {
       "path": "Engines\\VBScript\\VBScriptPlugin.dll"
-    }
+    },
+    {
+      "path": "Engines\\Hyperscan\\HyperscanPlugin.dll"
+    },
   ]
 }

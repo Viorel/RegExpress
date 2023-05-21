@@ -98,3 +98,10 @@ rem -- VBScript --
 set BaseDir=%SolutionDir%\RegexEngines\VBScript
 xcopy /D /R /Y "%BaseDir%\VBScriptPlugin\bin\%Configuration%\%TargetFramework%\VBScriptPlugin.dll" "%EnginesTargetDir%\VBScript\*"
 xcopy /D /R /Y "%BaseDir%\VBScriptWorker\VBScriptWorker.vbs" "%EnginesTargetDir%\VBScript\*"
+
+
+rem -- Hyperscan --
+
+set BaseDir=%SolutionDir%\RegexEngines\Hyperscan
+xcopy /D /R /Y "%BaseDir%\HyperscanPlugin\bin\%Configuration%\%TargetFramework%\HyperscanPlugin.dll" "%EnginesTargetDir%\Hyperscan\*"
+xcopy /D /R /Y "%BaseDir%\HyperscanWorker\bin\%Configuration%\%Platform%\HyperscanWorker.exe" "%EnginesTargetDir%\Hyperscan\*.bin"
