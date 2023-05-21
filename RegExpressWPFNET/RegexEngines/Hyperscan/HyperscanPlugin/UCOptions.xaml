@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:HyperscanPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="650" 
+             d:DesignHeight="500" d:DesignWidth="650" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -99,6 +99,32 @@
                 <TextBox x:Name="minl" Grid.Column="1" Grid.Row="4" Text="{Binding MinLength, UpdateSourceTrigger=PropertyChanged}" />
                 <TextBlock Grid.Column="2" Grid.Row="4" Text="– Minimum match length" />
             </Grid>
+
+            <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
+                <StackPanel.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </StackPanel.LayoutTransform>
+                <Label Content="Mode:" Target="{Binding ElementName=cbxMode}" Padding="0 2 3 2"/>
+                <ComboBox x:Name="cbxMode" SelectedValuePath="Tag" SelectedValue="{Binding Mode, FallbackValue='HS_MODE_BLOCK'}" VerticalAlignment="Center" SelectionChanged="cbxMode_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
+                    <ComboBoxItem Tag ="HS_MODE_BLOCK" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                    <ComboBoxItem Tag ="HS_MODE_STREAM" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="HS_MODE_VECTORED" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                </ComboBox>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
+                <StackPanel.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </StackPanel.LayoutTransform>
+                <Label Content="Stream mode precission:" Target="{Binding ElementName=cbxModeSom}" Padding="0 2 3 2"/>
+                <ComboBox x:Name="cbxModeSom" SelectedValuePath="Tag" SelectedValue="{Binding ModeSom, FallbackValue='None'}" VerticalAlignment="Center" SelectionChanged="cbxModeSom_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
+                    <ComboBoxItem Tag ="None" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                    <ComboBoxItem Tag ="HS_MODE_SOM_HORIZON_LARGE" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="HS_MODE_SOM_HORIZON_MEDIUM" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag ="HS_MODE_SOM_HORIZON_SMALL" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                </ComboBox>
+            </StackPanel>
+
 
         </StackPanel>
     </Grid>

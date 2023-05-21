@@ -7,6 +7,24 @@ using System.Threading.Tasks;
 
 namespace HyperscanPlugin
 {
+    enum ModeEnum
+    {
+        None,
+        HS_MODE_BLOCK,
+        HS_MODE_STREAM,
+        HS_MODE_VECTORED,
+    }
+
+
+    enum ModeSomEnum
+    {
+        None,
+        HS_MODE_SOM_HORIZON_LARGE,
+        HS_MODE_SOM_HORIZON_MEDIUM,
+        HS_MODE_SOM_HORIZON_SMALL,
+    }
+
+
     internal class Options
     {
         public bool HS_FLAG_CASELESS { get; set; }
@@ -29,6 +47,11 @@ namespace HyperscanPlugin
         public string MinOffset { get; set; } = "";
         public string MaxOffset { get; set; } = "";
         public string MinLength { get; set; } = "";
+
+
+        public ModeEnum Mode { get; set; } = ModeEnum.HS_MODE_BLOCK;
+
+        public ModeSomEnum ModeSom { get; set; } = ModeSomEnum.None;
 
 
         public Options Clone( )

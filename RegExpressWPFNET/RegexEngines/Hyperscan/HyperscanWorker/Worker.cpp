@@ -22,7 +22,8 @@
 
 int GetHyperscanVersion( BinaryWriterA& outwr, StreamWriterA& errwr );
 int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const std::string& pattern, const std::string& text,
-    uint32_t remote_flags, uint32_t Levenshtein_distance, uint32_t Hamming_distance, uint32_t minOffset, uint32_t maxOffset, uint32_t minLength );
+    uint32_t remote_flags, uint32_t Levenshtein_distance, uint32_t Hamming_distance, uint32_t minOffset, uint32_t maxOffset, uint32_t minLength,
+    uint8_t mode, uint8_t modeSom );
 
 
 int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
@@ -85,6 +86,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         {
             // get matches
 
+            if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [1]." );
+
             std::string pattern = inbr.ReadString( );
             std::string text = inbr.ReadString( );
             auto remote_flags = inbr.ReadT<uint32_t>( );
@@ -93,8 +96,12 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             auto min_offset = inbr.ReadT<uint32_t>( );
             auto max_offset = inbr.ReadT<uint32_t>( );
             auto min_length = inbr.ReadT<uint32_t>( );
+            auto mode = inbr.ReadT<uint8_t>( );
+            auto mode_som = inbr.ReadT<uint8_t>( );
 
-            return DoHyperscanMatch( outbw, errwr, pattern, text, remote_flags, Levenshtein_distance, Hamming_distance, min_offset, max_offset, min_length );
+            if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
+
+            return DoHyperscanMatch( outbw, errwr, pattern, text, remote_flags, Levenshtein_distance, Hamming_distance, min_offset, max_offset, min_length, mode, mode_som );
         }
 
         errwr.WriteStringF( "Unsupported command: '%s'", command.c_str( ) );
@@ -160,7 +167,8 @@ static int HSEventHandler( unsigned int id, unsigned long long from, unsigned lo
 
 
 static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const std::string& pattern, const std::string& text,
-    uint32_t remoteFlags, uint32_t LevenshteinDistance, uint32_t HammingDistance, uint32_t minOffset, uint32_t maxOffset, uint32_t minLength )
+    uint32_t remoteFlags, uint32_t LevenshteinDistance, uint32_t HammingDistance, uint32_t minOffset, uint32_t maxOffset, uint32_t minLength,
+    uint8_t mode, uint8_t modeSom )
 {
     unsigned int compiler_flags = 0;
 
@@ -175,8 +183,6 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
     if( remoteFlags & ( 1 << 8 ) ) compiler_flags |= HS_FLAG_SOM_LEFTMOST;
     //if( remoteFlags & ( 1 << 9 ) ) compiler_flags |= HS_FLAG_COMBINATION;
     if( remoteFlags & ( 1 << 10 ) ) compiler_flags |= HS_FLAG_QUIET;
-
-    int scanner_flags = 0; // (from documentation: "This parameter is provided for future use and is unused at present")
 
     hs_database_t* database;
     hs_compile_error_t* compile_err;
@@ -210,7 +216,53 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
 
     hs_expr_ext_t* extended_flags[1] = { &ext };
 
-    if( hs_compile_ext_multi( patterns, flags, nullptr, extended_flags, 1, HS_MODE_BLOCK, nullptr, &database, &compile_err ) )
+    unsigned int hs_mode = 0;
+
+    if( mode == 1 ) // HS_MODE_BLOCK
+    {
+        hs_mode = HS_MODE_BLOCK;
+    }
+    else if( mode == 2 ) // HS_MODE_STREAM
+    {
+        hs_mode = HS_MODE_STREAM;
+    }
+    else if( mode == 3 ) // HS_MODE_VECTOR
+    {
+        hs_mode = HS_MODE_VECTORED;
+    }
+    else
+    {
+        errwr.WriteStringF( "Invalid mode." );
+
+        return -1;
+    }
+
+    unsigned int hs_mode_som = 0;
+
+    if( modeSom == 0 ) // none
+    {
+        hs_mode_som = 0;
+    }
+    else if( modeSom == 1 ) // HS_MODE_SOM_HORIZON_LARGE
+    {
+        hs_mode_som = HS_MODE_SOM_HORIZON_LARGE;
+    }
+    else if( modeSom == 2 ) // HS_MODE_SOM_HORIZON_MEDIUM
+    {
+        hs_mode_som = HS_MODE_SOM_HORIZON_MEDIUM;
+    }
+    else if( modeSom == 3 ) // HS_MODE_SOM_HORIZON_SMALL
+    {
+        hs_mode_som = HS_MODE_SOM_HORIZON_SMALL;
+    }
+    else
+    {
+        errwr.WriteStringF( "Invalid mode_som" );
+
+        return -1;
+    }
+
+    if( hs_compile_ext_multi( patterns, flags, nullptr, extended_flags, 1, hs_mode | hs_mode_som, nullptr, &database, &compile_err ) )
     {
         errwr.WriteStringF( "Unable to compile pattern \"%s\": %s", pattern.c_str( ), compile_err->message );
         hs_free_compile_error( compile_err );
@@ -230,12 +282,61 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
 
     Context ctx;
 
-    if( hs_scan( database, text.data( ), CheckedCast( text.size( ) ), scanner_flags, scratch, HSEventHandler, &ctx ) != HS_SUCCESS )
+    if( hs_mode == HS_MODE_BLOCK )
     {
-        errwr.WriteStringF( "Unable to scan input buffer." );
+        if( hs_scan( database, text.data( ), CheckedCast( text.size( ) ), 0, scratch, HSEventHandler, &ctx ) != HS_SUCCESS )
+        {
+            errwr.WriteStringF( "Unable to scan input buffer." );
 
-        hs_free_scratch( scratch );
-        hs_free_database( database );
+            hs_free_scratch( scratch );
+            hs_free_database( database );
+
+            return -1;
+        }
+    }
+    else if( hs_mode == HS_MODE_STREAM )
+    {
+        hs_stream_t* stream;
+
+        if( hs_open_stream( database, 0, &stream ) != HS_SUCCESS )
+        {
+            errwr.WriteStringF( "Unable to open stream." );
+
+            hs_free_scratch( scratch );
+            hs_free_database( database );
+
+            return -1;
+        }
+
+        if( hs_scan_stream( stream, text.data( ), CheckedCast( text.size( ) ), 0, scratch, HSEventHandler, &ctx ) != HS_SUCCESS )
+        {
+            errwr.WriteStringF( "Unable to scan the stream." );
+
+            hs_close_stream( stream, nullptr, nullptr, nullptr );
+            hs_free_scratch( scratch );
+            hs_free_database( database );
+
+            return -1;
+        }
+    }
+    else if( hs_mode == HS_MODE_VECTORED )
+    {
+        const char* data[1] = { text.data( ) };
+        const unsigned int length[1] = { CheckedCast( text.size( ) ) };
+
+        if( hs_scan_vector( database, data, length, 1, 0, scratch, HSEventHandler, &ctx ) != HS_SUCCESS )
+        {
+            errwr.WriteStringF( "Unable to scan vector." );
+
+            hs_free_scratch( scratch );
+            hs_free_database( database );
+
+            return -1;
+        }
+    }
+    else
+    {
+        errwr.WriteStringF( "Invalid mode [2]." );
 
         return -1;
     }

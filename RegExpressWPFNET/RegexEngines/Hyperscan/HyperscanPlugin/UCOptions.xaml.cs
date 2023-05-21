@@ -64,6 +64,17 @@ namespace HyperscanPlugin
         }
 
 
+        private void cbxMode_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
+
+        private void cbxModeSom_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
         internal Options GetSelectedOptions( )
         {
             return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
@@ -84,6 +95,7 @@ namespace HyperscanPlugin
                 --ChangeCounter;
             }
         }
+
 
     }
 }

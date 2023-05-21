@@ -119,6 +119,7 @@ namespace HyperscanPlugin
                 using( var bw = new BinaryWriter( s, Encoding.UTF8, leaveOpen: false ) )
                 {
                     bw.Write( "m" );
+                    bw.Write( (byte)'b' );
                     bw.Write( Pattern );
                     bw.Write( text );
                     bw.Write( flags );
@@ -127,6 +128,9 @@ namespace HyperscanPlugin
                     bw.Write( string.IsNullOrWhiteSpace( Options.MinOffset ) ? UInt32.MaxValue : UInt32.Parse( Options.MinOffset ) );
                     bw.Write( string.IsNullOrWhiteSpace( Options.MaxOffset ) ? UInt32.MaxValue : UInt32.Parse( Options.MaxOffset ) );
                     bw.Write( string.IsNullOrWhiteSpace( Options.MinLength ) ? UInt32.MaxValue : UInt32.Parse( Options.MinLength ) );
+                    bw.Write( checked((byte)Options.Mode) );
+                    bw.Write( checked((byte)Options.ModeSom) );
+                    bw.Write( (byte)'e' );
                 }
             };
 
