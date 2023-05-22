@@ -16,30 +16,53 @@ It includes the following Regular Expression engines:
 * **[RegExp](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)** JavaScript object from Microsoft Edge [WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
 * **[RegExp](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85))** VBScript object used in Access, Excel, Word.
 
+There are more engines that are described in **Additional Engines** section:
+
+* **Hyperscan** 
+* **Chimera**
+
+
 <br/>
 
 Sample:
 
 ![Screenshot of RegExpress](Screenshot1.png)
 
-The regular expressions are saved and loaded automatically. Press the “➕” button to open more tabs. Use the **Options** area to
-select and configure the Regular Expression engine.
+The regular expressions are saved and loaded automatically. Press the “➕” button to open more tabs. 
+Use the **Options** area to select and configure the Regular Expression engine.
 
-The program can be built using Visual Studio 2022. The sources contain code written in C# and C++. The following Visual Studio workloads are required:
+The program can be built using Visual Studio 2022. The sources contain code written in C# and C++. 
+The following Visual Studio workloads are required:
 
 * .NET desktop development.
 * Desktop development with C++.
 
 The minimal sources of third-party regular expression libraries are included.
 
-Details:
+#### Details
 
 * Principal GIT branch: **main**.
 * Solution file: **RegExpressWPFNET.sln**.
 * Startup project: **RegExpressWPFNET**.
-* Configurations: **“Debug, Any CPU”** and **“Release, Any CPU”**. The C++ projects use **“x64”**.
+* Configurations: **“Debug, Any CPU”** or **“Release, Any CPU”**. The C++ projects use **“x64”**.
 * Operating Systems: **Windows 11**, **Windows 10**.
 
 <br/>
+
+ 
+## Additional Engines 
+
+This repository includes several additional engines:
+
+* **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel.
+* **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41.
+
+To take these engines, use the **main-extended** branch instead of **main**, then recompile 
+the same solution.
+
+The **main-extended** branch also includes the regular engines from the **main** branch.
+
+(The additional engines require certain third-party library files that were compiled separately 
+and included into **main-extended** branch).
 
 
