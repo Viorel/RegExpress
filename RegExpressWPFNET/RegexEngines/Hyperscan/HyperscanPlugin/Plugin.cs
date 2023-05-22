@@ -12,7 +12,7 @@ namespace HyperscanPlugin
 
         public IReadOnlyList<IRegexEngine> GetEngines( )
         {
-            return new[] { new Engine( ) };
+            return new IRegexEngine[] { new Engine( ), new ChimeraEngine( ) };
         }
 
         #endregion

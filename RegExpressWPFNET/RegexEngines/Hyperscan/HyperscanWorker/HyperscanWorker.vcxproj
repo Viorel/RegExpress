@@ -59,7 +59,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>../../../RegExpressCppLibrary;./Hyperscan-min/src;$(ProjectDir)Hyperscan-min</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../RegExpressCppLibrary;./Hyperscan-min/src;./Hyperscan-min/chimera;$(ProjectDir)Hyperscan-min</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ExceptionHandling>Async</ExceptionHandling>
@@ -79,7 +79,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>../../../RegExpressCppLibrary;./Hyperscan-min/src;$(ProjectDir)Hyperscan-min</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../RegExpressCppLibrary;./Hyperscan-min/src;./Hyperscan-min/chimera;$(ProjectDir)Hyperscan-min</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ExceptionHandling>Async</ExceptionHandling>

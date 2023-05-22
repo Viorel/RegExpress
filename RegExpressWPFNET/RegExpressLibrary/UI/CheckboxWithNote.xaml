@@ -8,9 +8,8 @@
              d:DesignHeight="18" d:DesignWidth="200"
              x:Name="userControl" DataContextChanged="userControl_DataContextChanged"
              >
-    <Grid>
-        <CheckBox IsChecked="{Binding IsChecked, ElementName=userControl}" HorizontalAlignment="Left">
-            <TextBlock x:Name="textBlock" HorizontalAlignment="Left" VerticalAlignment="Top" TextWrapping="Wrap">
+    <CheckBox IsChecked="{Binding IsChecked, ElementName=userControl}" HorizontalAlignment="Left">
+        <TextBlock x:Name="textBlock" HorizontalAlignment="Left" VerticalAlignment="Top" TextWrapping="Wrap">
                 <Run x:Name="run" Text="Sample text"/>
                 <Run>
                     <Run.Style>
@@ -29,7 +28,6 @@
                         </Style>
                     </Run.Style>
                 </Run>
-            </TextBlock>
-        </CheckBox>
-    </Grid>
+        </TextBlock>
+    </CheckBox>
 </UserControl>

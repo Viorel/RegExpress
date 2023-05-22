@@ -14,9 +14,11 @@
 #if _DEBUG
 #   pragma comment(lib, "./Hyperscan-min/lib-debug/hs.lib")
 #   pragma comment(lib, "./Hyperscan-min/lib-debug/pcred.lib")
+#   pragma comment(lib, "./Hyperscan-min/lib-debug/chimera.lib")
 #else
 #   pragma comment(lib, "./Hyperscan-min/lib-release/hs.lib")
 #   pragma comment(lib, "./Hyperscan-min/lib-release/pcre.lib")
+#   pragma comment(lib, "./Hyperscan-min/lib-release/chimera.lib")
 #endif
 
 
@@ -24,6 +26,10 @@ int GetHyperscanVersion( BinaryWriterA& outwr, StreamWriterA& errwr );
 int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const std::string& pattern, const std::string& text,
     uint32_t remote_flags, uint32_t Levenshtein_distance, uint32_t Hamming_distance, uint32_t minOffset, uint32_t maxOffset, uint32_t minLength,
     uint8_t mode, uint8_t modeSom );
+
+int GetChimeraVersion( BinaryWriterA& outwr, StreamWriterA& errwr );
+int DoChimeraMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const std::string& pattern, const std::string& text,
+    uint32_t remote_flags, uint32_t matchLimit, uint32_t matchLimitRecursion, uint8_t mode );
 
 
 int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
@@ -79,12 +85,9 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
             return GetHyperscanVersion( outbw, errwr );
         }
-
-        //
-
-        if( command == "m" )
+        else if( command == "m" )
         {
-            // get matches
+            // get Hyperscan matches
 
             if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [1]." );
 
@@ -102,6 +105,29 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
             return DoHyperscanMatch( outbw, errwr, pattern, text, remote_flags, Levenshtein_distance, Hamming_distance, min_offset, max_offset, min_length, mode, mode_som );
+        }
+        else if( command == "chv" )
+        {
+            // get Chimera version
+
+            return GetChimeraVersion( outbw, errwr );
+        }
+        else if( command == "chm" )
+        {
+            // get Chimera matches
+
+            if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [CH1]." );
+
+            std::string pattern = inbr.ReadString( );
+            std::string text = inbr.ReadString( );
+            auto remote_flags = inbr.ReadT<uint32_t>( );
+            auto match_limit = inbr.ReadT<uint32_t>( );
+            auto match_limit_recursion = inbr.ReadT<uint32_t>( );
+            auto mode = inbr.ReadT<uint8_t>( );
+
+            if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [CH2]." );
+
+            return DoChimeraMatch( outbw, errwr, pattern, text, remote_flags, match_limit, match_limit_recursion, mode );
         }
 
         errwr.WriteStringF( "Unsupported command: '%s'", command.c_str( ) );
@@ -122,6 +148,32 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     }
 
     return 101;
+}
+
+
+const char* ErrorText( hs_error_t err )
+{
+#define E(e) \
+    case e: return #e
+
+    switch( err )
+    {
+        E( HS_SUCCESS );
+        E( HS_INVALID );
+        E( HS_NOMEM );
+        E( HS_SCAN_TERMINATED );
+        E( HS_COMPILER_ERROR );
+        E( HS_DB_VERSION_ERROR );
+        E( HS_DB_PLATFORM_ERROR );
+        E( HS_DB_MODE_ERROR );
+        E( HS_BAD_ALIGN );
+        E( HS_BAD_ALLOC );
+        E( HS_SCRATCH_IN_USE );
+        E( HS_ARCH_ERROR );
+        E( HS_INSUFFICIENT_SPACE );
+        E( HS_UNKNOWN_ERROR );
+    default: return "Unknown error";
+    }
 }
 
 
@@ -156,7 +208,7 @@ struct Context
 };
 
 
-static int HSEventHandler( unsigned int id, unsigned long long from, unsigned long long to, unsigned int flags, void* ctx0 )
+static int HyperscanEventHandler( unsigned int id, unsigned long long from, unsigned long long to, unsigned int flags, void* ctx0 )
 {
     Context& ctx = *(Context*)ctx0;
 
@@ -186,14 +238,6 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
 
     hs_database_t* database;
     hs_compile_error_t* compile_err;
-
-    //if( hs_compile( pattern.c_str( ), compiler_flags, HS_MODE_BLOCK, NULL, &database, &compile_err ) != HS_SUCCESS )
-    //{
-    //    errwr.WriteStringF( "Unable to compile pattern \"%s\": %s", pattern.c_str( ), compile_err->message );
-    //    hs_free_compile_error( compile_err );
-
-    //    return -1;
-    //}
 
     const char* patterns[1] = { pattern.c_str( ) };
     unsigned int flags[1] = { compiler_flags };
@@ -262,19 +306,28 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
         return -1;
     }
 
-    if( hs_compile_ext_multi( patterns, flags, nullptr, extended_flags, 1, hs_mode | hs_mode_som, nullptr, &database, &compile_err ) )
+    hs_error_t hs;
+
+    if( ( hs = hs_compile_ext_multi( patterns, flags, nullptr, extended_flags, 1, hs_mode | hs_mode_som, nullptr, &database, &compile_err ) ) != HS_SUCCESS )
     {
-        errwr.WriteStringF( "Unable to compile pattern \"%s\": %s", pattern.c_str( ), compile_err->message );
-        hs_free_compile_error( compile_err );
+        if( hs == HS_COMPILER_ERROR )
+        {
+            errwr.WriteStringF( "Unable to compile pattern \"%s\": %s", pattern.c_str( ), compile_err->message );
+            hs_free_compile_error( compile_err );
+        }
+        else
+        {
+            errwr.WriteStringF( "Unable to compile pattern \"%s\": %s", pattern.c_str( ), ErrorText( hs ) );
+        }
 
         return -1;
     }
 
     hs_scratch_t* scratch = NULL;
 
-    if( hs_alloc_scratch( database, &scratch ) != HS_SUCCESS )
+    if( ( hs = hs_alloc_scratch( database, &scratch ) ) != HS_SUCCESS )
     {
-        errwr.WriteStringF( "Unable to allocate scratch space." );
+        errwr.WriteStringF( "Unable to allocate scratch space (%s).", ErrorText( hs ) );
         hs_free_database( database );
 
         return -1;
@@ -284,9 +337,9 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
 
     if( hs_mode == HS_MODE_BLOCK )
     {
-        if( hs_scan( database, text.data( ), CheckedCast( text.size( ) ), 0, scratch, HSEventHandler, &ctx ) != HS_SUCCESS )
+        if( ( hs = hs_scan( database, text.data( ), CheckedCast( text.size( ) ), 0, scratch, HyperscanEventHandler, &ctx ) ) != HS_SUCCESS )
         {
-            errwr.WriteStringF( "Unable to scan input buffer." );
+            errwr.WriteStringF( "Unable to scan input buffer (%s).", ErrorText( hs ) );
 
             hs_free_scratch( scratch );
             hs_free_database( database );
@@ -298,9 +351,9 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
     {
         hs_stream_t* stream;
 
-        if( hs_open_stream( database, 0, &stream ) != HS_SUCCESS )
+        if( ( hs = hs_open_stream( database, 0, &stream ) ) != HS_SUCCESS )
         {
-            errwr.WriteStringF( "Unable to open stream." );
+            errwr.WriteStringF( "Unable to open stream (%s).", ErrorText( hs ) );
 
             hs_free_scratch( scratch );
             hs_free_database( database );
@@ -308,9 +361,9 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
             return -1;
         }
 
-        if( hs_scan_stream( stream, text.data( ), CheckedCast( text.size( ) ), 0, scratch, HSEventHandler, &ctx ) != HS_SUCCESS )
+        if( ( hs = hs_scan_stream( stream, text.data( ), CheckedCast( text.size( ) ), 0, scratch, HyperscanEventHandler, &ctx ) ) != HS_SUCCESS )
         {
-            errwr.WriteStringF( "Unable to scan the stream." );
+            errwr.WriteStringF( "Unable to scan the stream (%s).", ErrorText( hs ) );
 
             hs_close_stream( stream, nullptr, nullptr, nullptr );
             hs_free_scratch( scratch );
@@ -324,9 +377,9 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
         const char* data[1] = { text.data( ) };
         const unsigned int length[1] = { CheckedCast( text.size( ) ) };
 
-        if( hs_scan_vector( database, data, length, 1, 0, scratch, HSEventHandler, &ctx ) != HS_SUCCESS )
+        if( ( hs = hs_scan_vector( database, data, length, 1, 0, scratch, HyperscanEventHandler, &ctx ) ) != HS_SUCCESS )
         {
-            errwr.WriteStringF( "Unable to scan vector." );
+            errwr.WriteStringF( "Unable to scan vector (%s).", ErrorText( hs ) );
 
             hs_free_scratch( scratch );
             hs_free_database( database );
@@ -357,4 +410,208 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
 }
 
 
+const char* ChimeraErrorText( hs_error_t err )
+{
+#define E(e) \
+    case e: return #e
 
+    switch( err )
+    {
+        E( CH_SUCCESS );
+        E( CH_INVALID );
+        E( CH_NOMEM );
+        E( CH_SCAN_TERMINATED );
+        E( CH_COMPILER_ERROR );
+        E( CH_DB_VERSION_ERROR );
+        E( CH_DB_PLATFORM_ERROR );
+        E( CH_DB_MODE_ERROR );
+        E( CH_BAD_ALIGN );
+        E( CH_BAD_ALLOC );
+        E( CH_SCRATCH_IN_USE );
+        E( CH_UNKNOWN_HS_ERROR );
+        E( CH_FAIL_INTERNAL );
+    default: return "Unknown error";
+    }
+}
+
+
+static int GetChimeraVersion( BinaryWriterA& outwr, StreamWriterA& errwr )
+{
+    std::string version = std::format( "{}.{}.{}", HS_MAJOR, HS_MINOR, HS_PATCH );
+
+    outwr.Write( version );
+
+    return 0;
+
+}
+
+
+static ch_callback_t ChimeraEventHandler( unsigned int id, unsigned long long from, unsigned long long to, unsigned int flags, unsigned int size, const ch_capture_t* captured, void* ctx0 )
+{
+    Context& ctx = *(Context*)ctx0;
+
+    ctx.matches.emplace_back( true, from, to - from );
+
+    Match& m = ctx.matches.back( );
+
+    for( unsigned int i = 0; i < size; ++i )
+    {
+        assert( !( i == 0 && ( captured[i].flags & CH_CAPTURE_FLAG_ACTIVE ) == 0 ) );
+
+        m.groups.emplace_back( ( captured[i].flags & CH_CAPTURE_FLAG_ACTIVE ) != 0, captured[i].from, captured[i].to - captured[i].from );
+    }
+
+    return CH_CALLBACK_CONTINUE;
+}
+
+
+static ch_callback_t ChimeraErrorHandler( ch_error_event_t error_type, unsigned int id, void* info, void* ctx0 )
+{
+    Context& ctx = *(Context*)ctx0;
+
+    switch( error_type )
+    {
+    case CH_ERROR_MATCHLIMIT:
+        ctx.error = "Match limit achieved.";
+        break;
+    case CH_ERROR_RECURSIONLIMIT:
+        ctx.error = "Recursion limit achieved.";
+        break;
+    default:
+        ctx.error = "Unknown scan error";
+        break;
+    }
+
+    return CH_CALLBACK_TERMINATE;
+}
+
+
+static int DoChimeraMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const std::string& pattern, const std::string& text,
+    uint32_t remoteFlags, uint32_t matchLimit, uint32_t matchLimitRecursion, uint8_t mode )
+{
+    unsigned int compiler_flags = 0;
+
+    if( remoteFlags & ( 1 << 0 ) ) compiler_flags |= CH_FLAG_CASELESS;
+    if( remoteFlags & ( 1 << 1 ) ) compiler_flags |= CH_FLAG_DOTALL;
+    if( remoteFlags & ( 1 << 2 ) ) compiler_flags |= CH_FLAG_MULTILINE;
+    if( remoteFlags & ( 1 << 3 ) ) compiler_flags |= CH_FLAG_SINGLEMATCH;
+    if( remoteFlags & ( 1 << 4 ) ) compiler_flags |= CH_FLAG_UTF8;
+    if( remoteFlags & ( 1 << 5 ) ) compiler_flags |= CH_FLAG_UCP;
+
+    unsigned int ch_mode = 0;
+
+    switch( mode )
+    {
+    case 1: ch_mode = CH_MODE_NOGROUPS; break;
+    case 2: ch_mode = CH_MODE_GROUPS; break;
+    default:
+        errwr.WriteStringF( "Invalid mode." );
+
+        return -1;
+    }
+
+    constexpr uint32_t empty_indicator = std::numeric_limits<uint32_t>::max( );
+
+    if( matchLimit == empty_indicator ) matchLimit = 0;
+    if( matchLimitRecursion == empty_indicator ) matchLimitRecursion = 0;
+
+    ch_database_t* database;
+    ch_compile_error_t* compile_err;
+
+    const char* patterns[1] = { pattern.c_str( ) };
+    unsigned int flags[1] = { compiler_flags };
+
+    ch_error_event_t ch;
+
+    if( ( ch = ch_compile_ext_multi(
+        patterns,
+        flags,
+        nullptr, // ids
+        1, // elements
+        ch_mode,
+        matchLimit,
+        matchLimitRecursion,
+        nullptr, // platform
+        &database,
+        &compile_err ) ) != CH_SUCCESS )
+    {
+        if( ch == CH_COMPILER_ERROR )
+        {
+            errwr.WriteStringF( "Unable to compile pattern \"%s\": %s", pattern.c_str( ), compile_err->message );
+            ch_free_compile_error( compile_err );
+        }
+        else
+        {
+            errwr.WriteStringF( "Unable to compile pattern \"%s\": %s", pattern.c_str( ), ChimeraErrorText( ch ) );
+        }
+
+        return -1;
+    }
+
+    ch_scratch_t* scratch = NULL;
+
+    if( ( ch = ch_alloc_scratch( database, &scratch ) ) != CH_SUCCESS )
+    {
+        errwr.WriteStringF( "Unable to allocate scratch space (%s).", ChimeraErrorText( ch ) );
+        ch_free_database( database );
+
+        return -1;
+    }
+
+    Context ctx;
+
+    if( ( ch = ch_scan(
+        database,
+        text.data( ),
+        CheckedCast( text.size( ) ),
+        0,
+        scratch,
+        ChimeraEventHandler,
+        ChimeraErrorHandler,
+        &ctx ) ) != CH_SUCCESS )
+    {
+        if( ctx.error.empty( ) )
+        {
+            errwr.WriteStringF( "Unable to scan input buffer (%s).", ChimeraErrorText( ch ) );
+
+            ch_free_scratch( scratch );
+            ch_free_database( database );
+
+            return -1;
+        }
+    }
+
+    ch_free_scratch( scratch );
+    ch_free_database( database );
+
+    outwr.Write( "r" );
+
+    if( !ctx.error.empty( ) )
+    {
+        outwr.Write( "e" );
+
+        outwr.Write( ctx.error );
+    }
+    else
+    {
+        outwr.Write( "m" );
+
+        outwr.WriteT( (uint64_t)ctx.matches.size( ) );
+
+        for( const Match& m : ctx.matches )
+        {
+            outwr.WriteT( m.index );
+            outwr.WriteT( m.length );
+
+            outwr.WriteT( (uint64_t)m.groups.size( ) );
+            for( const Match& g : m.groups )
+            {
+                outwr.WriteT( (uint32_t)g.success );
+                outwr.WriteT( g.index );
+                outwr.WriteT( g.length );
+            }
+        }
+    }
+
+    return 0;
+}

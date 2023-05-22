@@ -116,7 +116,7 @@
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
-                <Label Content="Stream mode precission:" Target="{Binding ElementName=cbxModeSom}" Padding="0 2 3 2"/>
+                <Label Content="Stream precission:" Target="{Binding ElementName=cbxModeSom}" Padding="0 2 3 2"/>
                 <ComboBox x:Name="cbxModeSom" SelectedValuePath="Tag" SelectedValue="{Binding ModeSom, FallbackValue='None'}" VerticalAlignment="Center" SelectionChanged="cbxModeSom_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
                     <ComboBoxItem Tag ="None" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
                     <ComboBoxItem Tag ="HS_MODE_SOM_HORIZON_LARGE" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />

@@ -20,6 +20,7 @@
 #include "RegExpressCppLibraryPCH.h"
 
 #include <hs.h>
+#include <ch.h>
 
 
 #endif //PCH_H

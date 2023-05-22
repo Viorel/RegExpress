@@ -148,7 +148,7 @@
                     </CheckBox>
                 </Grid>
 
-                <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
+                <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0" Padding="2">
                     <ScrollViewer x:Name="svOptions" Margin="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                         <ScrollViewer.Clip>
                             <MultiBinding Converter="{StaticResource BorderClipConverter}">
