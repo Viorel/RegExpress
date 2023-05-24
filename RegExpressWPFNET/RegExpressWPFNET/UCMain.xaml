@@ -180,11 +180,11 @@
                                 </ComboBox>
                             </StackPanel>
                             <Separator/>
-                            <Grid x:Name="pnlRegexOptions" Margin="3 0 0 0">
+                            <Grid x:Name="pnlRegexOptions" Margin="3 0 0 4">
                                 <!-- (filled programmatically based on current engine) -->
                             </Grid>
-                            <Separator/>
-                            <StackPanel Margin="3 0 0 20">
+                            <Separator />
+                            <StackPanel Margin="3 4 0 20">
                                 <CheckBox x:Name="cbShowFirstOnly" Content="Show first match only" Checked="CbOption_CheckedChanged" Unchecked="CbOption_CheckedChanged" HorizontalAlignment="Left"/>
                                 <CheckBox x:Name="cbShowSucceededGroupsOnly" Content="Show succeeded groups only" Checked="CbOption_CheckedChanged" Unchecked="CbOption_CheckedChanged" HorizontalAlignment="Left"/>
                                 <CheckBox x:Name="cbShowSucceededGroupsOnlyDisabledUnchecked" Content="Show succeeded groups only" IsEnabled="False" HorizontalAlignment="Left" />

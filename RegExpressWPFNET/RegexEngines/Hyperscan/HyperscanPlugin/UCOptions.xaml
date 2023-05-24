@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:HyperscanPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="500" d:DesignWidth="650" 
+             d:DesignHeight="500" d:DesignWidth="507.771" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -20,7 +20,7 @@
 
     <Grid>
         <StackPanel VerticalAlignment="Top">
-            <Label Margin="0 4 0 1" Padding="0">
+            <Label Margin="0 2 0 4" Padding="0">
                 <Italic>Flags</Italic>
             </Label>
 
@@ -69,7 +69,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="44"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -112,7 +112,7 @@
                 </ComboBox>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
+            <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
@@ -124,7 +124,6 @@
                     <ComboBoxItem Tag ="HS_MODE_SOM_HORIZON_SMALL" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                 </ComboBox>
             </StackPanel>
-
 
         </StackPanel>
     </Grid>

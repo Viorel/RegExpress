@@ -28,7 +28,7 @@
             <ui:CheckboxWithNote Prop="word_boundary" Note="allow Perl's \b \B (word boundary and not)"/>
             <ui:CheckboxWithNote Prop="one_line" Note="^ and $ only match beginning and end of text"/>
 
-            <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
+            <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>

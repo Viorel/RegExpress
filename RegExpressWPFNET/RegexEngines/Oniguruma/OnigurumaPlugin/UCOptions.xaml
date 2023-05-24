@@ -70,7 +70,7 @@
                 </ComboBox>
             </StackPanel>
 
-            <Label Margin="0 3 0 0" Padding="0">
+            <Label Margin="0 4 0 4" Padding="0">
                 <Italic>Compile-time options</Italic>
             </Label>
             <StackPanel>
@@ -92,7 +92,7 @@
                 <ui:CheckboxWithNote Prop="ONIG_OPTION_TEXT_SEGMENT_WORD" Note="Word mode"/>
             </StackPanel>
 
-            <Label Margin="0 3 0 0" Padding="0">
+            <Label Margin="0 4 0 4" Padding="0">
                 <Italic>Search-time options</Italic>
             </Label>
             <StackPanel>
@@ -103,7 +103,7 @@
                 <ui:CheckboxWithNote Prop="ONIG_OPTION_NOT_BEGIN_POSITION" Note="string head isn't considered as start position of search (* fail \G)"/>
             </StackPanel>
 
-            <Label Margin="0 3 0 0" Padding="0">
+            <Label Margin="0 4 0 4" Padding="0">
                 <Italic>Configuration</Italic>
             </Label>
             <StackPanel>

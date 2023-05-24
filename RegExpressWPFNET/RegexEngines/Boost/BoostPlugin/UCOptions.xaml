@@ -49,7 +49,7 @@
                 </ComboBox>
             </StackPanel>
 
-            <Label Margin="0 3 0 0" Padding="0">
+            <Label Margin="0 4 0 4" Padding="0">
                 <Italic>Syntax Options</Italic>
             </Label>
             <StackPanel>
@@ -65,7 +65,7 @@
                 <ui:CheckboxWithNote Prop="no_empty_expressions" Note="empty expressions/alternatives are prohibited"/>
             </StackPanel>
 
-            <Label Margin="0 3 0 0" Padding="0">
+            <Label Margin="0 4 0 4" Padding="0">
                 <Italic>Match Options</Italic>
             </Label>
             <StackPanel x:Name="pnlExtraCompileOptions">
