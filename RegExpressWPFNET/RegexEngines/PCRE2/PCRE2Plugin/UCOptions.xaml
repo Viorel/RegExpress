@@ -35,7 +35,7 @@
                 </ComboBox>
             </StackPanel>
 
-            <Label Margin="0 3 0 0" Padding="0">
+            <Label Margin="0 4 0 4" Padding="0">
                 <Italic>Compile Options</Italic>
             </Label>
             <StackPanel>
@@ -66,7 +66,7 @@
                 <ui:CheckboxWithNote Prop="PCRE2_UNGREEDY" Note="Invert greediness of quantifiers"/>
             </StackPanel>
 
-            <Label Margin="0 3 0 0" Padding="0">
+            <Label Margin="0 4 0 4" Padding="0">
                 <Italic>Extra Compile Options</Italic>
             </Label>
             <StackPanel x:Name="pnlExtraCompileOptions">
@@ -78,7 +78,7 @@
                 <ui:CheckboxWithNote Prop="PCRE2_EXTRA_MATCH_WORD" Note="Pattern matches &quot;words&quot;"/>
             </StackPanel>
 
-            <Label Margin="0 3 0 0" Padding="0">
+            <Label Margin="0 4 0 4" Padding="0">
                 <Italic>Matcher Options</Italic>
             </Label>
             <StackPanel x:Name="pnlMatchOptions">

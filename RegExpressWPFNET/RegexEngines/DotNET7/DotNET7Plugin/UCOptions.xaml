@@ -26,7 +26,7 @@
                 <ui:CheckboxWithNote Prop="RightToLeft" />
                 <ui:CheckboxWithNote Prop="Singleline" Note="'.' matches '\n' too"/>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
+            <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>

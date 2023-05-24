@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:StdPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="359.77" d:DesignWidth="316.194" 
+             d:DesignHeight="536.021" d:DesignWidth="316.194" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -17,7 +17,7 @@
 
     <Grid>
         <StackPanel VerticalAlignment="Top">
-            <StackPanel Orientation="Horizontal" Margin="0 0 0 6">
+            <StackPanel Orientation="Horizontal" Margin="0">
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
@@ -32,11 +32,11 @@
                 </ComboBox>
             </StackPanel>
 
-            <Label Margin="0 4 0 0" Padding="0">
+            <Label Margin="0 4 0 4" Padding="0">
                 <Italic>syntax_option_type</Italic>
             </Label>
 
-            <StackPanel x:Name="pnl2" Orientation="Vertical" Margin="0 4 0 0">
+            <StackPanel x:Name="pnl2" Orientation="Vertical" Margin="0">
                 <ui:CheckboxWithNote Prop="icase" Note="make matches case-insensitive"/>
                 <ui:CheckboxWithNote Prop="nosubs" Note="do not keep track of the contents of capture groups"/>
                 <ui:CheckboxWithNote Prop="optimize" Note="emphasize speed of matching rather than speed of regular expression compilation"/>
@@ -44,11 +44,11 @@
                 <ui:CheckboxWithNote IsEnabled="False" Text="multiline" Note="(not supported by std::wregex)"/>
             </StackPanel>
 
-            <Label Margin="0 4 0 0" Padding="0">
+            <Label Margin="0 4 0 4" Padding="0">
                 <Italic>match_flag_type</Italic>
             </Label>
 
-            <StackPanel x:Name="pnl1" Orientation="Vertical" Margin="0 2 0 0">
+            <StackPanel x:Name="pnl1" Orientation="Vertical" Margin="0">
                 <ui:CheckboxWithNote Prop="match_not_bol" Note="do not treat the first position in the target sequence as the beginning of a line"/>
                 <ui:CheckboxWithNote Prop="match_not_eol" Note="do not treat the past-the-end position in the target sequence as the end of a line"/>
                 <ui:CheckboxWithNote Prop="match_not_bow" Note="do not treat the first position in the target sequence as the beginning of a word"/>
@@ -68,9 +68,9 @@
                         <TranslateTransform/>
                     </TransformGroup>
                 </StackPanel.LayoutTransform>
-                <Label Content="__REGEX__MAX__STACK__COUNT:" Target="{Binding ElementName=tbREGEX_MAX_STACK_COUNT}" FontStyle="Italic" HorizontalAlignment="Left" Margin="0 0 0 1" Padding="0"/>
+                <Label Content="__REGEX__MAX__STACK__COUNT:" Target="{Binding ElementName=tbREGEX_MAX_STACK_COUNT}" FontStyle="Italic" HorizontalAlignment="Left" Margin="0 4 0 3" Padding="0"/>
                 <TextBox x:Name="tbREGEX_MAX_STACK_COUNT" Text="{Binding REGEX_MAX_STACK_COUNT, UpdateSourceTrigger=PropertyChanged}" Width="150" HorizontalAlignment="Left" TextChanged="tbREGEX_MAX_STACK_COUNT_TextChanged"  />
-                <Label Content="__REGEX__MAX__COMPLEXITY__COUNT:" Target="{Binding ElementName=tbREGEX_MAX_COMPLEXITY_COUNT}" FontStyle="Italic" HorizontalAlignment="Left" Margin="0 3 0 1" Padding="0"/>
+                <Label Content="__REGEX__MAX__COMPLEXITY__COUNT:" Target="{Binding ElementName=tbREGEX_MAX_COMPLEXITY_COUNT}" FontStyle="Italic" HorizontalAlignment="Left" Margin="0 4 0 3" Padding="0"/>
                 <TextBox x:Name="tbREGEX_MAX_COMPLEXITY_COUNT" Text="{Binding REGEX_MAX_COMPLEXITY_COUNT, UpdateSourceTrigger=PropertyChanged}" Width="150" HorizontalAlignment="Left" TextChanged="tbREGEX_MAX_COMPLEXITY_COUNT_TextChanged"  />
             </StackPanel>
         </StackPanel>
