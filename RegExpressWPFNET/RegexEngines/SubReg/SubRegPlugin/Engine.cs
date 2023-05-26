@@ -141,6 +141,22 @@ namespace SubRegPlugin
                 Brackets = false,
                 ExtendedBrackets = false,
 
+                VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+
+                InlineComments = false,
+                XModeComments = false,
+                InsideSets_XModeComments = false,
+
+                Flags = true,
+                ScopedFlags = false,
+                CircumflexFlags = false,
+                ScopedCircumflexFlags = false,
+                XFlag = false,
+                XXFlag = false,
+
+                Literal_QE = false,
+                InsideSets_Literal_QE = false,
+
                 Esc_a = false,
                 Esc_b = true,
                 Esc_e = false,
@@ -300,24 +316,10 @@ namespace SubRegPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
                 Quantifier_LowAbbrev = false,
 
-                VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
-
-                InlineComments = false,
-                XModeComments = false,
-                InsideSets_XModeComments = false,
-
-                Flags = true,
-                ScopedFlags = false,
-                CircumflexFlags = false,
-                ScopedCircumflexFlags = false,
-                XFlag = false,
-                XXFlag = false,
-
-                Literal_QE = false,
-                InsideSets_Literal_QE = false,
-
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
+                Conditional_Pattern = false,
+                Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = false,
                 Conditional_BackrefByName_LtGt = false,
                 Conditional_R = false,
@@ -330,7 +332,6 @@ namespace SubRegPlugin
 
                 EmptyConstruct = false,
                 EmptyConstructX = false, // TODO: "a(? )b": with "xabc" no error, with "ab" gives error
-
                 EmptySet = false,
             };
         }

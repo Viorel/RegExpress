@@ -32,7 +32,7 @@
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
-                <Label Content="Anchor:" Target="{Binding ElementName=cbxAnchor}"/>
+                <Label Content="Anchor:" Target="{Binding ElementName=cbxAnchor}" Padding="0 2 4 2"/>
                 <ComboBox x:Name="cbxAnchor" SelectedValuePath="Tag" SelectedValue="{Binding anchor, FallbackValue='UNANCHORED'}" VerticalAlignment="Center" SelectionChanged="cbxAnchor_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
                     <ComboBoxItem Tag ="UNANCHORED" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
                     <ComboBoxItem Tag ="ANCHOR_START" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />

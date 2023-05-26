@@ -28,7 +28,7 @@
                     </TransformGroup>
                 </StackPanel.LayoutTransform>
 
-                <Label Content="Grammar:" Target="{Binding ElementName=cbxGrammar}" VerticalAlignment="Center"/>
+                <Label Content="Grammar:" Target="{Binding ElementName=cbxGrammar}" VerticalAlignment="Center" Padding="0 2 4 2"/>
                 <ComboBox x:Name="cbxGrammar" SelectedValuePath="Tag" SelectedValue="{Binding Grammar, FallbackValue='ECMAScript'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxGrammar_SelectionChanged">
                     <ComboBoxItem Tag ="normal" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                     <ComboBoxItem Tag ="ECMAScript" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />

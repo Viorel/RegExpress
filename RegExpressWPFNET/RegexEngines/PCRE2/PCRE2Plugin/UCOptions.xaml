@@ -28,7 +28,7 @@
                     </TransformGroup>
                 </StackPanel.LayoutTransform>
 
-                <Label Content="Algorithm:" Target="{Binding ElementName=cbxAlgorithm}" VerticalAlignment="Center"/>
+                <Label Content="Algorithm:" Target="{Binding ElementName=cbxAlgorithm}" VerticalAlignment="Center" Padding="0 2 4 2"/>
                 <ComboBox x:Name="cbxAlgorithm" SelectedValuePath="Tag" SelectedValue="{Binding Algorithm, FallbackValue='Standard'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxAlgorithm_SelectionChanged">
                     <ComboBoxItem Tag ="Standard" Content="Perl-compatible" IsSelected="True" />
                     <ComboBoxItem Tag ="DFA" Content="DFA" />

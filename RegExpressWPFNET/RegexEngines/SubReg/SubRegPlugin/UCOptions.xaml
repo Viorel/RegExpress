@@ -20,7 +20,7 @@
                 </TransformGroup>
             </StackPanel.LayoutTransform>
 
-            <Label Content="max__depth:" Target="{Binding ElementName=tbxMaximumDepth}" VerticalAlignment="Center"/>
+            <Label Content="max__depth:" Target="{Binding ElementName=tbxMaximumDepth}" VerticalAlignment="Center" Padding="0 2 4 2"/>
             <TextBox x:Name="tbxMaximumDepth" Text="{Binding max_depth, UpdateSourceTrigger=PropertyChanged}" Width="55" VerticalAlignment="Center" TextChanged="tbxMaximumDepth_TextChanged" />
         </StackPanel>
     </Grid>

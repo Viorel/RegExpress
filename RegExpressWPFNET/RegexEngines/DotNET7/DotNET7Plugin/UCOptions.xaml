@@ -30,7 +30,7 @@
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
-                <Label Content="Timeout:" Target="{Binding ElementName=cbxTimeout}"/>
+                <Label Content="Timeout:" Target="{Binding ElementName=cbxTimeout}" Padding="0 2 4 2"/>
                 <ComboBox x:Name="cbxTimeout" SelectedValuePath="Tag" SelectedValue="{Binding TimeoutMs, FallbackValue='10000'}" VerticalAlignment="Center" SelectionChanged="cbxTimeout_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
                     <ComboBoxItem Tag="1000" Content="1 s"/>
                     <ComboBoxItem Tag="2000" Content="2 s"/>
