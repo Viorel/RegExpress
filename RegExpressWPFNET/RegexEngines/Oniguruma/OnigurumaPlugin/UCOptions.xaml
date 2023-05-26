@@ -28,7 +28,7 @@
                     </TransformGroup>
                 </StackPanel.LayoutTransform>
 
-                <Label Content="Syntax:" Target="{Binding ElementName=cbxSyntax}" VerticalAlignment="Center"/>
+                <Label Content="Syntax:" Target="{Binding ElementName=cbxSyntax}" VerticalAlignment="Center" Padding="0 2 4 2"/>
                 <ComboBox x:Name="cbxSyntax" SelectedValuePath="Tag" SelectedValue="{Binding Syntax, FallbackValue='ONIG_SYNTAX_ONIGURUMA'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxSyntax_SelectionChanged">
 
                     <ComboBoxItem Tag ="ONIG_SYNTAX_ONIGURUMA" >

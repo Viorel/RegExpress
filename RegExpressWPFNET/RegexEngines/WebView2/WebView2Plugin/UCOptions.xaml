@@ -37,7 +37,7 @@
                         </TransformGroup>
                     </StackPanel.LayoutTransform>
 
-                    <Label Content="Function:" Target="{Binding ElementName=cbxFunction}" VerticalAlignment="Center"/>
+                    <Label Content="Function:" Target="{Binding ElementName=cbxFunction}" VerticalAlignment="Center" Padding="0 2 4 2"/>
                     <ComboBox x:Name="cbxFunction" SelectedValuePath="Tag" SelectedValue="{Binding Function, FallbackValue='MatchAll'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxFunction_SelectionChanged">
                         <ComboBoxItem Tag ="MatchAll" Content="String.prototype.matchAll"/>
                         <ComboBoxItem Tag ="Exec" Content="RegExp.prototype.exec"/>

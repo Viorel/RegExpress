@@ -14,10 +14,6 @@
 using namespace std;
 
 
-#define TO_STR2(s) L#s
-#define TO_STR(s) TO_STR2(s)
-
-
 static void WriteMatch( BinaryWriterW& outbw, const boost::wcmatch& match, const std::map<int, std::wstring>& names, const wchar_t* text )
 {
 
