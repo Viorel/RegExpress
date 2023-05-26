@@ -247,6 +247,7 @@ namespace StdPlugin
                 Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
+                Class_Name = false,
 
                 InsideSets_Class_dD = grammar == GrammarEnum.ECMAScript,
                 InsideSets_Class_hHhexa = false,
@@ -261,7 +262,7 @@ namespace StdPlugin
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
                 InsideSets_Class_pPBrace = false,
-                InsideSets_Class = true,
+                InsideSets_Class_Name = true,
                 InsideSets_Equivalence = true,
                 InsideSets_Collating = true,
 

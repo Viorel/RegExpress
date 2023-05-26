@@ -130,6 +130,7 @@ namespace RegExpressWPFNET.Code
 
             new FeatureMatrixDetails(  @"\pX, \PX", @"Unicode property, X — short property name", fm => fm.Class_pP ),
             new FeatureMatrixDetails(  @"\p{…}, \P{…}", @"Unicode property", fm => fm.Class_pPBrace ),
+            new FeatureMatrixDetails(  @"[:class:]", @"Character class", fm => fm.Class_Name ),
 
 
             new FeatureMatrixDetails(  @"Classes inside […]", null, null ),
@@ -147,7 +148,7 @@ namespace RegExpressWPFNET.Code
             new FeatureMatrixDetails(  @"[\X]", @"Extended grapheme cluster", fm => fm.InsideSets_Class_X ),
             new FeatureMatrixDetails(  @"[\pX], [\PX]", @"Unicode property, X — short property name", fm => fm.InsideSets_Class_pP ),
             new FeatureMatrixDetails(  @"[\p{…}], [\P{…}]", @"Unicode property", fm => fm.InsideSets_Class_pPBrace ),
-            new FeatureMatrixDetails(  @"[[:class:]]", @"Character class", fm => fm.InsideSets_Class ),
+            new FeatureMatrixDetails(  @"[[:class:]]", @"Character class", fm => fm.InsideSets_Class_Name ),
             new FeatureMatrixDetails(  @"[[=elem=]]", @"Equivalence", fm => fm.InsideSets_Equivalence ),
             new FeatureMatrixDetails(  @"[[.elem.]]", @"Collating symbol", fm => fm.InsideSets_Collating ),
 

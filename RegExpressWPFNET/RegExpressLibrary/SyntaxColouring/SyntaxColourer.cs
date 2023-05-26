@@ -18,7 +18,7 @@ namespace RegExpressLibrary.SyntaxColouring
             internal XLevelEnum xlevel;
             internal bool allow_empty_sets;
 
-            static Key()
+            static Key( )
             {
                 Debug.Assert( typeof( FeatureMatrix ).IsValueType );
             }
@@ -562,9 +562,9 @@ namespace RegExpressLibrary.SyntaxColouring
                         pb_inside_sets.Add( $@"\\[{chars}]" );
                     }
 
-                    if( fm.InsideSets_Class )
+                    if( fm.InsideSets_Class_Name )
                     {
-                        pb_inside_sets.Add( @"\[: [^:]* : (\] | $)" );
+                        pb_inside_sets.Add( @"\[: [^:\r\n]* (:\]?)?" );
                     }
                     if( fm.InsideSets_Equivalence )
                     {
@@ -635,8 +635,13 @@ namespace RegExpressLibrary.SyntaxColouring
                 pb.Add( @"(?<lbracket>\[\^?)(?<rbracket>\])" ); // [], [^]
             }
 
+            if( fm.Class_Name )
+            {
+                pb.AddGroup( "class", @"\[: [^:\r\n]* (:\]?)?" );
+            }
+
             string class_check = string.Concat(
-                fm.InsideSets_Class ? ":" : null,
+                fm.InsideSets_Class_Name ? ":" : null,
                 fm.InsideSets_Equivalence ? "=" : null,
                 fm.InsideSets_Collating ? "." : null
                 );

@@ -223,6 +223,7 @@ namespace VBScriptPlugin
                 Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
+                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -237,7 +238,7 @@ namespace VBScriptPlugin
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
                 InsideSets_Class_pPBrace = false,
-                InsideSets_Class = false,
+                InsideSets_Class_Name = false,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 
