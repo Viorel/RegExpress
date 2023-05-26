@@ -16,10 +16,11 @@ It includes the following Regular Expression engines:
 * **[RegExp](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)** JavaScript object from Microsoft Edge [WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
 * **[RegExp](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85))** VBScript object used in Access, Excel, Word.
 
-There are more engines that are described in **Additional Engines** section:
+There are more engines that are described in **[Additional Engines](#additional-engines)** section:
 
 * **Hyperscan** 
 * **Chimera**
+* **ICU Regular Expressions**
 
 
 <br/>
@@ -56,13 +57,19 @@ This repository includes several additional engines:
 
 * **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel.
 * **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41.
+* **[ICU Regular Expressions](https://icu.unicode.org/)** 73.1
 
-To take these engines, use the **main-extended** branch instead of **main**, then recompile 
+To use these engines, get the **main-extended** branch instead of **main**, then recompile 
 the same solution.
 
 The **main-extended** branch also includes the regular engines from the **main** branch.
 
-(The additional engines require certain third-party library files that were compiled separately 
-and included into **main-extended** branch).
+The additional engines require certain third-party library files, which were downloaded or compiled separately 
+and included into **main-extended** branch.
 
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
 
