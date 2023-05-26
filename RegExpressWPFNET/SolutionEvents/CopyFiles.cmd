@@ -105,3 +105,11 @@ rem -- Hyperscan --
 set BaseDir=%SolutionDir%\RegexEngines\Hyperscan
 xcopy /D /R /Y "%BaseDir%\HyperscanPlugin\bin\%Configuration%\%TargetFramework%\HyperscanPlugin.dll" "%EnginesTargetDir%\Hyperscan\*"
 xcopy /D /R /Y "%BaseDir%\HyperscanWorker\bin\%Configuration%\%Platform%\HyperscanWorker.exe" "%EnginesTargetDir%\Hyperscan\*.bin"
+
+
+rem -- ICU --
+
+set BaseDir=%SolutionDir%\RegexEngines\ICU
+xcopy /D /R /Y "%BaseDir%\ICUPlugin\bin\%Configuration%\%TargetFramework%\ICUPlugin.dll" "%EnginesTargetDir%\ICU\*"
+xcopy /D /R /Y "%BaseDir%\ICUWorker\bin\%Configuration%\%Platform%\ICUWorker.exe" "%EnginesTargetDir%\ICU\*.bin"
+xcopy /D /R /Y "%BaseDir%\ICUWorker\ICU-min\bin64\*" "%EnginesTargetDir%\ICU\*"

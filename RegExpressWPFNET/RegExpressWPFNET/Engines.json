@@ -38,5 +38,8 @@
     {
       "path": "Engines\\Hyperscan\\HyperscanPlugin.dll"
     },
+    {
+      "path": "Engines\\ICU\\ICUPlugin.dll"
+    },
   ]
 }
