@@ -269,6 +269,7 @@ namespace DotNETPlugin
                 Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = true,
+                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -283,7 +284,7 @@ namespace DotNETPlugin
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
                 InsideSets_Class_pPBrace = true,
-                InsideSets_Class = false,
+                InsideSets_Class_Name = false,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 

@@ -208,6 +208,7 @@ namespace SubRegPlugin
                 Class_Not = true,
                 Class_pP = false,
                 Class_pPBrace = false,
+                Class_Name = false,
 
                 InsideSets_Class_dD = false,
                 InsideSets_Class_hHhexa = true,
@@ -222,7 +223,7 @@ namespace SubRegPlugin
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
                 InsideSets_Class_pPBrace = false,
-                InsideSets_Class = false,
+                InsideSets_Class_Name = false,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 

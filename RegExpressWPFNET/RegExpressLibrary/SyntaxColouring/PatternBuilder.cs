@@ -146,7 +146,7 @@ namespace RegExpressLibrary.SyntaxColouring
         }
 
 
-        public PatternBuilder AddGroup( string name, string pattern )
+        public PatternBuilder AddGroup( string name, [StringSyntax( StringSyntaxAttribute.Regex )] string pattern )
         {
             return BeginGroup( name ).Add( pattern ).EndGroup( );
         }

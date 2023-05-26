@@ -112,9 +112,9 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Class_wW { get; init; }                               // \w, \W -- word characters
         public bool Class_X { get; init; }                                // \X -- eXtended grapheme cluster, or a non-combining character followed by a sequence of zero or more combining characters
         public bool Class_Not { get; init; }                              // \!c, where c -- any character, or \!\c, where \c -- an escape
-
         public bool Class_pP { get; init; }                               // ex.: \pL, \PL
         public bool Class_pPBrace { get; init; }                          // \p{...}, \P{...}, \p{^...}, \P{^...}
+        public bool Class_Name { get; init; }                             // ex: [:digit:] 
 
         public bool InsideSets_Class_dD { get; init; }                    // \d, \D -- digits
         public bool InsideSets_Class_hHhexa { get; init; }                // \h, \H -- hexadecimal
@@ -129,9 +129,9 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool InsideSets_Class_X { get; init; }                     // \X -- eXtended grapheme cluster
         public bool InsideSets_Class_pP { get; init; }                    // ex.: \pL, \PL
         public bool InsideSets_Class_pPBrace { get; init; }               // \p{...}, \P{...}, \p{^...}, \P{^...}
-        public bool InsideSets_Class { get; init; }                       // ex: [:digit:] inside [...]
-        public bool InsideSets_Equivalence { get; init; }                 // ex: [=a=] inside [...]
-        public bool InsideSets_Collating { get; init; }                   // ex: [.ch.] inside [...]
+        public bool InsideSets_Class_Name { get; init; }                  // ex: [:digit:]
+        public bool InsideSets_Equivalence { get; init; }                 // ex: [=a=]
+        public bool InsideSets_Collating { get; init; }                   // ex: [.ch.]
 
         public bool InsideSets_Operators { get; init; }                   // allow operators inside [...]; see operators bellow
         public bool InsideSets_OperatorsExtended { get; init; }           // allow operators inside (?[...]); see operators bellow

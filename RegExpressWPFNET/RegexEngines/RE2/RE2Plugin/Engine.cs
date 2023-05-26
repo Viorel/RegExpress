@@ -227,6 +227,7 @@ namespace RE2Plugin
                 Class_Not = false,
                 Class_pP = true,
                 Class_pPBrace = true,
+                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -241,7 +242,7 @@ namespace RE2Plugin
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = true,
                 InsideSets_Class_pPBrace = true,
-                InsideSets_Class = true,
+                InsideSets_Class_Name = true,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 

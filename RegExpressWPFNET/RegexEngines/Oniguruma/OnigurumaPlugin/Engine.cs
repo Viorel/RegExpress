@@ -335,6 +335,7 @@ namespace OnigurumaPlugin
                 Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = details.ONIG_SYN_OP2_ESC_P_BRACE_CHAR_PROPERTY || details.ONIG_SYN_OP2_ESC_P_BRACE_CIRCUMFLEX_NOT,
+                Class_Name = false,
 
                 InsideSets_Class_dD = details.ONIG_SYN_OP_ESC_D_DIGIT && details.ONIG_SYN_BACKSLASH_ESCAPE_IN_CC,
                 InsideSets_Class_hHhexa = details.ONIG_SYN_OP2_ESC_H_XDIGIT && details.ONIG_SYN_BACKSLASH_ESCAPE_IN_CC,
@@ -349,7 +350,7 @@ namespace OnigurumaPlugin
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
                 InsideSets_Class_pPBrace = details.ONIG_SYN_OP2_ESC_P_BRACE_CHAR_PROPERTY || details.ONIG_SYN_OP2_ESC_P_BRACE_CIRCUMFLEX_NOT,
-                InsideSets_Class = details.ONIG_SYN_OP_POSIX_BRACKET,
+                InsideSets_Class_Name = details.ONIG_SYN_OP_POSIX_BRACKET,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 

@@ -261,6 +261,7 @@ namespace BoostPlugin
                 Class_Not = false,
                 Class_pP = is_perl || is_POSIX_extended,
                 Class_pPBrace = is_perl || is_POSIX_extended,
+                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -275,7 +276,7 @@ namespace BoostPlugin
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
                 InsideSets_Class_pPBrace = false,
-                InsideSets_Class = true,
+                InsideSets_Class_Name = true,
                 InsideSets_Equivalence = true,
                 InsideSets_Collating = true,
 
