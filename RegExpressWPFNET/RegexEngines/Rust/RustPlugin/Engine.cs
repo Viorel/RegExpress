@@ -12,13 +12,13 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
 
-namespace HyperscanPlugin
+namespace RustPlugin
 {
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
+        static readonly LazyData</*octal*/ bool, FeatureMatrix> LazyData = new( BuildFeatureMatrix );
 
 
         public Engine( )
@@ -35,13 +35,13 @@ namespace HyperscanPlugin
 
         #region IRegexEngine
 
-        public string Kind => "Hyperscan";
+        public string Kind => "Rust";
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "Hyperscan";
+        public string Name => "Rust";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupDetails | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.OverlappingMatches;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd;
 
         public string? NoteForCaptures => null;
 
@@ -104,17 +104,19 @@ namespace HyperscanPlugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+
             return new SyntaxOptions
             {
-                XLevel = XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.Value
+                XLevel = options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
+                FeatureMatrix = LazyData.GetValue( options.octal )
             };
         }
 
 
         public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+            return new List<(string?, FeatureMatrix)> { (null, LazyData.GetValue( /* octal */ true )) };
         }
 
         #endregion
@@ -142,7 +144,7 @@ namespace HyperscanPlugin
         }
 
 
-        private static FeatureMatrix BuildFeatureMatrix( )
+        private static FeatureMatrix BuildFeatureMatrix( bool isOctal )
         {
             return new FeatureMatrix
             {
@@ -153,9 +155,9 @@ namespace HyperscanPlugin
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
 
-                InlineComments = true,
+                InlineComments = false,
                 XModeComments = true,
-                InsideSets_XModeComments = false,
+                InsideSets_XModeComments = true,
 
                 Flags = true,
                 ScopedFlags = true,
@@ -164,52 +166,52 @@ namespace HyperscanPlugin
                 XFlag = true,
                 XXFlag = false,
 
-                Literal_QE = true,
-                InsideSets_Literal_QE = true,
+                Literal_QE = false,
+                InsideSets_Literal_QE = false,
 
                 Esc_a = true,
                 Esc_b = false,
-                Esc_e = true,
+                Esc_e = false,
                 Esc_f = true,
                 Esc_n = true,
                 Esc_r = true,
                 Esc_t = true,
-                Esc_v = false,
+                Esc_v = true,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = true,
-                Esc_oBrace = true,
+                Esc_Octal_1_3 = isOctal,
+                Esc_Octal_2_3 = false,
+                Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = true,
-                Esc_u4 = false,
-                Esc_U8 = false,
-                Esc_uBrace = false,
-                Esc_UBrace = false,
-                Esc_c1 = true,
+                Esc_u4 = true,
+                Esc_U8 = true,
+                Esc_uBrace = true,
+                Esc_UBrace = true,
+                Esc_c1 = false,
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
                 GenericEscape = true,
 
                 InsideSets_Esc_a = true,
-                InsideSets_Esc_b = true,
-                InsideSets_Esc_e = true,
+                InsideSets_Esc_b = false,
+                InsideSets_Esc_e = false,
                 InsideSets_Esc_f = true,
                 InsideSets_Esc_n = true,
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
-                InsideSets_Esc_v = false,
+                InsideSets_Esc_v = true,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = true,
+                InsideSets_Esc_Octal_1_3 = isOctal,
                 InsideSets_Esc_Octal_2_3 = false,
-                InsideSets_Esc_oBrace = true,
+                InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
-                InsideSets_Esc_u4 = false,
-                InsideSets_Esc_U8 = false,
-                InsideSets_Esc_uBrace = false,
-                InsideSets_Esc_UBrace = false,
-                InsideSets_Esc_c1 = true,
+                InsideSets_Esc_u4 = true,
+                InsideSets_Esc_U8 = true,
+                InsideSets_Esc_uBrace = true,
+                InsideSets_Esc_UBrace = true,
+                InsideSets_Esc_c1 = false,
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
@@ -217,10 +219,10 @@ namespace HyperscanPlugin
 
                 Class_Dot = true,
                 Class_Cbyte = false,
-                Class_Ccp = true,
+                Class_Ccp = false,
                 Class_dD = true,
                 Class_hHhexa = false,
-                Class_hHhorspace = true,
+                Class_hHhorspace = false,
                 Class_lL = false,
                 Class_N = false,
                 Class_O = false,
@@ -228,7 +230,7 @@ namespace HyperscanPlugin
                 Class_sS = true,
                 Class_sSx = false,
                 Class_uU = false,
-                Class_vV = true,
+                Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
                 Class_Not = false,
@@ -238,13 +240,13 @@ namespace HyperscanPlugin
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
-                InsideSets_Class_hHhorspace = true,
+                InsideSets_Class_hHhorspace = false,
                 InsideSets_Class_lL = false,
                 InsideSets_Class_R = false,
                 InsideSets_Class_sS = true,
                 InsideSets_Class_sSx = false,
                 InsideSets_Class_uU = false,
-                InsideSets_Class_vV = true,
+                InsideSets_Class_vV = false,
                 InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = true,
@@ -253,7 +255,7 @@ namespace HyperscanPlugin
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 
-                InsideSets_Operators = false,
+                InsideSets_Operators = true,
                 InsideSets_OperatorsExtended = false,
                 InsideSets_Operator_Ampersand = false,
                 InsideSets_Operator_Plus = false,
@@ -261,15 +263,15 @@ namespace HyperscanPlugin
                 InsideSets_Operator_Minus = false,
                 InsideSets_Operator_Circumflex = false,
                 InsideSets_Operator_Exclamation = false,
-                InsideSets_Operator_DoubleAmpersand = false,
+                InsideSets_Operator_DoubleAmpersand = true,
                 InsideSets_Operator_DoubleVerticalLine = false,
-                InsideSets_Operator_DoubleMinus = false,
-                InsideSets_Operator_DoubleTilde = false,
+                InsideSets_Operator_DoubleMinus = true,
+                InsideSets_Operator_DoubleTilde = true,
 
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = true,
-                Anchor_Z = true,
+                Anchor_Z = false,
                 Anchor_z = true,
                 Anchor_G = false,
                 Anchor_bB = true,
@@ -280,8 +282,8 @@ namespace HyperscanPlugin
                 Anchor_GraveApos = false,
                 Anchor_yY = false,
 
-                NamedGroup_Apos = true,
-                NamedGroup_LtGt = true,
+                NamedGroup_Apos = false,
+                NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = true,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
@@ -296,7 +298,7 @@ namespace HyperscanPlugin
                 NonatomicPositiveLookahead = false,
                 NonatomicPositiveLookbehind = false,
                 AbsentOperator = false,
-                AllowSpacesInGroups = false,
+                AllowSpacesInGroups = true,
 
                 Backref_1_9 = false,
                 Backref_Num = false,
@@ -323,7 +325,7 @@ namespace HyperscanPlugin
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.Both,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -337,10 +339,10 @@ namespace HyperscanPlugin
                 Conditional_DEFINE = false,
                 Conditional_VERSION = false,
 
-                ControlVerbs = true,
+                ControlVerbs = false,
                 ScriptRuns = false,
 
-                EmptyConstruct = true,
+                EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
             };

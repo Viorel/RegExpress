@@ -113,3 +113,10 @@ set BaseDir=%SolutionDir%\RegexEngines\ICU
 xcopy /D /R /Y "%BaseDir%\ICUPlugin\bin\%Configuration%\%TargetFramework%\ICUPlugin.dll" "%EnginesTargetDir%\ICU\*"
 xcopy /D /R /Y "%BaseDir%\ICUWorker\bin\%Configuration%\%Platform%\ICUWorker.exe" "%EnginesTargetDir%\ICU\*.bin"
 xcopy /D /R /Y "%BaseDir%\ICUWorker\ICU-min\bin64\*" "%EnginesTargetDir%\ICU\*"
+
+
+rem -- Rust --
+
+set BaseDir=%SolutionDir%\RegexEngines\Rust
+xcopy /D /R /Y "%BaseDir%\RustPlugin\bin\%Configuration%\%TargetFramework%\RustPlugin.dll" "%EnginesTargetDir%\Rust\*"
+xcopy /D /R /Y "%BaseDir%\RustWorker\target\release\RustWorker.exe" "%EnginesTargetDir%\Rust\*.bin"

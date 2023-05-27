@@ -128,7 +128,17 @@ namespace HyperscanPlugin
 
         static string? GetVersion( )
         {
-            return ChimeraMatcher.GetVersion( NonCancellable.Instance );
+            try
+            {
+                return ChimeraMatcher.GetVersion( NonCancellable.Instance );
+            }
+            catch( Exception exc )
+            {
+                _ = exc;
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                return "(Unknown version)";
+            }
         }
 
 

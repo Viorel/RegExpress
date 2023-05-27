@@ -41,5 +41,8 @@
     {
       "path": "Engines\\ICU\\ICUPlugin.dll"
     },
+    {
+      "path": "Engines\\Rust\\RustPlugin.dll"
+    },
   ]
 }
