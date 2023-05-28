@@ -171,7 +171,7 @@ namespace WebView2Plugin
                 !string.IsNullOrWhiteSpace( stderr_contents ) ||
                 string.IsNullOrWhiteSpace( stdout_contents ) )
             {
-                version = "Unknown version";
+                version = null;
             }
             else
             {
@@ -196,7 +196,7 @@ namespace WebView2Plugin
                 {
                     if( Debugger.IsAttached ) Debugger.Break( );
 
-                    version = "Unknown version";
+                    version = null;
                 }
             }
 

@@ -139,7 +139,7 @@ namespace RustPlugin
                 _ = exc;
                 if( Debugger.IsAttached ) Debugger.Break( );
 
-                return "(Unknown version)";
+                return null;
             }
         }
 
