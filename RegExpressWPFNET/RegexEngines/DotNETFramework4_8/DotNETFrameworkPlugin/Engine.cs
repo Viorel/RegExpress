@@ -130,7 +130,17 @@ namespace DotNETFrameworkPlugin
 
         static string? GetVersion( )
         {
-            return Matcher.GetVersion( NonCancellable.Instance );
+            try
+            {
+                return Matcher.GetVersion( NonCancellable.Instance );
+            }
+            catch( Exception exc )
+            {
+                _ = exc;
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                return null;
+            }
         }
 
 
