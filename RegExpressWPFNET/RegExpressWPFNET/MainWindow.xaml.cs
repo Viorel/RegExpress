@@ -265,7 +265,7 @@ namespace RegExpressWPFNET
             TabItem? new_tab_item = e.AddedItems?.AsQueryable( ).OfType<TabItem>( ).SingleOrDefault( );
             UCMain? new_uc_main = new_tab_item?.Content as UCMain;
 
-            if( old_uc_main != null && new_uc_main != null )
+            if( old_uc_main != null && new_uc_main != null && old_uc_main.IsFullyLoaded )
             {
                 var old_metrics = old_uc_main.GetMetrics( );
                 new_uc_main.ApplyMetrics( old_metrics, full: false );
@@ -606,9 +606,9 @@ namespace RegExpressWPFNET
                 {
                     TabMetrics metrics = uc_main.GetMetrics( );
 
-                    Properties.Settings.Default.McsRightWidth = metrics.RightColumnWidth;
-                    Properties.Settings.Default.McsTopHeight = metrics.TopRowHeight;
-                    Properties.Settings.Default.McsBottomHeight = metrics.BottomRowHeight;
+                    Properties.Settings.Default.RightWidth = metrics.RightColumnWidth;
+                    Properties.Settings.Default.TopHeight = metrics.TopRowHeight;
+                    Properties.Settings.Default.BottomHeight = metrics.BottomRowHeight;
                 }
 
                 Properties.Settings.Default.Save( );

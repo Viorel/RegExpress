@@ -20,13 +20,13 @@
     <Setting Name="RestoreBoundsWH" Type="System.Drawing.Size" Scope="User">
       <Value Profile="(Default)">0, 0</Value>
     </Setting>
-    <Setting Name="McsRightWidth" Type="System.Double" Scope="User">
+    <Setting Name="RightWidth" Type="System.Double" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>
-    <Setting Name="McsTopHeight" Type="System.Double" Scope="User">
+    <Setting Name="TopHeight" Type="System.Double" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>
-    <Setting Name="McsBottomHeight" Type="System.Double" Scope="User">
+    <Setting Name="BottomHeight" Type="System.Double" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>
   </Settings>

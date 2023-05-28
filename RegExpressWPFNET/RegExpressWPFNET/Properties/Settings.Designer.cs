@@ -12,7 +12,7 @@ namespace RegExpressWPFNET.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.5.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.6.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -89,36 +89,36 @@ namespace RegExpressWPFNET.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public double McsRightWidth {
+        public double RightWidth {
             get {
-                return ((double)(this["McsRightWidth"]));
+                return ((double)(this["RightWidth"]));
             }
             set {
-                this["McsRightWidth"] = value;
+                this["RightWidth"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public double McsTopHeight {
+        public double TopHeight {
             get {
-                return ((double)(this["McsTopHeight"]));
+                return ((double)(this["TopHeight"]));
             }
             set {
-                this["McsTopHeight"] = value;
+                this["TopHeight"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public double McsBottomHeight {
+        public double BottomHeight {
             get {
-                return ((double)(this["McsBottomHeight"]));
+                return ((double)(this["BottomHeight"]));
             }
             set {
-                this["McsBottomHeight"] = value;
+                this["BottomHeight"] = value;
             }
         }
     }
