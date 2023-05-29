@@ -37,7 +37,7 @@ namespace RegExpressWPFNET
         IRegexEngine? CurrentRegexEngine = null;
         readonly HashSet<IRegexEngine> RegexEnginesUsed = new( );
 
-        bool IsFullyLoaded = false;
+        public bool IsFullyLoaded { get; private set; } = false;
         bool IsInChange = false;
         TabData? InitialTabData = null;
         bool ucTextHadFocus = false;
