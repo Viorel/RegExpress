@@ -65,7 +65,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Esc_U8 { get; init; }                                 // ex: \U00000041
         public bool Esc_uBrace { get; init; }                             // ex: \u{41}
         public bool Esc_UBrace { get; init; }                             // ex: \U{41}
-        public bool Esc_c1 { get; init; }                                 // ex: \cm, which is \r, or \cZ, which is 0x1A
+        public bool Esc_c1 { get; init; }                                 // ex: \cM, which is \r, or \cZ, which is 0x1A
         public bool Esc_C1 { get; init; }                                 // same as Esc_c1
         public bool Esc_CMinus { get; init; }                             // ex: \C-Z, which is 0x1A
         public bool Esc_NBrace { get; init; }                             // ex: \N{U+0041}, \N{unicode name}
