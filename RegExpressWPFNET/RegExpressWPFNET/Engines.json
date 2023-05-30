@@ -44,5 +44,8 @@
     {
       "path": "Engines\\Rust\\RustPlugin.dll"
     },
+    {
+      "path": "Engines\\Java\\JavaPlugin.dll"
+    },
   ]
 }

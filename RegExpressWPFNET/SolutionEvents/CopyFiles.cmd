@@ -120,3 +120,12 @@ rem -- Rust --
 set BaseDir=%SolutionDir%\RegexEngines\Rust
 xcopy /D /R /Y "%BaseDir%\RustPlugin\bin\%Configuration%\%TargetFramework%\RustPlugin.dll" "%EnginesTargetDir%\Rust\*"
 xcopy /D /R /Y "%BaseDir%\RustWorker\target\release\RustWorker.exe" "%EnginesTargetDir%\Rust\*.bin"
+
+
+rem -- Java --
+
+set BaseDir=%SolutionDir%\RegexEngines\Java
+xcopy /D /R /Y "%BaseDir%\JavaPlugin\bin\%Configuration%\%TargetFramework%\JavaPlugin.dll" "%EnginesTargetDir%\Java\*"
+xcopy /D /R /Y "%BaseDir%\JavaWorker\JavaWorker.class" "%EnginesTargetDir%\Java\*"
+xcopy /D /R /Y "%BaseDir%\JavaWorker\JRE-min.zip" "%EnginesTargetDir%\Java\*"
+

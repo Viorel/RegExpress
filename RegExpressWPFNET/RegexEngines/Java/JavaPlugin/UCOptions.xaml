@@ -1,0 +1,31 @@
+﻿<UserControl x:Class="JavaPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:JavaPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="191.49" d:DesignWidth="638.661" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel VerticalAlignment="Top">
+            <ui:CheckboxWithNote Prop="CANON_EQ" Note="canonical equivalence"/>
+            <ui:CheckboxWithNote Prop="CASE_INSENSITIVE" Note="(i) case-insensitive matching"/>
+            <ui:CheckboxWithNote Prop="COMMENTS" Note="(x) whitespace and comments in pattern"/>
+            <ui:CheckboxWithNote Prop="DOTALL" Note="(s) “.” matches any character, including a line terminator"/>
+            <ui:CheckboxWithNote Prop="LITERAL" Note="literal parsing of the pattern"/>
+            <ui:CheckboxWithNote Prop="MULTILINE" Note="(m) “^” and “$” match just after or just before, respectively, a line terminator or the end of the input"/>
+            <ui:CheckboxWithNote Prop="UNICODE_CASE" Note="(u) Unicode-aware case folding"/>
+            <ui:CheckboxWithNote Prop="UNICODE_CHARACTER_CLASS" Note="(U) Unicode version of Predefined character classes and POSIX character classes"/>
+            <ui:CheckboxWithNote Prop="UNIX_LINES" Note="(d) only the “\n” line terminator is recognized in the behavior of “.”, “^”, and “$”"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
