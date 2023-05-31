@@ -11,6 +11,10 @@ Summary:
 - run "powershell", enter "Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile get-pip.py", 
   enter "exit" to quit PowerShell
 
-- run "python.exe get-pip.py"
+- run "python get-pip.py"
 
-- run ".\Scripts\pip.exe install regex"
+- run ".\Scripts\pip install regex"
+
+- the unneeded "pip", which includes a lot of files, can be uninstalled using "python -m pip uninstall pip setuptools";
+  use "python get-pip.py" if it is needed again
+
