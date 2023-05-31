@@ -22,6 +22,8 @@ There are more engines that are described in **[Additional Engines](#additional-
 * **Chimera**
 * **ICU Regular Expressions**
 * **Rust** (*Regex* and *RegexBuilder* structs)
+* **Java** (*java.util.regex* package)
+* **Python** (*re* and *regex* modules)
 
 
 <br/>
@@ -60,6 +62,9 @@ This repository includes several additional engines:
 * **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41.
 * **[ICU Regular Expressions](https://icu.unicode.org/)** 73.1
 * **[Rust](https://docs.rs/regex)** 1.69.0 (*Regex* and *RegexBuilder* structs)
+* **[Java](https://docs.oracle.com/en/java/javase/20/docs/api/java.base/java/util/regex/package-summary.html)** 20 (*java.util.regex* package)
+* **[Python](https://www.python.org/)** 3.11.3 (standard *re* module, third-party *regex* module)
+
 
 To use these engines, get the **main-extended** branch instead of **main**, then recompile 
 the same solution.
