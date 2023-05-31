@@ -18,7 +18,7 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace JavaPlugin
 {
-    class Matcher : IMatcher
+    partial class Matcher : IMatcher
     {
 
         readonly string Pattern;
@@ -99,7 +99,7 @@ namespace JavaPlugin
                     if( line.StartsWith( "D " ) ) continue; // (for debugging)
 
                     {
-                        var reM = new Regex( @"^M (\d+) (\d+)" );
+                        var reM = MRegex( );
                         var mM = reM.Match( line );
                         if( mM.Success )
                         {
@@ -115,7 +115,7 @@ namespace JavaPlugin
                     }
 
                     {
-                        var reG = new Regex( @"^G (-?\d+) (-?\d+)" );
+                        var reG = GRegex( );
                         var mG = reG.Match( line );
                         if( mG.Success )
                         {
@@ -133,7 +133,7 @@ namespace JavaPlugin
                     }
 
                     {
-                        var reN = new Regex( @"^N (\d+) (\d+) <(.+)>" );
+                        var reN = NRegex( );
                         var mN = reN.Match( line );
                         if( mN.Success )
                         {
@@ -296,5 +296,15 @@ namespace JavaPlugin
                 IsJreExtractionDone = true;
             }
         }
+
+
+        [GeneratedRegex( @"^M (\d+) (\d+)" )]
+        private static partial Regex MRegex( );
+
+        [GeneratedRegex( @"^G (-?\d+) (-?\d+)" )]
+        private static partial Regex GRegex( );
+
+        [GeneratedRegex( @"^N (\d+) (\d+) <(.+)>" )]
+        private static partial Regex NRegex( );
     }
 }

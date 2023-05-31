@@ -47,5 +47,8 @@
     {
       "path": "Engines\\Java\\JavaPlugin.dll"
     },
+    {
+      "path": "Engines\\Python\\PythonPlugin.dll"
+    },
   ]
 }

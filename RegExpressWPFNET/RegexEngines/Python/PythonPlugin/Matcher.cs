@@ -1,0 +1,265 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using RegExpressLibrary;
+using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.Simple;
+
+
+namespace PythonPlugin
+{
+    partial class Matcher : IMatcher
+    {
+        readonly string Pattern;
+        readonly Options Options;
+
+
+        public Matcher( string pattern, Options options )
+        {
+            Pattern = pattern;
+            Options = options;
+        }
+
+
+        #region IMatcher
+
+        public RegexMatches Matches( string text, ICancellable cnc )
+        {
+            const string script = @"
+import sys
+import re
+import json
+
+input_json = sys.stdin.read()
+
+#print( input_json, file = sys.stderr )
+
+input_obj = json.loads(input_json)
+
+pattern = input_obj['pattern']
+text = input_obj['text']
+flags_obj = input_obj['flags']
+
+flags = 0
+if flags_obj['ASCII']       : flags |= re.ASCII
+if flags_obj['DOTALL']      : flags |= re.DOTALL
+if flags_obj['IGNORECASE']  : flags |= re.IGNORECASE
+if flags_obj['LOCALE']      : flags |= re.LOCALE
+if flags_obj['MULTILINE']   : flags |= re.MULTILINE
+if flags_obj['VERBOSE']     : flags |= re.VERBOSE
+
+try:
+
+	regex = re.compile( pattern, flags)
+
+	#print( f'# {regex.groups}')
+	#print( f'# {regex.groupindex}')
+
+	for key, value in regex.groupindex.items():
+		print( f'N {value} <{key}>')
+
+	matches = regex.finditer( text )
+
+	for match in matches :
+		print( f'M {match.start()}, {match.end()}')
+		for g in range(0, regex.groups + 1):
+			print( f'G {match.start(g)}, {match.end(g)}' )
+
+except:
+	ex_type, ex, tb = sys.exc_info()
+
+	print( ex, file = sys.stderr )
+";
+
+            string? stdout_contents;
+            string? stderr_contents;
+
+            Action<StreamWriter> stdin_writer = new Action<StreamWriter>( sw =>
+            {
+                var obj = new
+                {
+                    pattern = Pattern,
+                    text,
+                    flags = new { Options.ASCII, Options.DOTALL, Options.IGNORECASE, Options.LOCALE, Options.MULTILINE, Options.VERBOSE }
+                };
+                var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
+                sw.WriteLine( json );
+            } );
+
+
+            if( !ProcessUtilities.InvokeExe( cnc, GetPythonExePath( ), new[] { "-I", "-E", "-s", "-S", "-X", "utf8", "-c", script }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            {
+                return RegexMatches.Empty;
+            }
+
+            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+
+            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+
+            if( stdout_contents == null ) throw new Exception( "Null response" );
+
+
+            var matches = new List<IMatch>( );
+            ISimpleTextGetter? stg = null;
+
+            SimpleMatch? match = null;
+            int group_i = 0;
+            var names = new Dictionary<int, string>( );
+            var sph = new SurrogatePairsHelper( text, processSurrogatePairs: true );
+
+            using( var sr = new StringReader( stdout_contents ) )
+            {
+                string? line;
+
+                while( ( line = sr.ReadLine( ) ) != null )
+                {
+                    if( line.Length == 0 || line.StartsWith( "#" ) ) continue;
+
+                    var m = NMGRegex( ).Match( line );
+
+                    if( !m.Success )
+                    {
+                        if( Debugger.IsAttached ) Debugger.Break( );
+
+                        throw new Exception( "Internal error in Python engine." );
+                    }
+                    else
+                    {
+                        switch( m.Groups["t"].Value )
+                        {
+                        case "N":
+                        {
+                            int index = int.Parse( m.Groups["i"].Value, CultureInfo.InvariantCulture );
+                            string name = m.Groups["n"].Value;
+
+                            Debug.Assert( !names.ContainsKey( index ) );
+
+                            names[index] = name;
+                        }
+                        break;
+                        case "M":
+                        {
+                            int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
+                            int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
+                            int length = end - index;
+
+                            Debug.Assert( index >= 0 && end >= 0 );
+
+                            var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
+
+                            stg ??= new SimpleTextGetter( text );
+
+                            match = SimpleMatch.Create( index, length, text_index, text_length, stg );
+                            matches.Add( match );
+
+                            group_i = 0;
+                        }
+                        break;
+                        case "G":
+                        {
+                            int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
+                            int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
+                            int length = end - index;
+                            bool success = index >= 0;
+
+                            Debug.Assert( match != null );
+
+                            var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
+
+                            string? name;
+                            if( !names.TryGetValue( group_i, out name ) ) name = group_i.ToString( CultureInfo.InvariantCulture );
+
+                            match.AddGroup( index, length, text_index, text_length, success, name );
+
+                            ++group_i;
+                        }
+                        break;
+                        default:
+                            if( Debugger.IsAttached ) Debugger.Break( );
+
+                            throw new Exception( "Internal error in Python engine." );
+                        }
+                    }
+                }
+            }
+
+            return new RegexMatches( matches.Count, matches );
+        }
+
+        #endregion IMatcher
+
+
+        public static string? GetVersion( ICancellable cnc )
+        {
+            string? stdout_contents;
+            string? stderr_contents;
+
+            Action<StreamWriter> stdin_writer = sw =>
+            {
+            };
+
+            if( !ProcessUtilities.InvokeExe( cnc, GetPythonExePath( ), new[] { "-V" }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                return null;
+            }
+
+            if( cnc.IsCancellationRequested ) return null;
+
+            if( !string.IsNullOrWhiteSpace( stderr_contents ) )
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                return null;
+            }
+
+            if( stdout_contents == null )
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                return null;
+            }
+
+            stdout_contents = stdout_contents.Trim( );
+
+            string v = GetVersionRegex( ).Match( stdout_contents ).Groups[1].Value;
+
+            if( string.IsNullOrWhiteSpace( v ) )
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                return null;
+            }
+
+            return v;
+        }
+
+
+        static string GetPythonExePath( )
+        {
+            string assembly_location = Assembly.GetExecutingAssembly( ).Location;
+            string assembly_dir = Path.GetDirectoryName( assembly_location )!;
+            string python_exe = Path.Combine( assembly_dir, @"python-embed-amd64", @"python.exe" );
+
+            return python_exe;
+        }
+
+
+        [GeneratedRegex( @"^Python (\d+(\.\d+)*)" )]
+        private static partial Regex GetVersionRegex( );
+
+        [GeneratedRegex( @"^(?'t'[MG]) (?'s'-?\d+), (?'e'-?\d+)|(?'t'N) (?'i'\d+) <(?'n'.*)>$", RegexOptions.ExplicitCapture )]
+        private static partial Regex NMGRegex( );
+    }
+}

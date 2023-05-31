@@ -129,3 +129,10 @@ xcopy /D /R /Y "%BaseDir%\JavaPlugin\bin\%Configuration%\%TargetFramework%\JavaP
 xcopy /D /R /Y "%BaseDir%\JavaWorker\JavaWorker.class" "%EnginesTargetDir%\Java\*"
 xcopy /D /R /Y "%BaseDir%\JavaWorker\JRE-min.zip" "%EnginesTargetDir%\Java\*"
 
+
+rem -- Python --
+
+set BaseDir=%SolutionDir%\RegexEngines\Python
+xcopy /D /R /Y "%BaseDir%\PythonPlugin\bin\%Configuration%\%TargetFramework%\PythonPlugin.dll" "%EnginesTargetDir%\Python\*"
+xcopy /D /R /Y "%BaseDir%\PythonWorker\python-embed-amd64\*" "%EnginesTargetDir%\Python\python-embed-amd64\*"
+
