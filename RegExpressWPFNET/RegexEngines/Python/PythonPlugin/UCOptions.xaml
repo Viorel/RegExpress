@@ -23,7 +23,7 @@
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
                 <Label Content="Module:" Target="{Binding ElementName=cbxModule}" VerticalAlignment="Center" Padding="0 2 4 2"/>
-                <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxModule_SelectionChanged" MinWidth="55" Margin="3 0 0 0">
+                <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxModule_SelectionChanged" Margin="3 0 0 0">
                     <ComboBoxItem Tag ="re" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
                     <ComboBoxItem Tag ="regex" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                 </ComboBox>
@@ -35,7 +35,7 @@
             <ui:CheckboxWithNote Prop="LOCALE" Note="\w, \W, \b, \B and case-insensitive matching dependent on current locale"/>
             <ui:CheckboxWithNote Prop="MULTILINE" Note="^ matches at the beginning of the string and at the beginning of each line; $ matches at the end of the string and at the end of each line"/>
             <ui:CheckboxWithNote Prop="VERBOSE" Note="allow spaces and comments"/>
-            <StackPanel x:Name="pnlAdditional" VerticalAlignment="Top">
+            <StackPanel x:Name="pnlAdditional" VerticalAlignment="Top" Margin="0 6 0 0">
                 <ui:CheckboxWithNote Prop="BESTMATCH" Note="best fuzzy match"/>
                 <ui:CheckboxWithNote Prop="ENHANCEMATCH" Note="improve the fit after finding the first fuzzy match"/>
                 <ui:CheckboxWithNote Prop="FULLCASE" Note="full case-folding when performing case-insensitive matching in Unicode"/>
@@ -45,7 +45,8 @@
                 <ui:CheckboxWithNote Prop="WORD" Note="make \b and \B work with default Unicode word breaks and make ., ^ and $ work with Unicode line breaks"/>
                 <ui:CheckboxWithNote Prop="VERSION0" Note="old behaviour"/>
                 <ui:CheckboxWithNote Prop="VERSION1" Note="new behaviour"/>
-                <ui:CheckboxWithNote Prop="Overlapped" Note="permits overlapped matches"/>
+                <ui:CheckboxWithNote Prop="overlapped" Note="permits overlapped matches" Margin="0 6 0 0"/>
+                <ui:CheckboxWithNote Prop="partial" Note="check if match could be possible if the string had not been truncated"/>
             </StackPanel>
         </StackPanel>
     </Grid>

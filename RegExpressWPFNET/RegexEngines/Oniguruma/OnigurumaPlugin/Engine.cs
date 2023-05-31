@@ -387,6 +387,7 @@ namespace OnigurumaPlugin
                 Anchor_bg = false,
                 Anchor_bBBrace = false,
                 Anchor_K = details.ONIG_SYN_OP2_ESC_CAPITAL_K_KEEP,
+                Anchor_mM = false,
                 Anchor_LtGt = details.ONIG_SYN_OP_ESC_LTGT_WORD_BEGIN_END,
                 Anchor_GraveApos = details.ONIG_SYN_OP2_ESC_GNU_BUF_ANCHOR,
                 Anchor_yY = details.ONIG_SYN_OP2_ESC_X_Y_TEXT_SEGMENT, // TODO: seems to work for some other cases too

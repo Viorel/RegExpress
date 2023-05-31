@@ -85,8 +85,12 @@ try:
     for key, value in regex_obj.groupindex.items():
         print( f'N {value} <{key}>')
 
+    matches = None
 
-    matches = regex_obj.finditer( text, overlapped = flags_obj['Overlapped'] ) if package == 'regex' else regex_obj.finditer( text )
+    if package == 'regex':
+        matches = regex_obj.finditer( text, overlapped = flags_obj['overlapped'], partial = flags_obj['partial'] )
+    else:
+        matches = regex_obj.finditer( text )
 
     for match in matches :
         print( f'M {match.start()}, {match.end()}')
@@ -127,7 +131,9 @@ except:
                         Options.WORD,
                         Options.VERSION0,
                         Options.VERSION1,
-                        Options.Overlapped
+                        //
+                        Options.overlapped,
+                        Options.partial,
                     }
                 };
                 var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

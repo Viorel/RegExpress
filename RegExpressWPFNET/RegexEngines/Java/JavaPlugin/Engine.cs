@@ -279,6 +279,7 @@ namespace JavaPlugin
                 Anchor_bg = true,
                 Anchor_bBBrace = false,
                 Anchor_K = false,
+                Anchor_mM = false,
                 Anchor_LtGt = false,
                 Anchor_GraveApos = false,
                 Anchor_yY = false,

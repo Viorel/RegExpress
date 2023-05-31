@@ -41,7 +41,8 @@ namespace PythonPlugin
         public bool WORD { get; set; }
         public bool VERSION0 { get; set; }
         public bool VERSION1 { get; set; } = true;
-        public bool Overlapped { get; set; }
+        public bool overlapped { get; set; }
+        public bool partial { get; set; }
 
         public Options Clone( )
         {

@@ -181,6 +181,7 @@ namespace RegExpressWPFNET.Code
             new FeatureMatrixDetails(  @"\b{g}", @"Unicode extended grapheme cluster boundary", fm => fm.Anchor_bg ),
             new FeatureMatrixDetails(  @"\b{…}, \B{…}", @"Typed boundary", fm => fm.Anchor_bBBrace ),
             new FeatureMatrixDetails(  @"\K", @"Keep the stuff left of the \K", fm => fm.Anchor_K ),
+            new FeatureMatrixDetails(  @"\m, \M", @"Start of word, end of word", fm => fm.Anchor_mM ),
             new FeatureMatrixDetails(  @"\<, \>", @"Start of word, end of word", fm => fm.Anchor_LtGt ),
             new FeatureMatrixDetails(  @"\`, \'", @"Start of string, end of string", fm => fm.Anchor_GraveApos ),
             new FeatureMatrixDetails(  @"\y, \Y", @"Boundary between graphemes", fm => fm.Anchor_yY ),
