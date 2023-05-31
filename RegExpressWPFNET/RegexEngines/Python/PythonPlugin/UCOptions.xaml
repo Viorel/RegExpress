@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:PythonPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="191.49" d:DesignWidth="638.661" 
+             d:DesignHeight="333.983" d:DesignWidth="638.661" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -17,12 +17,36 @@
 
     <Grid>
         <StackPanel VerticalAlignment="Top">
-            <ui:CheckboxWithNote Prop="ASCII" Note="\w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching"/>
+
+            <StackPanel Orientation="Horizontal" Margin="0">
+                <StackPanel.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </StackPanel.LayoutTransform>
+                <Label Content="Module:" Target="{Binding ElementName=cbxModule}" VerticalAlignment="Center" Padding="0 2 4 2"/>
+                <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxModule_SelectionChanged" MinWidth="55" Margin="3 0 0 0">
+                    <ComboBoxItem Tag ="re" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                    <ComboBoxItem Tag ="regex" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                </ComboBox>
+            </StackPanel>
+
+            <ui:CheckboxWithNote Prop="ASCII" Note="\w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching" Margin="0 6 0 0"/>
             <ui:CheckboxWithNote Prop="DOTALL" Note=". matches any character, including newline"/>
             <ui:CheckboxWithNote Prop="IGNORECASE" Note="case-insensitive matching"/>
             <ui:CheckboxWithNote Prop="LOCALE" Note="\w, \W, \b, \B and case-insensitive matching dependent on current locale"/>
             <ui:CheckboxWithNote Prop="MULTILINE" Note="^ matches at the beginning of the string and at the beginning of each line; $ matches at the end of the string and at the end of each line"/>
             <ui:CheckboxWithNote Prop="VERBOSE" Note="allow spaces and comments"/>
+            <StackPanel x:Name="pnlAdditional" VerticalAlignment="Top">
+                <ui:CheckboxWithNote Prop="BESTMATCH" Note="best fuzzy match"/>
+                <ui:CheckboxWithNote Prop="ENHANCEMATCH" Note="improve the fit after finding the first fuzzy match"/>
+                <ui:CheckboxWithNote Prop="FULLCASE" Note="full case-folding when performing case-insensitive matching in Unicode"/>
+                <ui:CheckboxWithNote Prop="POSIX" Note="POSIX-standard matching (leftmost longest)"/>
+                <ui:CheckboxWithNote Prop="REVERSE" Note="searches backwards"/>
+                <ui:CheckboxWithNote Prop="UNICODE" Note="make \w, \W, \b, \B, \d, and \D dependent on the Unicode locale"/>
+                <ui:CheckboxWithNote Prop="WORD" Note="make \b and \B work with default Unicode word breaks and make ., ^ and $ work with Unicode line breaks"/>
+                <ui:CheckboxWithNote Prop="VERSION0" Note="old behaviour"/>
+                <ui:CheckboxWithNote Prop="VERSION1" Note="new behaviour"/>
+                <ui:CheckboxWithNote Prop="Overlapped" Note="permits overlapped matches"/>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </UserControl>

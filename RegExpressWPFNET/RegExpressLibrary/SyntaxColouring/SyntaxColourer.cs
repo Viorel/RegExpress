@@ -918,7 +918,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 switch( fm.Parentheses )
                 {
                 case FeatureMatrix.PunctuationEnum.Normal:
-                    pb.Add( @"(?<flags>\(\? (?<on>(?!R\))[a-zA-Z]+)? (?<dash>-)? (?<off>[a-zA-Z]+)? (\) | $) (?(on)|(?(dash)(?(off)|(?!))|(?!))) )" );
+                    pb.Add( @"(?<flags>\(\? (?<on>(?!R\))[a-zA-Z01]+)? (?<dash>-)? (?<off>[a-zA-Z01]+)? (\) | $) (?(on)|(?(dash)(?(off)|(?!))|(?!))) )" );
                     break;
                 case FeatureMatrix.PunctuationEnum.Backslashed:
                     pb.Add( @"(?<flags>\\\(\? (?<on>(?!R\))[a-zA-Z]+)? (?<dash>-)? (?<off>[a-zA-Z]+)? (\\\) | $) (?(on)|(?(dash)(?(off)|(?!))|(?!))) )" );

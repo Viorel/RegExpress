@@ -40,6 +40,16 @@ namespace PythonPlugin
             if( IsFullyLoaded ) return;
 
             IsFullyLoaded = true;
+
+            UpdateUI( );
+        }
+
+
+        void UpdateUI( )
+        {
+            if( !IsFullyLoaded ) return;
+
+            pnlAdditional.IsEnabled = Options.Module == ModuleEnum.regex;
         }
 
 
@@ -58,6 +68,13 @@ namespace PythonPlugin
         }
 
 
+        private void cbxModule_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateUI( );
+            Notify( preferImmediateReaction: true );
+        }
+
+
         internal Options GetSelectedOptions( )
         {
             return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
@@ -72,11 +89,13 @@ namespace PythonPlugin
 
                 Options = options.Clone( );
                 DataContext = Options;
+                UpdateUI( );
             }
             finally
             {
                 --ChangeCounter;
             }
         }
+
     }
 }

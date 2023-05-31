@@ -21,23 +21,7 @@ namespace PythonPlugin
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
-
-
-        //......
-        //[DllImport( "kernel32", CharSet = CharSet.Unicode, SetLastError = true )]
-        //static extern bool SetDllDirectory( string lpPathName );
-
-
-        //static Engine( )
-        //{
-        //    Assembly current_assembly = Assembly.GetExecutingAssembly( );
-        //    string current_assembly_path = Path.GetDirectoryName( current_assembly.Location )!;
-        //    string dll_path = Path.Combine( current_assembly_path, @"python-embed-amd64" );
-
-        //    bool b = SetDllDirectory( dll_path );
-        //    if( !b ) throw new ApplicationException( $"SetDllDirectory failed: '{dll_path}'" );
-        //}
+        static readonly LazyData<(ModuleEnum, int), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
 
         public Engine( )
@@ -60,7 +44,7 @@ namespace PythonPlugin
 
         public string Name => "Python";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.CombineSurrogatePairs;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.CombineSurrogatePairs | RegexEngineCapabilityEnum.OverlappingMatches;
 
         public string? NoteForCaptures => null;
 
@@ -128,14 +112,19 @@ namespace PythonPlugin
             return new SyntaxOptions
             {
                 XLevel = options.VERBOSE ? XLevelEnum.x : XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.Value
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (options.Module, options.Module == ModuleEnum.regex ? options.VERSION1 ? 1 : 0 : 0) )
             };
         }
 
 
         public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+            return new List<(string?, FeatureMatrix)>
+            {
+                ("re", LazyFeatureMatrix.GetValue((ModuleEnum.re, 0))),
+                ("regex V0", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 0))),
+                ("regex V1", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 1)))
+                };
         }
 
         #endregion
@@ -163,7 +152,7 @@ namespace PythonPlugin
         }
 
 
-        static FeatureMatrix BuildFeatureMatrix( )
+        static FeatureMatrix BuildFeatureMatrix( (ModuleEnum module, int version) key )
         {
             return new FeatureMatrix
             {
@@ -274,7 +263,7 @@ namespace PythonPlugin
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 
-                InsideSets_Operators = false,
+                InsideSets_Operators = key.module == ModuleEnum.regex && key.version == 1,
                 InsideSets_OperatorsExtended = false,
                 InsideSets_Operator_Ampersand = false,
                 InsideSets_Operator_Plus = false,
@@ -282,10 +271,10 @@ namespace PythonPlugin
                 InsideSets_Operator_Minus = false,
                 InsideSets_Operator_Circumflex = false,
                 InsideSets_Operator_Exclamation = false,
-                InsideSets_Operator_DoubleAmpersand = false,
-                InsideSets_Operator_DoubleVerticalLine = false,
-                InsideSets_Operator_DoubleMinus = false,
-                InsideSets_Operator_DoubleTilde = false,
+                InsideSets_Operator_DoubleAmpersand = key.module == ModuleEnum.regex && key.version == 1,
+                InsideSets_Operator_DoubleVerticalLine = key.module == ModuleEnum.regex && key.version == 1,
+                InsideSets_Operator_DoubleMinus = key.module == ModuleEnum.regex && key.version == 1,
+                InsideSets_Operator_DoubleTilde = key.module == ModuleEnum.regex && key.version == 1,
 
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,

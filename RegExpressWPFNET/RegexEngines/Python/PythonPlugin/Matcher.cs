@@ -39,6 +39,7 @@ namespace PythonPlugin
 import sys
 import re
 import json
+import regex
 
 input_json = sys.stdin.read()
 
@@ -46,6 +47,7 @@ input_json = sys.stdin.read()
 
 input_obj = json.loads(input_json)
 
+package = input_obj['package']
 pattern = input_obj['pattern']
 text = input_obj['text']
 flags_obj = input_obj['flags']
@@ -58,27 +60,43 @@ if flags_obj['LOCALE']      : flags |= re.LOCALE
 if flags_obj['MULTILINE']   : flags |= re.MULTILINE
 if flags_obj['VERBOSE']     : flags |= re.VERBOSE
 
+if package == 'regex':
+    if flags_obj['BESTMATCH']       : flags |= regex.BESTMATCH
+    if flags_obj['ENHANCEMATCH']    : flags |= regex.ENHANCEMATCH
+    if flags_obj['FULLCASE']        : flags |= regex.FULLCASE
+    if flags_obj['POSIX']           : flags |= regex.POSIX
+    if flags_obj['REVERSE']         : flags |= regex.REVERSE
+    if flags_obj['UNICODE']         : flags |= regex.UNICODE
+    if flags_obj['WORD']            : flags |= regex.WORD
+    if flags_obj['VERSION0']        : flags |= regex.VERSION0
+    if flags_obj['VERSION1']        : flags |= regex.VERSION1 
+
 try:
+    regex_obj = None
 
-	regex = re.compile( pattern, flags)
+    if package == 'regex':
+        regex_obj = regex.compile( pattern, flags)
+    else:
+        regex_obj = re.compile( pattern, flags)
 
-	#print( f'# {regex.groups}')
-	#print( f'# {regex.groupindex}')
+    #print( f'# {regex_obj.groups}')
+    #print( f'# {regex_obj.groupindex}')
 
-	for key, value in regex.groupindex.items():
-		print( f'N {value} <{key}>')
+    for key, value in regex_obj.groupindex.items():
+        print( f'N {value} <{key}>')
 
-	matches = regex.finditer( text )
 
-	for match in matches :
-		print( f'M {match.start()}, {match.end()}')
-		for g in range(0, regex.groups + 1):
-			print( f'G {match.start(g)}, {match.end(g)}' )
+    matches = regex_obj.finditer( text, overlapped = flags_obj['Overlapped'] ) if package == 'regex' else regex_obj.finditer( text )
+
+    for match in matches :
+        print( f'M {match.start()}, {match.end()}')
+        for g in range(0, regex_obj.groups + 1):
+            print( f'G {match.start(g)}, {match.end(g)}' )
 
 except:
-	ex_type, ex, tb = sys.exc_info()
+    ex_type, ex, tb = sys.exc_info()
 
-	print( ex, file = sys.stderr )
+    print( ex, file = sys.stderr )
 ";
 
             string? stdout_contents;
@@ -88,9 +106,29 @@ except:
             {
                 var obj = new
                 {
+                    package = Enum.GetName( Options.Module ),
                     pattern = Pattern,
                     text,
-                    flags = new { Options.ASCII, Options.DOTALL, Options.IGNORECASE, Options.LOCALE, Options.MULTILINE, Options.VERBOSE }
+                    flags = new
+                    {
+                        Options.ASCII,
+                        Options.DOTALL,
+                        Options.IGNORECASE,
+                        Options.LOCALE,
+                        Options.MULTILINE,
+                        Options.VERBOSE,
+                        //
+                        Options.BESTMATCH,
+                        Options.ENHANCEMATCH,
+                        Options.FULLCASE,
+                        Options.POSIX,
+                        Options.REVERSE,
+                        Options.UNICODE,
+                        Options.WORD,
+                        Options.VERSION0,
+                        Options.VERSION1,
+                        Options.Overlapped
+                    }
                 };
                 var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
                 sw.WriteLine( json );
