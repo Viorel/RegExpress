@@ -152,10 +152,11 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Anchor_Z { get; init; }                               // \Z -- end of the string or before \n at the end of the string
         public bool Anchor_z { get; init; }                               // \z -- end of the string
         public bool Anchor_G { get; init; }                               // \G -- end of previous match, or start of string
-        public bool Anchor_bB { get; init; }                               // \b, \B -- boundary between \w and \W; see also Esc_b, InsideSets_Esc_b
+        public bool Anchor_bB { get; init; }                              // \b, \B -- boundary between \w and \W; see also Esc_b, InsideSets_Esc_b
         public bool Anchor_bg { get; init; }                              // \b{g} -- Unicode extended grapheme cluster boundary; see also Anchor_bBBrace
         public bool Anchor_bBBrace { get; init; }                         // \b{boundary_type}, \B{boundary_type}; ex.: \b{wb}, which is almost similar to \b
         public bool Anchor_K { get; init; }                               // \K -- Keep the stuff left of the \K
+        public bool Anchor_mM { get; init; }                              // \m -- start of word, \M -- end of word
         public bool Anchor_LtGt { get; init; }                            // \<, \> -- start of a word, end of a word
         public bool Anchor_GraveApos { get; init; }                       // \`, \' -- start of string (like \A), end of string (like \z)
         public bool Anchor_yY { get; init; }                              // \y, \Y -- between graphemes (\X)

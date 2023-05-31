@@ -1412,6 +1412,10 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     pb.Add( @"\\K" );
                 }
+                if( fm.Anchor_mM )
+                {
+                    pb.Add( @"\\[mM]" );
+                }
                 if( fm.Anchor_LtGt )
                 {
                     pb.Add( @"\\[<>]" );

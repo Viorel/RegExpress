@@ -299,6 +299,7 @@ namespace StdPlugin
                 Anchor_bg = false,
                 Anchor_bBBrace = false,
                 Anchor_K = false,
+                Anchor_mM = false,
                 Anchor_LtGt = false,
                 Anchor_GraveApos = false,
                 Anchor_yY = false,
