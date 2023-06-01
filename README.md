@@ -24,6 +24,7 @@ There are more engines that are described in **[Additional Engines](#additional-
 * **Rust** (*Regex* and *RegexBuilder* structs)
 * **Java** (*java.util.regex* package)
 * **Python** (*re* and *regex* modules)
+* **D** (*std.regex* module)
 
 
 <br/>
@@ -64,6 +65,7 @@ This repository includes several additional engines:
 * **[Rust](https://docs.rs/regex)** 1.69.0 (*Regex* and *RegexBuilder* structs)
 * **[Java](https://docs.oracle.com/en/java/javase/20/docs/api/java.base/java/util/regex/package-summary.html)** 20 (*java.util.regex* package)
 * **[Python](https://www.python.org/)** 3.11.3 (standard *re* module, third-party *regex* module)
+* **[D](https://dlang.org/phobos/std_regex.html)** 2.103 (*std.regex* module)
 
 
 To use these engines, get the **main-extended** branch instead of **main**, then recompile 
@@ -72,7 +74,7 @@ the same solution.
 The **main-extended** branch also includes the regular engines from the **main** branch.
 
 The additional engines require certain third-party library files, which were downloaded or compiled separately 
-and included into **main-extended** branch.
+and included into **main-extended** branch. (No installations are required).
 
 <br/>
 <br/>
