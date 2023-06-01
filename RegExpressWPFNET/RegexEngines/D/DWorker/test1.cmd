@@ -1,0 +1,1 @@
+@echo {"c":"v"} | DWorker.exe

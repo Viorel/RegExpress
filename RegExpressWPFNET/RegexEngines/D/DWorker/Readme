@@ -1,0 +1,12 @@
+In order to rebuild DWorker:
+
+- Download and install 'DMD' compiler for Windows from https://dlang.org/download.html. (Uninstall the older compiler).
+  Or download and uncompress the archive, without installation.
+
+- Run 'build.cmd'. It will make the 'DWorker.exe' file. 
+  (In case of downloaded DMD without installation, adjust the path to dmd.exe).
+
+- Rebuild ("Rebuild All") the main Visual Studio solution. A Custom build step 
+  will copy 'DWorker.exe' to output folder as 'DWorker.bin'.
+
+- Commit and push the changes to Git (including 'DWorker.exe').

@@ -136,3 +136,10 @@ set BaseDir=%SolutionDir%\RegexEngines\Python
 xcopy /D /R /Y "%BaseDir%\PythonPlugin\bin\%Configuration%\%TargetFramework%\PythonPlugin.dll" "%EnginesTargetDir%\Python\*"
 xcopy /D /R /Y /E "%BaseDir%\PythonWorker\python-embed-amd64\*" "%EnginesTargetDir%\Python\python-embed-amd64\*"
 
+
+rem -- D --
+
+set BaseDir=%SolutionDir%\RegexEngines\D
+xcopy /D /R /Y "%BaseDir%\DPlugin\bin\%Configuration%\%TargetFramework%\DPlugin.dll" "%EnginesTargetDir%\D\*"
+xcopy /D /R /Y "%BaseDir%\DWorker\DWorker.exe" "%EnginesTargetDir%\D\*.bin"
+

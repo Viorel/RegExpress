@@ -50,5 +50,8 @@
     {
       "path": "Engines\\Python\\PythonPlugin.dll"
     },
+    {
+      "path": "Engines\\D\\DPlugin.dll"
+    },
   ]
 }
