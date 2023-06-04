@@ -7,14 +7,14 @@ namespace RegExpressWPFNET.Code
 {
     internal sealed class ColourMap
     {
-        readonly int startOffset;
-        readonly sbyte[] data; // 0 -- free, 1, 2, 3 -- colours, -1 -- intersection
+        readonly int mStartOffset;
+        readonly sbyte[] mData; // 0 -- free, 1, 2, 3 -- colours, -1 -- intersection
 
 
         public ColourMap( int startOffset, int length )
         {
-            this.startOffset = startOffset;
-            this.data = new sbyte[length];
+            mStartOffset = startOffset;
+            mData = new sbyte[length];
         }
 
 
@@ -23,20 +23,20 @@ namespace RegExpressWPFNET.Code
             Debug.Assert( length >= 0 );
             Debug.Assert( colour >= 1 );
 
-            int i = int.Max( index - startOffset, 0 );
-            int end = int.Min( i + length, data.Length );
+            int i = int.Max( index - mStartOffset, 0 );
+            int end = int.Min( i + length, mData.Length );
 
             unchecked
             {
                 for( ; i < end; ++i )
                 {
-                    switch( data[i] )
+                    switch( mData[i] )
                     {
                     case 0: // free
-                        data[i] = colour; // coloured
+                        mData[i] = colour; // coloured
                         break;
                     case > 0: // coloured
-                        data[i] = -1; // intersection
+                        mData[i] = -1; // intersection
                         break;
                     }
                     // (intersections remain as is)
@@ -55,21 +55,21 @@ namespace RegExpressWPFNET.Code
                 {
                     if( cnc.IsCancellationRequested ) break;
 
-                    while( i < data.Length && data[i] != colour ) ++i;
+                    while( i < mData.Length && mData[i] != colour ) ++i;
 
-                    if( i >= data.Length ) break;
+                    if( i >= mData.Length ) break;
 
                     int start = i;
 
                     if( cnc.IsCancellationRequested ) break;
 
-                    while( i < data.Length && data[i] == colour ) ++i;
+                    while( i < mData.Length && mData[i] == colour ) ++i;
 
                     int length = i - start;
 
                     if( cnc.IsCancellationRequested ) break;
 
-                    list.Add( new Segment( start + startOffset, length ) );
+                    list.Add( new Segment( start + mStartOffset, length ) );
                 }
             }
 
@@ -87,21 +87,21 @@ namespace RegExpressWPFNET.Code
                 {
                     if( cnc.IsCancellationRequested ) break;
 
-                    while( i < data.Length && data[i] != colour ) ++i;
+                    while( i < mData.Length && mData[i] != colour ) ++i;
 
-                    if( i >= data.Length ) break;
+                    if( i >= mData.Length ) break;
 
                     int start = i;
 
                     if( cnc.IsCancellationRequested ) break;
 
-                    while( i < data.Length && data[i] == colour ) ++i;
+                    while( i < mData.Length && mData[i] == colour ) ++i;
 
                     int length = i - start;
 
                     if( cnc.IsCancellationRequested ) break;
 
-                    list.Add( (new Segment( start + startOffset, length ), styleInfo) );
+                    list.Add( (new Segment( start + mStartOffset, length ), styleInfo) );
                 }
             }
 
