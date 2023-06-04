@@ -6,25 +6,25 @@
              xmlns:local="clr-namespace:DotNETFrameworkPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             Loaded="UserControl_Loaded" Height="162" Width="202">
+             Loaded="UserControl_Loaded" d:DesignHeight="170" d:DesignWidth="410" >
 
     <UserControl.Resources>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
     </UserControl.Resources>
-    
+
     <Grid>
         <StackPanel>
             <StackPanel>
-                <ui:CheckboxWithNote Prop="CultureInvariant"/>
-                <ui:CheckboxWithNote Prop="ECMAScript"/>
-                <ui:CheckboxWithNote Prop="ExplicitCapture"/>
-                <ui:CheckboxWithNote Prop="IgnoreCase"/>
-                <ui:CheckboxWithNote Prop="IgnorePatternWhitespace"/>
-                <ui:CheckboxWithNote Prop="Multiline" Note="'^', '$' at '\n' too"/>
-                <ui:CheckboxWithNote Prop="RightToLeft"/>
-                <ui:CheckboxWithNote Prop="Singleline" Note="'.' matches '\n' too"/>
+                <ui:CheckboxWithNote Prop="CultureInvariant" Note="ignore cultural differences"/>
+                <ui:CheckboxWithNote Prop="ECMAScript" Note="ECMAScript-compliant behavior"/>
+                <ui:CheckboxWithNote Prop="ExplicitCapture" Note="do not capture unnamed groups"/>
+                <ui:CheckboxWithNote Prop="IgnoreCase" Note="case-insensitive matching"/>
+                <ui:CheckboxWithNote Prop="IgnorePatternWhitespace" Note="exclude white spaces, enable #-comments"/>
+                <ui:CheckboxWithNote Prop="Multiline" Note="“^” and “$” match the beginning and end of lines"/>
+                <ui:CheckboxWithNote Prop="RightToLeft" Note="search from right to left"/>
+                <ui:CheckboxWithNote Prop="Singleline" Note="“.” matches “\n” too"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
                 <StackPanel.LayoutTransform>

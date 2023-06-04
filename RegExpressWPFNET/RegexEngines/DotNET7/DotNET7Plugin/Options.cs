@@ -20,6 +20,7 @@ namespace DotNETPlugin
         public bool RightToLeft { get; set; }
         public bool ECMAScript { get; set; }
         public bool CultureInvariant { get; set; }
+        public bool NonBacktracking { get; set; }
 
         public long TimeoutMs { get; set; } = 10_000;
 
@@ -38,7 +39,8 @@ namespace DotNETPlugin
                     ( IgnorePatternWhitespace ? RegexOptions.IgnorePatternWhitespace : 0 ) |
                     ( RightToLeft ? RegexOptions.RightToLeft : 0 ) |
                     ( ECMAScript ? RegexOptions.ECMAScript : 0 ) |
-                    ( CultureInvariant ? RegexOptions.CultureInvariant : 0 );
+                    ( CultureInvariant ? RegexOptions.CultureInvariant : 0 ) |
+                    ( NonBacktracking ? RegexOptions.NonBacktracking : 0 );
             }
             set
             {
@@ -51,6 +53,7 @@ namespace DotNETPlugin
                 RightToLeft = value.HasFlag( RegexOptions.RightToLeft );
                 ECMAScript = value.HasFlag( RegexOptions.ECMAScript );
                 CultureInvariant = value.HasFlag( RegexOptions.CultureInvariant );
+                NonBacktracking = value.HasFlag( RegexOptions.NonBacktracking );
             }
         }
 
