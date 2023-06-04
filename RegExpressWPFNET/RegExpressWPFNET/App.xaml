@@ -142,6 +142,12 @@
         <SolidColorBrush x:Key="Highlight_1_Light" Color="{Binding Color, Source={StaticResource Highlight_1} }" Opacity="0.25" PresentationOptions:Freeze="True"/>
         <SolidColorBrush x:Key="Highlight_2_Light" Color="{Binding Color, Source={StaticResource Highlight_2} }" Opacity="0.25" PresentationOptions:Freeze="True"/>
 
+        <LinearGradientBrush x:Key="Highlight_Overlap" Opacity="0.3" StartPoint="0 0" EndPoint="0 1" >
+            <GradientStop Color="{Binding Color, Source={StaticResource Highlight_1}}" Offset="0.1"/>
+            <GradientStop Color="{Binding Color, Source={StaticResource Highlight_2}}" Offset="0.5"/>
+            <GradientStop Color="{Binding Color, Source={StaticResource Highlight_0}}" Offset="0.9"/>
+        </LinearGradientBrush>
+
 
         <Style x:Key="PatternNormal" TargetType="TextBlock" PresentationOptions:Freeze="True">
             <Setter Property="Foreground" Value="Black"/>
@@ -296,9 +302,13 @@
             <Setter Property="Background" Value="{StaticResource Highlight_2_Light}"/>
         </Style>
 
+        <Style x:Key="MatchHighlight_Overlap" TargetType="TextBlock" PresentationOptions:Freeze="True" >
+            <Setter Property="Background" Value="{StaticResource Highlight_Overlap}"/>
+        </Style>
+
         <local_code:BorderClipConverter x:Key="BorderClipConverter"/>
-        
-        
+
+
         <!-- Tab Control, based on original templates extracted with Blend -->
 
         <SolidColorBrush x:Key="TabItem.Selected.Background" Color="#FFFFFF"/>
@@ -516,7 +526,7 @@
                                     <Condition Binding="{Binding TabStripPlacement, RelativeSource={RelativeSource AncestorType={x:Type TabControl}}}" Value="Top"/>
                                 </MultiDataTrigger.Conditions>
                                 <Setter Property="Panel.ZIndex" Value="1"/>
-                                <Setter Property="Margin" Value="-2,-2,-2,0"/> <!-- ...,-0.047 -->
+                                <Setter Property="Margin" Value="-2,-2,-2,0"/>
                                 <Setter Property="Opacity" TargetName="innerBorder" Value="1"/>
                                 <Setter Property="BorderThickness" TargetName="innerBorder" Value="1,1,1,0"/>
                                 <Setter Property="BorderThickness" TargetName="mainBorder" Value="1,1,1,0"/>

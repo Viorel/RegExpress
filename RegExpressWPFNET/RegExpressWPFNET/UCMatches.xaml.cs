@@ -633,7 +633,7 @@ namespace RegExpressWPFNET
                         var start_run = new Run( group_name_text.PadRight( left_width_for_group, ' ' ), span.ContentEnd );
                         start_run.Style( GroupNameStyleInfo );
 
-                        // (NOTE. Overlaps are possible in this example: (?=(..))
+                        // (NOTE. Overlaps of groups are possible in this example: (?=(..))
 
                         Inline value_inline;
                         Inline inl;

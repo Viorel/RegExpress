@@ -1,23 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Media;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Windows.Threading;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
@@ -57,6 +50,7 @@ namespace RegExpressWPFNET
 
         readonly StyleInfo NormalStyleInfo;
         readonly StyleInfo[] HighlightStyleInfos;
+        readonly StyleInfo OverlapStyleInfo;
 
         public event EventHandler? TextChanged;
         public event EventHandler? SelectionChanged;
@@ -82,6 +76,8 @@ namespace RegExpressWPFNET
                 new StyleInfo( "MatchHighlight_1" ),
                 new StyleInfo( "MatchHighlight_2" )
             };
+
+            OverlapStyleInfo = new StyleInfo( "MatchHighlight_Overlap" );
 
 
             RecolouringLoop = new ResumableLoop( RecolouringThreadProc, 333, 555 );
@@ -542,53 +538,92 @@ namespace RegExpressWPFNET
             Debug.Assert( bottom_index >= top_index );
             Debug.Assert( bottom_index <= td.Text.Length );
 
-            // (NOTE. Overlaps are possible in this example: (?=(..))
+            // (NOTE. Overlaps of groups are possible in this example: (?=(..))
 
-            var segments_and_styles = new List<(Segment segment, StyleInfo styleInfo)>( );
-            var segments_to_uncolour = new List<Segment>
-            {
-                new Segment( top_index, bottom_index - top_index + 1 )
-            };
+            List<(Segment segment, StyleInfo styleInfo)> segments_and_styles = new( );
+            List<(Segment segment, StyleInfo styleInfo)> segments_to_uncolour_with_style = new( );
 
             if( matches != null && matches.Count > 0 )
             {
-                int i = -1;
-                foreach( var match in matches.Matches )
+                if( !potential_overlaps ) 
                 {
-                    ++i;
+                    // TODO: Compare with 'ColourMap'
 
-                    if( cnc.IsCancellationRequested ) break;
+                    List<Segment> segments_to_uncolour = new( ) { new Segment( top_index, bottom_index - top_index + 1 ) };
 
-                    Debug.Assert( match.Success );
+                    int i = -1;
+                    foreach( var match in matches.Matches )
+                    {
+                        ++i;
 
-                    // TODO: consider these conditions for bi-directional text
-                    if( match.TextIndex + match.TextLength < top_index ) continue;
-                    if( match.TextIndex > bottom_index ) continue; // (do not break; the order of indices is unspecified)
+                        if( cnc.IsCancellationRequested ) break;
 
-                    var highlight_index = unchecked(i % HighlightStyleInfos.Length);
+                        Debug.Assert( match.Success );
 
-                    Segment.Except( segments_to_uncolour, match.TextIndex, match.TextLength );
-                    segments_and_styles.Add( (new Segment( match.TextIndex, match.TextLength ), HighlightStyleInfos[highlight_index]) );
+                        // TODO: consider these conditions for bi-directional text
+                        if( match.TextIndex + match.TextLength < top_index ) continue;
+                        if( match.TextIndex > bottom_index ) continue; // (do not break; the order of indices is unspecified)
+
+                        var highlight_index = unchecked(i % HighlightStyleInfos.Length);
+
+                        Segment.Except( segments_to_uncolour, match.TextIndex, match.TextLength );
+                        segments_and_styles.Add( (new Segment( match.TextIndex, match.TextLength ), HighlightStyleInfos[highlight_index]) );
+                    }
+
+                    segments_to_uncolour_with_style = segments_to_uncolour.Select( s => (s, NormalStyleInfo) ).ToList( );
+                }
+                else
+                {
+                    ColourMap cm = new( top_index, bottom_index - top_index + 1 );
+
+                    {
+                        int i = -1;
+                        foreach( var match in matches.Matches )
+                        {
+                            ++i;
+
+                            if( cnc.IsCancellationRequested ) break;
+
+                            Debug.Assert( match.Success );
+
+                            var highlight_index = unchecked(i % HighlightStyleInfos.Length);
+
+                            cm.Set( match.TextIndex, match.TextLength, unchecked((sbyte)( highlight_index + 1 )) );
+                        }
+                    }
+
+                    for( int i = 0; i < HighlightStyleInfos.Length; ++i )
+                    {
+                        segments_and_styles.AddRange( cm.GetSegments( cnc, unchecked((sbyte)( i + 1 )), HighlightStyleInfos[i] ) );
+                    }
+
+                    if( cnc.IsCancellationRequested ) return;
+                    segments_and_styles.AddRange( cm.GetSegments( cnc, -1, OverlapStyleInfo ) );
+
+                    if( cnc.IsCancellationRequested ) return;
+                    segments_to_uncolour_with_style = cm.GetSegments( cnc, 0, NormalStyleInfo );
                 }
             }
-
-            if( cnc.IsCancellationRequested ) return;
-
-            List<(Segment segment, StyleInfo styleInfo)> segments_to_uncolour_with_style =
-                            segments_to_uncolour
-                                .Select( s => (s, NormalStyleInfo) )
-                                .ToList( );
+            else
+            {
+                segments_to_uncolour_with_style = new( ) { (new Segment( top_index, bottom_index - top_index + 1 ), NormalStyleInfo) };
+            }
 
             if( cnc.IsCancellationRequested ) return;
 
             int center_index = ( top_index + bottom_index ) / 2;
 
             var all_segments_and_styles_e = segments_and_styles.Concat( segments_to_uncolour_with_style );
-            if( !potential_overlaps ) all_segments_and_styles_e = all_segments_and_styles_e.OrderBy( s => Math.Abs( center_index - ( s.segment.Index + s.segment.Length / 2 ) ) );
 
             if( cnc.IsCancellationRequested ) return;
 
-            var all_segments_and_styles = all_segments_and_styles_e.ToList( );
+            all_segments_and_styles_e = all_segments_and_styles_e.OrderBy( s => Math.Abs( center_index - ( s.segment.Index + s.segment.Length / 2 ) ) );
+
+            if( cnc.IsCancellationRequested ) return;
+
+            List<(Segment segment, StyleInfo styleInfo)> all_segments_and_styles = all_segments_and_styles_e.ToList( );
+
+            if( cnc.IsCancellationRequested ) return;
 
             RtbUtilities.ApplyStyle( cnc, ChangeEventHelper, pbProgress, td, all_segments_and_styles );
 
