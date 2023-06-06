@@ -102,6 +102,12 @@ namespace PCRE2Plugin
                     bw.Write( Convert.ToByte( Options.PCRE2_PARTIAL_SOFT ) );
                     bw.Write( Convert.ToByte( Options.PCRE2_DFA_SHORTEST ) );
 
+                    // JIT Options
+
+                    bw.Write( Convert.ToByte( Options.PCRE2_JIT_COMPLETE ) );
+                    bw.Write( Convert.ToByte( Options.PCRE2_JIT_PARTIAL_SOFT ) );
+                    bw.Write( Convert.ToByte( Options.PCRE2_JIT_PARTIAL_HARD ) );
+
                     bw.Write( (byte)'e' );
                 }
             };

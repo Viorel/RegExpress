@@ -80,6 +80,13 @@ namespace PCRE2Plugin
         public bool PCRE2_DFA_SHORTEST { get; set; }
 
 
+        // JIT options
+
+        public bool PCRE2_JIT_COMPLETE { get; set; }
+        public bool PCRE2_JIT_PARTIAL_SOFT { get; set; }
+        public bool PCRE2_JIT_PARTIAL_HARD { get; set; }
+
+
         public Options Clone( )
         {
             return (Options)MemberwiseClone( );
