@@ -127,7 +127,16 @@ static void WriteMatch( BinaryWriterW& outbw, pcre2_code* re, PCRE2_SIZE* ovecto
 }
 
 
-static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithm, int compileOptions, int extraCompileOptions, int matcherOptions )
+static std::wstring GetErrorText( int errorNumber )
+{
+    PCRE2_UCHAR buffer[256] = { 0 };
+    pcre2_get_error_message( errorNumber, buffer, _countof( buffer ) );
+
+    return (wchar_t*)buffer;
+}
+
+
+static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithm, int compileOptions, int extraCompileOptions, int matcherOptions, int jitOptions )
 {
     DWORD code;
     char error_text[128] = "";
@@ -158,10 +167,17 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 
             if( re == nullptr )
             {
-                PCRE2_UCHAR buffer[256];
-                pcre2_get_error_message( errornumber, buffer, _countof( buffer ) );
+                throw std::runtime_error( WStringToUtf8( std::format( L"Error {} at {}: {}.", errornumber, erroroffset, GetErrorText( errornumber ) ) ) );
+            }
 
-                throw std::runtime_error( WStringToUtf8( std::format( L"Error {} at {}: {}.", errornumber, erroroffset, (wchar_t*)buffer ) ) );
+            if( jitOptions > 0 )
+            {
+                errornumber = pcre2_jit_compile( re, jitOptions );
+
+                if( errornumber < 0 )
+                {
+                    throw std::runtime_error( WStringToUtf8( std::format( L"Error {}: {}.", errornumber, GetErrorText( errornumber ) ) ) );
+                }
             }
 
             pcre2_match_context* match_context = pcre2_match_context_create( NULL );
@@ -215,10 +231,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 
             if( rc < 0 && rc != PCRE2_ERROR_NOMATCH )
             {
-                PCRE2_UCHAR buffer[256];
-                pcre2_get_error_message( rc, buffer, _countof( buffer ) );
-
-                throw std::runtime_error( WStringToUtf8( std::format( L"Error {}: {}.", rc, (wchar_t*)buffer ) ) );
+                throw std::runtime_error( WStringToUtf8( std::format( L"Error {}: {}.", rc, GetErrorText( errornumber ) ) ) );
             }
 
             PCRE2_SIZE* const ovector = pcre2_get_ovector_pointer( match_data );
@@ -357,10 +370,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 
                         if( rc < 0 )
                         {
-                            PCRE2_UCHAR buffer[256];
-                            pcre2_get_error_message( rc, buffer, _countof( buffer ) );
-
-                            throw std::runtime_error( WStringToUtf8( std::format( L"Error {}: {}.", rc, (wchar_t*)buffer ) ) );
+                            throw std::runtime_error( WStringToUtf8( std::format( L"Error {}: {}.", rc, GetErrorText( errornumber ) ) ) );
                         }
 
                         /* Match succeeded */
@@ -526,9 +536,18 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) ) matcher_options |= PCRE2_PARTIAL_SOFT;
             if( inbr.ReadByte( ) ) matcher_options |= PCRE2_DFA_SHORTEST;
 
+            // JIT options
+
+            int jit_options = 0;
+
+            if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_COMPLETE;
+            if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_PARTIAL_SOFT;
+            if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_PARTIAL_HARD;
+
+
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-            DoMatch( outbw, pattern, text, algorithm, compile_options, extra_compile_options, matcher_options );
+            DoMatch( outbw, pattern, text, algorithm, compile_options, extra_compile_options, matcher_options, jit_options );
 
             return 0;
         }

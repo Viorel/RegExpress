@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:PCRE2Plugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="730" d:DesignWidth="570" 
+             d:DesignHeight="820" d:DesignWidth="570" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -15,86 +15,94 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel>
+    <StackPanel>
 
-            <StackPanel Orientation="Horizontal" >
-                <StackPanel.LayoutTransform>
-                    <TransformGroup>
-                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                        <SkewTransform/>
-                        <RotateTransform/>
-                        <TranslateTransform/>
-                    </TransformGroup>
-                </StackPanel.LayoutTransform>
+        <StackPanel Orientation="Horizontal" >
+            <StackPanel.LayoutTransform>
+                <TransformGroup>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                    <SkewTransform/>
+                    <RotateTransform/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </StackPanel.LayoutTransform>
 
-                <Label Content="Algorithm:" Target="{Binding ElementName=cbxAlgorithm}" VerticalAlignment="Center" Padding="0 2 4 2"/>
-                <ComboBox x:Name="cbxAlgorithm" SelectedValuePath="Tag" SelectedValue="{Binding Algorithm, FallbackValue='Standard'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxAlgorithm_SelectionChanged">
-                    <ComboBoxItem Tag ="Standard" Content="Perl-compatible" IsSelected="True" />
-                    <ComboBoxItem Tag ="DFA" Content="DFA" />
-                </ComboBox>
-            </StackPanel>
-
-            <Label Margin="0 4 0 4" Padding="0">
-                <Italic>Compile Options</Italic>
-            </Label>
-            <StackPanel>
-                <ui:CheckboxWithNote Prop="PCRE2_ANCHORED" Note="Force pattern anchoring"/>
-                <ui:CheckboxWithNote Prop="PCRE2_ALLOW_EMPTY_CLASS" Note="Allow empty classes"/>
-                <ui:CheckboxWithNote Prop="PCRE2_ALT_BSUX" Note="Alternative handling of \u, \U, and \x"/>
-                <ui:CheckboxWithNote Prop="PCRE2_ALT_CIRCUMFLEX" Note="Alternative handling of ^ in multiline mode"/>
-                <ui:CheckboxWithNote Prop="PCRE2_ALT_VERBNAMES" Note="Process backslashes in verb names"/>
-                <ui:CheckboxWithNote Prop="PCRE2_CASELESS" Note="Do caseless matching"/>
-                <ui:CheckboxWithNote Prop="PCRE2_DOLLAR_ENDONLY" Note="$ not to match newline at end"/>
-                <ui:CheckboxWithNote Prop="PCRE2_DOTALL" Note=". matches anything including NL"/>
-                <ui:CheckboxWithNote Prop="PCRE2_DUPNAMES" Note="Allow duplicate names for subpatterns"/>
-                <ui:CheckboxWithNote Prop="PCRE2_ENDANCHORED" Note="Pattern can match only at end of subject"/>
-                <ui:CheckboxWithNote Prop="PCRE2_EXTENDED" Note="Ignore white space and # comments"/>
-                <ui:CheckboxWithNote Prop="PCRE2_EXTENDED_MORE" Note="Like PCRE2_EXTENDED, but additionally ignore spaces within [ ]"/>
-                <ui:CheckboxWithNote Prop="PCRE2_FIRSTLINE" Note="Force matching to be before newline"/>
-                <ui:CheckboxWithNote Prop="PCRE2_LITERAL" Note="Pattern characters are all literal"/>
-                <ui:CheckboxWithNote Prop="PCRE2_MATCH_UNSET_BACKREF" Note="Match unset backreferences"/>
-                <ui:CheckboxWithNote Prop="PCRE2_MULTILINE" Note="^ and $ match newlines within data"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NEVER_BACKSLASH_C" Note="Lock out the use of \C in patterns"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NEVER_UCP" Note="Lock out PCRE2_UCP, e.g. via (*UCP)"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NEVER_UTF" Note="Lock out PCRE2_UTF, e.g. via (*UTF)"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NO_AUTO_CAPTURE" Note="Disable numbered capturing parentheses (named ones available)"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NO_AUTO_POSSESS" Note="Disable auto-possessification"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NO_DOTSTAR_ANCHOR" Note="Disable automatic anchoring for .*"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NO_START_OPTIMIZE" Note="Disable match-time start optimizations"/>
-                <ui:CheckboxWithNote Prop="PCRE2_UCP" Note="Use Unicode properties for \d, \w, etc."/>
-                <ui:CheckboxWithNote Prop="PCRE2_UNGREEDY" Note="Invert greediness of quantifiers"/>
-            </StackPanel>
-
-            <Label Margin="0 4 0 4" Padding="0">
-                <Italic>Extra Compile Options</Italic>
-            </Label>
-            <StackPanel x:Name="pnlExtraCompileOptions">
-                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES" Note="Allow \x{df800} to \x{dfff} in UTF-8 and UTF-32 modes"/>
-                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALT_BSUX" Note="Extended alternate \u, \U, and \x handling"/>
-                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL" Note="Treat all invalid escapes as a literal following character"/>
-                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ESCAPED_CR_IS_LF" Note="Interpret \r as \n"/>
-                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_MATCH_LINE" Note="Pattern matches whole lines"/>
-                <ui:CheckboxWithNote Prop="PCRE2_EXTRA_MATCH_WORD" Note="Pattern matches &quot;words&quot;"/>
-            </StackPanel>
-
-            <Label Margin="0 4 0 4" Padding="0">
-                <Italic>Matcher Options</Italic>
-            </Label>
-            <StackPanel x:Name="pnlMatchOptions">
-                <ui:CheckboxWithNote Prop="PCRE2_ANCHORED_mo" Text="PCRE2_ANCHORED" Note="Match only at the first position"/>
-                <ui:CheckboxWithNote Prop="PCRE2_COPY_MATCHED_SUBJECT" Note="On success, make a private subject copy"/>
-                <ui:CheckboxWithNote Prop="PCRE2_ENDANCHORED_mo" Text="PCRE2_ENDANCHORED" Note="Pattern can match only at end of subject"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NOTBOL" Note="Subject string is not the beginning of a line"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NOTEOL" Note="Subject string is not the end of a line"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NOTEMPTY" Note="An empty string is not a valid match"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NOTEMPTY_ATSTART" Note="An empty string at the start of the subject is not a valid match"/>
-                <ui:CheckboxWithNote Prop="PCRE2_NO_JIT" Note="Do not use JIT matching"/>
-                <ui:CheckboxWithNote Prop="PCRE2_PARTIAL_HARD" Note="Return PCRE2_ERROR_PARTIAL for a partial match even if there is a full match"/>
-                <ui:CheckboxWithNote Prop="PCRE2_PARTIAL_SOFT" Note="Return PCRE2_ERROR_PARTIAL for a partial match if no full matches are found"/>
-                <ui:CheckboxWithNote Prop="PCRE2_DFA_SHORTEST" Note="Return only the shortest match"/>
-            </StackPanel>
-
+            <Label Content="Algorithm:" Target="{Binding ElementName=cbxAlgorithm}" VerticalAlignment="Center" Padding="0 2 4 2"/>
+            <ComboBox x:Name="cbxAlgorithm" SelectedValuePath="Tag" SelectedValue="{Binding Algorithm, FallbackValue='Standard'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxAlgorithm_SelectionChanged">
+                <ComboBoxItem Tag ="Standard" Content="Perl-compatible" IsSelected="True" />
+                <ComboBoxItem Tag ="DFA" Content="DFA" />
+            </ComboBox>
         </StackPanel>
-    </Grid>
+
+        <Label Margin="0 4 0 4" Padding="0">
+            <Italic>Compile Options</Italic>
+        </Label>
+        <StackPanel>
+            <ui:CheckboxWithNote Prop="PCRE2_ANCHORED" Note="Force pattern anchoring"/>
+            <ui:CheckboxWithNote Prop="PCRE2_ALLOW_EMPTY_CLASS" Note="Allow empty classes"/>
+            <ui:CheckboxWithNote Prop="PCRE2_ALT_BSUX" Note="Alternative handling of \u, \U, and \x"/>
+            <ui:CheckboxWithNote Prop="PCRE2_ALT_CIRCUMFLEX" Note="Alternative handling of ^ in multiline mode"/>
+            <ui:CheckboxWithNote Prop="PCRE2_ALT_VERBNAMES" Note="Process backslashes in verb names"/>
+            <ui:CheckboxWithNote Prop="PCRE2_CASELESS" Note="Do caseless matching"/>
+            <ui:CheckboxWithNote Prop="PCRE2_DOLLAR_ENDONLY" Note="$ not to match newline at end"/>
+            <ui:CheckboxWithNote Prop="PCRE2_DOTALL" Note=". matches anything including NL"/>
+            <ui:CheckboxWithNote Prop="PCRE2_DUPNAMES" Note="Allow duplicate names for subpatterns"/>
+            <ui:CheckboxWithNote Prop="PCRE2_ENDANCHORED" Note="Pattern can match only at end of subject"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTENDED" Note="Ignore white space and # comments"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTENDED_MORE" Note="Like PCRE2_EXTENDED, but additionally ignore spaces within [ ]"/>
+            <ui:CheckboxWithNote Prop="PCRE2_FIRSTLINE" Note="Force matching to be before newline"/>
+            <ui:CheckboxWithNote Prop="PCRE2_LITERAL" Note="Pattern characters are all literal"/>
+            <ui:CheckboxWithNote Prop="PCRE2_MATCH_UNSET_BACKREF" Note="Match unset backreferences"/>
+            <ui:CheckboxWithNote Prop="PCRE2_MULTILINE" Note="^ and $ match newlines within data"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NEVER_BACKSLASH_C" Note="Lock out the use of \C in patterns"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NEVER_UCP" Note="Lock out PCRE2_UCP, e.g. via (*UCP)"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NEVER_UTF" Note="Lock out PCRE2_UTF, e.g. via (*UTF)"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NO_AUTO_CAPTURE" Note="Disable numbered capturing parentheses (named ones available)"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NO_AUTO_POSSESS" Note="Disable auto-possessification"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NO_DOTSTAR_ANCHOR" Note="Disable automatic anchoring for .*"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NO_START_OPTIMIZE" Note="Disable match-time start optimizations"/>
+            <ui:CheckboxWithNote Prop="PCRE2_UCP" Note="Use Unicode properties for \d, \w, etc."/>
+            <ui:CheckboxWithNote Prop="PCRE2_UNGREEDY" Note="Invert greediness of quantifiers"/>
+        </StackPanel>
+
+        <Label Margin="0 4 0 4" Padding="0">
+            <Italic>Extra Compile Options</Italic>
+        </Label>
+        <StackPanel x:Name="pnlExtraCompileOptions">
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES" Note="Allow \x{df800} to \x{dfff} in UTF-8 and UTF-32 modes"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALT_BSUX" Note="Extended alternate \u, \U, and \x handling"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL" Note="Treat all invalid escapes as a literal following character"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ESCAPED_CR_IS_LF" Note="Interpret \r as \n"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_MATCH_LINE" Note="Pattern matches whole lines"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_MATCH_WORD" Note="Pattern matches &quot;words&quot;"/>
+        </StackPanel>
+
+        <Label Margin="0 4 0 4" Padding="0">
+            <Italic>Matcher Options</Italic>
+        </Label>
+        <StackPanel x:Name="pnlMatchOptions">
+            <ui:CheckboxWithNote Prop="PCRE2_ANCHORED_mo" Text="PCRE2_ANCHORED" Note="Match only at the first position"/>
+            <ui:CheckboxWithNote Prop="PCRE2_COPY_MATCHED_SUBJECT" Note="On success, make a private subject copy"/>
+            <ui:CheckboxWithNote Prop="PCRE2_ENDANCHORED_mo" Text="PCRE2_ENDANCHORED" Note="Pattern can match only at end of subject"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NOTBOL" Note="Subject string is not the beginning of a line"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NOTEOL" Note="Subject string is not the end of a line"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NOTEMPTY" Note="An empty string is not a valid match"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NOTEMPTY_ATSTART" Note="An empty string at the start of the subject is not a valid match"/>
+            <ui:CheckboxWithNote Prop="PCRE2_NO_JIT" Note="Do not use JIT matching"/>
+            <ui:CheckboxWithNote Prop="PCRE2_PARTIAL_HARD" Note="Return PCRE2_ERROR_PARTIAL for a partial match even if there is a full match"/>
+            <ui:CheckboxWithNote Prop="PCRE2_PARTIAL_SOFT" Note="Return PCRE2_ERROR_PARTIAL for a partial match if no full matches are found"/>
+            <ui:CheckboxWithNote Prop="PCRE2_DFA_SHORTEST" Note="Return only the shortest match"/>
+        </StackPanel>
+
+        <Label Margin="0 4 0 4" Padding="0">
+            <Italic>JIT Options</Italic>
+        </Label>
+
+        <StackPanel>
+            <ui:CheckboxWithNote Prop="PCRE2_JIT_COMPLETE" Note="Generate code for complete matches"/>
+            <ui:CheckboxWithNote Prop="PCRE2_JIT_PARTIAL_SOFT" Note="Compile code for soft partial matching"/>
+            <ui:CheckboxWithNote Prop="PCRE2_JIT_PARTIAL_HARD" Note="Compile code for hard partial matching"/>
+        </StackPanel>
+
+    </StackPanel>
 </UserControl>
