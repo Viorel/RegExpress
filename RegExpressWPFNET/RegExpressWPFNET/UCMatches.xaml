@@ -51,7 +51,7 @@
         <RichTextBox x:Name="rtbInfo" Panel.ZIndex="8" Style="{StaticResource Info}" IsReadOnly="True" IsReadOnlyCaretVisible="True" 
                      IsDocumentEnabled="True"
                      Visibility="Hidden"
-                     d:Visibility="Visible"
+                     d:Visibility="Hidden"
                      >
             <FlowDocument>
                 <Paragraph TextAlignment="Left" Padding="1 4 1 1">
@@ -65,10 +65,10 @@
 
         <RichTextBox x:Name="rtbError" Style="{StaticResource Error}" IsReadOnly="True" IsReadOnlyCaretVisible="True" 
                      Visibility="Hidden"
-                     d:Visibility="Hidden">
+                     d:Visibility="Visible">
             <FlowDocument>
                 <Paragraph Padding="1 4 1 1">
-                    <Run x:Name="runError" d:Text="Error" />
+                    <Run x:Name="runError" d:Text="Error&#13;&#10;text" />
                 </Paragraph>
             </FlowDocument>
         </RichTextBox>

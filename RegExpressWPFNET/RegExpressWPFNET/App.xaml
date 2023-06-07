@@ -50,9 +50,14 @@
         <Style TargetType="RichTextBox" PresentationOptions:Freeze="True">
             <Setter Property="FontFamily" Value="Courier New"/>
             <Setter Property="FontSize" Value="16"/>
+            
             <!--<Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>-->
             <!--<Setter Property="TextOptions.TextHintingMode" Value="Auto"/>-->
-            <Setter Property="TextOptions.TextRenderingMode" Value="Aliased"/>
+            <!--<Setter Property="TextOptions.TextRenderingMode" Value="Aliased"/>-->
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+
             <Setter Property="Foreground" Value="Black"/>
             <Setter Property="Background" Value="{StaticResource NormalBackground}"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -94,7 +99,8 @@
         </Style>
 
         <Style x:Key="Error" TargetType="RichTextBox" BasedOn="{StaticResource {x:Type RichTextBox}}" PresentationOptions:Freeze="True">
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Courier New"/>
+            <Setter Property="FontWeight" Value="Regular"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Foreground" Value="Black"/>
             <Setter Property="Background" Value="Pink"/>
