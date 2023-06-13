@@ -69,7 +69,7 @@
                 <Style TargetType="Paragraph">
                     <Setter Property="Padding" Value="1 0 0 0"/>
                     <!-- line spacing -->
-                    <Setter Property="LineHeight" Value="20"/>
+                    <Setter Property="LineHeight" Value="22"/>
                     <!-- paragraph spacing and left margin;
                     Note. Left margin should be zero, otherwise <Backspace> does not work
                     well at the start of the lines.

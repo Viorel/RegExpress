@@ -875,12 +875,12 @@ namespace RegExpressWPFNET
 
                         if( text_elements != td.Text.Length )
                         {
-                            s += $", Text Elements: {text_elements:#,##0}";
+                            s += $"  |  Text Elements: {text_elements:#,##0}";
                         }
 
                         if( ucTextHadFocus )
                         {
-                            s += $", Index: {td.SelectionStart:#,##0}";
+                            s += $"  |  Index: {td.SelectionStart:#,##0}";
                         }
 
                         lblTextInfo.Text = s;

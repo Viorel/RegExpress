@@ -16,6 +16,8 @@ namespace RegExpressWPFNET.Adorners
 {
     class UnderliningAdorner : Adorner
     {
+        const int CAPS_HEIGHT = 3;
+        readonly Vector OFFSET = new Vector( 0, 1 );
         readonly Pen Pen = new( Brushes.Fuchsia, 1 );
 
         IReadOnlyList<(TextPointer start, TextPointer end)>? Ranges = null;
@@ -193,13 +195,11 @@ namespace RegExpressWPFNET.Adorners
                         //TextPointer end_b = end.GetInsertionPosition( LogicalDirection.Backward );
                         //TextPointer end_f = end.GetInsertionPosition( LogicalDirection.Forward );
 
-                        Point start_point_b = start.GetCharacterRect( LogicalDirection.Backward ).BottomLeft;
-                        Point start_point_f = start.GetCharacterRect( LogicalDirection.Forward ).BottomLeft;
+                        Point start_point_b = start.GetCharacterRect( LogicalDirection.Backward ).BottomLeft + OFFSET;
+                        Point start_point_f = start.GetCharacterRect( LogicalDirection.Forward ).BottomLeft + OFFSET;
 
-                        Point end_point_b = end.GetCharacterRect( LogicalDirection.Backward ).BottomLeft;
-                        Point end_point_f = end.GetCharacterRect( LogicalDirection.Forward ).BottomLeft;
-
-                        const int CAPS_HEIGHT = 3;
+                        Point end_point_b = end.GetCharacterRect( LogicalDirection.Backward ).BottomLeft + OFFSET;
+                        Point end_point_f = end.GetCharacterRect( LogicalDirection.Forward ).BottomLeft + OFFSET;
 
                         if( start_point_b.Y <= clip_rect.Bottom + CAPS_HEIGHT &&
                             start_point_f.Y <= clip_rect.Bottom + CAPS_HEIGHT &&
@@ -215,8 +215,8 @@ namespace RegExpressWPFNET.Adorners
                                 tp = tp.GetNextInsertionPosition( LogicalDirection.Forward )
                                 )
                             {
-                                Point tp_point_b = tp.GetCharacterRect( LogicalDirection.Backward ).BottomLeft;
-                                Point tp_point_f = tp.GetCharacterRect( LogicalDirection.Forward ).BottomLeft;
+                                Point tp_point_b = tp.GetCharacterRect( LogicalDirection.Backward ).BottomLeft + OFFSET;
+                                Point tp_point_f = tp.GetCharacterRect( LogicalDirection.Forward ).BottomLeft + OFFSET;
 
                                 Point p1 = prev_point_f;
                                 Point p2 = tp_point_b;

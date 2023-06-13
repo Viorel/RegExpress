@@ -1219,11 +1219,14 @@ namespace RegExpressWPFNET
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
                 var first_inline = inlines_to_underline.FirstOrDefault( ).inline;
+                var last_inline = inlines_to_underline.LastOrDefault( ).inline;
 
                 if( first_inline != null )
                 {
+                    Debug.Assert( last_inline != null );
+
                     RtbUtilities.BringIntoViewInvoked( cnc, rtbMatches,
-                        first_inline.ContentStart, first_inline.ContentEnd, fullHorizontalScrollIfInvisible: true );
+                        first_inline.ContentStart, last_inline.ContentEnd, fullHorizontalScrollIfInvisible: true );
                 }
 
                 if( set_selection && !rtbMatches.IsKeyboardFocused )
