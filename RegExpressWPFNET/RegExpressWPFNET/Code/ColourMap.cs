@@ -24,7 +24,7 @@ namespace RegExpressWPFNET.Code
             Debug.Assert( colour >= 1 );
 
             int i = int.Max( index - mStartOffset, 0 );
-            int end = int.Min( i + length, mData.Length );
+            int end = int.Min( index - mStartOffset + length, mData.Length );
 
             unchecked
             {
@@ -98,8 +98,6 @@ namespace RegExpressWPFNET.Code
                     while( i < mData.Length && mData[i] == colour ) ++i;
 
                     int length = i - start;
-
-                    if( cnc.IsCancellationRequested ) break;
 
                     list.Add( (new Segment( start + mStartOffset, length ), styleInfo) );
                 }
