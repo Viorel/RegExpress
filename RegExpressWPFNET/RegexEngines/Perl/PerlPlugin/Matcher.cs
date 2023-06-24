@@ -57,7 +57,7 @@ namespace PerlPlugin
             if( Options.g ) modifiers += "g";
             //if( Options.c ) modifiers += "c";
 
-            Action<StreamWriter> stdin_writer = new Action<StreamWriter>( sw =>
+            Action<StreamWriter> stdin_writer = new( sw =>
             {
                 var json_obj = new { p = Pattern, t = text, m = modifiers };
                 string json = JsonSerializer.Serialize( json_obj, JsonUtilities.JsonOptions );
@@ -65,7 +65,7 @@ namespace PerlPlugin
                 sw.Write( json );
             } );
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetPerlExePath( ), new[] { GetWorkerPath( ) }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            if( !ProcessUtilities.InvokeExe( cnc, GetPerlExePath( ), new[] { "-CS", GetWorkerPath( ) }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
             {
                 return RegexMatches.Empty;
             }
@@ -74,12 +74,12 @@ namespace PerlPlugin
 
             if( !string.IsNullOrWhiteSpace( stderr_contents ) )
             {
-                string error_text = Regex.Match( stderr_contents, @"\u001FERR>(.*?)<\u001FERR", RegexOptions.Singleline ).Groups[1].Value.Trim( );
+                string error_text = GetErrorRegex( ).Match( stderr_contents ).Groups[1].Value.Trim( );
 
                 if( !string.IsNullOrWhiteSpace( error_text ) )
                 {
                     // remove unneeded details about PerlWorker.pl
-                    string error_message = Regex.Replace( error_text, @"\s+at\s+.+\\PerlWorker.pl\s+line\s+\d+,\s+<STDIN>\s+line\s+\d+(?=\.\s*$)", "", RegexOptions.Singleline );
+                    string error_message = RemoveUnneededErrorDetailsRegex( ).Replace( error_text, "" );
 
                     throw new Exception( error_message );
                 }
@@ -87,11 +87,11 @@ namespace PerlPlugin
 
             // collect group names from Perl debugging details
 
-            string debug_text = stderr_contents == null ? "" : Regex.Match( stderr_contents, @"\u001FDEBUG>(.*?)<\u001FDEBUG", RegexOptions.Singleline ).Groups[1].Value.Trim( );
+            string debug_text = stderr_contents == null ? "" : GetDebugDetailsRegex( ).Match( stderr_contents ).Groups[1].Value.Trim( );
 
             List<string?> numbered_names = new( );
 
-            foreach( Match m in Regex.Matches( debug_text, @"^ \s* \d+: \s* CLOSE(\d+) \s+ '(.*?)' \s+ \(\d+\) \s* $", RegexOptions.Multiline | RegexOptions.IgnorePatternWhitespace ) )
+            foreach( Match m in GetGroupRegex( ).Matches( debug_text ) )
             {
                 string name = m.Groups[2].Value;
                 int number = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
@@ -129,7 +129,8 @@ namespace PerlPlugin
                 }
                 else
                 {
-                    Match m = Regex.Match( line, @"^\u001FG,(-1|\d+),(\d+)$" );
+                    Match m = ParseGroupResultRegex( ).Match( line );
+
                     if( m.Success )
                     {
                         int index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
@@ -137,14 +138,14 @@ namespace PerlPlugin
 
                         int group_index = match == null ? 0 : match.Groups.Count( );
                         string? group_name = group_index < numbered_names.Count ? numbered_names[group_index] : null;
-                        if( group_name == null ) group_name = group_index.ToString( CultureInfo.InvariantCulture );
+                        group_name ??= group_index.ToString( CultureInfo.InvariantCulture );
 
                         bool success = index >= 0;
 
                         if( success )
                         {
-                            if( stg == null ) stg = new SimpleTextGetter( text );
-                            if( sph == null ) sph = new( text, processSurrogatePairs: true );
+                            stg ??= new SimpleTextGetter( text );
+                            sph ??= new( text, processSurrogatePairs: true );
 
                             var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
 
@@ -190,15 +191,15 @@ namespace PerlPlugin
                     stdout_contents?.StartsWith( "V=" ) != true )
                 {
                     if( Debugger.IsAttached ) Debugger.Break( );
-                    Debug.WriteLine( "Unknown Perl Get-Version: '{0}', '{1}'", stdout_contents, stderr_contents );
+                    Debug.WriteLine( "Cannot get Perl version: '{0}', '{1}'", stdout_contents, stderr_contents );
 
                     return null;
                 }
                 else
                 {
                     stdout_contents = stdout_contents.Trim( );
-                    string version = stdout_contents.Substring( "V=".Length );
-                    if( version.StartsWith( "v" ) ) version = version.Substring( 1 );
+                    string version = stdout_contents["V=".Length..];
+                    if( version.StartsWith( "v" ) ) version = version[1..];
 
                     return version;
                 }
@@ -233,5 +234,20 @@ namespace PerlPlugin
             return worker_path;
         }
 
+
+        [GeneratedRegex( @"\u001FERR>(.*?)<\u001FERR", RegexOptions.Singleline )]
+        private static partial Regex GetErrorRegex( );
+
+        [GeneratedRegex( @"\s+at\s+.+\\PerlWorker.pl\s+line\s+\d+,\s+<STDIN>\s+line\s+\d+(?=\.\s*$)", RegexOptions.Singleline )]
+        private static partial Regex RemoveUnneededErrorDetailsRegex( );
+
+        [GeneratedRegex( @"\u001FDEBUG>(.*?)<\u001FDEBUG", RegexOptions.Singleline )]
+        private static partial Regex GetDebugDetailsRegex( );
+
+        [GeneratedRegex( @"^ \s* \d+: \s* CLOSE(\d+) \s+ '(.*?)' \s+ \(\d+\) \s* $", RegexOptions.Multiline | RegexOptions.IgnorePatternWhitespace )]
+        private static partial Regex GetGroupRegex( );
+
+        [GeneratedRegex( @"^\u001FG,(-1|\d+),(\d+)$" )]
+        private static partial Regex ParseGroupResultRegex( );
     }
 }

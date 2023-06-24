@@ -11,6 +11,8 @@ namespace PerlPlugin
 {
     class Options
     {
+#pragma warning disable IDE1006 // Naming Styles
+
         public bool m { get; set; }
         public bool s { get; set; }
         public bool i { get; set; }
@@ -25,6 +27,7 @@ namespace PerlPlugin
         public bool g { get; set; } = true;
         //public bool c { get; set; } // (has sense in case of a sequence of matches)
 
+#pragma warning restore IDE1006 // Naming Styles
 
         public Options Clone( )
         {
