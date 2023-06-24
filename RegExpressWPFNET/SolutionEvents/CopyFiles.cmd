@@ -143,3 +143,10 @@ set BaseDir=%SolutionDir%\RegexEngines\D
 xcopy /D /R /Y "%BaseDir%\DPlugin\bin\%Configuration%\%TargetFramework%\DPlugin.dll" "%EnginesTargetDir%\D\*"
 xcopy /D /R /Y "%BaseDir%\DWorker\DWorker.exe" "%EnginesTargetDir%\D\*.bin"
 
+
+rem -- Perl --
+
+set BaseDir=%SolutionDir%\RegexEngines\Perl
+xcopy /D /R /Y "%BaseDir%\PerlPlugin\bin\%Configuration%\%TargetFramework%\PerlPlugin.dll" "%EnginesTargetDir%\Perl\*"
+xcopy /D /R /Y "%BaseDir%\PerlWorker\PerlWorker.pl" "%EnginesTargetDir%\Perl\*"
+xcopy /D /R /Y /E "%BaseDir%\PerlWorker\Perl-min\*" "%EnginesTargetDir%\Perl\Perl-min\*"

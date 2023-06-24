@@ -53,5 +53,8 @@
     {
       "path": "Engines\\D\\DPlugin.dll"
     },
+    {
+      "path": "Engines\\Perl\\PerlPlugin.dll"
+    },
   ]
 }
