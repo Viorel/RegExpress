@@ -25,6 +25,7 @@ There are more engines that are described in **[Additional Engines](#additional-
 * **Java** (*java.util.regex* package)
 * **Python** (*re* and *regex* modules)
 * **D** (*std.regex* module)
+* **Perl** 
 
 
 <br/>
@@ -66,6 +67,7 @@ This repository includes several additional engines:
 * **[Java](https://docs.oracle.com/en/java/javase/20/docs/api/java.base/java/util/regex/package-summary.html)** 20 (*java.util.regex* package)
 * **[Python](https://www.python.org/)** 3.11.3 (standard *re* module, third-party *regex* module)
 * **[D](https://dlang.org/phobos/std_regex.html)** 2.103 (*std.regex* module)
+* **[Perl](https://perldoc.perl.org/perlreref)** 5.32.1 (Strawberry Perl)
 
 
 To use these engines, get the **main-extended** branch instead of **main**, then recompile 
