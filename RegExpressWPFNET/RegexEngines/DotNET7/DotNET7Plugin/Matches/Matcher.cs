@@ -11,78 +11,66 @@ using RegExpressLibrary.Matches;
 
 namespace DotNETPlugin.Matches
 {
-	class Matcher : IMatcher
-	{
-		readonly Regex mRegex;
+    static class Matcher
+    {
+        public static RegexMatches GetMatches( ICancellable cnc, string text, Regex regex )
+        {
+            bool cancelled = false;
+            Exception? exception = null;
+            ReMatch[]? matches = null;
 
-		public Matcher( Regex regex )
-		{
-			mRegex = regex;
-		}
+            var thread = new Thread( ( ) =>
+            {
+                try
+                {
+                    var dotnet_matches = regex.Matches( text ); // no timeouts
 
+                    matches = // must do here to achieve the timeouts
+                        dotnet_matches
+                            .OfType<Match>( )
+                            .TakeWhile( m => !cnc.IsCancellationRequested )
+                            .Select( m => new ReMatch( m ) )
+                            .ToArray( );
+                }
+                catch( ThreadInterruptedException )
+                {
+                    cancelled = true;
+                }
+                catch( ThreadAbortException )
+                {
+                    cancelled = true;
+                }
+                catch( Exception exc )
+                {
+                    exception = exc;
+                }
+            } )
+            {
+                Name = "xDotNET Matcher",
+                IsBackground = true
+            };
 
-		#region IMatcher
+            thread.Start( );
 
-		public RegexMatches Matches( string text, ICancellable cnc )
-		{
-			bool cancelled = false;
-			Exception? exception = null;
-			ReMatch[]? matches = null;
+            for(; ; )
+            {
+                if( thread.Join( 222 ) ) break;
 
-			var thread = new Thread( ( ) =>
-			{
-				try
-				{
-					var dotnet_matches = mRegex.Matches( text ); // no timeouts
+                if( cnc.IsCancellationRequested )
+                {
+                    thread.Interrupt( );
+                    // NOT SUPPORTED: if( !thread.Join( 1 ) ) thread.Abort( );
+                    thread.Join( 1 );
 
-					matches = // must do here to achieve the timeouts
-						dotnet_matches
-							.OfType<Match>( )
-							.TakeWhile( m => !cnc.IsCancellationRequested )
-							.Select( m => new ReMatch( m ) )
-							.ToArray( );
-				}
-				catch( ThreadInterruptedException )
-				{
-					cancelled = true;
-				}
-				catch( ThreadAbortException )
-				{
-					cancelled = true;
-				}
-				catch( Exception exc )
-				{
-					exception = exc;
-				}
-			} )
-			{
-				Name = "xDotNET Matcher",
-				IsBackground = true
-			};
+                    break;
+                }
+            }
 
-			thread.Start( );
+            if( exception != null ) throw exception;
 
-			for(; ; )
-			{
-				if( thread.Join( 222 ) ) break;
+            if( cancelled || cnc.IsCancellationRequested ) return RegexMatches.Empty;
 
-				if( cnc.IsCancellationRequested )
-				{
-					thread.Interrupt( );
-					// NOT SUPPORTED: if( !thread.Join( 1 ) ) thread.Abort( );
-					thread.Join( 1 );
-
-					break;
-				}
-			}
-
-			if( exception != null ) throw exception;
-
-			if( cancelled || cnc.IsCancellationRequested ) return RegexMatches.Empty;
-
-			return new RegexMatches( matches!.Length, matches );
-		}
-
-		#endregion IMatcher
-	}
+            return new RegexMatches( matches!.Length, matches );
+        }
+    }
 }

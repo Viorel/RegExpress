@@ -17,23 +17,9 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace RE2Plugin
 {
-    class Matcher : IMatcher
+    class Matcher
     {
-
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             MemoryStream? stdout_contents;
             string? stderr_contents;
@@ -47,21 +33,21 @@ namespace RE2Plugin
                     //bw.Write( (byte)0 ); // "version"
                     bw.Write( (byte)'b' );
 
-                    bw.Write( Pattern );
+                    bw.Write( pattern );
                     bw.Write( text );
 
-                    bw.Write( Convert.ToByte( Options.posix_syntax ) );
-                    bw.Write( Convert.ToByte( Options.longest_match ) );
-                    bw.Write( Convert.ToByte( Options.literal ) );
-                    bw.Write( Convert.ToByte( Options.never_nl ) );
-                    bw.Write( Convert.ToByte( Options.dot_nl ) );
-                    bw.Write( Convert.ToByte( Options.never_capture ) );
-                    bw.Write( Convert.ToByte( Options.case_sensitive ) );
-                    bw.Write( Convert.ToByte( Options.perl_classes ) );
-                    bw.Write( Convert.ToByte( Options.word_boundary ) );
-                    bw.Write( Convert.ToByte( Options.one_line ) );
+                    bw.Write( Convert.ToByte( options.posix_syntax ) );
+                    bw.Write( Convert.ToByte( options.longest_match ) );
+                    bw.Write( Convert.ToByte( options.literal ) );
+                    bw.Write( Convert.ToByte( options.never_nl ) );
+                    bw.Write( Convert.ToByte( options.dot_nl ) );
+                    bw.Write( Convert.ToByte( options.never_capture ) );
+                    bw.Write( Convert.ToByte( options.case_sensitive ) );
+                    bw.Write( Convert.ToByte( options.perl_classes ) );
+                    bw.Write( Convert.ToByte( options.word_boundary ) );
+                    bw.Write( Convert.ToByte( options.one_line ) );
 
-                    bw.Write( Enum.GetName( Options.anchor )! );
+                    bw.Write( Enum.GetName( options.anchor )! );
 
                     bw.Write( (byte)'e' );
                 }
@@ -121,8 +107,6 @@ namespace RE2Plugin
                 return new RegexMatches( matches.Count, matches );
             }
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

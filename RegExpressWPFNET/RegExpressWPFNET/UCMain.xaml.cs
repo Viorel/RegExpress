@@ -701,7 +701,6 @@ namespace RegExpressWPFNET
             }
             else
             {
-                IMatcher? parsed_pattern = null;
                 RegexMatches matches = RegexMatches.Empty;
                 bool is_good = false;
 
@@ -709,14 +708,13 @@ namespace RegExpressWPFNET
                 {
                     UITaskHelper.BeginInvoke( this, CancellationToken.None, ( ) => ucMatches.ShowMatchingInProgress( true ) );
 
-                    parsed_pattern = engine!.ParsePattern( pattern );
                     StopIndeterminateProgressPreparationEvent.Reset( );
                     var indeterminate_progress_thread = new Thread( IndeterminateProgressThreadProc ) { Name = "rxIndeterminate", IsBackground = true };
                     try
                     {
                         indeterminate_progress_thread.Start( );
 
-                        matches = parsed_pattern.Matches( text ?? "", cnc );
+                        matches = engine!.GetMatches( cnc, pattern, text ?? "" );
                     }
                     finally
                     {

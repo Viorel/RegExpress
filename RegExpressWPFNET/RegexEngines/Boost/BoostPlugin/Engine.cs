@@ -93,13 +93,13 @@ namespace BoostPlugin
         }
 
 
-        public IMatcher ParsePattern( string pattern )
+        public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
 
-            return new Matcher( pattern, options );
-
+            return Matcher.GetMatches( cnc, pattern, text, options );
         }
+
 
         public SyntaxOptions GetSyntaxOptions( )
         {

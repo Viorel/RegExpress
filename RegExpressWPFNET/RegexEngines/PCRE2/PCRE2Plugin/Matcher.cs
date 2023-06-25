@@ -18,23 +18,9 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace PCRE2Plugin
 {
-    class Matcher : IMatcher
+    static class Matcher
     {
-
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             MemoryStream? stdout_contents;
             string? stderr_contents;
@@ -46,67 +32,67 @@ namespace PCRE2Plugin
                     bw.Write( "m" );
                     bw.Write( (byte)'b' );
 
-                    bw.Write( Pattern );
+                    bw.Write( pattern );
                     bw.Write( text );
 
-                    bw.Write( Enum.GetName( Options.Algorithm )! );
+                    bw.Write( Enum.GetName( options.Algorithm )! );
 
                     // Compile options
 
-                    bw.Write( Convert.ToByte( Options.PCRE2_ANCHORED ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_ALLOW_EMPTY_CLASS ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_ALT_BSUX ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_ALT_CIRCUMFLEX ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_ALT_VERBNAMES ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_CASELESS ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_DOLLAR_ENDONLY ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_DOTALL ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_DUPNAMES ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_ENDANCHORED ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_EXTENDED ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_EXTENDED_MORE ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_FIRSTLINE ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_LITERAL ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_MATCH_UNSET_BACKREF ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_MULTILINE ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NEVER_BACKSLASH_C ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NEVER_UCP ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NEVER_UTF ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NO_AUTO_CAPTURE ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NO_AUTO_POSSESS ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NO_DOTSTAR_ANCHOR ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NO_START_OPTIMIZE ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_UCP ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_UNGREEDY ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_ANCHORED ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_ALLOW_EMPTY_CLASS ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_ALT_BSUX ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_ALT_CIRCUMFLEX ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_ALT_VERBNAMES ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_CASELESS ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_DOLLAR_ENDONLY ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_DOTALL ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_DUPNAMES ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_ENDANCHORED ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_EXTENDED ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_EXTENDED_MORE ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_FIRSTLINE ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_LITERAL ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_MATCH_UNSET_BACKREF ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_MULTILINE ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NEVER_BACKSLASH_C ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NEVER_UCP ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NEVER_UTF ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NO_AUTO_CAPTURE ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NO_AUTO_POSSESS ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NO_DOTSTAR_ANCHOR ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NO_START_OPTIMIZE ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_UCP ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_UNGREEDY ) );
 
                     // Extra compile options
 
-                    bw.Write( Convert.ToByte( Options.PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_EXTRA_ALT_BSUX ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_EXTRA_ESCAPED_CR_IS_LF ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_EXTRA_MATCH_LINE ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_EXTRA_MATCH_WORD ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ALT_BSUX ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ESCAPED_CR_IS_LF ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_EXTRA_MATCH_LINE ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_EXTRA_MATCH_WORD ) );
 
                     // Match options
 
-                    bw.Write( Convert.ToByte( Options.PCRE2_ANCHORED_mo ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_COPY_MATCHED_SUBJECT ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_ENDANCHORED_mo ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NOTBOL ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NOTEOL ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NOTEMPTY ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NOTEMPTY_ATSTART ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_NO_JIT ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_PARTIAL_HARD ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_PARTIAL_SOFT ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_DFA_SHORTEST ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_ANCHORED_mo ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_COPY_MATCHED_SUBJECT ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_ENDANCHORED_mo ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NOTBOL ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NOTEOL ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NOTEMPTY ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NOTEMPTY_ATSTART ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_NO_JIT ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_PARTIAL_HARD ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_PARTIAL_SOFT ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_DFA_SHORTEST ) );
 
                     // JIT Options
 
-                    bw.Write( Convert.ToByte( Options.PCRE2_JIT_COMPLETE ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_JIT_PARTIAL_SOFT ) );
-                    bw.Write( Convert.ToByte( Options.PCRE2_JIT_PARTIAL_HARD ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_JIT_COMPLETE ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_JIT_PARTIAL_SOFT ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_JIT_PARTIAL_HARD ) );
 
                     bw.Write( (byte)'e' );
                 }
@@ -166,8 +152,6 @@ namespace PCRE2Plugin
                 return new RegexMatches( matches.Count, matches );
             }
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )
