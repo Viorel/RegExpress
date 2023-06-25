@@ -18,7 +18,7 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace DPlugin
 {
-    class Matcher : IMatcher
+    static class Matcher
     {
 
         class VersionResponse
@@ -47,34 +47,21 @@ namespace DPlugin
         }
 
 
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
 
             StringBuilder flags = new( );
 
             //if( Options.g ) flags.Append( 'g' );
-            if( Options.i ) flags.Append( 'i' );
-            if( Options.m ) flags.Append( 'm' );
-            if( Options.s ) flags.Append( 's' );
-            if( Options.x ) flags.Append( 'x' );
+            if( options.i ) flags.Append( 'i' );
+            if( options.m ) flags.Append( 'm' );
+            if( options.s ) flags.Append( 's' );
+            if( options.x ) flags.Append( 'x' );
 
             var obj = new
             {
-                p = Pattern,
+                p = pattern,
                 t = text,
                 f = flags.ToString( ),
             };
@@ -185,8 +172,6 @@ namespace DPlugin
 
             return new RegexMatches( matches.Count, matches );
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

@@ -18,59 +18,44 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace HyperscanPlugin
 {
-    class Matcher : IMatcher
+    static class Matcher
     {
-
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-
         static readonly Encoding AsciiEncodingWithExceptionFallback = Encoding.GetEncoding( Encoding.ASCII.WebName, new EncoderExceptionFallback( ), new DecoderExceptionFallback( ) );
 
 
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            if( !string.IsNullOrWhiteSpace( Options.LevenshteinDistance ) && !UInt32.TryParse( Options.LevenshteinDistance, out var _ ) )
+            if( !string.IsNullOrWhiteSpace( options.LevenshteinDistance ) && !UInt32.TryParse( options.LevenshteinDistance, out var _ ) )
             {
                 throw new ApplicationException( "Invalid Levenshtein Distance." );
             }
 
-            if( !string.IsNullOrWhiteSpace( Options.HammingDistance ) && !UInt32.TryParse( Options.HammingDistance, out var _ ) )
+            if( !string.IsNullOrWhiteSpace( options.HammingDistance ) && !UInt32.TryParse( options.HammingDistance, out var _ ) )
             {
                 throw new ApplicationException( "Invalid Hamming Distance." );
             }
 
-            if( !string.IsNullOrWhiteSpace( Options.MinOffset ) && !UInt32.TryParse( Options.MinOffset, out var _ ) )
+            if( !string.IsNullOrWhiteSpace( options.MinOffset ) && !UInt32.TryParse( options.MinOffset, out var _ ) )
             {
                 throw new ApplicationException( "Invalid Min Offset." );
             }
 
-            if( !string.IsNullOrWhiteSpace( Options.MaxOffset ) && !UInt32.TryParse( Options.MaxOffset, out var _ ) )
+            if( !string.IsNullOrWhiteSpace( options.MaxOffset ) && !UInt32.TryParse( options.MaxOffset, out var _ ) )
             {
                 throw new ApplicationException( "Invalid Max Offset." );
             }
 
-            if( !string.IsNullOrWhiteSpace( Options.MinLength ) && !UInt32.TryParse( Options.MinLength, out var _ ) )
+            if( !string.IsNullOrWhiteSpace( options.MinLength ) && !UInt32.TryParse( options.MinLength, out var _ ) )
             {
                 throw new ApplicationException( "Invalid Min Length." );
             }
 
-            if( !Options.HS_FLAG_UTF8 )
+            if( !options.HS_FLAG_UTF8 )
             {
                 bool is_bad_pattern = false;
                 try
                 {
-                    AsciiEncodingWithExceptionFallback.GetByteCount( Pattern );
+                    AsciiEncodingWithExceptionFallback.GetByteCount( pattern );
                 }
                 catch( EncoderFallbackException )
                 {
@@ -99,17 +84,17 @@ namespace HyperscanPlugin
 
             UInt32 flags = 0;
 
-            if( Options.HS_FLAG_CASELESS ) flags |= 1 << 0;
-            if( Options.HS_FLAG_DOTALL ) flags |= 1 << 1;
-            if( Options.HS_FLAG_MULTILINE ) flags |= 1 << 2;
-            if( Options.HS_FLAG_SINGLEMATCH ) flags |= 1 << 3;
-            if( Options.HS_FLAG_ALLOWEMPTY ) flags |= 1 << 4;
-            if( Options.HS_FLAG_UTF8 ) flags |= 1 << 5;
-            if( Options.HS_FLAG_UCP ) flags |= 1 << 6;
-            if( Options.HS_FLAG_PREFILTER ) flags |= 1 << 7;
-            if( Options.HS_FLAG_SOM_LEFTMOST ) flags |= 1 << 8;
-            //if( Options.HS_FLAG_COMBINATION ) flags |= 1 << 9;
-            if( Options.HS_FLAG_QUIET ) flags |= 1 << 10;
+            if( options.HS_FLAG_CASELESS ) flags |= 1 << 0;
+            if( options.HS_FLAG_DOTALL ) flags |= 1 << 1;
+            if( options.HS_FLAG_MULTILINE ) flags |= 1 << 2;
+            if( options.HS_FLAG_SINGLEMATCH ) flags |= 1 << 3;
+            if( options.HS_FLAG_ALLOWEMPTY ) flags |= 1 << 4;
+            if( options.HS_FLAG_UTF8 ) flags |= 1 << 5;
+            if( options.HS_FLAG_UCP ) flags |= 1 << 6;
+            if( options.HS_FLAG_PREFILTER ) flags |= 1 << 7;
+            if( options.HS_FLAG_SOM_LEFTMOST ) flags |= 1 << 8;
+            //if( options.HS_FLAG_COMBINATION ) flags |= 1 << 9;
+            if( options.HS_FLAG_QUIET ) flags |= 1 << 10;
 
             MemoryStream? stdout_contents;
             string? stderr_contents;
@@ -120,16 +105,16 @@ namespace HyperscanPlugin
                 {
                     bw.Write( "m" );
                     bw.Write( (byte)'b' );
-                    bw.Write( Pattern );
+                    bw.Write( pattern );
                     bw.Write( text );
                     bw.Write( flags );
-                    bw.Write( string.IsNullOrWhiteSpace( Options.LevenshteinDistance ) ? UInt32.MaxValue : UInt32.Parse( Options.LevenshteinDistance ) );
-                    bw.Write( string.IsNullOrWhiteSpace( Options.HammingDistance ) ? UInt32.MaxValue : UInt32.Parse( Options.HammingDistance ) );
-                    bw.Write( string.IsNullOrWhiteSpace( Options.MinOffset ) ? UInt32.MaxValue : UInt32.Parse( Options.MinOffset ) );
-                    bw.Write( string.IsNullOrWhiteSpace( Options.MaxOffset ) ? UInt32.MaxValue : UInt32.Parse( Options.MaxOffset ) );
-                    bw.Write( string.IsNullOrWhiteSpace( Options.MinLength ) ? UInt32.MaxValue : UInt32.Parse( Options.MinLength ) );
-                    bw.Write( checked((byte)Options.Mode) );
-                    bw.Write( checked((byte)Options.ModeSom) );
+                    bw.Write( string.IsNullOrWhiteSpace( options.LevenshteinDistance ) ? UInt32.MaxValue : UInt32.Parse( options.LevenshteinDistance ) );
+                    bw.Write( string.IsNullOrWhiteSpace( options.HammingDistance ) ? UInt32.MaxValue : UInt32.Parse( options.HammingDistance ) );
+                    bw.Write( string.IsNullOrWhiteSpace( options.MinOffset ) ? UInt32.MaxValue : UInt32.Parse( options.MinOffset ) );
+                    bw.Write( string.IsNullOrWhiteSpace( options.MaxOffset ) ? UInt32.MaxValue : UInt32.Parse( options.MaxOffset ) );
+                    bw.Write( string.IsNullOrWhiteSpace( options.MinLength ) ? UInt32.MaxValue : UInt32.Parse( options.MinLength ) );
+                    bw.Write( checked((byte)options.Mode) );
+                    bw.Write( checked((byte)options.ModeSom) );
                     bw.Write( (byte)'e' );
                 }
             };
@@ -183,8 +168,6 @@ namespace HyperscanPlugin
                 return new RegexMatches( matches.Count, matches );
             }
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

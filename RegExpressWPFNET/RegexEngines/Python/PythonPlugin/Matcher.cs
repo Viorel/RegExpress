@@ -18,22 +18,9 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace PythonPlugin
 {
-    partial class Matcher : IMatcher
+    static partial class Matcher
     {
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             const string script = @"
 import sys
@@ -110,30 +97,30 @@ except:
             {
                 var obj = new
                 {
-                    package = Enum.GetName( Options.Module ),
-                    pattern = Pattern,
+                    package = Enum.GetName( options.Module ),
+                    pattern = pattern,
                     text,
                     flags = new
                     {
-                        Options.ASCII,
-                        Options.DOTALL,
-                        Options.IGNORECASE,
-                        Options.LOCALE,
-                        Options.MULTILINE,
-                        Options.VERBOSE,
+                        options.ASCII,
+                        options.DOTALL,
+                        options.IGNORECASE,
+                        options.LOCALE,
+                        options.MULTILINE,
+                        options.VERBOSE,
                         //
-                        Options.BESTMATCH,
-                        Options.ENHANCEMATCH,
-                        Options.FULLCASE,
-                        Options.POSIX,
-                        Options.REVERSE,
-                        Options.UNICODE,
-                        Options.WORD,
-                        Options.VERSION0,
-                        Options.VERSION1,
+                        options.BESTMATCH,
+                        options.ENHANCEMATCH,
+                        options.FULLCASE,
+                        options.POSIX,
+                        options.REVERSE,
+                        options.UNICODE,
+                        options.WORD,
+                        options.VERSION0,
+                        options.VERSION1,
                         //
-                        Options.overlapped,
-                        Options.partial,
+                        options.overlapped,
+                        options.partial,
                     }
                 };
                 var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
@@ -239,8 +226,6 @@ except:
 
             return new RegexMatches( matches.Count, matches );
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

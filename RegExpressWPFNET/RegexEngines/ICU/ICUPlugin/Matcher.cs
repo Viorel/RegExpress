@@ -18,41 +18,27 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace ICUPlugin
 {
-    class Matcher : IMatcher
+    static class Matcher
     {
-
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             Int32 limit = Int32.MaxValue;
 
-            if( !string.IsNullOrWhiteSpace( Options.Limit ) && !int.TryParse( Options.Limit, out limit ) )
+            if( !string.IsNullOrWhiteSpace( options.Limit ) && !int.TryParse( options.Limit, out limit ) )
             {
                 throw new ApplicationException( "Invalid limit. Please enter an integer number." );
             }
 
             uint flags = 0;
-            //if(Options.UREGEX_CANON_EQ) flags |= 1 << 0; // not implemented by ICU
-            if( Options.UREGEX_CASE_INSENSITIVE ) flags |= 1 << 1;
-            if( Options.UREGEX_COMMENTS ) flags |= 1 << 2;
-            if( Options.UREGEX_DOTALL ) flags |= 1 << 3;
-            if( Options.UREGEX_LITERAL ) flags |= 1 << 4;
-            if( Options.UREGEX_MULTILINE ) flags |= 1 << 5;
-            if( Options.UREGEX_UNIX_LINES ) flags |= 1 << 6;
-            if( Options.UREGEX_UWORD ) flags |= 1 << 7;
-            if( Options.UREGEX_ERROR_ON_UNKNOWN_ESCAPES ) flags |= 1 << 8;
+            //if(options.UREGEX_CANON_EQ) flags |= 1 << 0; // not implemented by ICU
+            if( options.UREGEX_CASE_INSENSITIVE ) flags |= 1 << 1;
+            if( options.UREGEX_COMMENTS ) flags |= 1 << 2;
+            if( options.UREGEX_DOTALL ) flags |= 1 << 3;
+            if( options.UREGEX_LITERAL ) flags |= 1 << 4;
+            if( options.UREGEX_MULTILINE ) flags |= 1 << 5;
+            if( options.UREGEX_UNIX_LINES ) flags |= 1 << 6;
+            if( options.UREGEX_UWORD ) flags |= 1 << 7;
+            if( options.UREGEX_ERROR_ON_UNKNOWN_ESCAPES ) flags |= 1 << 8;
 
             MemoryStream? stdout_contents;
             string? stderr_contents;
@@ -64,7 +50,7 @@ namespace ICUPlugin
                     bw.Write( "m" );
                     bw.Write( (byte)'b' );
 
-                    bw.Write( Pattern );
+                    bw.Write( pattern );
                     bw.Write( text );
                     bw.Write( flags );
                     bw.Write( limit );
@@ -167,8 +153,6 @@ namespace ICUPlugin
             }
 
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

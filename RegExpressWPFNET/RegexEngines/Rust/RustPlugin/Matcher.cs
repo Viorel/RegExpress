@@ -18,7 +18,7 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace RustPlugin
 {
-    class Matcher : IMatcher
+    static class Matcher
     {
         class VersionResponse
         {
@@ -32,22 +32,9 @@ namespace RustPlugin
         }
 
 
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
-        {
-            if( Options.@struct == StructEnum.None )
+            if( options.@struct == StructEnum.None )
             {
                 throw new ApplicationException( "Invalid struct." );
             }
@@ -75,23 +62,23 @@ namespace RustPlugin
 
             var o = new StringBuilder( );
 
-            if( Options.case_insensitive ) o.Append( "i" );
-            if( Options.multi_line ) o.Append( "m" );
-            if( Options.dot_matches_new_line ) o.Append( "s" );
-            if( Options.swap_greed ) o.Append( "U" );
-            if( Options.ignore_whitespace ) o.Append( "x" );
-            if( Options.unicode ) o.Append( "u" );
-            if( Options.octal ) o.Append( "O" );
+            if( options.case_insensitive ) o.Append( "i" );
+            if( options.multi_line ) o.Append( "m" );
+            if( options.dot_matches_new_line ) o.Append( "s" );
+            if( options.swap_greed ) o.Append( "U" );
+            if( options.ignore_whitespace ) o.Append( "x" );
+            if( options.unicode ) o.Append( "u" );
+            if( options.octal ) o.Append( "O" );
 
             var obj = new
             {
-                s = Options.@struct,
-                p = Pattern,
+                s = options.@struct,
+                p = pattern,
                 t = text,
                 o = o.ToString( ),
-                sl = Options.size_limit?.Trim( ) ?? "",
-                dsl = Options.dfa_size_limit?.Trim( ) ?? "",
-                nl = Options.nest_limit?.Trim( ) ?? "",
+                sl = options.size_limit?.Trim( ) ?? "",
+                dsl = options.dfa_size_limit?.Trim( ) ?? "",
+                nl = options.nest_limit?.Trim( ) ?? "",
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
@@ -165,8 +152,6 @@ namespace RustPlugin
 
             return new RegexMatches( matches.Count, matches );
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

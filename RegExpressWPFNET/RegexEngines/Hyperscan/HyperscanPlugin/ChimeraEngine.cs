@@ -93,12 +93,11 @@ namespace HyperscanPlugin
         }
 
 
-        public IMatcher ParsePattern( string pattern )
+        public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
             ChimeraOptions options = mOptionsControl.Value.GetSelectedOptions( );
 
-            return new ChimeraMatcher( pattern, options );
-
+            return ChimeraMatcher.GetMatches( cnc, pattern, text, options );
         }
 
 

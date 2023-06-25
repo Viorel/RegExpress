@@ -18,34 +18,20 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace JavaPlugin
 {
-    partial class Matcher : IMatcher
+    static partial class Matcher
     {
-
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             var sb = new StringBuilder( );
-            if( Options.CANON_EQ ) sb.Append( ",CANON_EQ" );
-            if( Options.CASE_INSENSITIVE ) sb.Append( ",CASE_INSENSITIVE" );
-            if( Options.COMMENTS ) sb.Append( ",COMMENTS" );
-            if( Options.DOTALL ) sb.Append( ",DOTALL" );
-            if( Options.LITERAL ) sb.Append( ",LITERAL" );
-            if( Options.MULTILINE ) sb.Append( ",MULTILINE" );
-            if( Options.UNICODE_CASE ) sb.Append( ",UNICODE_CASE" );
-            if( Options.UNICODE_CHARACTER_CLASS ) sb.Append( ",UNICODE_CHARACTER_CLASS" );
-            if( Options.UNIX_LINES ) sb.Append( ",UNIX_LINES" );
+            if( options.CANON_EQ ) sb.Append( ",CANON_EQ" );
+            if( options.CASE_INSENSITIVE ) sb.Append( ",CASE_INSENSITIVE" );
+            if( options.COMMENTS ) sb.Append( ",COMMENTS" );
+            if( options.DOTALL ) sb.Append( ",DOTALL" );
+            if( options.LITERAL ) sb.Append( ",LITERAL" );
+            if( options.MULTILINE ) sb.Append( ",MULTILINE" );
+            if( options.UNICODE_CASE ) sb.Append( ",UNICODE_CASE" );
+            if( options.UNICODE_CHARACTER_CLASS ) sb.Append( ",UNICODE_CHARACTER_CLASS" );
+            if( options.UNIX_LINES ) sb.Append( ",UNIX_LINES" );
             sb.Append( ',' );
 
             string options_s = sb.ToString( );
@@ -64,7 +50,7 @@ namespace JavaPlugin
             {
                 sw.Write( "get-matches" );
                 sw.Write( "\x1F" );
-                sw.Write( Pattern );
+                sw.Write( pattern );
                 sw.Write( "\x1F" );
                 sw.Write( text );
                 sw.Write( "\x1F" );
@@ -172,8 +158,6 @@ namespace JavaPlugin
 
             return new RegexMatches( matches.Count, matches );
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

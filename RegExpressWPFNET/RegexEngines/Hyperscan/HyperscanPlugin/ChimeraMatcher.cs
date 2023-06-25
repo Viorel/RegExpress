@@ -18,44 +18,29 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace HyperscanPlugin
 {
-    class ChimeraMatcher : IMatcher
+    static class ChimeraMatcher
     {
-
-        readonly string Pattern;
-        readonly ChimeraOptions Options;
-
-
-        public ChimeraMatcher( string pattern, ChimeraOptions options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-
         static readonly Encoding AsciiEncodingWithExceptionFallback = Encoding.GetEncoding( Encoding.ASCII.WebName, new EncoderExceptionFallback( ), new DecoderExceptionFallback( ) );
 
 
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, ChimeraOptions options )
         {
-            if( !string.IsNullOrWhiteSpace( Options.MatchLimit ) && !UInt32.TryParse( Options.MatchLimit, out var _ ) )
+            if( !string.IsNullOrWhiteSpace( options.MatchLimit ) && !UInt32.TryParse( options.MatchLimit, out var _ ) )
             {
                 throw new ApplicationException( "Invalid Match Limit." );
             }
 
-            if( !string.IsNullOrWhiteSpace( Options.MatchLimitRecursion ) && !UInt32.TryParse( Options.MatchLimitRecursion, out var _ ) )
+            if( !string.IsNullOrWhiteSpace( options.MatchLimitRecursion ) && !UInt32.TryParse( options.MatchLimitRecursion, out var _ ) )
             {
                 throw new ApplicationException( "Invalid Recursion Limit." );
             }
 
-            if( !Options.CH_FLAG_UTF8 )
+            if( !options.CH_FLAG_UTF8 )
             {
                 bool is_bad_pattern = false;
                 try
                 {
-                    AsciiEncodingWithExceptionFallback.GetByteCount( Pattern );
+                    AsciiEncodingWithExceptionFallback.GetByteCount( pattern );
                 }
                 catch( EncoderFallbackException )
                 {
@@ -84,12 +69,12 @@ namespace HyperscanPlugin
 
             UInt32 flags = 0;
 
-            if( Options.CH_FLAG_CASELESS ) flags |= 1 << 0;
-            if( Options.CH_FLAG_DOTALL ) flags |= 1 << 1;
-            if( Options.CH_FLAG_MULTILINE ) flags |= 1 << 2;
-            if( Options.CH_FLAG_SINGLEMATCH ) flags |= 1 << 3;
-            if( Options.CH_FLAG_UTF8 ) flags |= 1 << 4;
-            if( Options.CH_FLAG_UCP ) flags |= 1 << 5;
+            if( options.CH_FLAG_CASELESS ) flags |= 1 << 0;
+            if( options.CH_FLAG_DOTALL ) flags |= 1 << 1;
+            if( options.CH_FLAG_MULTILINE ) flags |= 1 << 2;
+            if( options.CH_FLAG_SINGLEMATCH ) flags |= 1 << 3;
+            if( options.CH_FLAG_UTF8 ) flags |= 1 << 4;
+            if( options.CH_FLAG_UCP ) flags |= 1 << 5;
 
             MemoryStream? stdout_contents;
             string? stderr_contents;
@@ -100,12 +85,12 @@ namespace HyperscanPlugin
                 {
                     bw.Write( "chm" );
                     bw.Write( (byte)'b' );
-                    bw.Write( Pattern );
+                    bw.Write( pattern );
                     bw.Write( text );
                     bw.Write( flags );
-                    bw.Write( string.IsNullOrWhiteSpace( Options.MatchLimit ) ? UInt32.MaxValue : UInt32.Parse( Options.MatchLimit ) );
-                    bw.Write( string.IsNullOrWhiteSpace( Options.MatchLimitRecursion ) ? UInt32.MaxValue : UInt32.Parse( Options.MatchLimitRecursion ) );
-                    bw.Write( checked((byte)Options.Mode) );
+                    bw.Write( string.IsNullOrWhiteSpace( options.MatchLimit ) ? UInt32.MaxValue : UInt32.Parse( options.MatchLimit ) );
+                    bw.Write( string.IsNullOrWhiteSpace( options.MatchLimitRecursion ) ? UInt32.MaxValue : UInt32.Parse( options.MatchLimitRecursion ) );
+                    bw.Write( checked((byte)options.Mode) );
                     bw.Write( (byte)'e' );
                 }
             };
@@ -199,8 +184,6 @@ namespace HyperscanPlugin
                 }
             }
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

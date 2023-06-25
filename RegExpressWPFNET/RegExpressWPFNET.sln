@@ -156,6 +156,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PerlWorker", "PerlWorker", 
 		RegexEngines\Perl\PerlWorker\PerlWorker.pl = RegexEngines\Perl\PerlWorker\PerlWorker.pl
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "JavaWorker", "JavaWorker", "{BACD1F06-2E68-486B-B9BC-26B2130D878E}"
+	ProjectSection(SolutionItems) = preProject
+		RegexEngines\Java\JavaWorker\JavaWorker.java = RegexEngines\Java\JavaWorker\JavaWorker.java
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RustWorker", "RustWorker", "{A3BECA5D-6C4F-4FEE-9005-CA1B7FF9E007}"
+	ProjectSection(SolutionItems) = preProject
+		RegexEngines\Rust\RustWorker\src\main.rs = RegexEngines\Rust\RustWorker\src\main.rs
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -482,16 +492,18 @@ Global
 		{0C35C2A2-326B-402B-902F-CCCDFEC301CC} = {91ED61CD-C8DA-4845-80E0-A892A0A80E14}
 		{7C1FBF1D-0F53-4227-A721-7951BA00FFAC} = {0C35C2A2-326B-402B-902F-CCCDFEC301CC}
 		{42F8BF18-B8E8-4412-8AF7-E813A1C47A46} = {0C35C2A2-326B-402B-902F-CCCDFEC301CC}
+		{BACD1F06-2E68-486B-B9BC-26B2130D878E} = {1F388BA3-AD6C-4CE1-A3AD-BEE10EED38AB}
+		{A3BECA5D-6C4F-4FEE-9005-CA1B7FF9E007} = {530A08DF-870C-49D3-BC41-24A4AF3506DA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                                                                SolutionGuid = {7CA7DF49-7C29-43E0-8CCF-A57AE8197508}
-		                                                                                                                SolutionGuid = {470781F3-C4B3-4F30-8880-319AEAD13AFE}
-		                                                                                                                                SolutionGuid = {6FBF80B0-D822-4ADB-80F5-E1166CF987C5}
-		                                                                                                                                                                                                                SolutionGuid = {2EA46475-3CEB-45D5-AAE9-525FCE04340B}
-		                                                                                                                                                                                SolutionGuid = {E9D3D84A-8875-4CC9-9AD2-81298DE7ECEB}
-		                                                                                                                                                                SolutionGuid = {61D058A2-B4A0-4779-9C73-27CFEBE9BF66}
-		                                                                                                                                                SolutionGuid = {6A4D0C5C-3CCE-4AC5-8106-6AB052CFFED9}
-		                                                                                SolutionGuid = {D9183121-E1C4-4C5D-A2AA-D59E0370107C}
 		SolutionGuid = {D4A4FF06-F6FF-4698-9A59-457965BC3C1D}
+		                                                                                SolutionGuid = {D9183121-E1C4-4C5D-A2AA-D59E0370107C}
+		                                                                                                                                                SolutionGuid = {6A4D0C5C-3CCE-4AC5-8106-6AB052CFFED9}
+		                                                                                                                                                                SolutionGuid = {61D058A2-B4A0-4779-9C73-27CFEBE9BF66}
+		                                                                                                                                                                                SolutionGuid = {E9D3D84A-8875-4CC9-9AD2-81298DE7ECEB}
+		                                                                                                                                                                                                                SolutionGuid = {2EA46475-3CEB-45D5-AAE9-525FCE04340B}
+		                                                                                                                                SolutionGuid = {6FBF80B0-D822-4ADB-80F5-E1166CF987C5}
+		                                                                                                                SolutionGuid = {470781F3-C4B3-4F30-8880-319AEAD13AFE}
+		                                                                SolutionGuid = {7CA7DF49-7C29-43E0-8CCF-A57AE8197508}
 	EndGlobalSection
 EndGlobal

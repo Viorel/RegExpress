@@ -21,45 +21,31 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace PerlPlugin
 {
-    partial class Matcher : IMatcher
+    static partial class Matcher
     {
-
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             string? stdout_contents;
             string? stderr_contents;
 
             string modifiers = "";
-            if( Options.m ) modifiers += "m";
-            if( Options.s ) modifiers += "s";
-            if( Options.i ) modifiers += "i";
-            if( Options.x && !Options.xx ) modifiers += "x";
-            if( Options.xx ) modifiers += "xx";
-            if( Options.n ) modifiers += "n";
-            if( Options.a && !Options.aa ) modifiers += "a";
-            if( Options.aa ) modifiers += "aa";
-            if( Options.d ) modifiers += "d";
-            if( Options.u ) modifiers += "u";
-            if( Options.l ) modifiers += "l";
-            if( Options.g ) modifiers += "g";
-            //if( Options.c ) modifiers += "c";
+            if( options.m ) modifiers += "m";
+            if( options.s ) modifiers += "s";
+            if( options.i ) modifiers += "i";
+            if( options.x && !options.xx ) modifiers += "x";
+            if( options.xx ) modifiers += "xx";
+            if( options.n ) modifiers += "n";
+            if( options.a && !options.aa ) modifiers += "a";
+            if( options.aa ) modifiers += "aa";
+            if( options.d ) modifiers += "d";
+            if( options.u ) modifiers += "u";
+            if( options.l ) modifiers += "l";
+            if( options.g ) modifiers += "g";
+            //if( options.c ) modifiers += "c";
 
             Action<StreamWriter> stdin_writer = new( sw =>
             {
-                var json_obj = new { p = Pattern, t = text, m = modifiers };
+                var json_obj = new { p = pattern, t = text, m = modifiers };
                 string json = JsonSerializer.Serialize( json_obj, JsonUtilities.JsonOptions );
 
                 sw.Write( json );
@@ -176,8 +162,6 @@ namespace PerlPlugin
 
             return new RegexMatches( matches.Count, matches );
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )
