@@ -95,17 +95,16 @@ namespace DotNETPlugin
         }
 
 
-        public IMatcher ParsePattern( string pattern )
+        public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
             RegexOptions regex_native_options = options.NativeOptions;
             TimeSpan timeout = TimeSpan.FromMilliseconds( options.TimeoutMs );
             if( timeout <= TimeSpan.Zero ) timeout = TimeSpan.FromSeconds( 10 );
 
-            var regex = new Regex( pattern, regex_native_options, timeout );
+            Regex regex = new( pattern, regex_native_options, timeout );
 
-            return new Matcher( regex );
-
+            return Matcher.GetMatches( cnc, text, regex );
         }
 
 

@@ -18,28 +18,14 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace SubRegPlugin
 {
-    class Matcher : IMatcher
+    static class Matcher
     {
-
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             byte[] pattern_ascii;
             try
             {
-                pattern_ascii = Encoding.ASCII.GetBytes( Pattern );
+                pattern_ascii = Encoding.ASCII.GetBytes( pattern );
             }
             catch( EncoderFallbackException exc )
             {
@@ -56,13 +42,13 @@ namespace SubRegPlugin
                 throw new Exception( string.Format( "SubReg only supports ASCII character encoding.\r\nThe text contains an invalid character at position {0}.", exc.Index ) );
             }
 
-            if( string.IsNullOrWhiteSpace( Options.max_depth ) )
+            if( string.IsNullOrWhiteSpace( options.max_depth ) )
             {
                 throw new Exception( string.Format( "Invalid maximum depth. Enter a number between 0 and {0}", Int32.MaxValue ) );
             }
 
             Int32 max_depth;
-            if( !Int32.TryParse( Options.max_depth, out max_depth ) )
+            if( !Int32.TryParse( options.max_depth, out max_depth ) )
             {
                 throw new Exception( string.Format( "Invalid maximum depth. Enter a number between 0 and {0}", Int32.MaxValue ) );
             }
@@ -144,8 +130,6 @@ namespace SubRegPlugin
                 return new RegexMatches( matches.Count, matches );
             }
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

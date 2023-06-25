@@ -21,38 +21,24 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace VBScriptPlugin
 {
-    partial class Matcher : IMatcher
+    static partial class Matcher
     {
-
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             string? stdout_contents;
             string? stderr_contents;
 
-            string options = "";
-            if( Options.IgnoreCase ) options += "i";
-            if( Options.Global ) options += "g";
+            string options_str = "";
+            if( options.IgnoreCase ) options_str += "i";
+            if( options.Global ) options_str += "g";
 
             Action<StreamWriter> stdin_writer = new Action<StreamWriter>( sw =>
             {
-                sw.Write( ToArg( Pattern ) );
+                sw.Write( ToArg( pattern ) );
                 sw.Write( "\u001F" );
                 sw.Write( ToArg( text ) );
                 sw.Write( "\u001F" );
-                sw.Write( options );
+                sw.Write( options_str );
             } );
 
             if( !ProcessUtilities.InvokeExe( cnc, "cscript.exe", new[] { "/nologo", GetWorkerPath( ), "x" }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
@@ -135,8 +121,6 @@ namespace VBScriptPlugin
 
             return new RegexMatches( matches.Count, matches );
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

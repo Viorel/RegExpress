@@ -21,22 +21,9 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace OnigurumaPlugin
 {
-    class Matcher : IMatcher
+    static class Matcher
     {
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             MemoryStream? stdout_contents;
             string? stderr_contents;
@@ -48,10 +35,10 @@ namespace OnigurumaPlugin
                     bw.Write( "m" );
                     bw.Write( (byte)'b' );
 
-                    bw.Write( Pattern );
+                    bw.Write( pattern );
                     bw.Write( text );
 
-                    WriteOptions( bw, Options );
+                    WriteOptions( bw, options );
 
                     bw.Write( (byte)'e' );
                 }
@@ -121,8 +108,6 @@ namespace OnigurumaPlugin
                 return new RegexMatches( matches.Count, matches );
             }
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

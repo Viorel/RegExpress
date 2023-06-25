@@ -16,7 +16,7 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace DotNET6Plugin
 {
-    class Matcher : IMatcher
+    static class Matcher
     {
         class VersionResponse
         {
@@ -49,22 +49,9 @@ namespace DotNET6Plugin
         }
 
 
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
-        {
-            var data = new { cmd = "m", text, pattern = Pattern, options = Options };
+            var data = new { cmd = "m", text, pattern, options };
 
             string json = JsonSerializer.Serialize( data );
 
@@ -107,8 +94,6 @@ namespace DotNET6Plugin
 
             return new RegexMatches( matches.Length, matches );
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

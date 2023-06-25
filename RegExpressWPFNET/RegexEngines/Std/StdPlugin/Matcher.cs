@@ -17,39 +17,25 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace StdPlugin
 {
-    class Matcher : IMatcher
+    static class Matcher
     {
-
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
-        {
-            bool eREGEX_MAX_COMPLEXITY_COUNT = string.IsNullOrWhiteSpace( Options.REGEX_MAX_COMPLEXITY_COUNT );
+            bool eREGEX_MAX_COMPLEXITY_COUNT = string.IsNullOrWhiteSpace( options.REGEX_MAX_COMPLEXITY_COUNT );
             Int32 REGEX_MAX_COMPLEXITY_COUNT = 0;
             if( !eREGEX_MAX_COMPLEXITY_COUNT )
             {
-                if( !Int32.TryParse( Options.REGEX_MAX_COMPLEXITY_COUNT, out REGEX_MAX_COMPLEXITY_COUNT ) )
+                if( !Int32.TryParse( options.REGEX_MAX_COMPLEXITY_COUNT, out REGEX_MAX_COMPLEXITY_COUNT ) )
                 {
                     throw new Exception( "Invalid option: '_REGEX_MAX_COMPLEXITY_COUNT'." );
                 }
             }
 
-            bool eREGEX_MAX_STACK_COUNT = string.IsNullOrWhiteSpace( Options.REGEX_MAX_STACK_COUNT );
+            bool eREGEX_MAX_STACK_COUNT = string.IsNullOrWhiteSpace( options.REGEX_MAX_STACK_COUNT );
             Int32 REGEX_MAX_STACK_COUNT = 0;
             if( !eREGEX_MAX_STACK_COUNT )
             {
-                if( !Int32.TryParse( Options.REGEX_MAX_STACK_COUNT, out REGEX_MAX_STACK_COUNT ) )
+                if( !Int32.TryParse( options.REGEX_MAX_STACK_COUNT, out REGEX_MAX_STACK_COUNT ) )
                 {
                     throw new Exception( "Invalid option: '_REGEX_MAX_STACK_COUNT'." );
                 }
@@ -68,24 +54,24 @@ namespace StdPlugin
                     //bw.Write( (byte)0 ); // "version"
                     bw.Write( (byte)'b' );
 
-                    bw.Write( Pattern );
+                    bw.Write( pattern );
                     bw.Write( text );
 
-                    bw.Write( Enum.GetName( Options.Grammar )! );
+                    bw.Write( Enum.GetName( options.Grammar )! );
 
-                    bw.Write( Convert.ToByte( Options.icase ) );
-                    bw.Write( Convert.ToByte( Options.nosubs ) );
-                    bw.Write( Convert.ToByte( Options.optimize ) );
-                    bw.Write( Convert.ToByte( Options.collate ) );
+                    bw.Write( Convert.ToByte( options.icase ) );
+                    bw.Write( Convert.ToByte( options.nosubs ) );
+                    bw.Write( Convert.ToByte( options.optimize ) );
+                    bw.Write( Convert.ToByte( options.collate ) );
 
-                    bw.Write( Convert.ToByte( Options.match_not_bol ) );
-                    bw.Write( Convert.ToByte( Options.match_not_eol ) );
-                    bw.Write( Convert.ToByte( Options.match_not_bow ) );
-                    bw.Write( Convert.ToByte( Options.match_not_eow ) );
-                    bw.Write( Convert.ToByte( Options.match_any ) );
-                    bw.Write( Convert.ToByte( Options.match_not_null ) );
-                    bw.Write( Convert.ToByte( Options.match_continuous ) );
-                    bw.Write( Convert.ToByte( Options.match_prev_avail ) );
+                    bw.Write( Convert.ToByte( options.match_not_bol ) );
+                    bw.Write( Convert.ToByte( options.match_not_eol ) );
+                    bw.Write( Convert.ToByte( options.match_not_bow ) );
+                    bw.Write( Convert.ToByte( options.match_not_eow ) );
+                    bw.Write( Convert.ToByte( options.match_any ) );
+                    bw.Write( Convert.ToByte( options.match_not_null ) );
+                    bw.Write( Convert.ToByte( options.match_continuous ) );
+                    bw.Write( Convert.ToByte( options.match_prev_avail ) );
 
 
                     if( eREGEX_MAX_COMPLEXITY_COUNT )
@@ -166,8 +152,6 @@ namespace StdPlugin
                 return new RegexMatches( matches.Count, matches );
             }
         }
-
-        #endregion IMatcher
 
 
         public static string? GetVersion( ICancellable cnc )

@@ -37,7 +37,7 @@ namespace RegExpressLibrary
 
         void ImportOptions( string? json );
 
-        IMatcher ParsePattern( string pattern );
+        RegexMatches GetMatches( ICancellable cnc, string pattern, string text );
 
         SyntaxOptions GetSyntaxOptions( );
 

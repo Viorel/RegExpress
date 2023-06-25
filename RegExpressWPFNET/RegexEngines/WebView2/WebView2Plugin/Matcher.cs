@@ -18,7 +18,7 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace WebView2Plugin
 {
-    partial class Matcher : IMatcher
+    static partial class Matcher
     {
 
         public class ResponseVersion
@@ -45,29 +45,16 @@ namespace WebView2Plugin
         }
 
 
-        readonly string Pattern;
-        readonly Options Options;
-
-
-        public Matcher( string pattern, Options options )
-        {
-            Pattern = pattern;
-            Options = options;
-        }
-
-
-        #region IMatcher
-
-        public RegexMatches Matches( string text, ICancellable cnc )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             string flags = string.Concat(
-                Options.i ? "i" : "",
-                Options.m ? "m" : "",
-                Options.s ? "s" : "",
-                Options.u ? "u" : "",
-                Options.y ? "y" : "",
-                Options.g ? "g" : "",
-                Options.Function == FunctionEnum.Exec ? "E" : ""
+                options.i ? "i" : "",
+                options.m ? "m" : "",
+                options.s ? "s" : "",
+                options.u ? "u" : "",
+                options.y ? "y" : "",
+                options.g ? "g" : "",
+                options.Function == FunctionEnum.Exec ? "E" : ""
                 );
 
             string? stdout_contents;
@@ -76,7 +63,7 @@ namespace WebView2Plugin
             Action<StreamWriter> stdin_writer = new Action<StreamWriter>( sw =>
             {
                 sw.Write( "m \"" );
-                sw.Write( ToJavaScriptString( Pattern ) );
+                sw.Write( ToJavaScriptString( pattern ) );
                 sw.Write( "\" \"" );
                 sw.Write( flags );
                 sw.Write( "\" \"" );
@@ -157,8 +144,6 @@ namespace WebView2Plugin
             return new RegexMatches( matches.Count, matches );
         }
 
-        #endregion IMatcher
-
 
         public static string? GetVersion( ICancellable cnc )
         {
@@ -204,7 +189,7 @@ namespace WebView2Plugin
         }
 
 
-        private string[] FigureOutGroupNames( ResponseMatches clientResponse )
+        static string[] FigureOutGroupNames( ResponseMatches clientResponse )
         {
             if( clientResponse.Matches == null ) return new string[0];
 
@@ -280,7 +265,7 @@ namespace WebView2Plugin
         }
 
 
-        private static string ToJavaScriptString( string text )
+        static string ToJavaScriptString( string text )
         {
             return Encoding.UTF8.GetString( JsonEncodedText.Encode( text ).EncodedUtf8Bytes );
         }
