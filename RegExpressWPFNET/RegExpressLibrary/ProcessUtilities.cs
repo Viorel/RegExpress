@@ -49,6 +49,7 @@ namespace RegExpressLibrary
                 p.StartInfo.RedirectStandardInput = true;
                 p.StartInfo.RedirectStandardOutput = true;
                 p.StartInfo.RedirectStandardError = true;
+                p.StartInfo.StandardInputEncoding = encoding; //
                 p.StartInfo.StandardOutputEncoding = encoding;
                 p.StartInfo.StandardErrorEncoding = encoding;
 
@@ -148,6 +149,7 @@ namespace RegExpressLibrary
                 p.StartInfo.RedirectStandardInput = true;
                 p.StartInfo.RedirectStandardOutput = true;
                 p.StartInfo.RedirectStandardError = true;
+                p.StartInfo.StandardInputEncoding = encoding; //
                 p.StartInfo.StandardOutputEncoding = encoding; //?
                 p.StartInfo.StandardErrorEncoding = encoding;
 
