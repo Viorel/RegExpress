@@ -278,7 +278,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     }
     catch( const std::exception& exc )
     {
-        errwr.WriteString( Utf8ToWString( exc.what( ) ) );
+        errwr.WriteString( Utf8ToWString( exc.what( ) ) ); // (it is UTF-8)
 
         return 12;
     }
