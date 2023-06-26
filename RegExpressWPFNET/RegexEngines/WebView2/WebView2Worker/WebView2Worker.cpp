@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <iostream>
 
+//#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 
 #include <windows.h>
 #include <stdlib.h>
@@ -21,6 +23,7 @@
 // include WebView2 header
 #include "WebView2.h"
 // </IncludeHeader>
+#include "Convert.h"
 
 using namespace Microsoft::WRL;
 
@@ -407,7 +410,8 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
                                     LPCWSTR json = resultObjectAsJson;
                                     //MessageBox( hWnd, json, L"Result", MB_OKCANCEL );
 
-                                    std::wcout << json << std::endl;
+                                    //std::wcout << json << std::endl;
+                                    std::cout << WStringToUtf8( json ) << std::endl;
 
                                     DestroyWindow( hWnd );
 
@@ -443,7 +447,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
     switch( message )
     {
     case WM_SIZE:
-        if( webviewController != nullptr ) 
+        if( webviewController != nullptr )
         {
             RECT bounds;
             GetClientRect( hWnd, &bounds );
