@@ -16,11 +16,7 @@
 using namespace std;
 
 
-//#define TO_STR2(s) L#s
-//#define TO_STR(s) TO_STR2(s)
-
-
-static void DoMatch( BinaryWriterW& outbw, const string& pattern, const string& text, int32_t maxDepth )
+static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& text, int32_t maxDepth )
 {
 
     DWORD code;
@@ -99,6 +95,7 @@ static void DoMatch( BinaryWriterW& outbw, const string& pattern, const string& 
     throw std::runtime_error( error_text );
 }
 
+
 int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR    lpCmdLine,
@@ -115,12 +112,12 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         return 1;
     }
 
-    StreamWriterW errwr( herr );
+    StreamWriterA errwr( herr );
 
     auto hin = GetStdHandle( STD_INPUT_HANDLE );
     if( hin == INVALID_HANDLE_VALUE )
     {
-        errwr.WriteString( L"Cannot get STDIN" );
+        errwr.WriteString( "Cannot get STDIN" );
 
         return 2;
     }
@@ -128,37 +125,37 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     auto hout = GetStdHandle( STD_OUTPUT_HANDLE );
     if( hout == INVALID_HANDLE_VALUE )
     {
-        errwr.WriteString( L"Cannot get STDOUT" );
+        errwr.WriteString( "Cannot get STDOUT" );
 
         return 3;
     }
 
     try
     {
-        BinaryWriterW outbw( hout );
-        BinaryReaderW inbr( hin );
+        BinaryWriterA outbw( hout );
+        BinaryReaderA inbr( hin );
 
-        std::wstring command = inbr.ReadString( );
+        std::string command = inbr.ReadString( );
 
         // 
 
-        if( command == L"v" )
+        if( command == "v" )
         {
             // get version
 
-            auto v = L"2022-01-01";
+            auto v = "2022-01-01";
 
             outbw.Write( v );
 
             return 0;
         }
 
-        if( command == L"m" )
+        if( command == "m" )
         {
             if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [1]." );
 
-            std::string pattern = inbr.ReadPrefixedString( );
-            std::string text = inbr.ReadPrefixedString( );
+            std::string pattern = inbr.ReadString( );
+            std::string text = inbr.ReadString( );
 
             int32_t max_depth = inbr.ReadT<int32_t>( );
 
@@ -169,19 +166,19 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             return 0;
         }
 
-        errwr.WriteStringF( L"Unsupported command: '%s'", command.c_str( ) );
+        errwr.WriteStringF( "Unsupported command: '%s'", command.c_str( ) );
 
         return 1;
     }
     catch( const std::exception& exc )
     {
-        errwr.WriteString( ToWString( exc.what( ) ) );
+        errwr.WriteString( exc.what( ) );
 
         return 12;
     }
     catch( ... )
     {
-        errwr.WriteString( L"Internal error" );
+        errwr.WriteString( "Internal error" );
 
         return 14;
     }

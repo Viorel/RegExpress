@@ -20,35 +20,30 @@ namespace SubRegPlugin
 {
     static class Matcher
     {
+        static readonly Encoding StrictAsciiEncoding = Encoding.GetEncoding( "ASCII", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback );
+
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            byte[] pattern_ascii;
             try
             {
-                pattern_ascii = Encoding.ASCII.GetBytes( pattern );
+                _ = StrictAsciiEncoding.GetBytes( pattern );
             }
             catch( EncoderFallbackException exc )
             {
                 throw new Exception( string.Format( "SubReg only supports ASCII character encoding.\r\nThe pattern contains an invalid character at position {0}.", exc.Index ) );
             }
 
-            byte[] text_ascii;
             try
             {
-                text_ascii = Encoding.ASCII.GetBytes( text );
+                _ = StrictAsciiEncoding.GetBytes( text );
             }
             catch( EncoderFallbackException exc )
             {
                 throw new Exception( string.Format( "SubReg only supports ASCII character encoding.\r\nThe text contains an invalid character at position {0}.", exc.Index ) );
             }
 
-            if( string.IsNullOrWhiteSpace( options.max_depth ) )
-            {
-                throw new Exception( string.Format( "Invalid maximum depth. Enter a number between 0 and {0}", Int32.MaxValue ) );
-            }
-
-            Int32 max_depth;
-            if( !Int32.TryParse( options.max_depth, out max_depth ) )
+            if( string.IsNullOrWhiteSpace( options.max_depth ) || !Int32.TryParse( options.max_depth, out int max_depth ) || max_depth < 0 )
             {
                 throw new Exception( string.Format( "Invalid maximum depth. Enter a number between 0 and {0}", Int32.MaxValue ) );
             }
@@ -60,24 +55,21 @@ namespace SubRegPlugin
 
             Action<Stream> stdin_writer = s =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.Unicode, leaveOpen: false ) )
+                using( var bw = new BinaryWriter( s, Encoding.ASCII, leaveOpen: false ) )
                 {
                     bw.Write( "m" );
-                    //bw.Write( (byte)0 ); // "version"
+
                     bw.Write( (byte)'b' );
 
-                    bw.Write( checked((Int32)pattern_ascii.Length) );
-                    bw.Write( pattern_ascii );
-                    bw.Write( checked((Int32)text_ascii.Length) );
-                    bw.Write( text_ascii );
-
+                    bw.Write( pattern );
+                    bw.Write( text );
                     bw.Write( max_depth );
 
                     bw.Write( (byte)'e' );
                 }
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
             {
                 return RegexMatches.Empty;
             }
@@ -88,7 +80,7 @@ namespace SubRegPlugin
 
             if( stdout_contents == null ) throw new Exception( "Null response" );
 
-            using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
+            using( var br = new BinaryReader( stdout_contents, Encoding.UTF8 ) )
             {
                 List<IMatch> matches = new List<IMatch>( );
                 ISimpleTextGetter stg = new SimpleTextGetter( text );
@@ -139,13 +131,13 @@ namespace SubRegPlugin
 
             Action<Stream> stdinWriter = s =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.Unicode, leaveOpen: false ) )
+                using( var bw = new BinaryWriter( s, Encoding.UTF8, leaveOpen: false ) )
                 {
                     bw.Write( "v" );
                 }
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
             {
                 return null;
             }
@@ -156,7 +148,7 @@ namespace SubRegPlugin
 
             if( stdout_contents == null ) throw new Exception( "Null response" );
 
-            using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
+            using( var br = new BinaryReader( stdout_contents, Encoding.UTF8 ) )
             {
                 string version_s = br.ReadString( );
 
