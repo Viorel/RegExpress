@@ -63,6 +63,12 @@ std::wstring ToWString( const char* s )
 }
 
 
+std::wstring ToWString( const std::string& s )
+{
+    return std::wstring( (unsigned char*)s.c_str( ), (unsigned char*)( s.c_str( ) + s.length( ) ) );
+}
+
+
 std::string WStringToUtf8( const wchar_t* s )
 {
     const auto size_needed = WideCharToMultiByte( CP_UTF8, WC_ERR_INVALID_CHARS, s, -1, nullptr, 0, nullptr, nullptr );

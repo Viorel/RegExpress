@@ -20,148 +20,115 @@ namespace SubRegPlugin
 {
     static class Matcher
     {
+        static readonly Encoding StrictAsciiEncoding = Encoding.GetEncoding( "ASCII", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback );
+
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            byte[] pattern_ascii;
             try
             {
-                pattern_ascii = Encoding.ASCII.GetBytes( pattern );
+                _ = StrictAsciiEncoding.GetBytes( pattern );
             }
             catch( EncoderFallbackException exc )
             {
                 throw new Exception( string.Format( "SubReg only supports ASCII character encoding.\r\nThe pattern contains an invalid character at position {0}.", exc.Index ) );
             }
 
-            byte[] text_ascii;
             try
             {
-                text_ascii = Encoding.ASCII.GetBytes( text );
+                _ = StrictAsciiEncoding.GetBytes( text );
             }
             catch( EncoderFallbackException exc )
             {
                 throw new Exception( string.Format( "SubReg only supports ASCII character encoding.\r\nThe text contains an invalid character at position {0}.", exc.Index ) );
             }
 
-            if( string.IsNullOrWhiteSpace( options.max_depth ) )
+            if( string.IsNullOrWhiteSpace( options.max_depth ) || !Int32.TryParse( options.max_depth, out int max_depth ) || max_depth < 0 )
             {
                 throw new Exception( string.Format( "Invalid maximum depth. Enter a number between 0 and {0}", Int32.MaxValue ) );
             }
 
-            Int32 max_depth;
-            if( !Int32.TryParse( options.max_depth, out max_depth ) )
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
+
+            ph.AllEncoding = EncodingEnum.ASCII;
+
+            ph.BinaryWriter = bw =>
             {
-                throw new Exception( string.Format( "Invalid maximum depth. Enter a number between 0 and {0}", Int32.MaxValue ) );
-            }
+                bw.Write( "m" );
 
+                bw.Write( (byte)'b' );
 
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
+                bw.Write( pattern );
+                bw.Write( text );
+                bw.Write( max_depth );
 
-
-            Action<Stream> stdin_writer = s =>
-            {
-                using( var bw = new BinaryWriter( s, Encoding.Unicode, leaveOpen: false ) )
-                {
-                    bw.Write( "m" );
-                    //bw.Write( (byte)0 ); // "version"
-                    bw.Write( (byte)'b' );
-
-                    bw.Write( checked((Int32)pattern_ascii.Length) );
-                    bw.Write( pattern_ascii );
-                    bw.Write( checked((Int32)text_ascii.Length) );
-                    bw.Write( text_ascii );
-
-                    bw.Write( max_depth );
-
-                    bw.Write( (byte)'e' );
-                }
+                bw.Write( (byte)'e' );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
+
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+
+            var br = ph.BinaryReader;
+
+            List<IMatch> matches = new( );
+            SimpleTextGetter stg = new( text );
+            SimpleMatch? current_match = null;
+
+            if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response." );
+
+            bool done = false;
+
+            while( !done )
             {
-                return RegexMatches.Empty;
-            }
-
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
-
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
-
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
-            {
-                List<IMatch> matches = new List<IMatch>( );
-                ISimpleTextGetter stg = new SimpleTextGetter( text );
-                SimpleMatch? current_match = null;
-
-                if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response." );
-
-                bool done = false;
-
-                while( !done )
+                switch( br.ReadByte( ) )
                 {
-                    switch( br.ReadByte( ) )
-                    {
-                    case (byte)'m':
-                    {
-                        Int64 index = br.ReadInt64( );
-                        Int64 length = br.ReadInt64( );
-                        current_match = SimpleMatch.Create( (int)index, (int)length, stg );
-                        matches.Add( current_match );
-                    }
-                    break;
-                    case (byte)'g':
-                    {
-                        if( current_match == null ) throw new Exception( "Invalid response." );
-                        Int64 index = br.ReadInt64( );
-                        Int64 length = br.ReadInt64( );
-                        string name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
-                        current_match.AddGroup( (int)index, (int)length, true, name );
-                    }
-                    break;
-                    case (byte)'e':
-                        done = true;
-                        break;
-                    default:
-                        throw new Exception( "Invalid response." );
-                    }
+                case (byte)'m':
+                {
+                    Int64 index = br.ReadInt64( );
+                    Int64 length = br.ReadInt64( );
+                    current_match = SimpleMatch.Create( (int)index, (int)length, stg );
+                    matches.Add( current_match );
                 }
-
-                return new RegexMatches( matches.Count, matches );
+                break;
+                case (byte)'g':
+                {
+                    if( current_match == null ) throw new Exception( "Invalid response." );
+                    Int64 index = br.ReadInt64( );
+                    Int64 length = br.ReadInt64( );
+                    string name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
+                    current_match.AddGroup( (int)index, (int)length, true, name );
+                }
+                break;
+                case (byte)'e':
+                    done = true;
+                    break;
+                default:
+                    throw new Exception( "Invalid response." );
+                }
             }
+
+            return new RegexMatches( matches.Count, matches );
         }
 
 
         public static string? GetVersion( ICancellable cnc )
         {
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
-            Action<Stream> stdinWriter = s =>
+            ph.AllEncoding = EncodingEnum.ASCII;
+            ph.BinaryWriter = bw =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.Unicode, leaveOpen: false ) )
-                {
-                    bw.Write( "v" );
-                }
+                bw.Write( "v" );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
-            {
-                return null;
-            }
+            if( !ph.Start( cnc ) ) return null;
 
-            if( cnc.IsCancellationRequested ) return null;
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+            string version_s = ph.BinaryReader.ReadString( );
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
-            {
-                string version_s = br.ReadString( );
-
-                return version_s;
-            }
+            return version_s;
         }
 
 

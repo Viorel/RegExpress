@@ -21,124 +21,99 @@ namespace RE2Plugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
+            ph.AllEncoding = EncodingEnum.Unicode;
 
-            Action<Stream> stdin_writer = s =>
+            ph.BinaryWriter = bw =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.Unicode, leaveOpen: false ) )
-                {
-                    bw.Write( "m" );
-                    //bw.Write( (byte)0 ); // "version"
-                    bw.Write( (byte)'b' );
+                bw.Write( "m" );
+                bw.Write( (byte)'b' );
 
-                    bw.Write( pattern );
-                    bw.Write( text );
+                bw.Write( pattern );
+                bw.Write( text );
 
-                    bw.Write( Convert.ToByte( options.posix_syntax ) );
-                    bw.Write( Convert.ToByte( options.longest_match ) );
-                    bw.Write( Convert.ToByte( options.literal ) );
-                    bw.Write( Convert.ToByte( options.never_nl ) );
-                    bw.Write( Convert.ToByte( options.dot_nl ) );
-                    bw.Write( Convert.ToByte( options.never_capture ) );
-                    bw.Write( Convert.ToByte( options.case_sensitive ) );
-                    bw.Write( Convert.ToByte( options.perl_classes ) );
-                    bw.Write( Convert.ToByte( options.word_boundary ) );
-                    bw.Write( Convert.ToByte( options.one_line ) );
+                bw.Write( Convert.ToByte( options.posix_syntax ) );
+                bw.Write( Convert.ToByte( options.longest_match ) );
+                bw.Write( Convert.ToByte( options.literal ) );
+                bw.Write( Convert.ToByte( options.never_nl ) );
+                bw.Write( Convert.ToByte( options.dot_nl ) );
+                bw.Write( Convert.ToByte( options.never_capture ) );
+                bw.Write( Convert.ToByte( options.case_sensitive ) );
+                bw.Write( Convert.ToByte( options.perl_classes ) );
+                bw.Write( Convert.ToByte( options.word_boundary ) );
+                bw.Write( Convert.ToByte( options.one_line ) );
 
-                    bw.Write( Enum.GetName( options.anchor )! );
+                bw.Write( Enum.GetName( options.anchor )! );
 
-                    bw.Write( (byte)'e' );
-                }
+                bw.Write( (byte)'e' );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
+
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+
+            var br = ph.BinaryReader;
+
+            List<IMatch> matches = new( );
+            SimpleTextGetter stg = new( text );
+            SimpleMatch? current_match = null;
+
+            if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response." );
+
+            bool done = false;
+
+            while( !done )
             {
-                return RegexMatches.Empty;
-            }
-
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
-
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
-
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
-            {
-                List<IMatch> matches = new List<IMatch>( );
-                ISimpleTextGetter stg = new SimpleTextGetter( text );
-                SimpleMatch? current_match = null;
-
-                if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response." );
-
-                bool done = false;
-
-                while( !done )
+                switch( br.ReadByte( ) )
                 {
-                    switch( br.ReadByte( ) )
-                    {
-                    case (byte)'m':
-                    {
-                        Int64 index = br.ReadInt64( );
-                        Int64 length = br.ReadInt64( );
-                        current_match = SimpleMatch.Create( (int)index, (int)length, stg );
-                        matches.Add( current_match );
-                    }
-                    break;
-                    case (byte)'g':
-                    {
-                        if( current_match == null ) throw new Exception( "Invalid response." );
-                        bool success = br.ReadByte( ) != 0;
-                        Int64 index = br.ReadInt64( );
-                        Int64 length = br.ReadInt64( );
-                        string name = br.ReadString( );
-                        current_match.AddGroup( success ? (int)index : 0, success ? (int)length : 0, success, name );
-                    }
-                    break;
-                    case (byte)'e':
-                        done = true;
-                        break;
-                    default:
-                        throw new Exception( "Invalid response." );
-                    }
+                case (byte)'m':
+                {
+                    Int64 index = br.ReadInt64( );
+                    Int64 length = br.ReadInt64( );
+                    current_match = SimpleMatch.Create( (int)index, (int)length, stg );
+                    matches.Add( current_match );
                 }
-
-                return new RegexMatches( matches.Count, matches );
+                break;
+                case (byte)'g':
+                {
+                    if( current_match == null ) throw new Exception( "Invalid response." );
+                    bool success = br.ReadByte( ) != 0;
+                    Int64 index = br.ReadInt64( );
+                    Int64 length = br.ReadInt64( );
+                    string name = br.ReadString( );
+                    current_match.AddGroup( success ? (int)index : 0, success ? (int)length : 0, success, name );
+                }
+                break;
+                case (byte)'e':
+                    done = true;
+                    break;
+                default:
+                    throw new Exception( "Invalid response." );
+                }
             }
+
+            return new RegexMatches( matches.Count, matches );
         }
 
 
         public static string? GetVersion( ICancellable cnc )
         {
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
-            Action<Stream> stdinWriter = s =>
+            ph.AllEncoding = EncodingEnum.Unicode;
+            ph.BinaryWriter = bw =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.Unicode, leaveOpen: false ) )
-                {
-                    bw.Write( "v" );
-                }
+                bw.Write( "v" );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
-            {
-                return null;
-            }
+            if( !ph.Start( cnc ) ) return null;
 
-            if( cnc.IsCancellationRequested ) return null;
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+            string version_s = ph.BinaryReader.ReadString( );
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
-            {
-                string version_s = br.ReadString( );
-
-                return version_s;
-            }
+            return version_s;
         }
 
 

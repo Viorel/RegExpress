@@ -9,13 +9,7 @@ using System.Threading;
 
 namespace RegExpressLibrary
 {
-    public enum EncodingEnum
-    {
-        UTF8,
-        Unicode,
-    }
-
-
+    [Obsolete( "ProcessUtilities is obsolete, use ProcessHelper", error: true )]
     public static class ProcessUtilities
     {
 
