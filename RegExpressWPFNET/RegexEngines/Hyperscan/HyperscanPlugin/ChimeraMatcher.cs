@@ -76,146 +76,122 @@ namespace HyperscanPlugin
             if( options.CH_FLAG_UTF8 ) flags |= 1 << 4;
             if( options.CH_FLAG_UCP ) flags |= 1 << 5;
 
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            Action<Stream> stdin_writer = s =>
+            ph.AllEncoding = EncodingEnum.UTF8;
+
+            ph.BinaryWriter = bw =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.UTF8, leaveOpen: false ) )
-                {
-                    bw.Write( "chm" );
-                    bw.Write( (byte)'b' );
-                    bw.Write( pattern );
-                    bw.Write( text );
-                    bw.Write( flags );
-                    bw.Write( string.IsNullOrWhiteSpace( options.MatchLimit ) ? UInt32.MaxValue : UInt32.Parse( options.MatchLimit ) );
-                    bw.Write( string.IsNullOrWhiteSpace( options.MatchLimitRecursion ) ? UInt32.MaxValue : UInt32.Parse( options.MatchLimitRecursion ) );
-                    bw.Write( checked((byte)options.Mode) );
-                    bw.Write( (byte)'e' );
-                }
+                bw.Write( "chm" );
+                bw.Write( (byte)'b' );
+                bw.Write( pattern );
+                bw.Write( text );
+                bw.Write( flags );
+                bw.Write( string.IsNullOrWhiteSpace( options.MatchLimit ) ? UInt32.MaxValue : UInt32.Parse( options.MatchLimit ) );
+                bw.Write( string.IsNullOrWhiteSpace( options.MatchLimitRecursion ) ? UInt32.MaxValue : UInt32.Parse( options.MatchLimitRecursion ) );
+                bw.Write( checked((byte)options.Mode) );
+                bw.Write( (byte)'e' );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
+
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+
+            var br = ph.BinaryReader;
+
+            string r = br.ReadString( );
+
+            if( r != "r" )
             {
-                return RegexMatches.Empty; // (cancelled)
+                throw new Exception( "Unknown result" );
             }
 
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+            string code = br.ReadString( );
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
-
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            stdout_contents.Position = 0;
-
-            using( var br = new BinaryReader( stdout_contents, Encoding.UTF8 ) )
+            switch( code )
             {
-                string r = br.ReadString( );
+            case "e":
+                string error = br.ReadString( );
+                throw new Exception( error );
+            case "m":
+                List<IMatch> matches = new( );
+                SimpleTextGetter stg = new( text );
 
-                if( r != "r" )
+                byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
+
+                int count = checked((int)br.ReadUInt64( ));
+
+                for( int i = 0; i < count; ++i )
                 {
-                    throw new Exception( "Unknown result" );
-                }
+                    int byte_index = checked((int)br.ReadUInt64( ));
+                    int byte_length = checked((int)br.ReadUInt64( ));
 
-                string code = br.ReadString( );
+                    int char_index = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index );
+                    int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index + byte_length );
+                    int char_length = char_end - char_index;
 
-                switch( code )
-                {
-                case "e":
-                    string error = br.ReadString( );
-                    throw new Exception( error );
-                case "m":
-                    List<IMatch> matches = new List<IMatch>( );
-                    ISimpleTextGetter stg = new SimpleTextGetter( text );
+                    var m = SimpleMatch.Create( char_index, char_length, stg );
 
-                    byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
+                    int group_count = checked((int)br.ReadUInt64( ));
 
-                    int count = checked((int)br.ReadUInt64( ));
-
-                    for( int i = 0; i < count; ++i )
+                    if( group_count == 0 )
                     {
-                        int byte_index = checked((int)br.ReadUInt64( ));
-                        int byte_length = checked((int)br.ReadUInt64( ));
-
-                        int char_index = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index );
-                        int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index + byte_length );
-                        int char_length = char_end - char_index;
-
-                        var m = SimpleMatch.Create( char_index, char_length, stg );
-
-                        int group_count = checked((int)br.ReadUInt64( ));
-
-                        if( group_count == 0 )
+                        m.AddGroup( char_index, char_length, true, "0" ); // default group
+                    }
+                    else
+                    {
+                        for( int k = 0; k < group_count; ++k )
                         {
-                            m.AddGroup( char_index, char_length, true, "0" ); // default group
-                        }
-                        else
-                        {
-                            for( int k = 0; k < group_count; ++k )
+                            bool success = br.ReadUInt32( ) != 0;
+
+                            Debug.Assert( !( k == 0 && !success ) ); // the default group must succeed
+
+                            byte_index = checked((int)br.ReadUInt64( ));
+                            byte_length = checked((int)br.ReadUInt64( ));
+
+                            if( !success )
                             {
-                                bool success = br.ReadUInt32( ) != 0;
-
-                                Debug.Assert( !( k == 0 && !success ) ); // the default group must succeed
-
-                                byte_index = checked((int)br.ReadUInt64( ));
-                                byte_length = checked((int)br.ReadUInt64( ));
-
-                                if( !success )
-                                {
-                                    byte_index = 0;
-                                    byte_length = 0;
-                                }
-
-                                char_index = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index );
-                                char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index + byte_length );
-                                char_length = char_end - char_index;
-
-                                m.AddGroup( char_index, char_length, success, k.ToString( CultureInfo.InvariantCulture ) );
+                                byte_index = 0;
+                                byte_length = 0;
                             }
-                        }
 
-                        matches.Add( m );
+                            char_index = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index );
+                            char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index + byte_length );
+                            char_length = char_end - char_index;
+
+                            m.AddGroup( char_index, char_length, success, k.ToString( CultureInfo.InvariantCulture ) );
+                        }
                     }
 
-                    return new RegexMatches( matches.Count, matches );
-
-                default:
-                    throw new Exception( $"Unknown code: '{code}'" );
+                    matches.Add( m );
                 }
+
+                return new RegexMatches( matches.Count, matches );
+
+            default:
+                throw new Exception( $"Unknown code: '{code}'" );
             }
         }
 
 
         public static string? GetVersion( ICancellable cnc )
         {
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            Action<Stream> stdinWriter = s =>
+            ph.AllEncoding = EncodingEnum.UTF8;
+
+            ph.BinaryWriter = bw =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.UTF8, leaveOpen: false ) )
-                {
-                    bw.Write( "chv" );
-                }
+                bw.Write( "chv" );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
-            {
-                return null;
-            }
+            if( !ph.Start( cnc ) ) return null;
 
-            if( cnc.IsCancellationRequested ) return null;
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+            string version_s = ph.BinaryReader.ReadString( );
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            using( var br = new BinaryReader( stdout_contents, Encoding.UTF8 ) )
-            {
-                string version_s = br.ReadString( );
-
-                return version_s;
-            }
+            return version_s;
         }
 
 

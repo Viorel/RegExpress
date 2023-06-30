@@ -96,110 +96,87 @@ namespace HyperscanPlugin
             //if( options.HS_FLAG_COMBINATION ) flags |= 1 << 9;
             if( options.HS_FLAG_QUIET ) flags |= 1 << 10;
 
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
 
-            Action<Stream> stdin_writer = s =>
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
+
+            ph.AllEncoding = EncodingEnum.UTF8;
+
+            ph.BinaryWriter = bw =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.UTF8, leaveOpen: false ) )
-                {
-                    bw.Write( "m" );
-                    bw.Write( (byte)'b' );
-                    bw.Write( pattern );
-                    bw.Write( text );
-                    bw.Write( flags );
-                    bw.Write( string.IsNullOrWhiteSpace( options.LevenshteinDistance ) ? UInt32.MaxValue : UInt32.Parse( options.LevenshteinDistance ) );
-                    bw.Write( string.IsNullOrWhiteSpace( options.HammingDistance ) ? UInt32.MaxValue : UInt32.Parse( options.HammingDistance ) );
-                    bw.Write( string.IsNullOrWhiteSpace( options.MinOffset ) ? UInt32.MaxValue : UInt32.Parse( options.MinOffset ) );
-                    bw.Write( string.IsNullOrWhiteSpace( options.MaxOffset ) ? UInt32.MaxValue : UInt32.Parse( options.MaxOffset ) );
-                    bw.Write( string.IsNullOrWhiteSpace( options.MinLength ) ? UInt32.MaxValue : UInt32.Parse( options.MinLength ) );
-                    bw.Write( checked((byte)options.Mode) );
-                    bw.Write( checked((byte)options.ModeSom) );
-                    bw.Write( (byte)'e' );
-                }
+                bw.Write( "m" );
+                bw.Write( (byte)'b' );
+                bw.Write( pattern );
+                bw.Write( text );
+                bw.Write( flags );
+                bw.Write( string.IsNullOrWhiteSpace( options.LevenshteinDistance ) ? UInt32.MaxValue : UInt32.Parse( options.LevenshteinDistance ) );
+                bw.Write( string.IsNullOrWhiteSpace( options.HammingDistance ) ? UInt32.MaxValue : UInt32.Parse( options.HammingDistance ) );
+                bw.Write( string.IsNullOrWhiteSpace( options.MinOffset ) ? UInt32.MaxValue : UInt32.Parse( options.MinOffset ) );
+                bw.Write( string.IsNullOrWhiteSpace( options.MaxOffset ) ? UInt32.MaxValue : UInt32.Parse( options.MaxOffset ) );
+                bw.Write( string.IsNullOrWhiteSpace( options.MinLength ) ? UInt32.MaxValue : UInt32.Parse( options.MinLength ) );
+                bw.Write( checked((byte)options.Mode) );
+                bw.Write( checked((byte)options.ModeSom) );
+                bw.Write( (byte)'e' );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
+
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+
+            var br = ph.BinaryReader;
+
+            string r = br.ReadString( );
+
+            if( r != "r" )
             {
-                return RegexMatches.Empty; // (cancelled)
+                throw new Exception( "Unknown result" );
             }
 
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+            List<IMatch> matches = new( );
+            SimpleTextGetter stg = new( text );
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+            //matches.Add( SimpleMatch.Create( 0, text.Length, stg ) );
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
+            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
 
-            stdout_contents.Position = 0;
+            int count = checked((int)br.ReadUInt64( ));
 
-            using( var br = new BinaryReader( stdout_contents, Encoding.UTF8 ) )
+            for( int i = 0; i < count; ++i )
             {
-                string r = br.ReadString( );
+                int byte_index = checked((int)br.ReadUInt64( ));
+                int byte_length = checked((int)br.ReadUInt64( ));
 
-                if( r != "r" )
-                {
-                    throw new Exception( "Unknown result" );
-                }
+                int char_index = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index );
+                int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index + byte_length );
+                int char_length = char_end - char_index;
 
-                List<IMatch> matches = new List<IMatch>( );
-                ISimpleTextGetter stg = new SimpleTextGetter( text );
+                var m = SimpleMatch.Create( char_index, char_length, stg );
+                m.AddGroup( char_index, char_length, true, "0" );
 
-                //matches.Add( SimpleMatch.Create( 0, text.Length, stg ) );
-
-                byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
-
-                int count = checked((int)br.ReadUInt64( ));
-
-                for( int i = 0; i < count; ++i )
-                {
-                    int byte_index = checked((int)br.ReadUInt64( ));
-                    int byte_length = checked((int)br.ReadUInt64( ));
-
-                    int char_index = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index );
-                    int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index + byte_length );
-                    int char_length = char_end - char_index;
-
-                    var m = SimpleMatch.Create( char_index, char_length, stg );
-                    m.AddGroup( char_index, char_length, true, "0" );
-
-                    matches.Add( m );
-                }
-
-                return new RegexMatches( matches.Count, matches );
+                matches.Add( m );
             }
+
+            return new RegexMatches( matches.Count, matches );
         }
 
 
         public static string? GetVersion( ICancellable cnc )
         {
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            Action<Stream> stdinWriter = s =>
+            ph.AllEncoding = EncodingEnum.UTF8;
+
+            ph.BinaryWriter = bw =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.UTF8, leaveOpen: false ) )
-                {
-                    bw.Write( "v" );
-                }
+                bw.Write( "v" );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
-            {
-                return null;
-            }
+            if( !ph.Start( cnc ) ) return null;
 
-            if( cnc.IsCancellationRequested ) return null;
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+            string version_s = ph.BinaryReader.ReadString( );
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            using( var br = new BinaryReader( stdout_contents, Encoding.UTF8 ) )
-            {
-                string version_s = br.ReadString( );
-
-                return version_s;
-            }
+            return version_s;
         }
 
 

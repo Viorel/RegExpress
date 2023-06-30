@@ -125,7 +125,7 @@ namespace RustPlugin
                         Debug.Assert( match == null );
                         Debug.Assert( success );
 
-                        if( stg == null ) stg = new SimpleTextGetter( text );
+                        stg ??= new SimpleTextGetter( text );
 
                         match = SimpleMatch.Create( char_start, char_end - char_start, stg );
                     }

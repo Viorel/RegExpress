@@ -68,35 +68,29 @@ namespace DPlugin
 
             string json = JsonSerializer.Serialize( obj );
 
-            string? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            Action<StreamWriter> stdinWriter = sw =>
+            ph.AllEncoding = EncodingEnum.UTF8;
+
+            ph.StreamWriter = sw =>
             {
                 sw.Write( json );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
-            {
-                return RegexMatches.Empty;
-            }
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
-
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( stdout_contents );
+            MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( ph.StreamReader.ReadToEnd( ) );
 
             if( response == null ) throw new Exception( "Null response" );
 
-            var matches = new List<IMatch>( );
+            List<IMatch> matches = new( );
 
             foreach( var m in response.matches! )
             {
                 SimpleMatch? match = null;
-                ISimpleTextGetter? stg = null;
+                SimpleTextGetter? stg = null;
 
                 for( int group_index = 0; group_index < m.groups!.Length; group_index++ )
                 {
@@ -126,7 +120,7 @@ namespace DPlugin
                         Debug.Assert( match == null );
                         Debug.Assert( success );
 
-                        if( stg == null ) stg = new SimpleTextGetter( text );
+                        stg ??= new SimpleTextGetter( text );
 
                         match = SimpleMatch.Create( char_start, char_end - char_start, stg );
                     }
@@ -176,26 +170,20 @@ namespace DPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            string? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            Action<StreamWriter> stdinWriter = sw =>
+            ph.AllEncoding = EncodingEnum.UTF8;
+
+            ph.StreamWriter = sw =>
             {
                 sw.Write( "{\"c\":\"v\"}" );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
-            {
-                return null;
-            }
+            if( !ph.Start( cnc ) ) return null;
 
-            if( cnc.IsCancellationRequested ) return null;
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
-
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            VersionResponse? r = JsonSerializer.Deserialize<VersionResponse>( stdout_contents );
+            VersionResponse? r = JsonSerializer.Deserialize<VersionResponse>( ph.StreamReader.ReadToEnd( ) );
 
             if( r == null ) throw new Exception( "Null response" );
 

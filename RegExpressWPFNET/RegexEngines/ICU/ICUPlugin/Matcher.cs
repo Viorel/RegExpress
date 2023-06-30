@@ -40,151 +40,128 @@ namespace ICUPlugin
             if( options.UREGEX_UWORD ) flags |= 1 << 7;
             if( options.UREGEX_ERROR_ON_UNKNOWN_ESCAPES ) flags |= 1 << 8;
 
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            Action<Stream> stdin_writer = s =>
+            ph.AllEncoding = EncodingEnum.Unicode;
+
+            ph.BinaryWriter = bw =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.Unicode, leaveOpen: false ) )
-                {
-                    bw.Write( "m" );
-                    bw.Write( (byte)'b' );
+                bw.Write( "m" );
+                bw.Write( (byte)'b' );
 
-                    bw.Write( pattern );
-                    bw.Write( text );
-                    bw.Write( flags );
-                    bw.Write( limit );
+                bw.Write( pattern );
+                bw.Write( text );
+                bw.Write( flags );
+                bw.Write( limit );
 
-                    bw.Write( (byte)'e' );
-                }
+                bw.Write( (byte)'e' );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
+
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+
+            var br = ph.BinaryReader;
+
+            if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response B." );
+
+            // read group names
+
+            var group_names = new Dictionary<int, string>( );
+
+            for(; ; )
             {
-                return RegexMatches.Empty;
+                int i = br.ReadInt32( );
+                if( i <= 0 ) break;
+
+                string name = br.ReadString( );
+
+                group_names.Add( i, name );
             }
 
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+            // read matches
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+            List<IMatch> matches = new( );
+            SimpleTextGetter? stg = null;
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
+            for(; ; )
             {
-                if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response B." );
+                int group_count = br.ReadInt32( );
+                if( group_count < 0 ) break;
 
-                // read group names
+                SimpleMatch? match = null; ;
 
-                var group_names = new Dictionary<int, string>( );
-
-                for(; ; )
+                for( int i = 0; i <= group_count; ++i )
                 {
-                    int i = br.ReadInt32( );
-                    if( i <= 0 ) break;
-
-                    string name = br.ReadString( );
-
-                    group_names.Add( i, name );
-                }
-
-                // read matches
-
-                List<IMatch> matches = new List<IMatch>( );
-                ISimpleTextGetter? stg = null;
-
-                for(; ; )
-                {
-                    int group_count = br.ReadInt32( );
-                    if( group_count < 0 ) break;
-
-                    SimpleMatch? match = null; ;
-
-                    for( int i = 0; i <= group_count; ++i )
+                    int start = br.ReadInt32( );
+                    bool success = start >= 0;
+                    int end;
+                    int length;
+                    if( success )
                     {
-                        int start = br.ReadInt32( );
-                        bool success = start >= 0;
-                        int end;
-                        int length;
-                        if( success )
-                        {
-                            end = br.ReadInt32( );
-                            length = success ? end - start : 0;
-                        }
-                        else
-                        {
-                            end = 0;
-                            length = 0;
-                        }
-
-                        if( i == 0 )
-                        {
-                            Debug.Assert( success );
-                            Debug.Assert( match == null );
-
-                            if( stg == null ) stg = new SimpleTextGetter( text );
-
-                            match = SimpleMatch.Create( start, length, stg );
-                            match.AddGroup( start, length, success, "0" );
-                        }
-                        else
-                        {
-                            string? name;
-
-                            if( !group_names.TryGetValue( i, out name ) )
-                            {
-                                name = i.ToString( CultureInfo.InvariantCulture );
-                            }
-
-                            Debug.Assert( match != null );
-
-                            match!.AddGroup( start, length, success, name );
-                        }
+                        end = br.ReadInt32( );
+                        length = success ? end - start : 0;
+                    }
+                    else
+                    {
+                        end = 0;
+                        length = 0;
                     }
 
-                    Debug.Assert( match != null );
+                    if( i == 0 )
+                    {
+                        Debug.Assert( success );
+                        Debug.Assert( match == null );
 
-                    matches.Add( match );
+                        stg ??= new SimpleTextGetter( text );
+
+                        match = SimpleMatch.Create( start, length, stg );
+                        match.AddGroup( start, length, success, "0" );
+                    }
+                    else
+                    {
+                        string? name;
+
+                        if( !group_names.TryGetValue( i, out name ) )
+                        {
+                            name = i.ToString( CultureInfo.InvariantCulture );
+                        }
+
+                        Debug.Assert( match != null );
+
+                        match!.AddGroup( start, length, success, name );
+                    }
                 }
 
-                if( br.ReadByte( ) != 'e' ) throw new Exception( "Invalid response E." );
+                Debug.Assert( match != null );
 
-                return new RegexMatches( matches.Count, matches );
+                matches.Add( match );
             }
 
+            if( br.ReadByte( ) != 'e' ) throw new Exception( "Invalid response E." );
+
+            return new RegexMatches( matches.Count, matches );
         }
 
 
         public static string? GetVersion( ICancellable cnc )
         {
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            Action<Stream> stdinWriter = s =>
+            ph.AllEncoding = EncodingEnum.Unicode;
+
+            ph.BinaryWriter = bw =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.Unicode, leaveOpen: false ) )
-                {
-                    bw.Write( "v" );
-                }
+                bw.Write( "v" );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
-            {
-                return null;
-            }
+            if( !ph.Start( cnc ) ) return null;
 
-            if( cnc.IsCancellationRequested ) return null;
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+            string version_s = ph.BinaryReader.ReadString( );
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
-            {
-                string version_s = br.ReadString( );
-
-                return version_s;
-            }
+            return version_s;
         }
 
 
