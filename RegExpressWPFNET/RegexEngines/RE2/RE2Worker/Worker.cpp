@@ -16,10 +16,6 @@
 using namespace std;
 
 
-//#define TO_STR2(s) L#s
-//#define TO_STR(s) TO_STR2(s)
-
-
 static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstring& wtext, RE2::Options& re2Options, RE2::Anchor anchor )
 {
 
@@ -126,7 +122,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstrin
                         outbw.WriteT<char>( 0 );
                         outbw.WriteT<int64_t>( 0 );
                         outbw.WriteT<int64_t>( 0 );
-                        outbw.Write( Utf8ToWString( group_name ) ); // TODO: use a proper conversion (from ASCII, not from UTF-8)
+                        outbw.Write( Utf8ToWString( group_name ) ); // (it is UTF-8)
                     }
                     else
                     {
@@ -146,7 +142,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstrin
                         outbw.WriteT<char>( 1 );
                         outbw.WriteT<int64_t>( index );
                         outbw.WriteT<int64_t>( next_index - index );
-                        outbw.Write( Utf8ToWString( group_name ) ); // TODO: use a proper conversion (from ASCII, not from UTF-8)
+                        outbw.Write( Utf8ToWString( group_name ) ); // (it is UTF-8)
                     }
                 }
 
