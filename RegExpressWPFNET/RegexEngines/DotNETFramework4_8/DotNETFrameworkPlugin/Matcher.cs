@@ -52,27 +52,27 @@ namespace DotNETFrameworkPlugin
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             var data = new { cmd = "m", text, pattern, options };
-
             string json = JsonSerializer.Serialize( data );
 
-            string? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, json, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            ph.AllEncoding = EncodingEnum.UTF8;
+
+            ph.StreamWriter = sw =>
             {
-                return RegexMatches.Empty;
-            }
+                sw.Write( json );
+            };
 
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
+            string response_s = ph.StreamReader.ReadToEnd( );
 
-            WorkerMatch[]? worker_matches = JsonSerializer.Deserialize<WorkerMatch[]>( stdout_contents! );
+            WorkerMatch[]? worker_matches = JsonSerializer.Deserialize<WorkerMatch[]>( response_s );
 
             SimpleMatch[] matches = new SimpleMatch[worker_matches!.Length];
-            SimpleTextGetter text_getter = new SimpleTextGetter( text );
+            SimpleTextGetter text_getter = new( text );
 
             for( int i = 0; i < worker_matches.Length; i++ )
             {
@@ -98,33 +98,23 @@ namespace DotNETFrameworkPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            try
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
+
+            ph.AllEncoding = EncodingEnum.UTF8;
+            ph.StreamWriter = sw =>
             {
-                string? stdout_contents;
-                string? stderr_contents;
+                sw.Write( @"{""cmd"":""v""}" );
+            };
 
-                if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, @"{""cmd"":""v""}", out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
-                {
-                    return null;
-                }
+            if( !ph.Start( cnc ) ) return null;
 
-                if( cnc.IsCancellationRequested ) return null;
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-                if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+            string response_s = ph.StreamReader.ReadToEnd( );
 
-                if( stdout_contents == null ) throw new Exception( "Null response" );
+            VersionResponse response = JsonSerializer.Deserialize<VersionResponse>( response_s )!;
 
-                VersionResponse response = JsonSerializer.Deserialize<VersionResponse>( stdout_contents )!;
-
-                return response.version;
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
+            return response.version;
         }
 
 

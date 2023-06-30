@@ -119,7 +119,7 @@ namespace RegExpressLibrary
                 {
                     try
                     {
-                        using( BinaryWriter bw = new( p.StandardInput.BaseStream, GetEncoding( InputEncoding ), leaveOpen: true ) )
+                        using( BinaryWriter bw = new( p.StandardInput.BaseStream, GetEncoding( InputEncoding ), leaveOpen: false ) )
                         {
                             BinaryWriter( bw );
                         }
@@ -146,7 +146,7 @@ namespace RegExpressLibrary
                 {
                     try
                     {
-                        using( StreamWriter sw = new( p.StandardInput.BaseStream, GetEncoding( InputEncoding ), leaveOpen: true ) )
+                        using( StreamWriter sw = new( p.StandardInput.BaseStream, GetEncoding( InputEncoding ), leaveOpen: false ) )
                         {
                             StreamWriter( sw );
                         }
@@ -251,7 +251,7 @@ namespace RegExpressLibrary
                     if( StreamReaderObj != null ) throw new InvalidOperationException( "Stream Reader already got." );
 
                     OutputMemoryStream.Position = 0;
-                    BinaryReaderObj = new BinaryReader( OutputMemoryStream, GetEncoding( OutputEncoding ), leaveOpen: true );
+                    BinaryReaderObj = new BinaryReader( OutputMemoryStream, GetEncoding( OutputEncoding ), leaveOpen: false );
                 }
 
                 return BinaryReaderObj;
@@ -269,7 +269,7 @@ namespace RegExpressLibrary
                     if( BinaryReaderObj != null ) throw new InvalidOperationException( "Binary Reader already got." );
 
                     OutputMemoryStream.Position = 0;
-                    StreamReaderObj = new StreamReader( OutputMemoryStream, GetEncoding( OutputEncoding ), leaveOpen: true );
+                    StreamReaderObj = new StreamReader( OutputMemoryStream, GetEncoding( OutputEncoding ), leaveOpen: false );
                 }
 
                 return StreamReaderObj;
