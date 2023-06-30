@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Printing;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -25,52 +26,46 @@ namespace VBScriptPlugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            string? stdout_contents;
-            string? stderr_contents;
-
             string options_str = "";
             if( options.IgnoreCase ) options_str += "i";
             if( options.Global ) options_str += "g";
 
-            Action<StreamWriter> stdin_writer = new Action<StreamWriter>( sw =>
+            using ProcessHelper ph = new ProcessHelper( "cscript.exe" );
+
+            ph.AllEncoding = EncodingEnum.ASCII;
+            ph.Arguments = new[] { "/nologo", GetWorkerPath( ), "x" };
+
+            ph.StreamWriter = sw =>
             {
                 sw.Write( ToArg( pattern ) );
                 sw.Write( "\u001F" );
                 sw.Write( ToArg( text ) );
                 sw.Write( "\u001F" );
                 sw.Write( options_str );
-            } );
+            };
 
-            if( !ProcessUtilities.InvokeExe( cnc, "cscript.exe", new[] { "/nologo", GetWorkerPath( ), "x" }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
-            {
-                return RegexMatches.Empty;
-            }
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
-
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) )
+            if( !string.IsNullOrWhiteSpace( ph.Error ) )
             {
                 // Possible: <path>\VBScriptWorker.vbs(31, 1) Microsoft VBScript runtime error: <text of error>
 
-                var m = ErrorRegex( ).Match( stderr_contents );
+                var m = ErrorRegex( ).Match( ph.Error );
                 if( m.Success )
                 {
                     throw new Exception( m.Groups["err"].Value );
                 }
 
-                throw new Exception( stderr_contents );
+                throw new Exception( ph.Error );
             }
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            var lines = stdout_contents.Split( new[] { "\r\n", "\r", "\n" }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries );
-
-            var matches = new List<SimpleMatch>( );
-            var stg = new SimpleTextGetter( text );
-
+            List<SimpleMatch> matches = new( );
+            SimpleTextGetter stg = new( text );
             SimpleMatch? current_match = null;
 
-            foreach( var line in lines )
+            string? line;
+
+            while( ( line = ph.StreamReader.ReadLine( ) ) != null )
             {
                 var m = MatchRegex( ).Match( line );
                 if( m.Success )
@@ -93,7 +88,6 @@ namespace VBScriptPlugin
 
                         //current_match.AddGroup( index, length, true, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ) );
 
-
                         string value = sm.Groups[1].Value;
 
                         //value = JsonNode.Parse( value )!.GetValue<string>( ); // does not work with incomplete surrogate pairs
@@ -104,7 +98,7 @@ namespace VBScriptPlugin
 
                         value = value[1..^1];
 
-                        value = Regex.Replace( value, @"\\u([0-9A-Fa-f]{4})", m => ( (char)Convert.ToUInt16( m.Groups[1].Value, 16 ) ).ToString( ) );
+                        value = UCodeRegex( ).Replace( value, m => ( (char)Convert.ToUInt16( m.Groups[1].Value, 16 ) ).ToString( ) );
 
                         current_match.AddGroup( current_match.Index, value.Length, true, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ), new SimpleTextGetterWithOffset( current_match.Index, value ) );
                     }
@@ -125,21 +119,18 @@ namespace VBScriptPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            string? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new( "cscript.exe" );
 
-            if( !ProcessUtilities.InvokeExe( cnc, "cscript.exe", new[] { "/nologo", GetWorkerPath( ), "v" }, "", out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
-            {
-                return null;
-            }
+            ph.AllEncoding = EncodingEnum.ASCII;
+            ph.Arguments = new[] { "/nologo", GetWorkerPath( ), "v" };
 
-            if( cnc.IsCancellationRequested ) return null;
+            if( !ph.Start( cnc ) ) return null;
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
+            string version_s = ph.StreamReader.ReadToEnd( ).Trim( );
 
-            return stdout_contents.Trim( );
+            return version_s;
         }
 
 
@@ -219,5 +210,8 @@ namespace VBScriptPlugin
 
         [GeneratedRegex( @"^s\s+("".*"")" )]
         private static partial Regex SubmatchRegex( );
+
+        [GeneratedRegex( @"\\u([0-9A-Fa-f]{4})" )]
+        private static partial Regex UCodeRegex( );
     }
 }

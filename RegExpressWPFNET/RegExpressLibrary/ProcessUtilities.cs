@@ -9,6 +9,7 @@ using System.Threading;
 
 namespace RegExpressLibrary
 {
+    [Obsolete( "ProcessUtilities is obsolete, use ProcessHelper", error: true )]
     public static class ProcessUtilities
     {
 

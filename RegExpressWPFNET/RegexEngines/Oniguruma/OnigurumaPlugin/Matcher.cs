@@ -160,55 +160,45 @@ namespace OnigurumaPlugin
 
         public static Details? GetDetails( ICancellable cnc, Options options )
         {
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
-            Action<Stream> stdin_writer = s =>
+            ph.AllEncoding = EncodingEnum.Unicode;
+
+            ph.BinaryWriter = bw =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.Unicode, leaveOpen: false ) )
-                {
-                    bw.Write( "d" );
-                    bw.Write( (byte)'b' );
+                bw.Write( "d" );
+                bw.Write( (byte)'b' );
 
-                    WriteOptions( bw, options );
+                WriteOptions( bw, options );
 
-                    bw.Write( (byte)'e' );
-                }
+                bw.Write( (byte)'e' );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.Unicode ) )
+            if( !ph.Start( cnc ) ) return null;
+
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+
+            var br = ph.BinaryReader;
+
+            var sz = Marshal.SizeOf( typeof( Details ) );
+
+            if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response [D1]." );
+
+            byte[] bytes = br.ReadBytes( Marshal.SizeOf( typeof( Details ) ) );
+
+            if( br.ReadByte( ) != 'e' ) throw new Exception( "Invalid response [D2]." );
+
+            GCHandle gch = GCHandle.Alloc( bytes, GCHandleType.Pinned );
+            try
             {
-                return default;
+                nint addr = gch.AddrOfPinnedObject( );
+                Details details = Marshal.PtrToStructure<Details>( addr )!;
+
+                return details;
             }
-
-            if( cnc.IsCancellationRequested ) return null;
-
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
-
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            using( var br = new BinaryReader( stdout_contents, Encoding.Unicode ) )
+            finally
             {
-                var sz = Marshal.SizeOf( typeof( Details ) );
-
-                if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response [D1]." );
-
-                byte[] bytes = br.ReadBytes( Marshal.SizeOf( typeof( Details ) ) );
-
-                if( br.ReadByte( ) != 'e' ) throw new Exception( "Invalid response [D2]." );
-
-                var gch = GCHandle.Alloc( bytes, GCHandleType.Pinned );
-                try
-                {
-                    var addr = gch.AddrOfPinnedObject( );
-                    Details details = Marshal.PtrToStructure<Details>( addr )!;
-
-                    return details;
-                }
-                finally
-                {
-                    gch.Free( );
-                }
+                gch.Free( );
             }
         }
 

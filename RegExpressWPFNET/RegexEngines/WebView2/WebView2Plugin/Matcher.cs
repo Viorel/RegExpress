@@ -57,10 +57,12 @@ namespace WebView2Plugin
                 options.Function == FunctionEnum.Exec ? "E" : ""
                 );
 
-            string? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            Action<StreamWriter> stdin_writer = new Action<StreamWriter>( sw =>
+            ph.AllEncoding = EncodingEnum.UTF8;
+            ph.Arguments = new[] { "i" };
+
+            ph.StreamWriter = sw =>
             {
                 sw.Write( "m \"" );
                 sw.Write( ToJavaScriptString( pattern ) );
@@ -69,35 +71,24 @@ namespace WebView2Plugin
                 sw.Write( "\" \"" );
                 sw.Write( ToJavaScriptString( text ) );
                 sw.Write( "\"" );
-            } );
+            };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), new[] { "i" }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
-            {
-                return RegexMatches.Empty; // (cancelled)
-            }
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) )
-            {
-                throw new Exception( stderr_contents );
-            }
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            ResponseMatches? client_response = JsonSerializer.Deserialize<ResponseMatches>( stdout_contents! );
+            string response_s = ph.StreamReader.ReadToEnd( );
 
-            if( client_response == null )
-            {
-                throw new Exception( "JavaScript failed." );
-            }
+            ResponseMatches? client_response = JsonSerializer.Deserialize<ResponseMatches>( response_s );
 
-            if( !string.IsNullOrWhiteSpace( client_response.Error ) )
-            {
-                throw new Exception( client_response.Error );
-            }
+            if( client_response == null ) throw new Exception( "JavaScript failed." );
+            if( !string.IsNullOrWhiteSpace( client_response.Error ) ) throw new Exception( client_response.Error );
 
             string[] distributed_names = FigureOutGroupNames( client_response );
             Debug.Assert( distributed_names[0] == null );
 
-            SimpleTextGetter stg = new SimpleTextGetter( text );
-            List<IMatch> matches = new List<IMatch>( );
+            List<IMatch> matches = new( );
+            SimpleTextGetter stg = new( text );
 
             foreach( var cm in client_response.Matches! )
             {
@@ -147,41 +138,27 @@ namespace WebView2Plugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            string? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
-            string? version;
+            ph.AllEncoding = EncodingEnum.ASCII;
+            ph.Arguments = new[] { "v" };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), new[] { "v" }, "", out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) ||
-                !string.IsNullOrWhiteSpace( stderr_contents ) ||
-                string.IsNullOrWhiteSpace( stdout_contents ) )
+            if( !ph.Start( cnc ) ) return null;
+
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+
+            ResponseVersion? v = JsonSerializer.Deserialize<ResponseVersion>( ph.StreamReader.ReadToEnd( ) );
+
+            string? version = v!.Version;
+
+            // keep up to three components
+
+            if( version != null )
             {
-                version = "Unknown version";
-            }
-            else
-            {
-                try
+                var m = SimplifyVersionRegex( ).Match( version );
+                if( m.Success )
                 {
-                    ResponseVersion? v = JsonSerializer.Deserialize<ResponseVersion>( stdout_contents );
-
-                    version = v!.Version;
-
-                    // keep up to three components
-
-                    if( version != null )
-                    {
-                        var m = SimplifyVersionRegex( ).Match( version );
-                        if( m.Success )
-                        {
-                            version = m.Groups["v"].Value;
-                        }
-                    }
-                }
-                catch( Exception )
-                {
-                    if( Debugger.IsAttached ) Debugger.Break( );
-
-                    version = "Unknown version";
+                    version = m.Groups["v"].Value;
                 }
             }
 
