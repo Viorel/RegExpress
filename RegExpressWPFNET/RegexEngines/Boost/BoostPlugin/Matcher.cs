@@ -95,8 +95,8 @@ namespace BoostPlugin
 
             var br = ph.BinaryReader;
 
-            List<IMatch> matches = new List<IMatch>( );
-            ISimpleTextGetter stg = new SimpleTextGetter( text );
+            List<IMatch> matches = new( );
+            SimpleTextGetter stg = new( text );
             SimpleMatch? current_match = null;
             SimpleGroup? current_group = null;
 
