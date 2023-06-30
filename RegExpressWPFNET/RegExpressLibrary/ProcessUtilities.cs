@@ -9,13 +9,6 @@ using System.Threading;
 
 namespace RegExpressLibrary
 {
-    public enum EncodingEnum
-    {
-        UTF8,
-        Unicode,
-    }
-
-
     public static class ProcessUtilities
     {
 

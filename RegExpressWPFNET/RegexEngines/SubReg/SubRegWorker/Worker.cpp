@@ -31,26 +31,27 @@ static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& 
             const int MAX_CAPTURES = 100;
             std::unique_ptr<subreg_capture_t[]> captures( new subreg_capture_t[MAX_CAPTURES]( ) );
 
-            int number_of_matches = subreg_match( pattern.c_str(), text.c_str(), captures.get( ), MAX_CAPTURES, maxDepth);
+            int number_of_matches = subreg_match( pattern.c_str( ), text.c_str( ), captures.get( ), MAX_CAPTURES, maxDepth );
 
             if( number_of_matches < 0 )
             {
-                const char* err;
+                const char* err_name;
+                const char* err_text;
 
                 switch( number_of_matches )
                 {
-                case SUBREG_RESULT_INVALID_ARGUMENT: err = "Invalid argument passed to function."; break;
-                case SUBREG_RESULT_ILLEGAL_EXPRESSION: err = "Syntax error found in regular expression."; break;
-                case SUBREG_RESULT_MISSING_BRACKET: err = "A closing group bracket is missing from the regular expression."; break;
-                case SUBREG_RESULT_SURPLUS_BRACKET: err = "A closing group bracket without a matching opening group bracket has been found."; break;
-                case SUBREG_RESULT_INVALID_METACHARACTER: err = "The regular expression contains an invalid metacharacter (typically a malformed \\ escape sequence)"; break;
-                case SUBREG_RESULT_MAX_DEPTH_EXCEEDED: err = "The nesting depth of groups contained within the regular expression exceeds the limit specified by max_depth."; break;
-                case SUBREG_RESULT_CAPTURE_OVERFLOW: err = "Capture array not large enough."; break;
-                case SUBREG_RESULT_INVALID_OPTION: err = "Invalid inline option specified."; break;
-                default: err = "Unknown error";
+                case SUBREG_RESULT_INVALID_ARGUMENT: err_name = "SUBREG_RESULT_INVALID_ARGUMENT"; err_text = "Invalid argument passed to function."; break;
+                case SUBREG_RESULT_ILLEGAL_EXPRESSION: err_name = "SUBREG_RESULT_ILLEGAL_EXPRESSION"; err_text = "Syntax error found in regular expression."; break;
+                case SUBREG_RESULT_MISSING_BRACKET: err_name = "SUBREG_RESULT_MISSING_BRACKET"; err_text = "A closing group bracket is missing from the regular expression."; break;
+                case SUBREG_RESULT_SURPLUS_BRACKET: err_name = "SUBREG_RESULT_SURPLUS_BRACKET"; err_text = "A closing group bracket without a matching opening group bracket has been found."; break;
+                case SUBREG_RESULT_INVALID_METACHARACTER: err_name = "SUBREG_RESULT_INVALID_METACHARACTER"; err_text = "The regular expression contains an invalid metacharacter (typically a malformed \\ escape sequence)"; break;
+                case SUBREG_RESULT_MAX_DEPTH_EXCEEDED: err_name = "SUBREG_RESULT_MAX_DEPTH_EXCEEDED"; err_text = "The nesting depth of groups contained within the regular expression exceeds the limit specified by max_depth."; break;
+                case SUBREG_RESULT_CAPTURE_OVERFLOW: err_name = "SUBREG_RESULT_CAPTURE_OVERFLOW"; err_text = "Capture array not large enough."; break;
+                case SUBREG_RESULT_INVALID_OPTION: err_name = "SUBREG_RESULT_INVALID_OPTION"; err_text = "Invalid inline option specified."; break;
+                default: err_name = "?"; err_text = "Unknown error";
                 }
 
-                throw std::runtime_error( err );
+                throw std::runtime_error( std::format( "{}\r\n\r\n({}, {})", err_text, err_name, number_of_matches ) );
             }
 
             outbw.WriteT<char>( 'b' );
@@ -58,7 +59,7 @@ static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& 
             if( number_of_matches > 0 )
             {
                 const subreg_capture_t& capture = captures[0];
-                int index = CheckedCast( capture.start - text.c_str() );
+                int index = CheckedCast( capture.start - text.c_str( ) );
                 int length = capture.length;
 
                 // match
@@ -72,7 +73,7 @@ static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& 
                     // (the first is the entire input)
 
                     const subreg_capture_t& capture = captures[i];
-                    int index = CheckedCast( capture.start - text.c_str() );
+                    int index = CheckedCast( capture.start - text.c_str( ) );
                     int length = capture.length;
 
                     outbw.WriteT<char>( 'g' );
