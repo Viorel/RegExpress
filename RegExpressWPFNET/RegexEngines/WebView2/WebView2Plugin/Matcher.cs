@@ -77,9 +77,7 @@ namespace WebView2Plugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            string response_s = ph.StreamReader.ReadToEnd( );
-
-            ResponseMatches? client_response = JsonSerializer.Deserialize<ResponseMatches>( response_s );
+            ResponseMatches? client_response = JsonSerializer.Deserialize<ResponseMatches>( ph.OutputStream );
 
             if( client_response == null ) throw new Exception( "JavaScript failed." );
             if( !string.IsNullOrWhiteSpace( client_response.Error ) ) throw new Exception( client_response.Error );
@@ -147,7 +145,7 @@ namespace WebView2Plugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            ResponseVersion? v = JsonSerializer.Deserialize<ResponseVersion>( ph.StreamReader.ReadToEnd( ) );
+            ResponseVersion? v = JsonSerializer.Deserialize<ResponseVersion>( ph.OutputStream );
 
             string? version = v!.Version;
 
