@@ -67,9 +67,7 @@ namespace DotNET6Plugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            string response_s = ph.StreamReader.ReadToEnd( );
-
-            WorkerMatch[]? worker_matches = JsonSerializer.Deserialize<WorkerMatch[]>( response_s );
+            WorkerMatch[]? worker_matches = JsonSerializer.Deserialize<WorkerMatch[]>( ph.OutputStream );
 
             SimpleMatch[] matches = new SimpleMatch[worker_matches!.Length];
             SimpleTextGetter text_getter = new( text );
@@ -110,9 +108,7 @@ namespace DotNET6Plugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            string response_s = ph.StreamReader.ReadToEnd( );
-
-            VersionResponse response = JsonSerializer.Deserialize<VersionResponse>( response_s )!;
+            VersionResponse response = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream )!;
 
             return response.version;
         }

@@ -30,6 +30,7 @@ namespace RegExpressLibrary
         string? ErrorContents = null;
         BinaryReader? BinaryReaderObj = null;
         StreamReader? StreamReaderObj = null;
+        Stream? OutputStreamObj = null;
 
         public EncodingEnum InputEncoding;
         public EncodingEnum OutputEncoding;
@@ -248,7 +249,7 @@ namespace RegExpressLibrary
                 if( BinaryReaderObj == null )
                 {
                     if( !ProcessExecuted ) throw new InvalidOperationException( "Process not executed" );
-                    if( StreamReaderObj != null ) throw new InvalidOperationException( "Stream Reader already got." );
+                    if( StreamReaderObj != null || OutputStreamObj != null ) throw new InvalidOperationException( "Output already got." );
 
                     OutputMemoryStream.Position = 0;
                     BinaryReaderObj = new BinaryReader( OutputMemoryStream, GetEncoding( OutputEncoding ), leaveOpen: false );
@@ -266,13 +267,31 @@ namespace RegExpressLibrary
                 if( StreamReaderObj == null )
                 {
                     if( !ProcessExecuted ) throw new InvalidOperationException( "Process not executed" );
-                    if( BinaryReaderObj != null ) throw new InvalidOperationException( "Binary Reader already got." );
+                    if( BinaryReaderObj != null || OutputStreamObj != null ) throw new InvalidOperationException( "Output already got." );
 
                     OutputMemoryStream.Position = 0;
                     StreamReaderObj = new StreamReader( OutputMemoryStream, GetEncoding( OutputEncoding ), leaveOpen: false );
                 }
 
                 return StreamReaderObj;
+            }
+        }
+
+
+        public Stream OutputStream
+        {
+            get
+            {
+                if( OutputStreamObj == null )
+                {
+                    if( !ProcessExecuted ) throw new InvalidOperationException( "Process not executed" );
+                    if( BinaryReaderObj != null || StreamReaderObj != null ) throw new InvalidOperationException( "Output already got." );
+
+                    OutputMemoryStream.Position = 0;
+                    OutputStreamObj = OutputMemoryStream;
+                }
+
+                return OutputStreamObj;
             }
         }
 
