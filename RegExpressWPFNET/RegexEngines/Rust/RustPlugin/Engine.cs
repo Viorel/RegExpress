@@ -283,7 +283,7 @@ namespace RustPlugin
                 Anchor_yY = false,
 
                 NamedGroup_Apos = false,
-                NamedGroup_LtGt = false,
+                NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = true,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,

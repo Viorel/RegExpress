@@ -83,26 +83,25 @@ namespace RustPlugin
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
 
-            string? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, json, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            ph.AllEncoding = EncodingEnum.UTF8;
+
+            ph.StreamWriter = sw =>
             {
-                return RegexMatches.Empty;
-            }
+                sw.Write( json );
+            };
 
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-            MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( stdout_contents );
+            MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( ph.OutputStream );
 
             if( response == null ) throw new Exception( "Null response" );
 
             List<IMatch> matches = new( );
-            ISimpleTextGetter? stg = null;
+            SimpleTextGetter? stg = null;
 
             foreach( var m in response.matches )
             {
@@ -156,35 +155,20 @@ namespace RustPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            MemoryStream? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            Action<Stream> stdinWriter = s =>
+            ph.AllEncoding = EncodingEnum.UTF8;
+
+            ph.BinaryWriter = bw =>
             {
-                using( var bw = new BinaryWriter( s, Encoding.UTF8, leaveOpen: false ) )
-                {
-                    bw.Write( "{\"c\":\"v\"}" );
-                }
+                bw.Write( "{\"c\":\"v\"}" );
             };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetWorkerExePath( ), null, stdinWriter, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
-            {
-                return null;
-            }
+            if( !ph.Start( cnc ) ) return null;
 
-            if( cnc.IsCancellationRequested ) return null;
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
-
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-#if DEBUG
-            {
-                var text = Encoding.UTF8.GetString( stdout_contents.GetBuffer( ), 0, checked((int)stdout_contents.Length) );
-            }
-#endif
-
-            VersionResponse? r = JsonSerializer.Deserialize<VersionResponse>( stdout_contents );
+            VersionResponse? r = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream );
 
             if( r == null ) throw new Exception( "Null response" );
 

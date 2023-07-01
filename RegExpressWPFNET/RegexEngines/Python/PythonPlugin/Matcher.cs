@@ -90,10 +90,13 @@ except:
     print( ex, file = sys.stderr )
 ";
 
-            string? stdout_contents;
-            string? stderr_contents;
 
-            Action<StreamWriter> stdin_writer = new Action<StreamWriter>( sw =>
+            using ProcessHelper ph = new ProcessHelper( GetPythonExePath( ) );
+
+            ph.AllEncoding = EncodingEnum.UTF8;
+            ph.Arguments = new[] { "-I", "-E", "-s", "-S", "-X", "utf8", "-c", script };
+
+            ph.StreamWriter = sw =>
             {
                 var obj = new
                 {
@@ -125,101 +128,87 @@ except:
                 };
                 var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
                 sw.WriteLine( json );
-            } );
+            };
 
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetPythonExePath( ), new[] { "-I", "-E", "-s", "-S", "-X", "utf8", "-c", script }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
-            {
-                return RegexMatches.Empty;
-            }
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
-
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) ) throw new Exception( stderr_contents );
-
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
-
-            var matches = new List<IMatch>( );
-            ISimpleTextGetter? stg = null;
-
+            List<IMatch> matches = new( );
+            SimpleTextGetter? stg = null;
             SimpleMatch? match = null;
             int group_i = 0;
-            var names = new Dictionary<int, string>( );
-            var sph = new SurrogatePairsHelper( text, processSurrogatePairs: true );
+            Dictionary<int, string> names = new( );
+            SurrogatePairsHelper sph = new( text, processSurrogatePairs: true );
+            string? line;
 
-            using( var sr = new StringReader( stdout_contents ) )
+            while( ( line = ph.StreamReader.ReadLine( ) ) != null )
             {
-                string? line;
+                if( line.Length == 0 || line.StartsWith( "#" ) ) continue;
 
-                while( ( line = sr.ReadLine( ) ) != null )
+                var m = NMGRegex( ).Match( line );
+
+                if( !m.Success )
                 {
-                    if( line.Length == 0 || line.StartsWith( "#" ) ) continue;
+                    if( Debugger.IsAttached ) Debugger.Break( );
 
-                    var m = NMGRegex( ).Match( line );
-
-                    if( !m.Success )
+                    throw new Exception( "Internal error in Python engine." );
+                }
+                else
+                {
+                    switch( m.Groups["t"].Value )
                     {
+                    case "N":
+                    {
+                        int index = int.Parse( m.Groups["i"].Value, CultureInfo.InvariantCulture );
+                        string name = m.Groups["n"].Value;
+
+                        Debug.Assert( !names.ContainsKey( index ) );
+
+                        names[index] = name;
+                    }
+                    break;
+                    case "M":
+                    {
+                        int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
+                        int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
+                        int length = end - index;
+
+                        Debug.Assert( index >= 0 && end >= 0 );
+
+                        var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
+
+                        stg ??= new SimpleTextGetter( text );
+
+                        match = SimpleMatch.Create( index, length, text_index, text_length, stg );
+                        matches.Add( match );
+
+                        group_i = 0;
+                    }
+                    break;
+                    case "G":
+                    {
+                        int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
+                        int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
+                        int length = end - index;
+                        bool success = index >= 0;
+
+                        Debug.Assert( match != null );
+
+                        var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
+
+                        string? name;
+                        if( !names.TryGetValue( group_i, out name ) ) name = group_i.ToString( CultureInfo.InvariantCulture );
+
+                        match.AddGroup( index, length, text_index, text_length, success, name );
+
+                        ++group_i;
+                    }
+                    break;
+                    default:
                         if( Debugger.IsAttached ) Debugger.Break( );
 
                         throw new Exception( "Internal error in Python engine." );
-                    }
-                    else
-                    {
-                        switch( m.Groups["t"].Value )
-                        {
-                        case "N":
-                        {
-                            int index = int.Parse( m.Groups["i"].Value, CultureInfo.InvariantCulture );
-                            string name = m.Groups["n"].Value;
-
-                            Debug.Assert( !names.ContainsKey( index ) );
-
-                            names[index] = name;
-                        }
-                        break;
-                        case "M":
-                        {
-                            int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
-                            int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
-                            int length = end - index;
-
-                            Debug.Assert( index >= 0 && end >= 0 );
-
-                            var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
-
-                            stg ??= new SimpleTextGetter( text );
-
-                            match = SimpleMatch.Create( index, length, text_index, text_length, stg );
-                            matches.Add( match );
-
-                            group_i = 0;
-                        }
-                        break;
-                        case "G":
-                        {
-                            int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
-                            int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
-                            int length = end - index;
-                            bool success = index >= 0;
-
-                            Debug.Assert( match != null );
-
-                            var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
-
-                            string? name;
-                            if( !names.TryGetValue( group_i, out name ) ) name = group_i.ToString( CultureInfo.InvariantCulture );
-
-                            match.AddGroup( index, length, text_index, text_length, success, name );
-
-                            ++group_i;
-                        }
-                        break;
-                        default:
-                            if( Debugger.IsAttached ) Debugger.Break( );
-
-                            throw new Exception( "Internal error in Python engine." );
-                        }
                     }
                 }
             }
@@ -230,48 +219,20 @@ except:
 
         public static string? GetVersion( ICancellable cnc )
         {
-            string? stdout_contents;
-            string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetPythonExePath( ) );
 
-            Action<StreamWriter> stdin_writer = sw =>
-            {
-            };
+            ph.AllEncoding = EncodingEnum.UTF8;
+            ph.Arguments = new[] { "-V" };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetPythonExePath( ), new[] { "-V" }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
-            {
-                if( Debugger.IsAttached ) Debugger.Break( );
+            if( !ph.Start( cnc ) ) return null;
 
-                return null;
-            }
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            if( cnc.IsCancellationRequested ) return null;
+            string? response_s = ph.StreamReader.ReadToEnd( )?.Trim( ) ?? "";
 
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) )
-            {
-                if( Debugger.IsAttached ) Debugger.Break( );
+            string version = GetVersionRegex( ).Match( response_s ).Groups[1].Value;
 
-                return null;
-            }
-
-            if( stdout_contents == null )
-            {
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-
-            stdout_contents = stdout_contents.Trim( );
-
-            string v = GetVersionRegex( ).Match( stdout_contents ).Groups[1].Value;
-
-            if( string.IsNullOrWhiteSpace( v ) )
-            {
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-
-            return v;
+            return version;
         }
 
 

@@ -25,9 +25,6 @@ namespace PerlPlugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            string? stdout_contents;
-            string? stderr_contents;
-
             string modifiers = "";
             if( options.m ) modifiers += "m";
             if( options.s ) modifiers += "s";
@@ -43,24 +40,25 @@ namespace PerlPlugin
             if( options.g ) modifiers += "g";
             //if( options.c ) modifiers += "c";
 
-            Action<StreamWriter> stdin_writer = new( sw =>
+            using ProcessHelper ph = new ProcessHelper( GetPerlExePath( ) );
+
+            ph.AllEncoding = EncodingEnum.UTF8;
+            ph.Arguments = new[] { "-CS", GetWorkerPath( ) };
+
+            ph.StreamWriter = sw =>
             {
                 var json_obj = new { p = pattern, t = text, m = modifiers };
                 string json = JsonSerializer.Serialize( json_obj, JsonUtilities.JsonOptions );
 
                 sw.Write( json );
-            } );
+            };
 
-            if( !ProcessUtilities.InvokeExe( cnc, GetPerlExePath( ), new[] { "-CS", GetWorkerPath( ) }, stdin_writer, out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) )
+            if( !ph.Start( cnc ) ) return RegexMatches.Empty;
+
+            // (The error stream is used for debugging details too)
+            if( !string.IsNullOrWhiteSpace( ph.Error ) )
             {
-                return RegexMatches.Empty;
-            }
-
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
-
-            if( !string.IsNullOrWhiteSpace( stderr_contents ) )
-            {
-                string error_text = GetErrorRegex( ).Match( stderr_contents ).Groups[1].Value.Trim( );
+                string error_text = GetErrorRegex( ).Match( ph.Error ).Groups[1].Value.Trim( );
 
                 if( !string.IsNullOrWhiteSpace( error_text ) )
                 {
@@ -73,7 +71,7 @@ namespace PerlPlugin
 
             // collect group names from Perl debugging details
 
-            string debug_text = stderr_contents == null ? "" : GetDebugDetailsRegex( ).Match( stderr_contents ).Groups[1].Value.Trim( );
+            string debug_text = ph.Error == null ? "" : GetDebugDetailsRegex( ).Match( ph.Error ).Groups[1].Value.Trim( );
 
             List<string?> numbered_names = new( );
 
@@ -90,20 +88,13 @@ namespace PerlPlugin
                 numbered_names[number] = name;
             }
 
-            if( stdout_contents == null ) throw new Exception( "Null response" );
-
             List<IMatch> matches = new( );
-
-            using StringReader sr = new( stdout_contents );
-
-            ISimpleTextGetter? stg = null;
+            SimpleTextGetter? stg = null;
             SurrogatePairsHelper? sph = null;
-
             SimpleMatch? match = null;
-
             string? line;
 
-            while( ( line = sr.ReadLine( ) ) != null )
+            while( ( line = ph.StreamReader.ReadLine( ) ) != null )
             {
                 if( line == "\x1FM" )
                 {
@@ -166,35 +157,23 @@ namespace PerlPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            try
-            {
-                string? stdout_contents;
-                string? stderr_contents;
+            using ProcessHelper ph = new ProcessHelper( GetPerlExePath( ) );
 
-                if( !ProcessUtilities.InvokeExe( NonCancellable.Instance, GetPerlExePath( ), new[] { "-e", "print 'V=', $^V" }, "", out stdout_contents, out stderr_contents, EncodingEnum.UTF8 ) ||
-                    stdout_contents?.StartsWith( "V=" ) != true )
-                {
-                    if( Debugger.IsAttached ) Debugger.Break( );
-                    Debug.WriteLine( "Cannot get Perl version: '{0}', '{1}'", stdout_contents, stderr_contents );
+            ph.AllEncoding = EncodingEnum.UTF8;
+            ph.Arguments = new[] { "-e", "print 'V=', $^V" };
 
-                    return null;
-                }
-                else
-                {
-                    stdout_contents = stdout_contents.Trim( );
-                    string version = stdout_contents["V=".Length..];
-                    if( version.StartsWith( "v" ) ) version = version[1..];
+            if( !ph.Start( cnc ) ) return null;
 
-                    return version;
-                }
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-                return null;
-            }
+            string? response_s = ph.StreamReader.ReadToEnd( )?.Trim( );
+
+            if( response_s?.StartsWith( "V=" ) != true ) throw new Exception( $"Invalid response: '{response_s}'" );
+
+            string version = response_s["V=".Length..];
+            if( version.StartsWith( "v" ) ) version = version[1..];
+
+            return version;
         }
 
 
