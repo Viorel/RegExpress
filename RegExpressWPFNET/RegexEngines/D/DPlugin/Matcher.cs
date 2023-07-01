@@ -81,7 +81,7 @@ namespace DPlugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( ph.StreamReader.ReadToEnd( ) );
+            MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( ph.OutputStream );
 
             if( response == null ) throw new Exception( "Null response" );
 
@@ -183,7 +183,7 @@ namespace DPlugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            VersionResponse? r = JsonSerializer.Deserialize<VersionResponse>( ph.StreamReader.ReadToEnd( ) );
+            VersionResponse? r = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream );
 
             if( r == null ) throw new Exception( "Null response" );
 
