@@ -4,6 +4,19 @@
 #include "CheckedCast.h"
 
 
+namespace
+{
+    template<typename T>
+    struct StdDeleter
+    {
+        void operator ()( T* ptr )
+        {
+            _free_dbg( ptr, _NORMAL_BLOCK );
+        };
+    };
+}
+
+
 void StreamWriter::WriteBytes( const void* buffer0, uint32_t size ) const
 {
     static_assert( sizeof( size ) == sizeof( DWORD ), "" );
@@ -22,10 +35,7 @@ void StreamWriter::WriteBytes( const void* buffer0, uint32_t size ) const
             throw std::runtime_error( StreamWriterA::Printf( "Failed to write %i bytes (Error %i %08X)", to_write, le, le ) );
         }
 
-        if( written > to_write )
-        {
-            throw std::runtime_error( "System error" );
-        }
+        if( written > to_write ) throw std::runtime_error( "System error" );
 
         to_write -= written;
 
@@ -70,44 +80,27 @@ void __cdecl StreamWriterA::WriteStringF( LPCSTR format, ... ) const
         int size = lstrlenA( format ) + 128;
         const int step = 512;
 
-        char* dynbuff = nullptr;
+        std::unique_ptr<char, StdDeleter<char>> dynbuff;
 
         for( ;;)
         {
-            if( hr != STRSAFE_E_INSUFFICIENT_BUFFER )
-            {
-                free( dynbuff );
-
-                throw std::runtime_error( StreamWriterA::Printf( "Failed to write formatted string (%08X)", hr ) );
-            }
-
-            if( size >= STRSAFE_MAX_CCH - step )
-            {
-                free( dynbuff );
-
-                throw std::runtime_error( "Too long formatted string" );
-            }
+            if( hr != STRSAFE_E_INSUFFICIENT_BUFFER ) throw std::runtime_error( StreamWriterA::Printf( "Failed to write formatted string (%08X)", hr ) );
+            if( size >= STRSAFE_MAX_CCH - step ) throw std::runtime_error( "Too long formatted string" );
 
             size += step;
-            char* newbuff = (char*)realloc( dynbuff, size * sizeof( format[0] ) );
+            char* newbuff = (char*)_realloc_dbg( dynbuff.get( ), size * sizeof( format[0] ), _NORMAL_BLOCK, __FILE__, __LINE__ );
 
-            if( newbuff == 0 )
-            {
-                free( dynbuff );
+            if( newbuff == 0 ) throw std::runtime_error( "Insufficient memory to format the string" );
 
-                throw std::runtime_error( "Insufficient memory to format the string" );
-            }
+            dynbuff.release( );
+            dynbuff.reset( newbuff );
 
-            dynbuff = newbuff;
-
-            hr = StringCchVPrintfA( dynbuff, size, format, argptr );
+            hr = StringCchVPrintfA( dynbuff.get( ), size, format, argptr );
 
             if( SUCCEEDED( hr ) ) break;
         }
 
-        WriteString( dynbuff );
-
-        free( dynbuff );
+        WriteString( dynbuff.get( ) );
     }
 
     va_end( argptr );
@@ -133,15 +126,8 @@ std::string StreamWriterA::Printf( LPCSTR format, ... )
 
         if( SUCCEEDED( hr ) ) break;
 
-        if( hr != STRSAFE_E_INSUFFICIENT_BUFFER )
-        {
-            throw std::runtime_error( "Failed to write formatted string" );
-        }
-
-        if( size >= STRSAFE_MAX_CCH - step )
-        {
-            throw std::runtime_error( "Too long formatted string" );
-        }
+        if( hr != STRSAFE_E_INSUFFICIENT_BUFFER ) throw std::runtime_error( "Failed to write formatted string" );
+        if( size >= STRSAFE_MAX_CCH - step ) throw std::runtime_error( "Too long formatted string" );
 
         size += step;
     }
@@ -150,10 +136,7 @@ std::string StreamWriterA::Printf( LPCSTR format, ... )
 
     hr = StringCchLengthA( result.c_str( ), result.size( ), &len );
 
-    if( !SUCCEEDED( hr ) )
-    {
-        throw std::runtime_error( "Failed to get the formatted string length" );
-    }
+    if( !SUCCEEDED( hr ) ) throw std::runtime_error( "Failed to get the formatted string length" );
 
     result.resize( len );
     result.shrink_to_fit( );
@@ -198,41 +181,28 @@ void __cdecl StreamWriterW::WriteStringF( LPCWSTR format, ... ) const
         int size = lstrlenW( format ) + 128; // in wchar
         const int step = 512; // in wchar
 
-        wchar_t* dynbuff = nullptr;
+        std::unique_ptr<wchar_t, StdDeleter<wchar_t>> dynbuff;
 
         for( ;;)
         {
-            if( hr != STRSAFE_E_INSUFFICIENT_BUFFER )
-            {
-                free( dynbuff );
-                throw std::runtime_error( "Failed to write the formatted string" );
-            }
+            if( hr != STRSAFE_E_INSUFFICIENT_BUFFER ) throw std::runtime_error( "Failed to write the formatted string" );
 
-            if( size >= STRSAFE_MAX_CCH - step )
-            {
-                free( dynbuff );
-                throw std::runtime_error( "Too long formatted string" );
-            }
+            if( size >= STRSAFE_MAX_CCH - step ) throw std::runtime_error( "Too long formatted string" );
 
             size += step;
-            wchar_t* newbuff = (wchar_t*)realloc( dynbuff, size * sizeof( format[0] ) );
+            wchar_t* newbuff = (wchar_t*)_realloc_dbg( dynbuff.get( ), size * sizeof( format[0] ), _NORMAL_BLOCK, __FILE__, __LINE__ );
 
-            if( newbuff == 0 )
-            {
-                free( dynbuff );
-                throw std::runtime_error( "Insufficient memory to format the string" );
-            }
+            if( newbuff == 0 ) throw std::runtime_error( "Insufficient memory to format the string" );
 
-            dynbuff = newbuff;
+            dynbuff.release( );
+            dynbuff.reset( newbuff );
 
-            hr = StringCchVPrintfW( dynbuff, size, format, argptr );
+            hr = StringCchVPrintfW( dynbuff.get( ), size, format, argptr );
 
             if( SUCCEEDED( hr ) ) break;
         }
 
-        WriteString( dynbuff );
-
-        free( dynbuff );
+        WriteString( dynbuff.get( ) );
     }
 
     va_end( argptr );
@@ -258,15 +228,8 @@ std::wstring StreamWriterW::Printf( LPCWSTR format, ... )
 
         if( SUCCEEDED( hr ) ) break;
 
-        if( hr != STRSAFE_E_INSUFFICIENT_BUFFER )
-        {
-            throw std::runtime_error( "Failed to write the formatted string" );
-        }
-
-        if( size >= STRSAFE_MAX_CCH - step )
-        {
-            throw std::runtime_error( "Too long formatted string" );
-        }
+        if( hr != STRSAFE_E_INSUFFICIENT_BUFFER ) throw std::runtime_error( "Failed to write the formatted string" );
+        if( size >= STRSAFE_MAX_CCH - step ) throw std::runtime_error( "Too long formatted string" );
 
         size += step;
     }
@@ -275,10 +238,7 @@ std::wstring StreamWriterW::Printf( LPCWSTR format, ... )
 
     hr = StringCchLengthW( result.c_str( ), result.size( ), &len );
 
-    if( !SUCCEEDED( hr ) )
-    {
-        throw std::runtime_error( "Failed to get the formatted string length" );
-    }
+    if( !SUCCEEDED( hr ) ) throw std::runtime_error( "Failed to get the formatted string length" );
 
     result.resize( len );
     result.shrink_to_fit( );

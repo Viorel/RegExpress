@@ -30,13 +30,14 @@ private:
 
 protected:
 
-	void Write7BitEncodedInt( int32_t value );
+	void Write7BitEncodedInt( int32_t value ); // (borrowed from .NET)
 };
 
 
 
 /// <summary>
-/// A writer that is designed to be partially compatible with 'BinaryWriter' class from .NET, using UTF-8 encoding.
+/// A writer that is partially compatible with 'BinaryWriter' class from .NET, using UTF-8 encoding.
+/// The strings that are written by this class can be read by 'BinaryReader' in .NET.
 /// </summary>
 class BinaryWriterA final : public BinaryWriter
 {
@@ -55,7 +56,8 @@ public:
 
 
 /// <summary>
-/// A writer that is designed to be partially compatible with 'BinaryWriter' class from .NET, using Unicode encoding.
+/// A writer that is partially compatible with 'BinaryWriter' class from .NET, using Unicode encoding.
+/// The strings that are written by this class can be read by 'BinaryReader' in .NET.
 /// </summary>
 class BinaryWriterW final : public BinaryWriter
 {

@@ -3,7 +3,6 @@
 #include "Convert.h"
 #include "CheckedCast.h"
 
-
 // NOTE. 'wstring_convert' and 'codecvt_utf8' was deprecated in C++ 20.
 
 
@@ -130,6 +129,9 @@ std::string WStringToUtf8( const std::wstring& s, std::vector<int>* indices )
 
     if( new_locale == nullptr ) throw std::runtime_error( "Failed to set locale." );
 
+    // auto-restore
+    std::unique_ptr<const char, void( * )( const char* )> const restore_locale( old_locale, []( const char* l ) { setlocale( LC_ALL, l ); } );
+
     std::string dest;
 
     dest.reserve( s.length( ) + 1 );
@@ -158,8 +160,6 @@ std::string WStringToUtf8( const std::wstring& s, std::vector<int>* indices )
         {
             auto error_code = errno;
 
-            setlocale( LC_ALL, old_locale ); // restore
-
             char error_text[512];
             std::string error_code_s = std::to_string( error_code );
             const char* err = strerror_s( error_text, _countof( error_text ), error_code ) == 0 ? error_text : error_code_s.c_str( );
@@ -178,8 +178,6 @@ std::string WStringToUtf8( const std::wstring& s, std::vector<int>* indices )
 
     indices->resize( bytes_written, -1 );
     indices->push_back( CheckedCast( s.length( ) ) );
-
-    setlocale( LC_ALL, old_locale ); // restore
 
     return dest;
 }
