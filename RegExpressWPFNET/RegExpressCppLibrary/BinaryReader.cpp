@@ -13,7 +13,7 @@ uint8_t BinaryReader::ReadByte( ) const
     {
         auto le = GetLastError( );
 
-        throw std::runtime_error( StreamWriterA::Printf( "Cannot read byte (Error %i %08X)", le, le ) );
+        throw std::runtime_error( std::format( "Cannot read byte (Error {} {:08X})", le, le ) );
     }
 
     return b;
@@ -36,12 +36,12 @@ void BinaryReader::ReadBytes( void* buffer0, uint32_t size ) const
         {
             auto le = GetLastError( );
 
-            throw std::runtime_error( StreamWriterA::Printf( "Failed to read %i bytes (Error %i %08X)", to_read, le, le ) );
+            throw std::runtime_error( std::format( "Failed to read {} bytes (Error {} {:08X})", to_read, le, le ) );
         }
 
         if( n == 0 && to_read != 0 )
         {
-            throw std::runtime_error( StreamWriterA::Printf( "Failed to read %i bytes", to_read ) );
+            throw std::runtime_error( std::format( "Failed to read {} bytes", to_read ) );
         }
 
         if( n > to_read )

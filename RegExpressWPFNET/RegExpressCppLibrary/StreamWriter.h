@@ -34,9 +34,13 @@ public:
     void WriteString( LPCSTR text ) const;
     void WriteString( const std::string & text ) const;
 
-    void __cdecl WriteStringF( LPCSTR format, ... ) const;
+    template <typename... Args>
+    void __cdecl WriteStringF( std::string_view frm, Args&& ...args ) const
+    {
+        std::string s = std::vformat( frm, std::make_format_args( args... ) );
 
-    static std::string Printf( LPCSTR format, ... );
+        WriteString( s );
+    }
 
 };
 
@@ -53,9 +57,13 @@ public:
     void WriteString( LPCWSTR text ) const;
     void WriteString( const std::wstring& text ) const;
 
-    void __cdecl WriteStringF( LPCWSTR format, ... ) const;
+    template <typename... Args>
+    void __cdecl WriteStringF( std::wstring_view frm, Args&& ...args ) const
+    {
+        std::wstring s = std::vformat( frm, std::make_wformat_args( args... ) );
 
-    static std::wstring Printf( LPCWSTR format, ... );
+        WriteString( s );
+    }
 
 };
 
