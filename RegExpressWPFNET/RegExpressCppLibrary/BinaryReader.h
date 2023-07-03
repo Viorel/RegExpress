@@ -34,13 +34,14 @@ private:
 protected:
 
 	void ReadBytes( void* buffer, uint32_t size ) const;
-	int Read7BitEncodedInt( ) const;
+	int Read7BitEncodedInt( ) const; // (borrowed from .NET)
 
 };
 
 
 /// <summary>
-/// A reader that is designed to be partially compatible with 'BinaryReader' class from .NET, using UTF-8 encoding.
+/// A reader that is partially compatible with 'BinaryReader' class from .NET, using UTF-8 or ASCII encoding.
+/// The strings that are written by 'BinaryWriter' in .NET can be read by this class in C++.
 /// </summary>
 class BinaryReaderA final : public BinaryReader
 {
@@ -59,7 +60,8 @@ public:
 
 
 /// <summary>
-/// A reader that is designed to be partially compatible with 'BinaryReader' class from .NET, using Unicode encoding.
+/// A reader that is partially compatible with 'BinaryReader' class from .NET, using Unicode encoding.
+/// The strings that are written by 'BinaryWriter' in .NET can be read by this class in C++.
 /// </summary>
 class BinaryReaderW final : public BinaryReader
 {

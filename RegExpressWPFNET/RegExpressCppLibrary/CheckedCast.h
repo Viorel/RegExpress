@@ -3,6 +3,10 @@
 
 namespace
 {
+    /// <summary>
+    /// Helper class for 'CheckedCast' function. Do not use this class directly.
+    /// </summary>
+    /// <typeparam name="FROM"></typeparam>
     template<typename FROM>
     class CheckedCastHelper sealed
     {
@@ -50,7 +54,7 @@ namespace
         {
             if( v > std::numeric_limits<uint32_t>::max( ) )
             {
-                throw std::runtime_error( "'uint32_t' overflow: " + std::to_string( v ) );
+                throw std::overflow_error( "'uint32_t' overflow: " + std::to_string( v ) );
             }
 
             return (uint32_t)v;
@@ -62,7 +66,7 @@ namespace
         {
             if( v > std::numeric_limits<int32_t>::max( ) )
             {
-                throw std::runtime_error( "'int32_t' overflow: " + std::to_string( v ) );
+                throw std::overflow_error( "'int32_t' overflow: " + std::to_string( v ) );
             }
 
             return (uint32_t)v;
@@ -81,12 +85,12 @@ namespace
         {
             if( v > std::numeric_limits<int32_t>::max( ) )
             {
-                throw std::runtime_error( "'int32_t' overflow: " + std::to_string( v ) );
+                throw std::overflow_error( "'int32_t' overflow: " + std::to_string( v ) );
             }
 
             if( v < std::numeric_limits<int32_t>::min( ) )
             {
-                throw std::runtime_error( "'int32_t' underflow: " + std::to_string( v ) );
+                throw std::underflow_error( "'int32_t' underflow: " + std::to_string( v ) );
             }
 
             return (int32_t)v;
@@ -105,7 +109,7 @@ namespace
         {
             if( v > (uint32_t)std::numeric_limits<int32_t>::max( ) )
             {
-                throw std::runtime_error( "'int32_t' overflow: " + std::to_string( v ) );
+                throw std::overflow_error( "'int32_t' overflow: " + std::to_string( v ) );
             }
 
             return (int32_t)v;
@@ -133,9 +137,10 @@ namespace
 
 
 /// <summary>
-/// <para>Usage: 'CheckedCast(some_value)', not 'CheckedCast&lt;some_type>(some_value)'.
+/// <para>Usage: 'CheckedCast(some_value)'. 
 /// The target type is determined from context.</para>
-/// <para>Example: <c>int x = 1234; char c = CheckedCast(x);</c> </para>
+/// <para>Do not use 'CheckedCast&lt;some_type>(some_value)'.</para>
+/// <para>Example: <c>int x = 1234; char c = CheckedCast(x); /* 'overflow_error' or 'underflow_error' if cannot cast */</c> </para>
 /// </summary>
 /// <typeparam name="FROM">(Type determined automatically)</typeparam>
 /// <param name="v">The value to convert</param>
@@ -146,10 +151,4 @@ inline CheckedCastHelper<FROM> CheckedCast( const FROM& v )
     return CheckedCastHelper<FROM>( v );
 }
 
-// just an idea:
-//template<typename TO, typename FROM>
-//inline TO CheckedCastTo( const FROM& v )
-//{
-//    return (TO)CheckedCast( v );
-//}
 

@@ -20,7 +20,7 @@ void BinaryWriter::WriteBytes( const void* buffer0, uint32_t size )
         {
             auto le = GetLastError( );
 
-            throw std::runtime_error( StreamWriterA::Printf( "Failed to write %i bytes (Error %i %08X)", to_write, le, le ) );
+            throw std::runtime_error( std::format( "Failed to write {} bytes (Error {} {:08X})", to_write, le, le ) );
         }
 
         if( written > to_write )
