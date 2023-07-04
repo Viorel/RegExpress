@@ -130,7 +130,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             return DoChimeraMatch( outbw, errwr, pattern, text, remote_flags, match_limit, match_limit_recursion, mode );
         }
 
-        errwr.WriteStringF( "Unsupported command: '%s'", command.c_str( ) );
+        errwr.WriteStringF( "Unsupported command: '{}'.", command );
 
         return 10;
     }
@@ -301,7 +301,7 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
     }
     else
     {
-        errwr.WriteStringF( "Invalid mode_som" );
+        errwr.WriteStringF( "Invalid mode_som." );
 
         return -1;
     }
@@ -312,12 +312,12 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
     {
         if( hs == HS_COMPILER_ERROR )
         {
-            errwr.WriteStringF( "Unable to compile pattern \"%s\": %s", pattern.c_str( ), compile_err->message );
+            errwr.WriteStringF( "Unable to compile pattern \"{}\": {}.", pattern, compile_err->message );
             hs_free_compile_error( compile_err );
         }
         else
         {
-            errwr.WriteStringF( "Unable to compile pattern \"%s\": %s", pattern.c_str( ), ErrorText( hs ) );
+            errwr.WriteStringF( "Unable to compile pattern \"{}\": {}.", pattern, ErrorText( hs ) );
         }
 
         return -1;
@@ -327,7 +327,7 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
 
     if( ( hs = hs_alloc_scratch( database, &scratch ) ) != HS_SUCCESS )
     {
-        errwr.WriteStringF( "Unable to allocate scratch space (%s).", ErrorText( hs ) );
+        errwr.WriteStringF( "Unable to allocate scratch space ({}).", ErrorText( hs ) );
         hs_free_database( database );
 
         return -1;
@@ -339,7 +339,7 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
     {
         if( ( hs = hs_scan( database, text.data( ), CheckedCast( text.size( ) ), 0, scratch, HyperscanEventHandler, &ctx ) ) != HS_SUCCESS )
         {
-            errwr.WriteStringF( "Unable to scan input buffer (%s).", ErrorText( hs ) );
+            errwr.WriteStringF( "Unable to scan input buffer ({}).", ErrorText( hs ) );
 
             hs_free_scratch( scratch );
             hs_free_database( database );
@@ -353,7 +353,7 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
 
         if( ( hs = hs_open_stream( database, 0, &stream ) ) != HS_SUCCESS )
         {
-            errwr.WriteStringF( "Unable to open stream (%s).", ErrorText( hs ) );
+            errwr.WriteStringF( "Unable to open stream ({}).", ErrorText( hs ) );
 
             hs_free_scratch( scratch );
             hs_free_database( database );
@@ -363,7 +363,7 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
 
         if( ( hs = hs_scan_stream( stream, text.data( ), CheckedCast( text.size( ) ), 0, scratch, HyperscanEventHandler, &ctx ) ) != HS_SUCCESS )
         {
-            errwr.WriteStringF( "Unable to scan the stream (%s).", ErrorText( hs ) );
+            errwr.WriteStringF( "Unable to scan the stream ({}).", ErrorText( hs ) );
 
             hs_close_stream( stream, nullptr, nullptr, nullptr );
             hs_free_scratch( scratch );
@@ -379,7 +379,7 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
 
         if( ( hs = hs_scan_vector( database, data, length, 1, 0, scratch, HyperscanEventHandler, &ctx ) ) != HS_SUCCESS )
         {
-            errwr.WriteStringF( "Unable to scan vector (%s).", ErrorText( hs ) );
+            errwr.WriteStringF( "Unable to scan vector ({}).", ErrorText( hs ) );
 
             hs_free_scratch( scratch );
             hs_free_database( database );
@@ -537,12 +537,12 @@ static int DoChimeraMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const std
     {
         if( ch == CH_COMPILER_ERROR )
         {
-            errwr.WriteStringF( "Unable to compile pattern \"%s\": %s", pattern.c_str( ), compile_err->message );
+            errwr.WriteStringF( "Unable to compile pattern \"{}\": {}.", pattern, compile_err->message );
             ch_free_compile_error( compile_err );
         }
         else
         {
-            errwr.WriteStringF( "Unable to compile pattern \"%s\": %s", pattern.c_str( ), ChimeraErrorText( ch ) );
+            errwr.WriteStringF( "Unable to compile pattern \"{}\": {}.", pattern, ChimeraErrorText( ch ) );
         }
 
         return -1;
@@ -552,7 +552,7 @@ static int DoChimeraMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const std
 
     if( ( ch = ch_alloc_scratch( database, &scratch ) ) != CH_SUCCESS )
     {
-        errwr.WriteStringF( "Unable to allocate scratch space (%s).", ChimeraErrorText( ch ) );
+        errwr.WriteStringF( "Unable to allocate scratch space ({}).", ChimeraErrorText( ch ) );
         ch_free_database( database );
 
         return -1;
@@ -572,7 +572,7 @@ static int DoChimeraMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const std
     {
         if( ctx.error.empty( ) )
         {
-            errwr.WriteStringF( "Unable to scan input buffer (%s).", ChimeraErrorText( ch ) );
+            errwr.WriteStringF( "Unable to scan input buffer ({}).", ChimeraErrorText( ch ) );
 
             ch_free_scratch( scratch );
             ch_free_database( database );

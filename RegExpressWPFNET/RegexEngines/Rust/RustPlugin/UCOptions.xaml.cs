@@ -68,6 +68,12 @@ namespace RustPlugin
         }
 
 
+        private void tb_TextChanged( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
+
+
         void UpdateControls( )
         {
             if( !IsFullyLoaded ) return;
@@ -122,7 +128,6 @@ namespace RustPlugin
                 --ChangeCounter;
             }
         }
-
 
     }
 }
