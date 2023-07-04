@@ -199,7 +199,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             return 0;
         }
 
-        errwr.WriteStringF( L"Unsupported command: '%s'", command.c_str( ) );
+        errwr.WriteStringF( L"Unsupported command: '{}'.", command );
 
         return 1;
     }
