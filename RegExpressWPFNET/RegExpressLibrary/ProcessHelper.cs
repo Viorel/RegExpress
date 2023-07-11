@@ -32,9 +32,9 @@ namespace RegExpressLibrary
         StreamReader? StreamReaderObj = null;
         Stream? OutputStreamObj = null;
 
-        public EncodingEnum InputEncoding;
-        public EncodingEnum OutputEncoding;
-        public EncodingEnum ErrorEncoding;
+        public EncodingEnum InputEncoding { get; set; }
+        public EncodingEnum OutputEncoding { get; set; }
+        public EncodingEnum ErrorEncoding { get; set; }
 
         public EncodingEnum AllEncoding
         {
@@ -44,8 +44,8 @@ namespace RegExpressLibrary
             }
         }
 
-        public Action<BinaryWriter>? BinaryWriter;
-        public Action<StreamWriter>? StreamWriter;
+        public Action<BinaryWriter>? BinaryWriter { get; set; }
+        public Action<StreamWriter>? StreamWriter { get; set; }
 
         public string[]? Arguments { get; set; }
 
