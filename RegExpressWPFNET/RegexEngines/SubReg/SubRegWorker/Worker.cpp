@@ -58,9 +58,12 @@ static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& 
 
             if( number_of_matches > 0 )
             {
-                const subreg_capture_t& capture = captures[0];
-                int index = CheckedCast( capture.start - text.c_str( ) );
-                int length = capture.length;
+                int index;
+                int length;
+
+                const subreg_capture_t& main_capture = captures[0];
+                index = CheckedCast( main_capture.start - text.c_str( ) );
+                length = main_capture.length;
 
                 // match
                 outbw.WriteT<char>( 'm' );
@@ -73,8 +76,8 @@ static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& 
                     // (the first is the entire input)
 
                     const subreg_capture_t& capture = captures[i];
-                    int index = CheckedCast( capture.start - text.c_str( ) );
-                    int length = capture.length;
+                    index = CheckedCast( capture.start - text.c_str( ) );
+                    length = capture.length;
 
                     outbw.WriteT<char>( 'g' );
                     outbw.WriteT<int64_t>( index );

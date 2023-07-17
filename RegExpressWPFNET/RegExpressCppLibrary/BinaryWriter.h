@@ -43,7 +43,7 @@ class BinaryWriterA final : public BinaryWriter
 {
 public:
 
-	BinaryWriterA( HANDLE h )
+	explicit BinaryWriterA( HANDLE h )
 		: BinaryWriter(h)
 	{
 
@@ -63,7 +63,7 @@ class BinaryWriterW final : public BinaryWriter
 {
 public:
 
-	BinaryWriterW( HANDLE h )
+	explicit BinaryWriterW( HANDLE h )
 		: BinaryWriter( h )
 	{
 

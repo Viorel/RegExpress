@@ -12,7 +12,7 @@ namespace
     {
     public:
 
-        CheckedCastHelper( const FROM& v ) : value( v ) {}
+        explicit CheckedCastHelper( const FROM& v ) : value( v ) {}
 
         CheckedCastHelper( ) = delete;
         CheckedCastHelper( const CheckedCastHelper& ) = delete;
