@@ -50,9 +50,9 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 
                 int j = 0;
 
-                for( auto i = match.cbegin( ); i != match.cend( ); ++i, ++j )
+                for( auto k = match.cbegin( ); k != match.cend( ); ++k, ++j )
                 {
-                    const std::wcsub_match& submatch = *i;
+                    const std::wcsub_match& submatch = *k;
 
                     outbw.WriteT<char>( 'g' );
 

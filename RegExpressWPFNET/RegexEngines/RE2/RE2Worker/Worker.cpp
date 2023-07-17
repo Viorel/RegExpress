@@ -42,7 +42,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstrin
 
             std::vector<int> indices;
             std::string text = WStringToUtf8( wtext.c_str( ), &indices );
-            re2::StringPiece sp_text( text ); 
+            re2::StringPiece sp_text( text );
 
             int number_of_capturing_groups = re.NumberOfCapturingGroups( );
 
@@ -67,17 +67,21 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstrin
             {
                 const re2::StringPiece& main_group = found_groups.front( );
 
+                int utf8index;
+                int index;
+                int next_index;
+
                 // output the match and groups
 
-                int utf8index = CheckedCast( main_group.data( ) - text.data( ) );
-                int index = indices.at( utf8index );
+                utf8index = CheckedCast( main_group.data( ) - text.data( ) );
+                index = indices.at( utf8index );
                 if( index < 0 )
                 {
                     // for example, '\B' with surrogate pairs
                     throw std::runtime_error( std::format( "Index error. (UTF8 Index A = {}).", utf8index ) );
                 }
 
-                int next_index = indices.at( utf8index + main_group.size( ) );
+                next_index = indices.at( utf8index + main_group.size( ) );
                 if( next_index < 0 )
                 {
                     // for example, '\C' in pattern -- match one byte
@@ -126,14 +130,14 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstrin
                     }
                     else
                     {
-                        int utf8index = CheckedCast( g.data( ) - text.data( ) );
-                        int index = indices.at( utf8index );
+                        utf8index = CheckedCast( g.data( ) - text.data( ) );
+                        index = indices.at( utf8index );
                         if( index < 0 )
                         {
                             throw std::runtime_error( std::format( "Index error. (UTF8 Index C = {}).", utf8index ) );
                         }
 
-                        int next_index = indices.at( utf8index + g.size( ) );
+                        next_index = indices.at( utf8index + g.size( ) );
                         if( next_index < 0 )
                         {
                             throw std::runtime_error( std::format( "Index error. (UTF8 Index D = {}).", utf8index ) );

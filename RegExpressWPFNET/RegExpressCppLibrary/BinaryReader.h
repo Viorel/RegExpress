@@ -47,7 +47,7 @@ class BinaryReaderA final : public BinaryReader
 {
 public:
 
-	BinaryReaderA( HANDLE h )
+	explicit BinaryReaderA( HANDLE h )
 		: BinaryReader( h )
 	{
 
@@ -67,7 +67,7 @@ class BinaryReaderW final : public BinaryReader
 {
 public:
 
-	BinaryReaderW( HANDLE h )
+	explicit BinaryReaderW( HANDLE h )
 		: BinaryReader( h )
 	{
 

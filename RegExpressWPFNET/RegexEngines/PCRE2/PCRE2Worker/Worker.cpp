@@ -223,6 +223,10 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                     dfa_workspace.size( )
                 );
             }
+            else
+            {
+                throw std::runtime_error( std::format( "Unsupported algorithm: '{}'", WStringToUtf8( algorithm ) ) );
+            }
 
             if( rc == 0 )
             {

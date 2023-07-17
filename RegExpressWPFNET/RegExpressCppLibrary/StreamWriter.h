@@ -26,7 +26,7 @@ class StreamWriterA final : public StreamWriter
 {
 public:
 
-    StreamWriterA( HANDLE h )
+    explicit StreamWriterA( HANDLE h )
         : StreamWriter( h )
     {
     }
@@ -49,7 +49,7 @@ class StreamWriterW final : public StreamWriter
 {
 public:
 
-    StreamWriterW( HANDLE h )
+    explicit StreamWriterW( HANDLE h )
         : StreamWriter( h )
     {
     }
