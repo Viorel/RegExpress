@@ -128,6 +128,7 @@ namespace RegExpressWPFNET
         }
 
         readonly List<MatchInfo> MatchInfos = new( );
+        int MatchInfosVersion = 0;
 
 
         public event EventHandler? SelectionChanged;
@@ -463,6 +464,7 @@ namespace RegExpressWPFNET
             lock( MatchInfos )
             {
                 MatchInfos.Clear( );
+                ++MatchInfosVersion;
                 ExternalUnderliningLoop.SignalWaitAndExecute( );
             }
 
@@ -1155,37 +1157,68 @@ namespace RegExpressWPFNET
             {
                 var segments = new HashSet<Segment>( segments0 );
 
-                lock( MatchInfos ) //...........
+                int match_infos_version;
+
+                lock( MatchInfos )
                 {
-                    foreach( var mi in MatchInfos )
+                    match_infos_version = MatchInfosVersion;
+                }
+
+                for( int i_m = 0; ; i_m++ )
+                {
+                    MatchInfo? mi = null;
+
+                    lock( MatchInfos )
                     {
-                        if( !no_group_details )
+                        if( match_infos_version == MatchInfosVersion && i_m < MatchInfos.Count ) mi = MatchInfos[i_m];
+                    }
+
+                    if( mi == null ) break;
+
+                    if( !no_group_details )
+                    {
+                        for( int i_g = 0; ; i_g++ )
                         {
-                            foreach( var gi in mi.GroupInfos )
+                            if( cnc.IsCancellationRequested ) break;
+
+                            GroupInfo? gi = null;
+
+                            lock( MatchInfos )
+                            {
+                                if( match_infos_version == MatchInfosVersion && i_g < mi.GroupInfos.Count ) gi = mi.GroupInfos[i_g];
+                            }
+
+                            if( gi == null ) break;
+
+                            if( segments.Contains( gi.GroupSegment ) )
+                            {
+                                inlines_to_underline.Add( (gi.ValueInline, gi) );
+                            }
+
+                            for( int i_c = 0; ; i_c++ )
                             {
                                 if( cnc.IsCancellationRequested ) break;
 
-                                if( segments.Contains( gi.GroupSegment ) )
+                                CaptureInfo? ci = null;
+
+                                lock( MatchInfos )
                                 {
-                                    inlines_to_underline.Add( (gi.ValueInline, gi) );
+                                    if( match_infos_version == MatchInfosVersion && i_c < gi.CaptureInfos.Count ) ci = gi.CaptureInfos[i_c];
                                 }
 
-                                foreach( var ci in gi.CaptureInfos )
-                                {
-                                    if( cnc.IsCancellationRequested ) break;
+                                if( ci == null ) break;
 
-                                    if( segments.Contains( ci.CaptureSegment ) )
-                                    {
-                                        inlines_to_underline.Add( (ci.ValueInline, ci) );
-                                    }
+                                if( segments.Contains( ci.CaptureSegment ) )
+                                {
+                                    inlines_to_underline.Add( (ci.ValueInline, ci) );
                                 }
                             }
                         }
+                    }
 
-                        if( segments.Contains( mi.MatchSegment ) )
-                        {
-                            inlines_to_underline.Add( (mi.ValueInline, mi) );
-                        }
+                    if( segments.Contains( mi.MatchSegment ) )
+                    {
+                        inlines_to_underline.Add( (mi.ValueInline, mi) );
                     }
                 }
 
