@@ -26,6 +26,9 @@ extern long Default_REGEX_MAX_COMPLEXITY_COUNT;
 
 static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, wregex::flag_type regexFlags, regex_constants::match_flag_type matchFlags )
 {
+    ULONG ss = 1024 * 10;
+    SetThreadStackGuarantee( &ss );
+
     DWORD code;
     char error_text[128] = "";
 
@@ -70,14 +73,24 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
             }
 
             outbw.WriteT<char>( 'e' );
-
         }( );
 
         return;
     }
     __except( code = GetExceptionCode( ), SEHFilter( code, error_text, _countof( error_text ) ) )
     {
-        // things done in filter
+        // NOTE. Destructors were not called, and will not be called
+
+        if( code == EXCEPTION_STACK_OVERFLOW )
+        {
+            if( _resetstkoflw( ) == 0 )
+            {
+                // TODO: consider returning exit codes in case of dangerous exceptions
+                //_exit( ... );
+            }
+        }
+
+        // more things done in filter
     }
 
     throw std::runtime_error( error_text );

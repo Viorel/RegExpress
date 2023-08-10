@@ -79,7 +79,7 @@ namespace StdPlugin
                     bw.Write( REGEX_MAX_COMPLEXITY_COUNT );
                 }
 
-                if( eREGEX_MAX_COMPLEXITY_COUNT )
+                if( eREGEX_MAX_STACK_COUNT )
                 {
                     bw.Write( (byte)0 );
                 }
