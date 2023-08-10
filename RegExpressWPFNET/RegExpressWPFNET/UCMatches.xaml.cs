@@ -50,6 +50,7 @@ namespace RegExpressWPFNET
         readonly StyleInfo GroupSiblingValueStyleInfo;
         readonly StyleInfo GroupValueStyleInfo;
         readonly StyleInfo GroupFailedStyleInfo;
+        readonly StyleInfo GroupOverflowStyleInfo;
 
         bool AlreadyLoaded = false;
 
@@ -166,6 +167,7 @@ namespace RegExpressWPFNET
             GroupSiblingValueStyleInfo = new StyleInfo( "MatchGroupSiblingValue" );
             GroupValueStyleInfo = new StyleInfo( "MatchGroupValue" );
             GroupFailedStyleInfo = new StyleInfo( "MatchGroupFailed" );
+            GroupOverflowStyleInfo = new StyleInfo( "GroupOverflow" );
 
 
             ShowMatchesLoop = new ResumableLoop( ShowMatchesThreadProc, 333, 555 );
@@ -625,6 +627,19 @@ namespace RegExpressWPFNET
                 {
                     if( cnc.IsCancellationRequested ) break;
 
+                    if( Properties.Settings.Default.MaxGroups >= 0 && match_info!.GroupInfos.Count >= Properties.Settings.Default.MaxGroups )
+                    {
+                        ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
+                        {
+                            Run run = new( $"  ⚠ {ordered_groups.Count:#,##0} groups. The rest are not shown." );
+                            run.Style( GroupOverflowStyleInfo );
+                            para!.Inlines.Add( run );
+                            _ = new LineBreak( run.ElementEnd );
+                        } );
+
+                        break;
+                    }
+
                     string group_name_text = $" • Gʀᴏᴜᴘ ‹{group.Name}›";
                     int left_width_for_group = left_width_for_match - Math.Max( 0, match.TextIndex - ( group.Success ? group.TextIndex : match.TextIndex ) );
 
@@ -768,6 +783,16 @@ namespace RegExpressWPFNET
             foreach( ICapture capture in group.Captures )
             {
                 if( cnc.IsCancellationRequested ) break;
+
+                if( Properties.Settings.Default.MaxCaptures >= 0 && groupInfo.CaptureInfos.Count >= Properties.Settings.Default.MaxCaptures )
+                {
+                    Run run = new( $"      ⚠ {group.Captures.Count( ):#,##0} captures. The rest are not shown." );
+                    run.Style( GroupOverflowStyleInfo );
+                    para.Inlines.Add( run );
+                    _ = new LineBreak( run.ElementEnd );
+
+                    break;
+                }
 
                 ++capture_number;
 
