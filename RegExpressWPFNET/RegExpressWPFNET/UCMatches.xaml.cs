@@ -169,6 +169,7 @@ namespace RegExpressWPFNET
             GroupFailedStyleInfo = new StyleInfo( "MatchGroupFailed" );
             GroupOverflowStyleInfo = new StyleInfo( "GroupOverflow" );
 
+            secOverflow.Blocks.Remove( paraOverflow );
 
             ShowMatchesLoop = new ResumableLoop( ShowMatchesThreadProc, 333, 555 );
             LocalUnderliningLoop = new ResumableLoop( LocalUnderliningThreadProc, 222, 444 );
@@ -520,10 +521,7 @@ namespace RegExpressWPFNET
 
                 if( matches_to_show != matches.Count )
                 {
-                    if( !secOverflow.Blocks.Contains( paraOverflow ) )
-                    {
-                        secOverflow.Blocks.Add( paraOverflow );
-                    }
+                    // later
                 }
                 else
                 {
@@ -793,6 +791,14 @@ namespace RegExpressWPFNET
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
                 pbProgress.Visibility = Visibility.Hidden;
+
+                if( matches_to_show != matches.Count )
+                {
+                    if( !secOverflow.Blocks.Contains( paraOverflow ) )
+                    {
+                        secOverflow.Blocks.Add( paraOverflow );
+                    }
+                }
             } );
 
 
