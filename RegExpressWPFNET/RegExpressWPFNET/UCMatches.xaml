@@ -19,11 +19,18 @@
                          IsReadOnly="True" 
                          IsReadOnlyCaretVisible="True" 
                          Visibility="Hidden"
-                         d:Visibility="Hidden">
+                         d:Visibility="Visible" >
                 <FlowDocument>
                     <Section x:Name="secMatches" Padding="1 4 1 1">
                         <Paragraph>
                             <Run d:Text="Match"/>
+                        </Paragraph>
+                    </Section>
+                    <Section x:Name="secOverflow" Padding="1 4 1 1">
+                        <Paragraph x:Name="paraOverflow" Foreground="Red">
+                            <Run>Too many matches. The rest are not shown.</Run>
+                            <LineBreak/>
+                            <LineBreak/>
                         </Paragraph>
                     </Section>
                 </FlowDocument>
@@ -65,7 +72,7 @@
 
         <RichTextBox x:Name="rtbError" Style="{StaticResource Error}" IsReadOnly="True" IsReadOnlyCaretVisible="True" 
                      Visibility="Hidden"
-                     d:Visibility="Visible">
+                     d:Visibility="Hidden">
             <FlowDocument>
                 <Paragraph Padding="1 4 1 1">
                     <Run x:Name="runError" d:Text="Error&#13;&#10;text" />

@@ -499,16 +499,17 @@ namespace RegExpressWPFNET
                 return;
             }
 
+            int matches_to_show = Math.Min( matches.Count, Properties.Settings.Default.MaxMatches < 0 ? int.MaxValue : Properties.Settings.Default.MaxMatches );
 
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
-                pbProgress.Maximum = matches.Count;
                 pbProgress.Value = 0;
+                pbProgress.Maximum = matches_to_show;
 
-                if( secMatches.Blocks.Count > matches.Count )
+                if( secMatches.Blocks.Count > matches_to_show )
                 {
                     // remove unneeded paragraphs
-                    var r = new TextRange( secMatches.Blocks.ElementAt( matches.Count ).ElementStart, secMatches.ContentEnd )
+                    var r = new TextRange( secMatches.Blocks.ElementAt( matches_to_show ).ElementStart, secMatches.ContentEnd )
                     {
                         Text = ""
                     };
@@ -516,6 +517,21 @@ namespace RegExpressWPFNET
 
                 CancelInfo( );
                 ShowOne( rtbMatches );
+
+                if( matches_to_show != matches.Count )
+                {
+                    if( !secOverflow.Blocks.Contains( paraOverflow ) )
+                    {
+                        secOverflow.Blocks.Add( paraOverflow );
+                    }
+                }
+                else
+                {
+                    if( secOverflow.Blocks.Contains( paraOverflow ) )
+                    {
+                        secOverflow.Blocks.Remove( paraOverflow );
+                    }
+                }
             } );
 
             if( cnc.IsCancellationRequested ) return;
@@ -530,11 +546,11 @@ namespace RegExpressWPFNET
 
             foreach( IMatch match in matches.Matches )
             {
+                if( cnc.IsCancellationRequested ) break;
+
                 Debug.Assert( match.Success );
 
                 ++match_number;
-
-                if( cnc.IsCancellationRequested ) break;
 
                 var ordered_groups =
                                     match.Groups
@@ -560,6 +576,7 @@ namespace RegExpressWPFNET
                 Run? run = null;
                 MatchInfo? match_info = null;
                 RunBuilder match_run_builder = new( MatchValueSpecialStyleInfo );
+                bool max_number_achieved = false;
 
                 var highlight_style = HighlightStyleInfos[match_number % HighlightStyleInfos.Length];
                 var highlight_light_style = HighlightLightStyleInfos[match_number % HighlightStyleInfos.Length];
@@ -577,46 +594,54 @@ namespace RegExpressWPFNET
                         pbProgress.Visibility = Visibility.Visible;
                     }
 
-                    var span = new Span( );
-
-                    para = new Paragraph( span );
-
-                    var start_run = new Run( match_name_text.PadRight( left_width_for_match, ' ' ), span.ContentEnd );
-                    start_run.Style( MatchNormalStyleInfo );
-
-                    Inline value_inline;
-
-                    if( match.Length == 0 )
+                    if( match_number >= matches_to_show )
                     {
-                        value_inline = new Run( "(empty)", span.ContentEnd ); //
-                        value_inline.Style( MatchNormalStyleInfo, LocationStyleInfo );
+                        max_number_achieved = true;
                     }
                     else
                     {
-                        value_inline = match_run_builder.Build( match.Value, span.ContentEnd );
-                        value_inline.Style( MatchValueStyleInfo, highlight_style );
+                        Span span = new( );
+
+                        para = new Paragraph( span );
+
+                        var start_run = new Run( match_name_text.PadRight( left_width_for_match, ' ' ), span.ContentEnd );
+                        start_run.Style( MatchNormalStyleInfo );
+
+                        Inline value_inline;
+
+                        if( match.Length == 0 )
+                        {
+                            value_inline = new Run( "(empty)", span.ContentEnd ); //
+                            value_inline.Style( MatchNormalStyleInfo, LocationStyleInfo );
+                        }
+                        else
+                        {
+                            value_inline = match_run_builder.Build( match.Value, span.ContentEnd );
+                            value_inline.Style( MatchValueStyleInfo, highlight_style );
+                        }
+
+                        run = new Run( $"\x200E  （{match.Index}, {match.Length}）", span.ContentEnd );
+                        run.Style( MatchNormalStyleInfo, LocationStyleInfo );
+
+                        _ = new LineBreak( span.ElementEnd ); // (after span)
+
+                        match_info = new MatchInfo( matchSegment: new Segment( match.TextIndex, match.TextLength ), span: span, valueInline: value_inline );
+
+                        span.Tag = match_info;
+
+                        lock( MatchInfos )
+                        {
+                            MatchInfos.Add( match_info );
+
+                            //...ExternalUnderliningEvents.SendRestart( );
+                        }
+
+                        // captures for match
+                        //if( showCaptures) AppendCaptures( ct, para, LEFT_WIDTH, match, match );
                     }
-
-                    run = new Run( $"\x200E  （{match.Index}, {match.Length}）", span.ContentEnd );
-                    run.Style( MatchNormalStyleInfo, LocationStyleInfo );
-
-                    _ = new LineBreak( span.ElementEnd ); // (after span)
-
-                    match_info = new MatchInfo( matchSegment: new Segment( match.TextIndex, match.TextLength ), span: span, valueInline: value_inline );
-
-                    span.Tag = match_info;
-
-                    lock( MatchInfos )
-                    {
-                        MatchInfos.Add( match_info );
-
-                        //...ExternalUnderliningEvents.SendRestart( );
-                    }
-
-                    // captures for match
-                    //if( showCaptures) AppendCaptures( ct, para, LEFT_WIDTH, match, match );
                 } );
 
+                if( max_number_achieved ) break;
                 if( cnc.IsCancellationRequested ) break;
 
                 // show groups
