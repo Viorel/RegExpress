@@ -28,7 +28,7 @@
                     </Section>
                     <Section x:Name="secOverflow" Padding="1 4 1 1">
                         <Paragraph x:Name="paraOverflow" Foreground="Red">
-                            <Run>Too many matches. The rest are not shown.</Run>
+                            <Run>⚠ Too many matches. The rest are not shown.</Run>
                             <LineBreak/>
                             <LineBreak/>
                         </Paragraph>
