@@ -65,6 +65,10 @@ namespace RegExpressWPFNET
         IReadOnlyList<Segment>? LastExternalUnderliningSegments;
         bool LastExternalUnderliningSetSelection;
 
+        static readonly object CharWidthSyncObj = new( );
+        static double CharWidthPt = -1;
+        static double MinWidthPt = -1;
+
         abstract class Info
         {
             internal abstract MatchInfo GetMatchInfo( );
@@ -405,11 +409,30 @@ namespace RegExpressWPFNET
         {
             if( AlreadyLoaded ) return;
 
-            var w1 = Utilities.ToPoints( $"{SystemParameters.WorkArea.Width}px" );
-            var w2 = Utilities.ToPoints( "42cm" );
-            var w = Math.Max( w1, w2 );
+            // evaluate the width of one character, and the minimal width of document
+            if( CharWidthPt < 0 )
+            {
+                lock( CharWidthSyncObj )
+                {
+                    if( CharWidthPt < 0 )
+                    {
+                        string sample = new string( 'W', 100 );
+                        var ft = new FormattedText(
+                            sample, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                            new Typeface( rtbMatches.FontFamily, rtbMatches.FontStyle, rtbMatches.FontWeight, rtbMatches.FontStretch ),
+                            rtbMatches.FontSize, Brushes.Black, VisualTreeHelper.GetDpi( rtbMatches ).PixelsPerDip );
+                        CharWidthPt = Utilities.PointsFromInvariantString( FormattableString.Invariant( $"{ft.Width}px" ) ) / sample.Length;
+                        Debug.Assert( CharWidthPt > 0 );
 
-            rtbMatches.Document.MinPageWidth = w;
+                        var w1 = Utilities.PointsFromInvariantString( FormattableString.Invariant( $"{SystemParameters.WorkArea.Width}px" ) );
+                        var w2 = Utilities.PointsFromInvariantString( "14.8cm" ); // 14.8 cm -- A5, A4 -- 21 cm, A3 -- 42 cm
+                        MinWidthPt = Math.Max( w1, w2 );
+                        Debug.Assert( MinWidthPt > 0 );
+                    }
+                }
+            }
+
+            rtbMatches.Document.MinPageWidth = MinWidthPt;
 
             var adorner_layer = AdornerLayer.GetAdornerLayer( rtbMatches );
             adorner_layer.Add( LocalUnderliningAdorner );
@@ -539,6 +562,7 @@ namespace RegExpressWPFNET
             Paragraph? previous_para = null;
             int match_number = -1;
             bool document_has_changed = false;
+            int max_length = 0;
 
             int left_width = EvaluateLeftWidth( matches, show_succeeded_groups_only );
 
@@ -611,11 +635,13 @@ namespace RegExpressWPFNET
                         {
                             value_inline = new Run( "(empty)", span.ContentEnd ); //
                             value_inline.Style( MatchNormalStyleInfo, LocationStyleInfo );
+                            //max_length = ... // too small, do not count
                         }
                         else
                         {
-                            value_inline = match_run_builder.Build( match.Value, span.ContentEnd );
+                            (value_inline, int textLength) = match_run_builder.Build( match.Value, span.ContentEnd );
                             value_inline.Style( MatchValueStyleInfo, highlight_style );
+                            max_length = Math.Max( max_length, left_width_for_match + textLength );
                         }
 
                         run = new Run( $"\x200E  （{match.Index}, {match.Length}）", span.ContentEnd );
@@ -707,13 +733,13 @@ namespace RegExpressWPFNET
                                 right = Utilities.SubstringFromTo( text, group.TextIndex + group.TextLength, Math.Max( match.TextIndex + match.TextLength, group.TextIndex + group.TextLength ) );
                             }
 
-                            inl = sibling_run_builder.Build( left, span.ContentEnd );
+                            (inl, _) = sibling_run_builder.Build( left, span.ContentEnd );
                             inl.Style( GroupSiblingValueStyleInfo );
 
-                            value_inline = match_run_builder.Build( middle, span.ContentEnd );
+                            (value_inline, _) = match_run_builder.Build( middle, span.ContentEnd );
                             value_inline.Style( GroupValueStyleInfo, highlight_light_style );
 
-                            inl = sibling_run_builder.Build( right, span.ContentEnd );
+                            (inl, _) = sibling_run_builder.Build( right, span.ContentEnd );
                             inl.Style( GroupSiblingValueStyleInfo );
                         }
 
@@ -750,6 +776,10 @@ namespace RegExpressWPFNET
 
                 ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
                 {
+                    // adjust the horizontal scrollbar (increase only)
+                    double document_width_pt = Math.Max( MinWidthPt, ( max_length + "   (999, 999)".Length ) * CharWidthPt );
+                    if( rtbMatches.Document.MinPageWidth < document_width_pt ) rtbMatches.Document.MinPageWidth = document_width_pt;
+
                     if( previous_para == null )
                     {
                         var first_block = secMatches.Blocks.FirstBlock;
@@ -788,8 +818,15 @@ namespace RegExpressWPFNET
 
             if( cnc.IsCancellationRequested ) return;
 
+
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
+                // adjust horizontal scrollbar
+                Debug.Assert( CharWidthPt > 0 );
+                Debug.Assert( MinWidthPt > 0 );
+                double document_width_pt = Math.Max( MinWidthPt, ( max_length + "   (999, 999)".Length ) * CharWidthPt );
+                rtbMatches.Document.MinPageWidth = document_width_pt;
+
                 pbProgress.Visibility = Visibility.Hidden;
 
                 if( matches_to_show != matches.Count )
@@ -849,13 +886,13 @@ namespace RegExpressWPFNET
                     string middle = capture.Value;
                     string right = Utilities.SubstringFromTo( text, capture.TextIndex + capture.TextLength, Math.Max( match.TextIndex + match.TextLength, group.TextIndex + group.TextLength ) );
 
-                    inline = siblingRunBuilder.Build( left, span.ContentEnd );
+                    (inline, _) = siblingRunBuilder.Build( left, span.ContentEnd );
                     inline.Style( GroupSiblingValueStyleInfo );
 
-                    value_inline = runBuilder.Build( middle, span.ContentEnd );
+                    (value_inline, _) = runBuilder.Build( middle, span.ContentEnd );
                     value_inline.Style( GroupValueStyleInfo, highlightStyle );
 
-                    inline = siblingRunBuilder.Build( right, span.ContentEnd );
+                    (inline, _) = siblingRunBuilder.Build( right, span.ContentEnd );
                     inline.Style( GroupSiblingValueStyleInfo );
                 }
 
@@ -930,7 +967,7 @@ namespace RegExpressWPFNET
             }
 
 
-            public Inline Build( string text, TextPointer at )
+            public (Inline inline, int textLength) Build( string text, TextPointer at )
             {
                 sb.Clear( );
                 runs.Clear( );
@@ -1013,7 +1050,7 @@ namespace RegExpressWPFNET
                 switch( runs.Count )
                 {
                 case 0:
-                    return new Span( (Inline)null!, at );
+                    return (new Span( (Inline)null!, at ), 0);
                 case 1:
                 {
                     var r = runs[0];
@@ -1024,11 +1061,14 @@ namespace RegExpressWPFNET
 
                         run.Style( specialStyleInfo );
                     }
-                    return run;
+
+                    return (run, r.text.Length);
                 }
                 default:
                 {
+                    int len = 0;
                     var r = runs[0];
+                    len += r.text.Length;
                     var run = new Run( r.text );
                     if( r.isSpecial )
                     {
@@ -1042,6 +1082,7 @@ namespace RegExpressWPFNET
                     for( int i = 1; i < runs.Count; ++i )
                     {
                         r = runs[i];
+                        len += r.text.Length;
                         run = new Run( r.text, span.ContentEnd );
                         if( r.isSpecial )
                         {
@@ -1051,7 +1092,7 @@ namespace RegExpressWPFNET
                         }
                     }
 
-                    return span;
+                    return (span, len);
                 }
                 }
             }
