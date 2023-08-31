@@ -421,7 +421,7 @@ namespace RegExpressWPFNET
                             sample, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                             new Typeface( rtbMatches.FontFamily, rtbMatches.FontStyle, rtbMatches.FontWeight, rtbMatches.FontStretch ),
                             rtbMatches.FontSize, Brushes.Black, VisualTreeHelper.GetDpi( rtbMatches ).PixelsPerDip );
-                        CharWidthPt = Utilities.PointsFromInvariantString( FormattableString.Invariant( $"{ft.Width}px" ) ) / sample.Length;
+                        CharWidthPt = ft.Width / sample.Length;
                         Debug.Assert( CharWidthPt > 0 );
 
                         var w1 = Utilities.PointsFromInvariantString( FormattableString.Invariant( $"{SystemParameters.WorkArea.Width}px" ) );
