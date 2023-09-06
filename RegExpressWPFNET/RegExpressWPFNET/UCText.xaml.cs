@@ -256,7 +256,7 @@ namespace RegExpressWPFNET
         {
             if( AlreadyLoaded ) return;
 
-            rtb.Document.MinPageWidth = Utilities.PointsFromInvariantString( "21cm" );
+            rtb.Document.PageWidth = Utilities.PointsFromInvariantString( FormattableString.Invariant( $"{PageSizes.A4.WidthMm / 10.0}cm" ) );
 
             var adorner_layer = AdornerLayer.GetAdornerLayer( rtb );
             adorner_layer.Add( WhitespaceAdorner );

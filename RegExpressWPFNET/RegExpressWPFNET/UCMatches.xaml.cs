@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Printing;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,6 +23,7 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 using RegExpressWPFNET.Adorners;
 using RegExpressWPFNET.Code;
+using RegExpressWPFNET.Code.OutputInfo;
 
 
 namespace RegExpressWPFNET
@@ -65,76 +67,8 @@ namespace RegExpressWPFNET
         IReadOnlyList<Segment>? LastExternalUnderliningSegments;
         bool LastExternalUnderliningSetSelection;
 
-        static readonly object CharWidthSyncObj = new( );
-        static double CharWidthPt = -1;
-        static double MinWidthPt = -1;
-
-        abstract class Info
-        {
-            internal abstract MatchInfo GetMatchInfo( );
-        }
-
-        sealed class MatchInfo : Info
-        {
-            internal readonly Segment MatchSegment;
-            internal readonly Span Span;
-            internal readonly Inline ValueInline;
-            internal readonly List<GroupInfo> GroupInfos = new( );
-
-            public MatchInfo( Segment matchSegment, Span span, Inline valueInline )
-            {
-                MatchSegment = matchSegment;
-                Span = span;
-                ValueInline = valueInline;
-            }
-
-            internal override MatchInfo GetMatchInfo( ) => this;
-        }
-
-        sealed class GroupInfo : Info
-        {
-            internal readonly MatchInfo Parent;
-            internal readonly bool IsSuccess;
-            internal readonly Segment GroupSegment;
-            internal readonly Span Span;
-            internal readonly Inline ValueInline;
-            internal readonly List<CaptureInfo> CaptureInfos = new( );
-            internal readonly bool NoGroupDetails;
-
-            public GroupInfo( MatchInfo parent, bool isSuccess, Segment groupSegment, Span span, Inline valueInline, bool noGroupDetails )
-            {
-                Parent = parent;
-                IsSuccess = isSuccess;
-                GroupSegment = groupSegment;
-                Span = span;
-                ValueInline = valueInline;
-                NoGroupDetails = noGroupDetails;
-            }
-
-            internal override MatchInfo GetMatchInfo( ) => Parent.GetMatchInfo( );
-        }
-
-        sealed class CaptureInfo : Info
-        {
-            internal readonly GroupInfo Parent;
-            internal readonly Segment CaptureSegment;
-            internal readonly Span Span;
-            internal readonly Inline ValueInline;
-
-            public CaptureInfo( GroupInfo parent, Segment captureSegment, Span span, Inline valueInline )
-            {
-                Parent = parent;
-                CaptureSegment = captureSegment;
-                Span = span;
-                ValueInline = valueInline;
-            }
-
-            internal override MatchInfo GetMatchInfo( ) => Parent.GetMatchInfo( );
-        }
-
         readonly List<MatchInfo> MatchInfos = new( );
         int MatchInfosVersion = 0;
-
 
         public event EventHandler? SelectionChanged;
         public event EventHandler? Cancelled;
@@ -409,30 +343,7 @@ namespace RegExpressWPFNET
         {
             if( AlreadyLoaded ) return;
 
-            // evaluate the width of one character, and the minimal width of document
-            if( CharWidthPt < 0 )
-            {
-                lock( CharWidthSyncObj )
-                {
-                    if( CharWidthPt < 0 )
-                    {
-                        string sample = new string( 'W', 100 );
-                        var ft = new FormattedText(
-                            sample, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-                            new Typeface( rtbMatches.FontFamily, rtbMatches.FontStyle, rtbMatches.FontWeight, rtbMatches.FontStretch ),
-                            rtbMatches.FontSize, Brushes.Black, VisualTreeHelper.GetDpi( rtbMatches ).PixelsPerDip );
-                        CharWidthPt = ft.Width / sample.Length;
-                        Debug.Assert( CharWidthPt > 0 );
-
-                        var w1 = Utilities.PointsFromInvariantString( FormattableString.Invariant( $"{SystemParameters.WorkArea.Width}px" ) );
-                        var w2 = Utilities.PointsFromInvariantString( "14.8cm" ); // 14.8 cm -- A5, A4 -- 21 cm, A3 -- 42 cm
-                        MinWidthPt = Math.Max( w1, w2 );
-                        Debug.Assert( MinWidthPt > 0 );
-                    }
-                }
-            }
-
-            rtbMatches.Document.MinPageWidth = MinWidthPt;
+            rtbMatches.Document.PageWidth = double.NaN; // (NaN -- wrap)
 
             var adorner_layer = AdornerLayer.GetAdornerLayer( rtbMatches );
             adorner_layer.Add( LocalUnderliningAdorner );
@@ -487,10 +398,12 @@ namespace RegExpressWPFNET
 
         void ShowMatchesThreadProc( ICancellable cnc )
         {
+            int match_infos_version = 0;
+
             lock( MatchInfos )
             {
                 MatchInfos.Clear( );
-                ++MatchInfosVersion;
+                match_infos_version = ++MatchInfosVersion;
                 ExternalUnderliningLoop.SignalWaitAndExecute( );
             }
 
@@ -524,6 +437,9 @@ namespace RegExpressWPFNET
             }
 
             int matches_to_show = Math.Min( matches.Count, Properties.Settings.Default.MaxMatches < 0 ? int.MaxValue : Properties.Settings.Default.MaxMatches );
+            Typeface? type_face = null;
+            double font_size = 0;
+            double pixels_per_dip = 0;
 
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
@@ -553,6 +469,10 @@ namespace RegExpressWPFNET
                         secOverflow.Blocks.Remove( paraOverflow );
                     }
                 }
+
+                type_face = new Typeface( rtbMatches.FontFamily, rtbMatches.FontStyle, rtbMatches.FontWeight, rtbMatches.FontStretch );
+                font_size = rtbMatches.FontSize;
+                pixels_per_dip = VisualTreeHelper.GetDpi( rtbMatches ).PixelsPerDip;
             } );
 
             if( cnc.IsCancellationRequested ) return;
@@ -562,7 +482,7 @@ namespace RegExpressWPFNET
             Paragraph? previous_para = null;
             int match_number = -1;
             bool document_has_changed = false;
-            int max_length = 0;
+            double max_text_width = 0;
 
             int left_width = EvaluateLeftWidth( matches, show_succeeded_groups_only );
 
@@ -597,7 +517,7 @@ namespace RegExpressWPFNET
                 Paragraph? para = null;
                 Run? run = null;
                 MatchInfo? match_info = null;
-                RunBuilder match_run_builder = new( MatchValueSpecialStyleInfo );
+                OutputBuilder match_run_builder = new( MatchValueSpecialStyleInfo );
                 bool max_number_achieved = false;
 
                 var highlight_style = HighlightStyleInfos[match_number % HighlightStyleInfos.Length];
@@ -606,6 +526,7 @@ namespace RegExpressWPFNET
                 // show match
 
                 string match_name_text = show_first_only ? "Fɪʀꜱᴛ Mᴀᴛᴄʜ" : $"Mᴀᴛᴄʜ {match_number + 1}";
+                string plain_text = "";
 
                 ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
                 {
@@ -626,8 +547,10 @@ namespace RegExpressWPFNET
 
                         para = new Paragraph( span );
 
-                        var start_run = new Run( match_name_text.PadRight( left_width_for_match, ' ' ), span.ContentEnd );
+                        string start_text = match_name_text.PadRight( left_width_for_match, ' ' );
+                        var start_run = new Run( start_text, span.ContentEnd );
                         start_run.Style( MatchNormalStyleInfo );
+                        plain_text += start_text;
 
                         Inline value_inline;
 
@@ -635,17 +558,18 @@ namespace RegExpressWPFNET
                         {
                             value_inline = new Run( "(empty)", span.ContentEnd ); //
                             value_inline.Style( MatchNormalStyleInfo, LocationStyleInfo );
-                            //max_length = ... // too small, do not count
                         }
                         else
                         {
-                            (value_inline, int textLength) = match_run_builder.Build( match.Value, span.ContentEnd );
+                            (value_inline, string value_plain_text) = match_run_builder.Build( match.Value, span.ContentEnd );
                             value_inline.Style( MatchValueStyleInfo, highlight_style );
-                            max_length = Math.Max( max_length, left_width_for_match + textLength );
+                            plain_text += value_plain_text;
                         }
 
-                        run = new Run( $"\x200E  （{match.Index}, {match.Length}）", span.ContentEnd );
+                        string index_and_length = $"\x200E  （{match.Index}, {match.Length}）";
+                        run = new Run( index_and_length, span.ContentEnd );
                         run.Style( MatchNormalStyleInfo, LocationStyleInfo );
+                        plain_text += index_and_length;
 
                         _ = new LineBreak( span.ElementEnd ); // (after span)
 
@@ -668,9 +592,15 @@ namespace RegExpressWPFNET
                 if( max_number_achieved ) break;
                 if( cnc.IsCancellationRequested ) break;
 
+                FormattedText ft = new(
+                    plain_text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                    type_face,
+                    font_size, Brushes.Black, pixels_per_dip );
+                max_text_width = Math.Max( max_text_width, ft.Width );
+
                 // show groups
 
-                RunBuilder sibling_run_builder = new( null );
+                OutputBuilder sibling_run_builder = new( null );
 
                 foreach( var group in ordered_groups )
                 {
@@ -776,9 +706,11 @@ namespace RegExpressWPFNET
 
                 ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
                 {
-                    // adjust the horizontal scrollbar (increase only)
-                    double document_width_pt = Math.Max( MinWidthPt, ( max_length + "   (999, 999)".Length ) * CharWidthPt );
-                    if( rtbMatches.Document.MinPageWidth < document_width_pt ) rtbMatches.Document.MinPageWidth = document_width_pt;
+                    // adjust the horizontal scrollbar (increase only); will be also set at the end
+                    if( max_text_width > 0 )
+                    {
+                        if( rtbMatches.Document.PageWidth == double.NaN || rtbMatches.Document.PageWidth < max_text_width ) rtbMatches.Document.PageWidth = max_text_width;
+                    }
 
                     if( previous_para == null )
                     {
@@ -812,20 +744,23 @@ namespace RegExpressWPFNET
                 if( document_has_changed ) break;
 
                 previous_para = para;
-            }
+            } // (foreach match)
 
             if( document_has_changed ) return;
 
             if( cnc.IsCancellationRequested ) return;
 
-
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
                 // adjust horizontal scrollbar
-                Debug.Assert( CharWidthPt > 0 );
-                Debug.Assert( MinWidthPt > 0 );
-                double document_width_pt = Math.Max( MinWidthPt, ( max_length + "   (999, 999)".Length ) * CharWidthPt );
-                rtbMatches.Document.MinPageWidth = document_width_pt;
+                if( rtbMatches.ViewportWidth > max_text_width )
+                {
+                    rtbMatches.Document.PageWidth = double.NaN;
+                }
+                else
+                {
+                    rtbMatches.Document.PageWidth = max_text_width;
+                }
 
                 pbProgress.Visibility = Visibility.Hidden;
 
@@ -840,12 +775,13 @@ namespace RegExpressWPFNET
 
 
             ExternalUnderliningLoop.SignalWaitAndExecute( );
+
         }
 
 
         void AppendCaptures( ICancellable cnc, GroupInfo groupInfo, Paragraph para, int leftWidthForMatch,
             string text, IMatch match, IGroup group, StyleInfo highlightStyle,
-            RunBuilder runBuilder, RunBuilder siblingRunBuilder )
+            OutputBuilder runBuilder, OutputBuilder siblingRunBuilder )
         {
             int capture_number = -1;
             foreach( ICapture capture in group.Captures )
@@ -907,240 +843,6 @@ namespace RegExpressWPFNET
                 span.Tag = capture_info;
 
                 groupInfo.CaptureInfos.Add( capture_info );
-            }
-        }
-
-
-        static string AdjustString( string s )
-        {
-            // 21A9 ↩
-            // 21B2 ↲
-            // 21B5 ↵
-            // 23CE ⏎
-
-            // 00B7 ·
-            // 2219 ∙
-            // 22C5 ⋅
-            // 23B5 ⎵
-            // 2E31 ⸱ 
-            // 2420 ␠
-            // 2423 ␣
-
-            // 2192 →
-            // 21E2 ⇢
-            // 21E5 ⇥
-            // 2589 ▷
-            // 25B6 ▶
-            // 25B8 ▸ 
-            // 25B9 ▹ 
-            // 2B62 ⭢
-            // 2B72 ⭲
-            // 2B6C ⭬
-
-            s = s
-                    .Replace( "\r", @"\r" )
-                    .Replace( "\n", @"\n" )
-                    .Replace( "\t", @"\t" )
-                    //.Replace( " ", "\u00B7" )
-                    ; // TODO: add more 
-            return s;
-        }
-
-
-        class RunBuilder
-        {
-            struct MyRun
-            {
-                public string text;
-                public bool isSpecial;
-            }
-
-            readonly StringBuilder sb = new( );
-            readonly List<MyRun> runs = new( );
-            readonly StyleInfo? specialStyleInfo;
-            bool isPreviousSpecial = false;
-
-
-            public RunBuilder( StyleInfo? specialStyleInfo )
-            {
-                this.specialStyleInfo = specialStyleInfo;
-            }
-
-
-            public (Inline inline, int textLength) Build( string text, TextPointer at )
-            {
-                sb.Clear( );
-                runs.Clear( );
-                isPreviousSpecial = false;
-
-                foreach( var c in text )
-                {
-                    switch( c )
-                    {
-                    case '\r':
-                        AppendSpecial( @"\r" );
-                        continue;
-                    case '\n':
-                        AppendSpecial( @"\n" );
-                        continue;
-                    case '\t':
-                        AppendSpecial( @"\t" );
-                        continue;
-                    }
-
-                    if( c >= 0x21 && c <= 0x7E )
-                    {
-                        AppendNormal( c );
-                        continue;
-                    }
-
-                    switch( char.GetUnicodeCategory( c ) )
-                    {
-                    case UnicodeCategory.UppercaseLetter:
-                    case UnicodeCategory.LowercaseLetter:
-                    case UnicodeCategory.TitlecaseLetter:
-                    //case UnicodeCategory.ModifierLetter:
-                    case UnicodeCategory.OtherLetter:
-                    //case UnicodeCategory.NonSpacingMark:
-                    //case UnicodeCategory.SpacingCombiningMark:
-                    //case UnicodeCategory.EnclosingMark:
-                    case UnicodeCategory.DecimalDigitNumber:
-                    case UnicodeCategory.LetterNumber:
-                    case UnicodeCategory.OtherNumber:
-                    case UnicodeCategory.SpaceSeparator:
-                    //case UnicodeCategory.LineSeparator:
-                    //case UnicodeCategory.ParagraphSeparator:
-                    //case UnicodeCategory.Control:
-                    //case UnicodeCategory.Format:
-                    //case UnicodeCategory.Surrogate:
-                    //case UnicodeCategory.PrivateUse:
-                    case UnicodeCategory.ConnectorPunctuation:
-                    case UnicodeCategory.DashPunctuation:
-                    case UnicodeCategory.OpenPunctuation:
-                    case UnicodeCategory.ClosePunctuation:
-                    case UnicodeCategory.InitialQuotePunctuation:
-                    case UnicodeCategory.FinalQuotePunctuation:
-                    case UnicodeCategory.OtherPunctuation:
-                    case UnicodeCategory.MathSymbol:
-                    case UnicodeCategory.CurrencySymbol:
-                    //case UnicodeCategory.ModifierSymbol:
-                    case UnicodeCategory.OtherSymbol:
-                        //case UnicodeCategory.OtherNotAssigned:
-
-                        AppendNormal( c );
-
-                        break;
-
-                    default:
-
-                        AppendCode( c );
-
-                        break;
-                    }
-                }
-
-                // last
-                if( sb.Length > 0 )
-                {
-                    runs.Add( new MyRun { text = sb.ToString( ), isSpecial = isPreviousSpecial } );
-                }
-
-                // TODO: maybe insert element at position after creation.
-
-                switch( runs.Count )
-                {
-                case 0:
-                    return (new Span( (Inline)null!, at ), 0);
-                case 1:
-                {
-                    var r = runs[0];
-                    var run = new Run( r.text, at );
-                    if( r.isSpecial )
-                    {
-                        Debug.Assert( specialStyleInfo != null );
-
-                        run.Style( specialStyleInfo );
-                    }
-
-                    return (run, r.text.Length);
-                }
-                default:
-                {
-                    int len = 0;
-                    var r = runs[0];
-                    len += r.text.Length;
-                    var run = new Run( r.text );
-                    if( r.isSpecial )
-                    {
-                        Debug.Assert( specialStyleInfo != null );
-
-                        run.Style( specialStyleInfo );
-                    }
-
-                    var span = new Span( run, at );
-
-                    for( int i = 1; i < runs.Count; ++i )
-                    {
-                        r = runs[i];
-                        len += r.text.Length;
-                        run = new Run( r.text, span.ContentEnd );
-                        if( r.isSpecial )
-                        {
-                            Debug.Assert( specialStyleInfo != null );
-
-                            run.Style( specialStyleInfo );
-                        }
-                    }
-
-                    return (span, len);
-                }
-                }
-            }
-
-
-            private void AppendSpecial( string s )
-            {
-                if( isPreviousSpecial || specialStyleInfo == null )
-                {
-                    sb.Append( s );
-                }
-                else
-                {
-                    Debug.Assert( specialStyleInfo != null );
-
-                    if( sb.Length > 0 )
-                    {
-                        runs.Add( new MyRun { text = sb.ToString( ), isSpecial = false } );
-                    }
-                    sb.Clear( ).Append( s );
-                    isPreviousSpecial = true;
-                }
-            }
-
-
-            private void AppendCode( char c )
-            {
-                AppendSpecial( $@"\u{(int)c:X4}" );
-            }
-
-
-            private void AppendNormal( char c )
-            {
-                if( !isPreviousSpecial )
-                {
-                    sb.Append( c );
-                }
-                else
-                {
-                    Debug.Assert( specialStyleInfo != null );
-
-                    if( sb.Length > 0 )
-                    {
-                        runs.Add( new MyRun { text = sb.ToString( ), isSpecial = true } );
-                    }
-                    sb.Clear( ).Append( c );
-                    isPreviousSpecial = false;
-                }
             }
         }
 
