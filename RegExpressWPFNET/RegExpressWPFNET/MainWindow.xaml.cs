@@ -647,7 +647,7 @@ namespace RegExpressWPFNET
 
         Point ToPixels( Point p )
         {
-            Matrix transform = PresentationSource.FromVisual( this ).CompositionTarget.TransformFromDevice;
+            Matrix transform = PresentationSource.FromVisual( this ).CompositionTarget.TransformToDevice;
 
             Point r = transform.Transform( p );
 
