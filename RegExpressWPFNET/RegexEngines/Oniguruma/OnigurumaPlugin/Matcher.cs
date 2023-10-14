@@ -129,13 +129,14 @@ namespace OnigurumaPlugin
             bw.Write( Convert.ToByte( options.ONIG_OPTION_SINGLELINE ) );
             bw.Write( Convert.ToByte( options.ONIG_OPTION_MULTILINE ) );
             bw.Write( Convert.ToByte( options.ONIG_OPTION_IGNORECASE ) );
+            bw.Write( Convert.ToByte( options.ONIG_OPTION_IGNORECASE_IS_ASCII ) );
             bw.Write( Convert.ToByte( options.ONIG_OPTION_EXTEND ) );
             bw.Write( Convert.ToByte( options.ONIG_OPTION_FIND_LONGEST ) );
             bw.Write( Convert.ToByte( options.ONIG_OPTION_FIND_NOT_EMPTY ) );
+            bw.Write( Convert.ToByte( options.ONIG_OPTION_MATCH_WHOLE_STRING ) );
             bw.Write( Convert.ToByte( options.ONIG_OPTION_NEGATE_SINGLELINE ) );
-            bw.Write( Convert.ToByte( options.ONIG_OPTION_DONT_CAPTURE_GROUP ) );
             bw.Write( Convert.ToByte( options.ONIG_OPTION_CAPTURE_GROUP ) );
-            bw.Write( Convert.ToByte( options.ONIG_OPTION_IGNORECASE_IS_ASCII ) );
+            bw.Write( Convert.ToByte( options.ONIG_OPTION_DONT_CAPTURE_GROUP ) );
             bw.Write( Convert.ToByte( options.ONIG_OPTION_WORD_IS_ASCII ) );
             bw.Write( Convert.ToByte( options.ONIG_OPTION_DIGIT_IS_ASCII ) );
             bw.Write( Convert.ToByte( options.ONIG_OPTION_SPACE_IS_ASCII ) );

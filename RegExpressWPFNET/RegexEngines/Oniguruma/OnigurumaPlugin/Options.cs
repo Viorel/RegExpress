@@ -36,13 +36,14 @@ namespace OnigurumaPlugin
         public bool ONIG_OPTION_SINGLELINE { get; set; }
         public bool ONIG_OPTION_MULTILINE { get; set; }
         public bool ONIG_OPTION_IGNORECASE { get; set; }
+        public bool ONIG_OPTION_IGNORECASE_IS_ASCII { get; set; }
         public bool ONIG_OPTION_EXTEND { get; set; }
         public bool ONIG_OPTION_FIND_LONGEST { get; set; }
         public bool ONIG_OPTION_FIND_NOT_EMPTY { get; set; }
+        public bool ONIG_OPTION_MATCH_WHOLE_STRING { get; set; }
         public bool ONIG_OPTION_NEGATE_SINGLELINE { get; set; }
-        public bool ONIG_OPTION_DONT_CAPTURE_GROUP { get; set; }
         public bool ONIG_OPTION_CAPTURE_GROUP { get; set; }
-        public bool ONIG_OPTION_IGNORECASE_IS_ASCII { get; set; }
+        public bool ONIG_OPTION_DONT_CAPTURE_GROUP { get; set; }
         public bool ONIG_OPTION_WORD_IS_ASCII { get; set; }
         public bool ONIG_OPTION_DIGIT_IS_ASCII { get; set; }
         public bool ONIG_OPTION_SPACE_IS_ASCII { get; set; }
@@ -95,13 +96,14 @@ namespace OnigurumaPlugin
                      ONIG_OPTION_SINGLELINE == options.ONIG_OPTION_SINGLELINE &&
                      ONIG_OPTION_MULTILINE == options.ONIG_OPTION_MULTILINE &&
                      ONIG_OPTION_IGNORECASE == options.ONIG_OPTION_IGNORECASE &&
+                     ONIG_OPTION_IGNORECASE_IS_ASCII == options.ONIG_OPTION_IGNORECASE_IS_ASCII &&
                      ONIG_OPTION_EXTEND == options.ONIG_OPTION_EXTEND &&
                      ONIG_OPTION_FIND_LONGEST == options.ONIG_OPTION_FIND_LONGEST &&
                      ONIG_OPTION_FIND_NOT_EMPTY == options.ONIG_OPTION_FIND_NOT_EMPTY &&
+                     ONIG_OPTION_MATCH_WHOLE_STRING == options.ONIG_OPTION_MATCH_WHOLE_STRING &&
                      ONIG_OPTION_NEGATE_SINGLELINE == options.ONIG_OPTION_NEGATE_SINGLELINE &&
-                     ONIG_OPTION_DONT_CAPTURE_GROUP == options.ONIG_OPTION_DONT_CAPTURE_GROUP &&
                      ONIG_OPTION_CAPTURE_GROUP == options.ONIG_OPTION_CAPTURE_GROUP &&
-                     ONIG_OPTION_IGNORECASE_IS_ASCII == options.ONIG_OPTION_IGNORECASE_IS_ASCII &&
+                     ONIG_OPTION_DONT_CAPTURE_GROUP == options.ONIG_OPTION_DONT_CAPTURE_GROUP &&
                      ONIG_OPTION_WORD_IS_ASCII == options.ONIG_OPTION_WORD_IS_ASCII &&
                      ONIG_OPTION_DIGIT_IS_ASCII == options.ONIG_OPTION_DIGIT_IS_ASCII &&
                      ONIG_OPTION_SPACE_IS_ASCII == options.ONIG_OPTION_SPACE_IS_ASCII &&
@@ -124,13 +126,14 @@ namespace OnigurumaPlugin
             hash.Add( ONIG_OPTION_SINGLELINE );
             hash.Add( ONIG_OPTION_MULTILINE );
             hash.Add( ONIG_OPTION_IGNORECASE );
+            hash.Add( ONIG_OPTION_IGNORECASE_IS_ASCII );
             hash.Add( ONIG_OPTION_EXTEND );
             hash.Add( ONIG_OPTION_FIND_LONGEST );
             hash.Add( ONIG_OPTION_FIND_NOT_EMPTY );
+            hash.Add( ONIG_OPTION_MATCH_WHOLE_STRING );
             hash.Add( ONIG_OPTION_NEGATE_SINGLELINE );
-            hash.Add( ONIG_OPTION_DONT_CAPTURE_GROUP );
             hash.Add( ONIG_OPTION_CAPTURE_GROUP );
-            hash.Add( ONIG_OPTION_IGNORECASE_IS_ASCII );
+            hash.Add( ONIG_OPTION_DONT_CAPTURE_GROUP );
             hash.Add( ONIG_OPTION_WORD_IS_ASCII );
             hash.Add( ONIG_OPTION_DIGIT_IS_ASCII );
             hash.Add( ONIG_OPTION_SPACE_IS_ASCII );
