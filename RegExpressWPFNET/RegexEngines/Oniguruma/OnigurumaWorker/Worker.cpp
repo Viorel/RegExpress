@@ -370,13 +370,14 @@ void ReadOptions( BinaryReaderW& inbr, decltype( ONIG_SYNTAX_ONIGURUMA )* syntax
     if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_SINGLELINE;
     if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_MULTILINE;
     if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_IGNORECASE;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_IGNORECASE_IS_ASCII;
     if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_EXTEND;
     if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_FIND_LONGEST;
     if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_FIND_NOT_EMPTY;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_MATCH_WHOLE_STRING;
     if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_NEGATE_SINGLELINE;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_DONT_CAPTURE_GROUP;
     if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_CAPTURE_GROUP;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_IGNORECASE_IS_ASCII;
+    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_DONT_CAPTURE_GROUP;
     if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_WORD_IS_ASCII;
     if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_DIGIT_IS_ASCII;
     if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_SPACE_IS_ASCII;
