@@ -17,6 +17,7 @@
     <Grid>
         <StackPanel>
             <StackPanel>
+                <ui:CheckboxWithNote Prop="Compiled" Note="compile to MSIL code"/>
                 <ui:CheckboxWithNote Prop="CultureInvariant" Note="ignore cultural differences"/>
                 <ui:CheckboxWithNote Prop="ECMAScript" Note="ECMAScript-compliant behavior"/>
                 <ui:CheckboxWithNote Prop="ExplicitCapture" Note="do not capture unnamed groups"/>
