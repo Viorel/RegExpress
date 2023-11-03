@@ -11,15 +11,15 @@ namespace DotNET6Plugin
 {
     class Options
     {
-        public bool IgnoreCase { get; set; }
-        public bool Multiline { get; set; }
-        public bool ExplicitCapture { get; set; }
         public bool Compiled { get; set; }
-        public bool Singleline { get; set; }
-        public bool IgnorePatternWhitespace { get; set; }
-        public bool RightToLeft { get; set; }
-        public bool ECMAScript { get; set; }
         public bool CultureInvariant { get; set; }
+        public bool ECMAScript { get; set; }
+        public bool ExplicitCapture { get; set; }
+        public bool IgnoreCase { get; set; }
+        public bool IgnorePatternWhitespace { get; set; }
+        public bool Multiline { get; set; }
+        public bool RightToLeft { get; set; }
+        public bool Singleline { get; set; }
 
         public long TimeoutMs { get; set; } = 10_000;
 
@@ -30,27 +30,27 @@ namespace DotNET6Plugin
             get
             {
                 return
-                    ( IgnoreCase ? RegexOptions.IgnoreCase : 0 ) |
-                    ( Multiline ? RegexOptions.Multiline : 0 ) |
-                    ( ExplicitCapture ? RegexOptions.ExplicitCapture : 0 ) |
                     ( Compiled ? RegexOptions.Compiled : 0 ) |
-                    ( Singleline ? RegexOptions.Singleline : 0 ) |
-                    ( IgnorePatternWhitespace ? RegexOptions.IgnorePatternWhitespace : 0 ) |
-                    ( RightToLeft ? RegexOptions.RightToLeft : 0 ) |
+                    ( CultureInvariant ? RegexOptions.CultureInvariant : 0 ) |
                     ( ECMAScript ? RegexOptions.ECMAScript : 0 ) |
-                    ( CultureInvariant ? RegexOptions.CultureInvariant : 0 );
+                    ( ExplicitCapture ? RegexOptions.ExplicitCapture : 0 ) |
+                    ( IgnoreCase ? RegexOptions.IgnoreCase : 0 ) |
+                    ( IgnorePatternWhitespace ? RegexOptions.IgnorePatternWhitespace : 0 ) |
+                    ( Multiline ? RegexOptions.Multiline : 0 ) |
+                    ( RightToLeft ? RegexOptions.RightToLeft : 0 ) |
+                    ( Singleline ? RegexOptions.Singleline : 0 );
             }
             set
             {
-                IgnoreCase = value.HasFlag( RegexOptions.IgnoreCase );
-                Multiline = value.HasFlag( RegexOptions.Multiline );
-                ExplicitCapture = value.HasFlag( RegexOptions.ExplicitCapture );
                 Compiled = value.HasFlag( RegexOptions.Compiled );
-                Singleline = value.HasFlag( RegexOptions.Singleline );
-                IgnorePatternWhitespace = value.HasFlag( RegexOptions.IgnorePatternWhitespace );
-                RightToLeft = value.HasFlag( RegexOptions.RightToLeft );
-                ECMAScript = value.HasFlag( RegexOptions.ECMAScript );
                 CultureInvariant = value.HasFlag( RegexOptions.CultureInvariant );
+                ECMAScript = value.HasFlag( RegexOptions.ECMAScript );
+                ExplicitCapture = value.HasFlag( RegexOptions.ExplicitCapture );
+                IgnoreCase = value.HasFlag( RegexOptions.IgnoreCase );
+                IgnorePatternWhitespace = value.HasFlag( RegexOptions.IgnorePatternWhitespace );
+                Multiline = value.HasFlag( RegexOptions.Multiline );
+                RightToLeft = value.HasFlag( RegexOptions.RightToLeft );
+                Singleline = value.HasFlag( RegexOptions.Singleline );
             }
         }
 
