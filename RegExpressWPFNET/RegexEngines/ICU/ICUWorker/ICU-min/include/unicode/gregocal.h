@@ -495,10 +495,11 @@ public:
      * handleGetMonthLength() to obtain the calendar-specific month
      * length.
      * @param bestField which field to use to calculate the date 
+     * @param status Fill-in parameter which receives the status of this operation.
      * @return julian day specified by calendar fields.
      * @internal
      */
-    virtual int32_t handleComputeJulianDay(UCalendarDateFields bestField) override;
+    virtual int32_t handleComputeJulianDay(UCalendarDateFields bestField, UErrorCode& status) override;
 
     /**
      * Return the number of days in the given month of the given extended
@@ -537,28 +538,12 @@ public:
 
 #ifndef U_HIDE_INTERNAL_API
     /**
-     * return the length of the given year.
-     * @param year    the given year.
-     * @return        the length of the given year.
-     * @internal
-     */
-    int32_t yearLength(int32_t year) const;
-    
-    /**
      * return the length of the year field.
      * @return    the length of the year field
      * @internal
      */
     int32_t yearLength(void) const;
 
-    /**
-     * After adjustments such as add(MONTH), add(YEAR), we don't want the
-     * month to jump around.  E.g., we don't want Jan 31 + 1 month to go to Mar
-     * 3, we want it to go to Feb 28.  Adjustments which might run into this
-     * problem call this method to retain the proper month.
-     * @internal
-     */
-    void pinDayOfMonth(void);
 #endif  /* U_HIDE_INTERNAL_API */
 
     /**
