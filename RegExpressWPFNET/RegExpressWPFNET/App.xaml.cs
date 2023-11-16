@@ -38,18 +38,28 @@ namespace RegExpressWPFNET
 
         private void App_Startup( object sender, StartupEventArgs e )
         {
-            var current_process = Process.GetCurrentProcess( );
-            var other_process = Process.GetProcessesByName( current_process.ProcessName ).FirstOrDefault( p => p.Id != current_process.Id );
+            Process current_process = Process.GetCurrentProcess( );
 
-            if( other_process != null && other_process.MainWindowHandle != IntPtr.Zero )
+            Process? other_process = Process.GetProcessesByName( current_process.ProcessName ).FirstOrDefault( p => p.Id != current_process.Id && p.MainWindowHandle != IntPtr.Zero );
+
+            if( other_process != null )
             {
-                if( IsIconic( other_process.MainWindowHandle ) )
-                {
-                    if( !ShowWindow( other_process.MainWindowHandle, SW_RESTORE ) ) Debug.Assert( false );
-                }
-                if( !SetForegroundWindow( other_process.MainWindowHandle ) ) Debug.Assert( false );
+                if( IsIconic( other_process.MainWindowHandle ) ) ShowWindow( other_process.MainWindowHandle, SW_RESTORE );
+
+                SetForegroundWindow( other_process.MainWindowHandle );
 
                 Shutdown( );
+
+                return;
+            }
+
+            other_process = Process.GetProcessesByName( current_process.ProcessName ).FirstOrDefault( p => p.Id < current_process.Id );
+
+            if( other_process != null )
+            {
+                Shutdown( );
+
+                return;
             }
         }
 
