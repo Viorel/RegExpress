@@ -4,7 +4,7 @@ using System.Diagnostics;
 using RegExpressLibrary;
 
 
-namespace DotNET7Plugin
+namespace DotNET8Plugin
 {
     public class Plugin : IRegexPlugin
     {
