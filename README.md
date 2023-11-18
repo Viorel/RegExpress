@@ -1,9 +1,10 @@
 ﻿# RegExpress
 
-A tester for Regular Expressions. Made in Visual Studio 2022 using C#, C++, WPF, .NET 7.
+A tester for Regular Expressions. Made in Visual Studio 2022 using C#, C++, WPF, .NET 8.
 
 It includes the following Regular Expression engines:
 
+* **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-8.0)** class from .NET 8.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-7.0)** class from .NET 7.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-6.0)** class from .NET 6.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8)** class from .NET Framework 4.8.
@@ -37,7 +38,8 @@ Sample:
 The regular expressions are saved and loaded automatically. Press the “➕” button to open more tabs. 
 Use the **Options** area to select and configure the Regular Expression engine.
 
-The program can be built using Visual Studio 2022. The sources contain code written in C# and C++. 
+The program can be built using Visual Studio 2022 and .NET 8. The sources are written in C# and C++. 
+
 The following Visual Studio workloads are required:
 
 * .NET desktop development.
@@ -73,7 +75,7 @@ This repository includes several additional engines:
 To use these engines, get the **main-extended** branch instead of **main**, then recompile 
 the same solution.
 
-The **main-extended** branch also includes the regular engines from the **main** branch.
+The **main-extended** branch also includes the regular expression engines from the **main** branch.
 
 The additional engines require certain third-party library files, which were downloaded or compiled separately 
 and included into **main-extended** branch. (No installations are required).
