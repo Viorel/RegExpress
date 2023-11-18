@@ -117,50 +117,51 @@ xcopy /D /R /Y "%BasePath%\VBScriptWorker\VBScriptWorker.vbs" "%EnginesTargetPat
 rem -- Hyperscan --
 
 set BasePath=%SolutionDir%\RegexEngines\Hyperscan
-xcopy /D /R /Y "%BasePath%\HyperscanPlugin\bin\%Configuration%\%TargetDir%\HyperscanPlugin.dll" "%EnginesTargetDir%\Hyperscan\*"
-xcopy /D /R /Y "%BasePath%\HyperscanWorker\bin\%Configuration%\%Platform%\HyperscanWorker.exe" "%EnginesTargetDir%\Hyperscan\*.bin"
+xcopy /D /R /Y "%BasePath%\HyperscanPlugin\bin\%Configuration%\%TargetDir%\HyperscanPlugin.dll" "%EnginesTargetPath%\Hyperscan\*"
+xcopy /D /R /Y "%BasePath%\HyperscanWorker\bin\%Configuration%\%Platform%\HyperscanWorker.exe" "%EnginesTargetPath%\Hyperscan\*.bin"
 
 
 rem -- ICU --
 
 set BasePath=%SolutionDir%\RegexEngines\ICU
-xcopy /D /R /Y "%BasePath%\ICUPlugin\bin\%Configuration%\%TargetDir%\ICUPlugin.dll" "%EnginesTargetDir%\ICU\*"
-xcopy /D /R /Y "%BasePath%\ICUWorker\bin\%Configuration%\%Platform%\ICUWorker.exe" "%EnginesTargetDir%\ICU\*.bin"
-xcopy /D /R /Y "%BasePath%\ICUWorker\ICU-min\bin64\*" "%EnginesTargetDir%\ICU\*"
+xcopy /D /R /Y "%BasePath%\ICUPlugin\bin\%Configuration%\%TargetDir%\ICUPlugin.dll" "%EnginesTargetPath%\ICU\*"
+xcopy /D /R /Y "%BasePath%\ICUWorker\bin\%Configuration%\%Platform%\ICUWorker.exe" "%EnginesTargetPath%\ICU\*.bin"
+xcopy /D /R /Y "%BasePath%\ICUWorker\ICU-min\bin64\*" "%EnginesTargetPath%\ICU\*"
 
 
 rem -- Rust --
 
 set BasePath=%SolutionDir%\RegexEngines\Rust
-xcopy /D /R /Y "%BasePath%\RustPlugin\bin\%Configuration%\%TargetDir%\RustPlugin.dll" "%EnginesTargetDir%\Rust\*"
-xcopy /D /R /Y "%BasePath%\RustWorker\target\release\RustWorker.exe" "%EnginesTargetDir%\Rust\*.bin"
+xcopy /D /R /Y "%BasePath%\RustPlugin\bin\%Configuration%\%TargetDir%\RustPlugin.dll" "%EnginesTargetPath%\Rust\*"
+xcopy /D /R /Y "%BasePath%\RustWorker\target\release\RustWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
 
 
 rem -- Java --
 
 set BasePath=%SolutionDir%\RegexEngines\Java
-xcopy /D /R /Y "%BasePath%\JavaPlugin\bin\%Configuration%\%TargetDir%\JavaPlugin.dll" "%EnginesTargetDir%\Java\*"
-xcopy /D /R /Y "%BasePath%\JavaWorker\JavaWorker.class" "%EnginesTargetDir%\Java\*"
-xcopy /D /R /Y "%BasePath%\JavaWorker\JRE-min.zip" "%EnginesTargetDir%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaPlugin\bin\%Configuration%\%TargetDir%\JavaPlugin.dll" "%EnginesTargetPath%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaWorker\JavaWorker.class" "%EnginesTargetPath%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaWorker\JRE-min.zip" "%EnginesTargetPath%\Java\*"
 
 
 rem -- Python --
 
 set BasePath=%SolutionDir%\RegexEngines\Python
-xcopy /D /R /Y "%BasePath%\PythonPlugin\bin\%Configuration%\%TargetDir%\PythonPlugin.dll" "%EnginesTargetDir%\Python\*"
-xcopy /D /R /Y /E "%BasePath%\PythonWorker\python-embed-amd64\*" "%EnginesTargetDir%\Python\python-embed-amd64\*"
+xcopy /D /R /Y "%BasePath%\PythonPlugin\bin\%Configuration%\%TargetDir%\PythonPlugin.dll" "%EnginesTargetPath%\Python\*"
+xcopy /D /R /Y /E "%BasePath%\PythonWorker\python-embed-amd64\*" "%EnginesTargetPath%\Python\python-embed-amd64\*"
 
 
 rem -- D --
 
 set BasePath=%SolutionDir%\RegexEngines\D
-xcopy /D /R /Y "%BasePath%\DPlugin\bin\%Configuration%\%TargetDir%\DPlugin.dll" "%EnginesTargetDir%\D\*"
-xcopy /D /R /Y "%BasePath%\DWorker\DWorker.exe" "%EnginesTargetDir%\D\*.bin"
+xcopy /D /R /Y "%BasePath%\DPlugin\bin\%Configuration%\%TargetDir%\DPlugin.dll" "%EnginesTargetPath%\D\*"
+xcopy /D /R /Y "%BasePath%\DWorker\DWorker.exe" "%EnginesTargetPath%\D\*.bin"
 
 
 rem -- Perl --
 
 set BasePath=%SolutionDir%\RegexEngines\Perl
-xcopy /D /R /Y "%BasePath%\PerlPlugin\bin\%Configuration%\%TargetDir%\PerlPlugin.dll" "%EnginesTargetDir%\Perl\*"
-xcopy /D /R /Y "%BasePath%\PerlWorker\PerlWorker.pl" "%EnginesTargetDir%\Perl\*"
-xcopy /D /R /Y /E "%BasePath%\PerlWorker\Perl-min\*" "%EnginesTargetDir%\Perl\Perl-min\*"
+xcopy /D /R /Y "%BasePath%\PerlPlugin\bin\%Configuration%\%TargetDir%\PerlPlugin.dll" "%EnginesTargetPath%\Perl\*"
+xcopy /D /R /Y "%BasePath%\PerlWorker\PerlWorker.pl" "%EnginesTargetPath%\Perl\*"
+xcopy /D /R /Y /E "%BasePath%\PerlWorker\Perl-min\*" "%EnginesTargetPath%\Perl\Perl-min\*"
+

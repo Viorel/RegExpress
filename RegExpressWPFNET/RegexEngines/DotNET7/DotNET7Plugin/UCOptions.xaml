@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:DotNET7Plugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             Loaded="UserControl_Loaded" d:DesignHeight="170" d:DesignWidth="410" >
+             Loaded="UserControl_Loaded" d:DesignHeight="190" d:DesignWidth="410" >
 
     <UserControl.Resources>
         <Style TargetType="ui:CheckboxWithNote">
