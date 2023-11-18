@@ -2,7 +2,7 @@
 
 set Configuration=%~1
 set Platform=%~2
-set TargetFramework=net7.0-windows
+set TargetDir=net8.0-windows7.0
 
 set ThisCmdPath=%~dp0
 
@@ -10,143 +10,157 @@ rem echo %ConfigurationName%
 rem echo %ThisCmdPath%
 
 set SolutionDir=%ThisCmdPath%..
-set EnginesTargetDir=%SolutionDir%\RegExpressWPFNET\bin\%Configuration%\%TargetFramework%\Engines
+set EnginesTargetPath=%SolutionDir%\RegExpressWPFNET\bin\%Configuration%\%TargetDir%\Engines
 
 rem echo %SolutionDir%
 rem echo %TargetDir%
 
 
+rem -- .NET 8 --
+
+set BasePath=%SolutionDir%\RegexEngines\DotNET8
+xcopy /D /R /Y "%BasePath%\DotNET8Plugin\bin\%Configuration%\%TargetDir%\DotNET8Plugin.dll" "%EnginesTargetPath%\DotNET8\*"
+xcopy /D /R /Y "%BasePath%\DotNET8Worker\bin\%Configuration%\net8.0-windows\DotNET8Worker.dll" "%EnginesTargetPath%\DotNET8\Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET8Worker\bin\%Configuration%\net8.0-windows\DotNET8Worker.exe" "%EnginesTargetPath%\DotNET8\Worker\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNET8Worker\bin\%Configuration%\net8.0-windows\DotNET8Worker.deps.json" "%EnginesTargetPath%\DotNET8\Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET8Worker\bin\%Configuration%\net8.0-windows\DotNET8Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET8\Worker\*"
+
+
 rem -- .NET 7 --
 
-set BaseDir=%SolutionDir%\RegexEngines\DotNET7
-xcopy /D /R /Y "%BaseDir%\DotNET7Plugin\bin\%Configuration%\%TargetFramework%\DotNET7Plugin.dll" "%EnginesTargetDir%\DotNET7\*"
+set BasePath=%SolutionDir%\RegexEngines\DotNET7
+xcopy /D /R /Y "%BasePath%\DotNET7Plugin\bin\%Configuration%\%TargetDir%\DotNET7Plugin.dll" "%EnginesTargetPath%\DotNET7\*"
+xcopy /D /R /Y "%BasePath%\DotNET7Worker\bin\%Configuration%\net7.0-windows7.0\DotNET7Worker.dll" "%EnginesTargetPath%\DotNET7\Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET7Worker\bin\%Configuration%\net7.0-windows7.0\DotNET7Worker.exe" "%EnginesTargetPath%\DotNET7\Worker\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNET7Worker\bin\%Configuration%\net7.0-windows7.0\DotNET7Worker.deps.json" "%EnginesTargetPath%\DotNET7\Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET7Worker\bin\%Configuration%\net7.0-windows7.0\DotNET7Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET7\Worker\*"
 
 
 rem -- .NET 6 --
 
-set BaseDir=%SolutionDir%\RegexEngines\DotNET6
-xcopy /D /R /Y "%BaseDir%\DotNET6Plugin\bin\%Configuration%\%TargetFramework%\DotNET6Plugin.dll" "%EnginesTargetDir%\DotNET6\*"
-xcopy /D /R /Y "%BaseDir%\DotNET6Worker\bin\%Configuration%\net6.0\DotNET6Worker.dll" "%EnginesTargetDir%\DotNET6\Worker\*"
-xcopy /D /R /Y "%BaseDir%\DotNET6Worker\bin\%Configuration%\net6.0\DotNET6Worker.exe" "%EnginesTargetDir%\DotNET6\Worker\*.bin"
-xcopy /D /R /Y "%BaseDir%\DotNET6Worker\bin\%Configuration%\net6.0\DotNET6Worker.deps.json" "%EnginesTargetDir%\DotNET6\Worker\*"
-xcopy /D /R /Y "%BaseDir%\DotNET6Worker\bin\%Configuration%\net6.0\DotNET6Worker.runtimeconfig.json" "%EnginesTargetDir%\DotNET6\Worker\*"
+set BasePath=%SolutionDir%\RegexEngines\DotNET6
+xcopy /D /R /Y "%BasePath%\DotNET6Plugin\bin\%Configuration%\%TargetDir%\DotNET6Plugin.dll" "%EnginesTargetPath%\DotNET6\*"
+xcopy /D /R /Y "%BasePath%\DotNET6Worker\bin\%Configuration%\net6.0-windows\DotNET6Worker.dll" "%EnginesTargetPath%\DotNET6\Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET6Worker\bin\%Configuration%\net6.0-windows\DotNET6Worker.exe" "%EnginesTargetPath%\DotNET6\Worker\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNET6Worker\bin\%Configuration%\net6.0-windows\DotNET6Worker.deps.json" "%EnginesTargetPath%\DotNET6\Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET6Worker\bin\%Configuration%\net6.0-windows\DotNET6Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET6\Worker\*"
 
 
 rem -- .NET Framework 4.8 --
 
-set BaseDir=%SolutionDir%\RegexEngines\DotNETFramework4_8
-xcopy /D /R /Y "%BaseDir%\DotNETFrameworkPlugin\bin\%Configuration%\%TargetFramework%\DotNETFrameworkPlugin.dll" "%EnginesTargetDir%\DotNETFramework4_8\*"
-xcopy /D /R /Y "%BaseDir%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe" "%EnginesTargetDir%\DotNETFramework4_8\Worker\*.bin"
-xcopy /D /R /Y "%BaseDir%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe.config" "%EnginesTargetDir%\DotNETFramework4_8\Worker\*"
-copy /Y "%EnginesTargetDir%\DotNETFramework4_8\Worker\DotNETFrameworkWorker.exe.config" "%EnginesTargetDir%\DotNETFramework4_8\Worker\DotNETFrameworkWorker.bin.config"
-xcopy /D /R /Y "%BaseDir%\DotNETFrameworkWorker\bin\%Configuration%\*.dll" "%EnginesTargetDir%\DotNETFramework4_8\Worker\*"
-rem xcopy /D /R /Y "%BaseDir%\DotNETFrameworkWorker\bin\%Configuration%\*.config" "%EnginesTargetDir%\DotNETFramework4_8\*.bin"
+set BasePath=%SolutionDir%\RegexEngines\DotNETFramework4_8
+xcopy /D /R /Y "%BasePath%\DotNETFrameworkPlugin\bin\%Configuration%\%TargetDir%\DotNETFrameworkPlugin.dll" "%EnginesTargetPath%\DotNETFramework4_8\*"
+xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe" "%EnginesTargetPath%\DotNETFramework4_8\Worker\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe.config" "%EnginesTargetPath%\DotNETFramework4_8\Worker\*"
+copy /Y "%EnginesTargetPath%\DotNETFramework4_8\Worker\DotNETFrameworkWorker.exe.config" "%EnginesTargetPath%\DotNETFramework4_8\Worker\DotNETFrameworkWorker.bin.config" > nul
+xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\*.dll" "%EnginesTargetPath%\DotNETFramework4_8\Worker\*"
+rem xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\*.config" "%EnginesTargetPath%\DotNETFramework4_8\*.bin"
 
 
 rem -- STD --
 
-set BaseDir=%SolutionDir%\RegexEngines\Std
-xcopy /D /R /Y "%BaseDir%\StdPlugin\bin\%Configuration%\%TargetFramework%\StdPlugin.dll" "%EnginesTargetDir%\Std\*"
-xcopy /D /R /Y "%BaseDir%\StdWorker\bin\%Configuration%\%Platform%\StdWorker.exe" "%EnginesTargetDir%\Std\*.bin"
+set BasePath=%SolutionDir%\RegexEngines\Std
+xcopy /D /R /Y "%BasePath%\StdPlugin\bin\%Configuration%\%TargetDir%\StdPlugin.dll" "%EnginesTargetPath%\Std\*"
+xcopy /D /R /Y "%BasePath%\StdWorker\bin\%Configuration%\%Platform%\StdWorker.exe" "%EnginesTargetPath%\Std\*.bin"
 
 
 rem -- RE2 --
 
-set BaseDir=%SolutionDir%\RegexEngines\RE2
-xcopy /D /R /Y "%BaseDir%\RE2Plugin\bin\%Configuration%\%TargetFramework%\RE2Plugin.dll" "%EnginesTargetDir%\RE2\*"
-xcopy /D /R /Y "%BaseDir%\RE2Worker\bin\%Configuration%\%Platform%\RE2Worker.exe" "%EnginesTargetDir%\RE2\*.bin"
+set BasePath=%SolutionDir%\RegexEngines\RE2
+xcopy /D /R /Y "%BasePath%\RE2Plugin\bin\%Configuration%\%TargetDir%\RE2Plugin.dll" "%EnginesTargetPath%\RE2\*"
+xcopy /D /R /Y "%BasePath%\RE2Worker\bin\%Configuration%\%Platform%\RE2Worker.exe" "%EnginesTargetPath%\RE2\*.bin"
 
 
 rem -- SubReg --
 
-set BaseDir=%SolutionDir%\RegexEngines\SubReg
-xcopy /D /R /Y "%BaseDir%\SubRegPlugin\bin\%Configuration%\%TargetFramework%\SubRegPlugin.dll" "%EnginesTargetDir%\SubReg\*"
-xcopy /D /R /Y "%BaseDir%\SubRegWorker\bin\%Configuration%\%Platform%\SubRegWorker.exe" "%EnginesTargetDir%\SubReg\*.bin"
+set BasePath=%SolutionDir%\RegexEngines\SubReg
+xcopy /D /R /Y "%BasePath%\SubRegPlugin\bin\%Configuration%\%TargetDir%\SubRegPlugin.dll" "%EnginesTargetPath%\SubReg\*"
+xcopy /D /R /Y "%BasePath%\SubRegWorker\bin\%Configuration%\%Platform%\SubRegWorker.exe" "%EnginesTargetPath%\SubReg\*.bin"
 
 
 rem -- PCRE2 --
 
-set BaseDir=%SolutionDir%\RegexEngines\PCRE2
-xcopy /D /R /Y "%BaseDir%\PCRE2Plugin\bin\%Configuration%\%TargetFramework%\PCRE2Plugin.dll" "%EnginesTargetDir%\PCRE2\*"
-xcopy /D /R /Y "%BaseDir%\PCRE2Worker\bin\%Configuration%\%Platform%\PCRE2Worker.exe" "%EnginesTargetDir%\PCRE2\*.bin"
+set BasePath=%SolutionDir%\RegexEngines\PCRE2
+xcopy /D /R /Y "%BasePath%\PCRE2Plugin\bin\%Configuration%\%TargetDir%\PCRE2Plugin.dll" "%EnginesTargetPath%\PCRE2\*"
+xcopy /D /R /Y "%BasePath%\PCRE2Worker\bin\%Configuration%\%Platform%\PCRE2Worker.exe" "%EnginesTargetPath%\PCRE2\*.bin"
 
 
 rem -- Boost --
 
-set BaseDir=%SolutionDir%\RegexEngines\Boost
-xcopy /D /R /Y "%BaseDir%\BoostPlugin\bin\%Configuration%\%TargetFramework%\BoostPlugin.dll" "%EnginesTargetDir%\Boost\*"
-xcopy /D /R /Y "%BaseDir%\BoostWorker\bin\%Configuration%\%Platform%\BoostWorker.exe" "%EnginesTargetDir%\Boost\*.bin"
+set BasePath=%SolutionDir%\RegexEngines\Boost
+xcopy /D /R /Y "%BasePath%\BoostPlugin\bin\%Configuration%\%TargetDir%\BoostPlugin.dll" "%EnginesTargetPath%\Boost\*"
+xcopy /D /R /Y "%BasePath%\BoostWorker\bin\%Configuration%\%Platform%\BoostWorker.exe" "%EnginesTargetPath%\Boost\*.bin"
 
 
 rem -- Oniguruma --
 
-set BaseDir=%SolutionDir%\RegexEngines\Oniguruma
-xcopy /D /R /Y "%BaseDir%\OnigurumaPlugin\bin\%Configuration%\%TargetFramework%\OnigurumaPlugin.dll" "%EnginesTargetDir%\Oniguruma\*"
-xcopy /D /R /Y "%BaseDir%\OnigurumaWorker\bin\%Configuration%\%Platform%\OnigurumaWorker.exe" "%EnginesTargetDir%\Oniguruma\*.bin"
+set BasePath=%SolutionDir%\RegexEngines\Oniguruma
+xcopy /D /R /Y "%BasePath%\OnigurumaPlugin\bin\%Configuration%\%TargetDir%\OnigurumaPlugin.dll" "%EnginesTargetPath%\Oniguruma\*"
+xcopy /D /R /Y "%BasePath%\OnigurumaWorker\bin\%Configuration%\%Platform%\OnigurumaWorker.exe" "%EnginesTargetPath%\Oniguruma\*.bin"
 
 
 rem -- WebView2 --
 
-set BaseDir=%SolutionDir%\RegexEngines\WebView2
-xcopy /D /R /Y "%BaseDir%\WebView2Plugin\bin\%Configuration%\%TargetFramework%\WebView2Plugin.dll" "%EnginesTargetDir%\WebView2\*"
-xcopy /D /R /Y "%BaseDir%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Worker.exe" "%EnginesTargetDir%\WebView2\*.bin"
-xcopy /D /R /Y "%BaseDir%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Loader.dll" "%EnginesTargetDir%\WebView2\*"
+set BasePath=%SolutionDir%\RegexEngines\WebView2
+xcopy /D /R /Y "%BasePath%\WebView2Plugin\bin\%Configuration%\%TargetDir%\WebView2Plugin.dll" "%EnginesTargetPath%\WebView2\*"
+xcopy /D /R /Y "%BasePath%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Worker.exe" "%EnginesTargetPath%\WebView2\*.bin"
+xcopy /D /R /Y "%BasePath%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Loader.dll" "%EnginesTargetPath%\WebView2\*"
 
 
 rem -- VBScript --
 
-set BaseDir=%SolutionDir%\RegexEngines\VBScript
-xcopy /D /R /Y "%BaseDir%\VBScriptPlugin\bin\%Configuration%\%TargetFramework%\VBScriptPlugin.dll" "%EnginesTargetDir%\VBScript\*"
-xcopy /D /R /Y "%BaseDir%\VBScriptWorker\VBScriptWorker.vbs" "%EnginesTargetDir%\VBScript\*"
+set BasePath=%SolutionDir%\RegexEngines\VBScript
+xcopy /D /R /Y "%BasePath%\VBScriptPlugin\bin\%Configuration%\%TargetDir%\VBScriptPlugin.dll" "%EnginesTargetPath%\VBScript\*"
+xcopy /D /R /Y "%BasePath%\VBScriptWorker\VBScriptWorker.vbs" "%EnginesTargetPath%\VBScript\*"
 
 
 rem -- Hyperscan --
 
-set BaseDir=%SolutionDir%\RegexEngines\Hyperscan
-xcopy /D /R /Y "%BaseDir%\HyperscanPlugin\bin\%Configuration%\%TargetFramework%\HyperscanPlugin.dll" "%EnginesTargetDir%\Hyperscan\*"
-xcopy /D /R /Y "%BaseDir%\HyperscanWorker\bin\%Configuration%\%Platform%\HyperscanWorker.exe" "%EnginesTargetDir%\Hyperscan\*.bin"
+set BasePath=%SolutionDir%\RegexEngines\Hyperscan
+xcopy /D /R /Y "%BasePath%\HyperscanPlugin\bin\%Configuration%\%TargetDir%\HyperscanPlugin.dll" "%EnginesTargetDir%\Hyperscan\*"
+xcopy /D /R /Y "%BasePath%\HyperscanWorker\bin\%Configuration%\%Platform%\HyperscanWorker.exe" "%EnginesTargetDir%\Hyperscan\*.bin"
 
 
 rem -- ICU --
 
-set BaseDir=%SolutionDir%\RegexEngines\ICU
-xcopy /D /R /Y "%BaseDir%\ICUPlugin\bin\%Configuration%\%TargetFramework%\ICUPlugin.dll" "%EnginesTargetDir%\ICU\*"
-xcopy /D /R /Y "%BaseDir%\ICUWorker\bin\%Configuration%\%Platform%\ICUWorker.exe" "%EnginesTargetDir%\ICU\*.bin"
-xcopy /D /R /Y "%BaseDir%\ICUWorker\ICU-min\bin64\*" "%EnginesTargetDir%\ICU\*"
+set BasePath=%SolutionDir%\RegexEngines\ICU
+xcopy /D /R /Y "%BasePath%\ICUPlugin\bin\%Configuration%\%TargetDir%\ICUPlugin.dll" "%EnginesTargetDir%\ICU\*"
+xcopy /D /R /Y "%BasePath%\ICUWorker\bin\%Configuration%\%Platform%\ICUWorker.exe" "%EnginesTargetDir%\ICU\*.bin"
+xcopy /D /R /Y "%BasePath%\ICUWorker\ICU-min\bin64\*" "%EnginesTargetDir%\ICU\*"
 
 
 rem -- Rust --
 
-set BaseDir=%SolutionDir%\RegexEngines\Rust
-xcopy /D /R /Y "%BaseDir%\RustPlugin\bin\%Configuration%\%TargetFramework%\RustPlugin.dll" "%EnginesTargetDir%\Rust\*"
-xcopy /D /R /Y "%BaseDir%\RustWorker\target\release\RustWorker.exe" "%EnginesTargetDir%\Rust\*.bin"
+set BasePath=%SolutionDir%\RegexEngines\Rust
+xcopy /D /R /Y "%BasePath%\RustPlugin\bin\%Configuration%\%TargetDir%\RustPlugin.dll" "%EnginesTargetDir%\Rust\*"
+xcopy /D /R /Y "%BasePath%\RustWorker\target\release\RustWorker.exe" "%EnginesTargetDir%\Rust\*.bin"
 
 
 rem -- Java --
 
-set BaseDir=%SolutionDir%\RegexEngines\Java
-xcopy /D /R /Y "%BaseDir%\JavaPlugin\bin\%Configuration%\%TargetFramework%\JavaPlugin.dll" "%EnginesTargetDir%\Java\*"
-xcopy /D /R /Y "%BaseDir%\JavaWorker\JavaWorker.class" "%EnginesTargetDir%\Java\*"
-xcopy /D /R /Y "%BaseDir%\JavaWorker\JRE-min.zip" "%EnginesTargetDir%\Java\*"
+set BasePath=%SolutionDir%\RegexEngines\Java
+xcopy /D /R /Y "%BasePath%\JavaPlugin\bin\%Configuration%\%TargetDir%\JavaPlugin.dll" "%EnginesTargetDir%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaWorker\JavaWorker.class" "%EnginesTargetDir%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaWorker\JRE-min.zip" "%EnginesTargetDir%\Java\*"
 
 
 rem -- Python --
 
-set BaseDir=%SolutionDir%\RegexEngines\Python
-xcopy /D /R /Y "%BaseDir%\PythonPlugin\bin\%Configuration%\%TargetFramework%\PythonPlugin.dll" "%EnginesTargetDir%\Python\*"
-xcopy /D /R /Y /E "%BaseDir%\PythonWorker\python-embed-amd64\*" "%EnginesTargetDir%\Python\python-embed-amd64\*"
+set BasePath=%SolutionDir%\RegexEngines\Python
+xcopy /D /R /Y "%BasePath%\PythonPlugin\bin\%Configuration%\%TargetDir%\PythonPlugin.dll" "%EnginesTargetDir%\Python\*"
+xcopy /D /R /Y /E "%BasePath%\PythonWorker\python-embed-amd64\*" "%EnginesTargetDir%\Python\python-embed-amd64\*"
 
 
 rem -- D --
 
-set BaseDir=%SolutionDir%\RegexEngines\D
-xcopy /D /R /Y "%BaseDir%\DPlugin\bin\%Configuration%\%TargetFramework%\DPlugin.dll" "%EnginesTargetDir%\D\*"
-xcopy /D /R /Y "%BaseDir%\DWorker\DWorker.exe" "%EnginesTargetDir%\D\*.bin"
+set BasePath=%SolutionDir%\RegexEngines\D
+xcopy /D /R /Y "%BasePath%\DPlugin\bin\%Configuration%\%TargetDir%\DPlugin.dll" "%EnginesTargetDir%\D\*"
+xcopy /D /R /Y "%BasePath%\DWorker\DWorker.exe" "%EnginesTargetDir%\D\*.bin"
 
 
 rem -- Perl --
 
-set BaseDir=%SolutionDir%\RegexEngines\Perl
-xcopy /D /R /Y "%BaseDir%\PerlPlugin\bin\%Configuration%\%TargetFramework%\PerlPlugin.dll" "%EnginesTargetDir%\Perl\*"
-xcopy /D /R /Y "%BaseDir%\PerlWorker\PerlWorker.pl" "%EnginesTargetDir%\Perl\*"
-xcopy /D /R /Y /E "%BaseDir%\PerlWorker\Perl-min\*" "%EnginesTargetDir%\Perl\Perl-min\*"
+set BasePath=%SolutionDir%\RegexEngines\Perl
+xcopy /D /R /Y "%BasePath%\PerlPlugin\bin\%Configuration%\%TargetDir%\PerlPlugin.dll" "%EnginesTargetDir%\Perl\*"
+xcopy /D /R /Y "%BasePath%\PerlWorker\PerlWorker.pl" "%EnginesTargetDir%\Perl\*"
+xcopy /D /R /Y /E "%BasePath%\PerlWorker\Perl-min\*" "%EnginesTargetDir%\Perl\Perl-min\*"

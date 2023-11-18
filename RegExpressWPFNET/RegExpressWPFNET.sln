@@ -4,9 +4,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RegExpressWPFNET", "RegExpressWPFNET\RegExpressWPFNET.csproj", "{1FC75DB1-75DB-43DE-A0F8-F61C8C01C06A}"
-	ProjectSection(ProjectDependencies) = postProject
-		{886C3F35-3EF7-4CC7-9274-244D45A1BA5A} = {886C3F35-3EF7-4CC7-9274-244D45A1BA5A}
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RegExpressLibrary", "RegExpressLibrary\RegExpressLibrary.csproj", "{6EA59B67-323A-438F-AA39-8FDFF40B91B1}"
 EndProject
@@ -31,37 +28,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RegExpressCppLibrary", "RegExpressCppLibrary\RegExpressCppLibrary.vcxproj", "{0A96A479-5737-4D64-8F1A-2CC87CA675E2}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SolutionEvents", "SolutionEvents\SolutionEvents.vcxproj", "{886C3F35-3EF7-4CC7-9274-244D45A1BA5A}"
-	ProjectSection(ProjectDependencies) = postProject
-		{02CA5BEC-9175-4966-B6F5-79A8EED2CA5B} = {02CA5BEC-9175-4966-B6F5-79A8EED2CA5B}
-		{0822A476-EA00-4036-A308-BF470B6F83F8} = {0822A476-EA00-4036-A308-BF470B6F83F8}
-		{092CCEF1-3957-472D-B166-2F9CE8CFD534} = {092CCEF1-3957-472D-B166-2F9CE8CFD534}
-		{1F1F81BE-D0CA-493E-ADE5-C6A19F1F1883} = {1F1F81BE-D0CA-493E-ADE5-C6A19F1F1883}
-		{1FAD5051-F148-4912-ACD7-806C5F6618F0} = {1FAD5051-F148-4912-ACD7-806C5F6618F0}
-		{20C02C99-4E1E-4494-B222-6FF42FCD131F} = {20C02C99-4E1E-4494-B222-6FF42FCD131F}
-		{21E036E6-459B-497F-8365-EC795000D990} = {21E036E6-459B-497F-8365-EC795000D990}
-		{25E13377-C8E4-4538-9A12-6AD6F931517A} = {25E13377-C8E4-4538-9A12-6AD6F931517A}
-		{2D0502B5-8F7B-4FCC-864A-49BCF350B986} = {2D0502B5-8F7B-4FCC-864A-49BCF350B986}
-		{2DC8DDA0-AFD5-46C3-825D-0055D385C792} = {2DC8DDA0-AFD5-46C3-825D-0055D385C792}
-		{3888FF1F-608F-466A-B19A-8A1D22178172} = {3888FF1F-608F-466A-B19A-8A1D22178172}
-		{4129F02D-F0EA-4235-A8E7-DDD591DAE7F6} = {4129F02D-F0EA-4235-A8E7-DDD591DAE7F6}
-		{4DECB5E2-208B-4363-A1F7-A993211DF5C6} = {4DECB5E2-208B-4363-A1F7-A993211DF5C6}
-		{554445F3-E572-4567-A0B7-90C3522031E8} = {554445F3-E572-4567-A0B7-90C3522031E8}
-		{5C838583-43C5-462F-976B-492386B786DB} = {5C838583-43C5-462F-976B-492386B786DB}
-		{76BA72EB-61CE-41FC-8583-8A819D45D5C9} = {76BA72EB-61CE-41FC-8583-8A819D45D5C9}
-		{7C1FBF1D-0F53-4227-A721-7951BA00FFAC} = {7C1FBF1D-0F53-4227-A721-7951BA00FFAC}
-		{8DFECE9A-8657-46F3-9EDA-C180FF5AF993} = {8DFECE9A-8657-46F3-9EDA-C180FF5AF993}
-		{A13FFB11-EB7D-4F3F-8F9D-D80F769502D0} = {A13FFB11-EB7D-4F3F-8F9D-D80F769502D0}
-		{B0D34DB1-1D7E-4F99-AD46-24C7034F9375} = {B0D34DB1-1D7E-4F99-AD46-24C7034F9375}
-		{B34E75EF-A5E9-4512-83DA-E9596CEE05D5} = {B34E75EF-A5E9-4512-83DA-E9596CEE05D5}
-		{C16DCFDA-02DA-4833-BAEB-5C3D956D9E81} = {C16DCFDA-02DA-4833-BAEB-5C3D956D9E81}
-		{C3754506-E2B7-493A-9852-0E2B866A0A78} = {C3754506-E2B7-493A-9852-0E2B866A0A78}
-		{D15DDACD-E259-4945-A173-CC114D1EE142} = {D15DDACD-E259-4945-A173-CC114D1EE142}
-		{E1B483D8-D5A6-4140-A11A-8E7AB20D36E4} = {E1B483D8-D5A6-4140-A11A-8E7AB20D36E4}
-		{E5747E4E-FF67-4677-8958-7258A1DBD034} = {E5747E4E-FF67-4677-8958-7258A1DBD034}
-		{F9BC3D3D-A569-4D81-9B63-F0B3D45C847A} = {F9BC3D3D-A569-4D81-9B63-F0B3D45C847A}
-		{FEF47D65-7C99-456D-A17B-E8C110199DA3} = {FEF47D65-7C99-456D-A17B-E8C110199DA3}
-		{FF45A058-1592-4983-AB26-C9B1AB338499} = {FF45A058-1592-4983-AB26-C9B1AB338499}
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RE2", "RE2", "{237A868B-0057-4A16-927B-26B230ED20F0}"
 EndProject
@@ -164,6 +130,19 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RustWorker", "RustWorker", "{A3BECA5D-6C4F-4FEE-9005-CA1B7FF9E007}"
 	ProjectSection(SolutionItems) = preProject
 		RegexEngines\Rust\RustWorker\src\main.rs = RegexEngines\Rust\RustWorker\src\main.rs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DotNET8", "DotNET8", "{8B08CC42-3CCC-4E95-A3AB-F22D24DA906D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotNET8Plugin", "RegexEngines\DotNET8\DotNET8Plugin\DotNET8Plugin.csproj", "{F9F5995D-8C7E-42C8-8664-233E6836DEC9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotNET8Worker", "RegexEngines\DotNET8\DotNET8Worker\DotNET8Worker.csproj", "{2E540CEF-E1B8-4CA8-8D36-CBBBCC5E2125}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotNET7Worker", "RegexEngines\DotNET7\DotNET7Worker\DotNET7Worker.csproj", "{E0117C09-E2AD-4A01-B36E-3FE7D813326C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DWorker", "DWorker", "{4700A162-3B01-4ABB-9B7F-06CE9F238D61}"
+	ProjectSection(SolutionItems) = preProject
+		RegexEngines\D\DWorker\DWorker.d = RegexEngines\D\DWorker\DWorker.d
 	EndProjectSection
 EndProject
 Global
@@ -438,6 +417,30 @@ Global
 		{7C1FBF1D-0F53-4227-A721-7951BA00FFAC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7C1FBF1D-0F53-4227-A721-7951BA00FFAC}.Release|x64.ActiveCfg = Release|Any CPU
 		{7C1FBF1D-0F53-4227-A721-7951BA00FFAC}.Release|x64.Build.0 = Release|Any CPU
+		{F9F5995D-8C7E-42C8-8664-233E6836DEC9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9F5995D-8C7E-42C8-8664-233E6836DEC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9F5995D-8C7E-42C8-8664-233E6836DEC9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F9F5995D-8C7E-42C8-8664-233E6836DEC9}.Debug|x64.Build.0 = Debug|Any CPU
+		{F9F5995D-8C7E-42C8-8664-233E6836DEC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9F5995D-8C7E-42C8-8664-233E6836DEC9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9F5995D-8C7E-42C8-8664-233E6836DEC9}.Release|x64.ActiveCfg = Release|Any CPU
+		{F9F5995D-8C7E-42C8-8664-233E6836DEC9}.Release|x64.Build.0 = Release|Any CPU
+		{2E540CEF-E1B8-4CA8-8D36-CBBBCC5E2125}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E540CEF-E1B8-4CA8-8D36-CBBBCC5E2125}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E540CEF-E1B8-4CA8-8D36-CBBBCC5E2125}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2E540CEF-E1B8-4CA8-8D36-CBBBCC5E2125}.Debug|x64.Build.0 = Debug|Any CPU
+		{2E540CEF-E1B8-4CA8-8D36-CBBBCC5E2125}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E540CEF-E1B8-4CA8-8D36-CBBBCC5E2125}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E540CEF-E1B8-4CA8-8D36-CBBBCC5E2125}.Release|x64.ActiveCfg = Release|Any CPU
+		{2E540CEF-E1B8-4CA8-8D36-CBBBCC5E2125}.Release|x64.Build.0 = Release|Any CPU
+		{E0117C09-E2AD-4A01-B36E-3FE7D813326C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0117C09-E2AD-4A01-B36E-3FE7D813326C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0117C09-E2AD-4A01-B36E-3FE7D813326C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E0117C09-E2AD-4A01-B36E-3FE7D813326C}.Debug|x64.Build.0 = Debug|Any CPU
+		{E0117C09-E2AD-4A01-B36E-3FE7D813326C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0117C09-E2AD-4A01-B36E-3FE7D813326C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0117C09-E2AD-4A01-B36E-3FE7D813326C}.Release|x64.ActiveCfg = Release|Any CPU
+		{E0117C09-E2AD-4A01-B36E-3FE7D813326C}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -494,16 +497,21 @@ Global
 		{42F8BF18-B8E8-4412-8AF7-E813A1C47A46} = {0C35C2A2-326B-402B-902F-CCCDFEC301CC}
 		{BACD1F06-2E68-486B-B9BC-26B2130D878E} = {1F388BA3-AD6C-4CE1-A3AD-BEE10EED38AB}
 		{A3BECA5D-6C4F-4FEE-9005-CA1B7FF9E007} = {530A08DF-870C-49D3-BC41-24A4AF3506DA}
+		{8B08CC42-3CCC-4E95-A3AB-F22D24DA906D} = {91ED61CD-C8DA-4845-80E0-A892A0A80E14}
+		{F9F5995D-8C7E-42C8-8664-233E6836DEC9} = {8B08CC42-3CCC-4E95-A3AB-F22D24DA906D}
+		{2E540CEF-E1B8-4CA8-8D36-CBBBCC5E2125} = {8B08CC42-3CCC-4E95-A3AB-F22D24DA906D}
+		{E0117C09-E2AD-4A01-B36E-3FE7D813326C} = {0DF51056-4F38-43E2-AC41-D26B92EC0D89}
+		{4700A162-3B01-4ABB-9B7F-06CE9F238D61} = {F14B1A28-BF4A-44EC-8130-B84D59790809}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {D4A4FF06-F6FF-4698-9A59-457965BC3C1D}
-		                                                                                SolutionGuid = {D9183121-E1C4-4C5D-A2AA-D59E0370107C}
-		                                                                                                                                                SolutionGuid = {6A4D0C5C-3CCE-4AC5-8106-6AB052CFFED9}
-		                                                                                                                                                                SolutionGuid = {61D058A2-B4A0-4779-9C73-27CFEBE9BF66}
-		                                                                                                                                                                                SolutionGuid = {E9D3D84A-8875-4CC9-9AD2-81298DE7ECEB}
-		                                                                                                                                                                                                                SolutionGuid = {2EA46475-3CEB-45D5-AAE9-525FCE04340B}
-		                                                                                                                                SolutionGuid = {6FBF80B0-D822-4ADB-80F5-E1166CF987C5}
-		                                                                                                                SolutionGuid = {470781F3-C4B3-4F30-8880-319AEAD13AFE}
-		                                                                SolutionGuid = {7CA7DF49-7C29-43E0-8CCF-A57AE8197508}
+		                                                                        SolutionGuid = {7CA7DF49-7C29-43E0-8CCF-A57AE8197508}
+		                                                                                                                        SolutionGuid = {470781F3-C4B3-4F30-8880-319AEAD13AFE}
+		                                                                                                                                        SolutionGuid = {6FBF80B0-D822-4ADB-80F5-E1166CF987C5}
+		                                                                                                                                                                                                                        SolutionGuid = {2EA46475-3CEB-45D5-AAE9-525FCE04340B}
+		                                                                                                                                                                                        SolutionGuid = {E9D3D84A-8875-4CC9-9AD2-81298DE7ECEB}
+		                                                                                                                                                                        SolutionGuid = {61D058A2-B4A0-4779-9C73-27CFEBE9BF66}
+		                                                                                                                                                        SolutionGuid = {6A4D0C5C-3CCE-4AC5-8106-6AB052CFFED9}
+		                                                                                        SolutionGuid = {D9183121-E1C4-4C5D-A2AA-D59E0370107C}
+		        SolutionGuid = {D4A4FF06-F6FF-4698-9A59-457965BC3C1D}
 	EndGlobalSection
 EndGlobal
