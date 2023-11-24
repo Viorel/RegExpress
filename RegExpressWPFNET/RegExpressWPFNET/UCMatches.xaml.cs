@@ -277,6 +277,16 @@ namespace RegExpressWPFNET
         }
 
 
+        public void EnableUnderlining( bool yes )
+        {
+            LocalUnderliningAdorner.IsOn = yes;
+            ExternalUnderliningAdorner.IsOn = yes;
+
+            LocalUnderliningLoop.SignalWaitAndExecute( );
+            ExternalUnderliningLoop.SignalWaitAndExecute( );
+        }
+
+
         public UnderlineInfo GetUnderlinedSegments( )
         {
             RegexMatches matches;

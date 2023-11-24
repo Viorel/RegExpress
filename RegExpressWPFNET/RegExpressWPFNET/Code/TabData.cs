@@ -24,6 +24,7 @@ namespace RegExpressWPFNET.Code
 
         public List<EngineOptions>? EngineOptions;
         public bool ShowFirstMatchOnly;
+        public bool UnderlineCurrentMatch;
         public bool ShowSucceededGroupsOnly;
         public bool ShowCaptures;
         public bool ShowWhiteSpaces;

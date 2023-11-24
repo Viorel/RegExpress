@@ -84,7 +84,7 @@ namespace RegExpressWPFNET
             }
 
             MessageBox.Show(
-                "Unhandled exception has occured." + Environment.NewLine + Environment.NewLine + m,
+                "Unhandled exception has occurred." + Environment.NewLine + Environment.NewLine + m,
                 "RegExpress Error",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error

@@ -135,6 +135,7 @@ namespace RegExpressWPFNET
                 tabData.ActiveVersion = InitialTabData.ActiveVersion;
                 tabData.EngineOptions = InitialTabData.EngineOptions ?? new( );
                 tabData.ShowFirstMatchOnly = InitialTabData.ShowFirstMatchOnly;
+                tabData.UnderlineCurrentMatch = InitialTabData.UnderlineCurrentMatch;
                 tabData.ShowSucceededGroupsOnly = InitialTabData.ShowSucceededGroupsOnly;
                 tabData.ShowCaptures = InitialTabData.ShowCaptures;
                 tabData.ShowWhiteSpaces = InitialTabData.ShowWhiteSpaces;
@@ -149,6 +150,7 @@ namespace RegExpressWPFNET
                 tabData.ActiveKind = CurrentRegexEngine!.Kind;
                 tabData.ActiveVersion = CurrentRegexEngine.Version;
                 tabData.ShowFirstMatchOnly = cbShowFirstOnly.IsChecked == true;
+                tabData.UnderlineCurrentMatch = cbUnderline.IsChecked == true;
                 tabData.ShowSucceededGroupsOnly = cbShowSucceededGroupsOnly.IsChecked == true;
                 tabData.ShowCaptures = cbShowCaptures.IsChecked == true;
                 tabData.ShowWhiteSpaces = cbShowWhitespaces.IsChecked == true;
@@ -457,6 +459,18 @@ namespace RegExpressWPFNET
         }
 
 
+        private void CbUnderline_CheckedChanged( object sender, RoutedEventArgs e )
+        {
+            if( !IsFullyLoaded ) return;
+            if( IsInChange ) return;
+
+            ucText.EnableUnderlining( cbUnderline.IsChecked == true );
+            ucMatches.EnableUnderlining( cbUnderline.IsChecked == true );
+
+            Changed?.Invoke( this, EventArgs.Empty );
+        }
+
+
         private void CbShowWhitespaces_CheckedChanged( object sender, RoutedEventArgs e )
         {
             if( !IsFullyLoaded ) return;
@@ -601,6 +615,7 @@ namespace RegExpressWPFNET
                 }
 
                 cbShowFirstOnly.IsChecked = tabData.ShowFirstMatchOnly;
+                cbUnderline.IsChecked = tabData.UnderlineCurrentMatch;
                 cbShowSucceededGroupsOnly.IsChecked = tabData.ShowSucceededGroupsOnly;
                 cbShowCaptures.IsChecked = tabData.ShowCaptures;
                 cbShowWhitespaces.IsChecked = tabData.ShowWhiteSpaces;
@@ -614,7 +629,9 @@ namespace RegExpressWPFNET
                 if( cbxEol.SelectedItem == null ) ( (ComboBoxItem)cbxEol.Items[0] ).IsSelected = true;
 
                 ucPattern.ShowWhiteSpaces( tabData.ShowWhiteSpaces );
+                ucText.EnableUnderlining( tabData.UnderlineCurrentMatch );
                 ucText.ShowWhiteSpaces( tabData.ShowWhiteSpaces );
+                ucMatches.EnableUnderlining( tabData.UnderlineCurrentMatch );
 
                 ucPattern.SetFocus( );
 

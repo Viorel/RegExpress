@@ -42,6 +42,8 @@ namespace RegExpressWPFNET.Adorners
 
         internal bool IsDbgDisabled { get; set; } // (disable this adorner for debugging purposes)
 
+        public bool IsOn { get; set; } = false;
+
 
         public UnderliningAdorner( UIElement adornedElement ) : base( adornedElement )
         {
@@ -132,6 +134,7 @@ namespace RegExpressWPFNET.Adorners
             base.OnRender( drawingContext );  // (probably nothing)
 
             if( IsDbgDisabled ) return;
+            if( !IsOn ) return;
 
             lock( this )
             {
