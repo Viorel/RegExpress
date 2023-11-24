@@ -191,6 +191,16 @@ namespace RegExpressWPFNET
         }
 
 
+        internal void EnableUnderlining( bool yes )
+        {
+            LocalUnderliningAdorner.IsOn = yes;
+            ExternalUnderliningAdorner.IsOn = yes;
+
+            LocalUnderliningLoop.SignalWaitAndExecute( );
+            ExternalUnderliningLoop.SignalWaitAndExecute( );
+        }
+
+
         public void ShowWhiteSpaces( bool yes )
         {
             WhitespaceAdorner.ShowWhiteSpaces( yes );

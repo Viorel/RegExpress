@@ -200,6 +200,7 @@
                                     </TextBlock>
                                 </CheckBox>
                                 <CheckBox x:Name="cbShowCapturesDisabledUnchecked" Content="Show captures" IsEnabled="False" Visibility="Collapsed"/>
+                                <CheckBox x:Name="cbUnderline" Content="Underline current match" Checked="CbUnderline_CheckedChanged" Unchecked="CbUnderline_CheckedChanged" HorizontalAlignment="Left"/>
                                 <CheckBox x:Name="cbShowWhitespaces" Checked="CbShowWhitespaces_CheckedChanged" Unchecked="CbShowWhitespaces_CheckedChanged" HorizontalAlignment="Left">
                                     <TextBlock>
                                             Show whitespaces 
