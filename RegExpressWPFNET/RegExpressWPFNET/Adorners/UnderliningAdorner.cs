@@ -72,24 +72,33 @@ namespace RegExpressWPFNET.Adorners
             {
                 if( ranges != null && Ranges != null && ranges.Count == Ranges.Count )
                 {
-                    bool are_different = false;
-
-                    for( int i = 0; i < ranges.Count; ++i )
+                    try
                     {
-                        (TextPointer start, TextPointer end) r = ranges[i];
-                        (TextPointer start, TextPointer end) R = Ranges[i];
+                        bool are_different = false;
 
-                        if( !R.start.IsInSameDocument( r.start ) ||
-                            (
-                            !( r.start.CompareTo( R.start ) == 0 && ( r.end.CompareTo( R.end ) == 0 ) ) )
-                            )
+                        for( int i = 0; i < ranges.Count; ++i )
                         {
-                            are_different = true;
-                            break;
-                        }
-                    }
+                            (TextPointer start, TextPointer end) r = ranges[i];
+                            (TextPointer start, TextPointer end) R = Ranges[i];
 
-                    if( !are_different ) return;
+                            if( !R.start.IsInSameDocument( r.start ) ||
+                                (
+                                !( r.start.CompareTo( R.start ) == 0 && ( r.end.CompareTo( R.end ) == 0 ) ) )
+                                )
+                            {
+                                are_different = true;
+                                break;
+                            }
+                        }
+
+                        if( !are_different ) return;
+                    }
+                    catch( ExecutionEngineException exc ) // sometimes happens in case of very large text
+                    {
+                        _ = exc;
+                        if( Debugger.IsAttached ) Debugger.Break( );
+                        // ignore and accept the ranges
+                    }
                 }
 
                 Ranges = ranges;
