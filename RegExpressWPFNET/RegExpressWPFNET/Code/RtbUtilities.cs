@@ -604,12 +604,26 @@ namespace RegExpressWPFNET.Code
 
             if( cnc.IsCancellationRequested ) return;
 
+            if( rect_to_bring.IsEmpty )
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                return;
+            }
+
             BringIntoViewInvoked( rtb, rect_to_bring, isRectRelative: true, fullHorizontalScrollIfInvisible );
         }
 
 
         public static void BringIntoViewInvoked( RichTextBox rtb, Rect rect, bool isRectRelative, bool fullHorizontalScrollIfInvisible )
         {
+            if( rect.IsEmpty )
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                return;
+            }
+
             Rect absolute_rect;
             Rect relative_rect;
 
