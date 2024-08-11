@@ -147,7 +147,7 @@ namespace SubRegPlugin
             {
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,
 
-                Brackets = false,
+                Brackets = true,
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,

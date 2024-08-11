@@ -147,7 +147,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         {
             // get version
 
-            auto v = "2022-01-01";
+            auto v = "2024-08-10";
 
             outbw.Write( v );
 
