@@ -1,10 +1,14 @@
 {
   "engines": [
     {
+      "path": "Engines\\DotNET9\\DotNET9Plugin.dll"
+    },
+    {
       "path": "Engines\\DotNET8\\DotNET8Plugin.dll"
     },
     {
-      "path": "Engines\\DotNET7\\DotNET7Plugin.dll"
+      "path": "Engines\\DotNET7\\DotNET7Plugin.dll",
+      "no_fm": true
     },
     {
       "path": "Engines\\DotNET6\\DotNET6Plugin.dll",

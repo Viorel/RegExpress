@@ -4,6 +4,7 @@ A tester for Regular Expressions. Made in Visual Studio 2022 using C#, C++, WPF,
 
 It includes the following Regular Expression engines:
 
+* **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-9.0)** class from .NET 9.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-8.0)** class from .NET 8.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-7.0)** class from .NET 7.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-6.0)** class from .NET 6.

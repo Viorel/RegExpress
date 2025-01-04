@@ -2,7 +2,7 @@
 
 set Configuration=%~1
 set Platform=%~2
-set TargetDir=net8.0-windows7.0
+set TargetDir=net9.0-windows7.0
 
 set ThisCmdPath=%~dp0
 
@@ -14,6 +14,16 @@ set EnginesTargetPath=%SolutionDir%\RegExpressWPFNET\bin\%Configuration%\%Target
 
 rem echo %SolutionDir%
 rem echo %TargetDir%
+
+
+rem -- .NET 9 --
+
+set BasePath=%SolutionDir%\RegexEngines\DotNET9
+xcopy /D /R /Y "%BasePath%\DotNET9Plugin\bin\%Configuration%\%TargetDir%\DotNET9Plugin.dll" "%EnginesTargetPath%\DotNET9\*"
+xcopy /D /R /Y "%BasePath%\DotNET9Worker\bin\%Configuration%\net9.0-windows7.0\DotNET9Worker.dll" "%EnginesTargetPath%\DotNET9\Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET9Worker\bin\%Configuration%\net9.0-windows7.0\DotNET9Worker.exe" "%EnginesTargetPath%\DotNET9\Worker\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNET9Worker\bin\%Configuration%\net9.0-windows7.0\DotNET9Worker.deps.json" "%EnginesTargetPath%\DotNET9\Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET9Worker\bin\%Configuration%\net9.0-windows7.0\DotNET9Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET9\Worker\*"
 
 
 rem -- .NET 8 --
