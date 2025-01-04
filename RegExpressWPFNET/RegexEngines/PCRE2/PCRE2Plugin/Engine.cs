@@ -18,7 +18,6 @@ namespace PCRE2Plugin
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
 
         public Engine( )
@@ -115,14 +114,16 @@ namespace PCRE2Plugin
                 Literal = is_literal,
                 XLevel = is_extended_more ? XLevelEnum.xx : is_extended ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = allow_empty_set,
-                FeatureMatrix = LazyFeatureMatrix.Value
+                FeatureMatrix = GetCachedFeatureMatrix( options.PCRE2_EXTRA_ALT_BSUX ),
             };
         }
 
 
         public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+            var options = mOptionsControl.Value.GetSelectedOptions( );
+
+            return new List<(string?, FeatureMatrix)> { (null, BuildFeatureMatrix( options.PCRE2_EXTRA_ALT_BSUX )) };
         }
 
 
@@ -150,8 +151,24 @@ namespace PCRE2Plugin
             }
         }
 
+        static readonly Dictionary<bool/*PCRE2_EXTRA_ALT_BSUX*/, FeatureMatrix> smFeatureMatrices = new( );
 
-        static FeatureMatrix BuildFeatureMatrix( )
+        static FeatureMatrix GetCachedFeatureMatrix( bool PCRE2_EXTRA_ALT_BSUX )
+        {
+            lock( smFeatureMatrices )
+            {
+                if( !smFeatureMatrices.TryGetValue( PCRE2_EXTRA_ALT_BSUX, out FeatureMatrix fm ) )
+                {
+                    fm = BuildFeatureMatrix( PCRE2_EXTRA_ALT_BSUX );
+
+                    smFeatureMatrices.Add( PCRE2_EXTRA_ALT_BSUX, fm );
+                }
+
+                return fm;
+            }
+        }
+
+        static FeatureMatrix BuildFeatureMatrix( bool PCRE2_EXTRA_ALT_BSUX )
         {
             return new FeatureMatrix
             {
@@ -190,7 +207,7 @@ namespace PCRE2Plugin
                 Esc_oBrace = true,
                 Esc_x2 = true,
                 Esc_xBrace = true,
-                Esc_u4 = false,
+                Esc_u4 = PCRE2_EXTRA_ALT_BSUX,
                 Esc_U8 = false,
                 Esc_uBrace = false,
                 Esc_UBrace = false,
@@ -214,7 +231,7 @@ namespace PCRE2Plugin
                 InsideSets_Esc_oBrace = true,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
-                InsideSets_Esc_u4 = false,
+                InsideSets_Esc_u4 = PCRE2_EXTRA_ALT_BSUX,
                 InsideSets_Esc_U8 = false,
                 InsideSets_Esc_uBrace = false,
                 InsideSets_Esc_UBrace = false,
@@ -333,8 +350,8 @@ namespace PCRE2Plugin
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
-                Quantifier_LowAbbrev = false,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.Both,
+                Quantifier_LowAbbrev = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = true,

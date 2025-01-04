@@ -10,7 +10,7 @@ It includes the following Regular Expression engines:
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8)** class from .NET Framework 4.8.
 * **[wregex](https://docs.microsoft.com/en-us/cpp/standard-library/regex)** class from Standard Template Library.
 * **[Boost.Regex](https://www.boost.org/doc/libs/1_87_0/libs/regex/doc/html/index.html)** from Boost C++ Libraries 1.87.0.
-* **[PCRE2](https://pcre.org/)** Open Source Regex Library 10.42.
+* **[PCRE2](https://pcre.org/)** Open Source Regex Library 10.44.
 * **[RE2](https://github.com/google/re2)** C++ Library 2023-03-01 from Google.
 * **[Oniguruma](https://github.com/kkos/oniguruma)** Regular Expression Library 6.9.10.
 * **[SubReg](https://github.com/mattbucknall/subreg)** 2024-08-11.

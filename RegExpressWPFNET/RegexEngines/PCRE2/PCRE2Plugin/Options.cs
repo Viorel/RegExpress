@@ -58,7 +58,13 @@ namespace PCRE2Plugin
 
         public bool PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES { get; set; }
         public bool PCRE2_EXTRA_ALT_BSUX { get; set; }
+        public bool PCRE2_EXTRA_ASCII_BSD { get; set; }
+        public bool PCRE2_EXTRA_ASCII_BSS { get; set; }
+        public bool PCRE2_EXTRA_ASCII_BSW { get; set; }
+        public bool PCRE2_EXTRA_ASCII_DIGIT { get; set; }
+        public bool PCRE2_EXTRA_ASCII_POSIX { get; set; }
         public bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL { get; set; }
+        public bool PCRE2_EXTRA_CASELESS_RESTRICT { get; set; }
         public bool PCRE2_EXTRA_ESCAPED_CR_IS_LF { get; set; }
         public bool PCRE2_EXTRA_MATCH_LINE { get; set; }
         public bool PCRE2_EXTRA_MATCH_WORD { get; set; }
@@ -78,6 +84,7 @@ namespace PCRE2Plugin
         public bool PCRE2_PARTIAL_HARD { get; set; }
         public bool PCRE2_PARTIAL_SOFT { get; set; }
         public bool PCRE2_DFA_SHORTEST { get; set; }
+        public bool PCRE2_DISABLE_RECURSELOOP_CHECK { get; set; }
 
 
         // JIT options
