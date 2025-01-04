@@ -63,7 +63,7 @@ This repository includes several additional engines:
 * **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel.
 * **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41.
 * **[ICU Regular Expressions](https://icu.unicode.org/)** 76.1
-* **[Rust](https://docs.rs/regex)** 1.72.0 (*Regex* and *RegexBuilder* structs)
+* **[Rust](https://docs.rs/regex)** 1.83.0 (*Regex* and *RegexBuilder* structs)
 * **[Java](https://docs.oracle.com/en/java/javase/20/docs/api/java.base/java/util/regex/package-summary.html)** 20.0.2 (*java.util.regex* package)
 * **[Python](https://www.python.org/)** 3.11.5 (standard *re* module, third-party *regex* module)
 * **[D](https://dlang.org/phobos/std_regex.html)** 2.105 (*std.regex* module)
