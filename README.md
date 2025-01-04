@@ -1,9 +1,10 @@
 ﻿# RegExpress
 
-A tester for Regular Expressions. Made in Visual Studio 2022 using C#, C++, WPF, .NET 8.
+A tester for Regular Expressions. Made in Visual Studio 2022 using C#, C++, WPF, .NET 9.
 
 It includes the following Regular Expression engines:
 
+* **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-9.0)** class from .NET 9.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-8.0)** class from .NET 8.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-7.0)** class from .NET 7.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-6.0)** class from .NET 6.
@@ -38,7 +39,7 @@ Sample:
 The regular expressions are saved and loaded automatically. Press the “➕” button to open more tabs. 
 Use the **Options** area to select and configure the Regular Expression engine.
 
-The program can be built using Visual Studio 2022 and .NET 8. The sources are written in C# and C++. 
+The program can be built using Visual Studio 2022 and .NET 9. The sources are written in C# and C++. 
 
 The following Visual Studio workloads are required:
 
