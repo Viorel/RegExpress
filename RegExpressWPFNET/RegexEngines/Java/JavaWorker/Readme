@@ -42,7 +42,7 @@ To re-make the minimal JRE ("JRE-min.zip")
 
 - Run "makejre.bat". It will create a new "JRE-min" folder.
 
-- Compress the "JRE-min" folder to "JRE-min.zip" file, uzing ZIP format, ultra level.
+- Compress the "JRE-min" folder to "JRE-min.zip" file, uzing ZIP format, ultra level, Deflate or Deflate64 method.
 
 - Commit "JRE-min.zip" to GIT.
 
