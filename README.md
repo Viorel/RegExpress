@@ -66,7 +66,7 @@ This repository includes several additional engines:
 * **[Rust](https://docs.rs/regex)** 1.83.0 (*Regex* and *RegexBuilder* structs)
 * **[Java](https://docs.oracle.com/en/java/javase/20/docs/api/java.base/java/util/regex/package-summary.html)** 20.0.2 (*java.util.regex* package)
 * **[Python](https://www.python.org/)** 3.11.5 (standard *re* module, third-party *regex* module)
-* **[D](https://dlang.org/phobos/std_regex.html)** 2.105 (*std.regex* module)
+* **[D](https://dlang.org/phobos/std_regex.html)** 2.109.1 (*std.regex* module)
 * **[Perl](https://perldoc.perl.org/perlreref)** 5.32.1 (Strawberry Perl)
 
 

@@ -21,5 +21,4 @@ In order to rebuild the RustWorker ("src\main.rs"):
   will copy 'RustWorker.exe' to output folder as 'RustWorker.bin'.
 
 - Commit and push the changes to Git (including 'RustWorker.exe'). 
-  (Currently this Plug-In is in "main-extended" branch).
 
