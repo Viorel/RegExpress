@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:PCRE2Plugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="820" d:DesignWidth="570" 
+             d:DesignHeight="940.8" d:DesignWidth="718.8" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -71,7 +71,13 @@
         <StackPanel x:Name="pnlExtraCompileOptions">
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES" Note="Allow \x{df800} to \x{dfff} in UTF-8 and UTF-32 modes"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALT_BSUX" Note="Extended alternate \u, \U, and \x handling"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ASCII_BSD" Note="Forces \d to match only ASCII digits"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ASCII_BSS" Note="Forces \s to match only ASCII space characters"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ASCII_BSW" Note="Forces \w to match only ASCII word characters"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ASCII_DIGIT" Note="Forces the POSIX character classes [:digit:] and [:xdigit:] to match only ASCII digits"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ASCII_POSIX" Note="Forces all the POSIX character classes to match only ASCII characters"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL" Note="Treat all invalid escapes as a literal following character"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_CASELESS_RESTRICT" Note="All characters in a case equivalence must either be ASCII or non-ASCII"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ESCAPED_CR_IS_LF" Note="Interpret \r as \n"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_MATCH_LINE" Note="Pattern matches whole lines"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_MATCH_WORD" Note="Pattern matches &quot;words&quot;"/>
@@ -92,6 +98,7 @@
             <ui:CheckboxWithNote Prop="PCRE2_PARTIAL_HARD" Note="Return PCRE2_ERROR_PARTIAL for a partial match even if there is a full match"/>
             <ui:CheckboxWithNote Prop="PCRE2_PARTIAL_SOFT" Note="Return PCRE2_ERROR_PARTIAL for a partial match if no full matches are found"/>
             <ui:CheckboxWithNote Prop="PCRE2_DFA_SHORTEST" Note="Return only the shortest match"/>
+            <ui:CheckboxWithNote Prop="PCRE2_DISABLE_RECURSELOOP_CHECK" Note="Enable apparently looping recursions to complete"/>
         </StackPanel>
 
         <Label Margin="0 4 0 4" Padding="0">

@@ -8,3 +8,4 @@
 #define PCRE2_EXP_DEFN
 #define PCRE2_EXP_DECL
 #define SUPPORT_UNICODE
+#define _CRT_SECURE_NO_WARNINGS

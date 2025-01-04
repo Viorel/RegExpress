@@ -27,9 +27,6 @@
     <ClCompile Include="PCRE2-min\src\pcre2_auto_possess.c">
       <Filter>PCRE2</Filter>
     </ClCompile>
-    <ClCompile Include="PCRE2-min\src\pcre2_chartables.c">
-      <Filter>PCRE2</Filter>
-    </ClCompile>
     <ClCompile Include="PCRE2-min\src\pcre2_compile.c">
       <Filter>PCRE2</Filter>
     </ClCompile>
@@ -133,6 +130,15 @@
       <Filter>PCRE2</Filter>
     </ClCompile>
     <ClCompile Include="PCRE2-min\src\pcre2test.c">
+      <Filter>PCRE2</Filter>
+    </ClCompile>
+    <ClCompile Include="PCRE2-min\src\pcre2_chkdint.c">
+      <Filter>PCRE2</Filter>
+    </ClCompile>
+    <ClCompile Include="PCRE2-min\src\pcre2_chartables.c">
+      <Filter>PCRE2</Filter>
+    </ClCompile>
+    <ClCompile Include="PCRE2-min\src\pcre2demo.c">
       <Filter>PCRE2</Filter>
     </ClCompile>
   </ItemGroup>

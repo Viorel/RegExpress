@@ -68,7 +68,13 @@ namespace PCRE2Plugin
 
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES ) );
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ALT_BSUX ) );
+                bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ASCII_BSD ) );
+                bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ASCII_BSS ) );
+                bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ASCII_BSW ) );
+                bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ASCII_DIGIT ) );
+                bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ASCII_POSIX ) );
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL ) );
+                bw.Write( Convert.ToByte( options.PCRE2_EXTRA_CASELESS_RESTRICT ) );
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ESCAPED_CR_IS_LF ) );
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_MATCH_LINE ) );
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_MATCH_WORD ) );
@@ -86,6 +92,7 @@ namespace PCRE2Plugin
                 bw.Write( Convert.ToByte( options.PCRE2_PARTIAL_HARD ) );
                 bw.Write( Convert.ToByte( options.PCRE2_PARTIAL_SOFT ) );
                 bw.Write( Convert.ToByte( options.PCRE2_DFA_SHORTEST ) );
+                bw.Write( Convert.ToByte( options.PCRE2_DISABLE_RECURSELOOP_CHECK ) );
 
                 // JIT Options
 
