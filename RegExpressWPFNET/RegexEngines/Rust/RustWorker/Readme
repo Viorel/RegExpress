@@ -9,14 +9,17 @@ In order to rebuild the RustWorker ("src\main.rs"):
         rustc --version
         cargo --version
 
+- If required, adjust the versions in "Cargo.toml" file, "[dependencies]" section.
+
 - Run this command:
 
         cargo build --release
 
   It will generate "target\release\RustWorker.exe"
 
-- Rebuild ("Rebuild All") the main Visual Studio solution. A Custom build step 
+- Rebuild ("Rebuild All") the Visual Studio solution. A Custom build step 
   will copy 'RustWorker.exe' to output folder as 'RustWorker.bin'.
 
-- Commit and push the changes to Git (including 'RustWorker.exe').
+- Commit and push the changes to Git (including 'RustWorker.exe'). 
+  (Currently this Plug-In is in "main-extended" branch).
 

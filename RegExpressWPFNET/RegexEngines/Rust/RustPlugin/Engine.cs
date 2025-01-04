@@ -275,10 +275,10 @@ namespace RustPlugin
                 Anchor_G = false,
                 Anchor_bB = true,
                 Anchor_bg = false,
-                Anchor_bBBrace = false,
+                Anchor_bBBrace = true,
                 Anchor_K = false,
                 Anchor_mM = false,
-                Anchor_LtGt = false,
+                Anchor_LtGt = true,
                 Anchor_GraveApos = false,
                 Anchor_yY = false,
 
