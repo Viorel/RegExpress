@@ -5,9 +5,6 @@ A tester for Regular Expressions. Made in Visual Studio 2022 using C#, C++, WPF,
 It includes the following Regular Expression engines:
 
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-9.0)** class from .NET 9.
-* **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-8.0)** class from .NET 8.
-* **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-7.0)** class from .NET 7.
-* **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-6.0)** class from .NET 6.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8)** class from .NET Framework 4.8.
 * **[wregex](https://docs.microsoft.com/en-us/cpp/standard-library/regex)** class from Standard Template Library.
 * **[Boost.Regex](https://www.boost.org/doc/libs/1_87_0/libs/regex/doc/html/index.html)** from Boost C++ Libraries 1.87.0.

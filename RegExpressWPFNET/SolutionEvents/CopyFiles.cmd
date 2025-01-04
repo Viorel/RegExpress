@@ -26,36 +26,6 @@ xcopy /D /R /Y "%BasePath%\DotNET9Worker\bin\%Configuration%\net9.0-windows7.0\D
 xcopy /D /R /Y "%BasePath%\DotNET9Worker\bin\%Configuration%\net9.0-windows7.0\DotNET9Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET9\Worker\*"
 
 
-rem -- .NET 8 --
-
-set BasePath=%SolutionDir%\RegexEngines\DotNET8
-xcopy /D /R /Y "%BasePath%\DotNET8Plugin\bin\%Configuration%\%TargetDir%\DotNET8Plugin.dll" "%EnginesTargetPath%\DotNET8\*"
-xcopy /D /R /Y "%BasePath%\DotNET8Worker\bin\%Configuration%\net8.0-windows\DotNET8Worker.dll" "%EnginesTargetPath%\DotNET8\Worker\*"
-xcopy /D /R /Y "%BasePath%\DotNET8Worker\bin\%Configuration%\net8.0-windows\DotNET8Worker.exe" "%EnginesTargetPath%\DotNET8\Worker\*.bin"
-xcopy /D /R /Y "%BasePath%\DotNET8Worker\bin\%Configuration%\net8.0-windows\DotNET8Worker.deps.json" "%EnginesTargetPath%\DotNET8\Worker\*"
-xcopy /D /R /Y "%BasePath%\DotNET8Worker\bin\%Configuration%\net8.0-windows\DotNET8Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET8\Worker\*"
-
-
-rem -- .NET 7 --
-
-set BasePath=%SolutionDir%\RegexEngines\DotNET7
-xcopy /D /R /Y "%BasePath%\DotNET7Plugin\bin\%Configuration%\%TargetDir%\DotNET7Plugin.dll" "%EnginesTargetPath%\DotNET7\*"
-xcopy /D /R /Y "%BasePath%\DotNET7Worker\bin\%Configuration%\net7.0-windows7.0\DotNET7Worker.dll" "%EnginesTargetPath%\DotNET7\Worker\*"
-xcopy /D /R /Y "%BasePath%\DotNET7Worker\bin\%Configuration%\net7.0-windows7.0\DotNET7Worker.exe" "%EnginesTargetPath%\DotNET7\Worker\*.bin"
-xcopy /D /R /Y "%BasePath%\DotNET7Worker\bin\%Configuration%\net7.0-windows7.0\DotNET7Worker.deps.json" "%EnginesTargetPath%\DotNET7\Worker\*"
-xcopy /D /R /Y "%BasePath%\DotNET7Worker\bin\%Configuration%\net7.0-windows7.0\DotNET7Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET7\Worker\*"
-
-
-rem -- .NET 6 --
-
-set BasePath=%SolutionDir%\RegexEngines\DotNET6
-xcopy /D /R /Y "%BasePath%\DotNET6Plugin\bin\%Configuration%\%TargetDir%\DotNET6Plugin.dll" "%EnginesTargetPath%\DotNET6\*"
-xcopy /D /R /Y "%BasePath%\DotNET6Worker\bin\%Configuration%\net6.0-windows\DotNET6Worker.dll" "%EnginesTargetPath%\DotNET6\Worker\*"
-xcopy /D /R /Y "%BasePath%\DotNET6Worker\bin\%Configuration%\net6.0-windows\DotNET6Worker.exe" "%EnginesTargetPath%\DotNET6\Worker\*.bin"
-xcopy /D /R /Y "%BasePath%\DotNET6Worker\bin\%Configuration%\net6.0-windows\DotNET6Worker.deps.json" "%EnginesTargetPath%\DotNET6\Worker\*"
-xcopy /D /R /Y "%BasePath%\DotNET6Worker\bin\%Configuration%\net6.0-windows\DotNET6Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET6\Worker\*"
-
-
 rem -- .NET Framework 4.8 --
 
 set BasePath=%SolutionDir%\RegexEngines\DotNETFramework4_8
