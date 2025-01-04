@@ -4,7 +4,7 @@
   regint.h -  Oniguruma (regular expression library)
 **********************************************************************/
 /*-
- * Copyright (c) 2002-2023  K.Kosako
+ * Copyright (c) 2002-2024  K.Kosako
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 /* #define ONIG_DEBUG_MATCH_COUNTER */
 /* #define ONIG_DEBUG_CALL */
 /* #define ONIG_DONT_OPTIMIZE */
+/* #define ONIG_DEBUG */
 
 /* for byte-code statistical data. */
 /* #define ONIG_DEBUG_STATISTICS */
@@ -47,8 +48,11 @@
     defined(ONIG_DEBUG_STATISTICS)
 #ifndef ONIG_DEBUG
 #define ONIG_DEBUG
-#define DBGFP   stderr
 #endif
+#endif
+
+#ifdef ONIG_DEBUG
+#define DBGFP   stderr
 #endif
 
 #ifndef ONIG_DISABLE_DIRECT_THREADING
@@ -57,11 +61,20 @@
 #endif
 #endif
 
+#ifndef ONIG_PRINTFLIKE
+#if defined(__clang__) || defined(__GNUC__)
+#define ONIG_PRINTFLIKE(x, y) __attribute__((format(printf, x, y)))
+#else
+#define ONIG_PRINTFLIKE(x, y)
+#endif
+#endif
+
 /* config */
 /* spec. config */
 #define USE_REGSET
 #define USE_CALL
 #define USE_CALLOUT
+#define USE_SKIP_SEARCH
 #define USE_BACKREF_WITH_LEVEL        /* \k<name+n>, \k<name-n> */
 #define USE_WHOLE_OPTIONS
 #define USE_RIGID_CHECK_CAPTURES_IN_EMPTY_REPEAT        /* /(?:()|())*\2/ */
@@ -115,7 +128,7 @@
 #include <stdint.h>
 #endif
 
-#if defined(HAVE_ALLOCA_H) && !defined(__GNUC__)
+#if defined(HAVE_ALLOCA_H)
 #include <alloca.h>
 #endif
 
@@ -940,7 +953,7 @@ struct re_pattern_buffer {
 extern void onig_add_end_call(void (*func)(void));
 extern void onig_warning(const char* s);
 extern UChar* onig_error_code_to_format P_((int code));
-extern void ONIG_VARIADIC_FUNC_ATTR onig_snprintf_with_pattern PV_((UChar buf[], int bufsize, OnigEncoding enc, UChar* pat, UChar* pat_end, const UChar *fmt, ...));
+extern void ONIG_VARIADIC_FUNC_ATTR ONIG_PRINTFLIKE(6, 7) onig_snprintf_with_pattern PV_((UChar buf[], int bufsize, OnigEncoding enc, UChar* pat, UChar* pat_end, const char *fmt, ...));
 extern int onig_compile P_((regex_t* reg, const UChar* pattern, const UChar* pattern_end, OnigErrorInfo* einfo));
 extern int onig_is_code_in_cc_len P_((int enclen, OnigCodePoint code, void* /* CClassNode* */ cc));
 extern RegexExt* onig_get_regex_ext(regex_t* reg);

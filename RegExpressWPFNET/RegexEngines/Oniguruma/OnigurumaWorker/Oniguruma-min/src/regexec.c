@@ -2,7 +2,7 @@
   regexec.c -  Oniguruma (regular expression library)
 **********************************************************************/
 /*-
- * Copyright (c) 2002-2022  K.Kosako
+ * Copyright (c) 2002-2024  K.Kosako
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -176,6 +176,9 @@ typedef struct {
 #endif
 #ifdef USE_CALL
   unsigned long  subexp_call_in_search_counter;
+#endif
+#ifdef USE_SKIP_SEARCH
+  UChar* skip_search;
 #endif
 } MatchArg;
 
@@ -1261,6 +1264,7 @@ struct OnigCalloutArgsStruct {
 #endif
 
 #ifdef USE_FIND_LONGEST_SEARCH_ALL_OF_RANGE
+#ifdef USE_SKIP_SEARCH
 #define MATCH_ARG_INIT(msa, reg, arg_option, arg_region, arg_start, mpv) do { \
   (msa).stack_p  = (void* )0;\
   (msa).options  = (arg_option)|(reg)->options;\
@@ -1272,6 +1276,35 @@ struct OnigCalloutArgsStruct {
   (msa).mp = mpv;\
   (msa).best_len = ONIG_MISMATCH;\
   (msa).ptr_num  = PTR_NUM_SIZE(reg);\
+  (msa).skip_search = (UChar* )(arg_start);\
+} while(0)
+#else
+#define MATCH_ARG_INIT(msa, reg, arg_option, arg_region, arg_start, mpv) do { \
+  (msa).stack_p  = (void* )0;\
+  (msa).options  = (arg_option)|(reg)->options;\
+  (msa).region   = (arg_region);\
+  (msa).start    = (arg_start);\
+  (msa).match_stack_limit  = (mpv)->match_stack_limit;\
+  RETRY_IN_MATCH_ARG_INIT(msa,mpv)\
+  SUBEXP_CALL_IN_MATCH_ARG_INIT(msa,mpv)\
+  (msa).mp = mpv;\
+  (msa).best_len = ONIG_MISMATCH;\
+  (msa).ptr_num  = PTR_NUM_SIZE(reg);\
+} while(0)
+#endif
+#else
+#ifdef USE_SKIP_SEARCH
+#define MATCH_ARG_INIT(msa, reg, arg_option, arg_region, arg_start, mpv) do { \
+  (msa).stack_p  = (void* )0;\
+  (msa).options  = (arg_option)|(reg)->options;\
+  (msa).region   = (arg_region);\
+  (msa).start    = (arg_start);\
+  (msa).match_stack_limit  = (mpv)->match_stack_limit;\
+  RETRY_IN_MATCH_ARG_INIT(msa,mpv)\
+  SUBEXP_CALL_IN_MATCH_ARG_INIT(msa,mpv)\
+  (msa).mp = mpv;\
+  (msa).ptr_num  = PTR_NUM_SIZE(reg);\
+  (msa).skip_search = (UChar* )(arg_start);\
 } while(0)
 #else
 #define MATCH_ARG_INIT(msa, reg, arg_option, arg_region, arg_start, mpv) do { \
@@ -1285,6 +1318,7 @@ struct OnigCalloutArgsStruct {
   (msa).mp = mpv;\
   (msa).ptr_num  = PTR_NUM_SIZE(reg);\
 } while(0)
+#endif
 #endif
 
 #define MATCH_ARG_FREE(msa)  if ((msa).stack_p) xfree((msa).stack_p)
@@ -1359,8 +1393,9 @@ static unsigned long RetryLimitInMatch  = DEFAULT_RETRY_LIMIT_IN_MATCH;
 static unsigned long RetryLimitInSearch = DEFAULT_RETRY_LIMIT_IN_SEARCH;
 
 #define CHECK_RETRY_LIMIT_IN_MATCH  do {\
-  if (++retry_in_match_counter > retry_limit_in_match) {\
-    MATCH_AT_ERROR_RETURN(retry_in_match_counter > msa->retry_limit_in_match ? ONIGERR_RETRY_LIMIT_IN_MATCH_OVER : ONIGERR_RETRY_LIMIT_IN_SEARCH_OVER); \
+  if (++retry_in_match_counter >= retry_limit_in_match && \
+      retry_limit_in_match != 0) {\
+    MATCH_AT_ERROR_RETURN((retry_in_match_counter >= msa->retry_limit_in_match && msa->retry_limit_in_match != 0) ? ONIGERR_RETRY_LIMIT_IN_MATCH_OVER : ONIGERR_RETRY_LIMIT_IN_SEARCH_OVER); \
   }\
 } while (0)
 
@@ -3012,7 +3047,7 @@ match_at(regex_t* reg, const UChar* str, const UChar* end,
   if (msa->retry_limit_in_search != 0) {
     unsigned long rem = msa->retry_limit_in_search
                       - msa->retry_limit_in_search_counter;
-    if (rem < retry_limit_in_match)
+    if (rem < retry_limit_in_match || retry_limit_in_match == 0)
       retry_limit_in_match = rem;
   }
 #endif
@@ -4443,6 +4478,13 @@ match_at(regex_t* reg, const UChar* str, const UChar* end,
 
  match_at_end:
   if (msa->retry_limit_in_search != 0) {
+#ifdef ONIG_DEBUG
+    if (retry_in_match_counter >
+        ULONG_MAX - msa->retry_limit_in_search_counter) {
+      fprintf(DBGFP, "retry limit counter overflow: %8lu/%8lu\n",
+              retry_in_match_counter, msa->retry_limit_in_search_counter);
+    }
+#endif
     msa->retry_limit_in_search_counter += retry_in_match_counter;
   }
 
@@ -5427,6 +5469,7 @@ search_in_range(regex_t* reg, const UChar* str, const UChar* end,
                 OnigOptionType option, OnigMatchParam* mp)
 {
   int r;
+  int forward;
   UChar *s;
   MatchArg msa;
   const UChar *orig_start = start;
@@ -5473,6 +5516,8 @@ search_in_range(regex_t* reg, const UChar* str, const UChar* end,
     }\
     else goto finish; /* error */ \
   }
+
+  forward = (range > start);
 
   /* anchor optimize: resume search range */
   if (reg->anchor != 0 && str < end) {
@@ -5595,7 +5640,7 @@ search_in_range(regex_t* reg, const UChar* str, const UChar* end,
   MATCH_ARG_INIT(msa, reg, option, region, orig_start, mp);
 
   s = (UChar* )start;
-  if (range > start) {   /* forward search */
+  if (forward != 0) {   /* forward search */
     if (reg->optimize != OPTIMIZE_NONE) {
       UChar *sch_range, *low, *high;
 
@@ -5626,6 +5671,9 @@ search_in_range(regex_t* reg, const UChar* str, const UChar* end,
           while (s <= high) {
             MATCH_AND_RETURN_CHECK(data_range);
             s += enclen(reg->enc, s);
+#ifdef USE_SKIP_SEARCH
+            if (s < msa.skip_search) s = msa.skip_search;
+#endif
           }
         } while (s < range);
         goto mismatch;
@@ -5636,30 +5684,42 @@ search_in_range(regex_t* reg, const UChar* str, const UChar* end,
 
         if ((reg->anchor & ANCR_ANYCHAR_INF) != 0 &&
             (reg->anchor & (ANCR_LOOK_BEHIND | ANCR_PREC_READ_NOT)) == 0) {
-          do {
+          while (s < range) {
             UChar* prev;
 
             MATCH_AND_RETURN_CHECK(data_range);
             prev = s;
             s += enclen(reg->enc, s);
 
-            while (!ONIGENC_IS_MBC_NEWLINE(reg->enc, prev, end) && s < range) {
-              prev = s;
-              s += enclen(reg->enc, s);
+#ifdef USE_SKIP_SEARCH
+            if (s < msa.skip_search) s = msa.skip_search;
+            else {
+#endif
+              while (!ONIGENC_IS_MBC_NEWLINE(reg->enc, prev, end) &&
+                     s < range) {
+                prev = s;
+                s += enclen(reg->enc, s);
+              }
+#ifdef USE_SKIP_SEARCH
             }
-          } while (s < range);
+#endif
+          }
           goto mismatch;
         }
       }
     }
 
-    do {
+    while (1 == 1) {
       MATCH_AND_RETURN_CHECK(data_range);
+      if (s >= range) break;
       s += enclen(reg->enc, s);
-    } while (s < range);
 
-    if (s == range) { /* because empty match with /$/. */
-      MATCH_AND_RETURN_CHECK(data_range);
+#ifdef USE_SKIP_SEARCH
+      if (s < msa.skip_search) {
+        s = msa.skip_search;
+        if (s > range) break;
+      }
+#endif
     }
   }
   else {  /* backward search */
@@ -6367,6 +6427,17 @@ onig_builtin_error(OnigCalloutArgs* args, void* user_data ARG_UNUSED)
 
   return n;
 }
+
+#ifdef USE_SKIP_SEARCH
+extern int
+onig_builtin_skip(OnigCalloutArgs* args, void* user_data ARG_UNUSED)
+{
+  if (args->current > args->msa->skip_search)
+    args->msa->skip_search = (UChar* )args->current;
+
+  return ONIG_NORMAL;
+}
+#endif
 
 extern int
 onig_builtin_count(OnigCalloutArgs* args, void* user_data)

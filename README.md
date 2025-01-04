@@ -12,7 +12,7 @@ It includes the following Regular Expression engines:
 * **[Boost.Regex](https://www.boost.org/doc/libs/1_83_0/libs/regex/doc/html/index.html)** from Boost C++ Libraries 1.83.0.
 * **[PCRE2](https://pcre.org/)** Open Source Regex Library 10.42.
 * **[RE2](https://github.com/google/re2)** C++ Library 2023-03-01 from Google.
-* **[Oniguruma](https://github.com/kkos/oniguruma)** Regular Expression Library 6.9.9.
+* **[Oniguruma](https://github.com/kkos/oniguruma)** Regular Expression Library 6.9.10.
 * **[SubReg](https://github.com/mattbucknall/subreg)** 2024-08-11.
 * **[RegExp](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)** JavaScript object from Microsoft Edge [WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
 * **[RegExp](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85))** VBScript object used in Access, Excel, Word.
