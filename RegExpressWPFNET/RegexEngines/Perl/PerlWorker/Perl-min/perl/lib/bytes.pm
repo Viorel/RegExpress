@@ -1,32 +1,19 @@
-package bytes;
+package bytes 1.09;
 
-our $VERSION = '1.07';
+use v5.38;
 
-$bytes::hint_bits = 0x00000008;
+BEGIN { $bytes::hint_bits = 0x0000_0008 }
 
-sub import {
-    $^H |= $bytes::hint_bits;
-}
+sub   import { $^H |=  $bytes::hint_bits }
+sub unimport { $^H &= ~$bytes::hint_bits }
 
-sub unimport {
-    $^H &= ~$bytes::hint_bits;
-}
+sub chr    :prototype(_)     { BEGIN { import() } &CORE::chr    }
+sub index  :prototype($$;$)  { BEGIN { import() } &CORE::index  }
+sub length :prototype(_)     { BEGIN { import() } &CORE::length }
+sub ord    :prototype(_)     { BEGIN { import() } &CORE::ord    }
+sub rindex :prototype($$;$)  { BEGIN { import() } &CORE::rindex }
+sub substr :prototype($$;$$) { BEGIN { import() } &CORE::substr }
 
-sub AUTOLOAD {
-    require "bytes_heavy.pl";
-    goto &$AUTOLOAD if defined &$AUTOLOAD;
-    require Carp;
-    Carp::croak("Undefined subroutine $AUTOLOAD called");
-}
-
-sub length (_);
-sub chr (_);
-sub ord (_);
-sub substr ($$;$$);
-sub index ($$;$);
-sub rindex ($$;$);
-
-1;
 __END__
 
 =head1 NAME
@@ -120,5 +107,3 @@ C<bytes::substr()> does not work as an I<lvalue()>.
 =head1 SEE ALSO
 
 L<perluniintro>, L<perlunicode>, L<utf8>, L<Encode>
-
-=cut

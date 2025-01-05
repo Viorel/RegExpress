@@ -3,7 +3,7 @@ package Safe;
 use 5.003_11;
 use Scalar::Util qw(reftype refaddr);
 
-$Safe::VERSION = "2.41_01";
+$Safe::VERSION = "2.46";
 
 # *** Don't declare any lexicals above this point ***
 #
@@ -21,7 +21,7 @@ sub lexless_anon_sub {
     # Uses a closure (on $__ExPr__) to pass in the code to be executed.
     # (eval on one line to keep line numbers as expected by caller)
     eval sprintf
-    'package %s; %s sub { @_=(); eval q[local *SIG; my $__ExPr__;] . $__ExPr__; }',
+    'package %s; %s sub { @_=(); local *SIG; eval q[my $__ExPr__;] . $__ExPr__; }',
                 $_[0], $_[1] ? 'use strict;' : '';
 }
 
@@ -67,7 +67,7 @@ require utf8;
 # particular code points don't cause it to load.
 # (Swashes are cached internally by perl in PL_utf8_* variables
 # independent of being inside/outside of Safe. So once loaded they can be)
-do { my $a = pack('U',0x100); my $b = chr 0x101; utf8::upgrade $b; $a =~ /$b/i };
+do { my $a = pack('U',0x100); $a =~ m/\x{1234}/; $a =~ tr/\x{1234}//; };
 # now we can safely include utf8::SWASHNEW in $default_share defined below.
 
 my $default_root  = 0;
@@ -77,8 +77,10 @@ my $default_root  = 0;
 my $default_share = [qw[
     *_
     &PerlIO::get_layers
+    &UNIVERSAL::import
     &UNIVERSAL::isa
     &UNIVERSAL::can
+    &UNIVERSAL::unimport
     &UNIVERSAL::VERSION
     &utf8::is_utf8
     &utf8::valid
@@ -822,4 +824,3 @@ Reworked to use the Opcode module and other changes added by Tim Bunce.
 Currently maintained by the Perl 5 Porters, <perl5-porters@perl.org>.
 
 =cut
-

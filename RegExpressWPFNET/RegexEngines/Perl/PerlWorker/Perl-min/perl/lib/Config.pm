@@ -10,15 +10,15 @@ use strict;
 use warnings;
 our ( %Config, $VERSION );
 
-$VERSION = "5.032001";
+$VERSION = "5.040000";
 
 # Skip @Config::EXPORT because it only contains %Config, which we special
 # case below as it's not a function. @Config::EXPORT won't change in the
 # lifetime of Perl 5.
 my %Export_Cache = (myconfig => 1, config_sh => 1, config_vars => 1,
-		    config_re => 1, compile_date => 1, local_patches => 1,
-		    bincompat_options => 1, non_bincompat_options => 1,
-		    header_files => 1);
+                    config_re => 1, compile_date => 1, local_patches => 1,
+                    bincompat_options => 1, non_bincompat_options => 1,
+                    header_files => 1);
 
 @Config::EXPORT = qw(%Config);
 @Config::EXPORT_OK = keys %Export_Cache;
@@ -47,20 +47,20 @@ sub import {
     no strict 'refs';
     my $callpkg = caller(0);
     foreach my $func (@funcs) {
-	die qq{"$func" is not exported by the Config module\n}
-	    unless $Export_Cache{$func};
-	*{$callpkg.'::'.$func} = \&{$func};
+        die qq{"$func" is not exported by the Config module\n}
+            unless $Export_Cache{$func};
+        *{$callpkg.'::'.$func} = \&{$func};
     }
 
     *{"$callpkg\::Config"} = \%Config if $export_Config;
     return;
 }
 
-die "$0: Perl lib version (5.32.1) doesn't match executable '$^X' version ($])"
+die "$0: Perl lib version (5.40.0) doesn't match executable '$^X' version ($])"
     unless $^V;
 
-$^V eq 5.32.1
-    or die sprintf "%s: Perl lib version (5.32.1) doesn't match executable '$^X' version (%vd)", $0, $^V;
+$^V eq 5.40.0
+    or die sprintf "%s: Perl lib version (5.40.0) doesn't match executable '$^X' version (%vd)", $0, $^V;
 
 
 sub FETCH {
@@ -87,8 +87,8 @@ tie %Config, 'Config', {
     archlibexp => 'C:\\strawberry\\perl\\lib',
     archname => 'MSWin32-x64-multi-thread',
     cc => 'gcc',
-    d_readlink => undef,
-    d_symlink => undef,
+    d_readlink => 'define',
+    d_symlink => 'define',
     dlext => 'xs.dll',
     dlsrc => 'dl_win32.xs',
     dont_use_nlink => undef,
@@ -96,9 +96,9 @@ tie %Config, 'Config', {
     inc_version_list => '',
     intsize => '4',
     ldlibpthname => '',
-    libpth => 'C:\\strawberry\\c\\lib C:\\strawberry\\c\\x86_64-w64-mingw32\\lib C:\\strawberry\\c\\lib\\gcc\\x86_64-w64-mingw32\\8.3.0',
+    libpth => 'C:\\strawberry\\c\\lib C:\\strawberry\\c\\x86_64-w64-mingw32\\lib C:\\strawberry\\c\\lib\\gcc\\x86_64-w64-mingw32\\13.2.0 C:\\strawberry\\c\\x86_64-w64-mingw32\\lib C:\\strawberry\\c\\lib\\gcc\\x86_64-w64-mingw32\\13.2.0',
     osname => 'MSWin32',
-    osvers => '10.0.19042.746',
+    osvers => '10.0.22621.3880',
     path_sep => ';',
     privlibexp => 'C:\\strawberry\\perl\\lib',
     scriptdir => 'C:\\strawberry\\perl\\bin',
@@ -107,7 +107,7 @@ tie %Config, 'Config', {
     so => 'dll',
     useithreads => 'define',
     usevendorprefix => 'define',
-    version => '5.32.1',
+    version => '5.40.0',
 };
 eval {
 	require Portable;

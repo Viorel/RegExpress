@@ -11,8 +11,8 @@ Using the C<diagnostics> pragma:
     use diagnostics;
     use diagnostics -verbose;
 
-    enable  diagnostics;
-    disable diagnostics;
+    diagnostics->enable;
+    diagnostics->disable;
 
 Using the C<splain> standalone filter program:
 
@@ -47,7 +47,7 @@ Due to the interaction between runtime and compiletime issues,
 and because it's probably not a very good idea anyway,
 you may not use C<no diagnostics> to turn them off at compiletime.
 However, you may control their behaviour at runtime using the 
-disable() and enable() methods to turn them off and on respectively.
+C<disable()> and C<enable()> methods to turn them off and on respectively.
 
 The B<-verbose> flag first prints out the L<perldiag> introduction before
 any other diagnostics.  The $diagnostics::PRETTY variable can generate nicer
@@ -72,7 +72,7 @@ trace.
 
 =head2 The I<splain> Program
 
-While apparently a whole nuther program, I<splain> is actually nothing
+Another program, I<splain> is actually nothing
 more than a link to the (executable) F<diagnostics.pm> module, as well as
 a link to the F<diagnostics.pod> documentation.  The B<-v> flag is like
 the C<use diagnostics -verbose> directive.
@@ -126,17 +126,17 @@ at the enable() or disable() methods.
 	print BOGUS1 'nada';
 	print "done with 1st bogus\n";
 
-    disable diagnostics; # only turns off runtime warnings
+    diagnostics->disable; # only turns off runtime warnings
 	print "\ntime for 2nd bogus: (squelched)\n";
 	print BOGUS2 'nada';
 	print "done with 2nd bogus\n";
 
-    enable diagnostics; # turns back on runtime warnings
+    diagnostics->enable; # turns back on runtime warnings
 	print "\ntime for 3rd bogus: SQUAWKINGS\n";
 	print BOGUS3 'nada';
 	print "done with 3rd bogus\n";
 
-    disable diagnostics;
+    diagnostics->disable;
 	print "\ntime for 4th bogus: (squelched)\n";
 	print BOGUS4 'nada';
 	print "done with 4th bogus\n";
@@ -186,7 +186,7 @@ use 5.009001;
 use Carp;
 $Carp::Internal{__PACKAGE__.""}++;
 
-our $VERSION = '1.37';
+our $VERSION = '1.40';
 our $DEBUG;
 our $VERBOSE;
 our $PRETTY;
@@ -281,7 +281,8 @@ if (eof(POD_DIAG)) {
     'sol'	=>	'/',	#   Forward slash / solidus
     'verbar'    =>	'|',	#   vertical bar
 
-    "Aacute"	=>	"\xC1"	#   capital A, acute accent
+    #                           #   capital A, acute accent
+    "Aacute"	=>	chr utf8::unicode_to_native(0xC1)
 
     # etc
 );
