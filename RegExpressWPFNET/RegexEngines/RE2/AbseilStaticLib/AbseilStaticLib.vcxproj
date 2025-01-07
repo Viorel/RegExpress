@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{08949c31-f8a3-434a-8fe6-7ddcc6ef2ab6}</ProjectGuid>
+    <RootNamespace>AbseilStaticLib</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>bin\$(Configuration)\$(Platform)\</OutDir>
+    <IntDir>obj\$(Configuration)\$(Platform)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>bin\$(Configuration)\$(Platform)\</OutDir>
+    <IntDir>obj\$(Configuration)\$(Platform)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_LIB;NOMINMAX;WIN32_LEAN_AND_MEAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)Abseil\Headers</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_LIB;NOMINMAX;WIN32_LEAN_AND_MEAN;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)Abseil\Headers</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AbseilStaticLib.cpp" />
+    <ClCompile Include="Abseil\Source\address_is_readable.cc" />
+    <ClCompile Include="Abseil\Source\arg.cc" />
+    <ClCompile Include="Abseil\Source\ascii.cc" />
+    <ClCompile Include="Abseil\Source\bad_any_cast.cc" />
+    <ClCompile Include="Abseil\Source\bad_optional_access.cc" />
+    <ClCompile Include="Abseil\Source\bad_variant_access.cc" />
+    <ClCompile Include="Abseil\Source\barrier.cc" />
+    <ClCompile Include="Abseil\Source\bind.cc" />
+    <ClCompile Include="Abseil\Source\blocking_counter.cc" />
+    <ClCompile Include="Abseil\Source\charconv.cc" />
+    <ClCompile Include="Abseil\Source\charconv_bigint.cc" />
+    <ClCompile Include="Abseil\Source\charconv_parse.cc" />
+    <ClCompile Include="Abseil\Source\check_op.cc" />
+    <ClCompile Include="Abseil\Source\city.cc" />
+    <ClCompile Include="Abseil\Source\civil_time.cc" />
+    <ClCompile Include="Abseil\Source\civil_time_detail.cc" />
+    <ClCompile Include="Abseil\Source\clock.cc" />
+    <ClCompile Include="Abseil\Source\commandlineflag (2).cc" />
+    <ClCompile Include="Abseil\Source\commandlineflag.cc" />
+    <ClCompile Include="Abseil\Source\conditions.cc" />
+    <ClCompile Include="Abseil\Source\cord.cc" />
+    <ClCompile Include="Abseil\Source\cordz_functions.cc" />
+    <ClCompile Include="Abseil\Source\cordz_handle.cc" />
+    <ClCompile Include="Abseil\Source\cordz_info.cc" />
+    <ClCompile Include="Abseil\Source\cordz_sample_token.cc" />
+    <ClCompile Include="Abseil\Source\cord_analysis.cc" />
+    <ClCompile Include="Abseil\Source\cord_buffer.cc" />
+    <ClCompile Include="Abseil\Source\cord_internal.cc" />
+    <ClCompile Include="Abseil\Source\cord_rep_btree.cc" />
+    <ClCompile Include="Abseil\Source\cord_rep_btree_navigator.cc" />
+    <ClCompile Include="Abseil\Source\cord_rep_btree_reader.cc" />
+    <ClCompile Include="Abseil\Source\cord_rep_consume.cc" />
+    <ClCompile Include="Abseil\Source\cord_rep_crc.cc" />
+    <ClCompile Include="Abseil\Source\cpu_detect.cc" />
+    <ClCompile Include="Abseil\Source\crc.cc" />
+    <ClCompile Include="Abseil\Source\crc32c.cc" />
+    <ClCompile Include="Abseil\Source\crc_cord_state.cc" />
+    <ClCompile Include="Abseil\Source\crc_memcpy_fallback.cc" />
+    <ClCompile Include="Abseil\Source\crc_memcpy_x86_arm_combined.cc" />
+    <ClCompile Include="Abseil\Source\crc_non_temporal_memcpy.cc" />
+    <ClCompile Include="Abseil\Source\crc_x86_arm_combined.cc" />
+    <ClCompile Include="Abseil\Source\create_thread_identity.cc" />
+    <ClCompile Include="Abseil\Source\cycleclock.cc" />
+    <ClCompile Include="Abseil\Source\damerau_levenshtein_distance.cc" />
+    <ClCompile Include="Abseil\Source\decode_rust_punycode.cc" />
+    <ClCompile Include="Abseil\Source\demangle.cc" />
+    <ClCompile Include="Abseil\Source\demangle_rust.cc" />
+    <ClCompile Include="Abseil\Source\die_if_null.cc" />
+    <ClCompile Include="Abseil\Source\discrete_distribution.cc" />
+    <ClCompile Include="Abseil\Source\duration.cc" />
+    <ClCompile Include="Abseil\Source\elf_mem_image.cc" />
+    <ClCompile Include="Abseil\Source\escaping (2).cc" />
+    <ClCompile Include="Abseil\Source\escaping.cc" />
+    <ClCompile Include="Abseil\Source\examine_stack.cc" />
+    <ClCompile Include="Abseil\Source\exponential_biased.cc" />
+    <ClCompile Include="Abseil\Source\extension.cc" />
+    <ClCompile Include="Abseil\Source\failure_signal_handler.cc" />
+    <ClCompile Include="Abseil\Source\flag.cc" />
+    <ClCompile Include="Abseil\Source\flags.cc" />
+    <ClCompile Include="Abseil\Source\float_conversion.cc" />
+    <ClCompile Include="Abseil\Source\fnmatch.cc" />
+    <ClCompile Include="Abseil\Source\format.cc" />
+    <ClCompile Include="Abseil\Source\futex_waiter.cc" />
+    <ClCompile Include="Abseil\Source\gaussian_distribution.cc" />
+    <ClCompile Include="Abseil\Source\gaussian_distribution_gentables.cc" />
+    <ClCompile Include="Abseil\Source\globals (2).cc" />
+    <ClCompile Include="Abseil\Source\globals.cc" />
+    <ClCompile Include="Abseil\Source\graphcycles.cc" />
+    <ClCompile Include="Abseil\Source\hash.cc" />
+    <ClCompile Include="Abseil\Source\hashtablez_sampler.cc" />
+    <ClCompile Include="Abseil\Source\hashtablez_sampler_force_weak_definition.cc" />
+    <ClCompile Include="Abseil\Source\initialize.cc" />
+    <ClCompile Include="Abseil\Source\int128.cc" />
+    <ClCompile Include="Abseil\Source\kernel_timeout.cc" />
+    <ClCompile Include="Abseil\Source\leak_check.cc" />
+    <ClCompile Include="Abseil\Source\log_entry.cc" />
+    <ClCompile Include="Abseil\Source\log_format.cc" />
+    <ClCompile Include="Abseil\Source\log_message.cc" />
+    <ClCompile Include="Abseil\Source\log_severity.cc" />
+    <ClCompile Include="Abseil\Source\log_sink.cc" />
+    <ClCompile Include="Abseil\Source\log_sink_set.cc" />
+    <ClCompile Include="Abseil\Source\low_level_alloc.cc" />
+    <ClCompile Include="Abseil\Source\low_level_hash.cc" />
+    <ClCompile Include="Abseil\Source\marshalling.cc" />
+    <ClCompile Include="Abseil\Source\match.cc" />
+    <ClCompile Include="Abseil\Source\memutil.cc" />
+    <ClCompile Include="Abseil\Source\mutex.cc" />
+    <ClCompile Include="Abseil\Source\notification.cc" />
+    <ClCompile Include="Abseil\Source\nullguard.cc" />
+    <ClCompile Include="Abseil\Source\numbers.cc" />
+    <ClCompile Include="Abseil\Source\ostringstream.cc" />
+    <ClCompile Include="Abseil\Source\output.cc" />
+    <ClCompile Include="Abseil\Source\parse.cc" />
+    <ClCompile Include="Abseil\Source\parser.cc" />
+    <ClCompile Include="Abseil\Source\periodic_sampler.cc" />
+    <ClCompile Include="Abseil\Source\per_thread_sem.cc" />
+    <ClCompile Include="Abseil\Source\poison.cc" />
+    <ClCompile Include="Abseil\Source\pool_urbg.cc" />
+    <ClCompile Include="Abseil\Source\pow10_helper.cc" />
+    <ClCompile Include="Abseil\Source\print_hash_of.cc" />
+    <ClCompile Include="Abseil\Source\private_handle_accessor.cc" />
+    <ClCompile Include="Abseil\Source\program_name.cc" />
+    <ClCompile Include="Abseil\Source\proto.cc" />
+    <ClCompile Include="Abseil\Source\pthread_waiter.cc" />
+    <ClCompile Include="Abseil\Source\randen.cc" />
+    <ClCompile Include="Abseil\Source\randen_detect.cc" />
+    <ClCompile Include="Abseil\Source\randen_hwaes.cc" />
+    <ClCompile Include="Abseil\Source\randen_round_keys.cc" />
+    <ClCompile Include="Abseil\Source\randen_slow.cc" />
+    <ClCompile Include="Abseil\Source\raw_hash_set.cc" />
+    <ClCompile Include="Abseil\Source\raw_logging.cc" />
+    <ClCompile Include="Abseil\Source\reflection.cc" />
+    <ClCompile Include="Abseil\Source\scoped_set_env.cc" />
+    <ClCompile Include="Abseil\Source\seed_gen_exception.cc" />
+    <ClCompile Include="Abseil\Source\seed_material.cc" />
+    <ClCompile Include="Abseil\Source\seed_sequences.cc" />
+    <ClCompile Include="Abseil\Source\sem_waiter.cc" />
+    <ClCompile Include="Abseil\Source\spinlock.cc" />
+    <ClCompile Include="Abseil\Source\spinlock_wait.cc" />
+    <ClCompile Include="Abseil\Source\stacktrace.cc" />
+    <ClCompile Include="Abseil\Source\stack_consumption.cc" />
+    <ClCompile Include="Abseil\Source\status.cc" />
+    <ClCompile Include="Abseil\Source\statusor.cc" />
+    <ClCompile Include="Abseil\Source\status_internal.cc" />
+    <ClCompile Include="Abseil\Source\status_payload_printer.cc" />
+    <ClCompile Include="Abseil\Source\stdcpp_waiter.cc" />
+    <ClCompile Include="Abseil\Source\strerror.cc" />
+    <ClCompile Include="Abseil\Source\stringify_sink.cc" />
+    <ClCompile Include="Abseil\Source\string_view.cc" />
+    <ClCompile Include="Abseil\Source\structured_proto.cc" />
+    <ClCompile Include="Abseil\Source\str_cat.cc" />
+    <ClCompile Include="Abseil\Source\str_replace.cc" />
+    <ClCompile Include="Abseil\Source\str_split.cc" />
+    <ClCompile Include="Abseil\Source\substitute.cc" />
+    <ClCompile Include="Abseil\Source\symbolize.cc" />
+    <ClCompile Include="Abseil\Source\sysinfo.cc" />
+    <ClCompile Include="Abseil\Source\thread_identity.cc" />
+    <ClCompile Include="Abseil\Source\throw_delegate.cc" />
+    <ClCompile Include="Abseil\Source\time.cc" />
+    <ClCompile Include="Abseil\Source\time_zone_fixed.cc" />
+    <ClCompile Include="Abseil\Source\time_zone_format.cc" />
+    <ClCompile Include="Abseil\Source\time_zone_if.cc" />
+    <ClCompile Include="Abseil\Source\time_zone_impl.cc" />
+    <ClCompile Include="Abseil\Source\time_zone_info.cc" />
+    <ClCompile Include="Abseil\Source\time_zone_libc.cc" />
+    <ClCompile Include="Abseil\Source\time_zone_lookup.cc" />
+    <ClCompile Include="Abseil\Source\time_zone_posix.cc" />
+    <ClCompile Include="Abseil\Source\tracing.cc" />
+    <ClCompile Include="Abseil\Source\unscaledcycleclock.cc" />
+    <ClCompile Include="Abseil\Source\usage (2).cc" />
+    <ClCompile Include="Abseil\Source\usage.cc" />
+    <ClCompile Include="Abseil\Source\usage_config.cc" />
+    <ClCompile Include="Abseil\Source\utf8.cc" />
+    <ClCompile Include="Abseil\Source\utf8_for_code_point.cc" />
+    <ClCompile Include="Abseil\Source\vdso_support.cc" />
+    <ClCompile Include="Abseil\Source\vlog_config.cc" />
+    <ClCompile Include="Abseil\Source\waiter_base.cc" />
+    <ClCompile Include="Abseil\Source\win32_waiter.cc" />
+    <ClCompile Include="Abseil\Source\zone_info_source.cc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
