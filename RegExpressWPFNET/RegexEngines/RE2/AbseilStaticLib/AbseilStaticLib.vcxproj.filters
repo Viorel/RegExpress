@@ -218,9 +218,6 @@
     <ClCompile Include="Abseil\Source\gaussian_distribution.cc">
       <Filter>Abseil Sources</Filter>
     </ClCompile>
-    <ClCompile Include="Abseil\Source\gaussian_distribution_gentables.cc">
-      <Filter>Abseil Sources</Filter>
-    </ClCompile>
     <ClCompile Include="Abseil\Source\globals (2).cc">
       <Filter>Abseil Sources</Filter>
     </ClCompile>
@@ -321,9 +318,6 @@
       <Filter>Abseil Sources</Filter>
     </ClCompile>
     <ClCompile Include="Abseil\Source\pow10_helper.cc">
-      <Filter>Abseil Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Abseil\Source\print_hash_of.cc">
       <Filter>Abseil Sources</Filter>
     </ClCompile>
     <ClCompile Include="Abseil\Source\private_handle_accessor.cc">
