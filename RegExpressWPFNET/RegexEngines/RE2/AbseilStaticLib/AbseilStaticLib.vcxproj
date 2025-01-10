@@ -158,7 +158,6 @@
     <ClCompile Include="Abseil\Source\format.cc" />
     <ClCompile Include="Abseil\Source\futex_waiter.cc" />
     <ClCompile Include="Abseil\Source\gaussian_distribution.cc" />
-    <ClCompile Include="Abseil\Source\gaussian_distribution_gentables.cc" />
     <ClCompile Include="Abseil\Source\globals (2).cc" />
     <ClCompile Include="Abseil\Source\globals.cc" />
     <ClCompile Include="Abseil\Source\graphcycles.cc" />
@@ -193,7 +192,6 @@
     <ClCompile Include="Abseil\Source\poison.cc" />
     <ClCompile Include="Abseil\Source\pool_urbg.cc" />
     <ClCompile Include="Abseil\Source\pow10_helper.cc" />
-    <ClCompile Include="Abseil\Source\print_hash_of.cc" />
     <ClCompile Include="Abseil\Source\private_handle_accessor.cc" />
     <ClCompile Include="Abseil\Source\program_name.cc" />
     <ClCompile Include="Abseil\Source\proto.cc" />
