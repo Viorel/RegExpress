@@ -21,6 +21,9 @@
     <ClInclude Include="framework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ForcedInclude.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RE2StaticLib.cpp">
@@ -94,6 +97,9 @@
     </ClCompile>
     <ClCompile Include="RE2\util\strutil.cc">
       <Filter>RE2 Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

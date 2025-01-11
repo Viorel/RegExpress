@@ -21,6 +21,9 @@
     <ClInclude Include="framework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ForcedInclude.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AbseilStaticLib.cpp">
@@ -496,6 +499,9 @@
     </ClCompile>
     <ClCompile Include="Abseil\Source\zone_info_source.cc">
       <Filter>Abseil Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
