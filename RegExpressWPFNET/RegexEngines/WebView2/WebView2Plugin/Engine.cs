@@ -240,7 +240,7 @@ namespace WebView2Plugin
                 Class_X = false,
                 Class_Not = false,
                 Class_pP = false,
-                Class_pPBrace = true,
+                Class_pPBrace = uFlag,
                 Class_Name = false,
 
                 InsideSets_Class_dD = true,
@@ -255,7 +255,7 @@ namespace WebView2Plugin
                 InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
-                InsideSets_Class_pPBrace = true,
+                InsideSets_Class_pPBrace = uFlag,
                 InsideSets_Class_Name = false,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
