@@ -24,6 +24,7 @@ namespace WebView2Plugin
         public bool m { get; set; }
         public bool s { get; set; }
         public bool u { get; set; }
+        public bool v { get; set; }
         public bool y { get; set; }
         public bool g { get; set; } = true;
 

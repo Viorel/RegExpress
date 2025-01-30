@@ -46,6 +46,7 @@ namespace RegExpressLibrary.SyntaxColouring
 
         public bool Literal_QE { get; init; }                             // \Q...\E
         public bool InsideSets_Literal_QE { get; init; }                  // [\Q...\E]
+        public bool InsideSets_Literal_qBrace { get; init; }              // ex: \q{abc|d}
 
         public bool Esc_a { get; init; }                                  // \a
         public bool Esc_b { get; init; }                                  // \b -- backspace; see also Anchor_bB

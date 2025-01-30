@@ -10,4 +10,5 @@
   <Rule IsEnabled="true" ProcessName="SubRegWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="true" ProcessName="DotNET6Worker.bin" CommandLine="" EngineFilter="{2e36f1d4-b23c-435d-ab41-18e608940038}" />
   <Rule IsEnabled="true" ProcessName="WebView2Worker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
+  <Rule IsEnabled="true" ProcessName="XRegExpWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
 </ChildProcessDebuggingSettings>
