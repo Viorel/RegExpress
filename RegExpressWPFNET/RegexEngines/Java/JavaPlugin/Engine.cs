@@ -168,6 +168,7 @@ namespace JavaPlugin
 
                 Literal_QE = true,
                 InsideSets_Literal_QE = true,
+                InsideSets_Literal_qBrace = false,
 
                 Esc_a = true,
                 Esc_b = false,
