@@ -203,6 +203,7 @@ namespace BoostPlugin
 
                 Literal_QE = is_perl || is_POSIX_extended,
                 InsideSets_Literal_QE = false,
+                InsideSets_Literal_qBrace = false,
 
                 Esc_a = is_perl || is_POSIX_extended,
                 Esc_b = false,

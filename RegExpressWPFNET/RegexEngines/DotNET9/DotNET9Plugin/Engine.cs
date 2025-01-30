@@ -166,6 +166,7 @@ namespace DotNET8Plugin
 
                 Literal_QE = false,
                 InsideSets_Literal_QE = false,
+                InsideSets_Literal_qBrace = false,
 
                 Esc_a = true,
                 Esc_b = false,

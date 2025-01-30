@@ -18,8 +18,9 @@ namespace WebView2Plugin
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrixNoUFlag = new Lazy<FeatureMatrix>( ( ) => BuildFeatureMatrix( uFlag: false ) );
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrixWithUFlag = new Lazy<FeatureMatrix>( ( ) => BuildFeatureMatrix( uFlag: true ) );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrixUnicodeUnaware = new( ( ) => BuildFeatureMatrix( uFlag: false, vFlag: false ) );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrixWithUFlag = new( ( ) => BuildFeatureMatrix( uFlag: true, vFlag: false ) );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrixWithVFlag = new( ( ) => BuildFeatureMatrix( uFlag: false, vFlag: true ) );
 
 
         public Engine( )
@@ -109,7 +110,7 @@ namespace WebView2Plugin
             {
                 XLevel = XLevelEnum.none,
                 AllowEmptySets = true,
-                FeatureMatrix = ( options.u ? LazyFeatureMatrixWithUFlag : LazyFeatureMatrixNoUFlag ).Value
+                FeatureMatrix = ( options.v ? LazyFeatureMatrixWithVFlag : options.u ? LazyFeatureMatrixWithUFlag : LazyFeatureMatrixUnicodeUnaware ).Value
             };
         }
 
@@ -118,7 +119,8 @@ namespace WebView2Plugin
             var list = new List<(string?, FeatureMatrix)>
             {
                 ("“u” flag", LazyFeatureMatrixWithUFlag.Value),
-                ("no “u” flag", LazyFeatureMatrixNoUFlag.Value)
+                ("“v” flag", LazyFeatureMatrixWithVFlag.Value),
+                ("no “u” or “v” flag", LazyFeatureMatrixUnicodeUnaware.Value)
             };
 
             return list;
@@ -149,8 +151,10 @@ namespace WebView2Plugin
         }
 
 
-        static FeatureMatrix BuildFeatureMatrix( bool uFlag )
+        static FeatureMatrix BuildFeatureMatrix( bool uFlag, bool vFlag )
         {
+            Debug.Assert( !( uFlag && vFlag ) );
+
             return new FeatureMatrix
             {
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,
@@ -173,6 +177,7 @@ namespace WebView2Plugin
 
                 Literal_QE = false,
                 InsideSets_Literal_QE = false,
+                InsideSets_Literal_qBrace = vFlag,
 
                 Esc_a = false,
                 Esc_b = false,
@@ -190,7 +195,7 @@ namespace WebView2Plugin
                 Esc_xBrace = false,
                 Esc_u4 = true,
                 Esc_U8 = false,
-                Esc_uBrace = uFlag,
+                Esc_uBrace = uFlag || vFlag,
                 Esc_UBrace = false,
                 Esc_c1 = true,
                 Esc_C1 = false,
@@ -214,7 +219,7 @@ namespace WebView2Plugin
                 InsideSets_Esc_xBrace = false,
                 InsideSets_Esc_u4 = true,
                 InsideSets_Esc_U8 = false,
-                InsideSets_Esc_uBrace = uFlag,
+                InsideSets_Esc_uBrace = uFlag || vFlag,
                 InsideSets_Esc_UBrace = false,
                 InsideSets_Esc_c1 = true,
                 InsideSets_Esc_C1 = false,
@@ -240,7 +245,7 @@ namespace WebView2Plugin
                 Class_X = false,
                 Class_Not = false,
                 Class_pP = false,
-                Class_pPBrace = uFlag,
+                Class_pPBrace = uFlag || vFlag,
                 Class_Name = false,
 
                 InsideSets_Class_dD = true,
@@ -255,12 +260,12 @@ namespace WebView2Plugin
                 InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
-                InsideSets_Class_pPBrace = uFlag,
+                InsideSets_Class_pPBrace = uFlag || vFlag,
                 InsideSets_Class_Name = false,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 
-                InsideSets_Operators = false,
+                InsideSets_Operators = vFlag,
                 InsideSets_OperatorsExtended = false,
                 InsideSets_Operator_Ampersand = false,
                 InsideSets_Operator_Plus = false,
@@ -268,9 +273,9 @@ namespace WebView2Plugin
                 InsideSets_Operator_Minus = false,
                 InsideSets_Operator_Circumflex = false,
                 InsideSets_Operator_Exclamation = false,
-                InsideSets_Operator_DoubleAmpersand = false,
+                InsideSets_Operator_DoubleAmpersand = vFlag,
                 InsideSets_Operator_DoubleVerticalLine = false,
-                InsideSets_Operator_DoubleMinus = false,
+                InsideSets_Operator_DoubleMinus = vFlag,
                 InsideSets_Operator_DoubleTilde = false,
 
                 Anchor_Circumflex = true,

@@ -53,6 +53,7 @@ namespace RegExpressWPFNET.Code
 
             new FeatureMatrixDetails(  @"\Q…\E", @"Literal", fm => fm.Literal_QE ),
             new FeatureMatrixDetails(  @"[\Q…\E]", @"Literal inside […]", fm => fm.InsideSets_Literal_QE ),
+            new FeatureMatrixDetails(  @"[\q{…}]", @"Literal inside […]", fm => fm.InsideSets_Literal_qBrace ),
 
 
             new FeatureMatrixDetails(  @"Escapes", null, null ),

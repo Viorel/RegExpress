@@ -653,7 +653,8 @@ namespace RegExpressLibrary.SyntaxColouring
             if( fm.Brackets )
             {
                 string comm = fm.InsideSets_XModeComments && is_xmode ? @"((?<comment>\#.*?)(\n|\r|$)) |" : "";
-                string qs = fm.InsideSets_Literal_QE ? @"(?<qs>\\Q.*?(\\E|$)) |" : "";
+                string qs1 = fm.InsideSets_Literal_QE ? @"(?<qs>\\Q.*?(\\E|$)) |" : "";
+                string qs2 = fm.InsideSets_Literal_qBrace ? @"(?<qs>\\q\{ [^}]* \}? ) |" : ""; //TODO: colourise '|' operator: "[\q{xxx|yyy}]"
 
                 if( fm.InsideSets_Operators )
                 {
@@ -662,22 +663,24 @@ namespace RegExpressLibrary.SyntaxColouring
 (?<lbracket>\[ \^?)  
 \]?
 (?>
-  (?<lbracket>\[ \^?) {0} (?<c>) \]? | ( {1} {2} {3} | {4} | [^\[\]] )+ | (?<rbracket>\]) (?<-c>)
+  (?<lbracket>\[ \^?) {0} (?<c>) \]? | ( {1} {2} {3} {4} | {5} | [^\[\]] )+ | (?<rbracket>\]) (?<-c>)
 )*
 #(?(c)(?!))
 (?<rbracket>\])?", // (use '#(?(c)(?!))' to detect balanced brackets only)
                     class_check,
                     comm,
-                    qs,
+                    qs1,
+                    qs2,
                     pb_set_operators.ToPattern( ),
                     pb_inside_sets.ToPattern( ) ) );
                 }
                 else
                 {
                     // language=regex
-                    pb.Add( String.Format( @"(?<lbracket>\[ \^?) \]? ( {0} {1} {2} | [^\]])* (?<rbracket>\])?",
+                    pb.Add( String.Format( @"(?<lbracket>\[ \^?) \]? ( {0} {1} {2} {3} | [^\]])* (?<rbracket>\])?",
                         comm,
-                        qs,
+                        qs1,
+                        qs2,
                         pb_inside_sets.ToPattern( ) ) ); // [...]
                 }
             }

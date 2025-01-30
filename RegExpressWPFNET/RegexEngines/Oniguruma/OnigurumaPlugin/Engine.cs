@@ -276,6 +276,7 @@ namespace OnigurumaPlugin
 
                 Literal_QE = details.ONIG_SYN_OP2_ESC_CAPITAL_Q_QUOTE,
                 InsideSets_Literal_QE = false,
+                InsideSets_Literal_qBrace = false,
 
                 Esc_a = details.ONIG_SYN_OP_ESC_CONTROL_CHARS,
                 Esc_b = false, // helper.ONIG_SYN_OP_ESC_CONTROL_CHARS, // TODO: does not seems to correspond to documentation; in some cases '\b' is 'b'

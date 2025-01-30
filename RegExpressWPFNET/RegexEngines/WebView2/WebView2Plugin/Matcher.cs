@@ -52,6 +52,7 @@ namespace WebView2Plugin
                 options.m ? "m" : "",
                 options.s ? "s" : "",
                 options.u ? "u" : "",
+                options.v ? "v" : "",
                 options.y ? "y" : "",
                 options.g ? "g" : "",
                 options.Function == FunctionEnum.Exec ? "E" : ""

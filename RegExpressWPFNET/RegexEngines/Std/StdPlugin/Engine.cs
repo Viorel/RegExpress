@@ -188,6 +188,7 @@ namespace StdPlugin
 
                 Literal_QE = false,
                 InsideSets_Literal_QE = false,
+                InsideSets_Literal_qBrace = false,
 
                 Esc_a = grammar == GrammarEnum.awk,
                 Esc_b = grammar == GrammarEnum.awk,
