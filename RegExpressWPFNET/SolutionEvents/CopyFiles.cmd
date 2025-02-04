@@ -116,6 +116,13 @@ xcopy /D /R /Y "%BasePath%\RustPlugin\bin\%Configuration%\%TargetDir%\RustPlugin
 xcopy /D /R /Y "%BasePath%\RustWorker\target\release\RustWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
 
 
+rem -- Rust (fancy_regex) --
+
+set BasePath=%SolutionDir%\RegexEngines\Rust (fancy_regex)
+xcopy /D /R /Y "%BasePath%\RustPlugin\bin\%Configuration%\%TargetDir%\RustFancyPlugin.dll" "%EnginesTargetPath%\Rust (fancy_regex)\*"
+xcopy /D /R /Y "%BasePath%\RustWorker\target\release\RustFancyWorker.exe" "%EnginesTargetPath%\Rust (fancy_regex)\*.bin"
+
+
 rem -- Java --
 
 set BasePath=%SolutionDir%\RegexEngines\Java
