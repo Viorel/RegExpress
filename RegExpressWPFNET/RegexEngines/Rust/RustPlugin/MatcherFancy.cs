@@ -7,18 +7,14 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Interop;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.Matches.Simple;
 
-
 namespace RustPlugin
 {
-    static class Matcher
+    internal static class MatcherFancy
     {
         class VersionResponse
         {
@@ -30,7 +26,6 @@ namespace RustPlugin
             public string[] names { get; set; }
             public int[][][] matches { get; set; }
         }
-
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
@@ -146,30 +141,6 @@ namespace RustPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-
-        public static string? GetVersion( ICancellable cnc )
-        {
-            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.UTF8;
-
-            ph.BinaryWriter = bw =>
-            {
-                bw.Write( "{\"c\":\"v\"}" );
-            };
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            VersionResponse? r = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream );
-
-            if( r == null ) throw new Exception( "Null response" );
-
-            return r!.version;
-        }
-
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -178,6 +149,5 @@ namespace RustPlugin
 
             return worker_exe;
         }
-
     }
 }

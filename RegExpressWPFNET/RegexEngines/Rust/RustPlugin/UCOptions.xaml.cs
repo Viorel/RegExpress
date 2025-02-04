@@ -60,6 +60,13 @@ namespace RustPlugin
         }
 
 
+        private void cbxCrate_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateControls( );
+
+            Notify( preferImmediateReaction: true );
+        }
+
         private void cbxStruct_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             UpdateControls( );
@@ -83,9 +90,21 @@ namespace RustPlugin
             {
                 ++ChangeCounter;
 
-                string? @struct = ( (ComboBoxItem)cbxStruct.SelectedItem )?.Tag?.ToString( );
+                CrateEnum crate = ( (ComboBoxItem)cbxCrate.SelectedItem )?.Tag?.ToString( ) switch
+                {
+                    "regex" => CrateEnum.regex,
+                    "fancy_regex" => CrateEnum.fancy_regex,
+                    _ => CrateEnum.None,
+                };
 
-                bool is_builder = @struct == "RegexBuilder";
+                StructEnum @struct = ( (ComboBoxItem)cbxStruct.SelectedItem )?.Tag?.ToString( ) switch
+                {
+                    "Regex" => StructEnum.Regex,
+                    "RegexBuilder" => StructEnum.RegexBuilder,
+                    _ => StructEnum.None,
+                };
+
+                bool is_builder = @struct == StructEnum.RegexBuilder;
 
                 pnlRegexBuilderOptions.IsEnabled = is_builder;
                 pnlRegexBuilderOptions.Opacity = pnlRegexBuilderOptions.IsEnabled ? 1 : 0.75;
@@ -98,6 +117,17 @@ namespace RustPlugin
                 {
                     pnlRegexBuilderOptions.DataContext = new Options( ); // (to show defaults)
                 }
+
+                chbx_case_insensitive.Visibility = Visibility.Visible;
+                chbx_multi_line.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                chbx_dot_matches_new_line.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                chbx_swap_greed.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                chbx_ignore_whitespace.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                chbx_unicode.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                chbx_octal.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+
+                pnlRegexCrateLimits.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                pnlFancyRegexCrateLimits.Visibility = crate == CrateEnum.fancy_regex ? Visibility.Visible : Visibility.Collapsed;
             }
             finally
             {

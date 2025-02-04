@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="228.8" d:DesignWidth="470.4" 
+             d:DesignHeight="304.05" d:DesignWidth="489.6" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -21,7 +21,18 @@
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
-                <Label Content="Struct:" Target="{Binding ElementName=cbxStruct}" Padding="0 2 4 2"/>
+                <Label Content="Crate:" Target="{Binding ElementName=cbxCrate}" Padding="0 2 4 2" MinWidth="40"/>
+                <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
+                    <ComboBoxItem Tag ="regex" Content="regex 1.11.1" IsSelected="True" />
+                    <ComboBoxItem Tag ="fancy_regex" Content="fancy_regex 0.14.0" />
+                </ComboBox>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0 0 0 4">
+                <StackPanel.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </StackPanel.LayoutTransform>
+                <Label Content="Struct:" Target="{Binding ElementName=cbxStruct}" Padding="0 2 4 2" MinWidth="40"/>
                 <ComboBox x:Name="cbxStruct" SelectedValuePath="Tag" SelectedValue="{Binding struct, FallbackValue='Regex'}" VerticalAlignment="Center" SelectionChanged="cbxStruct_SelectionChanged" MinWidth="44">
                     <ComboBoxItem Tag ="Regex" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
                     <ComboBoxItem Tag ="RegexBuilder" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
@@ -30,24 +41,16 @@
 
             <StackPanel x:Name="pnlRegexBuilderOptions">
 
-                <ui:CheckboxWithNote Prop="case_insensitive" Note="(i) match both upper case and lower case variants"/>
-                <ui:CheckboxWithNote Prop="multi_line" Note="(m) “^” matches the beginning of lines, “$” matches the end of lines"/>
-                <ui:CheckboxWithNote Prop="dot_matches_new_line" Note="(s) “.” matches anything"/>
-                <ui:CheckboxWithNote Prop="swap_greed" Note="(U) “a*” finds shortest match, “a*?” finds longest match"/>
-                <ui:CheckboxWithNote Prop="ignore_whitespace" Note="(x) ignore whitespaces, allow “#” to start line comments"/>
-                <ui:CheckboxWithNote Prop="unicode" Note="(u) match Unicode characters"/>
-                <ui:CheckboxWithNote Prop="octal" Note="support octal syntax"/>
+                <ui:CheckboxWithNote x:Name="chbx_case_insensitive" Prop="case_insensitive" Note="(i) match both upper case and lower case variants"/>
+                <ui:CheckboxWithNote x:Name="chbx_multi_line" Prop="multi_line" Note="(m) “^” matches the beginning of lines, “$” matches the end of lines"/>
+                <ui:CheckboxWithNote x:Name="chbx_dot_matches_new_line" Prop="dot_matches_new_line" Note="(s) “.” matches anything"/>
+                <ui:CheckboxWithNote x:Name="chbx_swap_greed" Prop="swap_greed" Note="(U) “a*” finds shortest match, “a*?” finds longest match"/>
+                <ui:CheckboxWithNote x:Name="chbx_ignore_whitespace" Prop="ignore_whitespace" Note="(x) ignore whitespaces, allow “#” to start line comments"/>
+                <ui:CheckboxWithNote x:Name="chbx_unicode" Prop="unicode" Note="(u) match Unicode characters"/>
+                <ui:CheckboxWithNote x:Name="chbx_octal" Prop="octal" Note="support octal syntax"/>
 
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 6 0 0">
-                    <Grid.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </Grid.LayoutTransform>
-                    <Grid.Resources>
+                <StackPanel Orientation="Vertical">
+                    <StackPanel.Resources>
                         <Style TargetType="Label">
                             <Setter Property="VerticalAlignment" Value="Center"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -64,31 +67,77 @@
                             <Setter Property="Margin" Value="4 0"/>
                             <Setter Property="TextWrapping" Value="Wrap"/>
                         </Style>
-                    </Grid.Resources>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="44"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                    </StackPanel.Resources>
 
-                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=sl}">size__limit:</Label>
-                    <TextBox x:Name="sl" Grid.Column="1" Grid.Row="0" Text="{Binding size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– byte size limit of compiled regular expression" />
+                    <Grid x:Name="pnlRegexCrateLimits" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 6 0 0" Visibility="Collapsed" d:Visibility="Visible">
+                        <Grid.LayoutTransform>
+                            <TransformGroup>
+                                <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                                <SkewTransform/>
+                                <RotateTransform/>
+                                <TranslateTransform/>
+                            </TransformGroup>
+                        </Grid.LayoutTransform>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="44"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=dsl}">dfa__size__limit:</Label>
-                    <TextBox x:Name="dsl" Grid.Column="1" Grid.Row="1" Text="{Binding dfa_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– byte size of DFA cache" />
+                        <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=sl}">size__limit:</Label>
+                        <TextBox x:Name="sl" Grid.Column="1" Grid.Row="0" Text="{Binding size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                        <TextBlock Grid.Column="2" Grid.Row="0" Text="– byte size limit of compiled regular expression" />
 
-                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=nl}">nest__limit:</Label>
-                    <TextBox x:Name="nl" Grid.Column="1" Grid.Row="2" Text="{Binding nest_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– nest depth" />
+                        <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=dsl}">dfa__size__limit:</Label>
+                        <TextBox x:Name="dsl" Grid.Column="1" Grid.Row="1" Text="{Binding dfa_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                        <TextBlock Grid.Column="2" Grid.Row="1" Text="– byte size of DFA cache" />
 
-                </Grid>
+                        <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=nl}">nest__limit:</Label>
+                        <TextBox x:Name="nl" Grid.Column="1" Grid.Row="2" Text="{Binding nest_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                        <TextBlock Grid.Column="2" Grid.Row="2" Text="– nest depth" />
+
+                    </Grid>
+
+                    <Grid x:Name="pnlFancyRegexCrateLimits" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 6 0 0" Visibility="Collapsed" d:Visibility="Visible">
+                        <Grid.LayoutTransform>
+                            <TransformGroup>
+                                <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                                <SkewTransform/>
+                                <RotateTransform/>
+                                <TranslateTransform/>
+                            </TransformGroup>
+                        </Grid.LayoutTransform>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="44"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=bl}">backtrack__limit:</Label>
+                        <TextBox x:Name="bl" Grid.Column="1" Grid.Row="0" Text="{Binding backtrack_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                        <TextBlock Grid.Column="2" Grid.Row="0" Text="– limit for how many times backtracking should be attempted" />
+
+                        <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=delsl}">delegate__size__limit:</Label>
+                        <TextBox x:Name="delsl" Grid.Column="1" Grid.Row="1" Text="{Binding delegate_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                        <TextBlock Grid.Column="2" Grid.Row="1" Text="– approximate size limit of compiled regular expression" />
+
+                        <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=deldsl}">delegate__dfa__size__limit:</Label>
+                        <TextBox x:Name="deldsl" Grid.Column="1" Grid.Row="2" Text="{Binding delegate_dfa_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                        <TextBlock Grid.Column="2" Grid.Row="2" Text="– approximate size of cache used by DFA" />
+
+                    </Grid>
+
+                </StackPanel>
             </StackPanel>
         </StackPanel>
 

@@ -8,6 +8,13 @@ using System.Threading.Tasks;
 namespace RustPlugin
 {
 
+    enum CrateEnum
+    {
+        None,
+        regex,
+        fancy_regex,
+    }
+
     enum StructEnum
     {
         None,
@@ -17,6 +24,7 @@ namespace RustPlugin
 
     internal class Options
     {
+        public CrateEnum @crate { get; set; } = CrateEnum.regex;
         public StructEnum @struct { get; set; } = StructEnum.Regex;
 
         public bool case_insensitive { get; set; }
@@ -27,9 +35,17 @@ namespace RustPlugin
         public bool unicode { get; set; } = true;
         public bool octal { get; set; }
 
+        // Regex crate
+
         public string? size_limit { get; set; }
         public string? dfa_size_limit { get; set; }
         public string? nest_limit { get; set; }
+
+        // Fancy_regex crate
+
+        public string? backtrack_limit { get; set; }
+        public string? delegate_size_limit { get; set; }
+        public string? delegate_dfa_size_limit { get; set; }
 
 
         public Options Clone( )

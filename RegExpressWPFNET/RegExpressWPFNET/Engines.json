@@ -41,9 +41,6 @@
       "path": "Engines\\Rust\\RustPlugin.dll"
     },
     {
-      "path": "Engines\\Rust (fancy_regex)\\RustFancyPlugin.dll"
-    },
-    {
       "path": "Engines\\Java\\JavaPlugin.dll"
     },
     {
