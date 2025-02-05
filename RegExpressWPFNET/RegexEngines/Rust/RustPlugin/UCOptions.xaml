@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="304.05" d:DesignWidth="489.6" 
+             d:DesignHeight="550.85" d:DesignWidth="489.6" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -25,10 +25,11 @@
                 <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
                     <ComboBoxItem Tag ="regex" Content="regex 1.11.1" IsSelected="True" />
                     <ComboBoxItem Tag ="fancy_regex" Content="fancy_regex 0.14.0" />
+                    <ComboBoxItem Tag ="regress" Content="regress 0.10.3" />
                 </ComboBox>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" Margin="0 0 0 4">
+            <StackPanel x:Name="pnlStruct" Orientation="Horizontal" Margin="0 0 0 4">
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
@@ -138,6 +139,16 @@
                     </Grid>
 
                 </StackPanel>
+            </StackPanel>
+
+            <StackPanel x:Name="pnlRegressOptions" Orientation="Vertical" Visibility="Collapsed" d:Visibility="Visible">
+                <ui:CheckboxWithNote Prop="case_insensitive" Text="icase" Note="(i) case-insensitive"/>
+                <ui:CheckboxWithNote Prop="multi_line" Text="multiline" Note="(m) “^” and “$” match at line separators"/>
+                <ui:CheckboxWithNote Prop="dot_matches_new_line" Text="dot_all" Note="(s) “.” matches at line separators as well as any other character"/>
+                <ui:CheckboxWithNote Prop="no_opt" Note="disable regex IR passes"/>
+                <ui:CheckboxWithNote Prop="unicode" Note="(u) Unicode regex"/>
+                <ui:CheckboxWithNote Prop="unicode_sets" Note="(v) UnicodeSets regex"/>
+
             </StackPanel>
         </StackPanel>
 

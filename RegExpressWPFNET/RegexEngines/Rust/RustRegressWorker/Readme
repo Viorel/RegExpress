@@ -1,0 +1,24 @@
+In order to rebuild the RustFancyWorker ("src\main.rs"):
+
+- Download and install "Rust" from https://www.rust-lang.org/tools/install. 
+  Use the recommended "rustup". Select the 64-bit installer.
+
+  It will include the Rust compiler and Cargo package manager. 
+  To check, run from command line:
+
+        rustc --version
+        cargo --version
+
+- If required, adjust the versions in "Cargo.toml" file, "[dependencies]" section.
+
+- Run this command:
+
+        cargo build --release
+
+  It will generate the "target\release\RustFancyWorker.exe".
+
+- Rebuild ("Rebuild All") the Visual Studio solution. A Custom build step 
+  will copy 'RustFancyWorker.exe' to output folder as 'RustFancyWorker.bin'.
+
+- Commit and push the changes to Git (including 'RustFancyWorker.exe'). 
+

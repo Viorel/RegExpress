@@ -1,0 +1,7 @@
+Cargo.lock
+!target/**
+target/*.*
+target/release/*
+!target/release/RustWorkerFancy.exe
+target/debug/*
+!target/debug/RustWorkerFancy.exe

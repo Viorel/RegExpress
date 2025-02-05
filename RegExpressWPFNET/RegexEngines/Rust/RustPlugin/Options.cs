@@ -13,6 +13,7 @@ namespace RustPlugin
         None,
         regex,
         fancy_regex,
+        regress,
     }
 
     enum StructEnum
@@ -34,6 +35,8 @@ namespace RustPlugin
         public bool ignore_whitespace { get; set; }
         public bool unicode { get; set; } = true;
         public bool octal { get; set; }
+        public bool no_opt { get; set; } // ('regress' specific)
+        public bool unicode_sets { get; set; } // ('regress' specific)
 
         // Regex crate
 

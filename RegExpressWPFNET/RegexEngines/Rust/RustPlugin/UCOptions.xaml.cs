@@ -94,6 +94,7 @@ namespace RustPlugin
                 {
                     "regex" => CrateEnum.regex,
                     "fancy_regex" => CrateEnum.fancy_regex,
+                    "regress" => CrateEnum.regress,
                     _ => CrateEnum.None,
                 };
 
@@ -104,30 +105,37 @@ namespace RustPlugin
                     _ => StructEnum.None,
                 };
 
-                bool is_builder = @struct == StructEnum.RegexBuilder;
+                pnlStruct.Visibility =
+                    pnlRegexBuilderOptions.Visibility = crate == CrateEnum.regex || crate == CrateEnum.fancy_regex ? Visibility.Visible : Visibility.Collapsed;
+                pnlRegressOptions.Visibility = crate == CrateEnum.regress ? Visibility.Visible : Visibility.Collapsed;
 
-                pnlRegexBuilderOptions.IsEnabled = is_builder;
-                pnlRegexBuilderOptions.Opacity = pnlRegexBuilderOptions.IsEnabled ? 1 : 0.75;
-
-                if( is_builder )
+                if( crate == CrateEnum.regex || crate == CrateEnum.fancy_regex )
                 {
-                    pnlRegexBuilderOptions.ClearValue( DataContextProperty ); // (to use inherited context)
-                }
-                else
-                {
-                    pnlRegexBuilderOptions.DataContext = new Options( ); // (to show defaults)
-                }
+                    bool is_builder = @struct == StructEnum.RegexBuilder;
 
-                chbx_case_insensitive.Visibility = Visibility.Visible;
-                chbx_multi_line.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
-                chbx_dot_matches_new_line.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
-                chbx_swap_greed.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
-                chbx_ignore_whitespace.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
-                chbx_unicode.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
-                chbx_octal.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                    pnlRegexBuilderOptions.IsEnabled = is_builder;
+                    pnlRegexBuilderOptions.Opacity = pnlRegexBuilderOptions.IsEnabled ? 1 : 0.75;
 
-                pnlRegexCrateLimits.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
-                pnlFancyRegexCrateLimits.Visibility = crate == CrateEnum.fancy_regex ? Visibility.Visible : Visibility.Collapsed;
+                    if( is_builder )
+                    {
+                        pnlRegexBuilderOptions.ClearValue( DataContextProperty ); // (to use inherited context)
+                    }
+                    else
+                    {
+                        pnlRegexBuilderOptions.DataContext = new Options( ); // (to show defaults)
+                    }
+
+                    chbx_case_insensitive.Visibility = Visibility.Visible;
+                    chbx_multi_line.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                    chbx_dot_matches_new_line.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                    chbx_swap_greed.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                    chbx_ignore_whitespace.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                    chbx_unicode.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                    chbx_octal.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+
+                    pnlRegexCrateLimits.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                    pnlFancyRegexCrateLimits.Visibility = crate == CrateEnum.fancy_regex ? Visibility.Visible : Visibility.Collapsed;
+                }
             }
             finally
             {
