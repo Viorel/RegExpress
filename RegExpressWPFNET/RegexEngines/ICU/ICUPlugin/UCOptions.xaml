@@ -1,0 +1,45 @@
+﻿<UserControl x:Class="ICUPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ICUPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="227.2" d:DesignWidth="597.6" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel>
+
+            <ui:CheckboxWithNote Prop="UREGEX_CASE_INSENSITIVE" Note="enable case insensitive matching"/>
+            <ui:CheckboxWithNote Prop="UREGEX_COMMENTS" Note="allow white space and comments within patterns"/>
+            <ui:CheckboxWithNote Prop="UREGEX_DOTALL" Note="“.” matches line terminators, otherwise “.” matching stops at line end"/>
+            <ui:CheckboxWithNote Prop="UREGEX_LITERAL" Note="treat the entire pattern as a literal string; metacharacters or escape sequences will be given no special meaning"/>
+            <ui:CheckboxWithNote Prop="UREGEX_MULTILINE" Note="control behavior of “$” and “^”; recognize line terminators within string, otherwise, match only at start and end of input string"/>
+            <ui:CheckboxWithNote Prop="UREGEX_UNIX_LINES" Note="Unix-only line endings; only “\u000a” is recognized as a line ending in the behavior of “.”, “^”, and “$”"/>
+            <ui:CheckboxWithNote Prop="UREGEX_UWORD" Note="uses the Unicode TR 29 definition of word boundaries"/>
+            <ui:CheckboxWithNote Prop="UREGEX_ERROR_ON_UNKNOWN_ESCAPES" Note="error on unrecognized backslash escapes"/>
+
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0 4 0 0">
+                <StackPanel.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </StackPanel.LayoutTransform>
+
+                <Label Content="Limit:" Target="{Binding ElementName=tbxLimit}" VerticalAlignment="Center" Padding="0 2 4 2"/>
+                <TextBox x:Name="tbxLimit" Text="{Binding Limit, UpdateSourceTrigger=PropertyChanged}" Width="55" VerticalAlignment="Center" TextChanged="tbxLimit_TextChanged" />
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

@@ -1,0 +1,27 @@
+﻿<UserControl x:Class="DPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:DPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="359.77" d:DesignWidth="316.194" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel VerticalAlignment="Top">
+            <!--<ui:CheckboxWithNote Prop="g" Note="repeat over the whole input"/>-->
+            <ui:CheckboxWithNote Prop="i" Note="case insensitive matching"/>
+            <ui:CheckboxWithNote Prop="m" Note="match ^, $ on start and end line separators as well as start and end of input"/>
+            <ui:CheckboxWithNote Prop="s" Note="makes . match '\n' and '\r' as well"/>
+            <ui:CheckboxWithNote Prop="x" Note="ignores whitespace in pattern"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

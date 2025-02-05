@@ -1,0 +1,19 @@
+To install the "regex" package into embeddable Python:
+
+   - https://stackoverflow.com/questions/49737721/adding-packages-to-python-embedded-installation-for-windows.
+   (Use "regex" instead of "numpy")
+
+Summary:
+
+- edit "pythonXXX._pth", uncomment "import site" (keep it incommented)
+
+- run "powershell", enter "Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile get-pip.py", 
+  enter "exit" to quit PowerShell
+
+- run "python get-pip.py"
+
+- run ".\Scripts\pip install regex"
+
+- the unneeded "pip", which includes a lot of files, can be uninstalled using "python -m pip uninstall pip setuptools";
+  use "python get-pip.py" if it is needed again
+

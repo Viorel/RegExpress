@@ -30,6 +30,27 @@
     },
     {
       "path": "Engines\\VBScript\\VBScriptPlugin.dll"
+    },
+    {
+      "path": "Engines\\Hyperscan\\HyperscanPlugin.dll"
+    },
+    {
+      "path": "Engines\\ICU\\ICUPlugin.dll"
+    },
+    {
+      "path": "Engines\\Rust\\RustPlugin.dll"
+    },
+    {
+      "path": "Engines\\Java\\JavaPlugin.dll"
+    },
+    {
+      "path": "Engines\\Python\\PythonPlugin.dll"
+    },
+    {
+      "path": "Engines\\D\\DPlugin.dll"
+    },
+    {
+      "path": "Engines\\Perl\\PerlPlugin.dll"
     }
   ]
 }
