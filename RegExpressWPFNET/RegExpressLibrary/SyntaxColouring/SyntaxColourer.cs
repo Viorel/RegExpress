@@ -871,7 +871,14 @@ namespace RegExpressLibrary.SyntaxColouring
                     }
                     if( fm.Backref_Num )
                     {
-                        pb.Add( @"\\ (?<name>[1-9]\d*)" );
+                        if( fm.Esc_Octal0_1_3 )
+                        {
+                            pb.Add( @"\\ (?<name>[1-9]\d*)" );
+                        }
+                        else
+                        {
+                            pb.Add( @"\\ (?<name>\d+)" );
+                        }
                     }
                     if( fm.Backref_1_9 )
                     {
