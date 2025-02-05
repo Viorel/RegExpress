@@ -7,7 +7,6 @@ authors = ["Viorel <Viorel@noreply.github.com>"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rustc_version_runtime = "0.3.0"
 json = "0.12.4"
 fancy-regex = "0.14.0"
 

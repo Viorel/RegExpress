@@ -50,21 +50,6 @@ fn main()
 
     let command = parsed["c"].as_str().unwrap_or("");
 
-    if command == "v"
-    {
-        let v = rustc_version_runtime::version();
-        let output = json::object!
-        {
-            version: std::format!("{}.{}.{}", v.major, v.minor, v.patch)
-        };
-        
-        let output_json = json::stringify(output);
-        
-        println!("{}", output_json);
-        
-        return;
-    }
-
     if ! (command == "" || command == "m")
     {
         eprintln!("Bad command: '{}'", command);
@@ -94,6 +79,7 @@ fn main()
         if s != ""
         {
             let n = s.parse::<usize>();
+
             if n.is_err()
             {
                 eprintln!("Invalid 'backtrack_limit': '{}'", s);
@@ -109,6 +95,7 @@ fn main()
         if s != ""
         {
             let n = s.parse::<usize>();
+
             if n.is_err()
             {
                 eprintln!("Invalid 'delegate_size_limit': '{}'", s);
@@ -124,6 +111,7 @@ fn main()
         if s != ""
         {
             let n = s.parse::<usize>();
+
             if n.is_err()
             {
                 eprintln!("Invalid 'delegate_dfa_size_limit': '{}'", s);
@@ -172,6 +160,7 @@ fn main()
         for g in cap.iter()
         {
             let group;
+
             if g.is_some()
             {
                 let g = g.unwrap();

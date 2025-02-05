@@ -50,21 +50,6 @@ fn main()
 
     let command = parsed["c"].as_str().unwrap_or("");
 
-    if command == "v"
-    {
-        let v = rustc_version_runtime::version();
-        let output = json::object!
-        {
-            version: std::format!("{}.{}.{}", v.major, v.minor, v.patch)
-        };
-        
-        let output_json = json::stringify(output);
-        
-        println!("{}", output_json);
-        
-        return;
-    }
-
     if ! (command == "" || command == "m")
     {
         eprintln!("Bad command: '{}'", command);
@@ -92,18 +77,12 @@ fn main()
 
             for m in re.find_iter(text) 
             {
-                //println!("{}", &text[m.range()]);
-                //println!(" range: {}..{}", m.range.start, m.range.end );
-                //println!(" groups cnt: {}", m.groups().count());
-
                 let mut groups = json::JsonValue::new_array();
 
                 for g in m.groups()
                 {
-                    //println!("    succ: {}", g.is_some());
-                    //println!("    start: {}", if g.is_some() {g.unwrap().start as i32} else {-1});
-
                     let group;
+
                     if g.is_some() 
                     {
                         let gu = g.unwrap();
@@ -117,16 +96,10 @@ fn main()
                     groups.push(group).unwrap();
                 }
 
-                //println!(" named_groups: {}", m.named_groups().count());
-
                 let mut named_groups = json::JsonValue::new_array();
 
                 for (n, v) in m.named_groups()
                 {
-                    //println!("    n: {}", n);
-                    //println!("    succ: {}", v.is_some());
-                    //println!("    start: {}", if v.is_some() {v.unwrap().start as i32} else {-1});
-
                     let named_group;
 
                     if v.is_some()
