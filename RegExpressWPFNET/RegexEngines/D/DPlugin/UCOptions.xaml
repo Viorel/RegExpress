@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:DPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="359.77" d:DesignWidth="316.194" 
+             d:DesignHeight="137.568" d:DesignWidth="478.54" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>

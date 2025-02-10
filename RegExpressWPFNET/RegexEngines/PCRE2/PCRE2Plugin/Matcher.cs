@@ -42,6 +42,7 @@ namespace PCRE2Plugin
                 bw.Write( Convert.ToByte( options.PCRE2_ALLOW_EMPTY_CLASS ) );
                 bw.Write( Convert.ToByte( options.PCRE2_ALT_BSUX ) );
                 bw.Write( Convert.ToByte( options.PCRE2_ALT_CIRCUMFLEX ) );
+                bw.Write( Convert.ToByte( options.PCRE2_ALT_EXTENDED_CLASS ) );
                 bw.Write( Convert.ToByte( options.PCRE2_ALT_VERBNAMES ) );
                 bw.Write( Convert.ToByte( options.PCRE2_CASELESS ) );
                 bw.Write( Convert.ToByte( options.PCRE2_DOLLAR_ENDONLY ) );
@@ -66,6 +67,7 @@ namespace PCRE2Plugin
 
                 // Extra compile options
 
+                bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ALLOW_LOOKAROUND_BSK ) );
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES ) );
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ALT_BSUX ) );
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ASCII_BSD ) );
@@ -78,11 +80,16 @@ namespace PCRE2Plugin
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_ESCAPED_CR_IS_LF ) );
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_MATCH_LINE ) );
                 bw.Write( Convert.ToByte( options.PCRE2_EXTRA_MATCH_WORD ) );
+                bw.Write( Convert.ToByte( options.PCRE2_EXTRA_NEVER_CALLOUT ) );
+                bw.Write( Convert.ToByte( options.PCRE2_EXTRA_NO_BS0 ) );
+                bw.Write( Convert.ToByte( options.PCRE2_EXTRA_PYTHON_OCTAL ) );
+                bw.Write( Convert.ToByte( options.PCRE2_EXTRA_TURKISH_CASING ) );
 
                 // Match options
 
                 bw.Write( Convert.ToByte( options.PCRE2_ANCHORED_mo ) );
                 bw.Write( Convert.ToByte( options.PCRE2_COPY_MATCHED_SUBJECT ) );
+                bw.Write( Convert.ToByte( options.PCRE2_DISABLE_RECURSELOOP_CHECK ) );
                 bw.Write( Convert.ToByte( options.PCRE2_ENDANCHORED_mo ) );
                 bw.Write( Convert.ToByte( options.PCRE2_NOTBOL ) );
                 bw.Write( Convert.ToByte( options.PCRE2_NOTEOL ) );
@@ -92,13 +99,13 @@ namespace PCRE2Plugin
                 bw.Write( Convert.ToByte( options.PCRE2_PARTIAL_HARD ) );
                 bw.Write( Convert.ToByte( options.PCRE2_PARTIAL_SOFT ) );
                 bw.Write( Convert.ToByte( options.PCRE2_DFA_SHORTEST ) );
-                bw.Write( Convert.ToByte( options.PCRE2_DISABLE_RECURSELOOP_CHECK ) );
 
                 // JIT Options
 
                 bw.Write( Convert.ToByte( options.PCRE2_JIT_COMPLETE ) );
                 bw.Write( Convert.ToByte( options.PCRE2_JIT_PARTIAL_SOFT ) );
                 bw.Write( Convert.ToByte( options.PCRE2_JIT_PARTIAL_HARD ) );
+                bw.Write( Convert.ToByte( options.PCRE2_JIT_TEST_ALLOC ) );
 
                 bw.Write( (byte)'e' );
             };

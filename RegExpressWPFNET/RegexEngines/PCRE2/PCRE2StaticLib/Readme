@@ -1,0 +1,34 @@
+TYPICAL UPDATE PROCEDURE
+
+- Get the PCRE2 sources from GitHub (from Releases page, https://github.com/PCRE2Project/pcre2/releases) 
+  to a separate folder.
+
+- Copy from "<PCRE2-git-folder>\src" to "PCRE2StaticLib\PCRE2\src".
+  The existing old files should be removed before copying new files.
+
+- Copy from "<PCRE2-git-folder>\deps\sljit" to "PCRE2StaticLib\PCRE2\deps\sljit". 
+  The existing old files should be removed before copying new files.
+
+- Delete the unneeded copied "*.in" files.
+
+- Delete the unneded copied ".c" files that contain the "main(" function.
+
+- Rename "config.h.generic" to "config.h".
+
+- Rename "pcre2.h.generic" to "pcre2.h".
+
+- Rename "pcre2_chartables.c.dist" to "pcre2_chartables.c".
+
+- Re-add all copied "*.c" files to "PCRE2 Sources" filter in Visual Studio.
+  The files from "deps\sljit" do not have to be added.
+
+- Select all ".c" files, go to Properties, set:
+
+    Advanced, Forced Include File: "$(ProjectDir)ForcedInclude.h"
+
+- Some of the ".c" files must be excluded from build, in Properties dialog, such as:
+
+    "pcre2_jit_match.c"
+    "pcre2_jit_misc.c"
+    "pcre2_printint.c"
+    "pcre2_ucptables.c"

@@ -147,6 +147,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Perl", "Perl", "{BC61866D-6
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerlPlugin", "RegexEngines\Perl\PerlPlugin\PerlPlugin.csproj", "{52F3F32B-3D9F-436F-B12B-21BDA8FB87C8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PCRE2StaticLib", "RegexEngines\PCRE2\PCRE2StaticLib\PCRE2StaticLib.vcxproj", "{B56CF83F-93DF-453F-9441-82CAC478361A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -427,6 +429,14 @@ Global
 		{52F3F32B-3D9F-436F-B12B-21BDA8FB87C8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{52F3F32B-3D9F-436F-B12B-21BDA8FB87C8}.Release|x64.ActiveCfg = Release|Any CPU
 		{52F3F32B-3D9F-436F-B12B-21BDA8FB87C8}.Release|x64.Build.0 = Release|Any CPU
+		{B56CF83F-93DF-453F-9441-82CAC478361A}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{B56CF83F-93DF-453F-9441-82CAC478361A}.Debug|Any CPU.Build.0 = Debug|x64
+		{B56CF83F-93DF-453F-9441-82CAC478361A}.Debug|x64.ActiveCfg = Debug|x64
+		{B56CF83F-93DF-453F-9441-82CAC478361A}.Debug|x64.Build.0 = Debug|x64
+		{B56CF83F-93DF-453F-9441-82CAC478361A}.Release|Any CPU.ActiveCfg = Release|x64
+		{B56CF83F-93DF-453F-9441-82CAC478361A}.Release|Any CPU.Build.0 = Release|x64
+		{B56CF83F-93DF-453F-9441-82CAC478361A}.Release|x64.ActiveCfg = Release|x64
+		{B56CF83F-93DF-453F-9441-82CAC478361A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -480,6 +490,7 @@ Global
 		{64424743-4228-4E17-85EC-AD8041D571C3} = {712065C9-3812-42E7-9FC2-2B5606AEF98E}
 		{BC61866D-69AE-4030-A109-F9E3FFCCEF3E} = {91ED61CD-C8DA-4845-80E0-A892A0A80E14}
 		{52F3F32B-3D9F-436F-B12B-21BDA8FB87C8} = {BC61866D-69AE-4030-A109-F9E3FFCCEF3E}
+		{B56CF83F-93DF-453F-9441-82CAC478361A} = {7D31FB02-A57F-4CD4-BC64-76B2EE1D6EC6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		                                                                        SolutionGuid = {7CA7DF49-7C29-43E0-8CCF-A57AE8197508}

@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:PCRE2Plugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="940.8" d:DesignWidth="718.8" 
+             d:DesignHeight="1028.223" d:DesignWidth="718.8" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -42,6 +42,7 @@
             <ui:CheckboxWithNote Prop="PCRE2_ALLOW_EMPTY_CLASS" Note="Allow empty classes"/>
             <ui:CheckboxWithNote Prop="PCRE2_ALT_BSUX" Note="Alternative handling of \u, \U, and \x"/>
             <ui:CheckboxWithNote Prop="PCRE2_ALT_CIRCUMFLEX" Note="Alternative handling of ^ in multiline mode"/>
+            <ui:CheckboxWithNote Prop="PCRE2_ALT_EXTENDED_CLASS" Note="Alternative extended character class syntax"/>
             <ui:CheckboxWithNote Prop="PCRE2_ALT_VERBNAMES" Note="Process backslashes in verb names"/>
             <ui:CheckboxWithNote Prop="PCRE2_CASELESS" Note="Do caseless matching"/>
             <ui:CheckboxWithNote Prop="PCRE2_DOLLAR_ENDONLY" Note="$ not to match newline at end"/>
@@ -69,6 +70,7 @@
             <Italic>Extra Compile Options</Italic>
         </Label>
         <StackPanel x:Name="pnlExtraCompileOptions">
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALLOW_LOOKAROUND_BSK" Note="Allow \K in lookarounds"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES" Note="Allow \x{df800} to \x{dfff} in UTF-8 and UTF-32 modes"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALT_BSUX" Note="Extended alternate \u, \U, and \x handling"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ASCII_BSD" Note="Forces \d to match only ASCII digits"/>
@@ -81,6 +83,10 @@
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ESCAPED_CR_IS_LF" Note="Interpret \r as \n"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_MATCH_LINE" Note="Pattern matches whole lines"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_MATCH_WORD" Note="Pattern matches &quot;words&quot;"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_NEVER_CALLOUT" Note="Disallow callouts in pattern"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_NO_BS0" Note="Disallow \0 (but not \00 or \000)"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_PYTHON_OCTAL" Note="Use Python rules for octal"/>
+            <ui:CheckboxWithNote Prop="PCRE2_EXTRA_TURKISH_CASING" Note="Use Turkish I case folding"/>
         </StackPanel>
 
         <Label Margin="0 4 0 4" Padding="0">
@@ -89,6 +95,7 @@
         <StackPanel x:Name="pnlMatchOptions">
             <ui:CheckboxWithNote Prop="PCRE2_ANCHORED_mo" Text="PCRE2_ANCHORED" Note="Match only at the first position"/>
             <ui:CheckboxWithNote Prop="PCRE2_COPY_MATCHED_SUBJECT" Note="On success, make a private subject copy"/>
+            <ui:CheckboxWithNote Prop="PCRE2_DISABLE_RECURSELOOP_CHECK" Note="Enable some apparently looping recursions to run to completion; use with care"/>
             <ui:CheckboxWithNote Prop="PCRE2_ENDANCHORED_mo" Text="PCRE2_ENDANCHORED" Note="Pattern can match only at end of subject"/>
             <ui:CheckboxWithNote Prop="PCRE2_NOTBOL" Note="Subject string is not the beginning of a line"/>
             <ui:CheckboxWithNote Prop="PCRE2_NOTEOL" Note="Subject string is not the end of a line"/>
@@ -98,7 +105,6 @@
             <ui:CheckboxWithNote Prop="PCRE2_PARTIAL_HARD" Note="Return PCRE2_ERROR_PARTIAL for a partial match even if there is a full match"/>
             <ui:CheckboxWithNote Prop="PCRE2_PARTIAL_SOFT" Note="Return PCRE2_ERROR_PARTIAL for a partial match if no full matches are found"/>
             <ui:CheckboxWithNote Prop="PCRE2_DFA_SHORTEST" Note="Return only the shortest match"/>
-            <ui:CheckboxWithNote Prop="PCRE2_DISABLE_RECURSELOOP_CHECK" Note="Enable apparently looping recursions to complete"/>
         </StackPanel>
 
         <Label Margin="0 4 0 4" Padding="0">
@@ -109,6 +115,7 @@
             <ui:CheckboxWithNote Prop="PCRE2_JIT_COMPLETE" Note="Generate code for complete matches"/>
             <ui:CheckboxWithNote Prop="PCRE2_JIT_PARTIAL_SOFT" Note="Compile code for soft partial matching"/>
             <ui:CheckboxWithNote Prop="PCRE2_JIT_PARTIAL_HARD" Note="Compile code for hard partial matching"/>
+            <ui:CheckboxWithNote Prop="PCRE2_JIT_TEST_ALLOC" Note="Test the availability of JIT and allocator"/>
         </StackPanel>
 
     </StackPanel>

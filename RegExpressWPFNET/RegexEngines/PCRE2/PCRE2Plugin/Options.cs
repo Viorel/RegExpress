@@ -20,12 +20,13 @@ namespace PCRE2Plugin
         public AlgorithmEnum Algorithm { get; set; } = AlgorithmEnum.Standard;
 
 
-        // Compile options
+        // Compile options (from https://pcre2project.github.io/pcre2/doc/pcre2_compile/)
 
         public bool PCRE2_ANCHORED { get; set; }
         public bool PCRE2_ALLOW_EMPTY_CLASS { get; set; }
         public bool PCRE2_ALT_BSUX { get; set; }
         public bool PCRE2_ALT_CIRCUMFLEX { get; set; }
+        public bool PCRE2_ALT_EXTENDED_CLASS { get; set; }
         public bool PCRE2_ALT_VERBNAMES { get; set; }
         //public bool PCRE2_AUTO_CALLOUT {get;set;}
         public bool PCRE2_CASELESS { get; set; }
@@ -50,12 +51,13 @@ namespace PCRE2Plugin
         //public bool PCRE2_NO_UTF_CHECK {get;set;}
         public bool PCRE2_UCP { get; set; }
         public bool PCRE2_UNGREEDY { get; set; }
-        //public bool PCRE2_USE_OFFSET_LIMIT { get; set; }
+        //public bool PCRE2_USE_OFFSET_LIMIT { get; set; } // TODO: implement
         //public bool PCRE2_UTF {get;set;}
 
 
         // Extra compile options
 
+        public bool PCRE2_EXTRA_ALLOW_LOOKAROUND_BSK { get; set; }
         public bool PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES { get; set; }
         public bool PCRE2_EXTRA_ALT_BSUX { get; set; }
         public bool PCRE2_EXTRA_ASCII_BSD { get; set; }
@@ -68,12 +70,17 @@ namespace PCRE2Plugin
         public bool PCRE2_EXTRA_ESCAPED_CR_IS_LF { get; set; }
         public bool PCRE2_EXTRA_MATCH_LINE { get; set; }
         public bool PCRE2_EXTRA_MATCH_WORD { get; set; }
+        public bool PCRE2_EXTRA_NEVER_CALLOUT { get; set; }
+        public bool PCRE2_EXTRA_NO_BS0 { get; set; }
+        public bool PCRE2_EXTRA_PYTHON_OCTAL { get; set; }
+        public bool PCRE2_EXTRA_TURKISH_CASING { get; set; }
 
 
         // Match options
 
         public bool PCRE2_ANCHORED_mo { get; set; } // ('_mo' added to avoid duplicate names)
         public bool PCRE2_COPY_MATCHED_SUBJECT { get; set; }
+        public bool PCRE2_DISABLE_RECURSELOOP_CHECK { get; set; }
         public bool PCRE2_ENDANCHORED_mo { get; set; } // ('_mo' added to avoid duplicate names)
         public bool PCRE2_NOTBOL { get; set; }
         public bool PCRE2_NOTEOL { get; set; }
@@ -84,7 +91,6 @@ namespace PCRE2Plugin
         public bool PCRE2_PARTIAL_HARD { get; set; }
         public bool PCRE2_PARTIAL_SOFT { get; set; }
         public bool PCRE2_DFA_SHORTEST { get; set; }
-        public bool PCRE2_DISABLE_RECURSELOOP_CHECK { get; set; }
 
 
         // JIT options
@@ -92,6 +98,7 @@ namespace PCRE2Plugin
         public bool PCRE2_JIT_COMPLETE { get; set; }
         public bool PCRE2_JIT_PARTIAL_SOFT { get; set; }
         public bool PCRE2_JIT_PARTIAL_HARD { get; set; }
+        public bool PCRE2_JIT_TEST_ALLOC { get; set; }
 
 
         public Options Clone( )

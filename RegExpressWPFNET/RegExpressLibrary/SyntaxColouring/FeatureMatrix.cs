@@ -134,8 +134,8 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool InsideSets_Equivalence { get; init; }                 // ex: [=a=]
         public bool InsideSets_Collating { get; init; }                   // ex: [.ch.]
 
-        public bool InsideSets_Operators { get; init; }                   // allow operators inside [...]; see operators bellow
-        public bool InsideSets_OperatorsExtended { get; init; }           // allow operators inside (?[...]); see operators bellow
+        public bool InsideSets_Operators { get; init; }                   // allow operators inside [...]; see operators bellow; when 'Brackets' is 'true' 
+        public bool InsideSets_OperatorsExtended { get; init; }           // allow operators inside (?[...]); see operators bellow; when 'ExtendedBrackets' is 'true' 
         public bool InsideSets_Operator_Ampersand { get; init; }          // [[...] & [...]]
         public bool InsideSets_Operator_Plus { get; init; }               // [[...] + [...]]
         public bool InsideSets_Operator_VerticalLine { get; init; }       // [[...] | [...]]

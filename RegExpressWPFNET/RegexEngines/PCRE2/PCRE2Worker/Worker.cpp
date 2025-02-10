@@ -490,6 +490,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_ALLOW_EMPTY_CLASS;
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_ALT_BSUX;
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_ALT_CIRCUMFLEX;
+            if( inbr.ReadByte( ) ) compile_options |= PCRE2_ALT_EXTENDED_CLASS;
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_ALT_VERBNAMES;
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_CASELESS;
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_DOLLAR_ENDONLY;
@@ -516,6 +517,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
             int extra_compile_options = 0;
 
+            if( inbr.ReadByte( ) ) extra_compile_options |= PCRE2_EXTRA_ALLOW_LOOKAROUND_BSK;
             if( inbr.ReadByte( ) ) extra_compile_options |= PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES;
             if( inbr.ReadByte( ) ) extra_compile_options |= PCRE2_EXTRA_ALT_BSUX;
             if( inbr.ReadByte( ) ) extra_compile_options |= PCRE2_EXTRA_ASCII_BSD;
@@ -528,6 +530,10 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) ) extra_compile_options |= PCRE2_EXTRA_ESCAPED_CR_IS_LF;
             if( inbr.ReadByte( ) ) extra_compile_options |= PCRE2_EXTRA_MATCH_LINE;
             if( inbr.ReadByte( ) ) extra_compile_options |= PCRE2_EXTRA_MATCH_WORD;
+            if( inbr.ReadByte( ) ) extra_compile_options |= PCRE2_EXTRA_NEVER_CALLOUT;
+            if( inbr.ReadByte( ) ) extra_compile_options |= PCRE2_EXTRA_NO_BS0;
+            if( inbr.ReadByte( ) ) extra_compile_options |= PCRE2_EXTRA_PYTHON_OCTAL;
+            if( inbr.ReadByte( ) ) extra_compile_options |= PCRE2_EXTRA_TURKISH_CASING;
 
             // Match options
 
@@ -535,6 +541,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
             if( inbr.ReadByte( ) ) matcher_options |= PCRE2_ANCHORED;
             if( inbr.ReadByte( ) ) matcher_options |= PCRE2_COPY_MATCHED_SUBJECT;
+            if( inbr.ReadByte( ) ) matcher_options |= PCRE2_DISABLE_RECURSELOOP_CHECK;
             if( inbr.ReadByte( ) ) matcher_options |= PCRE2_ENDANCHORED;
             if( inbr.ReadByte( ) ) matcher_options |= PCRE2_NOTBOL;
             if( inbr.ReadByte( ) ) matcher_options |= PCRE2_NOTEOL;
@@ -544,7 +551,6 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) ) matcher_options |= PCRE2_PARTIAL_HARD;
             if( inbr.ReadByte( ) ) matcher_options |= PCRE2_PARTIAL_SOFT;
             if( inbr.ReadByte( ) ) matcher_options |= PCRE2_DFA_SHORTEST;
-            if( inbr.ReadByte( ) ) matcher_options |= PCRE2_DISABLE_RECURSELOOP_CHECK;
 
             // JIT options
 
@@ -553,6 +559,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_COMPLETE;
             if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_PARTIAL_SOFT;
             if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_PARTIAL_HARD;
+            if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_TEST_ALLOC;
 
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );

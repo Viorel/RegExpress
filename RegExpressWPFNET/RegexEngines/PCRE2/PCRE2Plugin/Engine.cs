@@ -114,7 +114,7 @@ namespace PCRE2Plugin
                 Literal = is_literal,
                 XLevel = is_extended_more ? XLevelEnum.xx : is_extended ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = allow_empty_set,
-                FeatureMatrix = GetCachedFeatureMatrix( options.PCRE2_EXTRA_ALT_BSUX ),
+                FeatureMatrix = GetCachedFeatureMatrix( options.PCRE2_EXTRA_ALT_BSUX, options.PCRE2_ALT_EXTENDED_CLASS ),
             };
         }
 
@@ -123,7 +123,7 @@ namespace PCRE2Plugin
         {
             var options = mOptionsControl.Value.GetSelectedOptions( );
 
-            return new List<(string?, FeatureMatrix)> { (null, BuildFeatureMatrix( options.PCRE2_EXTRA_ALT_BSUX )) };
+            return new List<(string?, FeatureMatrix)> { (null, BuildFeatureMatrix( PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true )) };
         }
 
 
@@ -151,31 +151,31 @@ namespace PCRE2Plugin
             }
         }
 
-        static readonly Dictionary<bool/*PCRE2_EXTRA_ALT_BSUX*/, FeatureMatrix> smFeatureMatrices = new( );
+        static readonly Dictionary<(bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS), FeatureMatrix> smFeatureMatrices = [];
 
-        static FeatureMatrix GetCachedFeatureMatrix( bool PCRE2_EXTRA_ALT_BSUX )
+        static FeatureMatrix GetCachedFeatureMatrix( bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS )
         {
             lock( smFeatureMatrices )
             {
-                if( !smFeatureMatrices.TryGetValue( PCRE2_EXTRA_ALT_BSUX, out FeatureMatrix fm ) )
+                if( !smFeatureMatrices.TryGetValue( (PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS), out FeatureMatrix fm ) )
                 {
-                    fm = BuildFeatureMatrix( PCRE2_EXTRA_ALT_BSUX );
+                    fm = BuildFeatureMatrix( PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS );
 
-                    smFeatureMatrices.Add( PCRE2_EXTRA_ALT_BSUX, fm );
+                    smFeatureMatrices.Add( (PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS), fm );
                 }
 
                 return fm;
             }
         }
 
-        static FeatureMatrix BuildFeatureMatrix( bool PCRE2_EXTRA_ALT_BSUX )
+        static FeatureMatrix BuildFeatureMatrix( bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS )
         {
             return new FeatureMatrix
             {
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,
 
                 Brackets = true,
-                ExtendedBrackets = false,
+                ExtendedBrackets = true,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
 
@@ -280,18 +280,18 @@ namespace PCRE2Plugin
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 
-                InsideSets_Operators = false,
-                InsideSets_OperatorsExtended = false,
-                InsideSets_Operator_Ampersand = false,
-                InsideSets_Operator_Plus = false,
-                InsideSets_Operator_VerticalLine = false,
-                InsideSets_Operator_Minus = false,
-                InsideSets_Operator_Circumflex = false,
-                InsideSets_Operator_Exclamation = false,
-                InsideSets_Operator_DoubleAmpersand = false,
-                InsideSets_Operator_DoubleVerticalLine = false,
-                InsideSets_Operator_DoubleMinus = false,
-                InsideSets_Operator_DoubleTilde = false,
+                InsideSets_Operators = PCRE2_ALT_EXTENDED_CLASS,
+                InsideSets_OperatorsExtended = true,
+                InsideSets_Operator_Ampersand = true,
+                InsideSets_Operator_Plus = true,
+                InsideSets_Operator_VerticalLine = true,
+                InsideSets_Operator_Minus = true,
+                InsideSets_Operator_Circumflex = true,
+                InsideSets_Operator_Exclamation = true,
+                InsideSets_Operator_DoubleAmpersand = PCRE2_ALT_EXTENDED_CLASS,
+                InsideSets_Operator_DoubleVerticalLine = PCRE2_ALT_EXTENDED_CLASS,
+                InsideSets_Operator_DoubleMinus = PCRE2_ALT_EXTENDED_CLASS,
+                InsideSets_Operator_DoubleTilde = PCRE2_ALT_EXTENDED_CLASS,
 
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
