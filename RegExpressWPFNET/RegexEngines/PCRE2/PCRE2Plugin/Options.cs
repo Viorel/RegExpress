@@ -51,7 +51,7 @@ namespace PCRE2Plugin
         //public bool PCRE2_NO_UTF_CHECK {get;set;}
         public bool PCRE2_UCP { get; set; }
         public bool PCRE2_UNGREEDY { get; set; }
-        //public bool PCRE2_USE_OFFSET_LIMIT { get; set; } // TODO: implement
+        public bool PCRE2_USE_OFFSET_LIMIT { get; set; }
         //public bool PCRE2_UTF {get;set;}
 
 
@@ -100,6 +100,15 @@ namespace PCRE2Plugin
         public bool PCRE2_JIT_PARTIAL_HARD { get; set; }
         public bool PCRE2_JIT_TEST_ALLOC { get; set; }
 
+
+        // Limits
+
+        public string? DepthLimit { get; set; }
+        public string? HeapLimit { get; set; }
+        public string? MatchLimit { get; set; }
+        public string? MaxPatternCompiledLength { get; set; }
+        public string? OffsetLimit { get; set; }
+        public string? ParensNestLimit { get; set; }
 
         public Options Clone( )
         {

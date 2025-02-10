@@ -22,6 +22,91 @@ namespace PCRE2Plugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            UInt32? depth_limit = null;
+
+            if( !string.IsNullOrWhiteSpace( options.DepthLimit ) )
+            {
+                if( !UInt32.TryParse( options.DepthLimit, out var depth_limit0 ) )
+                {
+                    throw new ApplicationException( "Invalid depth_limit." );
+                }
+                else
+                {
+                    depth_limit = depth_limit0;
+                }
+            }
+
+            UInt32? heap_limit = null;
+
+            if( !string.IsNullOrWhiteSpace( options.HeapLimit ) )
+            {
+                if( !UInt32.TryParse( options.HeapLimit, out var heap_limit0 ) )
+                {
+                    throw new ApplicationException( "Invalid heap_limit." );
+                }
+                else
+                {
+                    heap_limit = heap_limit0;
+                }
+            }
+
+            UInt32? match_limit = null;
+
+            if( !string.IsNullOrWhiteSpace( options.MatchLimit ) )
+            {
+                if( !UInt32.TryParse( options.MatchLimit, out var match_limit0 ) )
+                {
+                    throw new ApplicationException( "Invalid match_limit." );
+                }
+                else
+                {
+                    match_limit = match_limit0;
+                }
+            }
+
+            UInt64? max_pattern_compiled_length = null;
+
+            if( !string.IsNullOrWhiteSpace( options.MaxPatternCompiledLength ) )
+            {
+                if( !UInt64.TryParse( options.MaxPatternCompiledLength, out var max_pattern_compiled_length0 ) )
+                {
+                    throw new ApplicationException( "Invalid max_pattern_compiled_length." );
+                }
+                else
+                {
+                    max_pattern_compiled_length = max_pattern_compiled_length0;
+                }
+            }
+
+            UInt64? offset_limit = null;
+
+            if( !string.IsNullOrWhiteSpace( options.OffsetLimit ) )
+            {
+                if( !UInt64.TryParse( options.OffsetLimit, out var offset_limit0 ) )
+                {
+                    throw new ApplicationException( "Invalid offset_limit." );
+                }
+                else
+                {
+                    offset_limit = offset_limit0;
+                }
+            }
+
+            UInt32? parens_nest_limit = null;
+
+            if( !string.IsNullOrWhiteSpace( options.ParensNestLimit ) )
+            {
+                if( !UInt32.TryParse( options.ParensNestLimit, out var parens_nest_limit0 ) )
+                {
+                    throw new ApplicationException( "Invalid parens_nest_limit." );
+                }
+                else
+                {
+                    parens_nest_limit = parens_nest_limit0;
+                }
+            }
+
+
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.Unicode;
@@ -64,6 +149,7 @@ namespace PCRE2Plugin
                 bw.Write( Convert.ToByte( options.PCRE2_NO_START_OPTIMIZE ) );
                 bw.Write( Convert.ToByte( options.PCRE2_UCP ) );
                 bw.Write( Convert.ToByte( options.PCRE2_UNGREEDY ) );
+                bw.Write( Convert.ToByte( options.PCRE2_USE_OFFSET_LIMIT ) );
 
                 // Extra compile options
 
@@ -106,6 +192,26 @@ namespace PCRE2Plugin
                 bw.Write( Convert.ToByte( options.PCRE2_JIT_PARTIAL_SOFT ) );
                 bw.Write( Convert.ToByte( options.PCRE2_JIT_PARTIAL_HARD ) );
                 bw.Write( Convert.ToByte( options.PCRE2_JIT_TEST_ALLOC ) );
+
+                // Limits
+
+                bw.Write( Convert.ToByte( depth_limit != null ) );
+                if( depth_limit != null ) bw.Write( depth_limit.Value );
+
+                bw.Write( Convert.ToByte( heap_limit != null ) );
+                if( heap_limit != null ) bw.Write( heap_limit.Value );
+
+                bw.Write( Convert.ToByte( match_limit != null ) );
+                if( match_limit != null ) bw.Write( match_limit.Value );
+
+                bw.Write( Convert.ToByte( max_pattern_compiled_length != null ) );
+                if( max_pattern_compiled_length != null ) bw.Write( max_pattern_compiled_length.Value );
+
+                bw.Write( Convert.ToByte( offset_limit != null ) );
+                if( offset_limit != null ) bw.Write( offset_limit.Value );
+
+                bw.Write( Convert.ToByte( parens_nest_limit != null ) );
+                if( parens_nest_limit != null ) bw.Write( parens_nest_limit.Value );
 
                 bw.Write( (byte)'e' );
             };

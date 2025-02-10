@@ -16,6 +16,7 @@
 #include <strsafe.h>
 #include <iostream>
 #include <format>
+#include <optional>
 
 #include "../PCRE2StaticLib/ForcedInclude.h"
 #include "pcre2.h"

@@ -54,14 +54,18 @@ namespace PCRE2Plugin
 
         private void cbxAlgorithm_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            Notify( true );
+            Notify( preferImmediateReaction: true );
         }
 
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
-            Notify( false );
+            Notify( preferImmediateReaction: false );
         }
 
+        private void TextBox_TextChanged( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
 
         internal Options GetSelectedOptions( )
         {

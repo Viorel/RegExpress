@@ -135,7 +135,10 @@ static std::wstring GetErrorText( int errorNumber )
 }
 
 
-static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithm, int compileOptions, int extraCompileOptions, int matcherOptions, int jitOptions )
+static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithm, int compileOptions, int extraCompileOptions, int matcherOptions, int jitOptions,
+    std::optional<uint32_t> depth_limit, std::optional<uint32_t> heap_limit, std::optional<uint32_t> match_limit,
+    std::optional<uint64_t> max_pattern_compiled_length, std::optional<uint64_t> offset_limit, std::optional<uint32_t> parens_nest_limit
+)
 {
     DWORD code;
     char error_text[128] = "";
@@ -152,6 +155,9 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                 }
 
                 pcre2_set_compile_extra_options( compile_context, extraCompileOptions );
+
+                if( max_pattern_compiled_length ) pcre2_set_max_pattern_compiled_length( compile_context, max_pattern_compiled_length.value( ) );
+                if( parens_nest_limit ) pcre2_set_parens_nest_limit( compile_context, parens_nest_limit.value( ) );
 
                 int errornumber;
                 PCRE2_SIZE erroroffset;
@@ -185,6 +191,11 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                 {
                     throw std::runtime_error( "Failed to create match context" );
                 }
+
+                if( depth_limit ) pcre2_set_depth_limit( match_context, depth_limit.value( ) );
+                if( heap_limit ) pcre2_set_heap_limit( match_context, heap_limit.value( ) );
+                if( match_limit ) pcre2_set_match_limit( match_context, match_limit.value( ) );
+                if( offset_limit ) pcre2_set_offset_limit( match_context, offset_limit.value( ) );
 
                 pcre2_match_data* match_data = nullptr;
                 std::vector<int> dfa_workspace;
@@ -512,6 +523,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_NO_START_OPTIMIZE;
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_UCP;
             if( inbr.ReadByte( ) ) compile_options |= PCRE2_UNGREEDY;
+            if( inbr.ReadByte( ) ) compile_options |= PCRE2_USE_OFFSET_LIMIT;
 
             // Extra compile options
 
@@ -561,10 +573,39 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_PARTIAL_HARD;
             if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_TEST_ALLOC;
 
+            // Limits
+
+            std::optional<uint32_t> depth_limit;
+            std::optional<uint32_t> heap_limit;
+            std::optional<uint32_t> match_limit;
+            std::optional<uint64_t> max_pattern_compiled_length;
+            std::optional<uint64_t> offset_limit;
+            std::optional<uint32_t> parens_nest_limit;
+
+            uint8_t is_not_null;
+
+            is_not_null = inbr.ReadT<uint8_t>( );
+            if( is_not_null ) depth_limit = inbr.ReadT<uint32_t>( );
+
+            is_not_null = inbr.ReadT<uint8_t>( );
+            if( is_not_null ) heap_limit = inbr.ReadT<uint32_t>( );
+
+            is_not_null = inbr.ReadT<uint8_t>( );
+            if( is_not_null ) match_limit = inbr.ReadT<uint32_t>( );
+
+            is_not_null = inbr.ReadT<uint8_t>( );
+            if( is_not_null ) max_pattern_compiled_length = inbr.ReadT<uint64_t>( );
+
+            is_not_null = inbr.ReadT<uint8_t>( );
+            if( is_not_null ) offset_limit = inbr.ReadT<uint64_t>( );
+
+            is_not_null = inbr.ReadT<uint8_t>( );
+            if( is_not_null ) parens_nest_limit = inbr.ReadT<uint32_t>( );
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-            DoMatch( outbw, pattern, text, algorithm, compile_options, extra_compile_options, matcher_options, jit_options );
+            DoMatch( outbw, pattern, text, algorithm, compile_options, extra_compile_options, matcher_options, jit_options,
+                depth_limit, heap_limit, match_limit, max_pattern_compiled_length, offset_limit, parens_nest_limit );
 
             return 0;
         }
