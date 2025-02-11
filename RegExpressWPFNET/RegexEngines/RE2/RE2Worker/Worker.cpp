@@ -262,12 +262,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             else if( anchor_s == L"ANCHOR_START" ) re2_anchor = RE2::Anchor::ANCHOR_START;
             else if( anchor_s == L"ANCHOR_BOTH" ) re2_anchor = RE2::Anchor::ANCHOR_BOTH;
 
-            bool has_max_mem = inbr.ReadByte( ) != 0;
-            if( has_max_mem )
-            {
-                int64_t max_mem = inbr.ReadT<int64_t>( );
-                re2_options.set_max_mem( max_mem );
-            }
+            auto max_mem = inbr.ReadOptional<int64_t>( );
+            if( max_mem ) re2_options.set_max_mem( max_mem.value() );
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 

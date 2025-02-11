@@ -34,25 +34,6 @@ namespace RustPlugin
                 throw new ApplicationException( "Invalid struct." );
             }
 
-            //UInt64 size_limit = 0;
-            //UInt64 dfa_size_limit = 0;
-            //UInt32 nest_limit = 0;
-
-            //if( !string.IsNullOrWhiteSpace( Options.size_limit ) && !UInt64.TryParse( Options.size_limit, out size_limit ) )
-            //{
-            //    throw new ApplicationException( "Invalid size_limit." );
-            //}
-
-            //if( !string.IsNullOrWhiteSpace( Options.dfa_size_limit ) && !UInt64.TryParse( Options.dfa_size_limit, out dfa_size_limit ) )
-            //{
-            //    throw new ApplicationException( "Invalid dfa_size_limit." );
-            //}
-
-            //if( !string.IsNullOrWhiteSpace( Options.nest_limit ) && !UInt32.TryParse( Options.nest_limit, out nest_limit ) )
-            //{
-            //    throw new ApplicationException( "Invalid nest_limit." );
-            //}
-
             byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
 
             var o = new StringBuilder( );

@@ -103,8 +103,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VBScript", "VBScript", "{13
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VBScriptPlugin", "RegexEngines\VBScript\VBScriptPlugin\VBScriptPlugin.csproj", "{8DFECE9A-8657-46F3-9EDA-C180FF5AF993}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "VBScriptWorker", "VBScriptWorker", "{7266A160-0D56-4F5C-BE52-35078F6751CA}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DotNET9", "DotNET9", "{0559DF01-DB5D-410F-9A20-CA04494BE301}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNET9Plugin", "RegexEngines\DotNET9\DotNET9Plugin\DotNET9Plugin.csproj", "{8C1119B6-650B-4E00-930F-717B9BDD48B7}"
@@ -468,7 +466,6 @@ Global
 		{C3754506-E2B7-493A-9852-0E2B866A0A78} = {DEE80AD8-9508-41BB-AA28-01890226DA3B}
 		{134FECB5-85AA-4867-9A61-7EB51662DAA7} = {91ED61CD-C8DA-4845-80E0-A892A0A80E14}
 		{8DFECE9A-8657-46F3-9EDA-C180FF5AF993} = {134FECB5-85AA-4867-9A61-7EB51662DAA7}
-		{7266A160-0D56-4F5C-BE52-35078F6751CA} = {134FECB5-85AA-4867-9A61-7EB51662DAA7}
 		{0559DF01-DB5D-410F-9A20-CA04494BE301} = {91ED61CD-C8DA-4845-80E0-A892A0A80E14}
 		{8C1119B6-650B-4E00-930F-717B9BDD48B7} = {0559DF01-DB5D-410F-9A20-CA04494BE301}
 		{285C37EE-E0EB-4B4D-B3BF-022BB8C705AF} = {0559DF01-DB5D-410F-9A20-CA04494BE301}
@@ -493,14 +490,14 @@ Global
 		{B56CF83F-93DF-453F-9441-82CAC478361A} = {7D31FB02-A57F-4CD4-BC64-76B2EE1D6EC6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		                                                                        SolutionGuid = {7CA7DF49-7C29-43E0-8CCF-A57AE8197508}
-		                                                                                                                        SolutionGuid = {470781F3-C4B3-4F30-8880-319AEAD13AFE}
-		                                                                                                                                        SolutionGuid = {6FBF80B0-D822-4ADB-80F5-E1166CF987C5}
-		                                                                                                                                                                                                                        SolutionGuid = {2EA46475-3CEB-45D5-AAE9-525FCE04340B}
-		                                                                                                                                                                                        SolutionGuid = {E9D3D84A-8875-4CC9-9AD2-81298DE7ECEB}
-		                                                                                                                                                                        SolutionGuid = {61D058A2-B4A0-4779-9C73-27CFEBE9BF66}
-		                                                                                                                                                        SolutionGuid = {6A4D0C5C-3CCE-4AC5-8106-6AB052CFFED9}
-		                                                                                        SolutionGuid = {D9183121-E1C4-4C5D-A2AA-D59E0370107C}
 		        SolutionGuid = {D4A4FF06-F6FF-4698-9A59-457965BC3C1D}
+		                                                                                        SolutionGuid = {D9183121-E1C4-4C5D-A2AA-D59E0370107C}
+		                                                                                                                                                        SolutionGuid = {6A4D0C5C-3CCE-4AC5-8106-6AB052CFFED9}
+		                                                                                                                                                                        SolutionGuid = {61D058A2-B4A0-4779-9C73-27CFEBE9BF66}
+		                                                                                                                                                                                        SolutionGuid = {E9D3D84A-8875-4CC9-9AD2-81298DE7ECEB}
+		                                                                                                                                                                                                                        SolutionGuid = {2EA46475-3CEB-45D5-AAE9-525FCE04340B}
+		                                                                                                                                        SolutionGuid = {6FBF80B0-D822-4ADB-80F5-E1166CF987C5}
+		                                                                                                                        SolutionGuid = {470781F3-C4B3-4F30-8880-319AEAD13AFE}
+		                                                                        SolutionGuid = {7CA7DF49-7C29-43E0-8CCF-A57AE8197508}
 	EndGlobalSection
 EndGlobal

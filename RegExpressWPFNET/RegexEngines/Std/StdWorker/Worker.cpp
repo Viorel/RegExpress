@@ -35,45 +35,45 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
     __try
     {
         [&]( )
-        {
-            wregex regex( pattern, regexFlags );
-
-            wcregex_iterator results_begin( text.c_str( ), text.c_str( ) + text.length( ), regex, matchFlags );
-            wcregex_iterator results_end{};
-
-            outbw.WriteT<char>( 'b' );
-
-            for( auto i = results_begin; i != results_end; ++i )
             {
-                const std::wcmatch& match = *i;
+                wregex regex( pattern, regexFlags );
 
-                outbw.WriteT<char>( 'm' );
-                outbw.WriteT<int64_t>( match.position( ) );
-                outbw.WriteT<int64_t>( match.length( ) );
+                wcregex_iterator results_begin( text.c_str( ), text.c_str( ) + text.length( ), regex, matchFlags );
+                wcregex_iterator results_end{};
 
-                int j = 0;
+                outbw.WriteT<char>( 'b' );
 
-                for( auto k = match.cbegin( ); k != match.cend( ); ++k, ++j )
+                for( auto i = results_begin; i != results_end; ++i )
                 {
-                    const std::wcsub_match& submatch = *k;
+                    const std::wcmatch& match = *i;
 
-                    outbw.WriteT<char>( 'g' );
+                    outbw.WriteT<char>( 'm' );
+                    outbw.WriteT<int64_t>( match.position( ) );
+                    outbw.WriteT<int64_t>( match.length( ) );
 
-                    if( !submatch.matched )
+                    int j = 0;
+
+                    for( auto k = match.cbegin( ); k != match.cend( ); ++k, ++j )
                     {
-                        outbw.WriteT<int64_t>( -1 );
-                        outbw.WriteT<int64_t>( -1 );
-                    }
-                    else
-                    {
-                        outbw.WriteT<int64_t>( match.position( j ) );
-                        outbw.WriteT<int64_t>( match.length( j ) );
+                        const std::wcsub_match& submatch = *k;
+
+                        outbw.WriteT<char>( 'g' );
+
+                        if( !submatch.matched )
+                        {
+                            outbw.WriteT<int64_t>( -1 );
+                            outbw.WriteT<int64_t>( -1 );
+                        }
+                        else
+                        {
+                            outbw.WriteT<int64_t>( match.position( j ) );
+                            outbw.WriteT<int64_t>( match.length( j ) );
+                        }
                     }
                 }
-            }
 
-            outbw.WriteT<char>( 'e' );
-        }( );
+                outbw.WriteT<char>( 'e' );
+            }( );
 
         return;
     }
@@ -186,23 +186,11 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_continuous;
             if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_prev_avail;
 
-            if( inbr.ReadByte( ) )
-            {
-                Variable_REGEX_MAX_COMPLEXITY_COUNT = inbr.ReadT<int32_t>( );
-            }
-            else
-            {
-                Variable_REGEX_MAX_COMPLEXITY_COUNT = Default_REGEX_MAX_COMPLEXITY_COUNT;
-            }
+            auto REGEX_MAX_COMPLEXITY_COUNT = inbr.ReadOptional<int32_t>( );
+            Variable_REGEX_MAX_COMPLEXITY_COUNT = REGEX_MAX_COMPLEXITY_COUNT.value_or( Default_REGEX_MAX_COMPLEXITY_COUNT );
 
-            if( inbr.ReadByte( ) )
-            {
-                Variable_REGEX_MAX_STACK_COUNT = inbr.ReadT<int32_t>( );
-            }
-            else
-            {
-                Variable_REGEX_MAX_STACK_COUNT = Default_REGEX_MAX_STACK_COUNT;
-            }
+            auto REGEX_MAX_STACK_COUNT = inbr.ReadOptional<int32_t>( );
+            Variable_REGEX_MAX_STACK_COUNT = REGEX_MAX_STACK_COUNT.value_or( Default_REGEX_MAX_STACK_COUNT );
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 

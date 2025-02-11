@@ -60,11 +60,7 @@ namespace RE2Plugin
 
                 bw.Write( Enum.GetName( options.anchor )! );
 
-                bw.Write( Convert.ToByte( max_mem != null ) );
-                if( max_mem != null )
-                {
-                    bw.Write( max_mem.Value );
-                }
+                bw.WriteOptional( max_mem );
 
                 bw.Write( (byte)'e' );
             };

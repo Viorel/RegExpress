@@ -21,23 +21,29 @@ namespace StdPlugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            bool eREGEX_MAX_COMPLEXITY_COUNT = string.IsNullOrWhiteSpace( options.REGEX_MAX_COMPLEXITY_COUNT );
-            Int32 REGEX_MAX_COMPLEXITY_COUNT = 0;
-            if( !eREGEX_MAX_COMPLEXITY_COUNT )
+            Int32? REGEX_MAX_COMPLEXITY_COUNT = null;
+            if( !string.IsNullOrWhiteSpace( options.REGEX_MAX_COMPLEXITY_COUNT ) )
             {
-                if( !Int32.TryParse( options.REGEX_MAX_COMPLEXITY_COUNT, out REGEX_MAX_COMPLEXITY_COUNT ) )
+                if( !Int32.TryParse( options.REGEX_MAX_COMPLEXITY_COUNT, out var REGEX_MAX_COMPLEXITY_COUNT0 ) )
                 {
                     throw new Exception( "Invalid option: '_REGEX_MAX_COMPLEXITY_COUNT'." );
                 }
+                else
+                {
+                    REGEX_MAX_COMPLEXITY_COUNT = REGEX_MAX_COMPLEXITY_COUNT0;
+                }
             }
 
-            bool eREGEX_MAX_STACK_COUNT = string.IsNullOrWhiteSpace( options.REGEX_MAX_STACK_COUNT );
-            Int32 REGEX_MAX_STACK_COUNT = 0;
-            if( !eREGEX_MAX_STACK_COUNT )
+            Int32? REGEX_MAX_STACK_COUNT = null;
+            if( !string.IsNullOrWhiteSpace( options.REGEX_MAX_STACK_COUNT ) )
             {
-                if( !Int32.TryParse( options.REGEX_MAX_STACK_COUNT, out REGEX_MAX_STACK_COUNT ) )
+                if( !Int32.TryParse( options.REGEX_MAX_STACK_COUNT, out var REGEX_MAX_STACK_COUNT0 ) )
                 {
                     throw new Exception( "Invalid option: '_REGEX_MAX_STACK_COUNT'." );
+                }
+                else
+                {
+                    REGEX_MAX_STACK_COUNT = REGEX_MAX_STACK_COUNT0;
                 }
             }
 
@@ -69,25 +75,8 @@ namespace StdPlugin
                 bw.Write( Convert.ToByte( options.match_continuous ) );
                 bw.Write( Convert.ToByte( options.match_prev_avail ) );
 
-                if( eREGEX_MAX_COMPLEXITY_COUNT )
-                {
-                    bw.Write( (byte)0 );
-                }
-                else
-                {
-                    bw.Write( (byte)1 );
-                    bw.Write( REGEX_MAX_COMPLEXITY_COUNT );
-                }
-
-                if( eREGEX_MAX_STACK_COUNT )
-                {
-                    bw.Write( (byte)0 );
-                }
-                else
-                {
-                    bw.Write( (byte)1 );
-                    bw.Write( REGEX_MAX_STACK_COUNT );
-                }
+                bw.WriteOptional( REGEX_MAX_COMPLEXITY_COUNT );
+                bw.WriteOptional( REGEX_MAX_STACK_COUNT );
 
                 bw.Write( (byte)'e' );
             };

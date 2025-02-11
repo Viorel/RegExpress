@@ -195,23 +195,13 @@ namespace PCRE2Plugin
 
                 // Limits
 
-                bw.Write( Convert.ToByte( depth_limit != null ) );
-                if( depth_limit != null ) bw.Write( depth_limit.Value );
+                bw.WriteOptional( depth_limit  );
+                bw.WriteOptional( heap_limit );
+                bw.WriteOptional( match_limit );
+                bw.WriteOptional( max_pattern_compiled_length );
+                bw.WriteOptional( offset_limit );
+                bw.WriteOptional( parens_nest_limit );
 
-                bw.Write( Convert.ToByte( heap_limit != null ) );
-                if( heap_limit != null ) bw.Write( heap_limit.Value );
-
-                bw.Write( Convert.ToByte( match_limit != null ) );
-                if( match_limit != null ) bw.Write( match_limit.Value );
-
-                bw.Write( Convert.ToByte( max_pattern_compiled_length != null ) );
-                if( max_pattern_compiled_length != null ) bw.Write( max_pattern_compiled_length.Value );
-
-                bw.Write( Convert.ToByte( offset_limit != null ) );
-                if( offset_limit != null ) bw.Write( offset_limit.Value );
-
-                bw.Write( Convert.ToByte( parens_nest_limit != null ) );
-                if( parens_nest_limit != null ) bw.Write( parens_nest_limit.Value );
 
                 bw.Write( (byte)'e' );
             };
