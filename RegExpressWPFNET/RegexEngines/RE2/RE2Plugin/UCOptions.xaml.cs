@@ -57,12 +57,15 @@ namespace RE2Plugin
             Notify( preferImmediateReaction: false );
         }
 
-
-        private void cbxAnchor_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        private void ComboBox_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             Notify( preferImmediateReaction: true );
         }
 
+        private void TextBox_TextChanged( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
 
         internal Options GetSelectedOptions( )
         {

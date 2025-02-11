@@ -17,7 +17,6 @@ namespace RE2Plugin
 
     internal class Options
     {
-
         public bool posix_syntax { get; set; }
         public bool longest_match { get; set; }
         public bool literal { get; set; }
@@ -32,6 +31,7 @@ namespace RE2Plugin
 
         public AnchorEnum anchor { get; set; } = AnchorEnum.UNANCHORED;
 
+        public string? max_mem { get; set; } // (int64_t)
 
         public Options Clone( )
         {

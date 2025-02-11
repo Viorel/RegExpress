@@ -16,7 +16,7 @@
 using namespace std;
 
 
-static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstring& wtext, RE2::Options& re2Options, RE2::Anchor anchor )
+static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstring& wtext, const RE2::Options& re2Options, const RE2::Anchor anchor )
 {
 
     DWORD code;
@@ -25,152 +25,150 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstrin
     __try
     {
         [&]( )
-        {
-            // TODO: optimise, avoid duplicates of Unicode and UTF-8 strings.
-
-            re2Options.set_log_errors( false ); // do not write logs to STDERR
-
-            std::string pattern = WStringToUtf8( wpattern.c_str( ) );
-            re2::StringPiece sp_pattern( pattern );
-
-            re2::RE2 re( sp_pattern, re2Options );
-
-            if( !re.ok( ) )
             {
-                throw std::runtime_error( std::format( "Error {}: {}", (int)re.error_code( ), re.error( ) ) );
-            }
+                // TODO: optimise, avoid duplicates of Unicode and UTF-8 strings.
 
-            std::vector<int> indices;
-            std::string text = WStringToUtf8( wtext.c_str( ), &indices );
-            re2::StringPiece sp_text( text );
+                std::string pattern = WStringToUtf8( wpattern.c_str( ) );
+                re2::StringPiece sp_pattern( pattern );
 
-            int number_of_capturing_groups = re.NumberOfCapturingGroups( );
+                re2::RE2 re( sp_pattern, re2Options );
 
-            std::vector<re2::StringPiece> found_groups;
-            found_groups.resize( number_of_capturing_groups + 1 ); // (including main match)
-
-            const std::map<int, std::string>& group_names = re.CapturingGroupNames( );
-
-            int start_pos = 0;
-            int previous_start_pos = 0;
-
-            outbw.WriteT<char>( 'b' );
-
-            while( re.Match(
-                sp_text,
-                start_pos,
-                sp_text.size( ),
-                anchor,
-                found_groups.data( ),
-                CheckedCast( found_groups.size( ) ) )
-                )
-            {
-                const re2::StringPiece& main_group = found_groups.front( );
-
-                int utf8index;
-                int index;
-                int next_index;
-
-                // output the match and groups
-
-                utf8index = CheckedCast( main_group.data( ) - text.data( ) );
-                index = indices.at( utf8index );
-                if( index < 0 )
+                if( !re.ok( ) )
                 {
-                    // for example, '\B' with surrogate pairs
-                    throw std::runtime_error( std::format( "Index error. (UTF8 Index A = {}).", utf8index ) );
+                    throw std::runtime_error( std::format( "Error {}: {}", (int)re.error_code( ), re.error( ) ) );
                 }
 
-                next_index = indices.at( utf8index + main_group.size( ) );
-                if( next_index < 0 )
+                std::vector<int> indices;
+                std::string text = WStringToUtf8( wtext.c_str( ), &indices );
+                re2::StringPiece sp_text( text );
+
+                int number_of_capturing_groups = re.NumberOfCapturingGroups( );
+
+                std::vector<re2::StringPiece> found_groups;
+                found_groups.resize( number_of_capturing_groups + 1 ); // (including main match)
+
+                const std::map<int, std::string>& group_names = re.CapturingGroupNames( );
+
+                int start_pos = 0;
+                int previous_start_pos = 0;
+
+                outbw.WriteT<char>( 'b' );
+
+                while( re.Match(
+                    sp_text,
+                    start_pos,
+                    sp_text.size( ),
+                    anchor,
+                    found_groups.data( ),
+                    CheckedCast( found_groups.size( ) ) )
+                    )
                 {
-                    // for example, '\C' in pattern -- match one byte
-                    // TODO: find a more appropriate error text
-                    throw std::runtime_error( std::format( "Index error. (UTF8 Index B = {}).", utf8index ) );
-                }
+                    const re2::StringPiece& main_group = found_groups.front( );
 
-                int length = next_index - index;
+                    int utf8index;
+                    int index;
+                    int next_index;
 
-                // match
-                outbw.WriteT<char>( 'm' );
-                outbw.WriteT<int64_t>( index );
-                outbw.WriteT<int64_t>( length );
+                    // output the match and groups
 
-                // default group
-                outbw.WriteT<char>( 'g' );
-                outbw.WriteT<char>( 1 );
-                outbw.WriteT<int64_t>( index );
-                outbw.WriteT<int64_t>( length );
-                outbw.Write( L"0" );
-
-                // groups
-                for( int i = 1; i < found_groups.size( ); ++i )
-                {
-                    const re2::StringPiece& g = found_groups[i];
-
-                    std::string group_name;
-                    auto f = group_names.find( i );
-                    if( f != group_names.cend( ) )
+                    utf8index = CheckedCast( main_group.data( ) - text.data( ) );
+                    index = indices.at( utf8index );
+                    if( index < 0 )
                     {
-                        group_name = f->second;
-                    }
-                    else
-                    {
-                        group_name = std::to_string( i );
+                        // for example, '\B' with surrogate pairs
+                        throw std::runtime_error( std::format( "Index error. (UTF8 Index A = {}).", utf8index ) );
                     }
 
+                    next_index = indices.at( utf8index + main_group.size( ) );
+                    if( next_index < 0 )
+                    {
+                        // for example, '\C' in pattern -- match one byte
+                        // TODO: find a more appropriate error text
+                        throw std::runtime_error( std::format( "Index error. (UTF8 Index B = {}).", utf8index ) );
+                    }
+
+                    int length = next_index - index;
+
+                    // match
+                    outbw.WriteT<char>( 'm' );
+                    outbw.WriteT<int64_t>( index );
+                    outbw.WriteT<int64_t>( length );
+
+                    // default group
                     outbw.WriteT<char>( 'g' );
+                    outbw.WriteT<char>( 1 );
+                    outbw.WriteT<int64_t>( index );
+                    outbw.WriteT<int64_t>( length );
+                    outbw.Write( L"0" );
 
-                    if( g.data( ) == nullptr ) // failed group
+                    // groups
+                    for( int i = 1; i < found_groups.size( ); ++i )
                     {
-                        outbw.WriteT<char>( 0 );
-                        outbw.WriteT<int64_t>( 0 );
-                        outbw.WriteT<int64_t>( 0 );
-                        outbw.Write( Utf8ToWString( group_name ) ); // (it is UTF-8)
-                    }
-                    else
-                    {
-                        utf8index = CheckedCast( g.data( ) - text.data( ) );
-                        index = indices.at( utf8index );
-                        if( index < 0 )
+                        const re2::StringPiece& g = found_groups[i];
+
+                        std::string group_name;
+                        auto f = group_names.find( i );
+                        if( f != group_names.cend( ) )
                         {
-                            throw std::runtime_error( std::format( "Index error. (UTF8 Index C = {}).", utf8index ) );
+                            group_name = f->second;
+                        }
+                        else
+                        {
+                            group_name = std::to_string( i );
                         }
 
-                        next_index = indices.at( utf8index + g.size( ) );
-                        if( next_index < 0 )
+                        outbw.WriteT<char>( 'g' );
+
+                        if( g.data( ) == nullptr ) // failed group
                         {
-                            throw std::runtime_error( std::format( "Index error. (UTF8 Index D = {}).", utf8index ) );
+                            outbw.WriteT<char>( 0 );
+                            outbw.WriteT<int64_t>( 0 );
+                            outbw.WriteT<int64_t>( 0 );
+                            outbw.Write( Utf8ToWString( group_name ) ); // (it is UTF-8)
                         }
+                        else
+                        {
+                            utf8index = CheckedCast( g.data( ) - text.data( ) );
+                            index = indices.at( utf8index );
+                            if( index < 0 )
+                            {
+                                throw std::runtime_error( std::format( "Index error. (UTF8 Index C = {}).", utf8index ) );
+                            }
 
-                        outbw.WriteT<char>( 1 );
-                        outbw.WriteT<int64_t>( index );
-                        outbw.WriteT<int64_t>( next_index - index );
-                        outbw.Write( Utf8ToWString( group_name ) ); // (it is UTF-8)
+                            next_index = indices.at( utf8index + g.size( ) );
+                            if( next_index < 0 )
+                            {
+                                throw std::runtime_error( std::format( "Index error. (UTF8 Index D = {}).", utf8index ) );
+                            }
+
+                            outbw.WriteT<char>( 1 );
+                            outbw.WriteT<int64_t>( index );
+                            outbw.WriteT<int64_t>( next_index - index );
+                            outbw.Write( Utf8ToWString( group_name ) ); // (it is UTF-8)
+                        }
                     }
+
+                    // advance to the next character after the found match
+
+                    start_pos = CheckedCast( main_group.data( ) + main_group.size( ) - text.c_str( ) );
+
+                    if( start_pos == previous_start_pos ) // was empty match
+                    {
+                        assert( main_group.size( ) == 0 );
+
+                        // advance by the size of current utf-8 element
+
+                        do { ++start_pos; } while( start_pos < indices.size( ) && indices.at( start_pos ) < 0 );
+                    }
+
+                    if( start_pos > text.length( ) ) break; // end of matches
+
+                    previous_start_pos = start_pos;
                 }
 
-                // advance to the next character after the found match
+                outbw.WriteT<char>( 'e' );
 
-                start_pos = CheckedCast( main_group.data( ) + main_group.size( ) - text.c_str( ) );
-
-                if( start_pos == previous_start_pos ) // was empty match
-                {
-                    assert( main_group.size( ) == 0 );
-
-                    // advance by the size of current utf-8 element
-
-                    do { ++start_pos; } while( start_pos < indices.size( ) && indices.at( start_pos ) < 0 );
-                }
-
-                if( start_pos > text.length( ) ) break; // end of matches
-
-                previous_start_pos = start_pos;
-            }
-
-            outbw.WriteT<char>( 'e' );
-
-        }( );
+            }( );
 
         return;
     }
@@ -264,8 +262,16 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             else if( anchor_s == L"ANCHOR_START" ) re2_anchor = RE2::Anchor::ANCHOR_START;
             else if( anchor_s == L"ANCHOR_BOTH" ) re2_anchor = RE2::Anchor::ANCHOR_BOTH;
 
+            bool has_max_mem = inbr.ReadByte( ) != 0;
+            if( has_max_mem )
+            {
+                int64_t max_mem = inbr.ReadT<int64_t>( );
+                re2_options.set_max_mem( max_mem );
+            }
+
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
+            re2_options.set_log_errors( false ); // do not write logs to STDERR
 
             DoMatch( outbw, wpattern, wtext, re2_options, re2_anchor );
 

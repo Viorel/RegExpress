@@ -21,6 +21,20 @@ namespace RE2Plugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Int64? max_mem = null;
+
+            if( !string.IsNullOrWhiteSpace( options.max_mem ) )
+            {
+                if( !Int64.TryParse( options.max_mem, out var max_mem0 ) )
+                {
+                    throw new ApplicationException( "Invalid max_mem." );
+                }
+                else
+                {
+                    max_mem = max_mem0;
+                }
+            }
+
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.Unicode;
@@ -45,6 +59,12 @@ namespace RE2Plugin
                 bw.Write( Convert.ToByte( options.one_line ) );
 
                 bw.Write( Enum.GetName( options.anchor )! );
+
+                bw.Write( Convert.ToByte( max_mem != null ) );
+                if( max_mem != null )
+                {
+                    bw.Write( max_mem.Value );
+                }
 
                 bw.Write( (byte)'e' );
             };

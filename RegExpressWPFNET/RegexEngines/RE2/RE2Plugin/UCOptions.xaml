@@ -13,6 +13,12 @@
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
+        <Style TargetType="TextBox">
+            <EventSetter Event="TextChanged" Handler="TextBox_TextChanged"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <EventSetter Event="SelectionChanged" Handler="ComboBox_SelectionChanged"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -28,17 +34,56 @@
             <ui:CheckboxWithNote Prop="word_boundary" Note="allow Perl's \b \B (word boundary and not)"/>
             <ui:CheckboxWithNote Prop="one_line" Note="^ and $ only match beginning and end of text"/>
 
-            <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
-                <StackPanel.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </StackPanel.LayoutTransform>
-                <Label Content="Anchor:" Target="{Binding ElementName=cbxAnchor}" Padding="0 2 4 2"/>
-                <ComboBox x:Name="cbxAnchor" SelectedValuePath="Tag" SelectedValue="{Binding anchor, FallbackValue='UNANCHORED'}" VerticalAlignment="Center" SelectionChanged="cbxAnchor_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
+            <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 6">
+                <Grid.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </Grid.LayoutTransform>
+                <Grid.Resources>
+                    <Style TargetType="Label">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="0 2 4 2"/>
+                    </Style>
+                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    </Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
+                        <Setter Property="Opacity" Value="0.70"/>
+                        <Setter Property="Margin" Value="4 0"/>
+                        <Setter Property="TextWrapping" Value="Wrap"/>
+                    </Style>
+                </Grid.Resources>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=an}">anchor:</Label>
+                <ComboBox x:Name="an" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding anchor, FallbackValue='UNANCHORED'}" VerticalAlignment="Center" MinWidth="110" >
                     <ComboBoxItem Tag ="UNANCHORED" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
                     <ComboBoxItem Tag ="ANCHOR_START" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                     <ComboBoxItem Tag ="ANCHOR_BOTH" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                 </ComboBox>
-            </StackPanel>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– type of match" />
+
+                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=mm}">max mem:</Label>
+                <TextBox x:Name="mm" Grid.Column="1" Grid.Row="1" Text="{Binding max_mem, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="– total memory budget" />
+
+            </Grid>
 
         </StackPanel>
     </Grid>
