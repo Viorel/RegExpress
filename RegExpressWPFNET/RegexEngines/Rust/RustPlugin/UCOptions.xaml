@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="550.85" d:DesignWidth="489.6" 
+             d:DesignHeight="407.075" d:DesignWidth="489.6" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -61,7 +61,7 @@
                             <Setter Property="VerticalAlignment" Value="Center"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                         </Style>
-                        <Style TargetType="TextBlock">
+                        <Style TargetType="TextBlock" x:Key="note">
                             <Setter Property="VerticalAlignment" Value="Center"/>
                             <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
                             <Setter Property="Opacity" Value="0.70"/>
@@ -92,15 +92,15 @@
 
                         <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=sl}">size__limit:</Label>
                         <TextBox x:Name="sl" Grid.Column="1" Grid.Row="0" Text="{Binding size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                        <TextBlock Grid.Column="2" Grid.Row="0" Text="– byte size limit of compiled regular expression" />
+                        <TextBlock Grid.Column="2" Grid.Row="0" Text="– byte size limit of compiled regular expression" Style="{StaticResource note}" />
 
                         <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=dsl}">dfa__size__limit:</Label>
                         <TextBox x:Name="dsl" Grid.Column="1" Grid.Row="1" Text="{Binding dfa_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                        <TextBlock Grid.Column="2" Grid.Row="1" Text="– byte size of DFA cache" />
+                        <TextBlock Grid.Column="2" Grid.Row="1" Text="– byte size of DFA cache" Style="{StaticResource note}" />
 
                         <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=nl}">nest__limit:</Label>
                         <TextBox x:Name="nl" Grid.Column="1" Grid.Row="2" Text="{Binding nest_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                        <TextBlock Grid.Column="2" Grid.Row="2" Text="– nest depth" />
+                        <TextBlock Grid.Column="2" Grid.Row="2" Text="– nest depth" Style="{StaticResource note}" />
 
                     </Grid>
 
@@ -126,15 +126,15 @@
 
                         <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=bl}">backtrack__limit:</Label>
                         <TextBox x:Name="bl" Grid.Column="1" Grid.Row="0" Text="{Binding backtrack_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                        <TextBlock Grid.Column="2" Grid.Row="0" Text="– limit for how many times backtracking should be attempted" />
+                        <TextBlock Grid.Column="2" Grid.Row="0" Text="– limit for how many times backtracking should be attempted" Style="{StaticResource note}" />
 
                         <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=delsl}">delegate__size__limit:</Label>
                         <TextBox x:Name="delsl" Grid.Column="1" Grid.Row="1" Text="{Binding delegate_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                        <TextBlock Grid.Column="2" Grid.Row="1" Text="– approximate size limit of compiled regular expression" />
+                        <TextBlock Grid.Column="2" Grid.Row="1" Text="– approximate size limit of compiled regular expression" Style="{StaticResource note}" />
 
                         <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=deldsl}">delegate__dfa__size__limit:</Label>
                         <TextBox x:Name="deldsl" Grid.Column="1" Grid.Row="2" Text="{Binding delegate_dfa_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                        <TextBlock Grid.Column="2" Grid.Row="2" Text="– approximate size of cache used by DFA" />
+                        <TextBlock Grid.Column="2" Grid.Row="2" Text="– approximate size of cache used by DFA" Style="{StaticResource note}" />
 
                     </Grid>
 

@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RE2Plugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="359.77" d:DesignWidth="316.194" 
+             d:DesignHeight="246.619" d:DesignWidth="499.859" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -53,7 +53,7 @@
                         <Setter Property="VerticalAlignment" Value="Center"/>
                         <Setter Property="VerticalContentAlignment" Value="Center"/>
                     </Style>
-                    <Style TargetType="TextBlock">
+                    <Style TargetType="TextBlock" x:Key="note">
                         <Setter Property="VerticalAlignment" Value="Center"/>
                         <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
                         <Setter Property="Opacity" Value="0.70"/>
@@ -77,11 +77,11 @@
                     <ComboBoxItem Tag ="ANCHOR_START" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                     <ComboBoxItem Tag ="ANCHOR_BOTH" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                 </ComboBox>
-                <TextBlock Grid.Column="2" Grid.Row="0" Text="– type of match" />
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– type of match" Style="{StaticResource note}" />
 
-                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=mm}">max mem:</Label>
+                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=mm}">max__mem:</Label>
                 <TextBox x:Name="mm" Grid.Column="1" Grid.Row="1" Text="{Binding max_mem, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="1" Text="– total memory budget" />
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="– total memory budget" Style="{StaticResource note}" />
 
             </Grid>
 

@@ -145,7 +145,7 @@
                     <Setter Property="VerticalAlignment" Value="Center"/>
                     <Setter Property="VerticalContentAlignment" Value="Center"/>
                 </Style>
-                <Style TargetType="TextBlock">
+                <Style TargetType="TextBlock" x:Key="note">
                     <Setter Property="VerticalAlignment" Value="Center"/>
                     <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
                     <Setter Property="Opacity" Value="0.70"/>
@@ -169,27 +169,27 @@
 
             <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=dl}">depth__limit:</Label>
             <TextBox x:Name="dl" Grid.Column="1" Grid.Row="0" Text="{Binding DepthLimit, UpdateSourceTrigger=PropertyChanged}"/>
-            <TextBlock Grid.Column="2" Grid.Row="0" Text="– backtracking depth limit" />
+            <TextBlock Grid.Column="2" Grid.Row="0" Text="– backtracking depth limit" Style="{StaticResource note}" />
 
             <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=hl}">heap__limit:</Label>
             <TextBox x:Name="hl" Grid.Column="1" Grid.Row="1" Text="{Binding HeapLimit, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Grid.Row="1" Text="– backtracking heap limit" />
+            <TextBlock Grid.Column="2" Grid.Row="1" Text="– backtracking heap limit" Style="{StaticResource note}" />
 
             <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=ml}">match__limit:</Label>
             <TextBox x:Name="ml" Grid.Column="1" Grid.Row="2" Text="{Binding MatchLimit, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Grid.Row="2" Text="– match limit" />
+            <TextBlock Grid.Column="2" Grid.Row="2" Text="– match limit" Style="{StaticResource note}" />
 
             <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=mpcl}">max__pattern__compiled__length:</Label>
             <TextBox x:Name="mpcl" Grid.Column="1" Grid.Row="3" Text="{Binding MaxPatternCompiledLength, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Grid.Row="3" Text="– maximum size (in bytes) for the compiled pattern" />
+            <TextBlock Grid.Column="2" Grid.Row="3" Text="– maximum size (in bytes) for the compiled pattern" Style="{StaticResource note}" />
 
             <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=ol}">offset__limit:</Label>
             <TextBox x:Name="ol" Grid.Column="1" Grid.Row="4" Text="{Binding OffsetLimit, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Grid.Row="4" Text="– how far an unanchored search can advance" />
+            <TextBlock Grid.Column="2" Grid.Row="4" Text="– how far an unanchored search can advance" Style="{StaticResource note}" />
 
             <Label Grid.Column="0" Grid.Row="5" Target="{Binding ElementName=pnl}">parens__nest__limit:</Label>
             <TextBox x:Name="pnl" Grid.Column="1" Grid.Row="5" Text="{Binding ParensNestLimit, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Grid.Row="5" Text="– maximum depth of nested parentheses" />
+            <TextBlock Grid.Column="2" Grid.Row="5" Text="– maximum depth of nested parentheses" Style="{StaticResource note}" />
         </Grid>
 
     </StackPanel>

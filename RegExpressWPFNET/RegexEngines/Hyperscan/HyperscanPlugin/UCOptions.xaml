@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:HyperscanPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="500" d:DesignWidth="507.771" 
+             d:DesignHeight="437.5" d:DesignWidth="639.589" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -58,7 +58,7 @@
                         <Setter Property="VerticalAlignment" Value="Center"/>
                         <Setter Property="VerticalContentAlignment" Value="Center"/>
                     </Style>
-                    <Style TargetType="TextBlock">
+                    <Style TargetType="TextBlock" x:Key="note">
                         <Setter Property="VerticalAlignment" Value="Center"/>
                         <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
                         <Setter Property="Opacity" Value="0.70"/>
@@ -81,23 +81,23 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=ld}">Levenshtein distance:</Label>
                 <TextBox x:Name="ld" Grid.Column="1" Grid.Row="0" Text="{Binding LevenshteinDistance, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Grid.Column="2" Grid.Row="0" Text="– Minimum number of single-character insertions, deletions or substitutions" />
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– Minimum number of single-character insertions, deletions or substitutions" Style="{StaticResource note}" />
 
                 <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=hd}">Hamming distance:</Label>
                 <TextBox x:Name="hd" Grid.Column="1" Grid.Row="1" Text="{Binding HammingDistance, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="1" Text="– Number of positions in two equal-length strings at which the corresponding symbols are different" />
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="– Number of positions in two equal-length strings at which the corresponding symbols are different" Style="{StaticResource note}" />
 
                 <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=mino}">Min offset:</Label>
                 <TextBox x:Name="mino" Grid.Column="1" Grid.Row="2" Text="{Binding MinOffset, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="2" Text="– Minimum end offset at which this expression should match" />
+                <TextBlock Grid.Column="2" Grid.Row="2" Text="– Minimum end offset at which this expression should match" Style="{StaticResource note}" />
 
                 <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=maxo}">Max offset:</Label>
                 <TextBox x:Name="maxo" Grid.Column="1" Grid.Row="3" Text="{Binding MaxOffset, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="3" Text="– Maximum end offset at which this expression should match" />
+                <TextBlock Grid.Column="2" Grid.Row="3" Text="– Maximum end offset at which this expression should match" Style="{StaticResource note}" />
 
                 <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=minl}">Min length:</Label>
                 <TextBox x:Name="minl" Grid.Column="1" Grid.Row="4" Text="{Binding MinLength, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="4" Text="– Minimum match length" />
+                <TextBlock Grid.Column="2" Grid.Row="4" Text="– Minimum match length" Style="{StaticResource note}" />
             </Grid>
 
             <StackPanel Orientation="Horizontal" Margin="0 6 0 6">

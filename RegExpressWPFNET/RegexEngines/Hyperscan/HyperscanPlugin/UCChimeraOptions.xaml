@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:HyperscanPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="500" d:DesignWidth="650" 
+             d:DesignHeight="243.182" d:DesignWidth="459.091" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -54,7 +54,7 @@
                         <Setter Property="VerticalAlignment" Value="Center"/>
                         <Setter Property="VerticalContentAlignment" Value="Center"/>
                     </Style>
-                    <Style TargetType="TextBlock">
+                    <Style TargetType="TextBlock" x:Key="note">
                         <Setter Property="VerticalAlignment" Value="Center"/>
                         <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
                         <Setter Property="Opacity" Value="0.70"/>
@@ -74,11 +74,11 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=ml}">Match limit:</Label>
                 <TextBox x:Name="ml" Grid.Column="1" Grid.Row="0" Text="{Binding MatchLimit, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="0" Text="– Backtracking limit" />
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– Backtracking limit" Style="{StaticResource note}" />
 
                 <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=rl}">Recursion limit:</Label>
                 <TextBox x:Name="rl" Grid.Column="1" Grid.Row="1" Text="{Binding MatchLimitRecursion, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="1" Text="– Recursion depth limit" />
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="– Recursion depth limit" Style="{StaticResource note}" />
             </Grid>
 
             <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
