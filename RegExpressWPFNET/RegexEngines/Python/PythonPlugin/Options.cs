@@ -43,6 +43,7 @@ namespace PythonPlugin
         public bool VERSION1 { get; set; } = true;
         public bool overlapped { get; set; }
         public bool partial { get; set; }
+        public string? timeout { get; set; } // seconds, double
 
         public Options Clone( )
         {

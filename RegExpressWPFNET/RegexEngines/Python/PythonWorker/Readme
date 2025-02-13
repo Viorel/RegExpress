@@ -7,10 +7,11 @@ Summary:
 
 - edit "pythonXXX._pth", uncomment "import site" (keep it incommented)
 
-- run "powershell", enter "Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile get-pip.py", 
+- run "powershell" inside the folder with embeddable Python, 
+  enter "Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile get-pip.py", 
   enter "exit" to quit PowerShell
 
-- run "python get-pip.py"
+- run "python get-pip.py" in console (not PowerShell)
 
 - run ".\Scripts\pip install regex"
 

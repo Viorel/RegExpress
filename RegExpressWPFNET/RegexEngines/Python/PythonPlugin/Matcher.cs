@@ -34,10 +34,11 @@ input_json = sys.stdin.read()
 
 input_obj = json.loads(input_json)
 
-package = input_obj['package']
+module = input_obj['module']
 pattern = input_obj['pattern']
 text = input_obj['text']
 flags_obj = input_obj['flags']
+timeout = input_obj['timeout']
 
 flags = 0
 if flags_obj['ASCII']       : flags |= re.ASCII
@@ -47,7 +48,7 @@ if flags_obj['LOCALE']      : flags |= re.LOCALE
 if flags_obj['MULTILINE']   : flags |= re.MULTILINE
 if flags_obj['VERBOSE']     : flags |= re.VERBOSE
 
-if package == 'regex':
+if module == 'regex':
     if flags_obj['BESTMATCH']       : flags |= regex.BESTMATCH
     if flags_obj['ENHANCEMATCH']    : flags |= regex.ENHANCEMATCH
     if flags_obj['FULLCASE']        : flags |= regex.FULLCASE
@@ -61,7 +62,7 @@ if package == 'regex':
 try:
     regex_obj = None
 
-    if package == 'regex':
+    if module == 'regex':
         regex_obj = regex.compile( pattern, flags)
     else:
         regex_obj = re.compile( pattern, flags)
@@ -74,8 +75,8 @@ try:
 
     matches = None
 
-    if package == 'regex':
-        matches = regex_obj.finditer( text, overlapped = flags_obj['overlapped'], partial = flags_obj['partial'] )
+    if module == 'regex':
+        matches = regex_obj.finditer( text, overlapped = flags_obj['overlapped'], partial = flags_obj['partial'], timeout = timeout )
     else:
         matches = regex_obj.finditer( text )
 
@@ -90,6 +91,22 @@ except:
     print( ex, file = sys.stderr )
 ";
 
+            double? timeout = null;
+
+            if( options.Module == ModuleEnum.regex )
+            {
+                if( !string.IsNullOrWhiteSpace( options.timeout ) )
+                {
+                    if( !double.TryParse( options.timeout, out var timeout0 ) )
+                    {
+                        throw new ApplicationException( "Invalid timeout. Enter a floating-point value." );
+                    }
+                    else
+                    {
+                        timeout = timeout0;
+                    }
+                }
+            }
 
             using ProcessHelper ph = new ProcessHelper( GetPythonExePath( ) );
 
@@ -100,7 +117,7 @@ except:
             {
                 var obj = new
                 {
-                    package = Enum.GetName( options.Module ),
+                    module = Enum.GetName( options.Module ),
                     pattern = pattern,
                     text,
                     flags = new
@@ -124,7 +141,8 @@ except:
                         //
                         options.overlapped,
                         options.partial,
-                    }
+                    },
+                    timeout = timeout
                 };
                 var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
                 sw.WriteLine( json );

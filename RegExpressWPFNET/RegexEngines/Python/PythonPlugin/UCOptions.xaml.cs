@@ -67,6 +67,10 @@ namespace PythonPlugin
             Notify( preferImmediateReaction: false );
         }
 
+        private void TextBox_Changed( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
 
         private void cbxModule_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
