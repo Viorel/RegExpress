@@ -1,4 +1,5 @@
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidParameterException;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
@@ -19,11 +20,14 @@ class JavaWorker
 
             // String input = 
             //     "get-matches" + "\u001F" + 
-            //     "(ș" + "\u001F" + 
-            //     "ș" + "\u001F" + 
-            //     "-";
+            //     "pattern" + "\u001F" + 
+            //     "text" + "\u001F" + 
+            //     "options + "\u001F" +
+            //     "start + "\u001F" +
+            //     "end + "\u001F" +
+            //     "";
 
-            String [ ] parts = input.split( "\u001F");
+            String [ ] parts = input.split( "\u001F", -1 );
             String command = parts[0];
 
             switch( command.trim())
@@ -40,7 +44,7 @@ class JavaWorker
 
             case "get-matches":
 
-                if( parts.length < 4)
+                if( parts.length < 6)
                 {
                     ErrLn( "No enought parameters: " + parts.length);
 
@@ -51,8 +55,12 @@ class JavaWorker
                 String input_pattern = parts[1];
                 String input_text = parts[2];
                 String input_options = parts[3];
+                String region_start_s = parts[4];
+                String region_end_s = parts[5];
 
                 int options = 0;
+                Boolean use_anchoring_bounds = false;
+                Boolean use_transparent_bounds = false;
 
                 if( input_options.contains( ",CANON_EQ,")) options |= Pattern.CANON_EQ;
                 if( input_options.contains( ",CASE_INSENSITIVE,")) options |= Pattern.CASE_INSENSITIVE;
@@ -63,10 +71,27 @@ class JavaWorker
                 if( input_options.contains( ",UNICODE_CASE,")) options |= Pattern.UNICODE_CASE;
                 if( input_options.contains( ",UNICODE_CHARACTER_CLASS,")) options |= Pattern.UNICODE_CHARACTER_CLASS;
                 if( input_options.contains( ",UNIX_LINES,")) options |= Pattern.UNIX_LINES;
+                if( input_options.contains( ",useAnchoringBounds,")) use_anchoring_bounds = true;
+                if( input_options.contains( ",useTransparentBounds,")) use_transparent_bounds = true;
                 
                 Pattern pattern = Pattern.compile( input_pattern, options);
                 Matcher matcher = pattern.matcher( input_text);
 
+                if( (region_start_s.trim().length() > 0) != (region_end_s.trim().length()) > 0 )
+                {
+                    throw new InvalidParameterException( "Both “start” and “end” must be entered or blank" );
+                }
+
+                if( region_start_s.trim().length() > 0 && region_end_s.trim().length() > 0 )
+                {
+                    int region_start = Integer.parseInt( region_start_s.trim() );
+                    int region_end = Integer.parseInt( region_end_s.trim() );
+
+                    matcher.region( region_start, region_end );
+                }
+
+                matcher.useAnchoringBounds( use_anchoring_bounds );
+                matcher.useTransparentBounds( use_transparent_bounds );
 
                 Set<String> possible_names = new TreeSet<String>();
                 {
@@ -101,7 +126,7 @@ class JavaWorker
                         }
                         catch( IllegalArgumentException exc)
                         {
-                            // group name not vound; ignore
+                            // group name not found; ignore
                         }
                         if( value != null)
                         {
@@ -124,7 +149,7 @@ class JavaWorker
         catch( Exception e) 
         {
             //e.printStackTrace();
-            ErrLn( e.getLocalizedMessage());
+            ErrLn( e.getClass().getName() + ": " +  e.getMessage());
         }
     }
 

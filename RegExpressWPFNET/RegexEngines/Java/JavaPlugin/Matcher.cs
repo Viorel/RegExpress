@@ -22,6 +22,39 @@ namespace JavaPlugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Int32? region_start = null;
+
+            if( !string.IsNullOrWhiteSpace( options.regionStart ) )
+            {
+                if( !Int32.TryParse( options.regionStart, out var region_start0 ) )
+                {
+                    throw new ApplicationException( "Invalid region start." );
+                }
+                else
+                {
+                    region_start = region_start0;
+                }
+            }
+
+            Int32? region_end = null;
+
+            if( !string.IsNullOrWhiteSpace( options.regionEnd ) )
+            {
+                if( !Int32.TryParse( options.regionEnd, out var region_end0 ) )
+                {
+                    throw new ApplicationException( "Invalid region end." );
+                }
+                else
+                {
+                    region_end = region_end0;
+                }
+            }
+
+            if( ( region_start == null ) != ( region_end == null ) )
+            {
+                throw new ApplicationException( "Both “start” and “end” must be entered or blank." );
+            }
+
             var sb = new StringBuilder( );
             if( options.CANON_EQ ) sb.Append( ",CANON_EQ" );
             if( options.CASE_INSENSITIVE ) sb.Append( ",CASE_INSENSITIVE" );
@@ -32,6 +65,8 @@ namespace JavaPlugin
             if( options.UNICODE_CASE ) sb.Append( ",UNICODE_CASE" );
             if( options.UNICODE_CHARACTER_CLASS ) sb.Append( ",UNICODE_CHARACTER_CLASS" );
             if( options.UNIX_LINES ) sb.Append( ",UNIX_LINES" );
+            if( options.useAnchoringBounds ) sb.Append( ",useAnchoringBounds" );
+            if( options.useTransparentBounds ) sb.Append( ",useTransparentBounds" );
             sb.Append( ',' );
 
             string options_s = sb.ToString( );
@@ -57,6 +92,11 @@ namespace JavaPlugin
                 sw.Write( text );
                 sw.Write( "\x1F" );
                 sw.Write( options_s );
+                sw.Write( "\x1F" );
+                sw.Write( options.regionStart );
+                sw.Write( "\x1F" );
+                sw.Write( options.regionEnd );
+                sw.Write( "\x1F" );
             };
 
             if( !ph.Start( cnc ) ) return RegexMatches.Empty;

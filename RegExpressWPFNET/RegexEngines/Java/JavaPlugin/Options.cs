@@ -19,6 +19,10 @@ namespace JavaPlugin
         public bool UNICODE_CASE { get; set; }
         public bool UNICODE_CHARACTER_CLASS { get; set; }
         public bool UNIX_LINES { get; set; }
+        public string? regionStart { get; set; } // (int)
+        public string? regionEnd { get; set; } // (int)
+        public bool useAnchoringBounds { get; set; }
+        public bool useTransparentBounds { get; set; }
 
 
         public Options Clone( )

@@ -6,12 +6,15 @@
              xmlns:local="clr-namespace:JavaPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="191.49" d:DesignWidth="638.661" 
+             d:DesignHeight="263.29" d:DesignWidth="758.661" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <EventSetter Event="TextChanged" Handler="TextBox_Changed"/>
         </Style>
     </UserControl.Resources>
 
@@ -26,6 +29,60 @@
             <ui:CheckboxWithNote Prop="UNICODE_CASE" Note="(u) Unicode-aware case folding"/>
             <ui:CheckboxWithNote Prop="UNICODE_CHARACTER_CLASS" Note="(U) Unicode version of Predefined character classes and POSIX character classes"/>
             <ui:CheckboxWithNote Prop="UNIX_LINES" Note="(d) only the “\n” line terminator is recognized in the behavior of “.”, “^”, and “$”"/>
+
+            <Label Margin="0 4 0 4" Padding="0">
+                <Italic>Region</Italic>
+            </Label>
+
+            <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 2 0 4">
+                <Grid.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </Grid.LayoutTransform>
+                <Grid.Resources>
+                    <Style TargetType="Label">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="0 2 4 2"/>
+                    </Style>
+                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    </Style>
+                    <Style TargetType="TextBlock" x:Key="note">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
+                        <Setter Property="Opacity" Value="0.70"/>
+                        <Setter Property="Margin" Value="4 0"/>
+                        <Setter Property="TextWrapping" Value="Wrap"/>
+                    </Style>
+                </Grid.Resources>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="77"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=start}">start:</Label>
+                <TextBox x:Name="start" Grid.Column="1" Grid.Row="0" Text="{Binding regionStart, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– the index to start searching at (inclusive)" Style="{StaticResource note}" />
+
+                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=end}">end:</Label>
+                <TextBox x:Name="end" Grid.Column="1" Grid.Row="1" Text="{Binding regionEnd, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="– the index to end searching at (exclusive)" Style="{StaticResource note}" />
+            </Grid>
+
+            <ui:CheckboxWithNote Prop="useAnchoringBounds" Note="the boundaries of this region match anchors such as ^ and $"/>
+            <ui:CheckboxWithNote Prop="useTransparentBounds" Note="the boundaries of this region are transparent to lookahead, lookbehind, and boundary matching constructs"/>
+        
         </StackPanel>
     </Grid>
 </UserControl>

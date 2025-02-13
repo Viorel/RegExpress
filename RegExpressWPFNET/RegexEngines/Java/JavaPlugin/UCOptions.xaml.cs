@@ -57,6 +57,10 @@ namespace JavaPlugin
             Notify( preferImmediateReaction: false );
         }
 
+        private void TextBox_Changed( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
 
         internal Options GetSelectedOptions( )
         {
