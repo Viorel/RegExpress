@@ -21,8 +21,8 @@ namespace JavaPlugin
         public bool UNIX_LINES { get; set; }
         public string? regionStart { get; set; } // (int)
         public string? regionEnd { get; set; } // (int)
-        public bool useAnchoringBounds { get; set; }
-        public bool useTransparentBounds { get; set; }
+        public bool useAnchoringBounds { get; set; } = true;
+        public bool useTransparentBounds { get; set; } = false;
 
 
         public Options Clone( )

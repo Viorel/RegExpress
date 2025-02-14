@@ -57,7 +57,7 @@ namespace ICUPlugin
             Notify( preferImmediateReaction: false );
         }
 
-        private void tbxLimit_TextChanged( object sender, TextChangedEventArgs e )
+        private void TextBox_Changed( object sender, TextChangedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
         }

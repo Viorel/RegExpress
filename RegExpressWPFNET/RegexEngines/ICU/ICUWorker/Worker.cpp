@@ -12,7 +12,8 @@
 
 
 static void Check( UErrorCode status );
-static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, uint32_t flags, uint32_t limit );
+static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, uint32_t flags, std::optional<int32_t> limit,
+    bool useAnchoringBounds, bool useTransparentBounds, std::optional<int64_t> regionStart, std::optional<int64_t> regionEnd );
 
 
 int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
@@ -95,9 +96,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             std::wstring pattern = inbr.ReadString( );
             std::wstring text = inbr.ReadString( );
             auto remote_flags = inbr.ReadT<uint32_t>( );
-            auto limit = inbr.ReadT<uint32_t>( );
-
-            if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid E." );
+            auto limit = inbr.ReadOptional<int32_t>( );
 
             uint32_t flags = 0;
             //if( remote_flags & ( 1 << 0 ) ) flags |= UREGEX_CANON_EQ; // not implemented by ICU
@@ -110,7 +109,20 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( remote_flags & ( 1 << 7 ) ) flags |= UREGEX_UWORD;
             if( remote_flags & ( 1 << 8 ) ) flags |= UREGEX_ERROR_ON_UNKNOWN_ESCAPES;
 
-            DoMatch( outbw, pattern, text, flags, limit );
+            bool use_anchoring_bounds = ( remote_flags & ( 1 << 9 ) ) != 0;
+            bool use_transparent_bounds = ( remote_flags & ( 1 << 10 ) ) != 0;
+
+            auto region_start = inbr.ReadOptional<int64_t>( );
+            auto region_end = inbr.ReadOptional<int64_t>( );
+
+            if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid E." );
+
+            if( region_start.has_value( ) != region_end.has_value( ) )
+            {
+                throw std::runtime_error( "Both 'start' and 'end' must be entered or blank" );
+            }
+
+            DoMatch( outbw, pattern, text, flags, limit, use_anchoring_bounds, use_transparent_bounds, region_start, region_end );
 
             return 0;
         }
@@ -145,7 +157,8 @@ static void Check( UErrorCode status )
 }
 
 
-static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, uint32_t flags, uint32_t limit )
+static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, uint32_t flags, std::optional<int32_t> limit,
+    bool useAnchoringBounds, bool useTransparentBounds, std::optional<int64_t> regionStart, std::optional<int64_t> regionEnd )
 {
     DWORD code;
     char error_text[128] = "";
@@ -153,112 +166,124 @@ static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const st
     __try
     {
         [&]( )
-        {
-            UErrorCode status = U_ZERO_ERROR;
-            UParseError parse_error{};
-
-            int32_t pattern_length = CheckedCast( pattern.length( ) );
-
-            icu::UnicodeString us_pattern( pattern.c_str( ), pattern_length );
-
-            icu::RegexPattern* icu_pattern = icu::RegexPattern::compile( us_pattern, flags, parse_error, status );
-
-            if( U_FAILURE( status ) )
             {
-                LPCSTR error_name = u_errorName( status );
+                UErrorCode status = U_ZERO_ERROR;
+                UParseError parse_error{};
 
-                throw std::runtime_error( std::format( "Invalid pattern at line {}, column {}.\r\n\r\n({}, {})",
-                    parse_error.line, parse_error.offset, error_name, (unsigned)status ) );
-            }
+                int32_t pattern_length = CheckedCast( pattern.length( ) );
 
-            outbw.WriteT<char>( 'b' );
+                icu::UnicodeString us_pattern( pattern.c_str( ), pattern_length );
 
-            // try identifying named groups; (ICU does not seem to offer such feature)
-            {
-                icu::UnicodeString up( LR"REGEX(\(\s*\?\s*<\s*(?![=!])(?<n>.*?)\s*>)REGEX" );
-                icu::RegexPattern* p = icu::RegexPattern::compile( up, 0, parse_error, status );
+                icu::RegexPattern* icu_pattern = icu::RegexPattern::compile( us_pattern, flags, parse_error, status );
+
+                if( U_FAILURE( status ) )
+                {
+                    LPCSTR error_name = u_errorName( status );
+
+                    throw std::runtime_error( std::format( "Invalid pattern at line {}, column {}.\r\n\r\n({}, {})",
+                        parse_error.line, parse_error.offset, error_name, (unsigned)status ) );
+                }
+
+                outbw.WriteT<char>( 'b' );
+
+                // try identifying named groups; (ICU does not seem to offer such feature)
+                {
+                    icu::UnicodeString up( LR"REGEX(\(\s*\?\s*<\s*(?![=!])(?<n>.*?)\s*>)REGEX" );
+                    icu::RegexPattern* p = icu::RegexPattern::compile( up, 0, parse_error, status );
+                    Check( status );
+
+                    icu::RegexMatcher* m = p->matcher( us_pattern, status );
+                    Check( status );
+
+                    for( ;; )
+                    {
+                        status = U_ZERO_ERROR;
+
+                        if( !m->find( status ) )
+                        {
+                            Check( status );
+
+                            break;
+                        }
+
+                        int32_t start = m->start( 1, status );
+                        Check( status );
+
+                        int32_t end = m->end( 1, status );
+                        Check( status );
+
+                        icu::UnicodeString possible_name;
+                        us_pattern.extract( start, end - start, possible_name );
+                        Check( status );
+
+                        int32_t group_number = icu_pattern->groupNumberFromName( possible_name, status );
+                        // TODO: detect and show errors
+                        if( !U_FAILURE( status ) )
+                        {
+                            outbw.WriteT<int32_t>( group_number );
+                            outbw.Write( (LPCWSTR)possible_name.getBuffer( ), possible_name.length( ) );
+                        }
+                    }
+
+                    outbw.WriteT<int32_t>( -1 ); // end of names
+                }
+
+                // find matches
+
+                int32_t text_length = CheckedCast( text.length( ) );
+
+                icu::UnicodeString us_text( text.c_str( ), text_length );
+
+                icu::RegexMatcher* icu_matcher = icu_pattern->matcher( us_text, status );
                 Check( status );
 
-                icu::RegexMatcher* m = p->matcher( us_pattern, status );
-                Check( status );
+                if( limit )
+                {
+                    icu_matcher->setTimeLimit( limit.value( ), status );
+                    Check( status );
+                }
+
+                if( regionStart && regionEnd )
+                {
+                    icu_matcher->region( regionStart.value( ), regionEnd.value( ), status );
+                    Check( status );
+                }
+
+                icu_matcher->useAnchoringBounds( useAnchoringBounds );
+                icu_matcher->useTransparentBounds( useTransparentBounds );
 
                 for( ;; )
                 {
-                    status = U_ZERO_ERROR;
-
-                    if( !m->find( status ) )
+                    if( !icu_matcher->find( status ) )
                     {
                         Check( status );
 
                         break;
                     }
 
-                    int32_t start = m->start( 1, status );
-                    Check( status );
+                    int group_count = icu_matcher->groupCount( );
 
-                    int32_t end = m->end( 1, status );
-                    Check( status );
+                    outbw.WriteT<int32_t>( group_count );
 
-                    icu::UnicodeString possible_name;
-                    us_pattern.extract( start, end - start, possible_name );
-                    Check( status );
-
-                    int32_t group_number = icu_pattern->groupNumberFromName( possible_name, status );
-                    // TODO: detect and show errors
-                    if( !U_FAILURE( status ) )
+                    for( int i = 0; i <= group_count; ++i )
                     {
-                        outbw.WriteT<int32_t>( group_number );
-                        outbw.Write( (LPCWSTR)possible_name.getBuffer( ), possible_name.length( ) );
-                    }
-                }
-
-                outbw.WriteT<int32_t>( -1 ); // end of names
-            }
-
-            // find matches
-
-            int32_t text_length = CheckedCast( text.length( ) );
-
-            icu::UnicodeString us_text( text.c_str( ), text_length );
-
-            icu::RegexMatcher* icu_matcher = icu_pattern->matcher( us_text, status );
-            Check( status );
-
-            icu_matcher->setTimeLimit( limit == std::numeric_limits<uint32_t>::max( ) ? 0 : limit, status );
-            Check( status );
-
-            for( ;; )
-            {
-                if( !icu_matcher->find( status ) )
-                {
-                    Check( status );
-
-                    break;
-                }
-
-                int group_count = icu_matcher->groupCount( );
-
-                outbw.WriteT<int32_t>( group_count );
-
-                for( int i = 0; i <= group_count; ++i )
-                {
-                    int32_t start = icu_matcher->start( i, status );
-                    Check( status );
-                    outbw.WriteT<int32_t>( start );
-
-                    if( start >= 0 )
-                    {
-                        int32_t end = icu_matcher->end( i, status );
+                        int32_t start = icu_matcher->start( i, status );
                         Check( status );
-                        outbw.WriteT<int32_t>( end );
+                        outbw.WriteT<int32_t>( start );
+
+                        if( start >= 0 )
+                        {
+                            int32_t end = icu_matcher->end( i, status );
+                            Check( status );
+                            outbw.WriteT<int32_t>( end );
+                        }
                     }
                 }
-            }
 
-            outbw.WriteT<int32_t>( -1 );
-            outbw.WriteT<char>( 'e' );
+                outbw.WriteT<int32_t>( -1 );
+                outbw.WriteT<char>( 'e' );
 
-        }( );
+            }( );
 
         return;
     }

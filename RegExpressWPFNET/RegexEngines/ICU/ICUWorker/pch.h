@@ -14,6 +14,7 @@
 
 #include <Windows.h>
 #include <shellapi.h>
+#include <optional>
 
 #include "RegExpressCppLibraryPCH.h"
 

@@ -19,7 +19,12 @@ namespace ICUPlugin
         public bool UREGEX_UWORD { get; set; } // "w"
         public bool UREGEX_ERROR_ON_UNKNOWN_ESCAPES { get; set; }
 
-        public string? Limit { get; set; }
+        public string? limit { get; set; }
+
+        public string? regionStart { get; set; } // (int64)
+        public string? regionEnd { get; set; } // (int64)
+        public bool useAnchoringBounds { get; set; } = true;
+        public bool useTransparentBounds { get; set; } = false;
 
 
         public Options Clone( )

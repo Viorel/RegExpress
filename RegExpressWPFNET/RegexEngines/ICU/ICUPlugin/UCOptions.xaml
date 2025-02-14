@@ -6,12 +6,15 @@
              xmlns:local="clr-namespace:ICUPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="227.2" d:DesignWidth="597.6" 
+             d:DesignHeight="278.4" d:DesignWidth="879.2" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <EventSetter Event="TextChanged" Handler="TextBox_Changed"/>
         </Style>
     </UserControl.Resources>
 
@@ -27,19 +30,104 @@
             <ui:CheckboxWithNote Prop="UREGEX_UWORD" Note="uses the Unicode TR 29 definition of word boundaries"/>
             <ui:CheckboxWithNote Prop="UREGEX_ERROR_ON_UNKNOWN_ESCAPES" Note="error on unrecognized backslash escapes"/>
 
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0 4 0 0">
-                <StackPanel.LayoutTransform>
+            <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 4">
+                <Grid.LayoutTransform>
                     <TransformGroup>
                         <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                         <SkewTransform/>
                         <RotateTransform/>
                         <TranslateTransform/>
                     </TransformGroup>
-                </StackPanel.LayoutTransform>
+                </Grid.LayoutTransform>
+                <Grid.Resources>
+                    <Style TargetType="Label">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="0 2 4 2"/>
+                    </Style>
+                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    </Style>
+                    <Style TargetType="TextBlock" x:Key="note">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
+                        <Setter Property="Opacity" Value="0.70"/>
+                        <Setter Property="Margin" Value="4 0"/>
+                        <Setter Property="TextWrapping" Value="Wrap"/>
+                    </Style>
+                </Grid.Resources>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="77"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                <Label Content="Limit:" Target="{Binding ElementName=tbxLimit}" VerticalAlignment="Center" Padding="0 2 4 2"/>
-                <TextBox x:Name="tbxLimit" Text="{Binding Limit, UpdateSourceTrigger=PropertyChanged}" Width="55" VerticalAlignment="Center" TextChanged="tbxLimit_TextChanged" />
-            </StackPanel>
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=limit}">limit:</Label>
+                <TextBox x:Name="limit" Grid.Column="1" Grid.Row="0" Text="{Binding limit, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– maximum steps of the match engine" Style="{StaticResource note}" />
+
+            </Grid>
+
+            <Label Margin="0 4 0 4" Padding="0">
+                <Italic>Region</Italic>
+            </Label>
+
+            <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 2 0 4">
+                <Grid.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </Grid.LayoutTransform>
+                <Grid.Resources>
+                    <Style TargetType="Label">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="0 2 4 2"/>
+                    </Style>
+                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    </Style>
+                    <Style TargetType="TextBlock" x:Key="note">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
+                        <Setter Property="Opacity" Value="0.70"/>
+                        <Setter Property="Margin" Value="4 0"/>
+                        <Setter Property="TextWrapping" Value="Wrap"/>
+                    </Style>
+                </Grid.Resources>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="77"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=start}">start:</Label>
+                <TextBox x:Name="start" Grid.Column="1" Grid.Row="0" Text="{Binding regionStart, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– the (native) index to begin searches at" Style="{StaticResource note}" />
+
+                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=end}">end:</Label>
+                <TextBox x:Name="end" Grid.Column="1" Grid.Row="1" Text="{Binding regionEnd, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="– the index to end searches at (exclusive)" Style="{StaticResource note}" />
+            </Grid>
+
+            <ui:CheckboxWithNote Prop="useAnchoringBounds" Note="pattern anchors such as ^ and $ will match at the start and end of the region"/>
+            <ui:CheckboxWithNote Prop="useTransparentBounds" Note="the boundaries of this region are transparent to lookahead, lookbehind, and boundary matching constructs"/>
+
+
+
+
         </StackPanel>
     </Grid>
 </UserControl>
