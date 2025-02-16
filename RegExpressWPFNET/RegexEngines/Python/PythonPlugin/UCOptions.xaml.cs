@@ -49,7 +49,7 @@ namespace PythonPlugin
         {
             if( !IsFullyLoaded ) return;
 
-            pnlAdditional.IsEnabled = Options.Module == ModuleEnum.regex;
+            pnlAdditional.Visibility = Options.Module == ModuleEnum.regex ? Visibility.Visible : Visibility.Collapsed;
         }
 
 

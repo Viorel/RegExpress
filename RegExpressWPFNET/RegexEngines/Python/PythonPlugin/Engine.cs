@@ -123,7 +123,7 @@ namespace PythonPlugin
                 ("re", LazyFeatureMatrix.GetValue((ModuleEnum.re, 0))),
                 ("regex V0", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 0))),
                 ("regex V1", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 1)))
-                };
+            };
         }
 
         #endregion

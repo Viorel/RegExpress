@@ -121,8 +121,6 @@ namespace PCRE2Plugin
 
         public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
         {
-            var options = mOptionsControl.Value.GetSelectedOptions( );
-
             return new List<(string?, FeatureMatrix)> { (null, BuildFeatureMatrix( PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true )) };
         }
 
