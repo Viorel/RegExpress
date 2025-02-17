@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectCreator="Intel Fortran" Keyword="Console Application" Version="11.0" ProjectIdGuid="{EAA585A3-90C4-72E2-FDBF-05DF8AA3F11B}">
+	<Platforms>
+		<Platform Name="x64"/>
+	</Platforms>
+	<Configurations>
+		<Configuration Name="Debug|x64" UseCompiler="ifxCompiler">
+			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" Preprocess="preprocessYes" WarnInterfaces="true" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebug"/>
+			<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" GenerateDebugInformation="true" SubSystem="subSystemConsole"/>
+			<Tool Name="VFResourceCompilerTool"/>
+			<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+			<Tool Name="VFCustomBuildTool"/>
+			<Tool Name="VFPreLinkEventTool"/>
+			<Tool Name="VFPreBuildEventTool"/>
+			<Tool Name="VFPostBuildEventTool"/>
+			<Tool Name="VFManifestTool" SuppressStartupBanner="true"/>
+		</Configuration>
+		<Configuration Name="Release|x64" UseCompiler="ifxCompiler">
+			<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" Optimization="optimizeMinSpace" Preprocess="preprocessYes"/>
+			<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole"/>
+			<Tool Name="VFResourceCompilerTool"/>
+			<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+			<Tool Name="VFCustomBuildTool"/>
+			<Tool Name="VFPreLinkEventTool"/>
+			<Tool Name="VFPreBuildEventTool"/>
+			<Tool Name="VFPostBuildEventTool"/>
+			<Tool Name="VFManifestTool" SuppressStartupBanner="true"/>
+		</Configuration>
+	</Configurations>
+	<Files>
+		<Filter Name="Forgex">
+			<File RelativePath=".\Forgex-min\src\api_internal_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\automaton_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\dense_dfa\dense_dfa_m.f90"/>
+			<File RelativePath=".\Forgex-min\src\essential\enums_m.f90"/>
+			<File RelativePath=".\Forgex-min\src\forgex.F90"/>
+			<File RelativePath=".\Forgex-min\src\lazy_dfa\lazy_dfa_graph_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\lazy_dfa\lazy_dfa_node_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\nfa\nfa_graph_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\nfa\nfa_node_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\nfa\nfa_state_set_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\essential\parameters_m.f90"/>
+			<File RelativePath=".\Forgex-min\src\essential\priority_queue_m.f90"/>
+			<File RelativePath=".\Forgex-min\src\essential\segment_disjoin_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\essential\segment_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\essential\sort_m.f90"/>
+			<File RelativePath=".\Forgex-min\src\ast\syntax_tree_error_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\ast\syntax_tree_graph_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\ast\syntax_tree_node_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\ast\syntax_tree_optimize_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\essential\utf8_m.f90"/>
+			<File RelativePath=".\Forgex-min\src\essential\utility_m.f90"/>
+		</Filter>
+		<Filter Name="Header Files" Filter="fi;fd"/>
+		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
+		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
+			<File RelativePath=".\FortranForgexWorker.f90"/>
+		</Filter>
+		<File RelativePath=".\ReadMe.txt"/>
+	</Files>
+	<Globals/>
+</VisualStudioProject>

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35806.99 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "FortranForgexWorker", "FortranForgexWorker.vfproj", "{EAA585A3-90C4-72E2-FDBF-05DF8AA3F11B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EAA585A3-90C4-72E2-FDBF-05DF8AA3F11B}.Debug|x64.ActiveCfg = Debug|x64
+		{EAA585A3-90C4-72E2-FDBF-05DF8AA3F11B}.Debug|x64.Build.0 = Debug|x64
+		{EAA585A3-90C4-72E2-FDBF-05DF8AA3F11B}.Release|x64.ActiveCfg = Release|x64
+		{EAA585A3-90C4-72E2-FDBF-05DF8AA3F11B}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DFA75891-7A68-4A84-A025-F81B136A93F2}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,17 @@
+
+To recompile this engine:
+
+- Install the "Intel® Fortran Compiler", including the extension for Visual Studio.
+- Load and recompile the solution (.sln) in Visual Studio, using "Release, x64" configuration.
+- Commit the changes to Git, including the "x64\Release\FortranForgexWorker.exe" file.
+
+To update the code:
+
+- Get the last release from "https://github.com/ShinobuAmasaki/forgex"
+- Add the new files, from "src" subfolder, to "Forgex-min\src" subfolder:
+    - the old files, which are not present in new release, must be removed from disk and from Visual Studio project
+      (or just delete all files before copying new ones)
+    - the "CMakeLists.txt" must not be copied
+    - the test files (e.g. "test_m.f90") must not be copied
+    - the new files must be added to Visual Studio project (to "Forgex" folder)
+

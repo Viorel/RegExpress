@@ -147,3 +147,11 @@ xcopy /D /R /Y "%BasePath%\PerlPlugin\bin\%Configuration%\%TargetDir%\PerlPlugin
 xcopy /D /R /Y "%BasePath%\PerlWorker\PerlWorker.pl" "%EnginesTargetPath%\Perl\*"
 xcopy /D /R /Y /E "%BasePath%\PerlWorker\Perl-min\*" "%EnginesTargetPath%\Perl\Perl-min\*"
 
+
+rem -- Fortran --
+
+set BasePath=%SolutionDir%\RegexEngines\Fortran
+xcopy /D /R /Y "%BasePath%\FortranPlugin\bin\%Configuration%\%TargetDir%\FortranPlugin.dll" "%EnginesTargetPath%\Fortran\*"
+xcopy /D /R /Y "%BasePath%\FortranForgexWorker\x64\Release\FortranForgexWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
+
+
