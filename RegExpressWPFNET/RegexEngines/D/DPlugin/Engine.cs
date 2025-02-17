@@ -288,6 +288,7 @@ namespace DPlugin
                 NamedGroup_PLtGt = true,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                CapturingGroup = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,

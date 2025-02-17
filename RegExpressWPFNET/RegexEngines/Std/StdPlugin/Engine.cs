@@ -309,6 +309,7 @@ namespace StdPlugin
                 NamedGroup_PLtGt = false,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                CapturingGroup = false,
 
                 NoncapturingGroup = grammar == GrammarEnum.ECMAScript,
                 PositiveLookahead = grammar == GrammarEnum.ECMAScript,

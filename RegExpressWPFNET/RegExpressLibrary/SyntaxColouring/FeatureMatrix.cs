@@ -169,6 +169,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool NamedGroup_PLtGt { get; init; }                       // (?P<name>...)
         public bool NamedGroup_AtApos { get; init; }                      // (?@'name'...)
         public bool NamedGroup_AtLtGt { get; init; }                      // (?@<name>...)
+        public bool CapturingGroup { get; init; }                         // (?@...)
         public bool NoncapturingGroup { get; init; }                      // (?:...)
         public bool PositiveLookahead { get; init; }                      // (?=...)
         public bool NegativeLookahead { get; init; }                      // (?!...)

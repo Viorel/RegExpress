@@ -324,6 +324,7 @@ namespace BoostPlugin
                 NamedGroup_PLtGt = false,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                CapturingGroup = false,
 
                 NoncapturingGroup = is_perl || is_emacs,
                 PositiveLookahead = is_perl || is_emacs,

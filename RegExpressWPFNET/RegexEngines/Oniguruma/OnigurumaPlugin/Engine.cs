@@ -127,7 +127,7 @@ namespace OnigurumaPlugin
                 string syntax_name = Enum.GetName( syntax )!;
                 string variant = syntax_name.StartsWith( "ONIG_SYNTAX_" ) ? syntax_name.Substring( "ONIG_SYNTAX_".Length ) : syntax_name;
 
-                list.Add( (variant, MakeFeatureMatrix( new Options { Syntax = syntax } )) );
+                list.Add( (variant, MakeFeatureMatrix( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA } )) );
             }
 
             return list;
@@ -397,6 +397,7 @@ namespace OnigurumaPlugin
                 NamedGroup_PLtGt = details.ONIG_SYN_OP2_QMARK_CAPITAL_P_NAME,
                 NamedGroup_AtApos = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
                 NamedGroup_AtLtGt = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
+                CapturingGroup = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
 
                 NoncapturingGroup = details.ONIG_SYN_OP2_QMARK_GROUP_EFFECT,
                 PositiveLookahead = details.ONIG_SYN_OP2_QMARK_GROUP_EFFECT,

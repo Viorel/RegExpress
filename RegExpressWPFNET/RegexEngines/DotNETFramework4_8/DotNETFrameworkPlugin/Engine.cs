@@ -288,6 +288,7 @@ namespace DotNETFrameworkPlugin
                 NamedGroup_PLtGt = false,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                CapturingGroup = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,

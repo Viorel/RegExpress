@@ -1087,6 +1087,10 @@ namespace RegExpressLibrary.SyntaxColouring
                         {
                             pb.Add( @"\(\? @ < ((?<name>[^>]*) >?)?" );
                         }
+                        if( fm.CapturingGroup )
+                        {
+                            pb.Add( @"\(\? @" );
+                        }
                     }
                     break;
                 case FeatureMatrix.PunctuationEnum.Backslashed:
