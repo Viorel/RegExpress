@@ -385,6 +385,8 @@ namespace BoostPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+
+                SplitSurrogatePairs = true,
             };
         }
     }

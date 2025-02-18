@@ -370,6 +370,8 @@ namespace PCRE2Plugin
                 EmptyConstruct = true,
                 EmptyConstructX = false,
                 EmptySet = true,
+
+                SplitSurrogatePairs = true,
             };
         }
     }

@@ -345,6 +345,8 @@ namespace SubRegPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false, // TODO: "a(? )b": with "xabc" no error, with "ab" gives error
                 EmptySet = false,
+
+                SplitSurrogatePairs = false, // (not applicable)
             };
         }
     }

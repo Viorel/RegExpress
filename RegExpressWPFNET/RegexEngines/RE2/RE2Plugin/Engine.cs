@@ -348,6 +348,8 @@ namespace RE2Plugin
                 EmptyConstruct = true,
                 EmptyConstructX = false,
                 EmptySet = false,
+
+                SplitSurrogatePairs = false,
             };
         }
     }

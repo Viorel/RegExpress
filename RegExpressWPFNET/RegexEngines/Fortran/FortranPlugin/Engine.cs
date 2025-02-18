@@ -41,7 +41,7 @@ namespace FortranPlugin
 
         public string Name => "Fortran";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupDetails | RegexEngineCapabilityEnum.NoCaptures;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupDetails | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.OverlappingMatches;
 
         public string? NoteForCaptures => null;
 
@@ -118,7 +118,7 @@ namespace FortranPlugin
         {
             return new List<(string?, FeatureMatrix)>
             {
-                (null, LazyFeatureMatrix.Value),
+                ("Forgex", LazyFeatureMatrix.Value),
             };
         }
 
@@ -356,6 +356,8 @@ namespace FortranPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = true,
+
+                SplitSurrogatePairs = false,
             };
         }
     }

@@ -348,6 +348,8 @@ namespace ICUPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+
+                SplitSurrogatePairs = false,
             };
         }
     }

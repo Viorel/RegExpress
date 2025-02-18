@@ -35,6 +35,7 @@ namespace FortranPlugin
                 sw.WriteLine( "m" );
                 sw.WriteLine( adjusted_pattern );
                 sw.WriteLine( adjusted_text );
+                sw.WriteLine( "" ); // options; currently no ones
             };
 
             if( !ph.Start( cnc ) ) return RegexMatches.Empty;

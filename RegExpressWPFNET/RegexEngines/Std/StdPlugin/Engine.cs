@@ -382,6 +382,8 @@ namespace StdPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = grammar == GrammarEnum.ECMAScript,
+
+                SplitSurrogatePairs = true,
             };
         }
     }

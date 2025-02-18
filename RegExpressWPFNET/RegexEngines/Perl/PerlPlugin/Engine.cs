@@ -41,7 +41,7 @@ namespace PerlPlugin
 
         public string Name => "Perl";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.CombineSurrogatePairs;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 
         public string? NoteForCaptures => null;
 
@@ -345,6 +345,8 @@ namespace PerlPlugin
                 EmptyConstruct = true,
                 EmptyConstructX = false,
                 EmptySet = false,
+
+                SplitSurrogatePairs = false,
             };
         }
     }

@@ -348,6 +348,8 @@ namespace JavaPlugin
                 EmptyConstruct = true,
                 EmptyConstructX = true,
                 EmptySet = false,
+
+                SplitSurrogatePairs = false,
             };
         }
     }

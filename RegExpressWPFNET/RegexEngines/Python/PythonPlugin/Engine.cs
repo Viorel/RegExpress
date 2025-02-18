@@ -44,7 +44,7 @@ namespace PythonPlugin
 
         public string Name => "Python";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.CombineSurrogatePairs | RegexEngineCapabilityEnum.OverlappingMatches;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.OverlappingMatches;
 
         public string? NoteForCaptures => null;
 
@@ -357,6 +357,8 @@ namespace PythonPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+
+                SplitSurrogatePairs = false,
             };
         }
     }

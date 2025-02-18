@@ -347,6 +347,8 @@ namespace DotNETFrameworkPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+
+                SplitSurrogatePairs = true,
             };
         }
     }

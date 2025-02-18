@@ -354,6 +354,8 @@ namespace WebView2Plugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = true,
+
+                SplitSurrogatePairs = true,
             };
         }
     }

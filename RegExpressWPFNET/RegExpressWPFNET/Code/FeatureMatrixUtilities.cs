@@ -272,6 +272,7 @@ namespace RegExpressWPFNET.Code
             new FeatureMatrixDetails(  @"(? )", @"Empty construct when whitespaces are enabled by options", fm => fm.EmptyConstructX ),
             new FeatureMatrixDetails(  @"[]", @"Empty set", fm => fm.EmptySet ),
 
+            new FeatureMatrixDetails(  @"“.” on Surrogate Pairs", @"Split Surrogate Pair characters into two components", fm => fm.SplitSurrogatePairs ),
         };
 
 
@@ -381,7 +382,7 @@ tbody > tr > td:nth-child(2)
                         if( fms == null ) continue;
 
                         xw.WriteStartElement( "th" );
-                        if( fms.Count == 1 )
+                        if( fms.Count == 1 && string.IsNullOrWhiteSpace( fms[0].variantName ) )
                         {
                             xw.WriteAttributeString( "rowspan", "2" );
                         }

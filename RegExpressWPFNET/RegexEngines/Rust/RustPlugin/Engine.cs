@@ -370,6 +370,8 @@ namespace RustPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+
+                SplitSurrogatePairs = false,
             };
         }
 
@@ -577,6 +579,8 @@ namespace RustPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = true,
                 EmptySet = false,
+
+                SplitSurrogatePairs = false,
             };
         }
 
@@ -784,6 +788,8 @@ namespace RustPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = true,
+
+                SplitSurrogatePairs = false,
             };
         }
     }

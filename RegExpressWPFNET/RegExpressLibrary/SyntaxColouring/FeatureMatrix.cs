@@ -229,6 +229,11 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool EmptyConstruct { get; init; }                         // (?)
         public bool EmptyConstructX { get; init; }                        // (? ) when 'x' or 'xx' flags are enabled.
         public bool EmptySet { get; init; }                               // [], see also 'SyntaxOptions.AllowEmptySets'
+
+        //
+
+        public bool SplitSurrogatePairs { get; init; }                    // when the text contains a surrogate pair (e.g. “😎” U+1F60E), then “.” matches two components separately: D83D and DE0E‎
+                                                                          // if it is 'false', then '.' returns a single result (32-bit surrogate pair)
     }
 }
 

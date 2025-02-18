@@ -13,7 +13,6 @@
     !****************************************************************************
 
     program FortranForgexWorker
-    ! https://fortran-lang.discourse.group/t/is-there-a-good-pause-function/3868
     use, intrinsic :: iso_fortran_env, &
         only: stdin => input_unit, &
         stdout => output_unit, &
@@ -21,7 +20,6 @@
         compiler_version
     implicit none
 
-    ! Variables
     character (10) :: command
 
     read (stdin, *) command
@@ -45,12 +43,14 @@
             use :: forgex
             use :: forgex_syntax_tree_error_m
 
-            character (:), allocatable :: pattern, text, result
+            character (:), allocatable :: pattern, text, options, result
             integer :: from, to, status, absolute_from
             character (256) err_msg
+            logical :: overlapped
 
             call read_line(stdin, pattern)
             call read_line(stdin, text)
+            call read_line(stdin, options)
 
             pattern = replace_all(pattern, CHAR(27) // "r", CHAR(13))
             pattern = replace_all(pattern, CHAR(27) // "n", CHAR(10))
@@ -58,10 +58,11 @@
             text = replace_all(text, CHAR(27) // "r", CHAR(13))
             text = replace_all(text, CHAR(27) // "n", CHAR(10))
 
+            overlapped = (index(options, "o") > 0)
+
             absolute_from = 1
 
             do
-
                 call regex(pattern, text(absolute_from:), result, from = from, to = to, status = status, err_msg = err_msg)
 
                 if(status /= SYNTAX_VALID) then
@@ -75,12 +76,14 @@
 
                 write(stdout, "('m ', i0, ' ', i0)"), absolute_from + from - 1, absolute_from + to - 1
 
-                absolute_from = absolute_from + to
-
+                if (overlapped) then
+                    absolute_from = absolute_from + from
+                else
+                    absolute_from = absolute_from + to
+                end if
             end do
 
             stop
-
         end block
     end if
 
@@ -100,42 +103,6 @@
 
     write (stderr, "(a,at,a)") "Invalid command: '", command, "'"
     stop
-
-
-    ! Body of FortranForgexWorker
-    print *, 'Hello World'
-
-    !block
-    !    character (len = :), allocatable :: res
-    !
-    !    res = compiler_version ()
-    !    print *, "len of res is: ", len (res)
-    !    print *, res
-    !
-    !    deallocate (res)
-    !end block
-
-    !block
-    !    character(:), allocatable :: my_string
-    !
-    !    call read_line(stdin, my_string)
-    !
-    !    write (*, "(a)") my_string
-    !
-    !    !print *, allocated(my_string), len(my_string)
-    !
-    !end block
-
-    block
-        character (:), allocatable :: str
-        character (5) :: str2
-
-        read (stdin, *) str2
-        !print "(a)", str2
-        write (stdout, "(a)"), str2
-        write (stderr, "(a)"), str2
-
-    end block
 
     contains
 
@@ -164,7 +131,6 @@
 
     end subroutine read_line
 
-
     function replace_all(str, old, new) result(replaced) ! https://learnxbyexample.com/fortran/string-functions/
     character(len=*), intent(in) :: str, old, new
     character(len=:), allocatable :: replaced
@@ -176,7 +142,6 @@
         end if
     end do
     end function replace_all
-
 
     end program FortranForgexWorker
 

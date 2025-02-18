@@ -20,7 +20,7 @@ using namespace std;
 #define TO_STR(s) TO_STR2(s)
 
 
-static void WriteMatch( BinaryWriterW& outbw, pcre2_code* re, PCRE2_SIZE* ovector, int rc )
+static void WriteMatch( BinaryWriterW& outbw, pcre2_code* re, PCRE2_SIZE* ovector, int rc, bool writeGroups )
 {
     if( ovector[0] > ovector[1] )
     {
@@ -81,23 +81,28 @@ static void WriteMatch( BinaryWriterW& outbw, pcre2_code* re, PCRE2_SIZE* ovecto
 
     for( int i = 0; i < rc; ++i )
     {
-        outbw.WriteT<char>( 'g' );
-        auto index = ovector[2 * i];
-        bool success = index != -1;
-        outbw.WriteT<char>( success );
-        outbw.WriteT<int32_t>( CheckedCast( success ? ovector[2 * i] : 0 ) );
-        outbw.WriteT<int32_t>( CheckedCast( success ? ovector[2 * i + 1] - ovector[2 * i] : 0 ) );
-        if( i < names.size( ) && !names[i].empty( ) )
+        if( i == 0 || writeGroups )
         {
-            outbw.Write( names[i] );
-        }
-        else
-        {
-            outbw.Write( std::to_wstring( i ) ); //.
+            outbw.WriteT<char>( 'g' );
+            auto index = ovector[2 * i];
+            bool success = index != -1;
+            outbw.WriteT<char>( success );
+            outbw.WriteT<int32_t>( CheckedCast( success ? ovector[2 * i] : 0 ) );
+            outbw.WriteT<int32_t>( CheckedCast( success ? ovector[2 * i + 1] - ovector[2 * i] : 0 ) );
+            if( i < names.size( ) && !names[i].empty( ) )
+            {
+                outbw.Write( names[i] );
+            }
+            else
+            {
+                outbw.Write( std::to_wstring( i ) ); //.
+            }
         }
     }
 
     // add failed groups not included in 'rc'
+
+    if( writeGroups )
     {
         uint32_t capturecount;
 
@@ -135,7 +140,7 @@ static std::wstring GetErrorText( int errorNumber )
 }
 
 
-static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithm, int compileOptions, int extraCompileOptions, int matcherOptions, int jitOptions,
+static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithmName, int compileOptions, int extraCompileOptions, int matcherOptions, int jitOptions,
     std::optional<uint32_t> depth_limit, std::optional<uint32_t> heap_limit, std::optional<uint32_t> match_limit,
     std::optional<uint64_t> max_pattern_compiled_length, std::optional<uint64_t> offset_limit, std::optional<uint32_t> parens_nest_limit
 )
@@ -147,6 +152,21 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
     {
         [&]( )
             {
+                enum Algorithm { Standard, DFA } algorithm;
+
+                if( algorithmName == L"Standard" )
+                {
+                    algorithm = Algorithm::Standard;
+                }
+                else if( algorithmName == L"DFA" )
+                {
+                    algorithm = Algorithm::DFA;
+                }
+                else
+                {
+                    throw std::runtime_error( std::format( "Unsupported algorithm: '{}'", WStringToUtf8( algorithmName ) ) );
+                }
+
                 pcre2_compile_context* compile_context = pcre2_compile_context_create( NULL );
 
                 if( compile_context == nullptr )
@@ -202,8 +222,9 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 
                 int rc;
 
-                if( algorithm == L"Standard" )
+                switch( algorithm )
                 {
+                case Standard:
                     match_data = pcre2_match_data_create_from_pattern( re, NULL );
 
                     rc = pcre2_match(
@@ -215,9 +236,8 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                         match_data,                 /* block for storing the result */
                         match_context               /* match context */
                     );
-                }
-                else if( algorithm == L"DFA" )
-                {
+                    break;
+                case DFA:
                     dfa_workspace.resize( 1000 ); // (see 'pcre2test.c')
                     match_data = pcre2_match_data_create( 1000, NULL );
 
@@ -232,10 +252,10 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                         dfa_workspace.data( ),
                         dfa_workspace.size( )
                     );
-                }
-                else
-                {
-                    throw std::runtime_error( std::format( "Unsupported algorithm: '{}'", WStringToUtf8( algorithm ) ) );
+                    break;
+                default:
+                    throw std::runtime_error( "" );
+                    break;
                 }
 
                 if( rc == 0 )
@@ -265,7 +285,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 
                 if( rc != PCRE2_ERROR_NOMATCH )
                 {
-                    WriteMatch( outbw, re, ovector, rc );
+                    WriteMatch( outbw, re, ovector, rc, algorithm == Algorithm::Standard );
 
                     // find next matches
 
@@ -338,14 +358,35 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 
                             /* Run the next matching operation */
 
-                            rc = pcre2_match(
-                                re,                   /* the compiled pattern */
-                                reinterpret_cast<PCRE2_SPTR16>( subject ),              /* the subject string */
-                                subject_length,       /* the length of the subject */
-                                start_offset,         /* starting offset in the subject */
-                                options,              /* options */
-                                match_data,           /* block for storing the result */
-                                NULL );                /* use default match context */
+                            switch( algorithm )
+                            {
+                            case Standard:
+                                rc = pcre2_match(
+                                    re,                   /* the compiled pattern */
+                                    reinterpret_cast<PCRE2_SPTR16>( subject ),              /* the subject string */
+                                    subject_length,       /* the length of the subject */
+                                    start_offset,         /* starting offset in the subject */
+                                    options,              /* options */
+                                    match_data,           /* block for storing the result */
+                                    NULL );               /* use default match context */
+                                break;
+                            case DFA:
+                                rc = pcre2_dfa_match(
+                                    re,                         /* the compiled pattern */
+                                    reinterpret_cast<PCRE2_SPTR16>( subject ),  /* the subject string */
+                                    subject_length,             /* the length of the subject */
+                                    start_offset,               /* start at offset 0 in the subject */
+                                    options,                    /* options */
+                                    match_data,                 /* block for storing the result */
+                                    match_context,              /* match context */
+                                    dfa_workspace.data( ),
+                                    dfa_workspace.size( )
+                                );
+                                break;
+                            default:
+                                throw std::runtime_error( "" );
+                                break;
+                            }
 
                             /* This time, a result of NOMATCH isn't an error. If the value in "options"
                             is zero, it just means we have found all possible matches, so the loop ends.
@@ -404,7 +445,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                                 throw std::runtime_error( "\\K was used in an assertion to set the match start after its end." );
                             }
 
-                            WriteMatch( outbw, re, ovector, rc );
+                            WriteMatch( outbw, re, ovector, rc, algorithm == Algorithm::Standard );
 
                         } /* End of loop to find second and subsequent matches */
                     }

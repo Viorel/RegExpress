@@ -456,6 +456,8 @@ namespace OnigurumaPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+
+                SplitSurrogatePairs = false,
             };
 
             // TODO: "\M-x"

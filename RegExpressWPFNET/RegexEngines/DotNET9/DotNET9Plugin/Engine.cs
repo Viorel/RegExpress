@@ -346,6 +346,8 @@ namespace DotNET8Plugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+
+                SplitSurrogatePairs = true,
             };
         }
     }
