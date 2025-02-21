@@ -63,6 +63,7 @@
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <AdditionalIncludeDirectories>../../../RegExpressCppLibrary;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -81,6 +82,7 @@
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalIncludeDirectories>../../../RegExpressCppLibrary;</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

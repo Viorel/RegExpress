@@ -5,15 +5,15 @@
 
 // compile with: /D_UNICODE /DUNICODE /DWIN32 /D_WINDOWS /c
 
-#include <io.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <iostream>
+#include "RegExpressCppLibraryPCH.h"
 
-//#define WIN32_LEAN_AND_MEAN
+#include <locale>
+
+#define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 
 #include <windows.h>
+#include <shellapi.h>
 #include <stdlib.h>
 #include <string>
 #include <tchar.h>
@@ -23,6 +23,8 @@
 // include WebView2 header
 #include "WebView2.h"
 // </IncludeHeader>
+#include "BinaryReader.h"
+#include "StreamWriter.h"
 #include "Convert.h"
 
 using namespace Microsoft::WRL;
@@ -47,8 +49,8 @@ static wil::com_ptr<ICoreWebView2Controller> webviewController;
 static wil::com_ptr<ICoreWebView2> webview;
 
 
-int DoGetVersion( );
-int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text );
+int DoGetVersion( StreamWriterW& outwr, StreamWriterW& errwr );
+int DoMatch( StreamWriterW& outwr, StreamWriterW& errwr, HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text );
 
 
 int CALLBACK WinMain(
@@ -58,85 +60,128 @@ int CALLBACK WinMain(
     _In_ int       nCmdShow
 )
 {
-    //AttachConsole( ATTACH_PARENT_PROCESS ); // (does not seem to have effect)
-
-    setlocale( LC_ALL, ".utf8" ); // this seems to be enough
-
-    //SetConsoleCP( CP_UTF8 );
-    //SetConsoleOutputCP( CP_UTF8 );
-
-    //std::locale utf8_locale( "en_US.UTF-8" );
-    //std::wcin.imbue( utf8_locale );
-    //std::wcout.imbue( utf8_locale );
-    //std::wcerr.imbue( utf8_locale );
-
-
-    HRESULT hr = CoInitializeEx( nullptr, COINIT_APARTMENTTHREADED );
-
-    if( hr != S_OK && hr != S_FALSE )
+    auto herr = GetStdHandle( STD_ERROR_HANDLE );
+    if( herr == INVALID_HANDLE_VALUE )
     {
-        std::cerr << "CoInitializeEx failed" << std::endl;
+        auto lerr = GetLastError( );
 
         return 1;
     }
 
-    LPCWSTR command_line = GetCommandLineW( );
-    int argc = 0;
+    StreamWriterW errwr( herr );
 
-    LPWSTR* argv = CommandLineToArgvW( command_line, &argc );
-
-    if( argv == NULL )
+    auto hin = GetStdHandle( STD_INPUT_HANDLE );
+    if( hin == INVALID_HANDLE_VALUE )
     {
-        std::wcerr << L"Failed to parse command line: '" << command_line << "'." << std::endl;
+        errwr.WriteString( L"Cannot get STDIN" );
 
-        return 1;
+        return 2;
     }
 
-    if( argc < 2 )
+    auto hout = GetStdHandle( STD_OUTPUT_HANDLE );
+    if( hout == INVALID_HANDLE_VALUE )
     {
-        std::wcerr << L"Invalid command line: '" << command_line << "'." << std::endl;
+        errwr.WriteString( L"Cannot get STDOUT" );
 
-        return 1;
+        return 3;
     }
 
-
-    if( lstrcmpiW( argv[1], L"a" ) == 0 ) // "a" -- return arguments to STDERR (for testing)
+    try
     {
-        std::wcerr << L"Command line: '" << command_line << "'" << std::endl;
+        HRESULT hr = CoInitializeEx( nullptr, COINIT_APARTMENTTHREADED );
 
-        for( int i = 0; i < argc; ++i )
+        if( hr != S_OK && hr != S_FALSE )
         {
-            std::wcerr << i << ": '" << argv[i] << "'" << std::endl;
+            errwr.WriteString( L"CoInitializeEx failed" );
+
+            return 1;
         }
 
-        return 0;
-    }
+        LPCWSTR command_line = GetCommandLineW( );
+        int argc = 0;
 
-    if( lstrcmpiW( argv[1], L"t" ) == 0 ) // "t" -- return arguments and STDIN contents to STDERR (for testing)
-    {
-        std::wcerr << L"Command line: '" << command_line << "'" << std::endl;
+        LPWSTR* argv = CommandLineToArgvW( command_line, &argc );
 
-        for( int i = 0; i < argc; ++i )
+        if( argv == NULL )
         {
-            std::wcerr << i << ": '" << argv[i] << "'" << std::endl;
+            errwr.WriteStringF( L"Failed to parse command line: '{}'\r\n", command_line );
+
+            return 1;
         }
 
-        std::wstring stdin_contents;
-        std::getline( std::wcin, stdin_contents, L'\r' );
+        if( argc < 2 )
+        {
+            errwr.WriteStringF( L"Invalid command line: '{}'\r\n", command_line );
 
-        //MessageBox( NULL, stdin_contents.c_str( ), L"STDIN", MB_OK );
+            return 1;
+        }
 
-        std::wcerr << L"STDIN: '" << stdin_contents << "'" << std::endl;
+        if( lstrcmpiW( argv[1], L"a" ) == 0 ) // "a" -- return arguments to STDERR (for testing)
+        {
+            errwr.WriteStringF( L"Command line: '{}'\r\n", command_line );
 
-        return 0;
+            for( int i = 0; i < argc; ++i )
+            {
+                errwr.WriteStringF( L"{}: '{}'\r\n", i, argv[i] );
+            }
+
+            return 0;
+        }
+
+        StreamWriterW outwr( hout );
+
+
+        if( lstrcmpiW( argv[1], L"v" ) == 0 ) // "v" -- get version
+        {
+            return DoGetVersion( outwr, errwr );
+        }
+
+        if( lstrcmpiW( argv[1], L"m" ) == 0 ) // "m" -- get matches, from command line: 'm "pattern" "flags" "text"'
+        {
+            if( argc < 5 )
+            {
+                errwr.WriteStringF( L"Invalid command line: '{}'\r\n", command_line );
+
+                return 1;
+            }
+
+            return DoMatch( outwr, errwr, hInst, argv[2], argv[3], argv[4] );
+        }
+
+        if( lstrcmpiW( argv[1], L"b" ) == 0 ) // "b" -- get matches; get data from binary stream
+        {
+            BinaryReaderW inbr( hin );
+
+            if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [1]." );
+
+            auto pattern_js = inbr.ReadString( ); // JavaScript-encodded
+            auto text_js = inbr.ReadString( ); // JavaScript-encodded
+            auto flags = inbr.ReadString( );
+
+            if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
+
+            return DoMatch( outwr, errwr, hInst, pattern_js.c_str( ), flags.c_str( ), text_js.c_str( ) );
+        }
+
+        errwr.WriteStringF( L"Invalid command line: '{}'\r\n", command_line );
     }
-
-
-    if( lstrcmpiW( argv[1], L"v" ) == 0 ) // "v" -- get version
+    catch( const std::exception& exc )
     {
-        return DoGetVersion( );
+        errwr.WriteString( ToWString( exc.what( ) ) );
+
+        return 14;
+    }
+    catch( ... )
+    {
+        errwr.WriteString( L"Internal error" );
+
+        return 215;
     }
 
+    return 101;
+
+
+#if 0
 
     std::wstring stdin_contents;
 
@@ -165,28 +210,29 @@ int CALLBACK WinMain(
     std::wcerr << L"Invalid command line: '" << command_line << "'." << std::endl;
 
     return 1;
+#endif
 }
 
 
-int DoGetVersion( )
+int DoGetVersion( StreamWriterW& outwr, StreamWriterW& errwr )
 {
     PWSTR v;
     HRESULT hr = GetAvailableCoreWebView2BrowserVersionString( NULL, &v );
 
     if( hr != S_OK )
     {
-        std::wcerr << L"Failed to get version" << std::endl;
+        errwr.WriteString( L"Failed to get version\r\n" );
 
         return 1;
     }
 
-    std::wcout << L"{ \"Version\": \"" << v << "\" }" << std::endl;
+    outwr.WriteStringF( L"{{ \"Version\": \"{}\" }}", v );
 
     return 0;
 }
 
 
-int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
+int DoMatch( StreamWriterW& outwr, StreamWriterW& errwr, HINSTANCE hInstance, LPCWSTR patternJs, LPCWSTR flags, LPCWSTR textJs )
 {
     int exit_code = 0;
 
@@ -207,7 +253,7 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
 
     if( !RegisterClassEx( &wcex ) )
     {
-        std::cerr << "RegisterClassEx failed" << std::endl;
+        errwr.WriteString( L"RegisterClassEx failed" );
         exit_code = 1;
 
         return exit_code;
@@ -240,7 +286,7 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
 
     if( !hWnd )
     {
-        std::cerr << "CreateWindow failed" << std::endl;
+        errwr.WriteString( L"CreateWindow failed\r\n" );
         exit_code = 1;
 
         return exit_code;
@@ -259,11 +305,11 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
     // Locate the browser and set up the environment for WebView
     CreateCoreWebView2EnvironmentWithOptions( nullptr, nullptr, nullptr,
         Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-            [hWnd, pattern, flags, text, &exit_code]( HRESULT result, ICoreWebView2Environment* env ) -> HRESULT
+            [&outwr, &errwr, hWnd, patternJs, flags, textJs, &exit_code]( HRESULT result, ICoreWebView2Environment* env ) -> HRESULT
             {
                 if( result != S_OK )
                 {
-                    std::cerr << "CreateCoreWebView2EnvironmentWithOptions failed" << std::endl;
+                    errwr.WriteString( L"CreateCoreWebView2EnvironmentWithOptions failed\r\n" );
                     exit_code = 1;
                     DestroyWindow( hWnd );
 
@@ -272,7 +318,7 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
 
                 if( !env )
                 {
-                    std::cerr << "env is null" << std::endl;
+                    errwr.WriteString( L"env is null\r\n" );
                     exit_code = 1;
                     DestroyWindow( hWnd );
 
@@ -281,11 +327,11 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
 
                 // Create a CoreWebView2Controller and get the associated CoreWebView2 whose parent is the main window hWnd
                 env->CreateCoreWebView2Controller( hWnd, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-                    [hWnd, pattern, flags, text, &exit_code]( HRESULT result, ICoreWebView2Controller* controller ) -> HRESULT
+                    [&outwr, &errwr, hWnd, patternJs, flags, textJs, &exit_code]( HRESULT result, ICoreWebView2Controller* controller ) -> HRESULT
                     {
                         if( result != S_OK )
                         {
-                            std::cerr << "CreateCoreWebView2Controller failed" << std::endl;
+                            errwr.WriteString( L"CreateCoreWebView2Controller failed\r\n" );
                             exit_code = 1;
                             DestroyWindow( hWnd );
 
@@ -294,7 +340,7 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
 
                         if( !controller )
                         {
-                            std::cerr << "controller is null" << std::endl;
+                            errwr.WriteString( L"controller is null\r\n" );
                             exit_code = 1;
                             DestroyWindow( hWnd );
 
@@ -349,8 +395,8 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
                                 L"{ " EOL
                                 L" try " EOL
                                 L" { " EOL
-                                L"  let pattern = \"" + pattern + L"\";" EOL
-                                L"  let text = \"" + text + L"\";" EOL
+                                L"  let pattern = \"" + patternJs + L"\";" EOL
+                                L"  let text = \"" + textJs + L"\";" EOL
                                 L"  let re = new RegExp(pattern, \"" + flags_adjusted + L"\"); " EOL
                                 L"  let r = [ ]; let m; let l = -2;" EOL
                                 L"  while( (m = re.exec(text)) !== null) " EOL
@@ -376,8 +422,8 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
                                 L"{ " EOL
                                 L" try " EOL
                                 L" { " EOL
-                                L"  let pattern = \"" + pattern + L"\";" EOL
-                                L"  let text = \"" + text + L"\";" EOL
+                                L"  let pattern = \"" + patternJs + L"\";" EOL
+                                L"  let text = \"" + textJs + L"\";" EOL
                                 L"  let re = new RegExp(pattern, \"" + flags_adjusted + L"\"); " EOL
                                 L"  let r = [ ]; " EOL
                                 L"  for( const m of text.matchAll( re ) ) " EOL
@@ -395,11 +441,11 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
 
                         webview->ExecuteScript( script.c_str( ),
                             Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
-                                [hWnd, &exit_code]( HRESULT errorCode, LPCWSTR resultObjectAsJson ) -> HRESULT
+                                [&outwr, &errwr, hWnd, &exit_code]( HRESULT errorCode, LPCWSTR resultObjectAsJson ) -> HRESULT
                                 {
                                     if( errorCode != S_OK )
                                     {
-                                        std::cerr << "JavaScript failed" << std::endl;
+                                        errwr.WriteString( L"JavaScript failed\r\n" );
 
                                         exit_code = 1;
                                         DestroyWindow( hWnd );
@@ -410,8 +456,8 @@ int DoMatch( HINSTANCE hInstance, LPCWSTR pattern, LPCWSTR flags, LPCWSTR text )
                                     LPCWSTR json = resultObjectAsJson;
                                     //MessageBox( hWnd, json, L"Result", MB_OKCANCEL );
 
-                                    //std::wcout << json << std::endl;
-                                    std::cout << WStringToUtf8( json ) << std::endl;
+                                    outwr.WriteString( json );
+                                    outwr.WriteString( EOL );
 
                                     DestroyWindow( hWnd );
 

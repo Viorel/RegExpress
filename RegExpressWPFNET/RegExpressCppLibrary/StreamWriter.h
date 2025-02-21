@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 
 class StreamWriter abstract
 {

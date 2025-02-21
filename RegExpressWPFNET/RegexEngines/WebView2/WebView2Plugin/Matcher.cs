@@ -60,25 +60,26 @@ namespace WebView2Plugin
 
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
-            ph.AllEncoding = EncodingEnum.UTF8;
-            ph.Arguments = new[] { "i" };
+            ph.AllEncoding = EncodingEnum.Unicode;
+            ph.Arguments = ["b"];
 
-            ph.StreamWriter = sw =>
+            ph.BinaryWriter = bw =>
             {
-                sw.Write( "m \"" );
-                sw.Write( ToJavaScriptString( pattern ) );
-                sw.Write( "\" \"" );
-                sw.Write( flags );
-                sw.Write( "\" \"" );
-                sw.Write( ToJavaScriptString( text ) );
-                sw.Write( "\"" );
+                bw.Write( (byte)'b' );
+                bw.Write( ToJavaScriptString( pattern ) );
+                bw.Write( ToJavaScriptString( text ) );
+                bw.Write( flags );
+                bw.Write( (byte)'e' );
             };
 
             if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            ResponseMatches? client_response = JsonSerializer.Deserialize<ResponseMatches>( ph.OutputStream );
+            using StreamReader sr = new( ph.OutputStream, Encoding.Unicode );
+            string output_contents = sr.ReadToEnd( );
+
+            ResponseMatches? client_response = JsonSerializer.Deserialize<ResponseMatches>( output_contents );
 
             if( client_response == null ) throw new Exception( "JavaScript failed." );
             if( !string.IsNullOrWhiteSpace( client_response.Error ) ) throw new Exception( client_response.Error );
@@ -139,14 +140,17 @@ namespace WebView2Plugin
         {
             using ProcessHelper ph = new( GetWorkerExePath( ) );
 
-            ph.AllEncoding = EncodingEnum.ASCII;
-            ph.Arguments = new[] { "v" };
+            ph.AllEncoding = EncodingEnum.Unicode;
+            ph.Arguments = ["v"];
 
             if( !ph.Start( cnc ) ) return null;
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            ResponseVersion? v = JsonSerializer.Deserialize<ResponseVersion>( ph.OutputStream );
+            using StreamReader sr = new( ph.OutputStream, Encoding.Unicode );
+            string output_contents = sr.ReadToEnd( );
+
+            ResponseVersion? v = JsonSerializer.Deserialize<ResponseVersion>( output_contents );
 
             string? version = v!.Version;
 
