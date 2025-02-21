@@ -39,7 +39,7 @@ namespace FortranPlugin
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "Fortran";
+        public string Name => "Fortran (IFX)";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupDetails | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.OverlappingMatches;
 

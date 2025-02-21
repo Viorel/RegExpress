@@ -61,10 +61,12 @@ namespace FortranPlugin
                     if( m.Success )
                     {
                         int byte_start = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..)
-                        int byte_end = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture ); // (inclusive, 1..)
 
-                        if( byte_start > 0 && byte_end >= byte_start )
+                        if( byte_start > 0 )
                         {
+                            int byte_end = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture ); // (inclusive, 1..)
+                            if( byte_end < byte_start ) byte_end = byte_start - 1; // empty match (not currently supported by 'forgex')
+
                             --byte_start; // (keep 'byte_end')
 
                             int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_start );

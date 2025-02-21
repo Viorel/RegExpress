@@ -72,14 +72,18 @@
                     stop
                 end if
 
-                if( to == 0 .or. to < from ) exit
+                if( from <= 0 ) exit
 
                 write(stdout, "('m ', i0, ' ', i0)"), absolute_from + from - 1, absolute_from + to - 1
 
                 if (overlapped) then
                     absolute_from = absolute_from + from
                 else
-                    absolute_from = absolute_from + to
+                    if (to < from) then ! empty match (not currently supported by 'forgex')
+                        absolute_from = absolute_from + from
+                    else
+                        absolute_from = absolute_from + to
+                    end if
                 end if
             end do
 
