@@ -155,3 +155,9 @@ xcopy /D /R /Y "%BasePath%\FortranPlugin\bin\%Configuration%\%TargetDir%\Fortran
 xcopy /D /R /Y "%BasePath%\FortranForgexWorker\x64\Release\FortranForgexWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
 
 
+rem -- TRE --
+
+set BasePath=%SolutionDir%\RegexEngines\TRE
+xcopy /D /R /Y "%BasePath%\TREPlugin\bin\%Configuration%\%TargetDir%\TREPlugin.dll" "%EnginesTargetPath%\TRE\*"
+xcopy /D /R /Y "%BasePath%\TREWorker\bin\%Configuration%\%Platform%\TREWorker.exe" "%EnginesTargetPath%\TRE\*.bin"
+xcopy /D /R /Y "%BasePath%\TRE\TRE\win32\%Configuration%\tre.dll" "%EnginesTargetPath%\TRE\*"

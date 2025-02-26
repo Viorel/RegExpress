@@ -1,0 +1,44 @@
+﻿<UserControl x:Class="TREPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:TREPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="232.972" d:DesignWidth="576.396" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <EventSetter Event="TextChanged" Handler="TextBox_TextChanged"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <EventSetter Event="SelectionChanged" Handler="ComboBox_SelectionChanged"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel VerticalAlignment="Top">
+            <Label Margin="0 4 0 4" Padding="0">
+                <Italic>Compiler Flags</Italic>
+            </Label>
+            <ui:CheckboxWithNote Prop="REG_EXTENDED" Note="Use POSIX Extended Regular Expression (ERE) compatible syntax. The default is the POSIX Basic Regular Expression (BRE) syntax"/>
+            <ui:CheckboxWithNote Prop="REG_ICASE" Note="Ignore case (?i)"/>
+            <ui:CheckboxWithNote Prop="REG_NOSUB" Note="Do not report submatches"/>
+            <ui:CheckboxWithNote Prop="REG_NEWLINE" Note="“.” does not match a newline; “^” and “$” match the beginning and end of lines (?n)"/>
+            <ui:CheckboxWithNote Prop="REG_LITERAL" Note="Interpret the entire pattern as a literal string"/>
+            <ui:CheckboxWithNote Prop="REG_RIGHT_ASSOC" Note="Right associative concatenation (?r)"/>
+            <ui:CheckboxWithNote Prop="REG_UNGREEDY" Note="Make the operators non-greedy by default and greedy when a “?” is specified (?U)"/>
+            <Label Margin="0 4 0 4" Padding="0">
+                <Italic>Matcher Flags</Italic>
+            </Label>
+            <ui:CheckboxWithNote Prop="REG_NOTBOL" Note="“^” does not match the beginning"/>
+            <ui:CheckboxWithNote Prop="REG_NOTEOL" Note="“$” does not match the end"/>
+
+        </StackPanel>
+    </Grid>
+</UserControl>

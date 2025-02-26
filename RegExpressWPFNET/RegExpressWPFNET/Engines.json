@@ -54,6 +54,9 @@
     },
     {
       "path": "Engines\\Fortran\\FortranPlugin.dll"
+    },
+    {
+      "path": "Engines\\TRE\\TREPlugin.dll"
     }
   ]
 }

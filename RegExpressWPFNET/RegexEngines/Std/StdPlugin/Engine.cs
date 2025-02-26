@@ -362,6 +362,7 @@ namespace StdPlugin
                                                 grammar == GrammarEnum.basic ||
                                                 grammar == GrammarEnum.grep ? FeatureMatrix.PunctuationEnum.Backslashed
                                                 : FeatureMatrix.PunctuationEnum.None,
+                Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
                 Quantifier_LowAbbrev = false,
 

@@ -1,0 +1,26 @@
+HOW IT'S MADE
+-------------
+
+- Get the release from "https://github.com/laurikari/tre/releases". Use the "Source code (.zip)".
+
+- Copy the needed folders, such as:
+
+    ~ lib
+    ~ local_includes
+    ~ win32 (including the "tre.vcxproj" project; the ".sln" and other ".vcxproj" are not needed)
+
+- Open the "tre.vcxproj" project in Visual Studio.
+
+- Open the Project Properties:
+
+    ~ add the "x64" platform
+    ~ remove the "Win32" and "x86" platforms
+    ~ change C/C++, Code Generation, Runtime Library to "Multi-threaded Debug (/MTd)" for Debug configuration
+    ~ change C/C++, Code Generation, Runtime Library to "Multi-threaded (/MT)" for Release configuration
+    ~ in C/C++, Preprocessor, remove the "TRE_DEBUG" definition
+
+- Compile. No errors should be produced. Some warnings appear.
+
+- Save and close the project. The solution file that is asked by Visual Studio can be saved to this folder, 
+  but the project is also added to main solution.
+

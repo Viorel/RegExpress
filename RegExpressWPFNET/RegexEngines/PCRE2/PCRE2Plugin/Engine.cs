@@ -350,6 +350,7 @@ namespace PCRE2Plugin
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
+                Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.Both,
                 Quantifier_LowAbbrev = true,
 

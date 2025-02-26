@@ -365,6 +365,7 @@ namespace BoostPlugin
                 Quantifier_Braces = is_perl || is_POSIX_extended ? FeatureMatrix.PunctuationEnum.Normal :
                                     is_POSIX_basic ? FeatureMatrix.PunctuationEnum.Backslashed :
                                     FeatureMatrix.PunctuationEnum.None,
+                Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.Both,
                 Quantifier_LowAbbrev = false,
 
