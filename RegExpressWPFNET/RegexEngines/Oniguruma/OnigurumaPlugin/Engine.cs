@@ -436,6 +436,7 @@ namespace OnigurumaPlugin
                 Quantifier_Plus = details.ONIG_SYN_OP_PLUS_ONE_INF ? FeatureMatrix.PunctuationEnum.Normal : details.ONIG_SYN_OP_ESC_PLUS_ONE_INF ? FeatureMatrix.PunctuationEnum.Backslashed : FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Question = details.ONIG_SYN_OP_QMARK_ZERO_ONE ? FeatureMatrix.PunctuationEnum.Normal : details.ONIG_SYN_OP_ESC_QMARK_ZERO_ONE ? FeatureMatrix.PunctuationEnum.Backslashed : FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces = details.ONIG_SYN_OP_BRACE_INTERVAL ? FeatureMatrix.PunctuationEnum.Normal : details.ONIG_SYN_OP_ESC_BRACE_INTERVAL ? FeatureMatrix.PunctuationEnum.Backslashed : FeatureMatrix.PunctuationEnum.None,
+                Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
                 Quantifier_LowAbbrev = details.ONIG_SYN_ALLOW_INTERVAL_LOW_ABBREV,
 

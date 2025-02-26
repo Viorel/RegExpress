@@ -1368,6 +1368,16 @@ namespace RegExpressLibrary.SyntaxColouring
                     }
                     break;
                 }
+
+                switch( fm.Quantifier_Braces_FreeForm )
+                {
+                case FeatureMatrix.PunctuationEnum.Normal:
+                    pb.Add( @"\{ [^}]* \}?" );
+                    break;
+                case FeatureMatrix.PunctuationEnum.Backslashed:
+                    pb.Add( @"\\\{ [^}]* \\\}?" );
+                    break;
+                }
             }
             pb.EndGroup( );
 

@@ -207,6 +207,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public PunctuationEnum Quantifier_Plus { get; init; }             // + or \+
         public PunctuationEnum Quantifier_Question { get; init; }         // ? or \?
         public PunctuationEnum Quantifier_Braces { get; init; }           // {n}, {n,}, {n,m}, or \{n\}, \{n,\}, \{n,m\}
+        public PunctuationEnum Quantifier_Braces_FreeForm { get; init; }  // {expr} or \{expr\}, where 'expr' is an expression (not parsed by this colourer), usually related to Approximate Matching (example: "abcd{+1#2})".
         public SpaceUsage Quantifier_Braces_Spaces { get; init; }         // enable spaces like { n }, { n , m }
         public bool Quantifier_LowAbbrev { get; init; }                   // also allow {,m} if Quantifier_Braces is set
 
