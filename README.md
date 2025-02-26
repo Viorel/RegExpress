@@ -23,6 +23,7 @@ It includes the following Regular Expression engines:
 * **[D](https://dlang.org/phobos/std_regex.html)** 2.109.1 (*std.regex* module).
 * **[Perl](https://perldoc.perl.org/perlreref)** 5.40.0 (Strawberry Perl).
 * **Fortran [Forgex](https://github.com/ShinobuAmasaki/forgex)** v4.1 module (Intel® Fortran Compiler)
+* **[TRE](https://github.com/laurikari/tre)** 0.9.0 (in C)
 
 
 <br/>
