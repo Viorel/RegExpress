@@ -93,8 +93,8 @@ namespace RegExpressWPFNET
             PatternRangeCurlyBraceHighlightStyleInfo = new StyleInfo( "PatternCurlyBraceHighlight" );
             PatternCommentStyleInfo = new StyleInfo( "PatternComment" );
 
-            RecolouringLoop = new ResumableLoop( RecolouringThreadProc, 222, 444 );
-            HighlightingLoop = new ResumableLoop( HighlightingThreadProc, 111, 444 );
+            RecolouringLoop = new ResumableLoop( "Pattern Colour", RecolouringThreadProc, 222, 444 );
+            HighlightingLoop = new ResumableLoop( "Pattern Highlight", HighlightingThreadProc, 111, 444 );
 
             //WhitespaceAdorner.IsDbgDisabled = true;
         }
@@ -159,7 +159,14 @@ namespace RegExpressWPFNET
         {
             if( object.ReferenceEquals( sender, mRegexEngine ) )
             {
-                RecolouringLoop.SignalWaitAndExecute( );
+                if( Dispatcher.CheckAccess( ) )
+                {
+                    RecolouringLoop.SignalWaitAndExecute( );
+                }
+                else
+                {
+                    Dispatcher.BeginInvoke( ( ) => RecolouringLoop.SignalWaitAndExecute( ) );
+                }
             }
         }
 

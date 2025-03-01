@@ -80,9 +80,9 @@ namespace RegExpressWPFNET
             OverlapStyleInfo = new StyleInfo( "MatchHighlight_Overlap" );
 
 
-            RecolouringLoop = new ResumableLoop( RecolouringThreadProc, 333, 555 );
-            LocalUnderliningLoop = new ResumableLoop( LocalUnderliningThreadProc, 222, 444 );
-            ExternalUnderliningLoop = new ResumableLoop( ExternalUnderliningThreadProc, 333, 555 );
+            RecolouringLoop = new ResumableLoop( "Text Colour", RecolouringThreadProc, 333, 555 );
+            LocalUnderliningLoop = new ResumableLoop("Text Local Underline", LocalUnderliningThreadProc, 222, 444 );
+            ExternalUnderliningLoop = new ResumableLoop( "Text External Underline", ExternalUnderliningThreadProc, 333, 555 );
 
 
             pnlDebug.Visibility = Visibility.Collapsed;

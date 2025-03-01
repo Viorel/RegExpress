@@ -129,7 +129,6 @@ namespace RegExpressLibrary
                     {
                         _ = exc;
                         if( Debugger.IsAttached ) Debugger.Break( );
-                        throw;
                     }
                 } )
                 {
@@ -156,7 +155,6 @@ namespace RegExpressLibrary
                     {
                         _ = exc;
                         if( Debugger.IsAttached ) Debugger.Break( );
-                        throw;
                     }
                 } )
                 {

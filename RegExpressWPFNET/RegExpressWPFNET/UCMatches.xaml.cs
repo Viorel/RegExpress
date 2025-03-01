@@ -109,9 +109,9 @@ namespace RegExpressWPFNET
 
             secOverflow.Blocks.Remove( paraOverflow );
 
-            ShowMatchesLoop = new ResumableLoop( ShowMatchesThreadProc, 333, 555 );
-            LocalUnderliningLoop = new ResumableLoop( LocalUnderliningThreadProc, 222, 444 );
-            ExternalUnderliningLoop = new ResumableLoop( ExternalUnderliningThreadProc, 333, 555 );
+            ShowMatchesLoop = new ResumableLoop( "ShowMatches", ShowMatchesThreadProc, 333, 555 );
+            LocalUnderliningLoop = new ResumableLoop( "Matches Local Underline", LocalUnderliningThreadProc, 222, 444 );
+            ExternalUnderliningLoop = new ResumableLoop( "Matches External Underline", ExternalUnderliningThreadProc, 333, 555 );
 
 
             pnlDebug.Visibility = Visibility.Collapsed;
@@ -414,7 +414,10 @@ namespace RegExpressWPFNET
             {
                 MatchInfos.Clear( );
                 match_infos_version = ++MatchInfosVersion;
-                ExternalUnderliningLoop.SignalWaitAndExecute( );
+                Dispatcher.BeginInvoke( new Action( ( ) =>
+                {
+                    ExternalUnderliningLoop.SignalWaitAndExecute( );
+                } ) );
             }
 
             string text = "";
@@ -783,9 +786,10 @@ namespace RegExpressWPFNET
                 }
             } );
 
-
-            ExternalUnderliningLoop.SignalWaitAndExecute( );
-
+            Dispatcher.BeginInvoke( new Action( ( ) =>
+            {
+                ExternalUnderliningLoop.SignalWaitAndExecute( );
+            } ) );
         }
 
 

@@ -67,7 +67,7 @@ namespace RegExpressWPFNET
             var interval = Properties.Settings.Default.AutoSaveInterval;
             if( interval < MIN_INTERVAL ) interval = MIN_INTERVAL;
 
-            AutoSaveLoop = new ResumableLoop( AutoSaveThreadProc, (int)interval.TotalMilliseconds );
+            AutoSaveLoop = new ResumableLoop( "AutoSave", AutoSaveThreadProc, (int)interval.TotalMilliseconds );
         }
 
 

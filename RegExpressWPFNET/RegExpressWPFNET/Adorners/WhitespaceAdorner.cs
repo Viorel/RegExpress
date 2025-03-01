@@ -57,7 +57,7 @@ namespace RegExpressWPFNET.Adorners
             Rtb.TextChanged += Rtb_TextChanged;
             Rtb.AddHandler( ScrollViewer.ScrollChangedEvent, new RoutedEventHandler( Rtb_ScrollChanged ), true );
 
-            Loop = new ResumableLoop( ThreadProc, 33, 33, 444 );
+            Loop = new ResumableLoop( "WS Adorner", ThreadProc, 33, 33, 444 );
         }
 
 

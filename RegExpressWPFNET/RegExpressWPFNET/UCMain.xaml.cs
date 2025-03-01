@@ -58,9 +58,9 @@ namespace RegExpressWPFNET
             lblWarnings.Inlines.Remove( lblWhitespaceWarning2 );
             pnlOwerlappingMatches.Visibility = Visibility.Collapsed;
 
-            FindMatchesLoop = new ResumableLoop( FindMatchesThreadProc, 333, 555 );
-            UpdateWhitespaceWarningLoop = new ResumableLoop( UpdateWhitespaceWarningThreadProc, 444, 777 );
-            ShowTextInfoLoop = new ResumableLoop( ShowTextInfoThreadProc, 333, 555 );
+            FindMatchesLoop = new ResumableLoop( "Match", FindMatchesThreadProc, 333, 555 );
+            UpdateWhitespaceWarningLoop = new ResumableLoop( "WS Warning", UpdateWhitespaceWarningThreadProc, 444, 777 );
+            ShowTextInfoLoop = new ResumableLoop( "TextInfo", ShowTextInfoThreadProc, 333, 555 );
 
             UpdateWhitespaceWarningLoop.Priority = ThreadPriority.Lowest;
             ShowTextInfoLoop.Priority = ThreadPriority.Lowest;

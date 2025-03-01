@@ -12,27 +12,27 @@ namespace RegExpressWPFNET.Code
 {
     public sealed class ResumableLoop : ICancellable, IDisposable
     {
-        enum Command
+        enum CommandEnum : int
         {
             None,
-            Terminate,
-            Rewind,
-            WaitAndExecute,
             Execute,
+            WaitAndExecute,
+            Rewind,
+            Terminate,
         }
 
-        readonly AutoResetEvent TerminateEvent = new( initialState: false );
-        readonly AutoResetEvent RewindEvent = new( initialState: false );
-        readonly AutoResetEvent WaitAndExecuteEvent = new( initialState: false );
-        readonly AutoResetEvent ExecuteEvent = new( initialState: false );
-        readonly AutoResetEvent[] Events;
+        readonly AutoResetEvent NotificationEvent = new( initialState: false );
         readonly Action<ICancellable> Action;
         readonly int[] Timeouts;
         readonly Thread TheThread;
-        Command CancellingCommand = Command.None;
+        volatile CommandEnum Command = CommandEnum.None;
+        readonly Lock Locker = new( );
 
+#if DEBUG
+        readonly int CreatorManagedThreadId;
+#endif
 
-        public ResumableLoop( Action<ICancellable> action, int timeout1, int timeout2 = 0, int timeout3 = 0 )
+        public ResumableLoop( string name, Action<ICancellable> action, int timeout1, int timeout2 = 0, int timeout3 = 0 )
         {
             Debug.Assert( action != null );
             Debug.Assert( timeout1 > 0 );
@@ -42,46 +42,88 @@ namespace RegExpressWPFNET.Code
             if( timeout2 <= 0 ) timeout2 = timeout1;
             if( timeout3 <= 0 ) timeout3 = timeout2;
 
-            Timeouts = new[] { timeout1, timeout2, timeout3 };
-
-            Events = new[] { TerminateEvent, RewindEvent, WaitAndExecuteEvent, ExecuteEvent };
+            Timeouts = [timeout1, timeout2, timeout3];
 
             TheThread = new Thread( ThreadProc )
             {
                 IsBackground = true,
                 Priority = ThreadPriority.BelowNormal,
-                Name = "rxResumableLoop"
+                Name = "RL: " + name,
             };
+
+#if DEBUG
+            CreatorManagedThreadId = Environment.CurrentManagedThreadId;
+#endif
 
             TheThread.Start( );
         }
 
-
         public bool Terminate( int timeoutMs = 333 )
         {
-            TerminateEvent.Set( );
+            Signal( CommandEnum.Terminate );
 
             return TheThread.Join( timeoutMs );
         }
 
-
         public void SignalRewind( )
         {
-            RewindEvent.Set( );
+            Signal( CommandEnum.Rewind );
         }
-
 
         public void SignalWaitAndExecute( )
         {
-            WaitAndExecuteEvent.Set( );
+            Signal( CommandEnum.WaitAndExecute );
         }
-
 
         public void SignalExecute( )
         {
-            ExecuteEvent.Set( );
+            Signal( CommandEnum.Execute );
         }
 
+        void Signal( CommandEnum commandToSignal )
+        {
+#if DEBUG
+            Debug.Assert( CreatorManagedThreadId == Environment.CurrentManagedThreadId );
+#endif
+            Debug.Assert( commandToSignal != CommandEnum.None );
+
+            lock( Locker )
+            {
+                CommandEnum combined_command = Combine( Command, commandToSignal );
+                Debug.Assert( combined_command != CommandEnum.None );
+
+                if( Command != combined_command )
+                {
+                    Command = combined_command;
+                    Thread.MemoryBarrier( ); //
+                    NotificationEvent.Set( );
+                }
+            }
+        }
+
+        static CommandEnum Combine( CommandEnum oldCommand, CommandEnum newCommand )
+        {
+            Debug.Assert( newCommand != CommandEnum.None );
+
+            if( oldCommand == CommandEnum.None ) return newCommand;
+
+            if( oldCommand == CommandEnum.Terminate ) return CommandEnum.Terminate;
+
+            if( newCommand == CommandEnum.Terminate ) return CommandEnum.Terminate;
+
+            if( newCommand == CommandEnum.Rewind ) return CommandEnum.Rewind;
+
+            if( newCommand == CommandEnum.WaitAndExecute )
+            {
+                if( oldCommand == CommandEnum.Execute ) return CommandEnum.Execute;
+
+                return CommandEnum.WaitAndExecute;
+            }
+
+            Debug.Assert( newCommand == CommandEnum.Execute );
+
+            return CommandEnum.Execute;
+        }
 
         public ThreadPriority Priority
         {
@@ -91,76 +133,57 @@ namespace RegExpressWPFNET.Code
             }
         }
 
-
-        Command WaitForCommand( int timeoutMs )
-        {
-            int n = WaitHandle.WaitAny( Events, timeoutMs );
-
-            switch( n )
-            {
-            case 0:
-                return Command.Terminate;
-            case 1:
-                return Command.Rewind;
-            case 2:
-                return Command.WaitAndExecute;
-            case 3:
-                return Command.Execute;
-            case WaitHandle.WaitTimeout:
-                break;
-            default:
-                Debug.Assert( false );
-                break;
-            }
-
-            return Command.None;
-        }
-
-
         void ThreadProc( )
         {
+#if DEBUG
+            Debug.Assert( CreatorManagedThreadId != Environment.CurrentManagedThreadId );
+#endif
+
             try
             {
                 for(; ; )
                 {
-                    Command command;
+                    NotificationEvent.WaitOne( Timeout.Infinite );
 
-                    if( CancellingCommand == Command.None )
+                    CommandEnum command;
+
+                    lock( Locker ) (command, Command) = (Command, CommandEnum.None);
+
+                    Debug.Assert( command != CommandEnum.None );
+
+                    if( command == CommandEnum.Terminate ) break;
+                    if( command == CommandEnum.Rewind ) continue;
+
+                    Debug.Assert( command == CommandEnum.Execute || command == CommandEnum.WaitAndExecute );
+
+                    if( command == CommandEnum.WaitAndExecute )
                     {
-                        command = WaitForCommand( -1 );
-                    }
-                    else
-                    {
-                        command = WaitForCommand( 0 );
-
-                        if( command == Command.None ) command = CancellingCommand;
-
-                        CancellingCommand = Command.None;
-                    }
-
-                    if( command == Command.Terminate ) break;
-                    if( command == Command.Rewind ) continue;
-
-                    Debug.Assert( command == Command.WaitAndExecute || command == Command.Execute );
-
-                    if( command == Command.WaitAndExecute )
-                    {
-                        // wait for other commands that might cancel the intention for execution;
+                        // wait for other commands that could override the execution intent;
                         // if another 'WaitAndExecute', then repeat the pause
 
                         for( var i = 0; ; i = Math.Min( i + 1, Timeouts.Length - 1 ) )
                         {
-                            command = WaitForCommand( Timeouts[i] );
+                            if( NotificationEvent.WaitOne( Timeouts[i] ) )
+                            {
+                                lock( Locker ) (command, Command) = (Command, CommandEnum.None);
 
-                            if( command != Command.WaitAndExecute ) break;
+                                if( command != CommandEnum.WaitAndExecute ) break;
+                            }
+                            else
+                            {
+                                // no disturbing event
+
+                                command = CommandEnum.None;
+
+                                break;
+                            }
                         }
 
-                        if( command == Command.Terminate ) break;
-                        if( command == Command.Rewind ) continue;
+                        if( command == CommandEnum.Terminate ) break;
+                        if( command == CommandEnum.Rewind ) continue;
                     }
 
-                    Debug.Assert( command == Command.None || command == Command.Execute );
-                    Debug.Assert( CancellingCommand == Command.None );
+                    Debug.Assert( command == CommandEnum.None || command == CommandEnum.Execute );
 
                     try
                     {
@@ -201,12 +224,7 @@ namespace RegExpressWPFNET.Code
         {
             get
             {
-                if( CancellingCommand == Command.None )
-                {
-                    CancellingCommand = WaitForCommand( 0 );
-                }
-
-                return CancellingCommand != Command.None;
+                return Command != CommandEnum.None; // (atomic)
             }
         }
 
@@ -225,10 +243,7 @@ namespace RegExpressWPFNET.Code
                 {
                     // TODO: dispose managed state (managed objects).
 
-                    using( TerminateEvent ) { }
-                    using( RewindEvent ) { }
-                    using( WaitAndExecuteEvent ) { }
-                    using( ExecuteEvent ) { }
+                    using( NotificationEvent ) { }
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
