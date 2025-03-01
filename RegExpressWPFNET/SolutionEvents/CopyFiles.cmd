@@ -160,4 +160,6 @@ rem -- TRE --
 set BasePath=%SolutionDir%\RegexEngines\TRE
 xcopy /D /R /Y "%BasePath%\TREPlugin\bin\%Configuration%\%TargetDir%\TREPlugin.dll" "%EnginesTargetPath%\TRE\*"
 xcopy /D /R /Y "%BasePath%\TREWorker\bin\%Configuration%\%Platform%\TREWorker.exe" "%EnginesTargetPath%\TRE\*.bin"
-xcopy /D /R /Y "%BasePath%\TRE\TRE\win32\%Configuration%\tre.dll" "%EnginesTargetPath%\TRE\*"
+xcopy /D /R /Y "%BasePath%\TRE\TRE\win32\bin\%Configuration%\%Platform%\tre.dll" "%EnginesTargetPath%\TRE\*"
+
+

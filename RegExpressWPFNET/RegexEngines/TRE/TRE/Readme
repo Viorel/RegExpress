@@ -18,6 +18,10 @@ HOW IT'S MADE
     ~ change C/C++, Code Generation, Runtime Library to "Multi-threaded Debug (/MTd)" for Debug configuration
     ~ change C/C++, Code Generation, Runtime Library to "Multi-threaded (/MT)" for Release configuration
     ~ in C/C++, Preprocessor, remove the "TRE_DEBUG" definition
+    ~ The General, Intermediate Directory was changed to "obj\$(Configuration)\$(Platform)\"
+    ~ The General, Output Directory was changed to "bin\$(Configuration)\$(Platform)\"
+    ~ The Linker, Output File was changed to "$(OutDir)$(TargetName)$(TargetExt)"
+    ~ Other output-related options that contained ".\debug" was changed to default ones (from new similar DLL projects)
 
 - Compile. No errors should be produced. Some warnings appear.
 
