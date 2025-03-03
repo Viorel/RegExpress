@@ -48,7 +48,10 @@ namespace VBScriptPlugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) )
             {
-                // Possible: <path>\VBScriptWorker.vbs(31, 1) Microsoft VBScript runtime error: <text of error>
+                // Possible:
+                //  <path>\VBScriptWorker.vbs(31, 1) Microsoft VBScript runtime error: <text of error>
+                //  <path>\VBScriptWorker.vbs(50, 9) Microsoft VBScript compilation error: <text of error>
+
 
                 var m = ErrorRegex( ).Match( ph.Error );
                 if( m.Success )
@@ -202,7 +205,7 @@ namespace VBScriptPlugin
         }
 
 
-        [GeneratedRegex( @"\\VBScriptWorker\.vbs\s*\(\d+,\s*\d+\)\s*(?<err>Microsoft VBScript runtime error:.*)" )]
+        [GeneratedRegex( @"\\VBScriptWorker\.vbs\s*\(\d+,\s*\d+\)\s*(?<err>Microsoft VBScript (.*?)?error:.*)" )]
         private static partial Regex ErrorRegex( );
 
         [GeneratedRegex( @"^m\s+(\d+)\s+(\d+)" )]
