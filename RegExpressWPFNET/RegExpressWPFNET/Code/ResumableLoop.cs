@@ -25,7 +25,7 @@ namespace RegExpressWPFNET.Code
         readonly Action<ICancellable> Action;
         readonly int[] Timeouts;
         readonly Thread TheThread;
-        volatile CommandEnum Command = CommandEnum.None;
+        volatile CommandEnum LastCommand = CommandEnum.None;
         readonly Lock Locker = new( );
 
 #if DEBUG
@@ -89,15 +89,16 @@ namespace RegExpressWPFNET.Code
 
             lock( Locker )
             {
-                CommandEnum combined_command = Combine( Command, commandToSignal );
+                CommandEnum combined_command = Combine( LastCommand, commandToSignal );
                 Debug.Assert( combined_command != CommandEnum.None );
 
-                if( Command != combined_command )
+                if( LastCommand != combined_command )
                 {
-                    Command = combined_command;
-                    Thread.MemoryBarrier( ); //
+                    LastCommand = combined_command;
                     NotificationEvent.Set( );
                 }
+
+                Debug.Assert( LastCommand != CommandEnum.None );
             }
         }
 
@@ -133,21 +134,37 @@ namespace RegExpressWPFNET.Code
             }
         }
 
+#if DEBUG
+        bool ThreadProcEntered = false;
+#endif
+
         void ThreadProc( )
         {
 #if DEBUG
-            Debug.Assert( CreatorManagedThreadId != Environment.CurrentManagedThreadId );
+            Debug.Assert( !ThreadProcEntered );
+            ThreadProcEntered = true;
 #endif
 
             try
             {
                 for(; ; )
                 {
+#if DEBUG
+                    Debug.Assert( CreatorManagedThreadId != Environment.CurrentManagedThreadId );
+#endif
+                    Debug.Assert( Environment.CurrentManagedThreadId == TheThread.ManagedThreadId );
+
                     NotificationEvent.WaitOne( Timeout.Infinite );
 
                     CommandEnum command;
 
-                    lock( Locker ) (command, Command) = (Command, CommandEnum.None);
+                    lock( Locker )
+                    {
+                        if( LastCommand == CommandEnum.None ) continue; // (another 'NotificationEvent.Set()' happened between 'WaitOne' and 'lock'; the last command was already processed and replaced with 'None')
+
+                        command = LastCommand;
+                        LastCommand = CommandEnum.None;
+                    }
 
                     Debug.Assert( command != CommandEnum.None );
 
@@ -165,7 +182,15 @@ namespace RegExpressWPFNET.Code
                         {
                             if( NotificationEvent.WaitOne( Timeouts[i] ) )
                             {
-                                lock( Locker ) (command, Command) = (Command, CommandEnum.None);
+                                lock( Locker )
+                                {
+                                    if( LastCommand == CommandEnum.None ) continue; // (another 'NotificationEvent.Set()' happened between 'WaitOne' and 'lock'; the last command was already processed and replaced with 'None')
+
+                                    command = LastCommand;
+                                    LastCommand = CommandEnum.None;
+                                }
+
+                                Debug.Assert( command != CommandEnum.None );
 
                                 if( command != CommandEnum.WaitAndExecute ) break;
                             }
@@ -224,7 +249,7 @@ namespace RegExpressWPFNET.Code
         {
             get
             {
-                return Command != CommandEnum.None; // (atomic)
+                return LastCommand != CommandEnum.None; // (atomic)
             }
         }
 
