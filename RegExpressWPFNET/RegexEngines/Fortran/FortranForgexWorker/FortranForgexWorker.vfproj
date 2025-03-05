@@ -31,8 +31,10 @@
 		<Filter Name="Forgex">
 			<File RelativePath=".\Forgex-min\src\api_internal_m.F90"/>
 			<File RelativePath=".\Forgex-min\src\automaton_m.F90"/>
+			<File RelativePath=".\Forgex-min\src\ast\character_array_m.F90"/>
 			<File RelativePath=".\Forgex-min\src\dense_dfa\dense_dfa_m.f90"/>
 			<File RelativePath=".\Forgex-min\src\essential\enums_m.f90"/>
+			<File RelativePath=".\Forgex-min\src\essential\error_m.F90"/>
 			<File RelativePath=".\Forgex-min\src\forgex.F90"/>
 			<File RelativePath=".\Forgex-min\src\lazy_dfa\lazy_dfa_graph_m.F90"/>
 			<File RelativePath=".\Forgex-min\src\lazy_dfa\lazy_dfa_node_m.F90"/>
@@ -44,7 +46,6 @@
 			<File RelativePath=".\Forgex-min\src\essential\segment_disjoin_m.F90"/>
 			<File RelativePath=".\Forgex-min\src\essential\segment_m.F90"/>
 			<File RelativePath=".\Forgex-min\src\essential\sort_m.f90"/>
-			<File RelativePath=".\Forgex-min\src\ast\syntax_tree_error_m.F90"/>
 			<File RelativePath=".\Forgex-min\src\ast\syntax_tree_graph_m.F90"/>
 			<File RelativePath=".\Forgex-min\src\ast\syntax_tree_node_m.F90"/>
 			<File RelativePath=".\Forgex-min\src\ast\syntax_tree_optimize_m.F90"/>

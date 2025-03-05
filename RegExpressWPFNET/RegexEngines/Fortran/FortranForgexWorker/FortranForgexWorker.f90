@@ -41,7 +41,7 @@
     if( command == "m" ) then
         block
             use :: forgex
-            use :: forgex_syntax_tree_error_m
+            use :: forgex_error_m
 
             character (:), allocatable :: pattern, text, options, result
             integer :: from, to, status, absolute_from
