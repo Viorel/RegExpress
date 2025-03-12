@@ -28,6 +28,7 @@ module forgex_segment_m
    public :: join_two_segments
    public :: width_of_segment
    public :: total_width_of_segment
+   public :: hex2seg
 
 
    !> This derived-type represents a contiguous range of the Unicode character set
@@ -58,6 +59,8 @@ module forgex_segment_m
    type(segment_t), parameter, public :: SEG_LOWERCASE = segment_t(97, 122)  ! a-z
    type(segment_t), parameter, public :: SEG_ZENKAKU_SPACE = segment_t(12288, 12288) ! '　' U+3000 全角スペース
    type(segment_t), parameter, public :: SEG_UPPER = segment_t(UTF8_CODE_MAX+1, UTF8_CODE_MAX+1)
+   type(segment_t), parameter, public :: SEG_WHOLE = segment_t(0, UTF8_CODE_MAX)
+   type(segment_t), parameter, public, dimension(3) :: SEG_HEX = [SEG_DIGIT, segment_t(65,70), segment_t(97,102)] 
 
    interface operator(==)
       !! This interface block provides a equal operator for comparing segments.
@@ -341,10 +344,70 @@ contains
    end subroutine register_segment_to_list
 
 
+   !> This subroutine converts character string that represents hexadecimal value to
+   !> the segment corresponding its integer type.
+   pure subroutine hex2seg (str, seg, ierr)
+      use :: forgex_parameters_m
+      use :: forgex_utf8_m
+      use :: forgex_error_m
+      implicit none
+      character(*), intent(in) :: str
+      type(segment_t), intent(inout) :: seg
+      integer, intent(inout) :: ierr
+
+      character(:), allocatable :: buf, fmt
+      character(8) :: c_len
+
+      integer :: i, ios, code
+      logical :: is_two_digits, is_longer_digit, is_hex_valid
+      
+      fmt = ''
+      c_len = ''
+      code = UTF8_CODE_INVALID
+      seg = segment_t(code, code)
+
+      is_two_digits = len(str) == 2
+      is_longer_digit = 2 < len(str)
+
+      if (str == '' .or. len(str) <2) then
+         ierr = SYNTAX_ERR_HEX_DIGITS_NOT_ENOUGH
+         return
+      end if
+
+      ! Get the string lenght as a character type.
+      write(c_len, '(i0)', iostat=ios) len(str)
+      if (ios/= 0) then
+         ierr = SYNTAX_ERR_INVALID_HEXADECIMAL
+         return
+      end if
+      fmt = '(z'//trim(c_len)//')'
+
+      ! Get the code point as a integer.
+      read(str, fmt=fmt, iostat=ios) code
+      is_hex_valid = ios == 0
+
+      ! Error handlers
+      if (.not. is_hex_valid) then
+         ierr = SYNTAX_ERR_INVALID_HEXADECIMAL
+         return
+      end if
+   
+      ! Reject if codepoint valud is invalid as Unicode.
+      if (.not.(code .in. SEG_WHOLE)) then
+         ierr = SYNTAX_ERR_UNICODE_EXCEED
+         return
+      end if
+
+      seg = segment_t(code, code)
+      ierr = SYNTAX_VALID
+
+   end subroutine hex2seg
+
+
 !====================================================================-!
 !  Helper procedures
 
-   pure function width_of_segment(seg) result(res)
+   pure elemental function width_of_segment(seg) result(res)
       use :: forgex_parameters_m, only: INVALID_SEGMENT_SIZE
       implicit none
       type(segment_t), intent(in) :: seg

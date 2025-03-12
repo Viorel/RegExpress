@@ -2,7 +2,7 @@
 !
 ! MIT License
 !
-! (C) Amasaki Shinobu, 2023-2024
+! (C) Amasaki Shinobu, 2023-2025
 !     A regular expression engine for Fortran.
 !     forgex_syntax_tree_graph_m module is a part of Forgex.
 !
@@ -12,7 +12,7 @@
 module forgex_syntax_tree_graph_m
    use :: forgex_parameters_m
    use :: forgex_enums_m
-   use :: forgex_segment_m
+   use :: forgex_segment_m, register => register_segment_to_list
    use :: forgex_syntax_tree_node_m, &
       only: tree_node_t, tape_t, terminal, make_atom, make_tree_node, make_repeat_node
    use :: forgex_error_m
@@ -45,6 +45,7 @@ module forgex_syntax_tree_graph_m
       procedure :: caret_dollar => tree_graph__make_tree_caret_dollar
       procedure :: crlf => tree_graph__make_tree_crlf
       procedure :: shorthand => tree_graph__shorthand
+      procedure :: hex2seg => tree_graph__hexadecimal_to_segment
       procedure :: times => tree_graph__times
       procedure :: print => print_tree_wrap
    end type
@@ -52,6 +53,7 @@ module forgex_syntax_tree_graph_m
    public :: dump_tree_table
    public :: interpret_class_string
 
+   public :: hex2seg
 
 contains
 
@@ -376,6 +378,9 @@ contains
 
       case (tk_backslash)
          call self%shorthand()
+         if (.not. self%is_valid) then
+            return
+         end if
          call self%tape%get_token()
       
       case (tk_dot)
@@ -411,6 +416,21 @@ contains
 
       case (tk_lcurlybrace)
          self%code = SYNTAX_ERR_INVALID_TIMES
+         self%is_valid = .false.
+         return
+
+      case (tk_star)
+         self%code = SYNTAX_ERR_STAR_INCOMPLETE
+         self%is_valid = .false.
+         return
+
+      case (tk_plus)
+         self%code = SYNTAX_ERR_PLUS_INCOMPLETE
+         self%is_valid = .false.
+         return
+
+      case (tk_question)
+         self%code = SYNTAX_ERR_QUESTION_INCOMPLETE
          self%is_valid = .false.
          return
 
@@ -656,6 +676,13 @@ contains
          seglist(5) = SEG_FF
          seglist(6) = SEG_ZENKAKU_SPACE
          call invert_segment_list(seglist)
+
+      case (ESCAPE_X)
+         ! Error handling for x escape sequence is handled by hex2seg.
+         call self%hex2seg(seglist)
+         if (.not. self%is_valid) return
+         ! It is not necessary to call self%tape%get_token() procedure.
+
       case (EMPTY_CHAR)
          self%code = SYNTAX_ERR_ESCAPED_SYMBOL_MISSING
          self%is_valid = .false.
@@ -696,6 +723,58 @@ contains
       deallocate(seglist)
 
    end subroutine tree_graph__shorthand
+
+   !> This procedure handles a escape sequence with '\x'.
+   pure subroutine tree_graph__hexadecimal_to_segment(self, seglist)
+      implicit none
+      class(tree_t), intent(inout) :: self
+      type(segment_t), intent(inout), allocatable :: seglist(:)
+      
+      character(:), allocatable :: hex
+      integer :: i
+      logical :: is_two_digit, is_longer_digit
+
+      hex = ''
+
+      call self%tape%get_token()
+
+      is_longer_digit = self%tape%current_token == tk_lcurlybrace
+      is_two_digit = .not. is_longer_digit
+
+      if (is_longer_digit) call self%tape%get_token()
+
+      hex = self%tape%token_char(1:1) ! First, get the second digit.
+      i = 2
+
+      reader: do while(.true.)
+         if (is_two_digit .and. i >= 3) exit reader
+         call self%tape%get_token()
+
+         if (is_longer_digit .and. self%tape%current_token /= tk_rcurlybrace .and. self%tape%current_token /= tk_char) then
+            self%is_valid = .false.
+            self%code = SYNTAX_ERR_CURLYBRACE_MISSING
+            return
+         end if
+
+         if (self%tape%current_token == tk_rcurlybrace) exit reader
+         hex = hex//self%tape%token_char(1:1)
+         i = i + 1
+      end do reader
+
+      allocate(seglist(1))
+      call hex2seg(trim(hex), seglist(1), self%code)
+
+      if (self%code /= SYNTAX_VALID) then
+         self%is_valid = .false.
+         return
+      end if
+
+      self%is_valid = seglist(1) .in. SEG_WHOLE
+
+      if (.not. self%is_valid) self%code  = SYNTAX_ERR_UNICODE_EXCEED
+
+
+   end subroutine tree_graph__hexadecimal_to_segment
 
 
    !> This subroutine handles a quantifier range, and
@@ -831,9 +910,7 @@ contains
    pure subroutine interpret_class_string(str, seglist, is_valid, ierr)
       use :: forgex_utf8_m, only: idxutf8, next_idxutf8, len_utf8, ichar_utf8
       use :: forgex_parameters_m
-      use :: forgex_segment_m, only: join_two_segments, &
-         register => register_segment_to_list
-      use :: forgex_character_array_m, only:parse_segment_width_in_char_array
+      use :: forgex_segment_m, register => register_segment_to_list
       use :: forgex_character_array_m
       implicit none
 
@@ -871,6 +948,13 @@ contains
       call character_string_to_array(str, ca)
       if (.not. allocated(ca)) then
          ierr = SYNTAX_ERR_EMPTY_CHARACTER_CLASS
+         is_valid = .false.
+         return
+      end if
+
+      ! for escape sequences such as \x, \x{...}, \p{...}.
+      call parse_escape_sequence_with_argument(ca, ierr)
+      if (ierr /= SYNTAX_VALID) then
          is_valid = .false.
          return
       end if
@@ -938,15 +1022,37 @@ contains
       ! Initialize cache and counter variable.
       j = 0 ! Couter of actual list size for `seglist`.
       c = EMPTY_CHAR
-
-      outer: do i = 1, size(ca, dim=1)
+      i = 1
+      outer: do while(i <= size(ca, dim=1))
          c = ca(i)%c
          backslashed = ca(i)%is_escaped  ! cache `is_escaped` flag
          curr_hyphenated = ca(i)%is_hyphenated
          if (i > 1) prev_hyphenated = ca(i-1)%is_hyphenated 
 
-         curr_seg = segment_t(ichar_utf8(c), ichar_utf8(c))
-      
+         ! For escape sequences that take arguments.
+         if (backslashed .and. c == ESCAPE_X) then
+            i = i + 1
+            if (i> size(ca, dim=1)) then
+               ierr = SYNTAX_ERR_THIS_SHOULD_NOT_HAPPEN
+               is_valid = .false.
+               return
+            end if
+            c = ca(i)%c
+            backslashed = ca(i)%is_escaped
+            call hex2seg(c, curr_seg, ierr)
+            if (ierr /= SYNTAX_VALID) then
+               is_valid = .false.
+               return
+            end if
+         else if (backslashed .and. c == ESCAPE_P) then
+            ierr = SYNTAX_ERR_UNICODE_PROPERTY_NOT_IMPLEMENTED
+            is_valid = .false.
+            return
+         else
+            curr_seg = segment_t(ichar_utf8(c), ichar_utf8(c))
+         end if
+
+         ! For escape sequences that do not take arguments
          if (backslashed) then
 
             call convert_escaped_character_into_segments(c, cache)
@@ -963,6 +1069,7 @@ contains
                end do
                deallocate(cache)
                prev_seg = segment_t()
+               i = i + 1
                cycle outer
             end if 
 
@@ -989,10 +1096,12 @@ contains
          end if
 
          prev_seg = curr_seg
+         i = i + 1
       end do outer
 
       if (j < 1) then
          ! pattern '[+--]' causes this error for now.
+         ! ierr = SYNTAX_ERR_THIS_SHOULD_NOT_HAPPEN
          ierr = SYNTAX_ERR_THIS_SHOULD_NOT_HAPPEN
          is_valid = .false.
          return
@@ -1007,11 +1116,13 @@ contains
 
 
    !> This subroutine converts escaped character of the argument `chara` into segment `seg_list`. 
-   pure subroutine convert_escaped_character_into_segments(chara, seg_list)
+   pure subroutine convert_escaped_character_into_segments(chara, seg_list) !, hexcode)
       use :: forgex_utf8_m, only: ichar_utf8
       implicit none
       character(*), intent(in) :: chara
       type(segment_t), allocatable, intent(inout) :: seg_list(:)
+
+      integer :: unused
 
       if (allocated(seg_list)) deallocate(seg_list)
 
@@ -1063,6 +1174,13 @@ contains
          seg_list(5) = SEG_FF
          seg_list(6) = SEG_ZENKAKU_SPACE
          call invert_segment_list(seg_list)
+      case (ESCAPE_X)
+         allocate(seg_list(1))
+         call hex2seg(chara, seg_list(1), unused)
+      case (ESCAPE_P)
+         allocate(seg_list(1))
+         seg_list(1) = SEG_ERROR
+         continue
       case (SYMBOL_BSLH)
          allocate(seg_list(1))
          seg_list(1)%min = ichar_utf8(SYMBOL_BSLH)

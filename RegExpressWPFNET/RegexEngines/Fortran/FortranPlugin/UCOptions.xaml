@@ -23,7 +23,7 @@
                 </StackPanel.LayoutTransform>
                 <Label Content="Module:" Target="{Binding ElementName=cbxModule}" Padding="0 2 4 2" />
                 <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" VerticalAlignment="Center" MinWidth="90" IsEnabled="False">
-                    <ComboBoxItem Tag ="Forgex" Content="Forgex v4.2" IsSelected="True" />
+                    <ComboBoxItem Tag ="Forgex" Content="Forgex v4.5" IsSelected="True" />
                 </ComboBox>
             </StackPanel>
         </StackPanel>
