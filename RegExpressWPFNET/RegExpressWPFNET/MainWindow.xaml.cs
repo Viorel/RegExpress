@@ -723,7 +723,7 @@ namespace RegExpressWPFNET
                             return 0;
                         }
                     } )
-                    .Concat( new[] { 0 } )
+                    .Append( 0 )
                     .Max( );
 
             var new_tab_item = new TabItem

@@ -57,14 +57,23 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        public (Inline inline, string plainText) Build( string text, TextPointer at )
+        public (Inline inline, string plainText) Build( string text, TextPointer at, int maxLength = int.MaxValue )
         {
             sb.Clear( );
             runs.Clear( );
             isPreviousSpecial = false;
 
-            foreach( var c in text )
+            for( int i = 0; i < text.Length; i++ )
             {
+                if( i >= maxLength )
+                {
+                    AppendSpecial( @"…" );
+
+                    break;
+                }
+
+                char c = text[i];
+
                 switch( c )
                 {
                 case '\r':

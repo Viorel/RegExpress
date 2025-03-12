@@ -449,7 +449,9 @@ namespace RegExpressWPFNET
                 return;
             }
 
-            int matches_to_show = Math.Min( matches.Count, Properties.Settings.Default.MaxMatches < 0 ? int.MaxValue : Properties.Settings.Default.MaxMatches );
+            int MaxMatches = Properties.Settings.Default.MaxMatches < 0 ? int.MaxValue : Properties.Settings.Default.MaxMatches; // <=0?
+
+            int matches_to_show = Math.Min( matches.Count, MaxMatches );
             Typeface? type_face = null;
             double font_size = 0;
             double pixels_per_dip = 0;
@@ -517,15 +519,25 @@ namespace RegExpressWPFNET
                 if( cnc.IsCancellationRequested ) break;
 
 
-                int min_index = ordered_groups.Select( g => g.Success ? g.TextIndex : match.TextIndex ).Concat( new[] { match.TextIndex } ).Min( );
+                int min_text_index = ordered_groups.Select( g => g.Success ? g.TextIndex : match.TextIndex ).Append( match.TextIndex ).Min( );
+                int max_text_index = ordered_groups.Select( g => g.Success ? g.TextIndex + g.TextLength : match.TextIndex + match.TextLength ).Append( match.TextIndex + match.TextLength ).Max( );
                 if( show_captures )
                 {
-                    min_index = ordered_groups.SelectMany( g => g.Captures ).Select( c => c.TextIndex ).Concat( new[] { min_index } ).Min( );
+                    min_text_index = ordered_groups.SelectMany( g => g.Captures ).Select( c => c.TextIndex ).Append( min_text_index ).Min( );
+                    max_text_index = ordered_groups.SelectMany( g => g.Captures ).Select( c => c.TextIndex + c.TextLength ).Append( max_text_index ).Max( );
                 }
 
                 if( cnc.IsCancellationRequested ) break;
 
-                int left_width_for_match = left_width + ( match.TextIndex - min_index );
+                int MaxMatchLength = Properties.Settings.Default.MaxMatchLength <= 0 ? 500 : Properties.Settings.Default.MaxMatchLength;
+                int MaxMatchLeftOutdent = Properties.Settings.Default.MaxMatchLeftOutdent <= 0 ? 50 : Properties.Settings.Default.MaxMatchLeftOutdent;
+                int MaxMatchRightOutdent = Properties.Settings.Default.MaxMatchRightOutdent <= 0 ? 50 : Properties.Settings.Default.MaxMatchRightOutdent;
+
+                int left_space_for_match = Math.Min( match.TextIndex - min_text_index, MaxMatchLeftOutdent );
+                int right_space_for_match = Math.Min( max_text_index - ( match.TextIndex + Math.Min( match.TextLength, MaxMatchLength ) ), MaxMatchRightOutdent );
+
+                Debug.Assert( left_space_for_match >= 0 );
+                Debug.Assert( right_space_for_match >= 0 );
 
                 Paragraph? para = null;
                 Run? run = null;
@@ -560,7 +572,7 @@ namespace RegExpressWPFNET
 
                         para = new Paragraph( span );
 
-                        string start_text = match_name_text.PadRight( left_width_for_match, ' ' );
+                        string start_text = match_name_text.PadRight( left_width + left_space_for_match );
                         var start_run = new Run( start_text, span.ContentEnd );
                         start_run.Style( MatchNormalStyleInfo );
                         plain_text += start_text;
@@ -574,7 +586,7 @@ namespace RegExpressWPFNET
                         }
                         else
                         {
-                            (value_inline, string value_plain_text) = match_run_builder.Build( match.Value, span.ContentEnd );
+                            (value_inline, string value_plain_text) = match_run_builder.Build( match.Value, span.ContentEnd, MaxMatchLength + right_space_for_match );
                             value_inline.Style( MatchValueStyleInfo, highlight_style );
                             plain_text += value_plain_text;
                         }
@@ -605,6 +617,8 @@ namespace RegExpressWPFNET
                 if( max_number_achieved ) break;
                 if( cnc.IsCancellationRequested ) break;
 
+                plain_text = "".PadRight( left_width + left_space_for_match + MaxMatchLength + right_space_for_match + 20, 'W' );
+
                 FormattedText ft = new(
                     plain_text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                     type_face,
@@ -632,14 +646,69 @@ namespace RegExpressWPFNET
                         break;
                     }
 
+                    int left_space_for_group;
+                    bool too_far_to_left = false;
+                    bool too_far_to_right = false;
+
+                    if( !group.Success || no_group_details )
+                    {
+                        left_space_for_group = left_space_for_match;
+                    }
+                    else
+                    {
+                        if( group.TextIndex > match.TextIndex && group.TextIndex < match.TextIndex + match.TextLength )
+                        {
+                            left_space_for_group = left_space_for_match + ( group.TextIndex - match.TextIndex );
+
+                            int right_excess = ( left_space_for_group + group.TextLength ) - ( left_space_for_match + MaxMatchLength + MaxMatchRightOutdent );
+
+                            if( right_excess > 0 )
+                            {
+                                left_space_for_group -= right_excess;
+                                if( left_space_for_group < 0 )
+                                {
+                                    left_space_for_group = 0;
+                                    too_far_to_left = true;
+                                }
+                                too_far_to_right = true;
+                            }
+                        }
+                        else
+                        {
+                            left_space_for_group = left_space_for_match + ( group.TextIndex - match.TextIndex );
+
+                            if( left_space_for_group < 0 )
+                            {
+                                left_space_for_group = 0;
+                                too_far_to_left = true;
+                            }
+                            else
+                            {
+                                int right_excess = ( left_space_for_group + group.TextLength ) - ( left_space_for_match + MaxMatchLength + MaxMatchRightOutdent );
+
+                                if( right_excess > 0 )
+                                {
+                                    left_space_for_group -= right_excess;
+                                    if( left_space_for_group < 0 )
+                                    {
+                                        left_space_for_group = 0;
+                                        too_far_to_left = true;
+                                    }
+                                    too_far_to_right = true;
+                                }
+                            }
+                        }
+                    }
+
+                    Debug.Assert( left_space_for_group >= 0 );
+
                     string group_name_text = $" • Gʀᴏᴜᴘ ‹{group.Name}›";
-                    int left_width_for_group = left_width_for_match - Math.Max( 0, match.TextIndex - ( group.Success ? group.TextIndex : match.TextIndex ) );
 
                     ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
                     {
                         var span = new Span( );
 
-                        var start_run = new Run( group_name_text.PadRight( left_width_for_group, ' ' ), span.ContentEnd );
+                        var start_run = new Run( group_name_text.PadRight( left_width ), span.ContentEnd );
                         start_run.Style( GroupNameStyleInfo );
 
                         // (NOTE. Overlaps of groups are possible in this example: (?=(..))
@@ -671,19 +740,36 @@ namespace RegExpressWPFNET
                             }
                             else
                             {
-                                left = Utilities.SubstringFromTo( text, match.TextIndex, group.TextIndex );
-                                middle = group.Value;
-                                right = Utilities.SubstringFromTo( text, group.TextIndex + group.TextLength, Math.Max( match.TextIndex + match.TextLength, group.TextIndex + group.TextLength ) );
+                                if( too_far_to_left || too_far_to_right )
+                                {
+                                    left = "".PadRight( left_space_for_group );
+                                    middle = group.Value;
+                                    right = "";
+                                }
+                                else
+                                {
+                                    left = Utilities.SubstringFromTo( text, match.TextIndex, group.TextIndex );
+                                    middle = group.Value;
+                                    right = Utilities.SubstringFromTo( text, group.TextIndex + group.TextLength, Math.Max( match.TextIndex + match.TextLength, group.TextIndex + group.TextLength ) );
+
+                                    left = left.PadLeft( left_space_for_group );
+                                }
                             }
 
-                            (inl, _) = sibling_run_builder.Build( left, span.ContentEnd );
-                            inl.Style( GroupSiblingValueStyleInfo );
+                            if( left.Length > 0 )
+                            {
+                                (inl, _) = sibling_run_builder.Build( left, span.ContentEnd );
+                                inl.Style( GroupSiblingValueStyleInfo );
+                            }
 
-                            (value_inline, _) = match_run_builder.Build( middle, span.ContentEnd );
+                            (value_inline, _) = match_run_builder.Build( middle, span.ContentEnd, left_space_for_match + MaxMatchLength + MaxMatchRightOutdent - left.Length );
                             value_inline.Style( GroupValueStyleInfo, highlight_light_style );
 
-                            (inl, _) = sibling_run_builder.Build( right, span.ContentEnd );
-                            inl.Style( GroupSiblingValueStyleInfo );
+                            if( right.Length > 0 )
+                            {
+                                (inl, _) = sibling_run_builder.Build( right, span.ContentEnd, left_space_for_match + MaxMatchLength + MaxMatchRightOutdent - ( left.Length + middle.Length ) );
+                                inl.Style( GroupSiblingValueStyleInfo );
+                            }
                         }
 
                         if( cnc.IsCancellationRequested ) return;
@@ -706,11 +792,13 @@ namespace RegExpressWPFNET
 
                         match_info!.GroupInfos.Add( group_info );
 
+                        // captures
 
-                        // captures for group
-                        if( show_captures )
+                        if( show_captures && !no_group_details )
                         {
-                            AppendCaptures( cnc, group_info, para, left_width_for_match, text, match, group, highlight_light_style, match_run_builder, sibling_run_builder );
+                            AppendCaptures( cnc, group_info, para, left_width, left_space_for_match,
+                                MaxMatchLeftOutdent, MaxMatchLength, MaxMatchRightOutdent,
+                                text, match, group, highlight_light_style, match_run_builder, sibling_run_builder );
                         }
                     } );
                 }
@@ -792,8 +880,8 @@ namespace RegExpressWPFNET
             } ) );
         }
 
-
-        void AppendCaptures( ICancellable cnc, GroupInfo groupInfo, Paragraph para, int leftWidthForMatch,
+        void AppendCaptures( ICancellable cnc, GroupInfo groupInfo, Paragraph para, int leftWidth, int leftSpaceForMatch,
+            int MaxMatchLeftOutdent, int MaxMatchLength, int MaxMatchRightOutdent,
             string text, IMatch match, IGroup group, StyleInfo highlightStyle,
             OutputBuilder runBuilder, OutputBuilder siblingRunBuilder )
         {
@@ -814,12 +902,60 @@ namespace RegExpressWPFNET
 
                 ++capture_number;
 
-                var span = new Span( );
+                int left_space_for_capture;
+                bool too_far_to_left = false;
+                bool too_far_to_right = false;
+
+                if( capture.TextIndex > match.TextIndex && capture.TextIndex < match.TextIndex + match.TextLength )
+                {
+                    left_space_for_capture = leftSpaceForMatch + ( capture.TextIndex - match.TextIndex );
+
+                    int right_excess = ( left_space_for_capture + capture.TextLength ) - ( leftSpaceForMatch + MaxMatchLength + MaxMatchRightOutdent );
+
+                    if( right_excess > 0 )
+                    {
+                        left_space_for_capture -= right_excess;
+                        if( left_space_for_capture < 0 )
+                        {
+                            left_space_for_capture = 0;
+                            too_far_to_left = true;
+                        }
+                        too_far_to_right = true;
+                    }
+                }
+                else
+                {
+                    left_space_for_capture = leftSpaceForMatch + ( capture.TextIndex - match.TextIndex );
+
+                    if( left_space_for_capture < 0 )
+                    {
+                        left_space_for_capture = 0;
+                        too_far_to_left = true;
+                    }
+                    else
+                    {
+                        int right_excess = ( left_space_for_capture + capture.TextLength ) - ( leftSpaceForMatch + MaxMatchLength + MaxMatchRightOutdent );
+
+                        if( right_excess > 0 )
+                        {
+                            left_space_for_capture -= right_excess;
+                            if( left_space_for_capture < 0 )
+                            {
+                                left_space_for_capture = 0;
+                                too_far_to_left = true;
+                            }
+                            too_far_to_right = true;
+                        }
+                    }
+                }
+
+                Debug.Assert( left_space_for_capture >= 0 );
 
                 string capture_name_text = $"  ◦ Cᴀᴘᴛᴜʀᴇ {capture_number}";
-                int left_width_for_capture = leftWidthForMatch - Math.Max( 0, Math.Max( match.TextIndex - group.TextIndex, match.TextIndex - capture.TextIndex ) );
 
-                var start_run = new Run( capture_name_text.PadRight( left_width_for_capture, ' ' ), span.ContentEnd );
+                var span = new Span( );
+
+                var start_run = new Run( capture_name_text.PadRight( leftWidth ), span.ContentEnd );
                 start_run.Style( GroupNameStyleInfo );
 
                 Inline value_inline;
@@ -832,18 +968,39 @@ namespace RegExpressWPFNET
                 }
                 else
                 {
-                    string left = Utilities.SubstringFromTo( text, Math.Min( match.TextIndex, group.TextIndex ), capture.TextIndex );
-                    string middle = capture.Value;
-                    string right = Utilities.SubstringFromTo( text, capture.TextIndex + capture.TextLength, Math.Max( match.TextIndex + match.TextLength, group.TextIndex + group.TextLength ) );
+                    string left;
+                    string middle;
+                    string right;
 
-                    (inline, _) = siblingRunBuilder.Build( left, span.ContentEnd );
-                    inline.Style( GroupSiblingValueStyleInfo );
+                    if( too_far_to_left || too_far_to_right )
+                    {
+                        left = "".PadRight( left_space_for_capture );
+                        middle = capture.Value;
+                        right = "";
+                    }
+                    else
+                    {
+                        left = Utilities.SubstringFromTo( text, match.TextIndex, capture.TextIndex );
+                        middle = capture.Value;
+                        right = Utilities.SubstringFromTo( text, capture.TextIndex + capture.TextLength, Math.Max( match.TextIndex + match.TextLength, capture.TextIndex + capture.TextLength ) );
 
-                    (value_inline, _) = runBuilder.Build( middle, span.ContentEnd );
+                        left = left.PadLeft( left_space_for_capture );
+                    }
+
+                    if( left.Length > 0 )
+                    {
+                        (inline, _) = siblingRunBuilder.Build( left, span.ContentEnd );
+                        inline.Style( GroupSiblingValueStyleInfo );
+                    }
+
+                    (value_inline, _) = runBuilder.Build( middle, span.ContentEnd, leftSpaceForMatch + MaxMatchLength + MaxMatchRightOutdent - left.Length );
                     value_inline.Style( GroupValueStyleInfo, highlightStyle );
 
-                    (inline, _) = siblingRunBuilder.Build( right, span.ContentEnd );
-                    inline.Style( GroupSiblingValueStyleInfo );
+                    if( right.Length > 0 )
+                    {
+                        (inline, _) = siblingRunBuilder.Build( right, span.ContentEnd, leftSpaceForMatch + MaxMatchLength + MaxMatchRightOutdent - ( left.Length + middle.Length ) );
+                        inline.Style( GroupSiblingValueStyleInfo );
+                    }
                 }
 
                 inline = new Run( $"\x200E  （{capture.Index}, {capture.Length}）", span.ContentEnd );

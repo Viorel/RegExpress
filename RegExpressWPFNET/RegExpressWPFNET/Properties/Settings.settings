@@ -38,5 +38,14 @@
     <Setting Name="MaxCaptures" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">100</Value>
     </Setting>
+    <Setting Name="MaxMatchLength" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">100</Value>
+    </Setting>
+    <Setting Name="MaxMatchLeftOutdent" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">20</Value>
+    </Setting>
+    <Setting Name="MaxMatchRightOutdent" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">20</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

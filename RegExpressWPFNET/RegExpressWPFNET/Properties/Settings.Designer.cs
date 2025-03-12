@@ -12,7 +12,7 @@ namespace RegExpressWPFNET.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.7.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.13.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -155,6 +155,42 @@ namespace RegExpressWPFNET.Properties {
             }
             set {
                 this["MaxCaptures"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("100")]
+        public int MaxMatchLength {
+            get {
+                return ((int)(this["MaxMatchLength"]));
+            }
+            set {
+                this["MaxMatchLength"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("20")]
+        public int MaxMatchLeftOutdent {
+            get {
+                return ((int)(this["MaxMatchLeftOutdent"]));
+            }
+            set {
+                this["MaxMatchLeftOutdent"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("20")]
+        public int MaxMatchRightOutdent {
+            get {
+                return ((int)(this["MaxMatchRightOutdent"]));
+            }
+            set {
+                this["MaxMatchRightOutdent"] = value;
             }
         }
     }
