@@ -22,7 +22,7 @@ It includes the following Regular Expression engines:
 * **[Python](https://www.python.org/)** 3.13.2 (standard *re* module, third-party *regex* module).
 * **[D](https://dlang.org/phobos/std_regex.html)** 2.109.1 (*std.regex* module).
 * **[Perl](https://perldoc.perl.org/perlreref)** 5.40.0 (Strawberry Perl).
-* **Fortran [Forgex](https://github.com/ShinobuAmasaki/forgex)** v4.5 module (Intel® Fortran Compiler)
+* **Fortran [Forgex](https://github.com/ShinobuAmasaki/forgex)** v4.6 module (Intel® Fortran Compiler)
 * **[TRE](https://github.com/laurikari/tre)** 0.9.0 (in C)
 
 
