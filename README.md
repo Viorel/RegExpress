@@ -16,7 +16,7 @@ It includes the following Regular Expression engines:
 * **VBScript [RegExp](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85))** object used in Access, Excel, Word.
 * **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel (in C).
 * **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41 (in C).
-* **[ICU Regular Expressions](https://icu.unicode.org/)** 76.1 (in C++).
+* **[ICU Regular Expressions](https://icu.unicode.org/)** 77.1 (in C++).
 * **Rust** 1.84.1 crates: **[regex](https://docs.rs/regex)** 1.11.1, **[fancy\_regex](https://docs.rs/fancy-regex)** 0.14.0 and **[regress](https://docs.rs/regress)** 0.10.3.
 * **[Java](https://docs.oracle.com/en/java/javase/23/docs/api/java.base/java/util/regex/package-summary.html)** 23.0.2 (*java.util.regex* package).
 * **[Python](https://www.python.org/)** 3.13.2 (standard *re* module, third-party *regex* module).
