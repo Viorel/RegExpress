@@ -19,25 +19,25 @@ namespace RustPlugin
     {
         class VersionResponse
         {
-            public string version { get; set; }
+            public string? version { get; set; }
         }
 
         class NamedGroupResponse
         {
             [JsonPropertyName( "n" )]
-            public string Name { get; set; }
+            public string? Name { get; set; }
 
             [JsonPropertyName( "r" )]
-            public int[] Range { get; set; }
+            public int[]? Range { get; set; }
         }
 
         class MatchResponse
         {
             [JsonPropertyName( "g" )]
-            public int[][] Groups { get; set; }
+            public int[][]? Groups { get; set; }
 
             [JsonPropertyName( "ng" )]
-            public NamedGroupResponse[] NamedGroups { get; set; }
+            public NamedGroupResponse[]? NamedGroups { get; set; }
         }
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
@@ -97,7 +97,7 @@ namespace RustPlugin
 
                 List<string> assigned_names = [];
 
-                for( int group_index = 0; group_index < m.Groups.Length; group_index++ )
+                for( int group_index = 0; group_index < m.Groups!.Length; group_index++ )
                 {
                     int[] g = m.Groups[group_index];
                     bool success = g.Length == 2;
@@ -124,10 +124,10 @@ namespace RustPlugin
                     string? name = null;
                     if( success )
                     {
-                        name = m.NamedGroups
+                        name = m.NamedGroups!
                             .Where( ng => ng.Range?.Length == 2 && ng.Range[0] == g[0] && ng.Range[1] == g[1] )
                             .Select( ng => ng.Name )
-                            .Where( n => !assigned_names.Contains( n ) )
+                            .Where( n => !assigned_names.Contains( n! ) )
                             .FirstOrDefault( );
                         if( name != null ) assigned_names.Add( name );
                     }

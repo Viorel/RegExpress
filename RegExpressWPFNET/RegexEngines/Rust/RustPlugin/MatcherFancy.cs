@@ -18,13 +18,13 @@ namespace RustPlugin
     {
         class VersionResponse
         {
-            public string version { get; set; }
+            public string? version { get; set; }
         }
 
         class MatchesResponse
         {
-            public string[] names { get; set; }
-            public int[][][] matches { get; set; }
+            public string[]? names { get; set; }
+            public int[][][]? matches { get; set; }
         }
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
@@ -68,7 +68,7 @@ namespace RustPlugin
 
             MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( ph.OutputStream );
 
-            if( response == null ) throw new Exception( "Null response" );
+            if( response == null || response.matches == null || response.names == null ) throw new Exception( "Null response" );
 
             List<IMatch> matches = new( );
             SimpleTextGetter? stg = null;

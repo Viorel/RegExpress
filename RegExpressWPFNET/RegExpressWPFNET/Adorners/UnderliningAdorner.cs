@@ -95,6 +95,8 @@ namespace RegExpressWPFNET.Adorners
                     }
                     catch( ExecutionEngineException exc ) // sometimes happens in case of very large text
                     {
+                        // TODO: 'ExecutionEngineException' is now obsolete.
+
                         _ = exc;
                         if( Debugger.IsAttached ) Debugger.Break( );
                         // ignore and accept the ranges
