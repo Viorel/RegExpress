@@ -7,25 +7,30 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Interop;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.Matches.Simple;
 
+
 namespace RustPlugin
 {
-    internal static class MatcherFancy
+    static class MatcherRegexLite
     {
-        sealed class VersionResponse
+        class VersionResponse
         {
             public string? version { get; set; }
         }
 
-        sealed class MatchesResponse
+        class MatchesResponse
         {
             public string[]? names { get; set; }
             public int[][][]? matches { get; set; }
         }
+
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
@@ -39,6 +44,13 @@ namespace RustPlugin
             var o = new StringBuilder( );
 
             if( options.case_insensitive ) o.Append( "i" );
+            if( options.multi_line ) o.Append( "m" );
+            if( options.dot_matches_new_line ) o.Append( "s" );
+            if( options.crlf ) o.Append( "R" );
+            if( options.swap_greed ) o.Append( "U" );
+            if( options.ignore_whitespace ) o.Append( "x" );
+            //if( options.unicode ) o.Append( "u" );
+            //if( options.octal ) o.Append( "O" );
 
             var obj = new
             {
@@ -46,9 +58,9 @@ namespace RustPlugin
                 p = pattern,
                 t = text,
                 o = o.ToString( ),
-                bl = options.backtrack_limit?.Trim( ) ?? "",
-                dsl = options.delegate_size_limit?.Trim( ) ?? "",
-                ddsl = options.delegate_dfa_size_limit?.Trim( ) ?? "",
+                sl = options.size_limit?.Trim( ) ?? "",
+                //dsl = options.dfa_size_limit?.Trim( ) ?? "",
+                nl = options.nest_limit?.Trim( ) ?? "",
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
@@ -122,11 +134,34 @@ namespace RustPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
+        public static string? GetVersion( ICancellable cnc )
+        {
+            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
+
+            ph.AllEncoding = EncodingEnum.UTF8;
+
+            ph.BinaryWriter = bw =>
+            {
+                bw.Write( "{\"c\":\"v\"}" );
+            };
+
+            if( !ph.Start( cnc ) ) return null;
+
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+
+            VersionResponse? r = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream );
+
+            if( r == null ) throw new Exception( "Null response" );
+
+            return r!.version;
+        }
+
+
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string worker_exe = Path.Combine( assembly_dir, @"RustFancyWorker.bin" );
+            string worker_exe = Path.Combine( assembly_dir, @"RustRegexLiteWorker.bin" );
 
             return worker_exe;
         }

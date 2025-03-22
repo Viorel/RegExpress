@@ -93,9 +93,9 @@ namespace RustPlugin
 
             return options.crate switch
             {
-                CrateEnum.regex => Matcher.GetMatches( cnc, pattern, text, options ),
-                CrateEnum.regex_lite => MatcherLite.GetMatches( cnc, pattern, text, options ),
-                CrateEnum.fancy_regex => MatcherFancy.GetMatches( cnc, pattern, text, options ),
+                CrateEnum.regex => MatcherRegex.GetMatches( cnc, pattern, text, options ),
+                CrateEnum.regex_lite => MatcherRegexLite.GetMatches( cnc, pattern, text, options ),
+                CrateEnum.fancy_regex => MatcherFancyRegex.GetMatches( cnc, pattern, text, options ),
                 CrateEnum.regress => MatcherRegress.GetMatches( cnc, pattern, text, options ),
                 _ => throw new InvalidOperationException( )
             };
@@ -135,7 +135,7 @@ namespace RustPlugin
         {
             try
             {
-                return Matcher.GetVersion( NonCancellable.Instance );
+                return MatcherRegex.GetVersion( NonCancellable.Instance );
             }
             catch( Exception exc )
             {

@@ -1,4 +1,4 @@
-In order to rebuild the RustWorker ("src\main.rs"):
+In order to rebuild the RustRegexWorker ("src\main.rs"):
 
 - Download and install "Rust" from https://www.rust-lang.org/tools/install. 
   Use the recommended "rustup". Select the 64-bit installer.
@@ -15,10 +15,10 @@ In order to rebuild the RustWorker ("src\main.rs"):
 
         cargo build --release
 
-  It will generate the "target\release\RustWorker.exe".
+  It will generate the "target\release\RustRegexWorker.exe".
 
 - Rebuild ("Rebuild All") the Visual Studio solution. A Custom build step 
-  will copy 'RustWorker.exe' to output folder as 'RustWorker.bin'.
+  will copy 'RustRegexWorker.exe' to output folder as 'RustRegexWorker.bin'.
 
-- Commit and push the changes to Git (including 'RustWorker.exe'). 
+- Commit and push the changes to Git (including 'RustRegexWorker.exe'). 
 

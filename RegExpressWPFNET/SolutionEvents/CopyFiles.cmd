@@ -113,7 +113,7 @@ rem -- Rust --
 
 set BasePath=%SolutionDir%\RegexEngines\Rust
 xcopy /D /R /Y "%BasePath%\RustPlugin\bin\%Configuration%\%TargetDir%\RustPlugin.dll" "%EnginesTargetPath%\Rust\*"
-xcopy /D /R /Y "%BasePath%\RustWorker\target\release\RustWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
+xcopy /D /R /Y "%BasePath%\RustRegexWorker\target\release\RustRegexWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
 xcopy /D /R /Y "%BasePath%\RustFancyWorker\target\release\RustFancyWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
 xcopy /D /R /Y "%BasePath%\RustRegressWorker\target\release\RustRegressWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
 xcopy /D /R /Y "%BasePath%\RustRegexLiteWorker\target\release\RustRegexLiteWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
