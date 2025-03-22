@@ -18,14 +18,14 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace RustPlugin
 {
-    static class Matcher
+    static class MatcherLite
     {
-        sealed class VersionResponse
+        class VersionResponse
         {
             public string? version { get; set; }
         }
 
-        sealed class MatchesResponse
+        class MatchesResponse
         {
             public string[]? names { get; set; }
             public int[][][]? matches { get; set; }
@@ -39,25 +39,6 @@ namespace RustPlugin
                 throw new ApplicationException( "Invalid struct." );
             }
 
-            //UInt64 size_limit = 0;
-            //UInt64 dfa_size_limit = 0;
-            //UInt32 nest_limit = 0;
-
-            //if( !string.IsNullOrWhiteSpace( Options.size_limit ) && !UInt64.TryParse( Options.size_limit, out size_limit ) )
-            //{
-            //    throw new ApplicationException( "Invalid size_limit." );
-            //}
-
-            //if( !string.IsNullOrWhiteSpace( Options.dfa_size_limit ) && !UInt64.TryParse( Options.dfa_size_limit, out dfa_size_limit ) )
-            //{
-            //    throw new ApplicationException( "Invalid dfa_size_limit." );
-            //}
-
-            //if( !string.IsNullOrWhiteSpace( Options.nest_limit ) && !UInt32.TryParse( Options.nest_limit, out nest_limit ) )
-            //{
-            //    throw new ApplicationException( "Invalid nest_limit." );
-            //}
-
             byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
 
             var o = new StringBuilder( );
@@ -65,10 +46,11 @@ namespace RustPlugin
             if( options.case_insensitive ) o.Append( "i" );
             if( options.multi_line ) o.Append( "m" );
             if( options.dot_matches_new_line ) o.Append( "s" );
+            if( options.crlf ) o.Append( "R" );
             if( options.swap_greed ) o.Append( "U" );
             if( options.ignore_whitespace ) o.Append( "x" );
-            if( options.unicode ) o.Append( "u" );
-            if( options.octal ) o.Append( "O" );
+            //if( options.unicode ) o.Append( "u" );
+            //if( options.octal ) o.Append( "O" );
 
             var obj = new
             {
@@ -77,7 +59,7 @@ namespace RustPlugin
                 t = text,
                 o = o.ToString( ),
                 sl = options.size_limit?.Trim( ) ?? "",
-                dsl = options.dfa_size_limit?.Trim( ) ?? "",
+                //dsl = options.dfa_size_limit?.Trim( ) ?? "",
                 nl = options.nest_limit?.Trim( ) ?? "",
             };
 
@@ -100,7 +82,7 @@ namespace RustPlugin
 
             if( response == null || response.matches == null || response.names == null ) throw new Exception( "Null response" );
 
-            List<IMatch> matches = new( );
+            List<IMatch> matches = [];
             SimpleTextGetter? stg = null;
 
             foreach( var m in response.matches )
@@ -174,11 +156,12 @@ namespace RustPlugin
             return r!.version;
         }
 
+
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string worker_exe = Path.Combine( assembly_dir, @"RustWorker.bin" );
+            string worker_exe = Path.Combine( assembly_dir, @"RustRegexLiteWorker.bin" );
 
             return worker_exe;
         }

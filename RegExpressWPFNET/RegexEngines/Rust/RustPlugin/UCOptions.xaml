@@ -24,6 +24,7 @@
                 <Label Content="Crate:" Target="{Binding ElementName=cbxCrate}" Padding="0 2 4 2" MinWidth="40"/>
                 <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
                     <ComboBoxItem Tag ="regex" Content="regex 1.11.1" IsSelected="True" />
+                    <ComboBoxItem Tag ="regex_lite" Content="regex_lite 0.1.6" />
                     <ComboBoxItem Tag ="fancy_regex" Content="fancy_regex 0.14.0" />
                     <ComboBoxItem Tag ="regress" Content="regress 0.10.3" />
                 </ComboBox>
@@ -45,6 +46,7 @@
                 <ui:CheckboxWithNote x:Name="chbx_case_insensitive" Prop="case_insensitive" Note="(i) match both upper case and lower case variants"/>
                 <ui:CheckboxWithNote x:Name="chbx_multi_line" Prop="multi_line" Note="(m) “^” matches the beginning of lines, “$” matches the end of lines"/>
                 <ui:CheckboxWithNote x:Name="chbx_dot_matches_new_line" Prop="dot_matches_new_line" Note="(s) “.” matches anything"/>
+                <ui:CheckboxWithNote x:Name="chbx_crlf" Prop="crlf" Note="(R) treat both “\r” and “\n” as line terminator"/>
                 <ui:CheckboxWithNote x:Name="chbx_swap_greed" Prop="swap_greed" Note="(U) “a*” finds shortest match, “a*?” finds longest match"/>
                 <ui:CheckboxWithNote x:Name="chbx_ignore_whitespace" Prop="ignore_whitespace" Note="(x) ignore whitespaces, allow “#” to start line comments"/>
                 <ui:CheckboxWithNote x:Name="chbx_unicode" Prop="unicode" Note="(u) match Unicode characters"/>

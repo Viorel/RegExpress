@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace RustPlugin
 {
-
     enum CrateEnum
     {
         None,
         regex,
+        regex_lite,
         fancy_regex,
         regress,
     }
@@ -35,13 +35,14 @@ namespace RustPlugin
         public bool ignore_whitespace { get; set; }
         public bool unicode { get; set; } = true;
         public bool octal { get; set; }
+        public bool crlf { get; set; } // ('regex_lite' specific)
         public bool no_opt { get; set; } // ('regress' specific)
         public bool unicode_sets { get; set; } // ('regress' specific)
 
-        // Regex crate
+        // Regex and Regex_lite crates
 
         public string? size_limit { get; set; }
-        public string? dfa_size_limit { get; set; }
+        public string? dfa_size_limit { get; set; } // (not in 'regex_lite')
         public string? nest_limit { get; set; }
 
         // Fancy_regex crate

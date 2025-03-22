@@ -17,12 +17,12 @@ namespace RustPlugin
 {
     internal static class MatcherRegress
     {
-        class VersionResponse
+        sealed class VersionResponse
         {
             public string? version { get; set; }
         }
 
-        class NamedGroupResponse
+        sealed class NamedGroupResponse
         {
             [JsonPropertyName( "n" )]
             public string? Name { get; set; }
@@ -31,7 +31,7 @@ namespace RustPlugin
             public int[]? Range { get; set; }
         }
 
-        class MatchResponse
+        sealed class MatchResponse
         {
             [JsonPropertyName( "g" )]
             public int[][]? Groups { get; set; }
@@ -88,7 +88,7 @@ namespace RustPlugin
 
             if( response == null ) throw new Exception( "Null response" );
 
-            List<IMatch> matches = new( );
+            List<IMatch> matches = [];
             SimpleTextGetter? stg = null;
 
             foreach( var m in response )

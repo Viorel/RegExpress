@@ -12,7 +12,7 @@ namespace RustPlugin
 
         public IReadOnlyList<IRegexEngine> GetEngines( )
         {
-            return new[] { new Engine( ) };
+            return [new Engine( )];
         }
 
         #endregion

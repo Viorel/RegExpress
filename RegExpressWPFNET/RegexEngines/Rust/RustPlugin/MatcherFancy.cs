@@ -16,12 +16,12 @@ namespace RustPlugin
 {
     internal static class MatcherFancy
     {
-        class VersionResponse
+        sealed class VersionResponse
         {
             public string? version { get; set; }
         }
 
-        class MatchesResponse
+        sealed class MatchesResponse
         {
             public string[]? names { get; set; }
             public int[][][]? matches { get; set; }
@@ -70,7 +70,7 @@ namespace RustPlugin
 
             if( response == null || response.matches == null || response.names == null ) throw new Exception( "Null response" );
 
-            List<IMatch> matches = new( );
+            List<IMatch> matches = [];
             SimpleTextGetter? stg = null;
 
             foreach( var m in response.matches )
