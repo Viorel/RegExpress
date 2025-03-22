@@ -10,7 +10,7 @@ namespace DotNET8Worker
 {
     internal class Program
     {
-        class InputArgs
+        sealed class InputArgs
         {
             public string? cmd { get; set; }
             public string? pattern { get; set; }
@@ -18,8 +18,7 @@ namespace DotNET8Worker
             public Options? options { get; set; }
         }
 
-
-        class Options
+        sealed class Options
         {
             public bool Compiled { get; set; }
             public bool CultureInvariant { get; set; }
@@ -35,26 +34,23 @@ namespace DotNET8Worker
             public long TimeoutMs { get; set; } = 10_000;
         }
 
-
-        class WorkerMatch
+        sealed class WorkerMatch
         {
             public int index { get; set; }
             public int length { get; set; }
-            public List<WorkerGroup> groups { get; set; } = new List<WorkerGroup>( );
+            public List<WorkerGroup> groups { get; set; } = [];
         }
 
-
-        class WorkerGroup
+        sealed class WorkerGroup
         {
             public bool success { get; set; }
             public int index { get; set; }
             public int length { get; set; }
             public string? name { get; set; }
-            public List<WorkerCapture> captures { get; set; } = new List<WorkerCapture>( );
+            public List<WorkerCapture> captures { get; set; } = [];
         }
 
-
-        class WorkerCapture
+        sealed class WorkerCapture
         {
             public int index { get; set; }
             public int length { get; set; }
@@ -93,7 +89,6 @@ namespace DotNET8Worker
             }
         }
 
-
         private static void GetVersion( )
         {
             string? version = null;
@@ -128,12 +123,10 @@ namespace DotNET8Worker
             Console.Out.WriteLine( response_string );
         }
 
-
         private static void GetTextBackTest( InputArgs inputArgs )
         {
             Console.Out.WriteLine( inputArgs.text );
         }
-
 
         private static void GetMatches( InputArgs inputArgs )
         {
@@ -168,7 +161,6 @@ namespace DotNET8Worker
 
             Console.Out.WriteLine( ret_json );
         }
-
 
         private static RegexOptions ConvertOptions( Options? options )
         {

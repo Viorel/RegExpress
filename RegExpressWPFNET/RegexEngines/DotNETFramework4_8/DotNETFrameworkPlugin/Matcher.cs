@@ -18,31 +18,28 @@ namespace DotNETFrameworkPlugin
 {
     static class Matcher
     {
-        class VersionResponse
+        sealed class VersionResponse
         {
             public string? version { get; init; }
         }
 
-
-        class WorkerMatch
+        sealed class WorkerMatch
         {
             public int index { get; init; }
             public int length { get; init; }
-            public List<WorkerGroup> groups { get; init; } = new List<WorkerGroup>( );
+            public WorkerGroup[] groups { get; init; } = [];
         }
 
-
-        class WorkerGroup
+        sealed class WorkerGroup
         {
             public bool success { get; init; }
             public int index { get; init; }
             public int length { get; init; }
             public string? name { get; init; }
-            public List<WorkerCapture> captures { get; init; } = new List<WorkerCapture>( );
+            public WorkerCapture[] captures { get; init; } = [];
         }
 
-
-        class WorkerCapture
+        sealed class WorkerCapture
         {
             public int index { get; init; }
             public int length { get; init; }
@@ -93,7 +90,6 @@ namespace DotNETFrameworkPlugin
             return new RegexMatches( matches.Length, matches );
         }
 
-
         public static string? GetVersion( ICancellable cnc )
         {
             using ProcessHelper ph = new( GetWorkerExePath( ) );
@@ -113,7 +109,6 @@ namespace DotNETFrameworkPlugin
             return response.version;
         }
 
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -122,6 +117,5 @@ namespace DotNETFrameworkPlugin
 
             return worker_exe;
         }
-
     }
 }

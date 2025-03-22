@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace DotNET8Plugin
 {
-    class Options
+    sealed class Options
     {
         public bool Compiled { get; set; }
         public bool CultureInvariant { get; set; }
@@ -56,7 +56,6 @@ namespace DotNET8Plugin
                 Singleline = value.HasFlag( RegexOptions.Singleline );
             }
         }
-
 
         public Options Clone( )
         {

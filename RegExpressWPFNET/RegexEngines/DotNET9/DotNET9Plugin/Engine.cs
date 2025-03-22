@@ -20,7 +20,6 @@ namespace DotNET8Plugin
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
-
         public Engine( )
         {
             mOptionsControl = new Lazy<UCOptions>( ( ) =>
@@ -31,7 +30,6 @@ namespace DotNET8Plugin
                 return oc;
             } );
         }
-
 
         #region IRegexEngine
 
@@ -55,7 +53,6 @@ namespace DotNET8Plugin
             return mOptionsControl.Value;
         }
 
-
         public string? ExportOptions( )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
@@ -63,7 +60,6 @@ namespace DotNET8Plugin
 
             return json;
         }
-
 
         public void ImportOptions( string? json )
         {
@@ -91,14 +87,12 @@ namespace DotNET8Plugin
             mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
 
-
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
 
             return Matcher.GetMatches( cnc, pattern, text, options );
         }
-
 
         public SyntaxOptions GetSyntaxOptions( )
         {
@@ -111,7 +105,6 @@ namespace DotNET8Plugin
             };
         }
 
-
         public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
         {
             return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
@@ -119,12 +112,10 @@ namespace DotNET8Plugin
 
         #endregion
 
-
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
         }
-
 
         static string? GetVersion( )
         {
@@ -140,7 +131,6 @@ namespace DotNET8Plugin
                 return null;
             }
         }
-
 
         static FeatureMatrix BuildFeatureMatrix( )
         {

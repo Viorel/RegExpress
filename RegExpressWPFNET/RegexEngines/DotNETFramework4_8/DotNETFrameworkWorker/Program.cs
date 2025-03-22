@@ -13,7 +13,7 @@ namespace DotNETFrameworkConsole
 {
     internal class Program
     {
-        class InputArgs
+        sealed class InputArgs
         {
             public string cmd { get; set; }
             public string pattern { get; set; }
@@ -21,8 +21,7 @@ namespace DotNETFrameworkConsole
             public Options options { get; set; }
         }
 
-
-        class Options
+        sealed class Options
         {
             public bool IgnoreCase { get; set; }
             public bool Multiline { get; set; }
@@ -37,16 +36,14 @@ namespace DotNETFrameworkConsole
             public long TimeoutMs { get; set; } = 10_000;
         }
 
-
-        class WorkerMatch
+        sealed class WorkerMatch
         {
             public int index { get; set; }
             public int length { get; set; }
             public List<WorkerGroup> groups { get; set; } = new List<WorkerGroup>( );
         }
 
-
-        class WorkerGroup
+        sealed class WorkerGroup
         {
             public bool success { get; set; }
             public int index { get; set; }
@@ -55,8 +52,7 @@ namespace DotNETFrameworkConsole
             public List<WorkerCapture> captures { get; set; } = new List<WorkerCapture>( );
         }
 
-
-        class WorkerCapture
+        sealed class WorkerCapture
         {
             public int index { get; set; }
             public int length { get; set; }
@@ -95,7 +91,6 @@ namespace DotNETFrameworkConsole
             }
         }
 
-
         private static void GetVersion( )
         {
             TargetFrameworkAttribute targetFrameworkAttribute = Assembly
@@ -130,12 +125,10 @@ namespace DotNETFrameworkConsole
             Console.Out.WriteLine( response_string );
         }
 
-
         private static void GetTextBackTest( InputArgs inputArgs )
         {
             Console.Out.WriteLine( inputArgs.text );
         }
-
 
         private static void GetMatches( InputArgs inputArgs )
         {
@@ -170,7 +163,6 @@ namespace DotNETFrameworkConsole
 
             Console.Out.WriteLine( ret_json );
         }
-
 
         private static RegexOptions ConvertOptions( Options options )
         {

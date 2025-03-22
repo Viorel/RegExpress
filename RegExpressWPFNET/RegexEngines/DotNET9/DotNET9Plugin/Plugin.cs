@@ -16,6 +16,5 @@ namespace DotNET8Plugin
         }
 
         #endregion
-
     }
 }

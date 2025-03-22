@@ -12,10 +12,9 @@ namespace DotNETFrameworkPlugin
 
         public IReadOnlyList<IRegexEngine> GetEngines( )
         {
-            return new[] { new Engine( ) };
+            return [new Engine( )];
         }
 
         #endregion
-
     }
 }

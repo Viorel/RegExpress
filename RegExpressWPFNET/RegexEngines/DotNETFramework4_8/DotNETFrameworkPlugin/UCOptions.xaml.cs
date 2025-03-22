@@ -35,14 +35,12 @@ namespace DotNETFrameworkPlugin
             DataContext = Options;
         }
 
-
         private void UserControl_Loaded( object sender, RoutedEventArgs e )
         {
             if( IsFullyLoaded ) return;
 
             IsFullyLoaded = true;
         }
-
 
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
@@ -52,7 +50,6 @@ namespace DotNETFrameworkPlugin
             Changed?.Invoke( this, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = false } );
         }
 
-
         private void cbxTimeout_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             if( !IsFullyLoaded ) return;
@@ -61,12 +58,10 @@ namespace DotNETFrameworkPlugin
             Changed?.Invoke( this, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = true } );
         }
 
-
         internal Options GetSelectedOptions( )
         {
             return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
         }
-
 
         internal void SetSelectedOptions( Options options )
         {
@@ -82,7 +77,5 @@ namespace DotNETFrameworkPlugin
                 --ChangeCounter;
             }
         }
-
-
     }
 }
