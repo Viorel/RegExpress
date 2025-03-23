@@ -118,7 +118,7 @@ namespace RustPlugin
             return new List<(string?, FeatureMatrix)>
             {
                 ("“regex” crate", LazyData.GetValue( (CrateEnum.regex, isOctal:true) )),
-                // TODO: add 'regex_lite'?
+                ("“regex_lite” crate", LazyData.GetValue( (CrateEnum.regex_lite, isOctal:true) )),
                 ("“fancy_regex” crate", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true) )),
                 ("“regress” crate", LazyData.GetValue( (CrateEnum.regress, isOctal:true) )),
             };
@@ -151,7 +151,7 @@ namespace RustPlugin
             return data.crate switch
             {
                 CrateEnum.regex => BuildFeatureMatrix_RegexCrate( data.isOctal ),
-                CrateEnum.regex_lite => BuildFeatureMatrix_RegexLiteCrate( data.isOctal ),
+                CrateEnum.regex_lite => BuildFeatureMatrix_RegexLiteCrate( ),
                 CrateEnum.fancy_regex => BuildFeatureMatrix_FancyRegexCrate( ),
                 CrateEnum.regress => BuildFeatureMatrix_RegressCrate( ),
                 _ => throw new InvalidOperationException( ),
@@ -367,7 +367,7 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_RegexLiteCrate( bool isOctal )
+        private static FeatureMatrix BuildFeatureMatrix_RegexLiteCrate( )
         {
             return new FeatureMatrix
             {
@@ -402,7 +402,7 @@ namespace RustPlugin
                 Esc_t = true,
                 Esc_v = true,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = isOctal,
+                Esc_Octal_1_3 = false,
                 Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
@@ -426,7 +426,7 @@ namespace RustPlugin
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = isOctal,
+                InsideSets_Esc_Octal_1_3 = false,
                 InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
@@ -458,8 +458,8 @@ namespace RustPlugin
                 Class_wW = true,
                 Class_X = false,
                 Class_Not = false,
-                Class_pP = true,
-                Class_pPBrace = true,
+                Class_pP = false,
+                Class_pPBrace = false,
                 Class_Name = false,
 
                 InsideSets_Class_dD = true,
@@ -473,8 +473,8 @@ namespace RustPlugin
                 InsideSets_Class_vV = false,
                 InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
-                InsideSets_Class_pP = true,
-                InsideSets_Class_pPBrace = true,
+                InsideSets_Class_pP = false,
+                InsideSets_Class_pPBrace = false,
                 InsideSets_Class_Name = true,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
