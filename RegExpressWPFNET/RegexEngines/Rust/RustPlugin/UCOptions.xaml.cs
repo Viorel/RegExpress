@@ -165,5 +165,10 @@ namespace RustPlugin
                 --ChangeCounter;
             }
         }
+
+        internal string? GetSelectedCrateTitle( )
+        {
+            return ( (ComboBoxItem)cbxCrate.SelectedItem ).Content.ToString( );
+        }
     }
 }

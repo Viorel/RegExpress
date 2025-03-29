@@ -40,6 +40,8 @@ namespace PCRE2Plugin
 
         public string Name => "PCRE2";
 
+        public string Subtitle => $"{Name} {Version}";
+
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 
         public string? NoteForCaptures => null;

@@ -27,6 +27,8 @@ namespace RegExpressLibrary
 
         string Name { get; }
 
+        string Subtitle { get; }
+
         RegexEngineCapabilityEnum Capabilities { get; }
 
         string? NoteForCaptures { get; }

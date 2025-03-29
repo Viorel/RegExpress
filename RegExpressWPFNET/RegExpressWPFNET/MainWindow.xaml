@@ -58,10 +58,14 @@
                     </DataTemplate.Triggers>
 
                     <StackPanel Orientation="Horizontal">
-                        <Label x:Name="TabCaption" 
+                        <StackPanel Orientation="Vertical">
+                            <Label x:Name="TabCaption" 
                                Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Header, NotifyOnTargetUpdated=True}"
+                               Padding="2 3"
                                />
-                        <!--<TextBox x:Name="TabNameEditor" Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Header, Mode=OneWay}"/>-->
+                            <!-- //NOTE: TextBlock does not underline accelerators (which is desired here) -->
+                            <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.Subtitle, FallbackValue='Untitled'}" Padding="2 2" Opacity="0.7" FontStyle="Italic" FontSize="10"/>
+                        </StackPanel>
 
                         <!-- ╳ ⛌ ⛒ ❌ ⨯ ×  ➕ -->
 

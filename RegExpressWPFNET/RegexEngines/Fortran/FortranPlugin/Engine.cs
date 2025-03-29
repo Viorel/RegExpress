@@ -41,6 +41,8 @@ namespace FortranPlugin
 
         public string Name => "Fortran (IFX)";
 
+        public string Subtitle => $"Fortran ({mOptionsControl.Value.GetSelectedModuleTitle( )})";
+
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupDetails | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.OverlappingMatches;
 
         public string? NoteForCaptures => null;

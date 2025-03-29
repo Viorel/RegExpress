@@ -101,5 +101,9 @@ namespace FortranPlugin
             }
         }
 
+        internal string? GetSelectedModuleTitle( )
+        {
+            return ( (ComboBoxItem)cbxModule.SelectedItem ).Content.ToString( );
+        }
     }
 }

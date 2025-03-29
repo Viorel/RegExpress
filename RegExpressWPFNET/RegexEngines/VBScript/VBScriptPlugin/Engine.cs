@@ -41,6 +41,8 @@ namespace VBScriptPlugin
 
         public string Name => "VBScript RegExp";
 
+        public string Subtitle => $"VBScript {Version}";
+
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupDetails | RegexEngineCapabilityEnum.NoCaptures;
 
         public string? NoteForCaptures => null;

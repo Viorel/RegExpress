@@ -45,6 +45,20 @@ namespace RegExpressWPFNET
         public event EventHandler? Changed;
         public event EventHandler? NewTabClicked;
 
+        static readonly DependencyProperty SubtitleProperty = DependencyProperty.Register( nameof( Subtitle ), typeof( string ), typeof( UCMain ) );
+
+        public string Subtitle
+        {
+            get
+            {
+                return (string)GetValue( SubtitleProperty );
+            }
+            private set
+            {
+                SetValue( SubtitleProperty, value );
+            }
+        }
+
 
         public UCMain( IReadOnlyList<IRegexEngine> engines )
         {
@@ -120,6 +134,8 @@ namespace RegExpressWPFNET
                 LoadTabData( tabData );
                 RestartAll( );
             }
+
+            UpdateSubtitle( );
         }
 
 
@@ -129,6 +145,7 @@ namespace RegExpressWPFNET
             {
                 // did not have chance to finish initialisation 
 
+                tabData.Subtitle = InitialTabData.Subtitle;
                 tabData.Pattern = InitialTabData.Pattern;
                 tabData.Text = InitialTabData.Text;
                 tabData.ActiveKind = InitialTabData.ActiveKind;
@@ -145,6 +162,7 @@ namespace RegExpressWPFNET
             }
             else
             {
+                tabData.Subtitle = Subtitle;
                 tabData.Pattern = ucPattern.GetBaseTextData( "\n" ).Text;
                 tabData.Text = ucText.GetBaseTextData( "\n" ).Text;
                 tabData.ActiveKind = CurrentRegexEngine!.Kind;
@@ -441,6 +459,7 @@ namespace RegExpressWPFNET
             if( !IsFullyLoaded ) return;
             if( IsInChange ) return;
 
+            UpdateSubtitle( );
             ucPattern.SetRegexOptions( CurrentRegexEngine!, GetEolOption( ) );
 
             if( preferImmediateReaction )
@@ -969,10 +988,22 @@ namespace RegExpressWPFNET
         {
             var cbxitem = cbxEngine.Items.Cast<ComboBoxItem>( ).Single( i => engine.CombinedId.Equals( i.Tag ) );
             cbxEngine.SelectedItem = cbxitem;
+            UpdateSubtitle( );
 
             UpdateOptions( engine );
         }
 
+        void UpdateSubtitle( )
+        {
+            if( InitialTabData != null )
+            {
+                Subtitle = InitialTabData.Subtitle ?? InitialTabData.ActiveKind ?? "";
+            }
+            else
+            {
+                Subtitle = CurrentRegexEngine?.Subtitle ?? "";
+            }
+        }
 
         void UpdateOptions( IRegexEngine engine )
         {

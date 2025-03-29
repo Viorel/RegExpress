@@ -41,6 +41,8 @@ namespace HyperscanPlugin
 
         public string Name => "Chimera";
 
+        public string Subtitle => $"{Name} {Version}";
+
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 
         public string? NoteForCaptures => null;

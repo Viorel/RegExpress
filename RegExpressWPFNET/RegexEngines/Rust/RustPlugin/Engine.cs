@@ -39,6 +39,8 @@ namespace RustPlugin
 
         public string Name => "Rust";
 
+        public string Subtitle => $"{Name} {Version} ({mOptionsControl.Value.GetSelectedCrateTitle( )})";
+
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd;
 
         public string? NoteForCaptures => null;

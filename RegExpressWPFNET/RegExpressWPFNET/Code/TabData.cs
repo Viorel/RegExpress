@@ -14,6 +14,7 @@ namespace RegExpressWPFNET.Code
     public sealed class TabData
     {
         public string? Name;
+        public string? Subtitle;
         public string? Pattern;
         public string? Text;
         public string? ActiveKind;

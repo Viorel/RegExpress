@@ -41,6 +41,8 @@ namespace HyperscanPlugin
 
         public string Name => "Hyperscan";
 
+        public string Subtitle => $"{Name} {Version}";
+
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupDetails | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.OverlappingMatches;
 
         public string? NoteForCaptures => null;

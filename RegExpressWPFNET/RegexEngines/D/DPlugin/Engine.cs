@@ -41,6 +41,8 @@ namespace DPlugin
 
         public string Name => "D";
 
+        public string Subtitle => $"{Name} {Version} (std.regex)";
+
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 
         public string? NoteForCaptures => null;

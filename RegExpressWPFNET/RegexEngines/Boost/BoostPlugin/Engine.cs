@@ -41,6 +41,8 @@ namespace BoostPlugin
 
         public string Name => "Boost.Regex";
 
+        public string Subtitle => $"{Name} {Version}";
+
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.Default;
 
         public string? NoteForCaptures => "requires ‘match_extra’";

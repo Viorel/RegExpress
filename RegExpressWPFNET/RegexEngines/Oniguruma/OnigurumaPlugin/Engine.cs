@@ -43,6 +43,8 @@ namespace OnigurumaPlugin
 
         public string Name => "Oniguruma";
 
+        public string Subtitle => $"{Name} {Version}";
+
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.Default;
 
         public string? NoteForCaptures => "requires ‘ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY’";
