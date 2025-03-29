@@ -76,6 +76,7 @@
                                 Command="{x:Static local:MainWindow.CloseTabCommand}"
                                 CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=.}" 
                                 IsTabStop="False"
+                                VerticalAlignment="Top"
                                 >
 
                             <Button.Template>
