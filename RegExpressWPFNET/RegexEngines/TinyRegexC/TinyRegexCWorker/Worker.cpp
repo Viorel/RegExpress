@@ -1,4 +1,4 @@
-// SubRegWorker.cpp : This file contains the 'main' function. Program execution begins and ends there.
+// TinyRegexCWorker.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
 #include "pch.h"
@@ -40,19 +40,35 @@ static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& 
                     int match_length;
                     int match_index = re_matchp( re, text.c_str( ) + start_index, &match_length );
 
-                    if( match_index < 0 )
+                    if( match_index < 0 ) break;
+
+                    int absolute_index = match_index + start_index;
+
+                    // validate
+
+                    if( absolute_index > text.length( ) )
                     {
-                        break;
-                    }
-                    else
-                    {
-                        // match
-                        outbw.WriteT<char>( 'm' );
-                        outbw.WriteT<int64_t>( match_index + start_index );
-                        outbw.WriteT<int64_t>( match_length );
+                        throw std::runtime_error( std::format( "'match_index' ({}) returned by 're_matchp' exceeds the length of text ({}).", absolute_index, text.length( ) ) );
                     }
 
-                    int next_start_index = match_index + start_index + match_length;
+                    if( match_length < 0 )
+                    {
+                        throw std::runtime_error( std::format( "'match_length' ({}) returned by 're_matchp' is negative.", match_length ) );
+                    }
+
+                    if( absolute_index + match_length > text.length( ) )
+                    {
+                        throw std::runtime_error( std::format( "'match_length' ({}) returned by 're_matchp' at {} exceeds the length of text ({}).", match_length, absolute_index, text.length( ) ) );
+                    }
+
+                    // write match
+
+                    outbw.WriteT<char>( 'm' );
+                    outbw.WriteT<int64_t>( absolute_index );
+                    outbw.WriteT<int64_t>( match_length );
+
+
+                    int next_start_index = absolute_index + match_length;
 
                     start_index = next_start_index <= start_index ? start_index + 1 : next_start_index;
                 }
@@ -62,14 +78,14 @@ static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& 
             }( );
 
         return;
-            }
+    }
     __except( code = GetExceptionCode( ), SEHFilter( code, error_text, _countof( error_text ) ) )
     {
         // things done in filter
     }
 
     throw std::runtime_error( error_text );
-    }
+}
 
 
 int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
@@ -119,7 +135,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         {
             // get version
 
-            auto v = "2021-02-11";
+            auto v = "2022-06-21";
 
             outbw.Write( v );
 

@@ -145,12 +145,12 @@ namespace TinyRegexCPlugin
         {
             return new FeatureMatrix
             {
-                Parentheses = FeatureMatrix.PunctuationEnum.None,
+                Parentheses = FeatureMatrix.PunctuationEnum.Normal,
 
                 Brackets = true,
                 ExtendedBrackets = false,
 
-                VerticalLine = FeatureMatrix.PunctuationEnum.None,
+                VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
 
                 InlineComments = false,
                 XModeComments = false,
@@ -179,7 +179,7 @@ namespace TinyRegexCPlugin
                 Esc_Octal_1_3 = false,
                 Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
-                Esc_x2 = false,
+                Esc_x2 = true,
                 Esc_xBrace = false,
                 Esc_u4 = false,
                 Esc_U8 = false,
@@ -324,10 +324,10 @@ namespace TinyRegexCPlugin
                 Quantifier_Asterisk = true,
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
-                Quantifier_Braces = FeatureMatrix.PunctuationEnum.None,
+                Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
-                Quantifier_LowAbbrev = false,
+                Quantifier_LowAbbrev = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

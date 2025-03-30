@@ -57,6 +57,9 @@
     },
     {
       "path": "Engines\\TRE\\TREPlugin.dll"
+    },
+    {
+      "path": "Engines\\TinyRegexC\\TinyRegexCPlugin.dll"
     }
   ]
 }
