@@ -164,3 +164,9 @@ xcopy /D /R /Y "%BasePath%\TREWorker\bin\%Configuration%\%Platform%\TREWorker.ex
 xcopy /D /R /Y "%BasePath%\TRE\TRE\win32\bin\%Configuration%\%Platform%\tre.dll" "%EnginesTargetPath%\TRE\*"
 
 
+rem -- tiny-regex-c --
+
+set BasePath=%SolutionDir%\RegexEngines\TinyRegexC
+xcopy /D /R /Y "%BasePath%\TinyRegexCPlugin\bin\%Configuration%\%TargetDir%\TinyRegexCPlugin.dll" "%EnginesTargetPath%\TinyRegexC\*"
+xcopy /D /R /Y "%BasePath%\TinyRegexCWorker\bin\%Configuration%\%Platform%\TinyRegexCWorker.exe" "%EnginesTargetPath%\TinyRegexC\*.bin"
+

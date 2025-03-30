@@ -12,14 +12,13 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
 
-namespace SubRegPlugin
+namespace TinyRegexCPlugin
 {
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
-
 
         public Engine( )
         {
@@ -35,11 +34,11 @@ namespace SubRegPlugin
 
         #region IRegexEngine
 
-        public string Kind => "SubReg";
+        public string Kind => "TinyRegexC";
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "SubReg";
+        public string Name => "tiny-regex-c";
 
         public string Subtitle => $"{Name} {Version}";
 
@@ -108,6 +107,7 @@ namespace SubRegPlugin
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
+                AllowEmptySets = true,
                 FeatureMatrix = LazyFeatureMatrix.Value
             };
         }
@@ -126,7 +126,6 @@ namespace SubRegPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-
         static string? GetVersion( )
         {
             try
@@ -142,23 +141,22 @@ namespace SubRegPlugin
             }
         }
 
-
         private static FeatureMatrix BuildFeatureMatrix( )
         {
             return new FeatureMatrix
             {
-                Parentheses = FeatureMatrix.PunctuationEnum.Normal,
+                Parentheses = FeatureMatrix.PunctuationEnum.None,
 
                 Brackets = true,
                 ExtendedBrackets = false,
 
-                VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                VerticalLine = FeatureMatrix.PunctuationEnum.None,
 
                 InlineComments = false,
                 XModeComments = false,
                 InsideSets_XModeComments = false,
 
-                Flags = true,
+                Flags = false,
                 ScopedFlags = false,
                 CircumflexFlags = false,
                 ScopedCircumflexFlags = false,
@@ -170,18 +168,18 @@ namespace SubRegPlugin
                 InsideSets_Literal_qBrace = false,
 
                 Esc_a = false,
-                Esc_b = true,
+                Esc_b = false,
                 Esc_e = false,
-                Esc_f = true,
-                Esc_n = true,
-                Esc_r = true,
-                Esc_t = true,
-                Esc_v = true,
+                Esc_f = false,
+                Esc_n = false,
+                Esc_r = false,
+                Esc_t = false,
+                Esc_v = false,
                 Esc_Octal0_1_3 = false,
                 Esc_Octal_1_3 = false,
                 Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
-                Esc_x2 = true,
+                Esc_x2 = false,
                 Esc_xBrace = false,
                 Esc_u4 = false,
                 Esc_U8 = false,
@@ -221,7 +219,7 @@ namespace SubRegPlugin
                 Class_Cbyte = false,
                 Class_Ccp = false,
                 Class_dD = true,
-                Class_hHhexa = true,
+                Class_hHhexa = false,
                 Class_hHhorspace = false,
                 Class_lL = false,
                 Class_N = false,
@@ -233,21 +231,21 @@ namespace SubRegPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = true,
+                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
                 Class_Name = false,
 
-                InsideSets_Class_dD = false,
-                InsideSets_Class_hHhexa = true,
+                InsideSets_Class_dD = true,
+                InsideSets_Class_hHhexa = false,
                 InsideSets_Class_hHhorspace = false,
                 InsideSets_Class_lL = false,
                 InsideSets_Class_R = false,
-                InsideSets_Class_sS = false,
+                InsideSets_Class_sS = true,
                 InsideSets_Class_sSx = false,
                 InsideSets_Class_uU = false,
                 InsideSets_Class_vV = false,
-                InsideSets_Class_wW = false,
+                InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
                 InsideSets_Class_pPBrace = false,
@@ -346,8 +344,8 @@ namespace SubRegPlugin
                 ScriptRuns = false,
 
                 EmptyConstruct = false,
-                EmptyConstructX = false, // TODO: "a(? )b": with "xabc" no error, with "ab" gives error
-                EmptySet = false,
+                EmptyConstructX = false,
+                EmptySet = true,
 
                 SplitSurrogatePairs = false, // (not applicable)
             };
