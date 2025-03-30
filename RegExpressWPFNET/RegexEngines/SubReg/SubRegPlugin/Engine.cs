@@ -215,7 +215,7 @@ namespace SubRegPlugin
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = false,
+                InsideSets_GenericEscape = true,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
@@ -290,9 +290,9 @@ namespace SubRegPlugin
                 NamedGroup_AtLtGt = false,
                 CapturingGroup = false,
 
-                NoncapturingGroup = true,
-                PositiveLookahead = true,
-                NegativeLookahead = true,
+                NoncapturingGroup = false,
+                PositiveLookahead = false,
+                NegativeLookahead = false,
                 PositiveLookbehind = false,
                 NegativeLookbehind = false,
                 AtomicGroup = false,
