@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:FortranPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="60.968" d:DesignWidth="196.213" 
+             d:DesignHeight="53.368" d:DesignWidth="381.013" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -16,7 +16,7 @@
     </UserControl.Resources>
 
     <Grid>
-        <StackPanel>
+        <StackPanel Orientation="Vertical">
             <StackPanel Orientation="Horizontal" Margin="0 0 0 4">
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
@@ -27,6 +27,8 @@
                     <ComboBoxItem Tag ="Forgex" Content="Forgex v4.6" IsSelected="True" />
                 </ComboBox>
             </StackPanel>
+
+            <ui:CheckboxWithNote Prop="MatchAll" Text="Match all" Note="continue the matching in the remaining substring"/>
         </StackPanel>
     </Grid>
 </UserControl>

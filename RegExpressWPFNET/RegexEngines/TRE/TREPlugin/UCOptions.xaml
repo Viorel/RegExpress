@@ -38,6 +38,7 @@
             </Label>
             <ui:CheckboxWithNote Prop="REG_NOTBOL" Note="“^” does not match the beginning"/>
             <ui:CheckboxWithNote Prop="REG_NOTEOL" Note="“$” does not match the end"/>
+            <ui:CheckboxWithNote Prop="MatchAll" Text="Match all" Note="continue the matching in the remaining substring"/>
 
         </StackPanel>
     </Grid>

@@ -22,6 +22,11 @@ namespace TREPlugin
         public bool REG_NOTBOL { get; set; }
         public bool REG_NOTEOL { get; set; }
 
+        //
+
+        public bool MatchAll { get; set; } = false;
+
+
         public Options Clone( )
         {
             return (Options)MemberwiseClone( );

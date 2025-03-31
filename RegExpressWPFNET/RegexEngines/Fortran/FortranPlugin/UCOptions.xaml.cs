@@ -44,7 +44,6 @@ namespace FortranPlugin
             UpdateControls( );
         }
 
-
         void Notify( bool preferImmediateReaction )
         {
             if( !IsFullyLoaded ) return;
@@ -53,12 +52,10 @@ namespace FortranPlugin
             Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
         }
 
-
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
         }
-
 
         void UpdateControls( )
         {
@@ -77,12 +74,10 @@ namespace FortranPlugin
             }
         }
 
-
         internal Options GetSelectedOptions( )
         {
             return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
         }
-
 
         internal void SetSelectedOptions( Options options )
         {

@@ -42,7 +42,10 @@ namespace TinyRegexCPlugin
                 throw new Exception( string.Format( "Tiny-regex-c only supports ASCII character encoding.\r\nThe text contains an invalid character at position {0}.", exc.Index ) );
             }
 
-            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
+            string flags = "";
+            if( options.MatchAll ) flags += "A";
+
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.ASCII;
 
@@ -54,6 +57,7 @@ namespace TinyRegexCPlugin
 
                 bw.Write( pattern );
                 bw.Write( text );
+                bw.Write( flags );
 
                 bw.Write( (byte)'e' );
             };

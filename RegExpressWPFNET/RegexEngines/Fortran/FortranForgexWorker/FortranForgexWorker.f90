@@ -43,14 +43,15 @@
             use :: forgex
             use :: forgex_error_m
 
-            character (:), allocatable :: pattern, text, options, result
+            character (:), allocatable :: pattern, text, flags, result
             integer :: from, to, status, absolute_from
             character (256) err_msg
+            logical :: match_all
             logical :: overlapped
 
             call read_line(stdin, pattern)
             call read_line(stdin, text)
-            call read_line(stdin, options)
+            call read_line(stdin, flags)
 
             pattern = replace_all(pattern, CHAR(27) // "r", CHAR(13))
             pattern = replace_all(pattern, CHAR(27) // "n", CHAR(10))
@@ -58,7 +59,8 @@
             text = replace_all(text, CHAR(27) // "r", CHAR(13))
             text = replace_all(text, CHAR(27) // "n", CHAR(10))
 
-            overlapped = (index(options, "o") > 0)
+            match_all = (index(flags, "A") > 0)
+            overlapped = (index(flags, "o") > 0)
 
             absolute_from = 1
 
@@ -75,6 +77,8 @@
                 if( from <= 0 ) exit
 
                 write(stdout, "('m ', i0, ' ', i0)"), absolute_from + from - 1, absolute_from + to - 1
+
+                if (.not. match_all) exit
 
                 if (overlapped) then
                     absolute_from = absolute_from + from

@@ -20,11 +20,14 @@ namespace FortranPlugin
 {
     static partial class Matcher
     {
-
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             string adjusted_pattern = pattern.Replace( "\x1B", " " ).Replace( "\r", "\x1Br" ).Replace( "\n", "\x1Bn" );
             string adjusted_text = text.Replace( "\x1B", " " ).Replace( "\r", "\x1Br" ).Replace( "\n", "\x1Bn" );
+
+            string flags = "";
+            if( options.MatchAll ) flags += "A";
+            //flags += "o"; // for overlapped matches
 
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
@@ -35,7 +38,7 @@ namespace FortranPlugin
                 sw.WriteLine( "m" );
                 sw.WriteLine( adjusted_pattern );
                 sw.WriteLine( adjusted_text );
-                sw.WriteLine( "" ); // options; currently no ones
+                sw.WriteLine( flags );
             };
 
             if( !ph.Start( cnc ) ) return RegexMatches.Empty;
@@ -44,7 +47,7 @@ namespace FortranPlugin
 
             byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
 
-            List<SimpleMatch> matches = new( );
+            List<SimpleMatch> matches = [];
             SimpleTextGetter text_getter = new( text );
             SimpleMatch? match = null;
             string? line;
@@ -127,7 +130,6 @@ namespace FortranPlugin
                 return version;
             }
         }
-
 
         static string GetWorkerExePath( )
         {

@@ -16,7 +16,7 @@
 using namespace std;
 
 
-static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& text )
+static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& text, const string& flags )
 {
 
     DWORD code;
@@ -26,6 +26,8 @@ static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& 
     {
         [&]( )
             {
+                bool match_all = flags.find( 'A' ) != string::npos;
+
                 re_t re = re_compile( pattern.c_str( ) );
 
                 if( re == nullptr )
@@ -67,6 +69,7 @@ static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& 
                     outbw.WriteT<int64_t>( absolute_index );
                     outbw.WriteT<int64_t>( match_length );
 
+                    if( !match_all ) break;
 
                     int next_start_index = absolute_index + match_length;
 
@@ -148,10 +151,11 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
             std::string pattern = inbr.ReadString( );
             std::string text = inbr.ReadString( );
+            std::string flags = inbr.ReadString( );
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-            DoMatch( outbw, pattern, text );
+            DoMatch( outbw, pattern, text, flags );
 
             return 0;
         }

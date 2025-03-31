@@ -40,8 +40,11 @@ namespace TREPlugin
                 bw.Write( Convert.ToByte( options.REG_LITERAL ) );
                 bw.Write( Convert.ToByte( options.REG_RIGHT_ASSOC ) );
                 bw.Write( Convert.ToByte( options.REG_UNGREEDY ) );
+
                 bw.Write( Convert.ToByte( options.REG_NOTBOL ) );
                 bw.Write( Convert.ToByte( options.REG_NOTEOL ) );
+
+                bw.Write( Convert.ToByte( options.MatchAll ) );
 
                 bw.Write( (byte)'e' );
             };

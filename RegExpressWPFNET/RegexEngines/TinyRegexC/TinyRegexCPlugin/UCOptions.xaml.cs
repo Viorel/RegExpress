@@ -50,7 +50,7 @@ namespace TinyRegexCPlugin
             Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
         }
 
-        private void tbxMaximumDepth_TextChanged( object sender, TextChangedEventArgs e )
+        private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
         }

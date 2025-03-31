@@ -6,10 +6,18 @@
              xmlns:local="clr-namespace:TinyRegexCPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="100" d:DesignWidth="200" 
+             d:DesignHeight="35.909" d:DesignWidth="372.841" 
              Loaded="UserControl_Loaded">
 
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
     <Grid>
+
+        <ui:CheckboxWithNote Prop="MatchAll" Text="Match all" Note="continue the matching in the remaining substring"/>
 
     </Grid>
 </UserControl>

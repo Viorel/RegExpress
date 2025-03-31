@@ -56,7 +56,7 @@ static std::wstring FormatError( reg_errcode_t code )
 }
 
 
-static void DoMatch( BinaryWriterW& outbw, StreamWriterW& errwr, const wstring& pattern, const wstring& text, int cflags, int eflags )
+static void DoMatch( BinaryWriterW& outbw, StreamWriterW& errwr, const wstring& pattern, const wstring& text, int cflags, int eflags, bool matchAll )
 {
 
     DWORD code;
@@ -125,6 +125,8 @@ static void DoMatch( BinaryWriterW& outbw, StreamWriterW& errwr, const wstring& 
                                 outbw.WriteT<int32_t>( -1 );
                             }
                         }
+
+                        if( !matchAll ) break;
 
                         if( match[0].rm_eo <= 0 )
                         {
@@ -228,9 +230,11 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) ) eflags |= REG_NOTBOL;
             if( inbr.ReadByte( ) ) eflags |= REG_NOTEOL;
 
+            bool match_all = inbr.ReadByte( ) != 0;
+
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-            DoMatch( outbw, errwr, pattern, text, cflags, eflags );
+            DoMatch( outbw, errwr, pattern, text, cflags, eflags, match_all );
 
             return 0;
         }

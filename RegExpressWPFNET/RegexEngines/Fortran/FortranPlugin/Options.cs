@@ -10,6 +10,7 @@ namespace FortranPlugin
 
     internal class Options
     {
+        public bool MatchAll { get; set; } = false;
 
         public Options Clone( )
         {
