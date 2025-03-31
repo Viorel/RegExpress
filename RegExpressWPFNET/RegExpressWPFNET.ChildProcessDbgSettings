@@ -11,5 +11,6 @@
   <Rule IsEnabled="false" ProcessName="DotNET6Worker.bin" CommandLine="" EngineFilter="{2e36f1d4-b23c-435d-ab41-18e608940038}" />
   <Rule IsEnabled="false" ProcessName="WebView2Worker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="XRegExpWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
-  <Rule IsEnabled="true" ProcessName="TREWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
+  <Rule IsEnabled="false" ProcessName="TREWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
+  <Rule IsEnabled="true" ProcessName="TinyRegexCWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
 </ChildProcessDebuggingSettings>
