@@ -6,22 +6,61 @@
              xmlns:local="clr-namespace:SubRegPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="100" d:DesignWidth="200" 
+             d:DesignHeight="52" d:DesignWidth="391.642" 
              Loaded="UserControl_Loaded">
 
+    <UserControl.Resources>
+        <Style TargetType="TextBox">
+            <EventSetter Event="TextChanged" Handler="TextBox_TextChanged"/>
+        </Style>
+    </UserControl.Resources>
+
     <Grid>
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
-            <StackPanel.LayoutTransform>
+        <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 2 0 4">
+            <Grid.LayoutTransform>
                 <TransformGroup>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                     <SkewTransform/>
                     <RotateTransform/>
                     <TranslateTransform/>
                 </TransformGroup>
-            </StackPanel.LayoutTransform>
+            </Grid.LayoutTransform>
+            <Grid.Resources>
+                <Style TargetType="Label">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    <Setter Property="Padding" Value="0 2 4 2"/>
+                </Style>
+                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                </Style>
+                <Style TargetType="TextBlock" x:Key="note">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
+                    <Setter Property="Opacity" Value="0.70"/>
+                    <Setter Property="Margin" Value="4 0"/>
+                    <Setter Property="TextWrapping" Value="Wrap"/>
+                </Style>
+            </Grid.Resources>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="55"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <Label Content="max__depth:" Target="{Binding ElementName=tbxMaximumDepth}" VerticalAlignment="Center" Padding="0 2 4 2"/>
-            <TextBox x:Name="tbxMaximumDepth" Text="{Binding max_depth, UpdateSourceTrigger=PropertyChanged}" Width="55" VerticalAlignment="Center" TextChanged="tbxMaximumDepth_TextChanged" />
-        </StackPanel>
+            <Label Grid.Column="0" Grid.Row="0" Content="max__captures:" Target="{Binding ElementName=tbxMaximumCaptures}"/>
+            <TextBox x:Name="tbxMaximumCaptures" Grid.Column="1" Grid.Row="0" Text="{Binding max_captures, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Grid.Column="2" Grid.Row="0" Text="– maximum permitted number of captures" Style="{StaticResource note}" />
+
+            <Label Grid.Column="0" Grid.Row="1" Content="max__depth:" Target="{Binding ElementName=tbxMaximumDepth}"/>
+            <TextBox x:Name="tbxMaximumDepth" Grid.Column="1" Grid.Row="1" Text="{Binding max_depth, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Grid.Column="2" Grid.Row="1" Text="– maximum depth of nested groups" Style="{StaticResource note}" />
+
+        </Grid>
     </Grid>
 </UserControl>

@@ -43,12 +43,17 @@ namespace SubRegPlugin
                 throw new Exception( string.Format( "SubReg only supports ASCII character encoding.\r\nThe text contains an invalid character at position {0}.", exc.Index ) );
             }
 
-            if( string.IsNullOrWhiteSpace( options.max_depth ) || !Int32.TryParse( options.max_depth, out int max_depth ) || max_depth < 0 )
+            if( string.IsNullOrWhiteSpace( options.max_captures ) || !Int32.TryParse( options.max_captures, out int max_captures ) || max_captures < 0 )
             {
-                throw new Exception( string.Format( "Invalid maximum depth. Enter a number between 0 and {0}", Int32.MaxValue ) );
+                throw new Exception( string.Format( "Invalid “max_captures”. Enter a number between 0 and INT_MAX ({0})", Int32.MaxValue ) );
             }
 
-            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
+            if( string.IsNullOrWhiteSpace( options.max_depth ) || !Int32.TryParse( options.max_depth, out int max_depth ) || max_depth < 0 )
+            {
+                throw new Exception( string.Format( "Invalid “max_depth”. Enter a number between 0 and INT_MAX ({0})", Int32.MaxValue ) );
+            }
+
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.ASCII;
 
@@ -60,6 +65,7 @@ namespace SubRegPlugin
 
                 bw.Write( pattern );
                 bw.Write( text );
+                bw.Write( max_captures );
                 bw.Write( max_depth );
 
                 bw.Write( (byte)'e' );
@@ -71,7 +77,7 @@ namespace SubRegPlugin
 
             var br = ph.BinaryReader;
 
-            List<IMatch> matches = new( );
+            List<IMatch> matches = [];
             SimpleTextGetter stg = new( text );
             SimpleMatch? current_match = null;
 

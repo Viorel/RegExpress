@@ -16,7 +16,7 @@
 using namespace std;
 
 
-static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& text, int32_t maxDepth )
+static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& text, int32_t maxCaptures, int32_t maxDepth )
 {
 
     DWORD code;
@@ -25,69 +25,71 @@ static void DoMatch( BinaryWriterA& outbw, const string& pattern, const string& 
     __try
     {
         [&]( )
-        {
-            // TODO: optimise, avoid duplicates of Unicode and UTF-8 strings.
-
-            const int MAX_CAPTURES = 100;
-            std::unique_ptr<subreg_capture_t[]> captures( new subreg_capture_t[MAX_CAPTURES]( ) );
-
-            int number_of_matches = subreg_match( pattern.c_str( ), text.c_str( ), captures.get( ), MAX_CAPTURES, maxDepth );
-
-            if( number_of_matches < 0 )
             {
-                const char* err_name;
-                const char* err_text;
+                // TODO: optimise, avoid duplicates of Unicode and UTF-8 strings.
 
-                switch( number_of_matches )
+                if( maxCaptures < 0 ) throw std::runtime_error( "Negative 'maxCaptures'." );
+                if( maxCaptures == 0 ) throw std::runtime_error( "'subreg_match' cannot return captures when 'max_captures' is zero." );
+
+                std::unique_ptr<subreg_capture_t[]> captures( new subreg_capture_t[maxCaptures]( ) );
+
+                int number_of_captures = subreg_match( pattern.c_str( ), text.c_str( ), captures.get( ), maxCaptures, maxDepth );
+
+                if( number_of_captures < 0 )
                 {
-                case SUBREG_RESULT_INVALID_ARGUMENT: err_name = "SUBREG_RESULT_INVALID_ARGUMENT"; err_text = "Invalid argument passed to function."; break;
-                case SUBREG_RESULT_ILLEGAL_EXPRESSION: err_name = "SUBREG_RESULT_ILLEGAL_EXPRESSION"; err_text = "Syntax error found in regular expression."; break;
-                case SUBREG_RESULT_MISSING_BRACKET: err_name = "SUBREG_RESULT_MISSING_BRACKET"; err_text = "A closing group bracket is missing from the regular expression."; break;
-                case SUBREG_RESULT_SURPLUS_BRACKET: err_name = "SUBREG_RESULT_SURPLUS_BRACKET"; err_text = "A closing group bracket without a matching opening group bracket has been found."; break;
-                case SUBREG_RESULT_INVALID_METACHARACTER: err_name = "SUBREG_RESULT_INVALID_METACHARACTER"; err_text = "The regular expression contains an invalid metacharacter (typically a malformed \\ escape sequence)"; break;
-                case SUBREG_RESULT_MAX_DEPTH_EXCEEDED: err_name = "SUBREG_RESULT_MAX_DEPTH_EXCEEDED"; err_text = "The nesting depth of groups contained within the regular expression exceeds the limit specified by max_depth."; break;
-                case SUBREG_RESULT_CAPTURE_OVERFLOW: err_name = "SUBREG_RESULT_CAPTURE_OVERFLOW"; err_text = "Capture array not large enough."; break;
-                case SUBREG_RESULT_INVALID_OPTION: err_name = "SUBREG_RESULT_INVALID_OPTION"; err_text = "Invalid inline option specified."; break;
-                default: err_name = "?"; err_text = "Unknown error";
+                    const char* err_name;
+                    const char* err_text;
+
+                    switch( number_of_captures )
+                    {
+                    case SUBREG_RESULT_INVALID_ARGUMENT: err_name = "SUBREG_RESULT_INVALID_ARGUMENT"; err_text = "Invalid argument passed to function."; break;
+                    case SUBREG_RESULT_ILLEGAL_EXPRESSION: err_name = "SUBREG_RESULT_ILLEGAL_EXPRESSION"; err_text = "Syntax error found in regular expression."; break;
+                    case SUBREG_RESULT_MISSING_BRACKET: err_name = "SUBREG_RESULT_MISSING_BRACKET"; err_text = "A closing group bracket is missing from the regular expression."; break;
+                    case SUBREG_RESULT_SURPLUS_BRACKET: err_name = "SUBREG_RESULT_SURPLUS_BRACKET"; err_text = "A closing group bracket without a matching opening group bracket has been found."; break;
+                    case SUBREG_RESULT_INVALID_METACHARACTER: err_name = "SUBREG_RESULT_INVALID_METACHARACTER"; err_text = "The regular expression contains an invalid metacharacter (typically a malformed \\ escape sequence)"; break;
+                    case SUBREG_RESULT_MAX_DEPTH_EXCEEDED: err_name = "SUBREG_RESULT_MAX_DEPTH_EXCEEDED"; err_text = "The nesting depth of groups contained within the regular expression exceeds the limit specified by max_depth."; break;
+                    case SUBREG_RESULT_CAPTURE_OVERFLOW: err_name = "SUBREG_RESULT_CAPTURE_OVERFLOW"; err_text = "Capture array not large enough."; break;
+                    case SUBREG_RESULT_INVALID_OPTION: err_name = "SUBREG_RESULT_INVALID_OPTION"; err_text = "Invalid inline option specified."; break;
+                    default: err_name = "?"; err_text = "Unknown error";
+                    }
+
+                    throw std::runtime_error( std::format( "{}\r\n\r\n({}, {})", err_text, err_name, number_of_captures ) );
                 }
 
-                throw std::runtime_error( std::format( "{}\r\n\r\n({}, {})", err_text, err_name, number_of_matches ) );
-            }
+                outbw.WriteT<char>( 'b' );
 
-            outbw.WriteT<char>( 'b' );
-
-            if( number_of_matches > 0 )
-            {
-                int index;
-                int length;
-
-                const subreg_capture_t& main_capture = captures[0];
-                index = CheckedCast( main_capture.start - text.c_str( ) );
-                length = main_capture.length;
-
-                // match
-                outbw.WriteT<char>( 'm' );
-                outbw.WriteT<int64_t>( index );
-                outbw.WriteT<int64_t>( length );
-
-                // groups
-                for( int i = 0; i < number_of_matches; ++i )
+                if( number_of_captures > 0 )
                 {
-                    // (the first is the entire input)
+                    int index;
+                    int length;
 
-                    const subreg_capture_t& capture = captures[i];
-                    index = CheckedCast( capture.start - text.c_str( ) );
-                    length = capture.length;
+                    const subreg_capture_t& main_capture = captures[0]; // (the first is the entire input)
+                    index = CheckedCast( main_capture.start - text.c_str( ) );
+                    length = main_capture.length;
 
-                    outbw.WriteT<char>( 'g' );
+                    // match
+                    outbw.WriteT<char>( 'm' );
                     outbw.WriteT<int64_t>( index );
                     outbw.WriteT<int64_t>( length );
+
+                    // groups
+                    for( int i = 0; i < number_of_captures; ++i )
+                    {
+                        // (the first is the default group)
+
+                        const subreg_capture_t& capture = captures[i];
+                        index = CheckedCast( capture.start - text.c_str( ) );
+                        length = capture.length;
+
+                        outbw.WriteT<char>( 'g' );
+                        outbw.WriteT<int64_t>( index );
+                        outbw.WriteT<int64_t>( length );
+                    }
                 }
-            }
 
-            outbw.WriteT<char>( 'e' );
+                outbw.WriteT<char>( 'e' );
 
-        }( );
+            }( );
 
         return;
     }
@@ -160,12 +162,12 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
             std::string pattern = inbr.ReadString( );
             std::string text = inbr.ReadString( );
-
+            int32_t max_captures = inbr.ReadT<int32_t>( );
             int32_t max_depth = inbr.ReadT<int32_t>( );
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-            DoMatch( outbw, pattern, text, max_depth );
+            DoMatch( outbw, pattern, text, max_captures, max_depth );
 
             return 0;
         }

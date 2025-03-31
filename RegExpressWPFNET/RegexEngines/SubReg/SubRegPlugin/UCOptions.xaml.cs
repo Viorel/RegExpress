@@ -42,7 +42,6 @@ namespace SubRegPlugin
             IsFullyLoaded = true;
         }
 
-
         void Notify( bool preferImmediateReaction )
         {
             if( !IsFullyLoaded ) return;
@@ -51,18 +50,15 @@ namespace SubRegPlugin
             Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
         }
 
-
-        private void tbxMaximumDepth_TextChanged( object sender, TextChangedEventArgs e )
+        private void TextBox_TextChanged( object sender, TextChangedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
         }
-
 
         internal Options GetSelectedOptions( )
         {
             return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
         }
-
 
         internal void SetSelectedOptions( Options options )
         {
