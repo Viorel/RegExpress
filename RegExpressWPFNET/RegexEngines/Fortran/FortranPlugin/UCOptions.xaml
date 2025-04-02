@@ -22,9 +22,11 @@
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
                 <Label Content="Module:" Target="{Binding ElementName=cbxModule}" Padding="0 2 4 2" />
-                <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" VerticalAlignment="Center" MinWidth="90" IsEnabled="False">
+                <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='Forgex'}" VerticalAlignment="Center" MinWidth="90" SelectionChanged="cbxModule_SelectionChanged">
                     <!-- //TODO: put the version programmatically -->
                     <ComboBoxItem Tag ="Forgex" Content="Forgex v4.6" IsSelected="True" />
+                    <ComboBoxItem Tag ="RegexPerazz" Content="Regex (Perazz) v1.1.2" />
+                    <ComboBoxItem Tag ="RegexJeyemhex" Content="Regex (Jeyemhex) v0.4.0" />
                 </ComboBox>
             </StackPanel>
 

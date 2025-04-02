@@ -52,6 +52,13 @@ namespace FortranPlugin
             Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
         }
 
+        private void cbxModule_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateControls( );
+
+            Notify( preferImmediateReaction: true );
+        }
+
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
@@ -100,5 +107,6 @@ namespace FortranPlugin
         {
             return ( (ComboBoxItem)cbxModule.SelectedItem ).Content.ToString( );
         }
+
     }
 }

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35919.96 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "FortranRegexPerazzWorker", "FortranRegexPerazzWorker.vfproj", "{D7B86415-4E31-9B29-B1FD-CAA6FE65E2EF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D7B86415-4E31-9B29-B1FD-CAA6FE65E2EF}.Debug|x64.ActiveCfg = Debug|x64
+		{D7B86415-4E31-9B29-B1FD-CAA6FE65E2EF}.Debug|x64.Build.0 = Debug|x64
+		{D7B86415-4E31-9B29-B1FD-CAA6FE65E2EF}.Release|x64.ActiveCfg = Release|x64
+		{D7B86415-4E31-9B29-B1FD-CAA6FE65E2EF}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8645A695-1E7F-4C2B-BFC4-8957D81216F2}
+	EndGlobalSection
+EndGlobal

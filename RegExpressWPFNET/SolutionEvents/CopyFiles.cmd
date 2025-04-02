@@ -154,6 +154,8 @@ rem -- Fortran --
 set BasePath=%SolutionDir%\RegexEngines\Fortran
 xcopy /D /R /Y "%BasePath%\FortranPlugin\bin\%Configuration%\%TargetDir%\FortranPlugin.dll" "%EnginesTargetPath%\Fortran\*"
 xcopy /D /R /Y "%BasePath%\FortranForgexWorker\x64\Release\FortranForgexWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
+xcopy /D /R /Y "%BasePath%\FortranRegexJeyemhexWorker\x64\Release\FortranRegexJeyemhexWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
+xcopy /D /R /Y "%BasePath%\FortranRegexPerazzWorker\x64\Release\FortranRegexPerazzWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
 
 
 rem -- TRE --

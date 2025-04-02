@@ -42,7 +42,9 @@ namespace RegExpressLibrary.Matches.Simple
 
 		public SimpleCapture AddCapture( int index, int length )
 		{
-			var capture = new SimpleCapture( index, length, TextGetter );
+            TextGetter.Validate( index, length );
+
+            var capture = new SimpleCapture( index, length, TextGetter );
 			mCaptures.Add( capture );
 
 			return capture;
@@ -51,7 +53,9 @@ namespace RegExpressLibrary.Matches.Simple
 
 		public SimpleCapture AddCapture( int index, int length, int textIndex, int textLength )
 		{
-			var capture = new SimpleCapture( index, length, textIndex, textLength, TextGetter );
+            TextGetter.Validate( index, length );
+
+            var capture = new SimpleCapture( index, length, textIndex, textLength, TextGetter );
 			mCaptures.Add( capture );
 
 			return capture;

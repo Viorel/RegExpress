@@ -728,6 +728,11 @@ namespace RegExpressLibrary.SyntaxColouring
                 }
             }
 
+            if( fm.AnomalousInlineComments )
+            {
+                pb.Add( @"(?<comment>! \s* \[ [^\]]* \]?)" );
+            }
+
             if( fm.XModeComments && is_xmode )
             {
                 pb.Add( @"(?<comment>\#.*?)(\n|\r|$)" );

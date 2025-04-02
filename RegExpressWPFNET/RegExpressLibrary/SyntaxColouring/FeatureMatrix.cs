@@ -34,6 +34,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public PunctuationEnum VerticalLine { get; init; }                // | or \| -- alternation
 
         public bool InlineComments { get; init; }                         // (?#comment) or \(?#comment\)
+        public bool AnomalousInlineComments { get; init; }                // ![comment] //TODO: remove such engines
         public bool XModeComments { get; init; }                          // #comment; see also XFlag
         public bool InsideSets_XModeComments { get; init; }               // #comment inside [...]; see also XFlag
 

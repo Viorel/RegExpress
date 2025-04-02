@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35919.96 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "FortranRegexJeyemhexWorker", "FortranRegexJeyemhexWorker.vfproj", "{E144D940-9A35-02F1-BD49-2B2DF51D0E93}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E144D940-9A35-02F1-BD49-2B2DF51D0E93}.Debug|x64.ActiveCfg = Debug|x64
+		{E144D940-9A35-02F1-BD49-2B2DF51D0E93}.Debug|x64.Build.0 = Debug|x64
+		{E144D940-9A35-02F1-BD49-2B2DF51D0E93}.Release|x64.ActiveCfg = Release|x64
+		{E144D940-9A35-02F1-BD49-2B2DF51D0E93}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {81E263F4-53B0-4A53-B850-DBF3209286A5}
+	EndGlobalSection
+EndGlobal

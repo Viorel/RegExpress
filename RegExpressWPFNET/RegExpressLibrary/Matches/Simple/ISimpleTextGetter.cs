@@ -9,6 +9,8 @@ namespace RegExpressLibrary.Matches.Simple
 {
 	public interface ISimpleTextGetter
 	{
-		string GetText( int index, int length );
+		void Validate( int index, int length );
+
+        string GetText( int index, int length );
 	}
 }

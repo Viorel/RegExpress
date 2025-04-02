@@ -144,7 +144,7 @@ namespace ICUPlugin
                     if( success )
                     {
                         end = br.ReadInt32( );
-                        length = success ? end - start : 0;
+                        length = end - start;
                     }
                     else
                     {
