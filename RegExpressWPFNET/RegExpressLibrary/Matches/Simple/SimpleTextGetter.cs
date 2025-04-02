@@ -19,11 +19,11 @@ namespace RegExpressLibrary.Matches.Simple
 
         #region ISimpleTextGetter
 
-        public void Validate( int index, int length )
+        public void ThrowIfInvalid( int index, int length )
         {
-            if( index < 0 ) throw new ArgumentOutOfRangeException( nameof( index ), $"Negative index: {index}" );
-            if( index > Text.Length ) throw new ArgumentOutOfRangeException( nameof( index ), $"Index too large: {index}, text length: {Text.Length}" );
-            if( index + length > Text.Length ) throw new ArgumentOutOfRangeException( nameof( index ), $"Index+length too large. Index: {index}, length: {length}, text length: {Text.Length}" );
+            if( index < 0 ) throw new ArgumentException( $"Negative index: {index}" );
+            if( index > Text.Length ) throw new ArgumentException( $"Index too large: {index}, text length: {Text.Length}" );
+            if( index + length > Text.Length ) throw new ArgumentException( $"Index+length too large. Index: {index}, length: {length}, text length: {Text.Length}" );
         }
 
         public string GetText( int index, int length )
@@ -50,9 +50,13 @@ namespace RegExpressLibrary.Matches.Simple
 
         #region ISimpleTextGetter
 
-        public void Validate( int index, int length )
+        public void ThrowIfInvalid( int index, int length )
         {
-            // TODO: implement
+            var index2 = index - Offset;
+
+            if( index2 < 0 ) throw new ArgumentException( $"Negative index: {index}, offset: {Offset}" );
+            if( index2 > Text.Length ) throw new ArgumentException( $"Index too large: {index}, offset: {Offset}, text length: {Text.Length}" );
+            if( index2 + length > Text.Length ) throw new ArgumentException( $"Index+length too large. Index: {index}, offset: {Offset}, length: {length}, text length: {Text.Length}" );
         }
 
         public string GetText( int index, int length )

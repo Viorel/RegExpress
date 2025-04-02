@@ -44,7 +44,7 @@ namespace PythonPlugin
 
         public string Name => "Python";
 
-        public string Subtitle => $"{Name} {Version} ({mOptionsControl.Value.GetSelectedModuleTitle( )})";
+        public string Subtitle => $"{Name} ({mOptionsControl.Value.GetSelectedModuleTitle( )})";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.OverlappingMatches;
 

@@ -41,7 +41,7 @@ namespace PerlPlugin
 
         public string Name => "Perl";
 
-        public string Subtitle => $"{Name} {Version}";
+        public string Subtitle => $"{Name}";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 

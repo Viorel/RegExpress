@@ -41,7 +41,7 @@ namespace RE2Plugin
 
         public string Name => "RE2";
 
-        public string Subtitle => $"{Name} {Version}";
+        public string Subtitle => $"{Name}";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 

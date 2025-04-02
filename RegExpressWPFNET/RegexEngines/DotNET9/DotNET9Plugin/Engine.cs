@@ -39,7 +39,7 @@ namespace DotNET8Plugin
 
         public string Name => "Regex, .NET";
 
-        public string Subtitle => $".NET {Version}";
+        public string Subtitle => ".NET";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.ScrollErrorsToEnd;
 

@@ -41,7 +41,7 @@ namespace StdPlugin
 
         public string Name => "std::wregex";
 
-        public string Subtitle => $"{Name} {Version}";
+        public string Subtitle => $"{Name}";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 

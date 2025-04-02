@@ -41,7 +41,7 @@ namespace BoostPlugin
 
         public string Name => "Boost.Regex";
 
-        public string Subtitle => $"{Name} {Version}";
+        public string Subtitle => $"{Name}";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.Default;
 

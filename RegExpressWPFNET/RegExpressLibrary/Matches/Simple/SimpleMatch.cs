@@ -26,7 +26,7 @@ namespace RegExpressLibrary.Matches.Simple
 
         public static SimpleMatch Create( int index, int length, ISimpleTextGetter textGetter )
         {
-            textGetter.Validate( index, length );
+            textGetter.ThrowIfInvalid( index, length );
 
             return new SimpleMatch( index, length, textGetter );
         }
@@ -34,7 +34,7 @@ namespace RegExpressLibrary.Matches.Simple
 
         public static SimpleMatch Create( int index, int length, int textIndex, int textLength, ISimpleTextGetter textGetter )
         {
-            textGetter.Validate( index, length );
+            textGetter.ThrowIfInvalid( index, length );
 
             return new SimpleMatch( index, length, textIndex, textLength, textGetter );
         }
@@ -68,7 +68,7 @@ namespace RegExpressLibrary.Matches.Simple
 
         public SimpleGroup AddGroup( int index, int length, bool success, string name )
         {
-            if( success ) TextGetter.Validate( index, length );
+            if( success ) TextGetter.ThrowIfInvalid( index, length );
 
             var group = new SimpleGroup( index, length, TextGetter, success, name );
             mGroups.Add( group );
@@ -79,7 +79,7 @@ namespace RegExpressLibrary.Matches.Simple
 
         public SimpleGroup AddGroup( int index, int length, bool success, string name, ISimpleTextGetter stg )
         {
-            if( success ) TextGetter.Validate( index, length );
+            if( success ) TextGetter.ThrowIfInvalid( index, length );
 
             var group = new SimpleGroup( index, length, stg, success, name );
             mGroups.Add( group );
@@ -90,7 +90,7 @@ namespace RegExpressLibrary.Matches.Simple
 
         public SimpleGroup AddGroup( int index, int length, int textIndex, int textLength, bool success, string name )
         {
-            if( success ) TextGetter.Validate( index, length );
+            if( success ) TextGetter.ThrowIfInvalid( index, length );
 
             var group = new SimpleGroup( index, length, textIndex, textLength, TextGetter, success, name );
             mGroups.Add( group );

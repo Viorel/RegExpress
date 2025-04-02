@@ -41,7 +41,7 @@ namespace JavaPlugin
 
         public string Name => "Java";
 
-        public string Subtitle => $"{Name} {Version}";
+        public string Subtitle => $"{Name}";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 

@@ -9,7 +9,7 @@ namespace RegExpressLibrary.Matches.Simple
 {
 	public interface ISimpleTextGetter
 	{
-		void Validate( int index, int length );
+		void ThrowIfInvalid( int index, int length );
 
         string GetText( int index, int length );
 	}

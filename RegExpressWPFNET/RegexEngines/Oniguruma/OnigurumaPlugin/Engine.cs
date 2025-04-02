@@ -43,7 +43,7 @@ namespace OnigurumaPlugin
 
         public string Name => "Oniguruma";
 
-        public string Subtitle => $"{Name} {Version}";
+        public string Subtitle => $"{Name}";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.Default;
 

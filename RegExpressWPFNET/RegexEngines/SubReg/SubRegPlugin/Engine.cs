@@ -41,7 +41,7 @@ namespace SubRegPlugin
 
         public string Name => "SubReg";
 
-        public string Subtitle => $"{Name} {Version}";
+        public string Subtitle => $"{Name}";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 

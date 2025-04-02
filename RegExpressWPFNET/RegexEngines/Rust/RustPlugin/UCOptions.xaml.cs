@@ -168,7 +168,16 @@ namespace RustPlugin
 
         internal string? GetSelectedCrateTitle( )
         {
-            return ( (ComboBoxItem)cbxCrate.SelectedItem ).Content.ToString( );
+            Options options = GetSelectedOptions( );
+
+            return options.crate switch
+            {
+                CrateEnum.regex => "regex",
+                CrateEnum.regex_lite => "regex_lite",
+                CrateEnum.fancy_regex => "fancy_regex",
+                CrateEnum.regress => "regress",
+                _ => "unknown"
+            };
         }
     }
 }

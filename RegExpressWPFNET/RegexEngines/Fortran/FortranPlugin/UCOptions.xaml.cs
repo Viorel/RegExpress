@@ -105,7 +105,15 @@ namespace FortranPlugin
 
         internal string? GetSelectedModuleTitle( )
         {
-            return ( (ComboBoxItem)cbxModule.SelectedItem ).Content.ToString( );
+            Options options = GetSelectedOptions( );
+
+            return options.Module switch
+            {
+                ModuleEnum.Forgex => "Forgex",
+                ModuleEnum.RegexPerazz => "Regex (Perazz)",
+                ModuleEnum.RegexJeyemhex => "Regex (Jeyemhex)",
+                _ => "Unknown"
+            };
         }
 
     }

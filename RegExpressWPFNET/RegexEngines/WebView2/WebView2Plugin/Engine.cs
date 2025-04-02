@@ -43,7 +43,7 @@ namespace WebView2Plugin
 
         public string Name => "JavaScript (WebView2)";
 
-        public string Subtitle => $"JavaScript (WebView2 {Version})";
+        public string Subtitle => $"JavaScript";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd;
 

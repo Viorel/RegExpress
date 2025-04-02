@@ -40,7 +40,7 @@ namespace DotNETFrameworkPlugin
 
         public string Name => "Regex, .NET Framework";
 
-        public string Subtitle => $".NET Framework {Version}";
+        public string Subtitle => ".NET Framework";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.ScrollErrorsToEnd;
 
