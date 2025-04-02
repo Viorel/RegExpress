@@ -63,14 +63,13 @@
             overlapped = (index(flags, "o") > 0)
             back = (index(flags, "B") > 0) ! // TODO: implement
 
-            
-            !re = parse_pattern(pattern) ! does not seem to be reusable
+            re = parse_pattern(pattern)
 
             absolute_from = 1
 
             do
 
-                from = REGEX(text(absolute_from:), pattern, length)
+                from = REGEX(text(absolute_from:), re, length)
 
                 if( from <= 0 ) exit
                 

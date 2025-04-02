@@ -110,8 +110,8 @@ namespace FortranPlugin
             return options.Module switch
             {
                 ModuleEnum.Forgex => "Forgex",
-                ModuleEnum.RegexPerazz => "Regex (Perazz)",
-                ModuleEnum.RegexJeyemhex => "Regex (Jeyemhex)",
+                ModuleEnum.RegexPerazz => "Regex-Perazz",
+                ModuleEnum.RegexJeyemhex => "Regex-Jeyemhex",
                 _ => "Unknown"
             };
         }

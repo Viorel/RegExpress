@@ -633,6 +633,8 @@ namespace RegExpressWPFNET
                     }
                 }
 
+                UpdateSubtitle( );
+
                 cbShowFirstOnly.IsChecked = tabData.ShowFirstMatchOnly;
                 cbUnderline.IsChecked = tabData.UnderlineCurrentMatch;
                 cbShowSucceededGroupsOnly.IsChecked = tabData.ShowSucceededGroupsOnly;

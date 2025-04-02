@@ -45,6 +45,8 @@ namespace FortranPlugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
+            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
+
             List<SimpleMatch> matches = [];
             SimpleTextGetter text_getter = new( text );
             SimpleMatch? match = null;
@@ -61,13 +63,20 @@ namespace FortranPlugin
                     Match m = ParseMatchRegex( ).Match( line );
                     if( m.Success )
                     {
-                        int position = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..)
+                        int byte_start = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..)
 
-                        if( position > 0 )
+                        if( byte_start > 0 )
                         {
-                            int length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
+                            int byte_length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
+                            int byte_end = byte_start + byte_length - 1; // (inclusive, 1..)
+                            if( byte_end < byte_start ) byte_end = byte_start - 1; // empty match
 
-                            match = SimpleMatch.Create( position - 1, length, text_getter );
+                            --byte_start; // (keep 'byte_end')
+
+                            int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_start );
+                            int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_end ); // (exclusive)
+
+                            match = SimpleMatch.Create( char_start, char_end - char_start, text_getter );
                             match.AddGroup( match.Index, match.Length, true, "" ); // default group
 
                             matches.Add( match );
