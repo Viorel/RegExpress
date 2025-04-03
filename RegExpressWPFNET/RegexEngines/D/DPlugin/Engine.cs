@@ -41,7 +41,7 @@ namespace DPlugin
 
         public string Name => "D";
 
-        public string Subtitle => "{Name} (std.regex)";
+        public string Subtitle => $"{Name} (std.regex)";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 
