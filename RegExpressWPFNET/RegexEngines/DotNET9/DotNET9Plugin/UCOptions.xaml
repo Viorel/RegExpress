@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:DotNET8Plugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             Loaded="UserControl_Loaded" d:DesignHeight="196.056" d:DesignWidth="419.291" >
+             Loaded="UserControl_Loaded" d:DesignHeight="196.056" d:DesignWidth="526.328" >
 
     <UserControl.Resources>
         <Style TargetType="ui:CheckboxWithNote">
@@ -20,13 +20,13 @@
                 <ui:CheckboxWithNote Prop="Compiled" Note="compile to MSIL code"/>
                 <ui:CheckboxWithNote Prop="CultureInvariant" Note="ignore cultural differences"/>
                 <ui:CheckboxWithNote Prop="ECMAScript" Note="ECMAScript-compliant behavior"/>
-                <ui:CheckboxWithNote Prop="ExplicitCapture" Note="do not capture unnamed groups"/>
-                <ui:CheckboxWithNote Prop="IgnoreCase" Note="case-insensitive matching"/>
-                <ui:CheckboxWithNote Prop="IgnorePatternWhitespace" Note="exclude white spaces, enable #-comments"/>
-                <ui:CheckboxWithNote Prop="Multiline" Note="“^” and “$” match the beginning and end of lines"/>
+                <ui:CheckboxWithNote Prop="ExplicitCapture" Note="do not capture unnamed groups (?n)"/>
+                <ui:CheckboxWithNote Prop="IgnoreCase" Note="case-insensitive matching (?i)"/>
+                <ui:CheckboxWithNote Prop="IgnorePatternWhitespace" Note="exclude white spaces, enable #-comments (?x)"/>
+                <ui:CheckboxWithNote Prop="Multiline" Note="“^” and “$” match the beginning and end of lines (?m)"/>
                 <ui:CheckboxWithNote Prop="NonBacktracking" Note="avoid backtracking, guarantee linear-time processing"/>
                 <ui:CheckboxWithNote Prop="RightToLeft" Note="search from right to left"/>
-                <ui:CheckboxWithNote Prop="Singleline" Note="“.” matches “\n” too"/>
+                <ui:CheckboxWithNote Prop="Singleline" Note="“.” matches “\n” too (?s)"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
                 <StackPanel.LayoutTransform>

@@ -5,10 +5,17 @@
         <TargetFramework>net9.0-windows7.0</TargetFramework>
         <Nullable>enable</Nullable>
         <UseWPF>true</UseWPF>
+        <ApplicationIcon>RegExpress.ico</ApplicationIcon>
     </PropertyGroup>
 
     <ItemGroup>
       <None Remove="RegExpress.ico" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="RegExpress.ico">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 
     <ItemGroup>
