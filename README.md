@@ -7,7 +7,7 @@ It includes the following Regular Expression engines:
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-9.0)** class from .NET 9.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8)** class from .NET Framework 4.8.
 * **[wregex](https://docs.microsoft.com/en-us/cpp/standard-library/regex)** class from C++ Standard Template Library.
-* **[Boost.Regex](https://www.boost.org/doc/libs/1_87_0/libs/regex/doc/html/index.html)** from Boost C++ Libraries 1.88.0.
+* **[Boost.Regex](https://www.boost.org/doc/libs/1_88_0/libs/regex/doc/html/index.html)** from Boost C++ Libraries 1.88.0.
 * **[PCRE2](https://pcre.org/)** Open Source Regex Library 10.45 (in C).
 * **[RE2](https://github.com/google/re2)** Library 2024-07-02 from Google (in C++).
 * **[Oniguruma](https://github.com/kkos/oniguruma)** Regular Expression Library 6.9.10 (in C++).
