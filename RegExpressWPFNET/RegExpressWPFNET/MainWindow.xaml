@@ -6,7 +6,6 @@
         xmlns:local="clr-namespace:RegExpressWPFNET"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Icon="/RegExpress.ico"
         Title="RegExpress" Height="500" Width="800" 
         SourceInitialized="Window_SourceInitialized"
         Loaded="Window_Loaded"

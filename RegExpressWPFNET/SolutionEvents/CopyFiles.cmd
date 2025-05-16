@@ -125,6 +125,8 @@ set BasePath=%SolutionDir%\RegexEngines\Java
 xcopy /D /R /Y "%BasePath%\JavaPlugin\bin\%Configuration%\%TargetDir%\JavaPlugin.dll" "%EnginesTargetPath%\Java\*"
 xcopy /D /R /Y "%BasePath%\JavaWorker\JavaWorker.class" "%EnginesTargetPath%\Java\*"
 xcopy /D /R /Y "%BasePath%\JavaWorker\JRE-min.zip" "%EnginesTargetPath%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaWorker\RE2JWorker.class" "%EnginesTargetPath%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaWorker\re2j-1.8.jar" "%EnginesTargetPath%\Java\*"
 
 
 rem -- Python --

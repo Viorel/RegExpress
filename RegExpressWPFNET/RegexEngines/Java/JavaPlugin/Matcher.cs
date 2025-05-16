@@ -65,6 +65,8 @@ namespace JavaPlugin
             if( options.UNICODE_CASE ) sb.Append( ",UNICODE_CASE" );
             if( options.UNICODE_CHARACTER_CLASS ) sb.Append( ",UNICODE_CHARACTER_CLASS" );
             if( options.UNIX_LINES ) sb.Append( ",UNIX_LINES" );
+            if( options.DISABLE_UNICODE_GROUPS ) sb.Append( ",DISABLE_UNICODE_GROUPS" );
+            if( options.LONGEST_MATCH) sb.Append( ",LONGEST_MATCH" );
             if( options.useAnchoringBounds ) sb.Append( ",useAnchoringBounds" );
             if( options.useTransparentBounds ) sb.Append( ",useTransparentBounds" );
             sb.Append( ',' );
@@ -81,7 +83,18 @@ namespace JavaPlugin
             using ProcessHelper ph = new ProcessHelper( javaExePath );
 
             ph.AllEncoding = EncodingEnum.UTF8;
-            ph.Arguments = new[] { "-cp", workerDir!, "JavaWorker" };
+
+            switch( options.Package )
+            {
+            case PackageEnum.regex:
+                ph.Arguments = ["-cp", workerDir, "JavaWorker"];
+                break;
+            case PackageEnum.re2j:
+                ph.Arguments = ["-cp", $"{workerDir};{Path.Combine( workerDir, "re2j-1.8.jar" )}", "RE2JWorker"];
+                break;
+            default:
+                throw new InvalidOperationException( );
+            }
 
             ph.StreamWriter = sw =>
             {

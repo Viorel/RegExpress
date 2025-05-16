@@ -7,8 +7,16 @@ using System.Threading.Tasks;
 
 namespace JavaPlugin
 {
+    enum PackageEnum
+    {
+        None,
+        regex,
+        re2j,
+    }
+
     internal class Options
     {
+        public PackageEnum Package { get; set; } = PackageEnum.regex;
 
         public bool CANON_EQ { get; set; }
         public bool CASE_INSENSITIVE { get; set; }
@@ -23,6 +31,11 @@ namespace JavaPlugin
         public string? regionEnd { get; set; } // (int)
         public bool useAnchoringBounds { get; set; } = true;
         public bool useTransparentBounds { get; set; } = false;
+
+        // re2j specific
+
+        public bool DISABLE_UNICODE_GROUPS { get; set; }
+        public bool LONGEST_MATCH { get; set; }
 
 
         public Options Clone( )
