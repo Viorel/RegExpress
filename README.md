@@ -9,7 +9,7 @@ It includes the following Regular Expression engines:
 * **[wregex](https://docs.microsoft.com/en-us/cpp/standard-library/regex)** class from C++ Standard Template Library.
 * **[Boost.Regex](https://www.boost.org/doc/libs/1_88_0/libs/regex/doc/html/index.html)** from Boost C++ Libraries 1.88.0.
 * **[PCRE2](https://pcre.org/)** Open Source Regex Library 10.45 (in C).
-* **[RE2](https://github.com/google/re2)** Library 2024-07-02 from Google (in C++).
+* **[RE2](https://github.com/google/re2)** Library 2025-06-26b from Google (in C++).
 * **[Oniguruma](https://github.com/kkos/oniguruma)** Regular Expression Library 6.9.10 (in C++).
 * **[SubReg](https://github.com/mattbucknall/subreg)** 2024-08-11 (in C).
 * **JavaScript [RegExp](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)** object in Microsoft Edge [WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
@@ -17,7 +17,7 @@ It includes the following Regular Expression engines:
 * **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel (in C).
 * **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41 (in C).
 * **[ICU Regular Expressions](https://icu.unicode.org/)** 77.1 (in C++).
-* **Rust** 1.84.1 crates: **[regex](https://docs.rs/regex)** 1.11.1, **[regex_lite_](https://docs.rs/regex_lite)** 0.1.6, **[fancy\_regex](https://docs.rs/fancy-regex)** 0.14.0 and **[regress](https://docs.rs/regress)** 0.10.3.
+* **Rust** 1.84.1 crates: **[regex](https://docs.rs/regex)** 1.11.1, **[regex\_lite](https://docs.rs/regex_lite)** 0.1.6, **[fancy\_regex](https://docs.rs/fancy-regex)** 0.14.0 and **[regress](https://docs.rs/regress)** 0.10.3.
 * **[Java](https://docs.oracle.com/en/java/javase/23/docs/api/java.base/java/util/regex/package-summary.html)** 23.0.2 (*java.util.regex* and *com.google.re2j* packages).
 * **[Python](https://www.python.org/)** 3.13.2 (standard *re* module, third-party *regex* module).
 * **[D](https://dlang.org/phobos/std_regex.html)** 2.109.1 (*std.regex* module).

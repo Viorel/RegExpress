@@ -1,3 +1,5 @@
+#define UMDF_USING_NTSTATUS // https://stackoverflow.com/questions/60903656/how-do-i-deal-with-both-winnt-h-and-ntstatus-h-both-in-the-wdk
+
 #include <algorithm>
 #include <any>  
 #include <array>    
@@ -51,7 +53,6 @@
 #include <list> 
 #include <map>  
 #include <memory>   
-#include <mutex>    
 #include <mutex>  // NOLINT(build/c++11)    
 #include <new>  
 #include <numeric>  
@@ -92,7 +93,6 @@
 #include <tmmintrin.h>  
 #include <tuple>    
 #include <type_traits>
-#include <type_traits>  
 #include <typeinfo> 
 #include <unordered_map>
 #include <unordered_set>

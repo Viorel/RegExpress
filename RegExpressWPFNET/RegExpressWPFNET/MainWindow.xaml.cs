@@ -189,6 +189,8 @@ namespace RegExpressWPFNET
             AllTabData? all_tab_data = null;
             string my_file = GetMyDataFile( );
 
+            Debug.WriteLine( $"Loading data file '{my_file}'" );
+
             try
             {
                 using( var s = File.OpenRead( my_file ) )
@@ -225,12 +227,17 @@ namespace RegExpressWPFNET
             }
             else
             {
-                Debug.Assert( all_tab_data.Tabs.Any( ) );
+                Debug.WriteLine( $"Adding {all_tab_data.Tabs.Count} tabs" );
+                Debug.Assert( all_tab_data.Tabs.Count > 0 );
 
                 TabItem? first_tab = null;
 
-                foreach( var tab_data in all_tab_data.Tabs )
+                for( int i = 0; i < all_tab_data.Tabs.Count; i++ )
                 {
+                    TabData? tab_data = all_tab_data.Tabs[i];
+
+                    Debug.WriteLine( $"  tab {i}: {tab_data.ActiveKind} {tab_data.ActiveVersion}" );
+
                     TabItem tab = AddNewTab( tab_data );
 
                     first_tab ??= tab;

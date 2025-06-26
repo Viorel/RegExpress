@@ -1,4 +1,4 @@
-In order to rebuild the RustFancyWorker ("src\main.rs"):
+In order to rebuild the RustRegressWorker ("src\main.rs"):
 
 - Download and install "Rust" from https://www.rust-lang.org/tools/install. 
   Use the recommended "rustup". Select the 64-bit installer.
@@ -15,10 +15,10 @@ In order to rebuild the RustFancyWorker ("src\main.rs"):
 
         cargo build --release
 
-  It will generate the "target\release\RustFancyWorker.exe".
+  It will generate the "target\release\RustRegressWorker.exe".
 
 - Rebuild ("Rebuild All") the Visual Studio solution. A Custom build step 
-  will copy 'RustFancyWorker.exe' to output folder as 'RustFancyWorker.bin'.
+  will copy 'RustRegressWorker.exe' to output folder as 'RustRegressWorker.bin'.
 
-- Commit and push the changes to Git (including 'RustFancyWorker.exe'). 
+- Commit and push the changes to Git (including 'RustRegressWorker.exe'). 
 

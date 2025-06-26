@@ -29,6 +29,18 @@
     <ClCompile Include="RE2StaticLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2\util\pcre.cc">
+      <Filter>RE2 Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2\util\rune.cc">
+      <Filter>RE2 Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="RE2\util\strutil.cc">
+      <Filter>RE2 Sources</Filter>
+    </ClCompile>
     <ClCompile Include="RE2\re2\bitmap256.cc">
       <Filter>RE2 Sources</Filter>
     </ClCompile>
@@ -88,18 +100,6 @@
     </ClCompile>
     <ClCompile Include="RE2\re2\unicode_groups.cc">
       <Filter>RE2 Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="RE2\util\pcre.cc">
-      <Filter>RE2 Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="RE2\util\rune.cc">
-      <Filter>RE2 Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="RE2\util\strutil.cc">
-      <Filter>RE2 Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

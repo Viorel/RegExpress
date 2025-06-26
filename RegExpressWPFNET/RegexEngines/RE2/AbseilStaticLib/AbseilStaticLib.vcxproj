@@ -104,9 +104,6 @@
     <ClCompile Include="Abseil\Source\address_is_readable.cc" />
     <ClCompile Include="Abseil\Source\arg.cc" />
     <ClCompile Include="Abseil\Source\ascii.cc" />
-    <ClCompile Include="Abseil\Source\bad_any_cast.cc" />
-    <ClCompile Include="Abseil\Source\bad_optional_access.cc" />
-    <ClCompile Include="Abseil\Source\bad_variant_access.cc" />
     <ClCompile Include="Abseil\Source\barrier.cc" />
     <ClCompile Include="Abseil\Source\bind.cc" />
     <ClCompile Include="Abseil\Source\blocking_counter.cc" />
@@ -127,7 +124,6 @@
     <ClCompile Include="Abseil\Source\cordz_info.cc" />
     <ClCompile Include="Abseil\Source\cordz_sample_token.cc" />
     <ClCompile Include="Abseil\Source\cord_analysis.cc" />
-    <ClCompile Include="Abseil\Source\cord_buffer.cc" />
     <ClCompile Include="Abseil\Source\cord_internal.cc" />
     <ClCompile Include="Abseil\Source\cord_rep_btree.cc" />
     <ClCompile Include="Abseil\Source\cord_rep_btree_navigator.cc" />
@@ -152,6 +148,7 @@
     <ClCompile Include="Abseil\Source\discrete_distribution.cc" />
     <ClCompile Include="Abseil\Source\duration.cc" />
     <ClCompile Include="Abseil\Source\elf_mem_image.cc" />
+    <ClCompile Include="Abseil\Source\entropy_pool.cc" />
     <ClCompile Include="Abseil\Source\escaping (2).cc" />
     <ClCompile Include="Abseil\Source\escaping.cc" />
     <ClCompile Include="Abseil\Source\examine_stack.cc" />
@@ -175,7 +172,6 @@
     <ClCompile Include="Abseil\Source\int128.cc" />
     <ClCompile Include="Abseil\Source\kernel_timeout.cc" />
     <ClCompile Include="Abseil\Source\leak_check.cc" />
-    <ClCompile Include="Abseil\Source\log_entry.cc" />
     <ClCompile Include="Abseil\Source\log_format.cc" />
     <ClCompile Include="Abseil\Source\log_message.cc" />
     <ClCompile Include="Abseil\Source\log_severity.cc" />
@@ -197,7 +193,6 @@
     <ClCompile Include="Abseil\Source\periodic_sampler.cc" />
     <ClCompile Include="Abseil\Source\per_thread_sem.cc" />
     <ClCompile Include="Abseil\Source\poison.cc" />
-    <ClCompile Include="Abseil\Source\pool_urbg.cc" />
     <ClCompile Include="Abseil\Source\pow10_helper.cc" />
     <ClCompile Include="Abseil\Source\private_handle_accessor.cc" />
     <ClCompile Include="Abseil\Source\program_name.cc" />

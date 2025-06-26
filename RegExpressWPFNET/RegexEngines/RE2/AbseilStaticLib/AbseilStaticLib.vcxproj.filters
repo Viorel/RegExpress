@@ -29,6 +29,9 @@
     <ClCompile Include="AbseilStaticLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Abseil\Source\address_is_readable.cc">
       <Filter>Abseil Sources</Filter>
     </ClCompile>
@@ -36,15 +39,6 @@
       <Filter>Abseil Sources</Filter>
     </ClCompile>
     <ClCompile Include="Abseil\Source\ascii.cc">
-      <Filter>Abseil Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Abseil\Source\bad_any_cast.cc">
-      <Filter>Abseil Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Abseil\Source\bad_optional_access.cc">
-      <Filter>Abseil Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Abseil\Source\bad_variant_access.cc">
       <Filter>Abseil Sources</Filter>
     </ClCompile>
     <ClCompile Include="Abseil\Source\barrier.cc">
@@ -93,9 +87,6 @@
       <Filter>Abseil Sources</Filter>
     </ClCompile>
     <ClCompile Include="Abseil\Source\cord_analysis.cc">
-      <Filter>Abseil Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Abseil\Source\cord_buffer.cc">
       <Filter>Abseil Sources</Filter>
     </ClCompile>
     <ClCompile Include="Abseil\Source\cord_internal.cc">
@@ -182,6 +173,9 @@
     <ClCompile Include="Abseil\Source\elf_mem_image.cc">
       <Filter>Abseil Sources</Filter>
     </ClCompile>
+    <ClCompile Include="Abseil\Source\entropy_pool.cc">
+      <Filter>Abseil Sources</Filter>
+    </ClCompile>
     <ClCompile Include="Abseil\Source\escaping (2).cc">
       <Filter>Abseil Sources</Filter>
     </ClCompile>
@@ -251,9 +245,6 @@
     <ClCompile Include="Abseil\Source\leak_check.cc">
       <Filter>Abseil Sources</Filter>
     </ClCompile>
-    <ClCompile Include="Abseil\Source\log_entry.cc">
-      <Filter>Abseil Sources</Filter>
-    </ClCompile>
     <ClCompile Include="Abseil\Source\log_format.cc">
       <Filter>Abseil Sources</Filter>
     </ClCompile>
@@ -315,9 +306,6 @@
       <Filter>Abseil Sources</Filter>
     </ClCompile>
     <ClCompile Include="Abseil\Source\poison.cc">
-      <Filter>Abseil Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="Abseil\Source\pool_urbg.cc">
       <Filter>Abseil Sources</Filter>
     </ClCompile>
     <ClCompile Include="Abseil\Source\pow10_helper.cc">
@@ -499,9 +487,6 @@
     </ClCompile>
     <ClCompile Include="Abseil\Source\zone_info_source.cc">
       <Filter>Abseil Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
