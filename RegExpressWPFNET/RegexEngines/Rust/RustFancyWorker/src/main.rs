@@ -73,6 +73,10 @@ fn main()
         let mut reb = fancy_regex::RegexBuilder::new(pattern);
 
         reb.case_insensitive(options.find('i').is_some());
+        reb.multi_line(options.find('m').is_some());
+        reb.ignore_whitespace(options.find('x').is_some());
+        reb.dot_matches_new_line(options.find('s').is_some());
+        reb.unicode_mode(options.find('u').is_some());
 
         let s = parsed["bl"].as_str().unwrap_or("");
 

@@ -109,7 +109,7 @@ namespace RustPlugin
 
             return new SyntaxOptions
             {
-                XLevel = ( options.crate == CrateEnum.regex || options.crate == CrateEnum.regex_lite ) && options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
+                XLevel = ( options.crate == CrateEnum.regex || options.crate == CrateEnum.fancy_regex || options.crate == CrateEnum.regex_lite ) && options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = options.crate == CrateEnum.regress,
                 FeatureMatrix = LazyData.GetValue( (options.crate, options.octal) )
             };
@@ -660,7 +660,7 @@ namespace RustPlugin
                 Class_hHhorspace = false,
                 Class_lL = false,
                 Class_N = false,
-                Class_O = false,
+                Class_O = true,
                 Class_R = false,
                 Class_sS = true,
                 Class_sSx = false,
@@ -706,7 +706,7 @@ namespace RustPlugin
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = true,
-                Anchor_Z = false,
+                Anchor_Z = true,
                 Anchor_z = true,
                 Anchor_G = true,
                 Anchor_bB = true,

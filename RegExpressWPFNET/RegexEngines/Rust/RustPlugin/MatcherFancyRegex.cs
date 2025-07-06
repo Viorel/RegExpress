@@ -39,6 +39,10 @@ namespace RustPlugin
             var o = new StringBuilder( );
 
             if( options.case_insensitive ) o.Append( "i" );
+            if( options.multi_line ) o.Append( "m" );
+            if( options.ignore_whitespace ) o.Append( "x" );
+            if( options.dot_matches_new_line ) o.Append( "s" );
+            if( options.unicode ) o.Append( "u" );
 
             var obj = new
             {

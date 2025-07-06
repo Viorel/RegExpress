@@ -123,13 +123,9 @@ namespace RustPlugin
                         pnlRegexBuilderOptions.DataContext = new Options( ); // (to show defaults)
                     }
 
-                    chbx_case_insensitive.Visibility = Visibility.Visible;
-                    chbx_multi_line.Visibility = regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
-                    chbx_dot_matches_new_line.Visibility = regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
                     chbx_crlf.Visibility = crate == CrateEnum.regex_lite ? Visibility.Visible : Visibility.Collapsed;
                     chbx_swap_greed.Visibility = regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
-                    chbx_ignore_whitespace.Visibility = regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
-                    chbx_unicode.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                    chbx_unicode.Visibility = crate == CrateEnum.regex || crate == CrateEnum.fancy_regex ? Visibility.Visible : Visibility.Collapsed;
                     chbx_octal.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
 
                     pnlRegexCrateLimits.Visibility = regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
