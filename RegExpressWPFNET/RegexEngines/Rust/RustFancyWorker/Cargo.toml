@@ -8,5 +8,4 @@ authors = ["Viorel <Viorel@noreply.github.com>"]
 
 [dependencies]
 json = "0.12.4"
-fancy-regex = "0.14.0"
-
+fancy-regex = "0.15.0"

@@ -153,6 +153,14 @@ fn main()
 
     for cap0 in re.captures_iter(text) 
     {
+        if cap0.is_err()
+        {
+            let err = cap0.unwrap_err();
+            eprintln!("{}", err);
+
+            return;
+        }
+
         let cap = cap0.unwrap();
 
         let mut groups = json::JsonValue::new_array();
