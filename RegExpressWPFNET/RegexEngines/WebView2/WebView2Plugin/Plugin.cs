@@ -6,11 +6,11 @@ using RegExpressLibrary;
 
 namespace WebView2Plugin
 {
-    public class Plugin : IRegexPlugin
+    public class Plugin : RegexPlugin
     {
-        #region IRegexPlugin
+        #region RegexPlugin
 
-        public IReadOnlyList<IRegexEngine> GetEngines( )
+        public override IReadOnlyList<IRegexEngine> GetEngines( )
         {
             return new[] { new Engine( ) };
         }

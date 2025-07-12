@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36301.6 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExportFeatureMatrix", "ExportFeatureMatrix.csproj", "{481C702F-2C01-4B7D-8D90-E17B2F374B7B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RegExpressLibrary", "..\..\RegExpressLibrary\RegExpressLibrary.csproj", "{78B323D3-4E27-A4A1-C420-D8CD2A7FC98C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{481C702F-2C01-4B7D-8D90-E17B2F374B7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{481C702F-2C01-4B7D-8D90-E17B2F374B7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{481C702F-2C01-4B7D-8D90-E17B2F374B7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{481C702F-2C01-4B7D-8D90-E17B2F374B7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78B323D3-4E27-A4A1-C420-D8CD2A7FC98C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78B323D3-4E27-A4A1-C420-D8CD2A7FC98C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78B323D3-4E27-A4A1-C420-D8CD2A7FC98C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78B323D3-4E27-A4A1-C420-D8CD2A7FC98C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {025121EC-C529-4A49-999F-D6B8D4B0C398}
+	EndGlobalSection
+EndGlobal
