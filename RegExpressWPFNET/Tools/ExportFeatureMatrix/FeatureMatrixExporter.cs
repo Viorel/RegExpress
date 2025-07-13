@@ -33,6 +33,10 @@ partial class FeatureMatrixExporter
             string_table_part.SharedStringTable ??= new SharedStringTable( );
             SharedStringTable = string_table_part.SharedStringTable;
 
+            // styles
+
+            CreateStyles( workbookPart );
+
             // create worksheet
 
             WorksheetPart = workbookPart.AddNewPart<WorksheetPart>( );
@@ -42,24 +46,9 @@ partial class FeatureMatrixExporter
             Sheets sheets = workbookPart.Workbook.GetFirstChild<Sheets>( ) ?? workbookPart.Workbook.AppendChild( new Sheets( ) );
             string relationshipId = workbookPart.GetIdOfPart( WorksheetPart );
 
-            uint sheetId = 1;
-            //if( sheets.Elements<Sheet>( ).Count( ) > 0 )
-            //{
-            //    sheetId = sheets.Elements<Sheet>( ).Select<Sheet, uint>( s =>
-            //    {
-            //        if( s.SheetId is not null && s.SheetId.HasValue )
-            //        {
-            //            return s.SheetId.Value;
-            //        }
-
-            //        return 0;
-            //    } ).Max( ) + 1;
-            //}
-
-            //string sheetName = "Sheet" + sheetId;
             string sheetName = "Feature Matrix";
 
-            Sheet sheet = new( ) { Id = relationshipId, SheetId = sheetId, Name = sheetName };
+            Sheet sheet = new( ) { Id = relationshipId, SheetId = 1, Name = sheetName };
             sheets.Append( sheet );
 
             // get feature matrices from engines
@@ -74,67 +63,215 @@ partial class FeatureMatrixExporter
                     .SelectMany( p => p.GetEngines( ) )
                     .Select( e => new EngineData { Engine = e, Matrices = [.. e.GetFeatureMatrices( ).Select( m => (index:variant_index++, m.variantName, m.fm) )] } ).Where( d => d.Matrices.Length > 0 )];
 
-            int total_variants = engines_data.Select( d => d.Matrices.Length ).Sum( );
+            uint total_variants = (uint)engines_data.Select( d => d.Matrices.Length ).Sum( );
 
             // caption
 
             Cell cell1 = SetCell( "A", 1, "Regex Feature Matrix" );
+            cell1.StyleIndex = 1;
             Cell cell2 = SetCell( ColumnNameFromIndex( (uint)total_variants + 2 ), 1, "" );
-            MergeTwoExistingCells( cell1.CellReference!, cell2.CellReference! );
+            MergeExistingCells( cell1, cell2 );
+            Row row = GetRow( cell1 );
+            row.CustomHeight = true;
+            row.Height = 40;
+
+            SetColumnWidth( 1, 2, 20 );
 
             // table header
 
-            const int START_TABLE_COLUMN = 1;
-            const int START_ENGINES_COLUMN = START_TABLE_COLUMN + 2;
-            const int START_TABLE_ROW = 3;
+            const uint START_TABLE_COLUMN = 1;
+            const uint START_ENGINES_COLUMN = START_TABLE_COLUMN + 2;
+            const uint START_TABLE_ROW = 3;
 
-            SetCell( "A", START_TABLE_ROW, "Feature" );
-            SetCell( "B", START_TABLE_ROW, "Description" );
+            cell1 = SetCell( "A", START_TABLE_ROW, "Feature" );
+            cell1.StyleIndex = 2;
+            row = GetRow( cell1 );
+            row.CustomHeight = true;
+            row.Height = 30;
+            cell2 = SetCell( "A", START_TABLE_ROW + 1, "" );
+            MergeExistingCells( cell1, cell2 );
 
-            uint row = START_TABLE_ROW;
+            cell1 = SetCell( "B", START_TABLE_ROW, "Description" );
+            cell1.StyleIndex = 2;
+            cell2 = SetCell( "B", START_TABLE_ROW + 1, "" );
+            MergeExistingCells( cell1, cell2 );
+
+            uint row_index = START_TABLE_ROW;
 
             foreach( EngineData engine_data in engines_data )
             {
-                SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + engine_data.Matrices[0].index ), row, engine_data.Engine.Name );
+                cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + engine_data.Matrices[0].index ), row_index, engine_data.Engine.Name );
+                cell1.StyleIndex = 2;
+
+                if( engine_data.Matrices.Length > 1 )
+                {
+                    cell2 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + engine_data.Matrices.Last( ).index ), row_index, "" );
+                    MergeExistingCells( cell1, cell2 );
+                }
+                else
+                {
+                    cell2 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + engine_data.Matrices[0].index ), row_index + 1, "" );
+                    MergeExistingCells( cell1, cell2 );
+                }
             }
 
-            ++row;
+            ++row_index;
 
             foreach( EngineData engine_data in engines_data )
             {
                 foreach( var m in engine_data.Matrices )
                 {
-                    SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row, m.variantName ?? "" );
+                    cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, m.variantName ?? "" );
+                    cell1.StyleIndex = 2;
                 }
             }
 
             // body
 
-            ++row;
+            ++row_index;
 
             foreach( FeatureMatrixDetails details in FeatureMatrixDetails.AllFeatureMatrixDetails )
             {
                 if( details.Func == null )
                 {
-                    SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row, details.ShortDesc );
+                    // name of the group
+
+                    cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, details.ShortDesc );
+                    cell1.StyleIndex = 3;
+                    cell2 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + total_variants + 1 ), row_index, "" );
+                    MergeExistingCells( cell1, cell2 );
                 }
                 else
                 {
-                    SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row, details.ShortDesc );
-                    SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + 1 ), row, details.Desc ?? "" );
+                    SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, details.ShortDesc );
+                    SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + 1 ), row_index, details.Desc ?? "" );
 
                     foreach( EngineData engine_data in engines_data )
                     {
                         foreach( var m in engine_data.Matrices )
                         {
-                            SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row, details.Func( m.fm ) ? "+" : "" );
+                            bool yes = details.Func( m.fm );
+                            cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, yes ? "+" : "" );
+                            if( yes ) cell1.StyleIndex = 4;
                         }
                     }
                 }
 
-                ++row;
+                ++row_index;
             }
         }
+    }
+
+    void CreateStyles( WorkbookPart workbookPart )
+    {
+        // https://stackoverflow.com/questions/28560455/create-excel-file-with-style-tag-using-openxmlwriter-sax
+
+
+        Fonts fonts = new( );
+        Fills fills = new( );
+        Borders borders = new( );
+        CellFormats cell_formats = new( );
+
+        // first two fills are reserved (https://boyersnet.com/blog/2021/02/10/building-an-excel-document-with-csharp-and-openxml/)
+        fills.Append( new Fill( new PatternFill { PatternType = PatternValues.None } ) );
+        fills.Append( new Fill( new PatternFill { PatternType = PatternValues.Gray125 } ) );
+
+        // 0 - default
+
+        {
+            Font font = new( );
+            fonts.Append( font );
+
+            Fill fill = new( );
+            fills.Append( fill );
+
+            Border border = new( );
+            borders.Append( border );
+
+            CellFormat cell_format = new( ) { FontId = (uint)fonts.ChildElements.Count - 1, FillId = (uint)fills.ChildElements.Count - 1, BorderId = (uint)borders.ChildElements.Count - 1 };
+            cell_formats.Append( cell_format );
+        }
+
+        // 1 -- caption
+
+        {
+            Font font = new( new Bold( ) ) { FontSize = new FontSize { Val = new DoubleValue( 20.0 ) } };
+            fonts.Append( font );
+
+            CellFormat cell_format = new( )
+            {
+                FontId = (uint)fonts.ChildElements.Count - 1,
+                ApplyAlignment = true,
+                Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Left, Vertical = VerticalAlignmentValues.Center }
+            };
+            cell_formats.Append( cell_format );
+        }
+
+        // 2 -- table header
+
+        {
+            Font font = new( new Bold( ) );
+            fonts.Append( font );
+
+            CellFormat cell_format = new( )
+            {
+                FontId = (uint)fonts.ChildElements.Count - 1,
+                ApplyAlignment = true,
+                Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center }
+            };
+            cell_formats.Append( cell_format );
+        }
+
+        // 3 -- title of Feature Group
+
+        {
+            Font font = new( new Bold( ) );
+            fonts.Append( font );
+
+            Fill fill = new( new PatternFill( new ForegroundColor { Rgb = "FFFFF8DC" } ) { PatternType = PatternValues.Solid } );
+            fills.Append( fill );
+
+            CellFormat cell_format = new( )
+            {
+                FontId = (uint)fonts.ChildElements.Count - 1,
+                ApplyFill = true,
+                FillId = (uint)fills.ChildElements.Count - 1,
+                ApplyAlignment = true,
+                Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Left, Vertical = VerticalAlignmentValues.Center }
+            };
+            cell_formats.Append( cell_format );
+        }
+
+        // 4 -- the "+"
+
+        {
+            Font font = new( );
+            fonts.Append( font );
+
+            Fill fill = new( new PatternFill( new ForegroundColor { Rgb = "FFE8FCE8" } ) { PatternType = PatternValues.Solid } );
+            fills.Append( fill );
+
+            CellFormat cell_format = new( )
+            {
+                FontId = (uint)fonts.ChildElements.Count - 1,
+                ApplyFill = true,
+                FillId = (uint)fills.ChildElements.Count - 1,
+                ApplyAlignment = true,
+                Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center }
+            };
+            cell_formats.Append( cell_format );
+        }
+
+        WorkbookStylesPart stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>( );
+        Stylesheet stylesheet = new( );
+
+        stylesheet.Append( fonts );
+        stylesheet.Append( fills );
+        stylesheet.Append( borders );
+        stylesheet.Append( cell_formats );
+
+        stylesPart.Stylesheet = stylesheet;
+        //stylesheet.Save( ); //?
     }
 
     Cell SetCell( string column, uint row, string value )
@@ -177,17 +314,13 @@ partial class FeatureMatrixExporter
     Cell InsertCellInWorksheet( string columnName, uint rowIndex )
     {
         Worksheet worksheet = WorksheetPart!.Worksheet;
-        SheetData? sheetData = worksheet.GetFirstChild<SheetData>( );
+        SheetData sheetData = worksheet.GetFirstChild<SheetData>( )!;
         string cellReference = columnName + rowIndex;
 
         // If the worksheet does not contain a row with the specified row index, insert one.
-        Row row;
+        Row? row = sheetData.Elements<Row>( ).Where( r => r.RowIndex is not null && r.RowIndex == rowIndex ).FirstOrDefault( );
 
-        if( sheetData?.Elements<Row>( ).Where( r => r.RowIndex is not null && r.RowIndex == rowIndex ).Count( ) != 0 )
-        {
-            row = sheetData!.Elements<Row>( ).Where( r => r.RowIndex is not null && r.RowIndex == rowIndex ).First( );
-        }
-        else
+        if( row == null )
         {
             row = new Row( ) { RowIndex = rowIndex };
             sheetData.Append( row );
@@ -195,7 +328,7 @@ partial class FeatureMatrixExporter
 
         // If there is not a cell with the specified column name, insert one.  
 
-        Cell? existing_cell = row.Elements<Cell>( ).Where( c => c.CellReference is not null && c.CellReference.Value == cellReference ).FirstOrDefault( );
+        Cell? existing_cell = row.Elements<Cell>( ).Where( c => c.CellReference is not null && string.Equals( c.CellReference.Value, cellReference, StringComparison.InvariantCultureIgnoreCase ) ).FirstOrDefault( );
 
         if( existing_cell != null ) return existing_cell;
 
@@ -219,64 +352,72 @@ partial class FeatureMatrixExporter
         return newCell;
     }
 
-    void MergeTwoExistingCells( string cell1Name, string cell2Name )
+    void SetColumnWidth( uint columnIndex, double width )
+    {
+        SetColumnWidth( columnIndex, columnIndex, width );
+    }
+
+    void SetColumnWidth( uint columnIndexMin, uint columnIndexMax, double width )
+    {
+        Worksheet worksheet = WorksheetPart!.Worksheet;
+        SheetData sheetData = worksheet.GetFirstChild<SheetData>( )!;
+
+        Columns? columns = worksheet.GetFirstChild<Columns>( );
+
+        if( columns == null )
+        {
+            columns = new Columns( );
+            worksheet.InsertBefore( columns, sheetData );
+        }
+
+        columns.Append( new Column { Min = columnIndexMin, Max = columnIndexMax, Width = width } );
+    }
+
+
+    void MergeExistingCells( Cell cell1, Cell cell2 )
+    {
+        MergeExistingCells( cell1.CellReference!, cell2.CellReference! );
+    }
+
+    void MergeExistingCells( string cell1Name, string cell2Name )
     {
         Worksheet worksheet = WorksheetPart!.Worksheet;
 
-        MergeCells mergeCells;
+        MergeCells? mergeCells = worksheet.Elements<MergeCells>( ).FirstOrDefault( );
 
-        if( worksheet.Elements<MergeCells>( ).Count( ) > 0 )
-        {
-            mergeCells = worksheet.Elements<MergeCells>( ).First( );
-        }
-        else
+        if( mergeCells == null )
         {
             mergeCells = new MergeCells( );
 
-            // Insert a MergeCells object into the specified position.
-            if( worksheet.Elements<CustomSheetView>( ).Count( ) > 0 )
-            {
-                worksheet.InsertAfter( mergeCells, worksheet.Elements<CustomSheetView>( ).First( ) );
-            }
-            else if( worksheet.Elements<DataConsolidate>( ).Count( ) > 0 )
-            {
-                worksheet.InsertAfter( mergeCells, worksheet.Elements<DataConsolidate>( ).First( ) );
-            }
-            else if( worksheet.Elements<SortState>( ).Count( ) > 0 )
-            {
-                worksheet.InsertAfter( mergeCells, worksheet.Elements<SortState>( ).First( ) );
-            }
-            else if( worksheet.Elements<AutoFilter>( ).Count( ) > 0 )
-            {
-                worksheet.InsertAfter( mergeCells, worksheet.Elements<AutoFilter>( ).First( ) );
-            }
-            else if( worksheet.Elements<Scenarios>( ).Count( ) > 0 )
-            {
-                worksheet.InsertAfter( mergeCells, worksheet.Elements<Scenarios>( ).First( ) );
-            }
-            else if( worksheet.Elements<ProtectedRanges>( ).Count( ) > 0 )
-            {
-                worksheet.InsertAfter( mergeCells, worksheet.Elements<ProtectedRanges>( ).First( ) );
-            }
-            else if( worksheet.Elements<SheetProtection>( ).Count( ) > 0 )
-            {
-                worksheet.InsertAfter( mergeCells, worksheet.Elements<SheetProtection>( ).First( ) );
-            }
-            else if( worksheet.Elements<SheetCalculationProperties>( ).Count( ) > 0 )
-            {
-                worksheet.InsertAfter( mergeCells, worksheet.Elements<SheetCalculationProperties>( ).First( ) );
-            }
-            else
-            {
-                worksheet.InsertAfter( mergeCells, worksheet.Elements<SheetData>( ).First( ) );
-            }
+            worksheet.InsertAfter( mergeCells,
+                worksheet.Elements<CustomSheetView>( ).FirstOrDefault( ) ??
+                worksheet.Elements<DataConsolidate>( ).FirstOrDefault( ) ??
+                worksheet.Elements<SortState>( ).FirstOrDefault( ) ??
+                worksheet.Elements<AutoFilter>( ).FirstOrDefault( ) ??
+                worksheet.Elements<Scenarios>( ).FirstOrDefault( ) ??
+                worksheet.Elements<ProtectedRanges>( ).FirstOrDefault( ) ??
+                worksheet.Elements<SheetProtection>( ).FirstOrDefault( ) ??
+                worksheet.Elements<SheetCalculationProperties>( ).FirstOrDefault( ) ??
+                (OpenXmlElement)worksheet.Elements<SheetData>( ).First( ) );
         }
 
         // Create the merged cell and append it to the MergeCells collection.
-        MergeCell mergeCell = new MergeCell( ) { Reference = new StringValue( cell1Name + ":" + cell2Name ) };
+        MergeCell mergeCell = new( ) { Reference = new StringValue( $"{cell1Name}:{cell2Name}" ) };
         mergeCells.Append( mergeCell );
     }
 
+    Row GetRow( Cell cell )
+    {
+        Worksheet worksheet = WorksheetPart!.Worksheet;
+        SheetData? sheetData = worksheet.GetFirstChild<SheetData>( );
+        var p = SplitCellName( cell.CellReference! );
+
+        Row? row = sheetData!.Elements<Row>( ).Where( r => r.RowIndex is not null && r.RowIndex == p.row ).FirstOrDefault( );
+
+        if( row == null ) throw new InvalidOperationException( $"Row not found: {cell.CellReference}" );
+
+        return row;
+    }
 
     static string ColumnNameFromIndex( uint columnIndex )
     {
