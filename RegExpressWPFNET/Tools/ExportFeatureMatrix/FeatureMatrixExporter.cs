@@ -21,6 +21,10 @@ partial class FeatureMatrixExporter
     {
         using( SpreadsheetDocument spreadSheet = SpreadsheetDocument.Create( outputExcelPath, SpreadsheetDocumentType.Workbook ) )
         {
+            const uint START_TABLE_COLUMN = 1;
+            const uint START_ENGINES_COLUMN = START_TABLE_COLUMN + 2;
+            const uint START_TABLE_ROW = 3;
+
             // create workbook
 
             WorkbookPart workbookPart = spreadSheet.WorkbookPart ?? spreadSheet.AddWorkbookPart( );
@@ -37,10 +41,15 @@ partial class FeatureMatrixExporter
 
             CreateStyles( workbookPart );
 
+            // view to freeze rows and columns
+
+            Pane pane = new( ) { ActivePane = PaneValues.BottomRight, HorizontalSplit = 2, VerticalSplit = 4, State = PaneStateValues.Frozen, TopLeftCell = $"{ColumnNameFromIndex( START_ENGINES_COLUMN )}{START_TABLE_ROW + 2}" };
+            SheetView sheetView = new( pane ) { TabSelected = true, WorkbookViewId = 0 };
+
             // create worksheet
 
             WorksheetPart = workbookPart.AddNewPart<WorksheetPart>( );
-            Worksheet worksheet = new( new SheetData( ) );
+            Worksheet worksheet = new( new SheetViews( sheetView ), new SheetData( ) );
             WorksheetPart.Worksheet = worksheet;
 
             Sheets sheets = workbookPart.Workbook.GetFirstChild<Sheets>( ) ?? workbookPart.Workbook.AppendChild( new Sheets( ) );
@@ -78,10 +87,6 @@ partial class FeatureMatrixExporter
             SetColumnWidth( 1, 2, 20 );
 
             // table header
-
-            const uint START_TABLE_COLUMN = 1;
-            const uint START_ENGINES_COLUMN = START_TABLE_COLUMN + 2;
-            const uint START_TABLE_ROW = 3;
 
             cell1 = SetCell( "A", START_TABLE_ROW, "Feature" );
             cell1.StyleIndex = 2;
