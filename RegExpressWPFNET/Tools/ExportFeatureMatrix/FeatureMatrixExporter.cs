@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -80,9 +82,7 @@ partial class FeatureMatrixExporter
             cell1.StyleIndex = 1;
             Cell cell2 = SetCell( ColumnNameFromIndex( (uint)total_variants + 2 ), 1, "" );
             MergeExistingCells( cell1, cell2 );
-            Row row = GetRow( cell1 );
-            row.CustomHeight = true;
-            row.Height = 40;
+            SetRowHeight( cell1, 40 );
 
             SetColumnWidth( 1, 2, 20 );
 
@@ -90,10 +90,9 @@ partial class FeatureMatrixExporter
 
             cell1 = SetCell( "A", START_TABLE_ROW, "Feature" );
             cell1.StyleIndex = 2;
-            row = GetRow( cell1 );
-            row.CustomHeight = true;
-            row.Height = 30;
+            SetRowHeight( cell1, 35 );
             cell2 = SetCell( "A", START_TABLE_ROW + 1, "" );
+            SetRowHeight( cell2, 25 );
             MergeExistingCells( cell1, cell2 );
 
             cell1 = SetCell( "B", START_TABLE_ROW, "Description" );
@@ -105,7 +104,7 @@ partial class FeatureMatrixExporter
 
             foreach( EngineData engine_data in engines_data )
             {
-                cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + engine_data.Matrices[0].index ), row_index, engine_data.Engine.Name );
+                cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + engine_data.Matrices[0].index ), row_index, $"{engine_data.Engine.Name}\r\n{engine_data.Engine.Version}" );
                 cell1.StyleIndex = 2;
 
                 if( engine_data.Matrices.Length > 1 )
@@ -126,8 +125,13 @@ partial class FeatureMatrixExporter
             {
                 foreach( var m in engine_data.Matrices )
                 {
-                    cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, m.variantName ?? "" );
+                    uint column_index = START_ENGINES_COLUMN + m.index;
+                    cell1 = SetCell( ColumnNameFromIndex( column_index ), row_index, m.variantName ?? "" );
                     cell1.StyleIndex = 2;
+
+                    double width = EvaluateWidth( !string.IsNullOrWhiteSpace( m.variantName ) ? m.variantName : engine_data.Engine.Name, isBold: true );
+
+                    SetColumnWidth( column_index, width + 4 );
                 }
             }
 
@@ -222,7 +226,7 @@ partial class FeatureMatrixExporter
             {
                 FontId = (uint)fonts.ChildElements.Count - 1,
                 ApplyAlignment = true,
-                Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center }
+                Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center, WrapText = true }
             };
             cell_formats.Append( cell_format );
         }
@@ -375,9 +379,22 @@ partial class FeatureMatrixExporter
             worksheet.InsertBefore( columns, sheetData );
         }
 
-        columns.Append( new Column { Min = columnIndexMin, Max = columnIndexMax, Width = width } );
+        columns.Append( new Column { Min = columnIndexMin, Max = columnIndexMax, CustomWidth = true, Width = width } );
     }
 
+    void SetRowHeight( Cell cell, double height )
+    {
+        var p = SplitCellName( cell.CellReference! );
+
+        SetRowHeight( p.row, height );
+    }
+
+    void SetRowHeight( uint rowIndex, double height )
+    {
+        Row row = GetRow( rowIndex );
+        row.CustomHeight = true;
+        row.Height = height;
+    }
 
     void MergeExistingCells( Cell cell1, Cell cell2 )
     {
@@ -413,13 +430,19 @@ partial class FeatureMatrixExporter
 
     Row GetRow( Cell cell )
     {
-        Worksheet worksheet = WorksheetPart!.Worksheet;
-        SheetData? sheetData = worksheet.GetFirstChild<SheetData>( );
         var p = SplitCellName( cell.CellReference! );
 
-        Row? row = sheetData!.Elements<Row>( ).Where( r => r.RowIndex is not null && r.RowIndex == p.row ).FirstOrDefault( );
+        return GetRow( p.row );
+    }
 
-        if( row == null ) throw new InvalidOperationException( $"Row not found: {cell.CellReference}" );
+    Row GetRow( uint rowIndex )
+    {
+        Worksheet worksheet = WorksheetPart!.Worksheet;
+        SheetData? sheetData = worksheet.GetFirstChild<SheetData>( );
+
+        Row? row = sheetData!.Elements<Row>( ).Where( r => r.RowIndex is not null && r.RowIndex == rowIndex ).FirstOrDefault( );
+
+        if( row == null ) throw new InvalidOperationException( $"Row not found: {rowIndex}" );
 
         return row;
     }
@@ -458,9 +481,36 @@ partial class FeatureMatrixExporter
         return string.Compare( name1, name2, ignoreCase: true );
     }
 
+    static double EvaluateWidth( string text, bool isBold )
+    {
+        System.Windows.Media.FormattedText ft = new(
+            text,
+            CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new System.Windows.Media.Typeface( new System.Windows.Media.FontFamily( "Calibri" ), FontStyles.Normal, isBold ? FontWeights.Bold : FontWeights.Normal, FontStretches.Normal ),
+            18,
+            System.Windows.Media.Brushes.Black,
+            1 );
+
+        System.Windows.Media.FormattedText ft0 = new(
+            "0",
+            CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new System.Windows.Media.Typeface( new System.Windows.Media.FontFamily( "Calibri" ), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal ),
+            18,
+            System.Windows.Media.Brushes.Black,
+            1 );
+
+        // https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.spreadsheet.column
+        // Truncate(({pixels}-5)/{Maximum Digit Width} * 100+0.5)/100
+
+        return ft.WidthIncludingTrailingWhitespace / ft0.WidthIncludingTrailingWhitespace;
+    }
+
 
     [GeneratedRegex( "(?i)([a-z]+)([1-9][0-9]*)", RegexOptions.None, "" )]
     private static partial Regex RegexSplitColumn( );
+
 }
 
 
