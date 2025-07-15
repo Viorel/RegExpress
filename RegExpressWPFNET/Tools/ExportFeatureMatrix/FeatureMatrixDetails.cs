@@ -188,7 +188,7 @@ class FeatureMatrixDetails
             new (  @"(?P<name>…)", @"Named group", fm => fm.NamedGroup_PLtGt ),
             new (  @"(?@…)", @"Capturing group, depending on options", fm => fm.NamedGroup_AtApos || fm.NamedGroup_AtLtGt || fm.CapturingGroup ),
 
-            new (  @"\1, \2, …, \9", @"Backreferences \1, \2, …, \9", fm => fm.Backref_1_9 ),
+            new (  @"\1, \2, …, \9", @"Backreferences", fm => fm.Backref_1_9 ),
             new (  @"\nnn", @"Backreference, one or more digits", fm => fm.Backref_Num ),
             new (  @"\k'name'", @"Backreference by name", fm => fm.Backref_kApos ),
             new (  @"\k<name>", @"Backreference by name", fm => fm.Backref_kLtGt ),

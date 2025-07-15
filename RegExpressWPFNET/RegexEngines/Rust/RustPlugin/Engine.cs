@@ -119,10 +119,10 @@ namespace RustPlugin
         {
             return new List<(string?, FeatureMatrix)>
             {
-                ("“regex” crate", LazyData.GetValue( (CrateEnum.regex, isOctal:true) )),
-                ("“regex_lite” crate", LazyData.GetValue( (CrateEnum.regex_lite, isOctal:true) )),
-                ("“fancy_regex” crate", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true) )),
-                ("“regress” crate", LazyData.GetValue( (CrateEnum.regress, isOctal:true) )),
+                ("regex", LazyData.GetValue( (CrateEnum.regex, isOctal:true) )),
+                ("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, isOctal:true) )),
+                ("fancy_regex", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true) )),
+                ("regress", LazyData.GetValue( (CrateEnum.regress, isOctal:true) )),
             };
         }
 

@@ -19,13 +19,20 @@ partial class FeatureMatrixExporter
     WorksheetPart? WorksheetPart = null;
     SharedStringTable? SharedStringTable = null;
 
+    uint STYLE_ID_CAPTION = 0;
+    uint STYLE_ID_TABLE_HEADER = 0;
+    uint STYLE_ID_FEATURE_GROUP = 0;
+    uint STYLE_ID_FEATURE = 0;
+    uint STYLE_ID_DESCRIPTION = 0;
+    uint STYLE_ID_PLUS = 0;
+
     public void ExportToExcel( string outputExcelPath, IReadOnlyList<RegexPlugin> plugins )
     {
         using( SpreadsheetDocument spreadSheet = SpreadsheetDocument.Create( outputExcelPath, SpreadsheetDocumentType.Workbook ) )
         {
             const uint START_TABLE_COLUMN = 1;
             const uint START_ENGINES_COLUMN = START_TABLE_COLUMN + 2;
-            const uint START_TABLE_ROW = 3;
+            const uint START_TABLE_ROW = 2;
 
             // create workbook
 
@@ -45,7 +52,7 @@ partial class FeatureMatrixExporter
 
             // view to freeze rows and columns
 
-            Pane pane = new( ) { ActivePane = PaneValues.BottomRight, HorizontalSplit = 2, VerticalSplit = 4, State = PaneStateValues.Frozen, TopLeftCell = $"{ColumnNameFromIndex( START_ENGINES_COLUMN )}{START_TABLE_ROW + 2}" };
+            Pane pane = new( ) { ActivePane = PaneValues.BottomRight, HorizontalSplit = 2, VerticalSplit = START_TABLE_ROW + 1, State = PaneStateValues.Frozen, TopLeftCell = $"{ColumnNameFromIndex( START_ENGINES_COLUMN )}{START_TABLE_ROW + 2}" };
             SheetView sheetView = new( pane ) { TabSelected = true, WorkbookViewId = 0 };
 
             // create worksheet
@@ -79,42 +86,49 @@ partial class FeatureMatrixExporter
             // caption
 
             Cell cell1 = SetCell( "A", 1, "Regex Feature Matrix" );
-            cell1.StyleIndex = 1;
+            cell1.StyleIndex = STYLE_ID_CAPTION;
             Cell cell2 = SetCell( ColumnNameFromIndex( (uint)total_variants + 2 ), 1, "" );
             MergeExistingCells( cell1, cell2 );
-            SetRowHeight( cell1, 40 );
+            SetRowHeight( cell1, 49 );
 
             SetColumnWidth( 1, 2, 20 );
 
             // table header
 
             cell1 = SetCell( "A", START_TABLE_ROW, "Feature" );
-            cell1.StyleIndex = 2;
+            cell1.StyleIndex = STYLE_ID_TABLE_HEADER;
             SetRowHeight( cell1, 35 );
             cell2 = SetCell( "A", START_TABLE_ROW + 1, "" );
+            cell2.StyleIndex = STYLE_ID_TABLE_HEADER;
             SetRowHeight( cell2, 25 );
             MergeExistingCells( cell1, cell2 );
 
             cell1 = SetCell( "B", START_TABLE_ROW, "Description" );
-            cell1.StyleIndex = 2;
+            cell1.StyleIndex = STYLE_ID_TABLE_HEADER;
             cell2 = SetCell( "B", START_TABLE_ROW + 1, "" );
+            cell2.StyleIndex = STYLE_ID_TABLE_HEADER;
             MergeExistingCells( cell1, cell2 );
 
             uint row_index = START_TABLE_ROW;
 
             foreach( EngineData engine_data in engines_data )
             {
-                cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + engine_data.Matrices[0].index ), row_index, $"{engine_data.Engine.Name}\r\n{engine_data.Engine.Version}" );
-                cell1.StyleIndex = 2;
+                cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + engine_data.Matrices[0].index ), row_index, MakeHeader( engine_data ) );
+                cell1.StyleIndex = STYLE_ID_TABLE_HEADER;
 
                 if( engine_data.Matrices.Length > 1 )
                 {
-                    cell2 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + engine_data.Matrices.Last( ).index ), row_index, "" );
+                    for( int i = 1; i < engine_data.Matrices.Length; ++i ) // (to have borders)
+                    {
+                        cell2 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + engine_data.Matrices[i].index ), row_index, "" );
+                        cell2.StyleIndex = STYLE_ID_TABLE_HEADER;
+                    }
                     MergeExistingCells( cell1, cell2 );
                 }
                 else
                 {
                     cell2 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + engine_data.Matrices[0].index ), row_index + 1, "" );
+                    cell2.StyleIndex = STYLE_ID_TABLE_HEADER;
                     MergeExistingCells( cell1, cell2 );
                 }
             }
@@ -127,11 +141,11 @@ partial class FeatureMatrixExporter
                 {
                     uint column_index = START_ENGINES_COLUMN + m.index;
                     cell1 = SetCell( ColumnNameFromIndex( column_index ), row_index, m.variantName ?? "" );
-                    cell1.StyleIndex = 2;
+                    cell1.StyleIndex = STYLE_ID_TABLE_HEADER;
 
-                    double width = EvaluateWidth( !string.IsNullOrWhiteSpace( m.variantName ) ? m.variantName : engine_data.Engine.Name, isBold: true );
+                    double width = EvaluateWidth( !string.IsNullOrWhiteSpace( m.variantName ) ? m.variantName : MakeHeader( engine_data ), "Arial Narrow", isBold: true );
 
-                    SetColumnWidth( column_index, width + 4 );
+                    SetColumnWidth( column_index, width + 2 );
                 }
             }
 
@@ -146,14 +160,16 @@ partial class FeatureMatrixExporter
                     // name of the group
 
                     cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, details.ShortDesc );
-                    cell1.StyleIndex = 3;
+                    cell1.StyleIndex = STYLE_ID_FEATURE_GROUP;
                     cell2 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + total_variants + 1 ), row_index, "" );
                     MergeExistingCells( cell1, cell2 );
                 }
                 else
                 {
-                    SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, details.ShortDesc );
-                    SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + 1 ), row_index, details.Desc ?? "" );
+                    cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, details.ShortDesc );
+                    cell1.StyleIndex = STYLE_ID_FEATURE;
+                    cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + 1 ), row_index, details.Desc ?? "" );
+                    cell1.StyleIndex = STYLE_ID_DESCRIPTION;
 
                     foreach( EngineData engine_data in engines_data )
                     {
@@ -161,13 +177,18 @@ partial class FeatureMatrixExporter
                         {
                             bool yes = details.Func( m.fm );
                             cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, yes ? "+" : "" );
-                            if( yes ) cell1.StyleIndex = 4;
+                            if( yes ) cell1.StyleIndex = STYLE_ID_PLUS;
                         }
                     }
                 }
 
                 ++row_index;
             }
+        }
+
+        static string MakeHeader( EngineData engineData )
+        {
+            return $"{engineData.Engine.Name}\r\n{engineData.Engine.Version}";
         }
     }
 
@@ -188,23 +209,32 @@ partial class FeatureMatrixExporter
         // 0 - default
 
         {
-            Font font = new( );
+            Font font = new( new FontSize { Val = 11 }, new FontName { Val = "Arial" } );
             fonts.Append( font );
 
             Fill fill = new( );
             fills.Append( fill );
 
-            Border border = new( );
-            borders.Append( border );
+            borders.Append( new Border( new LeftBorder( ), new RightBorder( ), new TopBorder( ), new BottomBorder( ) ) );
 
             CellFormat cell_format = new( ) { FontId = (uint)fonts.ChildElements.Count - 1, FillId = (uint)fills.ChildElements.Count - 1, BorderId = (uint)borders.ChildElements.Count - 1 };
             cell_formats.Append( cell_format );
         }
 
-        // 1 -- caption
+        // simple border
+        borders.Append( new Border(
+            new LeftBorder( new Color { Theme = 1 } ) { Style = BorderStyleValues.Thin },
+            new RightBorder( new Color { Theme = 1 } ) { Style = BorderStyleValues.Thin },
+            new TopBorder( new Color { Theme = 1 } ) { Style = BorderStyleValues.Thin },
+            new BottomBorder( new Color { Theme = 1 } ) { Style = BorderStyleValues.Thin }
+            ) );
+
+        uint simple_border_id = (uint)borders.ChildElements.Count - 1;
+
+        // caption
 
         {
-            Font font = new( new Bold( ) ) { FontSize = new FontSize { Val = new DoubleValue( 20.0 ) } };
+            Font font = new( new Bold( ), new FontSize { Val = 20 }, new FontName { Val = "Arial" } );
             fonts.Append( font );
 
             CellFormat cell_format = new( )
@@ -214,27 +244,31 @@ partial class FeatureMatrixExporter
                 Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Left, Vertical = VerticalAlignmentValues.Center }
             };
             cell_formats.Append( cell_format );
+            STYLE_ID_CAPTION = (uint)cell_formats.ChildElements.Count - 1;
         }
 
-        // 2 -- table header
+        // table header
 
         {
-            Font font = new( new Bold( ) );
+            Font font = new( new Bold( ), new FontSize { Val = 11 }, new FontName { Val = "Arial Narrow" } );
             fonts.Append( font );
 
             CellFormat cell_format = new( )
             {
                 FontId = (uint)fonts.ChildElements.Count - 1,
                 ApplyAlignment = true,
-                Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center, WrapText = true }
+                Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center, WrapText = true },
+                ApplyBorder = true,
+                BorderId = simple_border_id
             };
             cell_formats.Append( cell_format );
+            STYLE_ID_TABLE_HEADER = (uint)cell_formats.ChildElements.Count - 1;
         }
 
-        // 3 -- title of Feature Group
+        // feature group
 
         {
-            Font font = new( new Bold( ) );
+            Font font = new( new Italic( ), new FontSize { Val = 11 }, new FontName { Val = "Arial Narrow" } );
             fonts.Append( font );
 
             Fill fill = new( new PatternFill( new ForegroundColor { Rgb = "FFFFF8DC" } ) { PatternType = PatternValues.Solid } );
@@ -249,15 +283,48 @@ partial class FeatureMatrixExporter
                 Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Left, Vertical = VerticalAlignmentValues.Center }
             };
             cell_formats.Append( cell_format );
+            STYLE_ID_FEATURE_GROUP = (uint)cell_formats.ChildElements.Count - 1;
         }
 
-        // 4 -- the "+"
+        // feature
+
+        {
+            Font font = new( new Bold( ), new FontSize { Val = 11 }, new FontName { Val = "Courier New" } );
+            fonts.Append( font );
+
+            CellFormat cell_format = new( )
+            {
+                FontId = (uint)fonts.ChildElements.Count - 1,
+                ApplyAlignment = true,
+                Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Left, Vertical = VerticalAlignmentValues.Top, WrapText = true }
+            };
+            cell_formats.Append( cell_format );
+            STYLE_ID_FEATURE = (uint)cell_formats.ChildElements.Count - 1;
+        }
+
+        // description
+
+        {
+            Font font = new( new FontSize { Val = 11 }, new FontName { Val = "Arial Narrow" } );
+            fonts.Append( font );
+
+            CellFormat cell_format = new( )
+            {
+                FontId = (uint)fonts.ChildElements.Count - 1,
+                ApplyAlignment = true,
+                Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Left, Vertical = VerticalAlignmentValues.Top, WrapText = true }
+            };
+            cell_formats.Append( cell_format );
+            STYLE_ID_DESCRIPTION = (uint)cell_formats.ChildElements.Count - 1;
+        }
+
+        // the "+"
 
         {
             Font font = new( );
             fonts.Append( font );
 
-            Fill fill = new( new PatternFill( new ForegroundColor { Rgb = "FFE8FCE8" } ) { PatternType = PatternValues.Solid } );
+            Fill fill = new( new PatternFill( new ForegroundColor { Rgb = "FFEAFAEC" } ) { PatternType = PatternValues.Solid } );
             fills.Append( fill );
 
             CellFormat cell_format = new( )
@@ -269,6 +336,7 @@ partial class FeatureMatrixExporter
                 Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center }
             };
             cell_formats.Append( cell_format );
+            STYLE_ID_PLUS = (uint)cell_formats.ChildElements.Count - 1;
         }
 
         WorkbookStylesPart stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>( );
@@ -481,13 +549,13 @@ partial class FeatureMatrixExporter
         return string.Compare( name1, name2, ignoreCase: true );
     }
 
-    static double EvaluateWidth( string text, bool isBold )
+    static double EvaluateWidth( string text, string fontFamilyName, bool isBold )
     {
         System.Windows.Media.FormattedText ft = new(
             text,
             CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            new System.Windows.Media.Typeface( new System.Windows.Media.FontFamily( "Calibri" ), FontStyles.Normal, isBold ? FontWeights.Bold : FontWeights.Normal, FontStretches.Normal ),
+            new System.Windows.Media.Typeface( new System.Windows.Media.FontFamily( fontFamilyName ), FontStyles.Normal, isBold ? FontWeights.Bold : FontWeights.Normal, FontStretches.Normal ),
             18,
             System.Windows.Media.Brushes.Black,
             1 );
@@ -496,7 +564,7 @@ partial class FeatureMatrixExporter
             "0",
             CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            new System.Windows.Media.Typeface( new System.Windows.Media.FontFamily( "Calibri" ), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal ),
+            new System.Windows.Media.Typeface( new System.Windows.Media.FontFamily( fontFamilyName ), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal ),
             18,
             System.Windows.Media.Brushes.Black,
             1 );
@@ -504,7 +572,7 @@ partial class FeatureMatrixExporter
         // https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.spreadsheet.column
         // Truncate(({pixels}-5)/{Maximum Digit Width} * 100+0.5)/100
 
-        return ft.WidthIncludingTrailingWhitespace / ft0.WidthIncludingTrailingWhitespace;
+        return double.Round( ft.WidthIncludingTrailingWhitespace / ft0.WidthIncludingTrailingWhitespace, 3, MidpointRounding.ToPositiveInfinity );
     }
 
 
