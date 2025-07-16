@@ -122,7 +122,7 @@ namespace WebView2Plugin
             {
                 ("“u” flag", LazyFeatureMatrixWithUFlag.Value),
                 ("“v” flag", LazyFeatureMatrixWithVFlag.Value),
-                ("no “u” or “v” flag", LazyFeatureMatrixUnicodeUnaware.Value)
+                ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value)
             };
 
             return list;

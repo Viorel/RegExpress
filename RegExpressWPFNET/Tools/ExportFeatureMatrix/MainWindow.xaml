@@ -1,0 +1,50 @@
+﻿<Window x:Class="ExportFeatureMatrix.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ExportFeatureMatrix"
+        mc:Ignorable="d"
+        Title="Export Feature Matrix" Height="246" Width="606" MinWidth="400" MinHeight="240" 
+        Loaded="Window_Loaded">
+
+    <Window.Resources>
+        <Style TargetType="Label">
+            <Setter Property="Padding" Value="0 4"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="12 8">
+        <Label Content="“_Engines.json” file" Target="{Binding ElementName=tbEnginesFile}" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        <TextBox x:Name="tbEnginesFile" VerticalAlignment="Top" Margin="0 30 23 0" Padding="1.5" />
+        <Button x:Name="btnBrowseEnginesJsonFile" Content="..." HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0 30 0 0" Padding="4 1" Click="btnBrowseEnginesJsonFile_Click"/>
+        <Label Content="Output file" Target="{Binding ElementName=tbEnginesFile}"  HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 54 0 0" />
+
+        <StackPanel Orientation="Horizontal"  HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 80 0 0">
+            <StackPanel.Resources>
+                <Style TargetType="RadioButton">
+                    <Setter Property="Margin" Value="0 0 12 0"/>
+                </Style>
+            </StackPanel.Resources>
+            <RadioButton x:Name="rbOutputExcel" Content="Excel" VerticalAlignment="Center" Checked="rbOutputExcel_Checked"/>
+            <RadioButton x:Name="rbOutputHtml" Content="HTML" VerticalAlignment="Center" Checked="rbOutputHtml_Checked"/>
+        </StackPanel>
+
+        <TextBox x:Name="tbOutputFile" VerticalAlignment="Top" Margin="0 100 23 0" Padding="1.5" />
+        <Button x:Name="btnBrowseOutputFile" Content="..." HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0 100 0 0" Padding="4 1" Click="btnBrowseOutputFile_Click"/>
+
+        <TextBlock x:Name="tblProgress" Margin="0,0,139,5" Height="16" VerticalAlignment="Bottom"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" >
+            <StackPanel.Resources>
+                <Style TargetType="Button">
+                    <Setter Property="Margin" Value="12 0 0 0"/>
+                </Style>
+            </StackPanel.Resources>
+            <Button x:Name="buttonCreateFile" Content="Create file" Click="buttonCreateFile_Click" Padding="8 4"/>
+            <Button x:Name="buttonClose" Content="Close" Click="buttonClose_Click" Padding="8 4"/>
+        </StackPanel>
+
+    </Grid>
+</Window>

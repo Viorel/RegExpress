@@ -6,11 +6,11 @@ using RegExpressLibrary;
 
 namespace BoostPlugin
 {
-    public class Plugin : IRegexPlugin
+    public class Plugin : RegexPlugin
     {
-        #region IRegexPlugin
+        #region RegexPlugin
 
-        public IReadOnlyList<IRegexEngine> GetEngines( )
+        public override IReadOnlyList<IRegexEngine> GetEngines( )
         {
             return new[] { new Engine( ) };
         }
