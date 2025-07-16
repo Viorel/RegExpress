@@ -52,8 +52,8 @@ namespace RegExpressWPFNET
         public static readonly RoutedUICommand ExportFeatureMatrixCommand = new( );
 
         readonly List<RegexPlugin> mRegexPlugins = [];
+        readonly List<RegexPlugin> mNoFmRegexPlugins = [];
         bool IsError = false;
-        readonly HashSet<string> NoFmAssemblies = new( StringComparer.InvariantCultureIgnoreCase );
 
         public MainWindow( )
         {
@@ -93,7 +93,7 @@ namespace RegExpressWPFNET
 
             DateTime start_time = DateTime.UtcNow;
 
-            IReadOnlyList<RegexPlugin>? plugins = await PluginLoader.LoadEngines( this, engines_path );
+            (IReadOnlyList<RegexPlugin>? plugins, IReadOnlyList<RegexPlugin>? no_fm_plugins) = await PluginLoader.LoadEngines( this, engines_path );
 
             if( plugins == null )
             {
@@ -103,7 +103,8 @@ namespace RegExpressWPFNET
                 return;
             }
 
-            mRegexPlugins.AddRange( plugins ); // 
+            mRegexPlugins.AddRange( plugins ); //
+            if( no_fm_plugins != null ) mNoFmRegexPlugins.AddRange( no_fm_plugins );
 
             // --- Load saved data
 
@@ -413,7 +414,7 @@ namespace RegExpressWPFNET
 
         IRegexEngine[] GetEngines( bool excludeNoFm = false )
         {
-            return mRegexPlugins.Where( p => !excludeNoFm || !NoFmAssemblies.Contains( p.GetType( ).AssemblyQualifiedName! ) ).SelectMany( p => p.GetEngines( ) ).ToArray( );
+            return ( excludeNoFm ? mRegexPlugins.Except( mNoFmRegexPlugins ) : mRegexPlugins ).SelectMany( p => p.GetEngines( ) ).ToArray( );
         }
 
 

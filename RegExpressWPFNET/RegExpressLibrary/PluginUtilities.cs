@@ -62,7 +62,7 @@ public static class PluginLoader
 {
     public static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, ReadCommentHandling = JsonCommentHandling.Skip, WriteIndented = true };
 
-    public static async Task<IReadOnlyList<RegexPlugin>?> LoadEngines( Window ownerWindow, string enginesJsonPath )
+    public static async Task<(IReadOnlyList<RegexPlugin>? plugins, IReadOnlyList<RegexPlugin>? noFmPlugins)> LoadEngines( Window ownerWindow, string enginesJsonPath )
     {
         // -- deserialize "Engines.json"
 
@@ -81,13 +81,14 @@ public static class PluginLoader
 
             MessageBox.Show( ownerWindow, $"Failed to load plugins using '{enginesJsonPath}'.\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
 
-            return null;
+            return (null, null);
         }
 
         // --- load plugins and their engines
 
         string plugin_root_folder = Path.GetDirectoryName( enginesJsonPath )!;
         List<RegexPlugin> plugins = [];
+        List<RegexPlugin> no_fm_plugins = [];
 
         if( engines_data?.engines != null )
         {
@@ -114,18 +115,13 @@ public static class PluginLoader
                                 Debug.WriteLine( $"Making plugin \"{type.FullName}\"..." );
                                 RegexPlugin plugin = (RegexPlugin)Activator.CreateInstance( type )!;
                                 plugins.Add( plugin );
+                                if( engine_data.no_fm ) no_fm_plugins.Add( plugin );
                             }
                             catch( Exception exc )
                             {
                                 if( Debugger.IsAttached ) Debugger.Break( );
 
                                 MessageBox.Show( ownerWindow, $"Failed to create plugin \"{engine_data.path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
-                            }
-
-                            if( engine_data.no_fm )
-                            {
-                                //............
-                                //NoFmAssemblies.Add( type.AssemblyQualifiedName! );
                             }
                         }
                     }
@@ -154,9 +150,9 @@ public static class PluginLoader
         {
             MessageBox.Show( ownerWindow, $"No engines loaded using '{plugin_root_folder}'.\r\n", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
 
-            return null;
+            return (null, null);
         }
 
-        return plugins;
+        return (plugins, no_fm_plugins);
     }
 }
