@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -19,6 +20,8 @@ namespace ExportFeatureMatrix
     /// </summary>
     public partial class MainWindow : Window
     {
+        const string CAPTION = "Regex Feature Matrix";
+
         enum OutputTypeEnum
         {
             None,
@@ -52,9 +55,11 @@ namespace ExportFeatureMatrix
         {
             try
             {
+                tblProgress.Text = "";
+
                 if( string.IsNullOrWhiteSpace( tbEnginesFile.Text ) )
                 {
-                    MessageBox.Show( this, "Please select the path to “Engines.json”", "Warning", MessageBoxButton.OK, MessageBoxImage.Information );
+                    MessageBox.Show( this, "Please select the path to “Engines.json”", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
 
                     return;
                 }
@@ -63,21 +68,23 @@ namespace ExportFeatureMatrix
 
                 if( output_type == OutputTypeEnum.None )
                 {
-                    MessageBox.Show( this, "Please select the output type", "Warning", MessageBoxButton.OK, MessageBoxImage.Information );
+                    MessageBox.Show( this, "Please select the output type", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
 
                     return;
-                }
-
-                if( output_type == OutputTypeEnum.Html )
-                {
-                    throw new NotImplementedException( "HTML output not implemented." );
                 }
 
                 if( string.IsNullOrWhiteSpace( tbOutputFile.Text ) )
                 {
-                    MessageBox.Show( this, "Please select the output file", "Warning", MessageBoxButton.OK, MessageBoxImage.Information );
+                    MessageBox.Show( this, "Please select the output file", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
 
                     return;
+                }
+                else
+                {
+                    if( File.Exists( tbOutputFile.Text ) )
+                    {
+                        if( MessageBox.Show( this, "The output file already exists.\r\n\r\nOverwrite?", CAPTION, MessageBoxButton.OKCancel, MessageBoxImage.Information ) != MessageBoxResult.OK ) return;
+                    }
                 }
 
                 // Load engines
@@ -94,7 +101,7 @@ namespace ExportFeatureMatrix
 
                 if( plugins.Count == 0 )
                 {
-                    MessageBox.Show( this, "No engines.", "Warning", MessageBoxButton.OK, MessageBoxImage.Information );
+                    MessageBox.Show( this, "No engines.", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
 
                     return;
                 }
@@ -105,27 +112,41 @@ namespace ExportFeatureMatrix
                 {
                 case OutputTypeEnum.Excel:
                 {
-                    FeatureMatrixExporter exporter = new( );
+                    ExporterToExcel exporter = new( );
 
-                    string output_Excel_path = "FeatureMatrix.xlsx"; // TODO: browse
-
-                    exporter.ExportToExcel( output_Excel_path, plugins! );
+                    exporter.Export( tbOutputFile.Text, plugins! );
                 }
                 break;
                 case OutputTypeEnum.Html:
-                    throw new NotImplementedException( "HTML output not implemented." );
+                {
+                    ExporterToHtml exporter = new( );
+
+                    exporter.Export( tbOutputFile.Text, plugins! );
+                }
+                break;
                 default:
                     throw new NotSupportedException( $"Output type not supported: '{output_type}'" );
                 }
 
                 tblProgress.Text = "DONE.";
+
+                if( MessageBox.Show( this, "The file was created.\r\n\r\nOpen it?", CAPTION, MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Yes ) == MessageBoxResult.OK )
+                {
+                    Process process = new( );
+                    process.StartInfo.FileName = tbOutputFile.Text;
+                    process.StartInfo.UseShellExecute = true;
+
+                    process.Start( );
+                }
+
+                tblProgress.Text = "";
             }
             catch( Exception exc )
             {
                 if( Debugger.IsAttached ) Debugger.Break( );
 
-                MessageBox.Show( this, exc.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error );
- 
+                MessageBox.Show( this, exc.Message, CAPTION, MessageBoxButton.OK, MessageBoxImage.Error );
+
                 tblProgress.Text = "";
             }
         }
@@ -169,7 +190,7 @@ namespace ExportFeatureMatrix
 
             if( output_type == OutputTypeEnum.None )
             {
-                MessageBox.Show( this, "Please select the output type", "Warning", MessageBoxButton.OK, MessageBoxImage.Information );
+                MessageBox.Show( this, "Please select the output type", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
 
                 return;
             }
@@ -204,6 +225,7 @@ namespace ExportFeatureMatrix
                 Filter = filter,
                 CheckPathExists = true,
                 CheckFileExists = false,
+                OverwritePrompt = false,
             };
 
             if( ofd.ShowDialog( this ) != true ) return;

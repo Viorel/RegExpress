@@ -14,7 +14,7 @@ using RegExpressLibrary.SyntaxColouring;
 
 namespace ExportFeatureMatrix;
 
-partial class FeatureMatrixExporter
+partial class ExporterToExcel
 {
     WorksheetPart? WorksheetPart = null;
     SharedStringTable? SharedStringTable = null;
@@ -27,7 +27,7 @@ partial class FeatureMatrixExporter
     uint STYLE_ID_PLUS = 0;
     uint STYLE_ID_BOTTOM_ROW = 0;
 
-    public void ExportToExcel( string outputExcelPath, IReadOnlyList<RegexPlugin> plugins )
+    public void Export( string outputExcelPath, IReadOnlyList<RegexPlugin> plugins )
     {
         using( SpreadsheetDocument spreadSheet = SpreadsheetDocument.Create( outputExcelPath, SpreadsheetDocumentType.Workbook ) )
         {
@@ -243,7 +243,7 @@ partial class FeatureMatrixExporter
 
         // border for headers
         borders.Append( new Border(
-            new LeftBorder( new Color { Rgb="FF000000" } ) { Style = BorderStyleValues.Thin },
+            new LeftBorder( new Color { Rgb = "FF000000" } ) { Style = BorderStyleValues.Thin },
             new RightBorder( new Color { Rgb = "FF000000" } ) { Style = BorderStyleValues.Thin },
             new TopBorder( new Color { Rgb = "FF000000" } ) { Style = BorderStyleValues.Thin },
             new BottomBorder( new Color { Rgb = "FF000000" } ) { Style = BorderStyleValues.Thin }
