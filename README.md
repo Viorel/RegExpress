@@ -60,8 +60,14 @@ Some of engines require certain third-party library files, which were downloaded
 and included into **main** branch. (No additional installations required).
 
 <br/>
-<br/>
-<br/>
-<br/>
-<br/>
 
+## Feature Matrix
+
+The different functionalities of regular expressions are shown in these files:
+
+* [Excel file](./RegExpressWPFNET/Tools/ExportFeatureMatrix/FeatureMatrix.xlsx).
+* [HTML file](./RegExpressWPFNET/Tools/ExportFeatureMatrix/FeatureMatrix.html).
+
+<br/>
+<br/>
+<br/>
