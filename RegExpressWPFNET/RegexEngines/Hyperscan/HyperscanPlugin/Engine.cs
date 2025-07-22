@@ -115,9 +115,13 @@ namespace HyperscanPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
+            Engine engine = new( );
+            engine.mOptionsControl.Value.SetSelectedOptions( new Options { HS_FLAG_UTF8 = true, HS_FLAG_SOM_LEFTMOST = false } );
+            // ('HS_FLAG_UTF8=true' allows non-latin letters, 'HS_FLAG_SOM_LEFTMOST=false' reduce the "Pattern is too large" errors)
+
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, engine )
                 ];
         }
 

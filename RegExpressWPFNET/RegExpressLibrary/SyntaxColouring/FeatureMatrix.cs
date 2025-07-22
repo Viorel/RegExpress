@@ -110,7 +110,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Class_lL { get; init; }                               // \l, \L -- lowercase
         public bool Class_N { get; init; }                                // \N -- any except \n
         public bool Class_O { get; init; }                                // \O -- any
-        public bool Class_R { get; init; }                                // \R  -- linebreak
+        public bool Class_R { get; init; }                                // \R  -- linebreak; vertical space (see Class_v) or the "\r\n" sequence
         public bool Class_sS { get; init; }                               // \s, \S -- spaces
         public bool Class_sSx { get; init; }                              // \sx, \Sx -- syntax group; x is, for example, 's', ' ', '_', 'w', '.', ')', '(', '"', '\'', '>' and '<'.
         public bool Class_uU { get; init; }                               // \u, \U -- uppercase

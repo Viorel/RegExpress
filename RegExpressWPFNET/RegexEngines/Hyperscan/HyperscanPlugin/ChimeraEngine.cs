@@ -219,8 +219,8 @@ namespace HyperscanPlugin
                 InsideSets_GenericEscape = true,
 
                 Class_Dot = true,
-                Class_Cbyte = false,
-                Class_Ccp = true,
+                Class_Cbyte = true,
+                Class_Ccp = false,
                 Class_dD = true,
                 Class_hHhexa = false,
                 Class_hHhorspace = true,

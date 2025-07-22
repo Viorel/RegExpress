@@ -860,7 +860,7 @@ namespace RustPlugin
                 InsideSets_Esc_U8 = false,
                 InsideSets_Esc_uBrace = true,
                 InsideSets_Esc_UBrace = false,
-                InsideSets_Esc_c1 = false,
+                InsideSets_Esc_c1 = true,
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,

@@ -179,6 +179,9 @@ namespace BoostPlugin
                 grammar == GrammarEnum.grep ||
                 grammar == GrammarEnum.emacs;
 
+            bool is_awk =
+                grammar == GrammarEnum.awk;
+
             bool is_emacs =
                 grammar == GrammarEnum.emacs;
 
@@ -231,28 +234,28 @@ namespace BoostPlugin
                 Esc_NBrace = is_perl || is_POSIX_extended,
                 GenericEscape = true,
 
-                InsideSets_Esc_a = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_b = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_e = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_f = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_n = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_r = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_t = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_v = is_perl || grammar == GrammarEnum.awk || is_emacs,
+                InsideSets_Esc_a = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_b = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_e = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_f = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_n = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_r = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_t = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_v = is_perl || is_awk || is_emacs,
                 InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
-                InsideSets_Esc_Octal0_1_3 = is_perl || grammar == GrammarEnum.awk || is_emacs,
+                InsideSets_Esc_Octal0_1_3 = is_perl || is_awk || is_emacs,
                 InsideSets_Esc_oBrace = false,
-                InsideSets_Esc_x2 = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_xBrace = is_perl || grammar == GrammarEnum.awk || is_emacs,
+                InsideSets_Esc_x2 = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_xBrace = is_perl || is_awk || is_emacs,
                 InsideSets_Esc_u4 = false,
                 InsideSets_Esc_U8 = false,
                 InsideSets_Esc_uBrace = false,
                 InsideSets_Esc_UBrace = false,
-                InsideSets_Esc_c1 = is_perl || grammar == GrammarEnum.awk || is_emacs,
+                InsideSets_Esc_c1 = is_perl || is_awk || is_emacs,
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
-                InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = is_perl || grammar == GrammarEnum.awk || is_emacs,
+                InsideSets_Esc_NBrace = is_perl || is_awk || is_emacs,
+                InsideSets_GenericEscape = is_perl || is_awk || is_emacs,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
