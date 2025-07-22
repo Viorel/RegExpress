@@ -116,21 +116,22 @@ namespace BoostPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            var list = new List<(string?, FeatureMatrix)>( );
+            List<FeatureMatrixVariant> variants = [];
 
-            foreach( GrammarEnum grammar in Enum.GetValues( typeof( GrammarEnum ) ) )
+            foreach( GrammarEnum grammar in Enum.GetValues<GrammarEnum>( ) )
             {
                 if( grammar == GrammarEnum.None ) continue;
                 if( grammar == GrammarEnum.literal ) continue;
 
-                var fm = LazyFeatureMatrix.GetValue( grammar );
+                Engine engine = new( );
+                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Grammar = grammar } );
 
-                list.Add( (Enum.GetName( typeof( GrammarEnum ), grammar ), fm)! );
+                variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), LazyFeatureMatrix.GetValue( grammar ), engine ) );
             }
 
-            return list;
+            return variants;
         }
 
         #endregion
@@ -200,7 +201,7 @@ namespace BoostPlugin
                 ScopedFlags = is_perl || is_emacs,
                 CircumflexFlags = false,
                 ScopedCircumflexFlags = false,
-                XFlag = false,
+                XFlag = is_perl,
                 XXFlag = false,
 
                 Literal_QE = is_perl || is_POSIX_extended,

@@ -116,16 +116,29 @@ namespace WebView2Plugin
             };
         }
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            var list = new List<(string?, FeatureMatrix)>
-            {
-                ("“u” flag", LazyFeatureMatrixWithUFlag.Value),
-                ("“v” flag", LazyFeatureMatrixWithVFlag.Value),
-                ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value)
-            };
+            //Engine engine_u = new( );
+            //engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { u = true, v = false } );
 
-            return list;
+            //Engine engine_v = new( );
+            //engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { u = false, v = true } );
+
+            //Engine engine_no_uv = new( );
+            //engine_no_uv.mOptionsControl.Value.SetSelectedOptions( new Options { u = false, v = false } );
+
+            // TODO: implement
+
+            Engine? engine_u = null;
+            Engine? engine_v = null;
+            Engine? engine_no_uv = null;
+
+            return
+                [
+                    new ("“u” flag", LazyFeatureMatrixWithUFlag.Value, engine_u),
+                    new ("“v” flag", LazyFeatureMatrixWithVFlag.Value, engine_v),
+                    new ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value, engine_no_uv)
+                ];
         }
 
         #endregion

@@ -51,106 +51,6 @@ namespace ExportFeatureMatrix
             tblProgress.Text = "";
         }
 
-        private async void buttonCreateFile_Click( object sender, RoutedEventArgs e )
-        {
-            try
-            {
-                tblProgress.Text = "";
-
-                if( string.IsNullOrWhiteSpace( tbEnginesFile.Text ) )
-                {
-                    MessageBox.Show( this, "Please select the path to “Engines.json”", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
-
-                    return;
-                }
-
-                OutputTypeEnum output_type = GetOutputType( );
-
-                if( output_type == OutputTypeEnum.None )
-                {
-                    MessageBox.Show( this, "Please select the output type", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
-
-                    return;
-                }
-
-                if( string.IsNullOrWhiteSpace( tbOutputFile.Text ) )
-                {
-                    MessageBox.Show( this, "Please select the output file", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
-
-                    return;
-                }
-                else
-                {
-                    if( File.Exists( tbOutputFile.Text ) )
-                    {
-                        if( MessageBox.Show( this, "The output file already exists.\r\n\r\nOverwrite?", CAPTION, MessageBoxButton.OKCancel, MessageBoxImage.Information ) != MessageBoxResult.OK ) return;
-                    }
-                }
-
-                // Load engines
-
-                tblProgress.Text = "Loading engines...";
-
-                string engines_json_path = tbEnginesFile.Text;
-
-                (IReadOnlyList<RegexPlugin>? plugins, IReadOnlyList<RegexPlugin>? no_fm_plugins) = await PluginLoader.LoadEngines( this, engines_json_path );
-
-                if( plugins == null ) return;
-
-                if( no_fm_plugins != null ) plugins = plugins.Except( no_fm_plugins ).ToList( );
-
-                if( plugins.Count == 0 )
-                {
-                    MessageBox.Show( this, "No engines.", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
-
-                    return;
-                }
-
-                tblProgress.Text = $"Processing {plugins.Count} engines...";
-
-                switch( output_type )
-                {
-                case OutputTypeEnum.Excel:
-                {
-                    ExporterToExcel exporter = new( );
-
-                    exporter.Export( tbOutputFile.Text, plugins! );
-                }
-                break;
-                case OutputTypeEnum.Html:
-                {
-                    ExporterToHtml exporter = new( );
-
-                    exporter.Export( tbOutputFile.Text, plugins! );
-                }
-                break;
-                default:
-                    throw new NotSupportedException( $"Output type not supported: '{output_type}'" );
-                }
-
-                tblProgress.Text = "DONE.";
-
-                if( MessageBox.Show( this, "The file was created.\r\n\r\nOpen it?", CAPTION, MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Yes ) == MessageBoxResult.OK )
-                {
-                    Process process = new( );
-                    process.StartInfo.FileName = tbOutputFile.Text;
-                    process.StartInfo.UseShellExecute = true;
-
-                    process.Start( );
-                }
-
-                tblProgress.Text = "";
-            }
-            catch( Exception exc )
-            {
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                MessageBox.Show( this, exc.Message, CAPTION, MessageBoxButton.OK, MessageBoxImage.Error );
-
-                tblProgress.Text = "";
-            }
-        }
-
         private void btnBrowseEnginesJsonFile_Click( object sender, RoutedEventArgs e )
         {
             OpenFileDialog ofd = new( )
@@ -251,6 +151,122 @@ namespace ExportFeatureMatrix
             if( rbOutputHtml.IsChecked == true ) return OutputTypeEnum.Html;
 
             return OutputTypeEnum.None;
+        }
+
+        bool ValidateInput( )
+        {
+            if( string.IsNullOrWhiteSpace( tbEnginesFile.Text ) )
+            {
+                MessageBox.Show( this, "Please select the “Engines.json” file", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
+
+                return false;
+            }
+
+            return true;
+        }
+
+        bool ValidateOutput( )
+        {
+            OutputTypeEnum output_type = GetOutputType( );
+
+            if( output_type == OutputTypeEnum.None )
+            {
+                MessageBox.Show( this, "Please select the output type", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
+
+                return false;
+            }
+
+            if( string.IsNullOrWhiteSpace( tbOutputFile.Text ) )
+            {
+                MessageBox.Show( this, "Please select the output file", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
+
+                return false;
+            }
+            else
+            {
+                if( File.Exists( tbOutputFile.Text ) )
+                {
+                    if( MessageBox.Show( this, "The output file already exists.\r\n\r\nOverwrite?", CAPTION, MessageBoxButton.OKCancel, MessageBoxImage.Information ) != MessageBoxResult.OK ) return false;
+                }
+            }
+
+            return true;
+        }
+
+        private async void buttonCreateFile_Click( object sender, RoutedEventArgs e )
+        {
+            try
+            {
+                tblProgress.Text = "";
+
+                if( !ValidateInput( ) ) return;
+                if( !ValidateOutput( ) ) return;
+
+                OutputTypeEnum output_type = GetOutputType( );
+                Debug.Assert( output_type != OutputTypeEnum.None );
+
+                // Load engines
+
+                tblProgress.Text = "Loading engines...";
+
+                string engines_json_path = tbEnginesFile.Text;
+
+                (IReadOnlyList<RegexPlugin>? plugins, IReadOnlyList<RegexPlugin>? no_fm_plugins) = await PluginLoader.LoadEngines( this, engines_json_path );
+
+                if( plugins == null ) return;
+
+                if( no_fm_plugins != null ) plugins = plugins.Except( no_fm_plugins ).ToList( );
+
+                if( plugins.Count == 0 )
+                {
+                    MessageBox.Show( this, "No engines.", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
+
+                    return;
+                }
+
+                tblProgress.Text = $"Processing {plugins.Count} engines...";
+
+                switch( output_type )
+                {
+                case OutputTypeEnum.Excel:
+                {
+                    ExporterToExcel exporter = new( );
+
+                    exporter.Export( tbOutputFile.Text, plugins!, checkBoxVerify.IsChecked == true );
+                }
+                break;
+                case OutputTypeEnum.Html:
+                {
+                    ExporterToHtml exporter = new( );
+
+                    exporter.Export( tbOutputFile.Text, plugins! );
+                }
+                break;
+                default:
+                    throw new NotSupportedException( $"Output type not supported: '{output_type}'" );
+                }
+
+                tblProgress.Text = "DONE.";
+
+                if( MessageBox.Show( this, "The file was created.\r\n\r\nOpen it?", CAPTION, MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Yes ) == MessageBoxResult.OK )
+                {
+                    Process process = new( );
+                    process.StartInfo.FileName = tbOutputFile.Text;
+                    process.StartInfo.UseShellExecute = true;
+
+                    process.Start( );
+                }
+
+                tblProgress.Text = "";
+            }
+            catch( Exception exc )
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                MessageBox.Show( this, exc.Message, CAPTION, MessageBoxButton.OK, MessageBoxImage.Error );
+
+                tblProgress.Text = "";
+            }
         }
 
         private void buttonClose_Click( object sender, RoutedEventArgs e )

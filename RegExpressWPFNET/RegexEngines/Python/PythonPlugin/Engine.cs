@@ -118,14 +118,23 @@ namespace PythonPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)>
-            {
-                ("re", LazyFeatureMatrix.GetValue((ModuleEnum.re, 0))),
-                ("regex V0", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 0))),
-                ("regex V1", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 1)))
-            };
+            Engine engine_re = new( );
+            engine_re.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.re } );
+
+            Engine engine_regex_v0 = new( );
+            engine_regex_v0.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERSION0 = true, VERSION1 = false } );
+
+            Engine engine_regex_v1 = new( );
+            engine_regex_v1.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERSION0 = false, VERSION1 = true } );
+
+            return
+                [
+                    new FeatureMatrixVariant("re", LazyFeatureMatrix.GetValue((ModuleEnum.re, 0)), engine_re),
+                    new FeatureMatrixVariant("regex V0", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 0)), engine_regex_v0),
+                    new FeatureMatrixVariant("regex V1", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 1)), engine_regex_v1)
+                ];
         }
 
         #endregion
@@ -182,7 +191,7 @@ namespace PythonPlugin
                 InsideSets_Literal_qBrace = false,
 
                 Esc_a = true,
-                Esc_b = true,
+                Esc_b = false,
                 Esc_e = false,
                 Esc_f = true,
                 Esc_n = true,

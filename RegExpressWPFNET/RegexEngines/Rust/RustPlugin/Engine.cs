@@ -115,15 +115,27 @@ namespace RustPlugin
             };
         }
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)>
-            {
-                ("regex", LazyData.GetValue( (CrateEnum.regex, isOctal:true) )),
-                ("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, isOctal:true) )),
-                ("fancy_regex", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true) )),
-                ("regress", LazyData.GetValue( (CrateEnum.regress, isOctal:true) )),
-            };
+            Engine engine = new( );
+            engine.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, octal = true } );
+
+            Engine engine_lite = new( );
+            engine_lite.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex_lite } );
+
+            Engine engine_fancy = new( );
+            engine_fancy.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.fancy_regex } );
+
+            Engine engine_regress = new( );
+            engine_regress.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress } );
+
+            return
+                [
+                    new FeatureMatrixVariant("regex", LazyData.GetValue( (CrateEnum.regex, isOctal:true) ), engine),
+                    new FeatureMatrixVariant("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, isOctal:true) ), engine_lite),
+                    new FeatureMatrixVariant("fancy_regex", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true) ), engine_fancy),
+                    new FeatureMatrixVariant("regress", LazyData.GetValue( (CrateEnum.regress, isOctal:true) ), engine_regress),
+                ];
         }
 
         #endregion

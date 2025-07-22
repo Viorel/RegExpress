@@ -116,14 +116,20 @@ namespace PCRE2Plugin
                 Literal = is_literal,
                 XLevel = is_extended_more ? XLevelEnum.xx : is_extended ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = allow_empty_set,
-                FeatureMatrix = GetCachedFeatureMatrix( options.PCRE2_EXTRA_ALT_BSUX, options.PCRE2_ALT_EXTENDED_CLASS ),
+                FeatureMatrix = GetCachedFeatureMatrix( options.PCRE2_ALT_BSUX, options.PCRE2_EXTRA_ALT_BSUX, options.PCRE2_ALT_EXTENDED_CLASS ),
             };
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, BuildFeatureMatrix( PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true )) };
+            Engine engine = new( );
+            engine.mOptionsControl.Value.SetSelectedOptions( new Options { PCRE2_ALT_BSUX = true, PCRE2_EXTRA_ALT_BSUX = true, PCRE2_ALT_EXTENDED_CLASS = true } );
+
+            return
+                [
+                    new FeatureMatrixVariant( null, BuildFeatureMatrix(PCRE2_ALT_BSUX:true, PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true ), engine)
+                ];
         }
 
 
@@ -151,24 +157,24 @@ namespace PCRE2Plugin
             }
         }
 
-        static readonly Dictionary<(bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS), FeatureMatrix> smFeatureMatrices = [];
+        static readonly Dictionary<(bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS), FeatureMatrix> smFeatureMatrices = [];
 
-        static FeatureMatrix GetCachedFeatureMatrix( bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS )
+        static FeatureMatrix GetCachedFeatureMatrix( bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS )
         {
             lock( smFeatureMatrices )
             {
-                if( !smFeatureMatrices.TryGetValue( (PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS), out FeatureMatrix fm ) )
+                if( !smFeatureMatrices.TryGetValue( (PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS), out FeatureMatrix fm ) )
                 {
-                    fm = BuildFeatureMatrix( PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS );
+                    fm = BuildFeatureMatrix( PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS );
 
-                    smFeatureMatrices.Add( (PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS), fm );
+                    smFeatureMatrices.Add( (PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS), fm );
                 }
 
                 return fm;
             }
         }
 
-        static FeatureMatrix BuildFeatureMatrix( bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS )
+        static FeatureMatrix BuildFeatureMatrix( bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS )
         {
             return new FeatureMatrix
             {
@@ -207,10 +213,10 @@ namespace PCRE2Plugin
                 Esc_Octal_2_3 = true,
                 Esc_oBrace = true,
                 Esc_x2 = true,
-                Esc_xBrace = true,
-                Esc_u4 = PCRE2_EXTRA_ALT_BSUX,
+                Esc_xBrace = !( PCRE2_ALT_BSUX | PCRE2_EXTRA_ALT_BSUX ),
+                Esc_u4 = PCRE2_ALT_BSUX | PCRE2_EXTRA_ALT_BSUX,
                 Esc_U8 = false,
-                Esc_uBrace = false,
+                Esc_uBrace = PCRE2_EXTRA_ALT_BSUX,
                 Esc_UBrace = false,
                 Esc_c1 = true,
                 Esc_C1 = false,

@@ -279,13 +279,7 @@ namespace RegExpressWPFNET.Code
 
         public static void ExportAsHtml( XmlWriter xw, IEnumerable<IRegexEngine> engines )
         {
-            var all_matrices = new List<IReadOnlyList<(string variantName, FeatureMatrix fm)>>( );
-
-            foreach( IRegexEngine engine in engines )
-            {
-                var fms = engine.GetFeatureMatrices( );
-                all_matrices.Add( fms! );
-            }
+            IReadOnlyList<FeatureMatrixVariant>[] all_matrices = engines.Select( e => e.GetFeatureMatrices( ) ).ToArray( );
 
             xw.WriteStartElement( "html" );
 
@@ -383,7 +377,7 @@ tbody > tr > td:nth-child(2)
                         if( fms == null ) continue;
 
                         xw.WriteStartElement( "th" );
-                        if( fms.Count == 1 && string.IsNullOrWhiteSpace( fms[0].variantName ) )
+                        if( fms.Count == 1 && string.IsNullOrWhiteSpace( fms[0].Name ) )
                         {
                             xw.WriteAttributeString( "rowspan", "2" );
                         }
@@ -410,10 +404,10 @@ tbody > tr > td:nth-child(2)
 
                         foreach( var p in fms )
                         {
-                            if( !string.IsNullOrWhiteSpace( p.variantName ) )
+                            if( !string.IsNullOrWhiteSpace( p.Name ) )
                             {
                                 xw.WriteStartElement( "th" );
-                                xw.WriteString( p.variantName );
+                                xw.WriteString( p.Name );
                                 xw.WriteEndElement( ); // </th>
                             }
                         }
@@ -463,7 +457,7 @@ tbody > tr > td:nth-child(2)
 
 
         static void WriteRow( XmlWriter xw, string shortDesc, string? desc,
-            IEnumerable<IRegexEngine> engines, List<IReadOnlyList<(string variantName, FeatureMatrix fm)>> allMatrices,
+            IEnumerable<IRegexEngine> engines, IReadOnlyList<FeatureMatrixVariant>[] allMatrices,
             Func<FeatureMatrix, bool> func )
         {
             xw.WriteStartElement( "tr" );
@@ -480,7 +474,7 @@ tbody > tr > td:nth-child(2)
                     foreach( var p in fms )
                     {
                         xw.WriteStartElement( "td" );
-                        if( func( p.fm ) )
+                        if( func( p.FeatureMatrix ) )
                         {
                             xw.WriteString( "+" );
                         }

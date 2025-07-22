@@ -117,9 +117,9 @@ namespace OnigurumaPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            var list = new List<(string?, FeatureMatrix)>( );
+            List<FeatureMatrixVariant> variants = [];
 
             foreach( SyntaxEnum syntax in Enum.GetValues<SyntaxEnum>( ) )
             {
@@ -127,12 +127,15 @@ namespace OnigurumaPlugin
                 if( syntax == SyntaxEnum.ONIG_SYNTAX_ASIS ) continue;
 
                 string syntax_name = Enum.GetName( syntax )!;
-                string variant = syntax_name.StartsWith( "ONIG_SYNTAX_" ) ? syntax_name.Substring( "ONIG_SYNTAX_".Length ) : syntax_name;
+                string variant = syntax_name.StartsWith( "ONIG_SYNTAX_" ) ? syntax_name["ONIG_SYNTAX_".Length..] : syntax_name;
 
-                list.Add( (variant, MakeFeatureMatrix( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA } )) );
+                Engine engine = new( );
+                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Syntax = syntax } );
+
+                variants.Add( new FeatureMatrixVariant( variant, MakeFeatureMatrix( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA } ), engine ) );
             }
 
-            return list;
+            return variants;
         }
 
 

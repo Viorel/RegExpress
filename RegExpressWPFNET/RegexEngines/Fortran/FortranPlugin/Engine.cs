@@ -122,14 +122,23 @@ namespace FortranPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)>
-            {
-                ("Forgex", LazyFeatureMatrices.GetValue(ModuleEnum.Forgex)),
-                ("Regex (Perazz)", LazyFeatureMatrices.GetValue(ModuleEnum.RegexPerazz)),
-                ("Regex (Jeyemhex)", LazyFeatureMatrices.GetValue(ModuleEnum.RegexJeyemhex)),
-            };
+            Engine engine_forgex = new( );
+            engine_forgex.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.Forgex } );
+
+            Engine engine_perazz = new( );
+            engine_perazz.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.RegexPerazz } );
+
+            Engine engine_jayemhex = new( );
+            engine_jayemhex.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.RegexJeyemhex } );
+
+            return
+                [
+                    new FeatureMatrixVariant("Forgex", LazyFeatureMatrices.GetValue(ModuleEnum.Forgex), engine_forgex),
+                    new FeatureMatrixVariant("Regex (Perazz)", LazyFeatureMatrices.GetValue(ModuleEnum.RegexPerazz), engine_perazz),
+                    new FeatureMatrixVariant("Regex (Jeyemhex)", LazyFeatureMatrices.GetValue(ModuleEnum.RegexJeyemhex),engine_jayemhex),
+                ];
         }
 
         #endregion

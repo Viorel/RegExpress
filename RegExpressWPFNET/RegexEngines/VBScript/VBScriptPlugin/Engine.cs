@@ -112,9 +112,12 @@ namespace VBScriptPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+            return
+                [
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                ];
         }
 
         #endregion
@@ -177,7 +180,7 @@ namespace VBScriptPlugin
                 Esc_t = true,
                 Esc_v = true,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
+                Esc_Octal_1_3 = true,
                 Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,

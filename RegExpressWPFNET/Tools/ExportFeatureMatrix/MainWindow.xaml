@@ -34,17 +34,18 @@
         <TextBox x:Name="tbOutputFile" VerticalAlignment="Top" Margin="0 100 23 0" Padding="1.5" />
         <Button x:Name="btnBrowseOutputFile" Content="..." HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0 100 0 0" Padding="4 1" Click="btnBrowseOutputFile_Click"/>
 
-        <TextBlock x:Name="tblProgress" Margin="0,0,139,5" Height="16" VerticalAlignment="Bottom"/>
+        <TextBlock x:Name="tblProgress" d:Text="Ready" Margin="0,0,143,4" Height="16" VerticalAlignment="Bottom"/>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" >
             <StackPanel.Resources>
                 <Style TargetType="Button">
                     <Setter Property="Margin" Value="12 0 0 0"/>
+                    <Setter Property="Padding" Value="8 4"/>
                 </Style>
             </StackPanel.Resources>
-            <Button x:Name="buttonCreateFile" Content="Create file" Click="buttonCreateFile_Click" Padding="8 4"/>
-            <Button x:Name="buttonClose" Content="Close" Click="buttonClose_Click" Padding="8 4"/>
+            <Button x:Name="buttonCreateFile" Content="Create file" Click="buttonCreateFile_Click"/>
+            <Button x:Name="buttonClose" Content="Close" Click="buttonClose_Click"/>
         </StackPanel>
-
+        <CheckBox x:Name="checkBoxVerify" Content="Verify" HorizontalAlignment="Left" Margin="0,134,0,0" VerticalAlignment="Top"/>
     </Grid>
 </Window>

@@ -125,13 +125,19 @@ namespace JavaPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)>
-            {
-                ("regex", LazyFeatureMatrix.GetValue(PackageEnum.regex)),
-                ("re2j", LazyFeatureMatrix.GetValue(PackageEnum.re2j)),
-            };
+            Engine engine_regex = new( );
+            engine_regex.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.regex } );
+
+            Engine engine_re2j = new( );
+            engine_re2j.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.re2j } );
+
+            return
+                [
+                    new FeatureMatrixVariant("regex", LazyFeatureMatrix.GetValue(PackageEnum.regex), engine_regex),
+                    new FeatureMatrixVariant("re2j", LazyFeatureMatrix.GetValue(PackageEnum.re2j), engine_re2j),
+                ];
         }
 
         #endregion
@@ -196,7 +202,7 @@ namespace JavaPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = is_re2j,
-                Esc_Octal0_1_3 = true,
+                Esc_Octal0_1_3 = is_regex,
                 Esc_Octal_1_3 = false,
                 Esc_Octal_2_3 = is_re2j,
                 Esc_oBrace = false,

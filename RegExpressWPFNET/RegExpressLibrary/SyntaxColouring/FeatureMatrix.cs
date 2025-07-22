@@ -40,10 +40,10 @@ namespace RegExpressLibrary.SyntaxColouring
 
         public bool Flags { get; init; }                                  // (?flags)
         public bool ScopedFlags { get; init; }                            // (?flags:...)
-        public bool CircumflexFlags { get; init; }                        // (?^flags)
-        public bool ScopedCircumflexFlags { get; init; }                  // (?^flags:...)
-        public bool XFlag { get; init; }                                  // 'x' flag
-        public bool XXFlag { get; init; }                                 // 'xx' flag
+        public bool CircumflexFlags { get; init; }                        // (?^) or (?^flags), restore default flags like (?d-imnsx), set new flags
+        public bool ScopedCircumflexFlags { get; init; }                  // (?^:...) or (?^flags:...), scoped variant
+        public bool XFlag { get; init; }                                  // 'x' flag (enable subsequent spaces and comments)
+        public bool XXFlag { get; init; }                                 // 'xx' flag (enable subsequent spaces and comments)
 
         public bool Literal_QE { get; init; }                             // \Q...\E
         public bool InsideSets_Literal_QE { get; init; }                  // [\Q...\E]
@@ -59,7 +59,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Esc_v { get; init; }                                  // \v -- vertical tab (0x0B); see also Class_vV
         public bool Esc_Octal0_1_3 { get; init; }                         // ex.: \05, \077, \0101 -- octal, one, two or three digits after \0
         public bool Esc_Octal_1_3 { get; init; }                          // ex.: \5, \77, \101 -- octal, one, two or three digits
-        public bool Esc_Octal_2_3 { get; init; }                          // ex.: \77, \101 -- octal, two or three digits
+        public bool Esc_Octal_2_3 { get; init; }                          // ex.: \77, \101 -- octal, two or three digits (not one digit)
         public bool Esc_oBrace { get; init; }                             // ex.: \o{00101} -- octal
         public bool Esc_x2 { get; init; }                                 // ex: \x41, which is 'A'
         public bool Esc_xBrace { get; init; }                             // ex: \x{000041}
@@ -70,7 +70,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Esc_c1 { get; init; }                                 // ex: \cM, which is \r, or \cZ, which is 0x1A
         public bool Esc_C1 { get; init; }                                 // same as Esc_c1
         public bool Esc_CMinus { get; init; }                             // ex: \C-Z, which is 0x1A
-        public bool Esc_NBrace { get; init; }                             // ex: \N{U+0041}, \N{unicode name}
+        public bool Esc_NBrace { get; init; }                             // ex: \N{U+0041}, \N{LATIN CAPITAL LETTER A}
         public bool GenericEscape { get; init; }                          // \c, where c -- any character
 
         public bool InsideSets_Esc_a { get; init; }                       // \a

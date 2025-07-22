@@ -116,9 +116,12 @@ namespace ICUPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+            return
+                [
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                ];
         }
 
         #endregion

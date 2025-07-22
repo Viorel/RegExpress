@@ -312,7 +312,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 }
                 if( fm.Esc_Octal0_1_3 )
                 {
-                    pb_character_escape.Add( @"\\0[0-7]{0,3}" ); // octal 1-3 digits
+                    pb_character_escape.Add( @"\\0[0-7]{0,3}" ); // octal 1-3 digits after '\0'
                 }
                 if( fm.Esc_Octal_1_3 )
                 {

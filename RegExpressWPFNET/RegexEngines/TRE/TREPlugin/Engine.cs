@@ -116,13 +116,19 @@ namespace TREPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)>
-            {
-                ("extended", LazyFeatureMatrix.GetValue( true )),
-                ("basic", LazyFeatureMatrix.GetValue( false ))
-            };
+            Engine engine_extended = new( );
+            engine_extended.mOptionsControl.Value.SetSelectedOptions( new Options { REG_EXTENDED = true } );
+
+            Engine engine_basic = new( );
+            engine_basic.mOptionsControl.Value.SetSelectedOptions( new Options { REG_EXTENDED = false } );
+
+            return
+                [
+                    new FeatureMatrixVariant("extended", LazyFeatureMatrix.GetValue( true ), engine_extended),
+                    new FeatureMatrixVariant("basic", LazyFeatureMatrix.GetValue( false ), engine_basic)
+                ];
         }
 
         #endregion
