@@ -44,7 +44,7 @@ class FeatureMatrixDetails
 
     internal static readonly FeatureMatrixDetails[] AllFeatureMatrixDetails =
         [
-            new ( @"General", null, null ),
+/*            new ( @"General", null, null ),
 
             new ( @"(…)", @"Grouping constructs", fm => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal, @"(x)", "x" ),
             new ( @"\(…\)", @"Grouping constructs", fm => fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed, @"\(x\)", "x" ),
@@ -69,12 +69,11 @@ class FeatureMatrixDetails
             new ( @"\Q…\E", @"Literal", fm => fm.Literal_QE, @"\Qx\E", "x", @"\Qx\E", "Q" ),
             new ( @"[\Q…\E]", @"Literal inside […]", fm => fm.InsideSets_Literal_QE, @"[\Qx\E]", "x", @"[\Qx\E]", "Q" ),
             new ( @"[\q{…}]", @"Literal inside […]", fm => fm.InsideSets_Literal_qBrace, @"[\q{x}]", "x", @"[\q{x}]", "q" ),
-/*
+
             new ( @"Escapes", null, null ),
 
             new ( @"\a", @"Bell, \u0007", fm => fm.Esc_a, @"\a", "\u0007" ),
             new ( @"\b", @"Backspace, \u0008", fm => fm.Esc_b, @"\b", "\u0008", @"x\b", "x" ),
-
             new ( @"\e", @"Escape, \u001B", fm => fm.Esc_e, @"\e", "\u001B" ),
             new ( @"\f", @"Form feed, \u000C", fm => fm.Esc_f, @"\f", "\u000C" ),
             new ( @"\n", @"New line, \u000A", fm => fm.Esc_n, @"\n", "\u000A" ),
@@ -96,33 +95,33 @@ class FeatureMatrixDetails
             new ( @"\C-C", @"Control character", fm => fm.Esc_CMinus, @"\C-M", "\r" ),
             new ( @"\N{…}", @"Unicode name or 'U+code'", fm => fm.Esc_NBrace, @"\N{comma}", "," ), // (some do not understand "COMMA", "LATIN CAPITAL LETTER A")
             new ( @"\any", @"Generic escape", fm => fm.GenericEscape, @"\\", @"\" ),
-
+*/
             new ( @"Escapes inside […]", null, null ),
 
-            new ( @"[\a]", @"Bell, \u0007", fm => fm.InsideSets_Esc_a ),
-            new ( @"[\b]", @"Backspace, \u0008", fm => fm.InsideSets_Esc_b ),
-            new ( @"[\e]", @"Escape, \u001B", fm => fm.InsideSets_Esc_e ),
-            new ( @"[\f]", @"Form feed, \u000C", fm => fm.InsideSets_Esc_f ),
-            new ( @"[\n]", @"New line, \u000A", fm => fm.InsideSets_Esc_n ),
-            new ( @"[\r]", @"Carriage return, \u000D", fm => fm.InsideSets_Esc_r ),
-            new ( @"[\t]", @"Tab, \u0009", fm => fm.InsideSets_Esc_t ),
-            new ( @"[\v]", @"Vertical tab, \u000B", fm => fm.InsideSets_Esc_v ),
-            new ( @"[\0nnn]", @"Octal, up to three digits after '\0'", fm => fm.InsideSets_Esc_Octal0_1_3 ),
-            new ( @"[\nnn]", @"Octal, up to three digits", fm => fm.InsideSets_Esc_Octal_1_3 ),
-            new ( @"[\nnn]", @"Octal, two or three digits", fm => fm.InsideSets_Esc_Octal_2_3 ),
-            new ( @"[\o{nn…}]", @"Octal", fm => fm.InsideSets_Esc_oBrace ),
-            new ( @"[\xXX]", @"Hexadecimal code, two digits", fm => fm.InsideSets_Esc_x2 ),
-            new ( @"[\x{XX…}]", @"Hexadecimal code", fm => fm.InsideSets_Esc_xBrace ),
-            new ( @"[\uXXXX]", @"Hexadecimal code, four digits", fm => fm.InsideSets_Esc_u4 ),
-            new ( @"[\UXXXXXXXX]", @"Hexadecimal code, eight digits", fm => fm.InsideSets_Esc_U8 ),
-            new ( @"[\u{XX…}]", @"Hexadecimal code", fm => fm.InsideSets_Esc_uBrace ),
-            new ( @"[\U{XX…}]", @"Hexadecimal code", fm => fm.InsideSets_Esc_UBrace ),
-            new ( @"[\cC]", @"Control character", fm => fm.InsideSets_Esc_c1 ),
-            new ( @"[\CC]", @"Control character", fm => fm.InsideSets_Esc_C1 ),
-            new ( @"[\C-C]", @"Control character ", fm => fm.InsideSets_Esc_CMinus ),
-            new ( @"[\N{…}]", @"Unicode name or 'U+code'", fm => fm.InsideSets_Esc_NBrace ),
-            new ( @"[\any]", @"Generic escape", fm => fm.InsideSets_GenericEscape ),
-
+            new ( @"[\a]", @"Bell, \u0007", fm => fm.InsideSets_Esc_a, @"[\a]", "\u0007" ),
+            new ( @"[\b]", @"Backspace, \u0008", fm => fm.InsideSets_Esc_b, @"[\b]", "\u0008" ),
+            new ( @"[\e]", @"Escape, \u001B", fm => fm.InsideSets_Esc_e, @"[\e]", "\u001B" ),
+            new ( @"[\f]", @"Form feed, \u000C", fm => fm.InsideSets_Esc_f, @"[\f]", "\u000C" ),
+            new ( @"[\n]", @"New line, \u000A", fm => fm.InsideSets_Esc_n, @"[\n]", "\u000A" ),
+            new ( @"[\r]", @"Carriage return, \u000D", fm => fm.InsideSets_Esc_r, @"[\r]", "\u000D" ),
+            new ( @"[\t]", @"Tab, \u0009", fm => fm.InsideSets_Esc_t, @"[\t]", "\u0009" ),
+            new ( @"[\v]", @"Vertical tab, \u000B", fm => fm.InsideSets_Esc_v, @"[\v]", "\u000B", @"[\v]", "\f" ),
+            new ( @"[\1..\7]", @"Octal, one digit", fm => fm.InsideSets_Esc_Octal == FeatureMatrix.OctalEnum.Octal_1_3, @"[\3]", "\u0003" ),
+            new ( @"[\nnn]", @"Octal, two or three digits", fm => fm.InsideSets_Esc_Octal == FeatureMatrix.OctalEnum.Octal_2_3 || fm.InsideSets_Esc_Octal == FeatureMatrix.OctalEnum.Octal_1_3, @"[\11][\101]", "\u0009A" ),
+            new ( @"[\0nnn]", @"Octal, up to three digits after '\0'", fm => fm.InsideSets_Esc_Octal0_1_3, @"[\03][\011][\0011]", "\u0003\u0009\u0009" ),
+            new ( @"[\o{nn…}]", @"Octal", fm => fm.InsideSets_Esc_oBrace, @"[\o{11}]", "\u0009" ),
+            new ( @"[\xXX]", @"Hexadecimal code, two digits", fm => fm.InsideSets_Esc_x2, @"[\x09]", "\u0009" ),
+            new ( @"[\x{XX…}]", @"Hexadecimal code", fm => fm.InsideSets_Esc_xBrace, @"[\x{0009}]", "\u0009" ),
+            new ( @"[\uXXXX]", @"Hexadecimal code, four digits", fm => fm.InsideSets_Esc_u4, @"[\u0009]", "\u0009" ),
+            new ( @"[\UXXXXXXXX]", @"Hexadecimal code, eight digits", fm => fm.InsideSets_Esc_U8, @"[\U00000009]", "\u0009" ),
+            new ( @"[\u{XX…}]", @"Hexadecimal code", fm => fm.InsideSets_Esc_uBrace, @"[\u{0009}]", "\u0009" ),
+            new ( @"[\U{XX…}]", @"Hexadecimal code", fm => fm.InsideSets_Esc_UBrace, @"[\U{0009}]", "\u0009" ),
+            new ( @"[\cC]", @"Control character", fm => fm.InsideSets_Esc_c1, @"[\cM]", "\r" ),
+            new ( @"[\CC]", @"Control character", fm => fm.InsideSets_Esc_C1, @"[\CM]", "\r" ),
+            new ( @"[\C-C]", @"Control character ", fm => fm.InsideSets_Esc_CMinus, @"[\C-M]", "\r" ),
+            new ( @"[\N{…}]", @"Unicode name or 'U+code'", fm => fm.InsideSets_Esc_NBrace, @"[\N{comma}]", "," ), // (some do not understand "COMMA", "LATIN CAPITAL LETTER A")
+            new ( @"[\any]", @"Generic escape", fm => fm.InsideSets_GenericEscape, @"[\\]", @"\" ),
+/*
             new ( @"Classes", null, null ),
 
             new ( @".", @"Any, including or excepting newline (\n) depending on options", fm => fm.Class_Dot ),

@@ -18,7 +18,7 @@ namespace RustPlugin
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly LazyData<(CrateEnum crate, bool isOctal), FeatureMatrix> LazyData = new( BuildFeatureMatrix );
+        static readonly LazyData<(CrateEnum crate, bool isOctal, bool isUnicodeSets), FeatureMatrix> LazyData = new( BuildFeatureMatrix );
 
         public Engine( )
         {
@@ -111,7 +111,7 @@ namespace RustPlugin
             {
                 XLevel = ( options.crate == CrateEnum.regex || options.crate == CrateEnum.fancy_regex || options.crate == CrateEnum.regex_lite ) && options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = options.crate == CrateEnum.regress,
-                FeatureMatrix = LazyData.GetValue( (options.crate, options.octal) )
+                FeatureMatrix = LazyData.GetValue( (options.crate, options.octal, options.unicode_sets) )
             };
         }
 
@@ -131,10 +131,10 @@ namespace RustPlugin
 
             return
                 [
-                    new FeatureMatrixVariant("regex", LazyData.GetValue( (CrateEnum.regex, isOctal:true) ), engine),
-                    new FeatureMatrixVariant("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, isOctal:true) ), engine_lite),
-                    new FeatureMatrixVariant("fancy_regex", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true) ), engine_fancy),
-                    new FeatureMatrixVariant("regress", LazyData.GetValue( (CrateEnum.regress, isOctal:true) ), engine_regress),
+                    new FeatureMatrixVariant("regex", LazyData.GetValue( (CrateEnum.regex, isOctal:true, isUnicodeSets:false) ), engine),
+                    new FeatureMatrixVariant("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, isOctal:true, isUnicodeSets:false) ), engine_lite),
+                    new FeatureMatrixVariant("fancy_regex", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true, isUnicodeSets:false) ), engine_fancy),
+                    new FeatureMatrixVariant("regress", LazyData.GetValue( (CrateEnum.regress, isOctal:true, isUnicodeSets:false) ), engine_regress),
                 ];
         }
 
@@ -160,14 +160,14 @@ namespace RustPlugin
             }
         }
 
-        private static FeatureMatrix BuildFeatureMatrix( (CrateEnum crate, bool isOctal) data )
+        private static FeatureMatrix BuildFeatureMatrix( (CrateEnum crate, bool isOctal, bool isUnicodeSets) data )
         {
             return data.crate switch
             {
                 CrateEnum.regex => BuildFeatureMatrix_RegexCrate( data.isOctal ),
                 CrateEnum.regex_lite => BuildFeatureMatrix_RegexLiteCrate( ),
                 CrateEnum.fancy_regex => BuildFeatureMatrix_FancyRegexCrate( ),
-                CrateEnum.regress => BuildFeatureMatrix_RegressCrate( ),
+                CrateEnum.regress => BuildFeatureMatrix_RegressCrate( data.isUnicodeSets ),
                 _ => throw new InvalidOperationException( ),
             };
         }
@@ -229,9 +229,8 @@ namespace RustPlugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = isOctal ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = isOctal,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -437,9 +436,8 @@ namespace RustPlugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -638,16 +636,15 @@ namespace RustPlugin
                 GenericEscape = true,
 
                 InsideSets_Esc_a = true,
-                InsideSets_Esc_b = false,
+                InsideSets_Esc_b = true,
                 InsideSets_Esc_e = true,
                 InsideSets_Esc_f = true,
                 InsideSets_Esc_n = true,
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -797,7 +794,7 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_RegressCrate( )
+        private static FeatureMatrix BuildFeatureMatrix_RegressCrate( bool isUnicodeSets )
         {
             return new FeatureMatrix
             {
@@ -847,16 +844,15 @@ namespace RustPlugin
                 GenericEscape = true,
 
                 InsideSets_Esc_a = false,
-                InsideSets_Esc_b = false,
+                InsideSets_Esc_b = !isUnicodeSets,
                 InsideSets_Esc_e = false,
                 InsideSets_Esc_f = true,
                 InsideSets_Esc_n = true,
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = false,

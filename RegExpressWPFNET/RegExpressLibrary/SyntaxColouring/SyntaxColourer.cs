@@ -454,13 +454,14 @@ namespace RegExpressLibrary.SyntaxColouring
                     {
                         pb_inside_sets.Add( @"\\0[0-7]{0,3}" ); // octal 1-3 digits
                     }
-                    if( fm.InsideSets_Esc_Octal_1_3 )
+                    switch( fm.InsideSets_Esc_Octal )
                     {
+                    case FeatureMatrix.OctalEnum.Octal_1_3:
                         pb_inside_sets.Add( @"\\[0-7]{1,3}" ); // octal 1-3 digits
-                    }
-                    if( fm.InsideSets_Esc_Octal_2_3 )
-                    {
+                        break;
+                    case FeatureMatrix.OctalEnum.Octal_2_3:
                         pb_inside_sets.Add( @"\\[0-7]{2,3}" ); // octal 2-3 digits
+                        break;
                     }
                     if( fm.InsideSets_Esc_xBrace )
                     {

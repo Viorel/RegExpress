@@ -86,9 +86,8 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool InsideSets_Esc_r { get; init; }                       // \r
         public bool InsideSets_Esc_t { get; init; }                       // \t
         public bool InsideSets_Esc_v { get; init; }                       // \v
+        public OctalEnum InsideSets_Esc_Octal { get; init; }               // ex.: \5, \77, \101 -- octal
         public bool InsideSets_Esc_Octal0_1_3 { get; init; }              // ex.: \05, \077, \0101 -- octal, one, two or three digits after \0
-        public bool InsideSets_Esc_Octal_1_3 { get; init; }               // ex.: \5, \77, \101 -- octal, one, two or three digits
-        public bool InsideSets_Esc_Octal_2_3 { get; init; }               // ex.: \77, \101 -- octal, two or three digits
         public bool InsideSets_Esc_oBrace { get; init; }                  // ex.: \o{00101} -- octal
         public bool InsideSets_Esc_x2 { get; init; }                      // ex: \x41
         public bool InsideSets_Esc_xBrace { get; init; }                  // ex: \x{000041}
