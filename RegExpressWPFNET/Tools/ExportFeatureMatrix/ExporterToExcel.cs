@@ -222,7 +222,7 @@ partial class ExporterToExcel
                                     }
                                     catch( Exception )
                                     {
-                                        is_no_match_satisfied = true;
+                                        is_no_match_satisfied = false;
                                         // ignore
                                     }
                                 }

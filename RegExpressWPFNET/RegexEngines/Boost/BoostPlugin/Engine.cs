@@ -198,7 +198,7 @@ namespace BoostPlugin
                 InsideSets_XModeComments = false,
 
                 Flags = is_perl,
-                ScopedFlags = is_perl || is_emacs,
+                ScopedFlags = is_perl,
                 CircumflexFlags = false,
                 ScopedCircumflexFlags = false,
                 XFlag = is_perl,
@@ -216,9 +216,8 @@ namespace BoostPlugin
                 Esc_r = is_perl || is_POSIX_extended,
                 Esc_t = is_perl || is_POSIX_extended,
                 Esc_v = is_POSIX_extended,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = is_perl || is_POSIX_extended || is_POSIX_basic,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = is_perl || is_POSIX_extended,
                 Esc_xBrace = is_perl || is_POSIX_extended,
@@ -369,7 +368,7 @@ namespace BoostPlugin
                                     is_POSIX_basic ? FeatureMatrix.PunctuationEnum.Backslashed :
                                     FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.Both,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = is_perl,

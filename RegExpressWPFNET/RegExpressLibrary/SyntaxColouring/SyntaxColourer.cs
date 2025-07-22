@@ -314,13 +314,14 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     pb_character_escape.Add( @"\\0[0-7]{0,3}" ); // octal 1-3 digits after '\0'
                 }
-                if( fm.Esc_Octal_1_3 )
+                switch( fm.Esc_Octal )
                 {
+                case FeatureMatrix.OctalEnum.Octal_1_3:
                     pb_character_escape.Add( @"\\[0-7]{1,3}" ); // octal 1-3 digits
-                }
-                if( fm.Esc_Octal_2_3 )
-                {
+                    break;
+                case FeatureMatrix.OctalEnum.Octal_2_3:
                     pb_character_escape.Add( @"\\[0-7]{2,3}" ); // octal 2-3 digits
+                    break;
                 }
                 if( fm.Esc_xBrace )
                 {
@@ -818,7 +819,7 @@ namespace RegExpressLibrary.SyntaxColouring
                     }
                     if( fm.Backref_1_9 )
                     {
-                        if( fm.Esc_Octal_2_3 )
+                        if( fm.Esc_Octal == FeatureMatrix.OctalEnum.Octal_2_3 )
                         {
                             pb.Add( @"(?<name>\\[1-9])(?![0-7])" );
                         }
@@ -887,7 +888,7 @@ namespace RegExpressLibrary.SyntaxColouring
                     }
                     if( fm.Backref_1_9 )
                     {
-                        if( fm.Esc_Octal_2_3 )
+                        if( fm.Esc_Octal == FeatureMatrix.OctalEnum.Octal_2_3 )
                         {
                             pb.Add( @"(?<name>\\[1-9])(?![0-7])" );
                         }
@@ -1337,7 +1338,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 switch( fm.Quantifier_Braces )
                 {
                 case FeatureMatrix.PunctuationEnum.Normal:
-                    if( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.Both || ( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.XModeOnly && is_xmode ) )
+                    if( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.Both || ( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.XModeOnly && is_xmode ) )
                     {
                         pb.Add( @"\{ \s* \d+ (\s*,\s* \d*)? \s* \}" ); // (if does not match, then it is not a quantifier)
                         if( fm.Quantifier_LowAbbrev )
@@ -1355,7 +1356,7 @@ namespace RegExpressLibrary.SyntaxColouring
                     }
                     break;
                 case FeatureMatrix.PunctuationEnum.Backslashed:
-                    if( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.Both || ( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.XModeOnly && is_xmode ) )
+                    if( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.Both || ( fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.XModeOnly && is_xmode ) )
                     {
                         pb.Add( @"\\\{ \s* \d+(\s*,\s* \d*)? \s* \\\}?" );
                         if( fm.Quantifier_LowAbbrev )

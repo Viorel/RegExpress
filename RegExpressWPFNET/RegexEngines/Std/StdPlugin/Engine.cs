@@ -203,9 +203,8 @@ namespace StdPlugin
                 Esc_r = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
                 Esc_t = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
                 Esc_v = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
+                Esc_Octal = grammar == GrammarEnum.awk ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = grammar == GrammarEnum.awk,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = grammar == GrammarEnum.ECMAScript,
                 Esc_xBrace = false,
@@ -368,7 +367,7 @@ namespace StdPlugin
                                                 grammar == GrammarEnum.grep ? FeatureMatrix.PunctuationEnum.Backslashed
                                                 : FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,

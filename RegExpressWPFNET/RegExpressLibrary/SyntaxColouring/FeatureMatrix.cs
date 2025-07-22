@@ -18,13 +18,19 @@ namespace RegExpressLibrary.SyntaxColouring
         }
 
 
-        public enum SpaceUsage
+        public enum SpaceUsageEnum
         {
             None,           // for example, cannot put spaces in 'a{ 3 }'; must use 'a{3}'
             XModeOnly,      // 'a{ 3 }' is valid if pattern whitespaces (x or xx flag) are enabled
             Both            // 'a{ 3 }' is valid regardless of flags
         }
 
+        public enum OctalEnum
+        {
+            None,           // no octal numbers
+            Octal_1_3,      // one, two or three digits: \3, \12, \101
+            Octal_2_3,      // two or three digits: \12, \101
+        }
 
         public PunctuationEnum Parentheses { get; init; }                 // (...) or \(...\)
 
@@ -57,9 +63,8 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Esc_r { get; init; }                                  // \r
         public bool Esc_t { get; init; }                                  // \t
         public bool Esc_v { get; init; }                                  // \v -- vertical tab (0x0B); see also Class_vV
-        public bool Esc_Octal0_1_3 { get; init; }                         // ex.: \05, \077, \0101 -- octal, one, two or three digits after \0
-        public bool Esc_Octal_1_3 { get; init; }                          // ex.: \5, \77, \101 -- octal, one, two or three digits
-        public bool Esc_Octal_2_3 { get; init; }                          // ex.: \77, \101 -- octal, two or three digits (not one digit)
+        public OctalEnum Esc_Octal { get; init; }                         // ex.: \5, \77, \101 -- octal
+        public bool Esc_Octal0_1_3 { get; init; }                         // ex.: \05, \077, \0101 -- octal; one, two or three digits after '\0'
         public bool Esc_oBrace { get; init; }                             // ex.: \o{00101} -- octal
         public bool Esc_x2 { get; init; }                                 // ex: \x41, which is 'A'
         public bool Esc_xBrace { get; init; }                             // ex: \x{000041}
@@ -209,7 +214,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public PunctuationEnum Quantifier_Question { get; init; }         // ? or \?
         public PunctuationEnum Quantifier_Braces { get; init; }           // {n}, {n,}, {n,m}, or \{n\}, \{n,\}, \{n,m\}
         public PunctuationEnum Quantifier_Braces_FreeForm { get; init; }  // {expr} or \{expr\}, where 'expr' is an expression (not parsed by this colourer), usually related to Approximate Matching (example: "abcd{+1#2})".
-        public SpaceUsage Quantifier_Braces_Spaces { get; init; }         // enable spaces like { n }, { n , m }
+        public SpaceUsageEnum Quantifier_Braces_Spaces { get; init; }         // enable spaces like { n }, { n , m }
         public bool Quantifier_LowAbbrev { get; init; }                   // also allow {,m} if Quantifier_Braces is set
 
         public bool Conditional_BackrefByNumber { get; init; }            // (?(number)...|...), (?(+number)...|...), (?(-number)...|...)

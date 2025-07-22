@@ -44,47 +44,46 @@ class FeatureMatrixDetails
 
     internal static readonly FeatureMatrixDetails[] AllFeatureMatrixDetails =
         [
-        /*
             new ( @"General", null, null ),
 
-            new ( @"(…)", @"Grouping constructs", fm => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal, @"(x)", "x", "x" ),
-            new ( @"\(…\)", @"Grouping constructs", fm => fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed, @"\(x\)", "x", "x" ),
+            new ( @"(…)", @"Grouping constructs", fm => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal, @"(x)", "x" ),
+            new ( @"\(…\)", @"Grouping constructs", fm => fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed, @"\(x\)", "x" ),
 
-            new ( @"[…]", @"Character group", fm => fm.Brackets, @"[x]", "x", "x" ),
-            new ( @"(?[…])", @"Character group", fm => fm.ExtendedBrackets, @"(?[[x]])", "x", "x" ),
+            new ( @"[…]", @"Character group", fm => fm.Brackets, @"[x]", "x" ),
+            new ( @"(?[…])", @"Character group", fm => fm.ExtendedBrackets, @"(?[[x]])", "x" ),
 
-            new ( @"|", @"Alternation", fm => fm.VerticalLine == FeatureMatrix.PunctuationEnum.Normal, @"x|y", "y", "y" ),
-            new ( @"\|", @"Alternation", fm => fm.VerticalLine == FeatureMatrix.PunctuationEnum.Backslashed, @"x\|y", "y", "y" ),
+            new ( @"|", @"Alternation", fm => fm.VerticalLine == FeatureMatrix.PunctuationEnum.Normal, @"x|y", "y" ),
+            new ( @"\|", @"Alternation", fm => fm.VerticalLine == FeatureMatrix.PunctuationEnum.Backslashed, @"x\|y", "y" ),
 
-            new ( @"(?#comment)", @"Inline comment", fm => fm.InlineComments ),
+            new ( @"(?#comment)", @"Inline comment", fm => fm.InlineComments ), // TODO
             new ( @"#comment", @"Comment when enabled by options", fm => fm.XModeComments ),
             new ( @"[#comment]", @"Comment inside […] when enabled by options", fm => fm.InsideSets_XModeComments ),
 
-            new ( @"(?flags)", @"Inline options", fm => fm.Flags, @"(?i)x", "X", "X" ),
-            new ( @"(?flags:…)", @"Inline scoped options", fm => fm.ScopedFlags, @"(?i:x)", "X", "X" ),
-            new ( @"(?^flags)", @"Inline fresh options", fm => fm.CircumflexFlags, @"(?i)(?^)x", "X", null ),
-            new ( @"(?^flags:…)", @"Inline scoped fresh options", fm => fm.ScopedCircumflexFlags, @"(?i)(?^:x)", "X", null ),
-            new ( @"(?x)", @"Allow 'x' flag", fm => fm.XFlag, @"(?x)x y", "xy", "xy" ),
-            new ( @"(?xx)", @"Allow 'xx' flag", fm => fm.XXFlag, @"(?xx)[x y]", " ", null ),
+            new ( @"(?flags)", @"Inline options", fm => fm.Flags, @"(?i)x", "X" ),
+            new ( @"(?flags:…)", @"Inline scoped options", fm => fm.ScopedFlags, @"(?i:x)", "X" ),
+            new ( @"(?^flags)", @"Inline fresh options", fm => fm.CircumflexFlags, @"(?i)(?^)X", "X", @"(?i)(?^)x", "X" ),
+            new ( @"(?^flags:…)", @"Inline scoped fresh options", fm => fm.ScopedCircumflexFlags, @"(?i)(?^:X)", "X", @"(?i)(?^:x)", "X" ),
+            new ( @"(?x)", @"Allow 'x' flag", fm => fm.XFlag, @"(?x)a b", "ab" ),
+            new ( @"(?xx)", @"Allow 'xx' flag", fm => fm.XXFlag, @"(?x)[a b](?xx)[a b]", " b", @"(?xx)[x y]", " " ),
 
-            new ( @"\Q…\E", @"Literal", fm => fm.Literal_QE, @"\Qx\E", "x", "x" ),
-            new ( @"[\Q…\E]", @"Literal inside […]", fm => fm.InsideSets_Literal_QE, @"[\Qx\E]", "Q", null ),
-            new ( @"[\q{…}]", @"Literal inside […]", fm => fm.InsideSets_Literal_qBrace, @"[\q{x}]", "q", null ),
-*/
+            new ( @"\Q…\E", @"Literal", fm => fm.Literal_QE, @"\Qx\E", "x", @"\Qx\E", "Q" ),
+            new ( @"[\Q…\E]", @"Literal inside […]", fm => fm.InsideSets_Literal_QE, @"[\Qx\E]", "x", @"[\Qx\E]", "Q" ),
+            new ( @"[\q{…}]", @"Literal inside […]", fm => fm.InsideSets_Literal_qBrace, @"[\q{x}]", "x", @"[\q{x}]", "q" ),
+/*
             new ( @"Escapes", null, null ),
 
             new ( @"\a", @"Bell, \u0007", fm => fm.Esc_a, @"\a", "\u0007" ),
             new ( @"\b", @"Backspace, \u0008", fm => fm.Esc_b, @"\b", "\u0008", @"x\b", "x" ),
-        
+
             new ( @"\e", @"Escape, \u001B", fm => fm.Esc_e, @"\e", "\u001B" ),
             new ( @"\f", @"Form feed, \u000C", fm => fm.Esc_f, @"\f", "\u000C" ),
             new ( @"\n", @"New line, \u000A", fm => fm.Esc_n, @"\n", "\u000A" ),
             new ( @"\r", @"Carriage return, \u000D", fm => fm.Esc_r, @"\r", "\u000D" ),
             new ( @"\t", @"Tab, \u0009", fm => fm.Esc_t, @"\t", "\u0009" ),
             new ( @"\v", @"Vertical tab, \u000B", fm => fm.Esc_v, @"\v", "\u000B", @"\v", "\f" ),
+            new ( @"\1..\7", @"Octal, one digit", fm => fm.Esc_Octal == FeatureMatrix.OctalEnum.Octal_1_3, @"\3", "\u0003" ),
+            new ( @"\nnn", @"Octal, two or three digits", fm => fm.Esc_Octal == FeatureMatrix.OctalEnum.Octal_1_3 || fm.Esc_Octal == FeatureMatrix.OctalEnum.Octal_2_3, @"\11\101", "\u0009A" ),
             new ( @"\0nnn", @"Octal, up to three digits after '\0'", fm => fm.Esc_Octal0_1_3, @"\03\011\0011", "\u0003\u0009\u0009" ),
-            new ( @"\nnn", @"Octal, up to three digits", fm => fm.Esc_Octal_1_3, @"\3\11\101", "\u0003\u0009A" ),
-            new ( @"\nnn", @"Octal, two or three digits", fm => fm.Esc_Octal_2_3, @"\11\101", "\u0009A", @"\3", "\u0003" ),
             new ( @"\o{nn…}", @"Octal", fm => fm.Esc_oBrace, @"\o{11}", "\u0009" ),
             new ( @"\xXX", @"Hexadecimal code, two digits", fm => fm.Esc_x2, @"\x09", "\u0009" ),
             new ( @"\x{XX…}", @"Hexadecimal code", fm => fm.Esc_xBrace, @"\x{0009}", "\u0009" ),
@@ -97,7 +96,7 @@ class FeatureMatrixDetails
             new ( @"\C-C", @"Control character", fm => fm.Esc_CMinus, @"\C-M", "\r" ),
             new ( @"\N{…}", @"Unicode name or 'U+code'", fm => fm.Esc_NBrace, @"\N{comma}", "," ), // (some do not understand "COMMA", "LATIN CAPITAL LETTER A")
             new ( @"\any", @"Generic escape", fm => fm.GenericEscape, @"\\", @"\" ),
-/*
+
             new ( @"Escapes inside […]", null, null ),
 
             new ( @"[\a]", @"Bell, \u0007", fm => fm.InsideSets_Esc_a ),
