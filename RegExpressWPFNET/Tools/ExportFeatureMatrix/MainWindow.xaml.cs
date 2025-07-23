@@ -226,24 +226,33 @@ namespace ExportFeatureMatrix
 
                 tblProgress.Text = $"Processing {plugins.Count} engines...";
 
-                switch( output_type )
+                try
                 {
-                case OutputTypeEnum.Excel:
-                {
-                    ExporterToExcel exporter = new( );
+                    this.IsEnabled = false;
 
-                    exporter.Export( tbOutputFile.Text, plugins!, checkBoxVerify.IsChecked == true );
-                }
-                break;
-                case OutputTypeEnum.Html:
-                {
-                    ExporterToHtml exporter = new( );
+                    switch( output_type )
+                    {
+                    case OutputTypeEnum.Excel:
+                    {
+                        ExporterToExcel exporter = new( );
 
-                    exporter.Export( tbOutputFile.Text, plugins! );
+                        exporter.Export( tbOutputFile.Text, plugins!, checkBoxVerify.IsChecked == true );
+                    }
+                    break;
+                    case OutputTypeEnum.Html:
+                    {
+                        ExporterToHtml exporter = new( );
+
+                        exporter.Export( tbOutputFile.Text, plugins! );
+                    }
+                    break;
+                    default:
+                        throw new NotSupportedException( $"Output type not supported: '{output_type}'" );
+                    }
                 }
-                break;
-                default:
-                    throw new NotSupportedException( $"Output type not supported: '{output_type}'" );
+                finally
+                {
+                    this.IsEnabled = true;
                 }
 
                 tblProgress.Text = "DONE.";

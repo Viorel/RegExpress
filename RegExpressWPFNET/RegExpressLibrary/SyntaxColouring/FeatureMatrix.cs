@@ -135,9 +135,9 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool InsideSets_Class_X { get; init; }                     // \X -- eXtended grapheme cluster
         public bool InsideSets_Class_pP { get; init; }                    // ex.: \pL, \PL
         public bool InsideSets_Class_pPBrace { get; init; }               // \p{...}, \P{...}, \p{^...}, \P{^...}
-        public bool InsideSets_Class_Name { get; init; }                  // ex: [:digit:]
-        public bool InsideSets_Equivalence { get; init; }                 // ex: [=a=]
-        public bool InsideSets_Collating { get; init; }                   // ex: [.ch.]
+        public bool InsideSets_Class_Name { get; init; }                  // ex: [[:digit:]]
+        public bool InsideSets_Equivalence { get; init; }                 // ex: [[=a=]], matches 'a', 'A' and 'Á'
+        public bool InsideSets_Collating { get; init; }                   // ex: [[.ch.]], matches 'ch' as a single match
 
         public bool InsideSets_Operators { get; init; }                   // allow operators inside [...]; see operators bellow; when 'Brackets' is 'true' 
         public bool InsideSets_OperatorsExtended { get; init; }           // allow operators inside (?[...]); see operators bellow; when 'ExtendedBrackets' is 'true' 

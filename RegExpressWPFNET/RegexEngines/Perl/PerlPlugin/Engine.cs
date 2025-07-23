@@ -276,7 +276,7 @@ namespace PerlPlugin
                 Anchor_z = true,
                 Anchor_G = true,
                 Anchor_bB = true,
-                Anchor_bg = false,
+                Anchor_bg = true,
                 Anchor_bBBrace = true,
                 Anchor_K = true,
                 Anchor_mM = false,

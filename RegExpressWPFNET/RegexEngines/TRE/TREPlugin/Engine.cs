@@ -263,8 +263,8 @@ namespace TREPlugin
                 InsideSets_Class_pP = false,
                 InsideSets_Class_pPBrace = false,
                 InsideSets_Class_Name = true,
-                InsideSets_Equivalence = true,
-                InsideSets_Collating = true,
+                InsideSets_Equivalence = false,
+                InsideSets_Collating = false,
 
                 InsideSets_Operators = false,
                 InsideSets_OperatorsExtended = false,

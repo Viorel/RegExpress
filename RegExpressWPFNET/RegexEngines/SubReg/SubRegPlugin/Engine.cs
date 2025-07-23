@@ -240,7 +240,7 @@ namespace SubRegPlugin
                 Class_Name = false,
 
                 InsideSets_Class_dD = false,
-                InsideSets_Class_hHhexa = true,
+                InsideSets_Class_hHhexa = false,
                 InsideSets_Class_hHhorspace = false,
                 InsideSets_Class_lL = false,
                 InsideSets_Class_R = false,

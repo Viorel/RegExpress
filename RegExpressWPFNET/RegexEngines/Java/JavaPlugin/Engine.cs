@@ -274,7 +274,7 @@ namespace JavaPlugin
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = true,
                 InsideSets_Class_pPBrace = true,
-                InsideSets_Class_Name = false,
+                InsideSets_Class_Name = is_re2j,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 
