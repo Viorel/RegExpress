@@ -332,7 +332,7 @@ namespace PCRE2Plugin
                 AllowSpacesInGroups = false,
 
                 Backref_1_9 = true,
-                Backref_Num = false,
+                Backref_Num = true,
                 Backref_kApos = true,
                 Backref_kLtGt = true,
                 Backref_kBrace = true,
@@ -362,7 +362,7 @@ namespace PCRE2Plugin
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = true,
-                Conditional_Pattern = false,
+                Conditional_Pattern = true,
                 Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = true,
                 Conditional_BackrefByName_LtGt = true,

@@ -304,7 +304,7 @@ namespace PerlPlugin
                 AllowSpacesInGroups = false,
 
                 Backref_1_9 = true,
-                Backref_Num = false,
+                Backref_Num = true,
                 Backref_kApos = true,
                 Backref_kLtGt = true,
                 Backref_kBrace = true,
@@ -330,11 +330,11 @@ namespace PerlPlugin
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
-                Quantifier_LowAbbrev = false,
+                Quantifier_LowAbbrev = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = false,
-                Conditional_Pattern = false,
+                Conditional_Pattern = true,
                 Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = true,
                 Conditional_BackrefByName_LtGt = true,

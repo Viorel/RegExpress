@@ -291,9 +291,9 @@ namespace SubRegPlugin
                 NamedGroup_AtLtGt = false,
                 CapturingGroup = false,
 
-                NoncapturingGroup = false,
-                PositiveLookahead = false,
-                NegativeLookahead = false,
+                NoncapturingGroup = true,
+                PositiveLookahead = true,
+                NegativeLookahead = true,
                 PositiveLookbehind = false,
                 NegativeLookbehind = false,
                 AtomicGroup = false,

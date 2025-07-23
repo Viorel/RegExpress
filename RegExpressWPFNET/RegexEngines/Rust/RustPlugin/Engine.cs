@@ -724,7 +724,7 @@ namespace RustPlugin
                 Anchor_GraveApos = false,
                 Anchor_yY = false,
 
-                NamedGroup_Apos = false,
+                NamedGroup_Apos = true,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = true,
                 NamedGroup_AtApos = false,
@@ -745,7 +745,7 @@ namespace RustPlugin
 
                 Backref_1_9 = true,
                 Backref_Num = true,
-                Backref_kApos = false,
+                Backref_kApos = true,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,
                 Backref_kNum = false,
@@ -755,7 +755,7 @@ namespace RustPlugin
                 Backref_gNum = false,
                 Backref_gNegNum = false,
                 Backref_gBrace = false,
-                Backref_PEqName = false,
+                Backref_PEqName = true,
                 AllowSpacesInBackref = false,
 
                 Recursive_Num = false,
@@ -776,7 +776,7 @@ namespace RustPlugin
                 Conditional_BackrefByName = false,
                 Conditional_Pattern = true,
                 Conditional_PatternOrBackrefByName = false,
-                Conditional_BackrefByName_Apos = false,
+                Conditional_BackrefByName_Apos = true,
                 Conditional_BackrefByName_LtGt = true,
                 Conditional_R = false,
                 Conditional_RName = false,
@@ -952,7 +952,7 @@ namespace RustPlugin
                 AllowSpacesInGroups = true,
 
                 Backref_1_9 = true,
-                Backref_Num = false,
+                Backref_Num = true,
                 Backref_kApos = false,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,
@@ -963,7 +963,7 @@ namespace RustPlugin
                 Backref_gNum = false,
                 Backref_gNegNum = false,
                 Backref_gBrace = false,
-                Backref_PEqName = true,
+                Backref_PEqName = false,
                 AllowSpacesInBackref = false,
 
                 Recursive_Num = false,

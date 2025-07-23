@@ -326,7 +326,7 @@ namespace JavaPlugin
                 AllowSpacesInGroups = is_regex,
 
                 Backref_1_9 = is_regex,
-                Backref_Num = false, // (if no group, digits are drop until a group is found)
+                Backref_Num = is_regex, // (if no group, digits are drop until a group is found)
                 Backref_kApos = false,
                 Backref_kLtGt = is_regex,
                 Backref_kBrace = false,

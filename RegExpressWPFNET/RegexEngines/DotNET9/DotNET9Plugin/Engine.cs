@@ -295,7 +295,7 @@ namespace DotNET8Plugin
                 AllowSpacesInGroups = false,
 
                 Backref_1_9 = true,
-                Backref_Num = false,
+                Backref_Num = true,
                 Backref_kApos = true,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,
@@ -324,8 +324,8 @@ namespace DotNET8Plugin
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = true,
-                Conditional_BackrefByName = false,
-                Conditional_Pattern = false,
+                Conditional_BackrefByName = true,
+                Conditional_Pattern = true,
                 Conditional_PatternOrBackrefByName = true,
                 Conditional_BackrefByName_Apos = false,
                 Conditional_BackrefByName_LtGt = false,

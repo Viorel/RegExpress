@@ -126,8 +126,8 @@ namespace TREPlugin
 
             return
                 [
+                    new FeatureMatrixVariant("basic", LazyFeatureMatrix.GetValue( false ), engine_basic),
                     new FeatureMatrixVariant("extended", LazyFeatureMatrix.GetValue( true ), engine_extended),
-                    new FeatureMatrixVariant("basic", LazyFeatureMatrix.GetValue( false ), engine_basic)
                 ];
         }
 
@@ -313,7 +313,7 @@ namespace TREPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = true,
+                Backref_1_9 = isExtended,
                 Backref_Num = false,
                 Backref_kApos = false,
                 Backref_kLtGt = false,

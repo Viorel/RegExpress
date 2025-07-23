@@ -322,7 +322,7 @@ namespace PythonPlugin
                 AllowSpacesInGroups = false,
 
                 Backref_1_9 = true, // TODO: actually it supports \1, \2, ... \99.
-                Backref_Num = false,
+                Backref_Num = true,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -352,7 +352,7 @@ namespace PythonPlugin
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = true,
-                Conditional_Pattern = false,
+                Conditional_Pattern = true,
                 Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = false,
                 Conditional_BackrefByName_LtGt = false,

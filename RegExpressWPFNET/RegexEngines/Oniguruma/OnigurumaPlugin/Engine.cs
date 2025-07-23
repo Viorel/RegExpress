@@ -130,7 +130,7 @@ namespace OnigurumaPlugin
                 string variant = syntax_name.StartsWith( "ONIG_SYNTAX_" ) ? syntax_name["ONIG_SYNTAX_".Length..] : syntax_name;
 
                 Engine engine = new( );
-                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Syntax = syntax } );
+                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = true } );
 
                 variants.Add( new FeatureMatrixVariant( variant, MakeFeatureMatrix( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA } ), engine ) );
             }
@@ -415,7 +415,7 @@ namespace OnigurumaPlugin
                 AllowSpacesInGroups = false,
 
                 Backref_1_9 = details.ONIG_SYN_OP_DECIMAL_BACKREF,
-                Backref_Num = false,
+                Backref_Num = details.ONIG_SYN_OP_DECIMAL_BACKREF,
                 Backref_kApos = details.ONIG_SYN_OP2_ESC_K_NAMED_BACKREF,
                 Backref_kLtGt = details.ONIG_SYN_OP2_ESC_K_NAMED_BACKREF,
                 Backref_kBrace = false,
@@ -429,10 +429,10 @@ namespace OnigurumaPlugin
                 Backref_PEqName = details.ONIG_SYN_OP2_QMARK_CAPITAL_P_NAME,
                 AllowSpacesInBackref = false,
 
-                Recursive_Num = false,
-                Recursive_PlusMinusNum = false,
-                Recursive_R = details.ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL, // TODO: does not seem to work
-                Recursive_Name = details.ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL, // TODO: does not seem to work
+                Recursive_Num = syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG,
+                Recursive_PlusMinusNum = syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG,
+                Recursive_R = false, //details.ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL, // TODO: does not seem to work
+                Recursive_Name = details.ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL,
                 Recursive_PGtName = details.ONIG_SYN_OP2_QMARK_CAPITAL_P_NAME,
 
                 Quantifier_Asterisk = details.ONIG_SYN_OP_ASTERISK_ZERO_INF,
@@ -447,11 +447,11 @@ namespace OnigurumaPlugin
                 Conditional_BackrefByName = false,
                 Conditional_Pattern = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE,
                 Conditional_PatternOrBackrefByName = false,
-                Conditional_BackrefByName_Apos = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE,
-                Conditional_BackrefByName_LtGt = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE,
+                Conditional_BackrefByName_Apos = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE && syntax != SyntaxEnum.ONIG_SYNTAX_PERL,
+                Conditional_BackrefByName_LtGt = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE && syntax != SyntaxEnum.ONIG_SYNTAX_PERL,
                 Conditional_R = false,
                 Conditional_RName = false,
-                Conditional_DEFINE = false,
+                Conditional_DEFINE = syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG,
                 Conditional_VERSION = false,
 
                 ControlVerbs = details.ONIG_SYN_OP2_ASTERISK_CALLOUT_NAME,

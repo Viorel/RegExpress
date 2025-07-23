@@ -44,7 +44,8 @@ class FeatureMatrixDetails
 
     internal static readonly FeatureMatrixDetails[] AllFeatureMatrixDetails =
         [
-/*            new ( @"General", null, null ),
+#if false
+            new ( @"General", null, null ),
 
             new ( @"(…)", @"Grouping constructs", fm => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal, @"(x)", "x" ),
             new ( @"\(…\)", @"Grouping constructs", fm => fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed, @"\(x\)", "x" ),
@@ -178,7 +179,7 @@ class FeatureMatrixDetails
             new ( @"[[…] || […]]", @"Union", fm => fm.InsideSets_Operator_DoubleVerticalLine, @"[[a]||[c]][[d]||[b]]", "ab", @"[[a]||[b]]", "|[" ),
             new ( @"[[…] -- […]]", @"Difference", fm => fm.InsideSets_Operator_DoubleMinus, @"[[ab]--[b]]", "a", @"[[ab]--[b]]", "][-b" ),
             new ( @"[[…] ~~ […]]", @"Symmetric difference", fm => fm.InsideSets_Operator_DoubleTilde, @"[[ab]~~[bc]][[ab]~~[bc]]", "ac", @"[[ab]~~[bc]]", "b][~" ),
-*/
+
             new ( @"Anchors", null, null ),
 
             new ( @"^", @"Beginning of string or line, depending on options", fm => fm.Anchor_Circumflex, @"^x", "x" ),
@@ -195,77 +196,78 @@ class FeatureMatrixDetails
             new ( @"\<, \>", @"Start of word, end of word", fm => fm.Anchor_LtGt, @"\<word\>", "some word here" ),
             new ( @"\`, \'", @"Start of string, end of string", fm => fm.Anchor_GraveApos, @"\`x\'", "x" ),
             new ( @"\y, \Y", @"Boundary between graphemes", fm => fm.Anchor_yY, @"a\yb", "ab" ),
-/*
+
             new ( @"Named groups and backreferences", null, null ),
 
-            new ( @"(?'name'…)", @"Named group", fm => fm.NamedGroup_Apos ),
-            new ( @"(?<name>…)", @"Named group", fm => fm.NamedGroup_LtGt ),
-            new ( @"(?P<name>…)", @"Named group", fm => fm.NamedGroup_PLtGt ),
-            new ( @"(?@…)", @"Capturing group, depending on options", fm => fm.NamedGroup_AtApos || fm.NamedGroup_AtLtGt || fm.CapturingGroup ),
+            new ( @"(?'name'…)", @"Named group", fm => fm.NamedGroup_Apos, @"(?'n'x)", "x" ),
+            new ( @"(?<name>…)", @"Named group", fm => fm.NamedGroup_LtGt, @"(?<n>x)", "x" ),
+            new ( @"(?P<name>…)", @"Named group", fm => fm.NamedGroup_PLtGt, @"(?P<n>x)", "x" ),
+            new ( @"(?@…)", @"Capturing group, depending on options", fm => fm.NamedGroup_AtApos || fm.NamedGroup_AtLtGt || fm.CapturingGroup, @"(@<n>x)", "x" ),
 
-            new ( @"\1, \2, …, \9", @"Backreferences", fm => fm.Backref_1_9 ),
-            new ( @"\nnn", @"Backreference, one or more digits", fm => fm.Backref_Num ),
-            new ( @"\k'name'", @"Backreference by name", fm => fm.Backref_kApos ),
-            new ( @"\k<name>", @"Backreference by name", fm => fm.Backref_kLtGt ),
-            new ( @"\k{name}", @"Backreference by name", fm => fm.Backref_kBrace ),
-            new ( @"\kn", @"Backreference \k1, \k2, …", fm => fm.Backref_kNum ),
-            new ( @"\k-n", @"Relative backreference \k-1, \k-2, …", fm => fm.Backref_kNegNum ),
-            new ( @"\g'…'", @"Backreference by name or number", fm => fm.Backref_gApos ),
-            new ( @"\g<…>", @"Backreference by name or number", fm => fm.Backref_gLtGt ),
-            new ( @"\gn", @"Backreference \g1, \g2, …", fm => fm.Backref_gNum ),
-            new ( @"\g-n", @"Relative backreference \g-1, \g-2, …", fm => fm.Backref_gNegNum ),
-            new ( @"\g{…}", @"Backreference \g{name}, \g{number}, \g{-number}, g{+number}", fm => fm.Backref_gBrace ),
-            new ( @"(?P=name)", @"Backreference by name", fm => fm.Backref_PEqName ),
-            new ( @"\k< … >, \g< … >", @"Allow spaces like '\k < name >' when whitespaces are enabled by options", fm => fm.AllowSpacesInBackref ),
+            new ( @"\1, \2, …, \9", @"Backreferences", fm => fm.Backref_1_9, @"(x)\1", "xx" ),
+            new ( @"\nnn", @"Backreference, one or more digits", fm => fm.Backref_Num, @"(x)(x)(x)(x)(x)(x)(x)(x)(x)(y)\10", "xxxxxxxxxyy" ),
+            new ( @"\k'name'", @"Backreference by name", fm => fm.Backref_kApos, @"(?'n'x)\k'n'", "xx" ),
+            new ( @"\k<name>", @"Backreference by name", fm => fm.Backref_kLtGt, @"(?<n>x)\k<n>", "xx" ),
+            new ( @"\k{name}", @"Backreference by name", fm => fm.Backref_kBrace, @"(?<n>x)\k{n}", "xx" ),
+            new ( @"\kn", @"Backreference \k1, \k2, …", fm => fm.Backref_kNum, @"(?<n>x)\k1", "xx" ),
+            new ( @"\k-n", @"Relative backreference \k-1, \k-2, …", fm => fm.Backref_kNegNum, @"(?<n>x)\k-1", "xx" ),
+            new ( @"\g'…'", @"Subroutine by name or number", fm => fm.Backref_gApos, @"(?'n'x)\g'n'", "xx" ),
+            new ( @"\g<…>", @"Subroutine by name or number", fm => fm.Backref_gLtGt, @"(?<n>x)\g<n>", "xx" ),
+            new ( @"\gn", @"Subroutine \g1, \g2, …", fm => fm.Backref_gNum, @"(?<n>x)\g1", "xx" ),
+            new ( @"\g-n", @"Relative subroutine \g-1, \g-2, …", fm => fm.Backref_gNegNum, @"(?<n>x)\g-1", "xx" ),
+            new ( @"\g{…}", @"Subroutine \g{name}, \g{number}, \g{-number}, g{+number}", fm => fm.Backref_gBrace, @"(?<n>x)\g{n}", "xx" ),
+            new ( @"(?P=name)", @"Subroutine by name", fm => fm.Backref_PEqName, @"(?P<n>x)(?P=n)", "xx" ),
+            new ( @"\k< … >, \g< … >", @"Allow spaces like '\k < name >' when whitespaces are enabled by options", fm => fm.AllowSpacesInBackref ), // TODO
 
             new ( @"Grouping", null, null ),
 
-            new ( @"(?:…)", @"Noncapturing group", fm => fm.NoncapturingGroup ),
-            new ( @"(?=…)", @"Positive lookahead ", fm => fm.PositiveLookahead ),
-            new ( @"(?!…)", @"Negative lookahead ", fm => fm.NegativeLookahead ),
-            new ( @"(?<=…)", @"Positive lookbehind", fm => fm.PositiveLookbehind ),
-            new ( @"(?<!…)", @"Negative lookbehind", fm => fm.NegativeLookbehind ),
-            new ( @"(?>…)", @"Atomic group", fm => fm.AtomicGroup ),
-            new ( @"(?|…)", @"Branch reset", fm => fm.BranchReset ),
-            new ( @"(?*…)", @"Non-atomic positive lookahead", fm => fm.NonatomicPositiveLookahead ),
-            new ( @"(?<*…)", @"Non-atomic positive lookbehind ", fm => fm.NonatomicPositiveLookbehind ),
-            new ( @"(?~…)", @"Absent operator", fm => fm.AbsentOperator ),
-            new ( @"( ? … )", @"Allow spaces like '( ? < name >…)' when whitespaces are enabled by options", fm => fm.AllowSpacesInGroups ),
+            new ( @"(?:…)", @"Noncapturing group", fm => fm.NoncapturingGroup, @"(?:x)", "x" ),
+            new ( @"(?=…)", @"Positive lookahead ", fm => fm.PositiveLookahead, @"a(?=x)x", "ax" ),
+            new ( @"(?!…)", @"Negative lookahead ", fm => fm.NegativeLookahead, @"a(?!x)y", "ay" ),
+            new ( @"(?<=…)", @"Positive lookbehind", fm => fm.PositiveLookbehind, @"(?<=x)a", "xa" ),
+            new ( @"(?<!…)", @"Negative lookbehind", fm => fm.NegativeLookbehind, @"(?<!x)a", "ya" ),
+            new ( @"(?>…)", @"Atomic group", fm => fm.AtomicGroup, @"(?>x)", "x" ),
+            new ( @"(?|…)", @"Branch reset", fm => fm.BranchReset, @"(?|(a)|(b)\1)", "bb" ),
+            new ( @"(?*…)", @"Non-atomic positive lookahead", fm => fm.NonatomicPositiveLookahead, @"a(?*x)x", "ax" ),
+            new ( @"(?<*…)", @"Non-atomic positive lookbehind ", fm => fm.NonatomicPositiveLookbehind, @"(?<*x)a", "xa" ),
+            new ( @"(?~…)", @"Absent operator", fm => fm.AbsentOperator, @"/\*(?~\*\/)\*\/", "/* abc */" ),
+            new ( @"( ? … )", @"Allow spaces like '( ? < name >…)' when whitespaces are enabled by options", fm => fm.AllowSpacesInGroups ), // TODO
 
             new ( @"Recursive patterns", null, null ),
 
-            new ( @"(?n)", @"Recursive subpattern by number", fm => fm.Recursive_Num ),
-            new ( @"(?-n), (?+n)", @"Relative recursive subpattern by number", fm => fm.Recursive_PlusMinusNum ),
-            new ( @"(?R)", @"Recursive whole pattern", fm => fm.Recursive_R ),
-            new ( @"(?&name)", @"Recursive subpattern by name", fm => fm.Recursive_Name ),
-            new ( @"(?P>name)", @"Recursive subpattern by name", fm => fm.Recursive_PGtName ),
+            new ( @"(?n)", @"Recursive subpattern by number", fm => fm.Recursive_Num, @"(x.)(?1)", "xyxz" ),
+            new ( @"(?-n), (?+n)", @"Relative recursive subpattern by number", fm => fm.Recursive_PlusMinusNum, @"(x(.))(?-1)", "xyz" ),
+            new ( @"(?R)", @"Recursive whole pattern", fm => fm.Recursive_R, @"a(?R)*b", "aabb" ),
+            new ( @"(?&name)", @"Recursive subpattern by name", fm => fm.Recursive_Name, @"(?<n>a)(?&n)", "aa" ),
+            new ( @"(?P>name)", @"Recursive subpattern by name", fm => fm.Recursive_PGtName, @"(?P<n>a)(?P>n)", "aa" ),
 
             new ( @"Quantifiers", null, null ),
 
-            new ( @"*", @"Zero or more times", fm => fm.Quantifier_Asterisk ),
-            new ( @"+", @"One or more times", fm => fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Normal ),
-            new ( @"\+", @"One or more times", fm => fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Backslashed ),
-            new ( @"?", @"Zero or one time", fm => fm.Quantifier_Question == FeatureMatrix.PunctuationEnum.Normal),
-            new ( @"\?", @"Zero or one time", fm => fm.Quantifier_Question == FeatureMatrix.PunctuationEnum.Backslashed),
-            new ( @"{n,m}", @"Between n and m times: {n}, {n,}, {n,m}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Normal ),
-            new ( @"\{n,m\}", @"Between n and m times: \{n\}, \{n,\}, \{n,m\}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Backslashed ),
-            new ( @"{ n, m } ", @"Allow spaces within {…} or \{…\}", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.Both ),
-            new ( @"{ n, m } ", @"Allow spaces within {…} or \{…\} when spaces are allowed by options", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.XModeOnly ),
-            new ( @"{,m}, \{,m\}", @"Equivalent to {0,m} or \{0,m\}", fm => fm.Quantifier_LowAbbrev ),
-            new ( @"{expr}, \{expr\}", @"Approximate matching using given engine-specific expression", fm => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal ||fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed ),
-
+            new ( @"*", @"Zero or more times", fm => fm.Quantifier_Asterisk, @"xy*", "x" ),
+            new ( @"+", @"One or more times", fm => fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Normal, @"xy+", "xyy" ),
+            new ( @"\+", @"One or more times", fm => fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Backslashed, @"xy\+", "xyy" ),
+            new ( @"?", @"Zero or one time", fm => fm.Quantifier_Question == FeatureMatrix.PunctuationEnum.Normal, @"xy?", "x" ),
+            new ( @"\?", @"Zero or one time", fm => fm.Quantifier_Question == FeatureMatrix.PunctuationEnum.Backslashed, @"xy\?", "x" ),
+            new ( @"{n,m}", @"Between n and m times: {n}, {n,}, {n,m}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Normal, @"x{2,3}", "xx" ),
+            new ( @"\{n,m\}", @"Between n and m times: \{n\}, \{n,\}, \{n,m\}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Backslashed, @"x\{2,3\}", "xx" ),
+            new ( @"{ n, m } ", @"Allow spaces within {…} or \{…\}", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.Both ), // TODO
+            new ( @"{ n, m } ", @"Allow spaces within {…} or \{…\} when spaces are allowed by options", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.XModeOnly ), // TODO
+            new ( @"{,m}, \{,m\}", @"Equivalent to {0,m} or \{0,m\}", fm => fm.Quantifier_LowAbbrev, @"x{,3}", "xxx" ),
+            new ( @"{expr}, \{expr\}", @"Approximate matching using given engine-specific expression", fm => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed ), // TODO
+#endif
             new ( @"Conditionals", null, null ),
 
-            new ( @"(?(number)…|…)", @"Conditionals by number, +number and -number", fm => fm.Conditional_BackrefByNumber ),
-            new ( @"(?(name)…|…)", @"Conditional by name", fm => fm.Conditional_BackrefByName ),
-            new ( @"(?(pattern)…|…)", @"Conditional subpattern", fm => fm.Conditional_Pattern ),
-            new ( @"(?(xxx)…|…)", @"Conditional by xxx name, or by xxx subpattern, if no such name", fm => fm.Conditional_PatternOrBackrefByName ),
-            new ( @"(?('name')…|…)", @"Conditional by name", fm => fm.Conditional_BackrefByName_Apos ),
-            new ( @"(?(<name>)…|…)", @"Conditional by name", fm => fm.Conditional_BackrefByName_LtGt ),
-            new ( @"(?(R)…|…)", @"Recursive conditional: R, R+number, R-number", fm => fm.Conditional_R ),
-            new ( @"(?(R&name)…|…)", @"Recursive conditional by name", fm => fm.Conditional_RName ),
-            new ( @"(?(DEFINE)…|…)", @"Defining subpatterns", fm => fm.Conditional_DEFINE ),
-            new ( @"(?(VERSION…)…|…)", @"Checking for version using 'VERSION=decimal' or 'VERSION>=decimal'", fm => fm.Conditional_VERSION ),
+            new ( @"(?(number)…|…)", @"Conditionals by number, +number and -number", fm => fm.Conditional_BackrefByNumber, @"(x)(?(1)y|z)", "xy" ),
+            new ( @"(?(name)…|…)", @"Conditional by name", fm => fm.Conditional_BackrefByName, @"(?<n>x)(?(n)y|z)", "xy" ),
+            new ( @"(?(pattern)…|…)", @"Conditional subpattern", fm => fm.Conditional_Pattern, @"x(?(?=.z)y|z)", "xyz" ),
+            new ( @"(?(xxx)…|…)", @"Conditional by xxx name, or by xxx subpattern, if no such name", fm => fm.Conditional_PatternOrBackrefByName, @"x(?(y).|z)", "xy" ),
+            new ( @"(?('name')…|…)", @"Conditional by name", fm => fm.Conditional_BackrefByName_Apos, @"(?'n'x)(?('n')y|z)", "xy" ),
+            new ( @"(?(<name>)…|…)", @"Conditional by name", fm => fm.Conditional_BackrefByName_LtGt, @"(?<n>x)(?(<n>)y|z)", "xy" ),
+            new ( @"(?(R)…|…)", @"Recursive conditional: R, R+number, R-number", fm => fm.Conditional_R, @"(?(R)a+|(?R)b)", "aaaab" ),
+            new ( @"(?(R&name)…|…)", @"Recursive conditional by name", fm => fm.Conditional_RName, @"(?<A>(?'B'abc(?(R)(?(R&A)1)(?(R&B)2)X|(?1)(?2)(?R))))", "abcabc1Xabc2XabcXabcabc" ),
+            new ( @"(?(DEFINE)…|…)", @"Defining subpatterns", fm => fm.Conditional_DEFINE, @"(?(DEFINE)(?<n>x.z))(?&n)", "xyz" ),
+            new ( @"(?(VERSION…)…|…)", @"Checking for version using 'VERSION=decimal' or 'VERSION>=decimal'", fm => fm.Conditional_VERSION, @"(?(VERSION>=1)xyz|abc)", "xyz" ),
+#if false
 
             new ( @"Miscellaneous", null, null ),
 
@@ -276,6 +278,7 @@ class FeatureMatrixDetails
             new ( @"(? )", @"Empty construct when whitespaces are enabled by options", fm => fm.EmptyConstructX ),
             new ( @"[]", @"Empty set", fm => fm.EmptySet ),
 
-            new ( @"“.” on Surrogate Pairs", @"Split Surrogate Pair characters into two components", fm => fm.SplitSurrogatePairs ),*/
+            new ( @"“.” on Surrogate Pairs", @"Split Surrogate Pair characters into two components", fm => fm.SplitSurrogatePairs ),
+#endif
         ];
 }

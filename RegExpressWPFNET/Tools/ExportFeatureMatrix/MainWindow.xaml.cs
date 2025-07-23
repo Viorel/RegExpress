@@ -200,10 +200,18 @@ namespace ExportFeatureMatrix
                 tblProgress.Text = "";
 
                 if( !ValidateInput( ) ) return;
-                if( !ValidateOutput( ) ) return;
 
                 OutputTypeEnum output_type = GetOutputType( );
                 Debug.Assert( output_type != OutputTypeEnum.None );
+
+                if( checkBoxVerify.IsChecked == true && output_type != OutputTypeEnum.Excel )
+                {
+                    MessageBox.Show( this, "Verification is only available for Excel output.", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
+
+                    return;
+                }
+
+                if( !ValidateOutput( ) ) return;
 
                 // Load engines
 
