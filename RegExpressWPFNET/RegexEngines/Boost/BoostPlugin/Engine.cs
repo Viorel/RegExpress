@@ -342,8 +342,7 @@ namespace BoostPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = is_perl || is_POSIX_basic,
-                Backref_Num = false,
+                Backref_Num = is_perl || is_POSIX_basic ? FeatureMatrix.BackrefEnum.OneDigit : FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = is_perl,
                 Backref_kLtGt = is_perl,
                 Backref_kBrace = is_perl,

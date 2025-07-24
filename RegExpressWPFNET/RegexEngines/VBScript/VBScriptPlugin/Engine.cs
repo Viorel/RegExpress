@@ -302,8 +302,7 @@ namespace VBScriptPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = true,
-                Backref_Num = true,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,

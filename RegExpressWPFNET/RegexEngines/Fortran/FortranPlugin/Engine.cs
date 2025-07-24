@@ -334,8 +334,7 @@ namespace FortranPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -543,8 +542,7 @@ namespace FortranPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -753,8 +751,7 @@ namespace FortranPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,

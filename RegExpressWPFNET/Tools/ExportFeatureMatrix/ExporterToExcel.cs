@@ -28,7 +28,7 @@ partial class ExporterToExcel
     uint STYLE_ID_PLUS = 0;
     uint STYLE_ID_BOTTOM_ROW = 0;
 
-    public void Export( string outputExcelPath, IReadOnlyList<RegexPlugin> plugins, bool verify )
+    public void Export( string outputExcelPath, IReadOnlyList<RegexPlugin> plugins, bool verify, Action<string, int, int>? progressOnFeatures, Action<string, int, int>? progressOnEngines )
     {
         using( SpreadsheetDocument spreadSheet = SpreadsheetDocument.Create( outputExcelPath, SpreadsheetDocumentType.Workbook ) )
         {
@@ -157,8 +157,12 @@ partial class ExporterToExcel
 
             // body
 
-            foreach( FeatureMatrixDetails details in FeatureMatrixDetails.AllFeatureMatrixDetails )
+            for( int feature_index = 0; feature_index < FeatureMatrixDetails.AllFeatureMatrixDetails.Length; feature_index++ )
             {
+                FeatureMatrixDetails details = FeatureMatrixDetails.AllFeatureMatrixDetails[feature_index];
+
+                if( progressOnFeatures != null ) progressOnFeatures( $"{details.ShortDesc} {details.Desc}", feature_index, FeatureMatrixDetails.AllFeatureMatrixDetails.Length );
+
                 if( details.Func == null )
                 {
                     // name of the group
@@ -175,8 +179,12 @@ partial class ExporterToExcel
                     cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + 1 ), row_index, details.Desc ?? "" );
                     cell1.StyleIndex = STYLE_ID_DESCRIPTION;
 
-                    foreach( EngineData engine_data in engines_data )
+                    for( int engine_index = 0; engine_index < engines_data.Length; engine_index++ )
                     {
+                        EngineData engine_data = engines_data[engine_index];
+
+                        if( progressOnEngines != null ) progressOnEngines( engine_data.Engine.Name, engine_index, engines_data.Length );
+
                         foreach( var m in engine_data.Matrices )
                         {
                             bool flag_is_true = details.Func( m.variant.FeatureMatrix );

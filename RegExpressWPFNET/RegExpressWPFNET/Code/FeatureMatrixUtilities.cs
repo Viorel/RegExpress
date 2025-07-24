@@ -195,8 +195,8 @@ namespace RegExpressWPFNET.Code
             new FeatureMatrixDetails(  @"(?P<name>…)", @"Named group", fm => fm.NamedGroup_PLtGt ),
             new FeatureMatrixDetails(  @"(?@…)", @"Capturing group, depending on options", fm => fm.NamedGroup_AtApos || fm.NamedGroup_AtLtGt || fm.CapturingGroup ),
 
-            new FeatureMatrixDetails(  @"\1, \2, …, \9", @"Backreferences \1, \2, …, \9", fm => fm.Backref_1_9 ),
-            new FeatureMatrixDetails(  @"\nnn", @"Backreference, one or more digits", fm => fm.Backref_Num ),
+            new FeatureMatrixDetails(  @"\1, \2, …, \9", @"Backreferences \1, \2, …, \9", fm => fm.Backref_Num == FeatureMatrix.BackrefEnum.OneDigit ),
+            new FeatureMatrixDetails(  @"\nnn", @"Backreference, two or more digits", fm => fm.Backref_Num == FeatureMatrix.BackrefEnum.Any ),
             new FeatureMatrixDetails(  @"\k'name'", @"Backreference by name", fm => fm.Backref_kApos ),
             new FeatureMatrixDetails(  @"\k<name>", @"Backreference by name", fm => fm.Backref_kLtGt ),
             new FeatureMatrixDetails(  @"\k{name}", @"Backreference by name", fm => fm.Backref_kBrace ),

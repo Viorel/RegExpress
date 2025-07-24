@@ -814,12 +814,12 @@ namespace RegExpressLibrary.SyntaxColouring
                     {
                         pb.Add( @"\\k (?<name>-\d+)" );
                     }
-                    if( fm.Backref_Num )
+                    switch( fm.Backref_Num )
                     {
+                    case FeatureMatrix.BackrefEnum.Any:
                         pb.Add( @"\\ (?<name>[1-9]\d*)" );
-                    }
-                    if( fm.Backref_1_9 )
-                    {
+                        break;
+                    case FeatureMatrix.BackrefEnum.OneDigit:
                         if( fm.Esc_Octal == FeatureMatrix.OctalEnum.Octal_2_3 )
                         {
                             pb.Add( @"(?<name>\\[1-9])(?![0-7])" );
@@ -828,6 +828,7 @@ namespace RegExpressLibrary.SyntaxColouring
                         {
                             pb.Add( @"\\(?<name>[1-9])" );
                         }
+                        break;
                     }
                     if( fm.Backref_gApos )
                     {
@@ -876,8 +877,9 @@ namespace RegExpressLibrary.SyntaxColouring
                     {
                         pb.Add( @"\\k (?<name>-\d+)" );
                     }
-                    if( fm.Backref_Num )
+                    switch( fm.Backref_Num )
                     {
+                    case FeatureMatrix.BackrefEnum.Any:
                         if( fm.Esc_Octal0_1_3 )
                         {
                             pb.Add( @"\\ (?<name>[1-9]\d*)" );
@@ -886,9 +888,8 @@ namespace RegExpressLibrary.SyntaxColouring
                         {
                             pb.Add( @"\\ (?<name>\d+)" );
                         }
-                    }
-                    if( fm.Backref_1_9 )
-                    {
+                        break;
+                    case FeatureMatrix.BackrefEnum.OneDigit:
                         if( fm.Esc_Octal == FeatureMatrix.OctalEnum.Octal_2_3 )
                         {
                             pb.Add( @"(?<name>\\[1-9])(?![0-7])" );
@@ -897,6 +898,7 @@ namespace RegExpressLibrary.SyntaxColouring
                         {
                             pb.Add( @"\\(?<name>[1-9])" );
                         }
+                        break;
                     }
                     if( fm.Backref_gApos )
                     {

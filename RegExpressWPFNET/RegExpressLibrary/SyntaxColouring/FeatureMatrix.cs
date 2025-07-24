@@ -32,6 +32,13 @@ namespace RegExpressLibrary.SyntaxColouring
             Octal_2_3,      // two or three digits: \12, \101
         }
 
+        public enum BackrefEnum
+        {
+            None,           // 
+            OneDigit,       // one digit: \1, \2, ... \9
+            Any,            // one ore more digits: \1, \12, \123
+        }
+
         public PunctuationEnum Parentheses { get; init; }                 // (...) or \(...\)
 
         public bool Brackets { get; init; }                               // [...]
@@ -187,8 +194,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool AbsentOperator { get; init; }                         // (?~...)
         public bool AllowSpacesInGroups { get; init; }                    // allow spaces like '( ? < name >...)' when whitespaces are enabled by options
 
-        public bool Backref_1_9 { get; init; }                            // \1, \2, ..., \9
-        public bool Backref_Num { get; init; }                            // ex.: \1, \20, \100; (more digits after '\')
+        public BackrefEnum Backref_Num { get; init; }                     // ex.: \1, \20, \100
         public bool Backref_kApos { get; init; }                          // \k'name'
         public bool Backref_kLtGt { get; init; }                          // \k<name>
         public bool Backref_kBrace { get; init; }                         // \k{name}

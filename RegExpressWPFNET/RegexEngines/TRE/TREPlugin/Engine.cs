@@ -313,8 +313,7 @@ namespace TREPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = isExtended,
-                Backref_Num = false,
+                Backref_Num = isExtended ? FeatureMatrix.BackrefEnum.OneDigit : FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,

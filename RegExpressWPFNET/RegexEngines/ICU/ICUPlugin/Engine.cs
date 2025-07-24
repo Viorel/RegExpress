@@ -306,8 +306,7 @@ namespace ICUPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = true,
 
-                Backref_1_9 = true,
-                Backref_Num = true,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = false,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,

@@ -44,7 +44,6 @@ class FeatureMatrixDetails
 
     internal static readonly FeatureMatrixDetails[] AllFeatureMatrixDetails =
         [
-#if false
             new ( @"General", null, null ),
 
             new ( @"(…)", @"Grouping constructs", fm => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal, @"(x)", "x" ),
@@ -204,8 +203,8 @@ class FeatureMatrixDetails
             new ( @"(?P<name>…)", @"Named group", fm => fm.NamedGroup_PLtGt, @"(?P<n>x)", "x" ),
             new ( @"(?@…)", @"Capturing group, depending on options", fm => fm.NamedGroup_AtApos || fm.NamedGroup_AtLtGt || fm.CapturingGroup, @"(@<n>x)", "x" ),
 
-            new ( @"\1, \2, …, \9", @"Backreferences", fm => fm.Backref_1_9, @"(x)\1", "xx" ),
-            new ( @"\nnn", @"Backreference, one or more digits", fm => fm.Backref_Num, @"(x)(x)(x)(x)(x)(x)(x)(x)(x)(y)\10", "xxxxxxxxxyy" ),
+            new ( @"\1, \2, …, \9", @"Backreferences", fm => fm.Backref_Num == FeatureMatrix.BackrefEnum.OneDigit || fm.Backref_Num == FeatureMatrix.BackrefEnum.Any , @"(x)\1", "xx" ),
+            new ( @"\nnn", @"Backreference, two or more digits", fm => fm.Backref_Num == FeatureMatrix.BackrefEnum.Any, @"(x)(x)(x)(x)(x)(x)(x)(x)(x)(y)\10", "xxxxxxxxxyy" ),
             new ( @"\k'name'", @"Backreference by name", fm => fm.Backref_kApos, @"(?'n'x)\k'n'", "xx" ),
             new ( @"\k<name>", @"Backreference by name", fm => fm.Backref_kLtGt, @"(?<n>x)\k<n>", "xx" ),
             new ( @"\k{name}", @"Backreference by name", fm => fm.Backref_kBrace, @"(?<n>x)\k{n}", "xx" ),
@@ -267,7 +266,7 @@ class FeatureMatrixDetails
             new ( @"(?(R&name)…|…)", @"Recursive conditional by name", fm => fm.Conditional_RName, @"(?<A>(?'B'abc(?(R)(?(R&A)1)(?(R&B)2)X|(?1)(?2)(?R))))", "abcabc1Xabc2XabcXabcabc" ),
             new ( @"(?(DEFINE)…|…)", @"Defining subpatterns", fm => fm.Conditional_DEFINE, @"(?(DEFINE)(?<n>x.z))(?&n)", "xyz" ),
             new ( @"(?(VERSION…)…|…)", @"Checking for version using 'VERSION=decimal' or 'VERSION>=decimal'", fm => fm.Conditional_VERSION, @"(?(VERSION>=1)xyz|abc)", "xyz" ),
-#endif
+
             new ( @"Miscellaneous", null, null ),
 
             new ( @"(*verb)", @"Control verbs: (*verb), (*verb:…), (*:name)", fm => fm.ControlVerbs, @"x|y(*FAIL)", "x" ),

@@ -328,8 +328,7 @@ namespace RustPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = true,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -536,8 +535,7 @@ namespace RustPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = true,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -745,8 +743,7 @@ namespace RustPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = true,
 
-                Backref_1_9 = true,
-                Backref_Num = true,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = true,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,
@@ -954,8 +951,7 @@ namespace RustPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = true,
 
-                Backref_1_9 = true,
-                Backref_Num = true,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = false,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,

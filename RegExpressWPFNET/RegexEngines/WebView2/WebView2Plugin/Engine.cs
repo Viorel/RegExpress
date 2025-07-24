@@ -118,26 +118,20 @@ namespace WebView2Plugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            //Engine engine_u = new( );
-            //engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { u = true, v = false } );
+            Engine engine_u = new( );
+            engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { u = true, v = false } );
 
-            //Engine engine_v = new( );
-            //engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { u = false, v = true } );
+            Engine engine_v = new( );
+            engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { u = false, v = true } );
 
-            //Engine engine_no_uv = new( );
-            //engine_no_uv.mOptionsControl.Value.SetSelectedOptions( new Options { u = false, v = false } );
-
-            // TODO: implement
-
-            Engine? engine_u = null;
-            Engine? engine_v = null;
-            Engine? engine_no_uv = null;
+            Engine engine_no_uv = new( );
+            engine_no_uv.mOptionsControl.Value.SetSelectedOptions( new Options { u = false, v = false } );
 
             return
                 [
+                    new ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value, engine_no_uv),
                     new ("“u” flag", LazyFeatureMatrixWithUFlag.Value, engine_u),
                     new ("“v” flag", LazyFeatureMatrixWithVFlag.Value, engine_v),
-                    new ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value, engine_no_uv)
                 ];
         }
 
@@ -202,7 +196,7 @@ namespace WebView2Plugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = true,
-                Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
+                Esc_Octal = !uFlag && !vFlag ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
@@ -225,7 +219,7 @@ namespace WebView2Plugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
-                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
+                InsideSets_Esc_Octal = !uFlag && !vFlag ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
@@ -322,8 +316,7 @@ namespace WebView2Plugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = false,
-                Backref_Num = true,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = false,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,

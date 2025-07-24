@@ -305,8 +305,7 @@ namespace DPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = true,
 
-                Backref_1_9 = true,
-                Backref_Num = true, // TODO: it seems that a reference like '\12' works even when there is a single group
+                Backref_Num = FeatureMatrix.BackrefEnum.Any, // TODO: it seems that a reference like '\12' works even when there is a single group
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,

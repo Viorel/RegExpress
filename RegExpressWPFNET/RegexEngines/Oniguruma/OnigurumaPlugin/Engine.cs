@@ -414,8 +414,7 @@ namespace OnigurumaPlugin
                 AbsentOperator = details.ONIG_SYN_OP2_QMARK_TILDE_ABSENT_GROUP,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = details.ONIG_SYN_OP_DECIMAL_BACKREF,
-                Backref_Num = details.ONIG_SYN_OP_DECIMAL_BACKREF,
+                Backref_Num = details.ONIG_SYN_OP_DECIMAL_BACKREF ? FeatureMatrix.BackrefEnum.Any : FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = details.ONIG_SYN_OP2_ESC_K_NAMED_BACKREF,
                 Backref_kLtGt = details.ONIG_SYN_OP2_ESC_K_NAMED_BACKREF,
                 Backref_kBrace = false,

@@ -321,8 +321,7 @@ namespace PythonPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = true, // TODO: actually it supports \1, \2, ... \99.
-                Backref_Num = true,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any, // TODO: actually it supports \1, \2, ... \99.
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,

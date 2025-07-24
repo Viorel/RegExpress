@@ -295,8 +295,7 @@ namespace DotNETFrameworkPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = true,
-                Backref_Num = true,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = true,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,

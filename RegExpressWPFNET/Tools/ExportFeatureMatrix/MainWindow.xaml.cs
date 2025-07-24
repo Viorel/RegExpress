@@ -29,6 +29,8 @@ namespace ExportFeatureMatrix
             Html,
         }
 
+        Thread? mThread = null;
+
         public MainWindow( )
         {
             InitializeComponent( );
@@ -195,16 +197,25 @@ namespace ExportFeatureMatrix
 
         private async void buttonCreateFile_Click( object sender, RoutedEventArgs e )
         {
+            if( mThread != null )
+            {
+                MessageBox.Show( this, "Operation is in progress.", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
+
+                return;
+            }
+
             try
             {
                 tblProgress.Text = "";
+
+                bool is_verify = checkBoxVerify.IsChecked == true;
 
                 if( !ValidateInput( ) ) return;
 
                 OutputTypeEnum output_type = GetOutputType( );
                 Debug.Assert( output_type != OutputTypeEnum.None );
 
-                if( checkBoxVerify.IsChecked == true && output_type != OutputTypeEnum.Excel )
+                if( is_verify && output_type != OutputTypeEnum.Excel )
                 {
                     MessageBox.Show( this, "Verification is only available for Excel output.", CAPTION, MessageBoxButton.OK, MessageBoxImage.Information );
 
@@ -236,15 +247,59 @@ namespace ExportFeatureMatrix
 
                 try
                 {
-                    this.IsEnabled = false;
-
                     switch( output_type )
                     {
                     case OutputTypeEnum.Excel:
                     {
-                        ExporterToExcel exporter = new( );
+                        tblProgress.Text = "Starting operation...";
 
-                        exporter.Export( tbOutputFile.Text, plugins!, checkBoxVerify.IsChecked == true );
+                        string output_file = tbOutputFile.Text;
+
+                        void action( )
+                        {
+                            try
+                            {
+                                ExporterToExcel exporter = new( );
+
+                                exporter.Export( output_file, plugins!, is_verify, ShowProgressOnFeatures, ShowProgressOnEngines );
+
+                                Dispatcher.Invoke( ( ) =>
+                                {
+                                    tblProgress.Text = "DONE.";
+
+                                    textBlockFeature.Visibility = progressOnFeatures.Visibility =
+                                        textBlockEngine.Visibility = progressOnEngines.Visibility = Visibility.Hidden;
+
+                                    if( MessageBox.Show( this, "The file was created.\r\n\r\nOpen it?", CAPTION, MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Yes ) == MessageBoxResult.OK )
+                                    {
+                                        Process process = new( );
+                                        process.StartInfo.FileName = tbOutputFile.Text;
+                                        process.StartInfo.UseShellExecute = true;
+
+                                        process.Start( );
+                                    }
+
+                                    tblProgress.Text = "";
+                                    mThread = null;
+                                } );
+                            }
+                            catch( Exception exc )
+                            {
+                                if( Debugger.IsAttached ) Debugger.Break( );
+
+                                MessageBox.Show( this, exc.Message, CAPTION, MessageBoxButton.OK, MessageBoxImage.Error );
+                            }
+                        }
+
+                        mThread = new( action )
+                        {
+                            IsBackground = true,
+                        };
+
+                        mThread.SetApartmentState( ApartmentState.STA );
+                        mThread.Start( );
+
+                        tblProgress.Text = "Creating file...";
                     }
                     break;
                     case OutputTypeEnum.Html:
@@ -252,6 +307,19 @@ namespace ExportFeatureMatrix
                         ExporterToHtml exporter = new( );
 
                         exporter.Export( tbOutputFile.Text, plugins! );
+
+                        tblProgress.Text = "DONE.";
+
+                        if( MessageBox.Show( this, "The file was created.\r\n\r\nOpen it?", CAPTION, MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Yes ) == MessageBoxResult.OK )
+                        {
+                            Process process = new( );
+                            process.StartInfo.FileName = tbOutputFile.Text;
+                            process.StartInfo.UseShellExecute = true;
+
+                            process.Start( );
+                        }
+
+                        tblProgress.Text = "";
                     }
                     break;
                     default:
@@ -260,21 +328,8 @@ namespace ExportFeatureMatrix
                 }
                 finally
                 {
-                    this.IsEnabled = true;
+
                 }
-
-                tblProgress.Text = "DONE.";
-
-                if( MessageBox.Show( this, "The file was created.\r\n\r\nOpen it?", CAPTION, MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Yes ) == MessageBoxResult.OK )
-                {
-                    Process process = new( );
-                    process.StartInfo.FileName = tbOutputFile.Text;
-                    process.StartInfo.UseShellExecute = true;
-
-                    process.Start( );
-                }
-
-                tblProgress.Text = "";
             }
             catch( Exception exc )
             {
@@ -284,6 +339,32 @@ namespace ExportFeatureMatrix
 
                 tblProgress.Text = "";
             }
+        }
+
+        void ShowProgressOnFeatures( string info, int index, int total )
+        {
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                textBlockFeature.Text = info;
+                progressOnFeatures.Maximum = total;
+                progressOnFeatures.Value = index + 1;
+
+                textBlockFeature.Visibility = Visibility.Visible;
+                progressOnFeatures.Visibility = Visibility.Visible;
+            } );
+        }
+
+        void ShowProgressOnEngines( string info, int index, int total )
+        {
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                textBlockEngine.Text = info;
+                progressOnEngines.Maximum = total;
+                progressOnEngines.Value = index + 1;
+
+                textBlockEngine.Visibility = Visibility.Visible;
+                progressOnEngines.Visibility = Visibility.Visible;
+            } );
         }
 
         private void buttonClose_Click( object sender, RoutedEventArgs e )

@@ -326,9 +326,8 @@ namespace StdPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = grammar == GrammarEnum.basic || grammar == GrammarEnum.grep,
-                Backref_Num = grammar == GrammarEnum.ECMAScript,
-
+                Backref_Num = grammar == GrammarEnum.basic || grammar == GrammarEnum.grep ? FeatureMatrix.BackrefEnum.OneDigit :
+                              grammar == GrammarEnum.ECMAScript ? FeatureMatrix.BackrefEnum.Any : FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,

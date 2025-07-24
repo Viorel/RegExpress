@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExportFeatureMatrix"
         mc:Ignorable="d"
-        Title="Export Feature Matrix" Height="246" Width="606" MinWidth="400" MinHeight="240" 
+        Title="Export Feature Matrix" Height="333" Width="666" MinWidth="400" MinHeight="240" 
         Loaded="Window_Loaded">
 
     <Window.Resources>
@@ -47,5 +47,12 @@
             <Button x:Name="buttonClose" Content="Close" Click="buttonClose_Click"/>
         </StackPanel>
         <CheckBox x:Name="checkBoxVerify" Content="Validate features" HorizontalAlignment="Left" Margin="0,134,0,0" VerticalAlignment="Top"/>
+
+        <TextBlock x:Name="textBlockFeature" HorizontalAlignment="Left" Margin="0,157,0,0" TextWrapping="Wrap" d:Text="Feature" VerticalAlignment="Top" Visibility="Hidden" d:Visibility="Visible" />
+        <ProgressBar x:Name="progressOnFeatures" HorizontalAlignment="Left" Height="10" Margin="0,177,0,0" VerticalAlignment="Top" Width="392" Visibility="Hidden" d:Visibility="Visible" />
+
+        <TextBlock x:Name="textBlockEngine" HorizontalAlignment="Left" Margin="0,194,0,0" TextWrapping="Wrap" d:Text="Engine" VerticalAlignment="Top" Visibility="Hidden" d:Visibility="Visible" />
+        <ProgressBar x:Name="progressOnEngines" HorizontalAlignment="Left" Height="10" Margin="0,214,0,0" VerticalAlignment="Top" Width="392" Visibility="Hidden" d:Visibility="Visible" />
+
     </Grid>
 </Window>
