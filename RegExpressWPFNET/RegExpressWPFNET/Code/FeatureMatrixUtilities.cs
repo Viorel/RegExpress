@@ -66,9 +66,9 @@ namespace RegExpressWPFNET.Code
             new FeatureMatrixDetails(  @"\r", @"Carriage return, \u000D", fm => fm.Esc_r ),
             new FeatureMatrixDetails(  @"\t", @"Tab, \u0009", fm => fm.Esc_t ),
             new FeatureMatrixDetails(  @"\v", @"Vertical tab, \u000B", fm => fm.Esc_v ),
+            new FeatureMatrixDetails(  @"\1..\7", @"Octal, one digit", fm => fm.Esc_Octal == FeatureMatrix.OctalEnum.Octal_1_3 ),
+            new FeatureMatrixDetails(  @"\nnn", @"Octal, two or three digits", fm => fm.Esc_Octal == FeatureMatrix.OctalEnum.Octal_1_3 || fm.Esc_Octal == FeatureMatrix.OctalEnum.Octal_2_3 ),
             new FeatureMatrixDetails(  @"\0nnn", @"Octal, up to three digits after '\0'", fm => fm.Esc_Octal0_1_3 ),
-            new FeatureMatrixDetails(  @"\nnn", @"Octal, up to three digits", fm => fm.Esc_Octal_1_3 ),
-            new FeatureMatrixDetails(  @"\nnn", @"Octal, two or three digits", fm => fm.Esc_Octal_2_3 ),
             new FeatureMatrixDetails(  @"\o{nn…}", @"Octal", fm => fm.Esc_oBrace ),
             new FeatureMatrixDetails(  @"\xXX", @"Hexadecimal code, two digits", fm => fm.Esc_x2 ),
             new FeatureMatrixDetails(  @"\x{XX…}", @"Hexadecimal code", fm => fm.Esc_xBrace ),
@@ -92,9 +92,9 @@ namespace RegExpressWPFNET.Code
             new FeatureMatrixDetails(  @"[\r]", @"Carriage return, \u000D", fm => fm.InsideSets_Esc_r ),
             new FeatureMatrixDetails(  @"[\t]", @"Tab, \u0009", fm => fm.InsideSets_Esc_t ),
             new FeatureMatrixDetails(  @"[\v]", @"Vertical tab, \u000B", fm => fm.InsideSets_Esc_v ),
+            new FeatureMatrixDetails(  @"[\1..\7]", @"Octal, one digit", fm => fm.InsideSets_Esc_Octal == FeatureMatrix.OctalEnum.Octal_1_3 ),
+            new FeatureMatrixDetails(  @"[\nnn]", @"Octal, two or three digits", fm => fm.InsideSets_Esc_Octal == FeatureMatrix.OctalEnum.Octal_1_3 || fm.InsideSets_Esc_Octal == FeatureMatrix.OctalEnum.Octal_2_3 ),
             new FeatureMatrixDetails(  @"[\0nnn]", @"Octal, up to three digits after '\0'", fm => fm.InsideSets_Esc_Octal0_1_3 ),
-            new FeatureMatrixDetails(  @"[\nnn]", @"Octal, up to three digits", fm => fm.InsideSets_Esc_Octal_1_3 ),
-            new FeatureMatrixDetails(  @"[\nnn]", @"Octal, two or three digits", fm => fm.InsideSets_Esc_Octal_2_3 ),
             new FeatureMatrixDetails(  @"[\o{nn…}]", @"Octal", fm => fm.InsideSets_Esc_oBrace ),
             new FeatureMatrixDetails(  @"[\xXX]", @"Hexadecimal code, two digits", fm => fm.InsideSets_Esc_x2 ),
             new FeatureMatrixDetails(  @"[\x{XX…}]", @"Hexadecimal code", fm => fm.InsideSets_Esc_xBrace ),
@@ -195,8 +195,8 @@ namespace RegExpressWPFNET.Code
             new FeatureMatrixDetails(  @"(?P<name>…)", @"Named group", fm => fm.NamedGroup_PLtGt ),
             new FeatureMatrixDetails(  @"(?@…)", @"Capturing group, depending on options", fm => fm.NamedGroup_AtApos || fm.NamedGroup_AtLtGt || fm.CapturingGroup ),
 
-            new FeatureMatrixDetails(  @"\1, \2, …, \9", @"Backreferences \1, \2, …, \9", fm => fm.Backref_1_9 ),
-            new FeatureMatrixDetails(  @"\nnn", @"Backreference, one or more digits", fm => fm.Backref_Num ),
+            new FeatureMatrixDetails(  @"\1, \2, …, \9", @"Backreferences \1, \2, …, \9", fm => fm.Backref_Num == FeatureMatrix.BackrefEnum.OneDigit ),
+            new FeatureMatrixDetails(  @"\nnn", @"Backreference, two or more digits", fm => fm.Backref_Num == FeatureMatrix.BackrefEnum.Any ),
             new FeatureMatrixDetails(  @"\k'name'", @"Backreference by name", fm => fm.Backref_kApos ),
             new FeatureMatrixDetails(  @"\k<name>", @"Backreference by name", fm => fm.Backref_kLtGt ),
             new FeatureMatrixDetails(  @"\k{name}", @"Backreference by name", fm => fm.Backref_kBrace ),
@@ -244,8 +244,8 @@ namespace RegExpressWPFNET.Code
             new FeatureMatrixDetails(  @"\?", @"Zero or one time", fm => fm.Quantifier_Question == FeatureMatrix.PunctuationEnum.Backslashed),
             new FeatureMatrixDetails(  @"{n,m}", @"Between n and m times: {n}, {n,}, {n,m}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Normal ),
             new FeatureMatrixDetails(  @"\{n,m\}", @"Between n and m times: \{n\}, \{n,\}, \{n,m\}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Backslashed ),
-            new FeatureMatrixDetails(  @"{ n, m } ", @"Allow spaces within {…} or \{…\}", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.Both ),
-            new FeatureMatrixDetails(  @"{ n, m } ", @"Allow spaces within {…} or \{…\} when spaces are allowed by options", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsage.XModeOnly ),
+            new FeatureMatrixDetails(  @"{ n, m } ", @"Allow spaces within {…} or \{…\}", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.Both ),
+            new FeatureMatrixDetails(  @"{ n, m } ", @"Allow spaces within {…} or \{…\} when spaces are allowed by options", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.XModeOnly ),
             new FeatureMatrixDetails(  @"{,m}, \{,m\}", @"Equivalent to {0,m} or \{0,m\}", fm => fm.Quantifier_LowAbbrev ),
             new FeatureMatrixDetails(  @"{expr}, \{expr\}", @"Approximate matching using given engine-specific expression", fm => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal ||fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed ),
 
@@ -268,6 +268,7 @@ namespace RegExpressWPFNET.Code
 
             new FeatureMatrixDetails(  @"(*verb)", @"Control verbs: (*verb), (*verb:…), (*:name)", fm => fm.ControlVerbs ),
             new FeatureMatrixDetails(  @"(*…:…)", @"Script runs, such as (*atomic:…)", fm => fm.ScriptRuns ),
+            new FeatureMatrixDetails(  @"(*func) or (?C)", @"Callouts (custom functions)", fm => fm.Callouts ),
 
             new FeatureMatrixDetails(  @"(?)", @"Empty construct", fm => fm.EmptyConstruct ),
             new FeatureMatrixDetails(  @"(? )", @"Empty construct when whitespaces are enabled by options", fm => fm.EmptyConstructX ),
@@ -279,13 +280,7 @@ namespace RegExpressWPFNET.Code
 
         public static void ExportAsHtml( XmlWriter xw, IEnumerable<IRegexEngine> engines )
         {
-            var all_matrices = new List<IReadOnlyList<(string variantName, FeatureMatrix fm)>>( );
-
-            foreach( IRegexEngine engine in engines )
-            {
-                var fms = engine.GetFeatureMatrices( );
-                all_matrices.Add( fms! );
-            }
+            IReadOnlyList<FeatureMatrixVariant>[] all_matrices = engines.Select( e => e.GetFeatureMatrices( ) ).ToArray( );
 
             xw.WriteStartElement( "html" );
 
@@ -383,7 +378,7 @@ tbody > tr > td:nth-child(2)
                         if( fms == null ) continue;
 
                         xw.WriteStartElement( "th" );
-                        if( fms.Count == 1 && string.IsNullOrWhiteSpace( fms[0].variantName ) )
+                        if( fms.Count == 1 && string.IsNullOrWhiteSpace( fms[0].Name ) )
                         {
                             xw.WriteAttributeString( "rowspan", "2" );
                         }
@@ -410,10 +405,10 @@ tbody > tr > td:nth-child(2)
 
                         foreach( var p in fms )
                         {
-                            if( !string.IsNullOrWhiteSpace( p.variantName ) )
+                            if( !string.IsNullOrWhiteSpace( p.Name ) )
                             {
                                 xw.WriteStartElement( "th" );
-                                xw.WriteString( p.variantName );
+                                xw.WriteString( p.Name );
                                 xw.WriteEndElement( ); // </th>
                             }
                         }
@@ -463,7 +458,7 @@ tbody > tr > td:nth-child(2)
 
 
         static void WriteRow( XmlWriter xw, string shortDesc, string? desc,
-            IEnumerable<IRegexEngine> engines, List<IReadOnlyList<(string variantName, FeatureMatrix fm)>> allMatrices,
+            IEnumerable<IRegexEngine> engines, IReadOnlyList<FeatureMatrixVariant>[] allMatrices,
             Func<FeatureMatrix, bool> func )
         {
             xw.WriteStartElement( "tr" );
@@ -480,7 +475,7 @@ tbody > tr > td:nth-child(2)
                     foreach( var p in fms )
                     {
                         xw.WriteStartElement( "td" );
-                        if( func( p.fm ) )
+                        if( func( p.FeatureMatrix ) )
                         {
                             xw.WriteString( "+" );
                         }

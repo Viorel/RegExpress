@@ -125,13 +125,19 @@ namespace JavaPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)>
-            {
-                ("regex", LazyFeatureMatrix.GetValue(PackageEnum.regex)),
-                ("re2j", LazyFeatureMatrix.GetValue(PackageEnum.re2j)),
-            };
+            Engine engine_regex = new( );
+            engine_regex.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.regex } );
+
+            Engine engine_re2j = new( );
+            engine_re2j.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.re2j } );
+
+            return
+                [
+                    new FeatureMatrixVariant("regex", LazyFeatureMatrix.GetValue(PackageEnum.regex), engine_regex),
+                    new FeatureMatrixVariant("re2j", LazyFeatureMatrix.GetValue(PackageEnum.re2j), engine_re2j),
+                ];
         }
 
         #endregion
@@ -196,9 +202,8 @@ namespace JavaPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = is_re2j,
-                Esc_Octal0_1_3 = true,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = is_re2j,
+                Esc_Octal = is_re2j ? FeatureMatrix.OctalEnum.Octal_2_3 : FeatureMatrix.OctalEnum.None,
+                Esc_Octal0_1_3 = is_regex,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = true,
@@ -220,9 +225,8 @@ namespace JavaPlugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = is_re2j,
-                InsideSets_Esc_Octal0_1_3 = true,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
+                InsideSets_Esc_Octal = is_re2j ? FeatureMatrix.OctalEnum.Octal_2_3 : FeatureMatrix.OctalEnum.None,
+                InsideSets_Esc_Octal0_1_3 = is_regex,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -270,7 +274,7 @@ namespace JavaPlugin
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = true,
                 InsideSets_Class_pPBrace = true,
-                InsideSets_Class_Name = false,
+                InsideSets_Class_Name = is_re2j,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 
@@ -321,8 +325,7 @@ namespace JavaPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = is_regex,
 
-                Backref_1_9 = is_regex,
-                Backref_Num = false, // (if no group, digits are drop until a group is found)
+                Backref_Num = is_regex ? FeatureMatrix.BackrefEnum.Any : FeatureMatrix.BackrefEnum.None, // (if no group, digits are drop until a group is found)
                 Backref_kApos = false,
                 Backref_kLtGt = is_regex,
                 Backref_kBrace = false,
@@ -347,7 +350,7 @@ namespace JavaPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -363,6 +366,7 @@ namespace JavaPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = true,
                 EmptyConstructX = is_regex,

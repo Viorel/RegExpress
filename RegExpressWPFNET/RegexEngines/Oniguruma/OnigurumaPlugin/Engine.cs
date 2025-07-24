@@ -117,9 +117,9 @@ namespace OnigurumaPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            var list = new List<(string?, FeatureMatrix)>( );
+            List<FeatureMatrixVariant> variants = [];
 
             foreach( SyntaxEnum syntax in Enum.GetValues<SyntaxEnum>( ) )
             {
@@ -127,12 +127,15 @@ namespace OnigurumaPlugin
                 if( syntax == SyntaxEnum.ONIG_SYNTAX_ASIS ) continue;
 
                 string syntax_name = Enum.GetName( syntax )!;
-                string variant = syntax_name.StartsWith( "ONIG_SYNTAX_" ) ? syntax_name.Substring( "ONIG_SYNTAX_".Length ) : syntax_name;
+                string variant = syntax_name.StartsWith( "ONIG_SYNTAX_" ) ? syntax_name["ONIG_SYNTAX_".Length..] : syntax_name;
 
-                list.Add( (variant, MakeFeatureMatrix( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA } )) );
+                Engine engine = new( );
+                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = true } );
+
+                variants.Add( new FeatureMatrixVariant( variant, MakeFeatureMatrix( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA } ), engine ) );
             }
 
-            return list;
+            return variants;
         }
 
 
@@ -288,9 +291,8 @@ namespace OnigurumaPlugin
                 Esc_r = details.ONIG_SYN_OP_ESC_CONTROL_CHARS,
                 Esc_t = details.ONIG_SYN_OP_ESC_CONTROL_CHARS,
                 Esc_v = details.ONIG_SYN_OP_ESC_CONTROL_CHARS && details.ONIG_SYN_OP2_ESC_V_VTAB,
+                Esc_Octal = details.ONIG_SYN_OP_ESC_OCTAL3 ? FeatureMatrix.OctalEnum.Octal_2_3 : FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = details.ONIG_SYN_OP_ESC_OCTAL3,
                 Esc_oBrace = details.ONIG_SYN_OP_ESC_O_BRACE_OCTAL,
                 Esc_x2 = details.ONIG_SYN_OP_ESC_X_HEX2,
                 Esc_xBrace = details.ONIG_SYN_OP_ESC_X_BRACE_HEX8,
@@ -312,9 +314,8 @@ namespace OnigurumaPlugin
                 InsideSets_Esc_r = details.ONIG_SYN_OP_ESC_CONTROL_CHARS && details.ONIG_SYN_BACKSLASH_ESCAPE_IN_CC,
                 InsideSets_Esc_t = details.ONIG_SYN_OP_ESC_CONTROL_CHARS && details.ONIG_SYN_BACKSLASH_ESCAPE_IN_CC,
                 InsideSets_Esc_v = details.ONIG_SYN_OP_ESC_CONTROL_CHARS && details.ONIG_SYN_OP2_ESC_V_VTAB && details.ONIG_SYN_BACKSLASH_ESCAPE_IN_CC,
+                InsideSets_Esc_Octal = details.ONIG_SYN_OP_ESC_OCTAL3 ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = details.ONIG_SYN_OP_ESC_OCTAL3,
                 InsideSets_Esc_oBrace = details.ONIG_SYN_OP_ESC_O_BRACE_OCTAL,
                 InsideSets_Esc_x2 = details.ONIG_SYN_OP_ESC_X_HEX2,
                 InsideSets_Esc_xBrace = details.ONIG_SYN_OP_ESC_X_BRACE_HEX8,
@@ -413,8 +414,7 @@ namespace OnigurumaPlugin
                 AbsentOperator = details.ONIG_SYN_OP2_QMARK_TILDE_ABSENT_GROUP,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = details.ONIG_SYN_OP_DECIMAL_BACKREF,
-                Backref_Num = false,
+                Backref_Num = details.ONIG_SYN_OP_DECIMAL_BACKREF ? FeatureMatrix.BackrefEnum.Any : FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = details.ONIG_SYN_OP2_ESC_K_NAMED_BACKREF,
                 Backref_kLtGt = details.ONIG_SYN_OP2_ESC_K_NAMED_BACKREF,
                 Backref_kBrace = false,
@@ -428,10 +428,10 @@ namespace OnigurumaPlugin
                 Backref_PEqName = details.ONIG_SYN_OP2_QMARK_CAPITAL_P_NAME,
                 AllowSpacesInBackref = false,
 
-                Recursive_Num = false,
-                Recursive_PlusMinusNum = false,
-                Recursive_R = details.ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL, // TODO: does not seem to work
-                Recursive_Name = details.ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL, // TODO: does not seem to work
+                Recursive_Num = syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG,
+                Recursive_PlusMinusNum = syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG,
+                Recursive_R = false, //details.ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL, // TODO: does not seem to work
+                Recursive_Name = details.ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL,
                 Recursive_PGtName = details.ONIG_SYN_OP2_QMARK_CAPITAL_P_NAME,
 
                 Quantifier_Asterisk = details.ONIG_SYN_OP_ASTERISK_ZERO_INF,
@@ -439,22 +439,23 @@ namespace OnigurumaPlugin
                 Quantifier_Question = details.ONIG_SYN_OP_QMARK_ZERO_ONE ? FeatureMatrix.PunctuationEnum.Normal : details.ONIG_SYN_OP_ESC_QMARK_ZERO_ONE ? FeatureMatrix.PunctuationEnum.Backslashed : FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces = details.ONIG_SYN_OP_BRACE_INTERVAL ? FeatureMatrix.PunctuationEnum.Normal : details.ONIG_SYN_OP_ESC_BRACE_INTERVAL ? FeatureMatrix.PunctuationEnum.Backslashed : FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = details.ONIG_SYN_ALLOW_INTERVAL_LOW_ABBREV,
 
                 Conditional_BackrefByNumber = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE,
                 Conditional_BackrefByName = false,
                 Conditional_Pattern = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE,
                 Conditional_PatternOrBackrefByName = false,
-                Conditional_BackrefByName_Apos = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE,
-                Conditional_BackrefByName_LtGt = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE,
+                Conditional_BackrefByName_Apos = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE && syntax != SyntaxEnum.ONIG_SYNTAX_PERL,
+                Conditional_BackrefByName_LtGt = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE && syntax != SyntaxEnum.ONIG_SYNTAX_PERL,
                 Conditional_R = false,
                 Conditional_RName = false,
-                Conditional_DEFINE = false,
+                Conditional_DEFINE = syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG,
                 Conditional_VERSION = false,
 
-                ControlVerbs = details.ONIG_SYN_OP2_ASTERISK_CALLOUT_NAME,
+                ControlVerbs = details.ONIG_SYN_OP2_ASTERISK_CALLOUT_NAME, // several built-in callouts: https://github.com/kkos/oniguruma/blob/master/doc/CALLOUTS.BUILTIN
                 ScriptRuns = false,
+                Callouts = details.ONIG_SYN_OP2_ASTERISK_CALLOUT_NAME,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,

@@ -116,14 +116,27 @@ namespace PCRE2Plugin
                 Literal = is_literal,
                 XLevel = is_extended_more ? XLevelEnum.xx : is_extended ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = allow_empty_set,
-                FeatureMatrix = GetCachedFeatureMatrix( options.PCRE2_EXTRA_ALT_BSUX, options.PCRE2_ALT_EXTENDED_CLASS ),
+                FeatureMatrix = GetCachedFeatureMatrix( options.PCRE2_ALT_BSUX, options.PCRE2_EXTRA_ALT_BSUX, options.PCRE2_ALT_EXTENDED_CLASS ),
             };
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, BuildFeatureMatrix( PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true )) };
+            Engine engine = new( );
+            engine.mOptionsControl.Value.SetSelectedOptions(
+                new Options
+                {
+                    PCRE2_ALT_BSUX = true,
+                    PCRE2_EXTRA_ALT_BSUX = true,
+                    PCRE2_ALT_EXTENDED_CLASS = true,
+                    PCRE2_ALLOW_EMPTY_CLASS = true,
+                } );
+
+            return
+                [
+                    new FeatureMatrixVariant( null, BuildFeatureMatrix(PCRE2_ALT_BSUX:true, PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true ), engine)
+                ];
         }
 
 
@@ -151,24 +164,24 @@ namespace PCRE2Plugin
             }
         }
 
-        static readonly Dictionary<(bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS), FeatureMatrix> smFeatureMatrices = [];
+        static readonly Dictionary<(bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS), FeatureMatrix> smFeatureMatrices = [];
 
-        static FeatureMatrix GetCachedFeatureMatrix( bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS )
+        static FeatureMatrix GetCachedFeatureMatrix( bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS )
         {
             lock( smFeatureMatrices )
             {
-                if( !smFeatureMatrices.TryGetValue( (PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS), out FeatureMatrix fm ) )
+                if( !smFeatureMatrices.TryGetValue( (PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS), out FeatureMatrix fm ) )
                 {
-                    fm = BuildFeatureMatrix( PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS );
+                    fm = BuildFeatureMatrix( PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS );
 
-                    smFeatureMatrices.Add( (PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS), fm );
+                    smFeatureMatrices.Add( (PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS), fm );
                 }
 
                 return fm;
             }
         }
 
-        static FeatureMatrix BuildFeatureMatrix( bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS )
+        static FeatureMatrix BuildFeatureMatrix( bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS )
         {
             return new FeatureMatrix
             {
@@ -202,15 +215,14 @@ namespace PCRE2Plugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = false,
+                Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = true,
                 Esc_oBrace = true,
                 Esc_x2 = true,
-                Esc_xBrace = true,
-                Esc_u4 = PCRE2_EXTRA_ALT_BSUX,
+                Esc_xBrace = !( PCRE2_ALT_BSUX | PCRE2_EXTRA_ALT_BSUX ),
+                Esc_u4 = PCRE2_ALT_BSUX | PCRE2_EXTRA_ALT_BSUX,
                 Esc_U8 = false,
-                Esc_uBrace = false,
+                Esc_uBrace = PCRE2_EXTRA_ALT_BSUX,
                 Esc_UBrace = false,
                 Esc_c1 = true,
                 Esc_C1 = false,
@@ -226,15 +238,14 @@ namespace PCRE2Plugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = false,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = true,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = true,
                 InsideSets_Esc_x2 = true,
-                InsideSets_Esc_xBrace = true,
-                InsideSets_Esc_u4 = PCRE2_EXTRA_ALT_BSUX,
+                InsideSets_Esc_xBrace = !( PCRE2_ALT_BSUX | PCRE2_EXTRA_ALT_BSUX ),
+                InsideSets_Esc_u4 = PCRE2_ALT_BSUX | PCRE2_EXTRA_ALT_BSUX,
                 InsideSets_Esc_U8 = false,
-                InsideSets_Esc_uBrace = false,
+                InsideSets_Esc_uBrace = PCRE2_EXTRA_ALT_BSUX,
                 InsideSets_Esc_UBrace = false,
                 InsideSets_Esc_c1 = true,
                 InsideSets_Esc_C1 = false,
@@ -327,8 +338,7 @@ namespace PCRE2Plugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = true,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = true,
                 Backref_kLtGt = true,
                 Backref_kBrace = true,
@@ -353,12 +363,12 @@ namespace PCRE2Plugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.Both,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = true,
-                Conditional_Pattern = false,
+                Conditional_Pattern = true,
                 Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = true,
                 Conditional_BackrefByName_LtGt = true,
@@ -369,6 +379,7 @@ namespace PCRE2Plugin
 
                 ControlVerbs = true,
                 ScriptRuns = true,
+                Callouts = true,
 
                 EmptyConstruct = true,
                 EmptyConstructX = false,

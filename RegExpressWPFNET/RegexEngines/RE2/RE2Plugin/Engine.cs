@@ -116,9 +116,12 @@ namespace RE2Plugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+            return
+                [
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                ];
         }
 
         #endregion
@@ -180,9 +183,8 @@ namespace RE2Plugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = true,
+                Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = true,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = true,
@@ -204,9 +206,8 @@ namespace RE2Plugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = true,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -305,8 +306,7 @@ namespace RE2Plugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -331,7 +331,7 @@ namespace RE2Plugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -347,6 +347,7 @@ namespace RE2Plugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = true,
                 EmptyConstructX = false,

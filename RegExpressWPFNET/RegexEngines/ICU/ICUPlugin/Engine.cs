@@ -116,9 +116,12 @@ namespace ICUPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+            return
+                [
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                ];
         }
 
         #endregion
@@ -180,9 +183,8 @@ namespace ICUPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = false,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = true,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = true,
@@ -204,9 +206,8 @@ namespace ICUPlugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = false,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = true,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -305,8 +306,7 @@ namespace ICUPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = true,
 
-                Backref_1_9 = false,
-                Backref_Num = true,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = false,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,
@@ -331,7 +331,7 @@ namespace ICUPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.XModeOnly,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.XModeOnly,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -347,6 +347,7 @@ namespace ICUPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,

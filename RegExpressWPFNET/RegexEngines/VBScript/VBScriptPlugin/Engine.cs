@@ -112,9 +112,12 @@ namespace VBScriptPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+            return
+                [
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                ];
         }
 
         #endregion
@@ -176,9 +179,8 @@ namespace VBScriptPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = true,
+                Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = false,
@@ -193,16 +195,15 @@ namespace VBScriptPlugin
                 GenericEscape = true,
 
                 InsideSets_Esc_a = false,
-                InsideSets_Esc_b = false,
+                InsideSets_Esc_b = true,
                 InsideSets_Esc_e = false,
                 InsideSets_Esc_f = true,
                 InsideSets_Esc_n = true,
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = false,
@@ -301,8 +302,7 @@ namespace VBScriptPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = true,
-                Backref_Num = true,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -326,7 +326,7 @@ namespace VBScriptPlugin
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -342,6 +342,7 @@ namespace VBScriptPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,

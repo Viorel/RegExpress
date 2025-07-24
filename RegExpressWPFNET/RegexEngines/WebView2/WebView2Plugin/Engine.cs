@@ -116,16 +116,23 @@ namespace WebView2Plugin
             };
         }
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            var list = new List<(string?, FeatureMatrix)>
-            {
-                ("“u” flag", LazyFeatureMatrixWithUFlag.Value),
-                ("“v” flag", LazyFeatureMatrixWithVFlag.Value),
-                ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value)
-            };
+            Engine engine_u = new( );
+            engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { u = true, v = false } );
 
-            return list;
+            Engine engine_v = new( );
+            engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { u = false, v = true } );
+
+            Engine engine_no_uv = new( );
+            engine_no_uv.mOptionsControl.Value.SetSelectedOptions( new Options { u = false, v = false } );
+
+            return
+                [
+                    new ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value, engine_no_uv),
+                    new ("“u” flag", LazyFeatureMatrixWithUFlag.Value, engine_u),
+                    new ("“v” flag", LazyFeatureMatrixWithVFlag.Value, engine_v),
+                ];
         }
 
         #endregion
@@ -189,9 +196,8 @@ namespace WebView2Plugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = true,
+                Esc_Octal = !uFlag && !vFlag ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = true,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = false,
@@ -213,9 +219,8 @@ namespace WebView2Plugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = !uFlag && !vFlag ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = true,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = false,
@@ -311,8 +316,7 @@ namespace WebView2Plugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = false,
-                Backref_Num = true,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = false,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,
@@ -336,7 +340,7 @@ namespace WebView2Plugin
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -352,6 +356,7 @@ namespace WebView2Plugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,

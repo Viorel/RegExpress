@@ -122,14 +122,23 @@ namespace FortranPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)>
-            {
-                ("Forgex", LazyFeatureMatrices.GetValue(ModuleEnum.Forgex)),
-                ("Regex (Perazz)", LazyFeatureMatrices.GetValue(ModuleEnum.RegexPerazz)),
-                ("Regex (Jeyemhex)", LazyFeatureMatrices.GetValue(ModuleEnum.RegexJeyemhex)),
-            };
+            Engine engine_forgex = new( );
+            engine_forgex.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.Forgex } );
+
+            Engine engine_perazz = new( );
+            engine_perazz.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.RegexPerazz } );
+
+            Engine engine_jayemhex = new( );
+            engine_jayemhex.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.RegexJeyemhex } );
+
+            return
+                [
+                    new FeatureMatrixVariant("Forgex", LazyFeatureMatrices.GetValue(ModuleEnum.Forgex), engine_forgex),
+                    new FeatureMatrixVariant("Regex (Perazz)", LazyFeatureMatrices.GetValue(ModuleEnum.RegexPerazz), engine_perazz),
+                    new FeatureMatrixVariant("Regex (Jeyemhex)", LazyFeatureMatrices.GetValue(ModuleEnum.RegexJeyemhex),engine_jayemhex),
+                ];
         }
 
         #endregion
@@ -202,9 +211,8 @@ namespace FortranPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = false,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = true,
@@ -226,9 +234,8 @@ namespace FortranPlugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = false,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -240,7 +247,7 @@ namespace FortranPlugin
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = false,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
@@ -263,16 +270,16 @@ namespace FortranPlugin
                 Class_pPBrace = false,
                 Class_Name = false,
 
-                InsideSets_Class_dD = false,
+                InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
                 InsideSets_Class_hHhorspace = false,
                 InsideSets_Class_lL = false,
                 InsideSets_Class_R = false,
-                InsideSets_Class_sS = false,
+                InsideSets_Class_sS = true,
                 InsideSets_Class_sSx = false,
                 InsideSets_Class_uU = false,
                 InsideSets_Class_vV = false,
-                InsideSets_Class_wW = false,
+                InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
                 InsideSets_Class_pPBrace = false,
@@ -327,8 +334,7 @@ namespace FortranPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -353,7 +359,7 @@ namespace FortranPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.Both,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = true,
 
                 Conditional_BackrefByNumber = false,
@@ -369,10 +375,11 @@ namespace FortranPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,
-                EmptySet = true,
+                EmptySet = false,
 
                 SplitSurrogatePairs = false,
             };
@@ -412,9 +419,8 @@ namespace FortranPlugin
                 Esc_r = false,
                 Esc_t = false,
                 Esc_v = false,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = false,
                 Esc_xBrace = false,
@@ -436,9 +442,8 @@ namespace FortranPlugin
                 InsideSets_Esc_r = false,
                 InsideSets_Esc_t = false,
                 InsideSets_Esc_v = false,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = false,
                 InsideSets_Esc_xBrace = false,
@@ -537,8 +542,7 @@ namespace FortranPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -563,7 +567,7 @@ namespace FortranPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -579,6 +583,7 @@ namespace FortranPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,
@@ -623,9 +628,8 @@ namespace FortranPlugin
                 Esc_r = false,
                 Esc_t = false,
                 Esc_v = false,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = false,
                 Esc_xBrace = false,
@@ -647,9 +651,8 @@ namespace FortranPlugin
                 InsideSets_Esc_r = false,
                 InsideSets_Esc_t = false,
                 InsideSets_Esc_v = false,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = false,
                 InsideSets_Esc_xBrace = false,
@@ -748,8 +751,7 @@ namespace FortranPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -774,7 +776,7 @@ namespace FortranPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -790,10 +792,11 @@ namespace FortranPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,
-                EmptySet = true,
+                EmptySet = false,
 
                 SplitSurrogatePairs = false,
             };

@@ -113,9 +113,16 @@ namespace HyperscanPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+            Engine engine = new( );
+            engine.mOptionsControl.Value.SetSelectedOptions( new Options { HS_FLAG_UTF8 = true, HS_FLAG_SOM_LEFTMOST = false } );
+            // ('HS_FLAG_UTF8=true' allows non-latin letters, 'HS_FLAG_SOM_LEFTMOST=false' reduce the "Pattern is too large" errors)
+
+            return
+                [
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, engine )
+                ];
         }
 
         #endregion
@@ -177,9 +184,8 @@ namespace HyperscanPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = false,
+                Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = true,
                 Esc_oBrace = true,
                 Esc_x2 = true,
                 Esc_xBrace = true,
@@ -201,9 +207,8 @@ namespace HyperscanPlugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = false,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = true,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = true,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -302,8 +307,7 @@ namespace HyperscanPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -328,7 +332,7 @@ namespace HyperscanPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -342,8 +346,9 @@ namespace HyperscanPlugin
                 Conditional_DEFINE = false,
                 Conditional_VERSION = false,
 
-                ControlVerbs = true,
+                ControlVerbs = true, // (*UTF8), (*UCP), https://intel.github.io/hyperscan/dev-reference/compilation.html 
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = true,
                 EmptyConstructX = false,

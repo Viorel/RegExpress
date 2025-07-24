@@ -114,9 +114,12 @@ namespace PerlPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+            return
+                [
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                ];
         }
 
         #endregion
@@ -178,9 +181,8 @@ namespace PerlPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = false,
+                Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = true,
                 Esc_oBrace = true,
                 Esc_x2 = true,
                 Esc_xBrace = true,
@@ -201,9 +203,8 @@ namespace PerlPlugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = false,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = true,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = true,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -275,7 +276,7 @@ namespace PerlPlugin
                 Anchor_z = true,
                 Anchor_G = true,
                 Anchor_bB = true,
-                Anchor_bg = false,
+                Anchor_bg = true,
                 Anchor_bBBrace = true,
                 Anchor_K = true,
                 Anchor_mM = false,
@@ -302,8 +303,7 @@ namespace PerlPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = true,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = true,
                 Backref_kLtGt = true,
                 Backref_kBrace = true,
@@ -328,12 +328,12 @@ namespace PerlPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
-                Quantifier_LowAbbrev = false,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+                Quantifier_LowAbbrev = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = false,
-                Conditional_Pattern = false,
+                Conditional_Pattern = true,
                 Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = true,
                 Conditional_BackrefByName_LtGt = true,
@@ -344,6 +344,7 @@ namespace PerlPlugin
 
                 ControlVerbs = true,
                 ScriptRuns = true,
+                Callouts = false,
 
                 EmptyConstruct = true,
                 EmptyConstructX = false,

@@ -8,35 +8,33 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary
 {
-	public interface ICancellable
-	{
-		bool IsCancellationRequested { get; }
-	}
+    public interface ICancellable
+    {
+        bool IsCancellationRequested { get; }
+
+        public static ICancellable NonCancellable => RegExpressLibrary.NonCancellable.Instance;
+    }
 
 
-	public sealed class NonCancellable : ICancellable
-	{
-		public static readonly ICancellable Instance = new NonCancellable( );
+    public sealed class NonCancellable : ICancellable
+    {
+        public static readonly ICancellable Instance = new NonCancellable( );
 
-		private NonCancellable( )
-		{
+        private NonCancellable( )
+        {
 
-		}
+        }
 
+        #region ICancellable
 
-		#region ICancellable
+        public bool IsCancellationRequested
+        {
+            get
+            {
+                return false;
+            }
+        }
 
-		public bool IsCancellationRequested
-		{
-			get
-			{
-				return false;
-			}
-		}
-
-		#endregion ICancellable
-	}
-
-
-
+        #endregion ICancellable
+    }
 }

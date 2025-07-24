@@ -18,7 +18,7 @@ namespace RustPlugin
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly LazyData<(CrateEnum crate, bool isOctal), FeatureMatrix> LazyData = new( BuildFeatureMatrix );
+        static readonly LazyData<(CrateEnum crate, bool isOctal, bool isUnicodeSets), FeatureMatrix> LazyData = new( BuildFeatureMatrix );
 
         public Engine( )
         {
@@ -111,19 +111,31 @@ namespace RustPlugin
             {
                 XLevel = ( options.crate == CrateEnum.regex || options.crate == CrateEnum.fancy_regex || options.crate == CrateEnum.regex_lite ) && options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = options.crate == CrateEnum.regress,
-                FeatureMatrix = LazyData.GetValue( (options.crate, options.octal) )
+                FeatureMatrix = LazyData.GetValue( (options.crate, options.octal, options.unicode_sets) )
             };
         }
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)>
-            {
-                ("regex", LazyData.GetValue( (CrateEnum.regex, isOctal:true) )),
-                ("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, isOctal:true) )),
-                ("fancy_regex", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true) )),
-                ("regress", LazyData.GetValue( (CrateEnum.regress, isOctal:true) )),
-            };
+            Engine engine = new( );
+            engine.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, octal = true } );
+
+            Engine engine_lite = new( );
+            engine_lite.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex_lite } );
+
+            Engine engine_fancy = new( );
+            engine_fancy.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.fancy_regex } );
+
+            Engine engine_regress = new( );
+            engine_regress.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress } );
+
+            return
+                [
+                    new FeatureMatrixVariant("regex", LazyData.GetValue( (CrateEnum.regex, isOctal:true, isUnicodeSets:false) ), engine),
+                    new FeatureMatrixVariant("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, isOctal:true, isUnicodeSets:false) ), engine_lite),
+                    new FeatureMatrixVariant("fancy_regex", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true, isUnicodeSets:false) ), engine_fancy),
+                    new FeatureMatrixVariant("regress", LazyData.GetValue( (CrateEnum.regress, isOctal:true, isUnicodeSets:false) ), engine_regress),
+                ];
         }
 
         #endregion
@@ -148,14 +160,14 @@ namespace RustPlugin
             }
         }
 
-        private static FeatureMatrix BuildFeatureMatrix( (CrateEnum crate, bool isOctal) data )
+        private static FeatureMatrix BuildFeatureMatrix( (CrateEnum crate, bool isOctal, bool isUnicodeSets) data )
         {
             return data.crate switch
             {
                 CrateEnum.regex => BuildFeatureMatrix_RegexCrate( data.isOctal ),
                 CrateEnum.regex_lite => BuildFeatureMatrix_RegexLiteCrate( ),
                 CrateEnum.fancy_regex => BuildFeatureMatrix_FancyRegexCrate( ),
-                CrateEnum.regress => BuildFeatureMatrix_RegressCrate( ),
+                CrateEnum.regress => BuildFeatureMatrix_RegressCrate( data.isUnicodeSets ),
                 _ => throw new InvalidOperationException( ),
             };
         }
@@ -194,9 +206,8 @@ namespace RustPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = true,
+                Esc_Octal = isOctal ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = isOctal,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = true,
@@ -218,9 +229,8 @@ namespace RustPlugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = isOctal ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = isOctal,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -293,7 +303,7 @@ namespace RustPlugin
                 Anchor_G = false,
                 Anchor_bB = true,
                 Anchor_bg = false,
-                Anchor_bBBrace = true,
+                Anchor_bBBrace = false,
                 Anchor_K = false,
                 Anchor_mM = false,
                 Anchor_LtGt = true,
@@ -318,8 +328,7 @@ namespace RustPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = true,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -344,7 +353,7 @@ namespace RustPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.Both,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -360,6 +369,7 @@ namespace RustPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,
@@ -403,9 +413,8 @@ namespace RustPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = true,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = true,
@@ -427,9 +436,8 @@ namespace RustPlugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -502,7 +510,7 @@ namespace RustPlugin
                 Anchor_G = false,
                 Anchor_bB = true,
                 Anchor_bg = false,
-                Anchor_bBBrace = true,
+                Anchor_bBBrace = false,
                 Anchor_K = false,
                 Anchor_mM = false,
                 Anchor_LtGt = true,
@@ -527,8 +535,7 @@ namespace RustPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = true,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -553,7 +560,7 @@ namespace RustPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.Both,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -569,6 +576,7 @@ namespace RustPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,
@@ -612,14 +620,13 @@ namespace RustPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = true,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = true,
                 Esc_u4 = true,
-                Esc_U8 = false,
+                Esc_U8 = true,
                 Esc_uBrace = true,
                 Esc_UBrace = true,
                 Esc_c1 = false,
@@ -629,16 +636,15 @@ namespace RustPlugin
                 GenericEscape = true,
 
                 InsideSets_Esc_a = true,
-                InsideSets_Esc_b = false,
+                InsideSets_Esc_b = true,
                 InsideSets_Esc_e = true,
                 InsideSets_Esc_f = true,
                 InsideSets_Esc_n = true,
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = true,
@@ -718,7 +724,7 @@ namespace RustPlugin
                 Anchor_GraveApos = false,
                 Anchor_yY = false,
 
-                NamedGroup_Apos = false,
+                NamedGroup_Apos = true,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = true,
                 NamedGroup_AtApos = false,
@@ -737,9 +743,8 @@ namespace RustPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = true,
 
-                Backref_1_9 = true,
-                Backref_Num = true,
-                Backref_kApos = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
+                Backref_kApos = true,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,
                 Backref_kNum = false,
@@ -749,7 +754,7 @@ namespace RustPlugin
                 Backref_gNum = false,
                 Backref_gNegNum = false,
                 Backref_gBrace = false,
-                Backref_PEqName = false,
+                Backref_PEqName = true,
                 AllowSpacesInBackref = false,
 
                 Recursive_Num = false,
@@ -763,14 +768,14 @@ namespace RustPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.XModeOnly,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.XModeOnly,
                 Quantifier_LowAbbrev = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = false,
                 Conditional_Pattern = true,
                 Conditional_PatternOrBackrefByName = false,
-                Conditional_BackrefByName_Apos = false,
+                Conditional_BackrefByName_Apos = true,
                 Conditional_BackrefByName_LtGt = true,
                 Conditional_R = false,
                 Conditional_RName = false,
@@ -779,6 +784,7 @@ namespace RustPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = true,
@@ -788,7 +794,7 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_RegressCrate( )
+        private static FeatureMatrix BuildFeatureMatrix_RegressCrate( bool isUnicodeSets )
         {
             return new FeatureMatrix
             {
@@ -822,9 +828,8 @@ namespace RustPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = true,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = false,
@@ -832,23 +837,22 @@ namespace RustPlugin
                 Esc_U8 = false,
                 Esc_uBrace = true,
                 Esc_UBrace = false,
-                Esc_c1 = false,
+                Esc_c1 = true,
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
                 GenericEscape = true,
 
                 InsideSets_Esc_a = false,
-                InsideSets_Esc_b = false,
+                InsideSets_Esc_b = !isUnicodeSets,
                 InsideSets_Esc_e = false,
                 InsideSets_Esc_f = true,
                 InsideSets_Esc_n = true,
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = false,
@@ -856,7 +860,7 @@ namespace RustPlugin
                 InsideSets_Esc_U8 = false,
                 InsideSets_Esc_uBrace = true,
                 InsideSets_Esc_UBrace = false,
-                InsideSets_Esc_c1 = false,
+                InsideSets_Esc_c1 = true,
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
@@ -947,8 +951,7 @@ namespace RustPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = true,
 
-                Backref_1_9 = true,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = false,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,
@@ -959,7 +962,7 @@ namespace RustPlugin
                 Backref_gNum = false,
                 Backref_gNegNum = false,
                 Backref_gBrace = false,
-                Backref_PEqName = true,
+                Backref_PEqName = false,
                 AllowSpacesInBackref = false,
 
                 Recursive_Num = false,
@@ -973,7 +976,7 @@ namespace RustPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -989,6 +992,7 @@ namespace RustPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,

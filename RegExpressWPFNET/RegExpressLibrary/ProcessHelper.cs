@@ -174,7 +174,6 @@ namespace RegExpressLibrary
                 {
                     _ = exc;
                     if( Debugger.IsAttached ) Debugger.Break( );
-                    throw;
                 }
             } )
             {

@@ -113,9 +113,12 @@ namespace SubRegPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)> { (null, LazyFeatureMatrix.Value) };
+            return
+                [
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                ];
         }
 
         #endregion
@@ -177,9 +180,8 @@ namespace SubRegPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = true,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = false,
@@ -201,9 +203,8 @@ namespace SubRegPlugin
                 InsideSets_Esc_r = false,
                 InsideSets_Esc_t = false,
                 InsideSets_Esc_v = false,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = false,
                 InsideSets_Esc_xBrace = false,
@@ -215,7 +216,7 @@ namespace SubRegPlugin
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = false,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
@@ -239,7 +240,7 @@ namespace SubRegPlugin
                 Class_Name = false,
 
                 InsideSets_Class_dD = false,
-                InsideSets_Class_hHhexa = true,
+                InsideSets_Class_hHhexa = false,
                 InsideSets_Class_hHhorspace = false,
                 InsideSets_Class_lL = false,
                 InsideSets_Class_R = false,
@@ -290,9 +291,9 @@ namespace SubRegPlugin
                 NamedGroup_AtLtGt = false,
                 CapturingGroup = false,
 
-                NoncapturingGroup = false,
-                PositiveLookahead = false,
-                NegativeLookahead = false,
+                NoncapturingGroup = true,
+                PositiveLookahead = true,
+                NegativeLookahead = true,
                 PositiveLookbehind = false,
                 NegativeLookbehind = false,
                 AtomicGroup = false,
@@ -302,8 +303,7 @@ namespace SubRegPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = false,
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -328,7 +328,7 @@ namespace SubRegPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -344,6 +344,7 @@ namespace SubRegPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false, // TODO: "a(? )b": with "xabc" no error, with "ab" gives error

@@ -115,18 +115,21 @@ namespace StdPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            var list = new List<(string?, FeatureMatrix)>( );
+            List<FeatureMatrixVariant> variants = [];
 
             foreach( GrammarEnum grammar in Enum.GetValues<GrammarEnum>( ) )
             {
                 if( grammar == GrammarEnum.None ) continue;
 
-                list.Add( (Enum.GetName( grammar ), LazyFeatureMatrix.GetValue( grammar )) );
+                Engine engine = new( );
+                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Grammar = grammar } );
+
+                variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), LazyFeatureMatrix.GetValue( grammar ), engine ) );
             }
 
-            return list;
+            return variants;
         }
 
         #endregion
@@ -200,9 +203,8 @@ namespace StdPlugin
                 Esc_r = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
                 Esc_t = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
                 Esc_v = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
+                Esc_Octal = grammar == GrammarEnum.awk ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = grammar == GrammarEnum.awk,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = grammar == GrammarEnum.ECMAScript,
                 Esc_xBrace = false,
@@ -224,9 +226,8 @@ namespace StdPlugin
                 InsideSets_Esc_r = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
                 InsideSets_Esc_t = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
                 InsideSets_Esc_v = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = grammar == GrammarEnum.ECMAScript,
                 InsideSets_Esc_xBrace = false,
@@ -325,9 +326,8 @@ namespace StdPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = grammar == GrammarEnum.basic || grammar == GrammarEnum.grep,
-                Backref_Num = grammar == GrammarEnum.ECMAScript,
-
+                Backref_Num = grammar == GrammarEnum.basic || grammar == GrammarEnum.grep ? FeatureMatrix.BackrefEnum.OneDigit :
+                              grammar == GrammarEnum.ECMAScript ? FeatureMatrix.BackrefEnum.Any : FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -365,7 +365,7 @@ namespace StdPlugin
                                                 grammar == GrammarEnum.grep ? FeatureMatrix.PunctuationEnum.Backslashed
                                                 : FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = false,
@@ -381,6 +381,7 @@ namespace StdPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,

@@ -10,6 +10,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using RegExpressLibrary;
+using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
 namespace ExportFeatureMatrix;
@@ -27,7 +28,7 @@ partial class ExporterToExcel
     uint STYLE_ID_PLUS = 0;
     uint STYLE_ID_BOTTOM_ROW = 0;
 
-    public void Export( string outputExcelPath, IReadOnlyList<RegexPlugin> plugins )
+    public void Export( string outputExcelPath, IReadOnlyList<RegexPlugin> plugins, bool verify, Action<string, int, int>? progressOnFeatures, Action<string, int, int>? progressOnEngines )
     {
         using( SpreadsheetDocument spreadSheet = SpreadsheetDocument.Create( outputExcelPath, SpreadsheetDocumentType.Workbook ) )
         {
@@ -73,14 +74,13 @@ partial class ExporterToExcel
             // get feature matrices from engines
 
             IRegexEngine[] engines = [.. plugins.SelectMany( p => p.GetEngines( ) )];
-
-            IReadOnlyList<(string? variantName, FeatureMatrix fm)>[] all_matrices = [.. engines.Select( e => e.GetFeatureMatrices( ) )];
+            IReadOnlyList<FeatureMatrixVariant>[] all_matrices = [.. engines.Select( e => e.GetFeatureMatrices( ) )];
 
             uint variant_index = 0;
             EngineData[] engines_data =
                 [.. plugins
                     .SelectMany( p => p.GetEngines( ) )
-                    .Select( e => new EngineData { Engine = e, Matrices = [.. e.GetFeatureMatrices( ).Select( m => (index:variant_index++, m.variantName, m.fm) )] } ).Where( d => d.Matrices.Length > 0 )];
+                    .Select( e => new EngineData { Engine = e, Matrices = [.. e.GetFeatureMatrices( ).Select( m => (index:variant_index++, variant: m ) )] } ).Where( d => d.Matrices.Length > 0 )];
 
             uint total_variants = (uint)engines_data.Select( d => d.Matrices.Length ).Sum( );
 
@@ -144,10 +144,10 @@ partial class ExporterToExcel
                 foreach( var m in engine_data.Matrices )
                 {
                     uint column_index = START_ENGINES_COLUMN + m.index;
-                    cell1 = SetCell( ColumnNameFromIndex( column_index ), row_index, m.variantName ?? "" );
+                    cell1 = SetCell( ColumnNameFromIndex( column_index ), row_index, m.variant.Name ?? "" );
                     cell1.StyleIndex = STYLE_ID_TABLE_HEADER;
 
-                    double width = EvaluateWidth( !string.IsNullOrWhiteSpace( m.variantName ) ? m.variantName : MakeHeader( engine_data ), "Arial Narrow", isBold: true );
+                    double width = EvaluateWidth( !string.IsNullOrWhiteSpace( m.variant.Name ) ? m.variant.Name : MakeHeader( engine_data ), "Arial Narrow", isBold: true );
 
                     SetColumnWidth( column_index, width + 2 );
                 }
@@ -157,8 +157,12 @@ partial class ExporterToExcel
 
             // body
 
-            foreach( FeatureMatrixDetails details in FeatureMatrixDetails.AllFeatureMatrixDetails )
+            for( int feature_index = 0; feature_index < FeatureMatrixDetails.AllFeatureMatrixDetails.Length; feature_index++ )
             {
+                FeatureMatrixDetails details = FeatureMatrixDetails.AllFeatureMatrixDetails[feature_index];
+
+                if( progressOnFeatures != null ) progressOnFeatures( $"{details.ShortDesc} {details.Desc}", feature_index, FeatureMatrixDetails.AllFeatureMatrixDetails.Length );
+
                 if( details.Func == null )
                 {
                     // name of the group
@@ -175,13 +179,73 @@ partial class ExporterToExcel
                     cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + 1 ), row_index, details.Desc ?? "" );
                     cell1.StyleIndex = STYLE_ID_DESCRIPTION;
 
-                    foreach( EngineData engine_data in engines_data )
+                    for( int engine_index = 0; engine_index < engines_data.Length; engine_index++ )
                     {
+                        EngineData engine_data = engines_data[engine_index];
+
+                        if( progressOnEngines != null ) progressOnEngines( engine_data.Engine.Name, engine_index, engines_data.Length );
+
                         foreach( var m in engine_data.Matrices )
                         {
-                            bool yes = details.Func( m.fm );
-                            cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, yes ? "+" : "" );
-                            if( yes ) cell1.StyleIndex = STYLE_ID_PLUS;
+                            bool flag_is_true = details.Func( m.variant.FeatureMatrix );
+
+                            if( !verify || m.variant.RegexEngine == null || ( string.IsNullOrWhiteSpace( details.TestPatternMatch ) && string.IsNullOrWhiteSpace( details.TestPatternNoMatch ) ) )
+                            {
+                                cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, flag_is_true ? "+" : "" );
+                                if( flag_is_true ) cell1.StyleIndex = STYLE_ID_PLUS;
+                            }
+                            else
+                            {
+                                bool is_match_satisfied;
+                                bool is_no_match_satisfied;
+
+                                if( details.TestPatternMatch == null )
+                                {
+                                    is_match_satisfied = true;
+                                }
+                                else
+                                {
+                                    try
+                                    {
+                                        RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, details.TestPatternMatch, details.TestTextMatch! );
+                                        is_match_satisfied = matches.Count > 0;
+                                    }
+                                    catch( Exception )
+                                    {
+                                        is_match_satisfied = false;
+                                        // ignore
+                                    }
+                                }
+
+                                if( details.TestPatternNoMatch == null )
+                                {
+                                    is_no_match_satisfied = true;
+                                }
+                                else
+                                {
+                                    try
+                                    {
+                                        RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, details.TestPatternNoMatch, details.TestTextNoMatch! );
+                                        is_no_match_satisfied = matches.Count == 0;
+                                    }
+                                    catch( Exception )
+                                    {
+                                        is_no_match_satisfied = false;
+                                        // ignore
+                                    }
+                                }
+
+                                if( flag_is_true )
+                                {
+                                    cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, is_match_satisfied && is_no_match_satisfied ? "+" : "+???" );
+                                }
+                                else
+                                {
+                                    cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, !( is_match_satisfied && is_no_match_satisfied ) ? "" : "???" );
+                                }
+
+                                if( flag_is_true ) cell1.StyleIndex = STYLE_ID_PLUS;
+                            }
                         }
                     }
                 }
@@ -633,5 +697,5 @@ partial class ExporterToExcel
 class EngineData
 {
     public required IRegexEngine Engine { get; init; }
-    public required (uint index, string? variantName, FeatureMatrix fm)[] Matrices { get; init; }
+    public required (uint index, FeatureMatrixVariant variant)[] Matrices { get; init; }
 }

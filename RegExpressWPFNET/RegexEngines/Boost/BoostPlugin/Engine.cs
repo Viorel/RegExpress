@@ -116,21 +116,22 @@ namespace BoostPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            var list = new List<(string?, FeatureMatrix)>( );
+            List<FeatureMatrixVariant> variants = [];
 
-            foreach( GrammarEnum grammar in Enum.GetValues( typeof( GrammarEnum ) ) )
+            foreach( GrammarEnum grammar in Enum.GetValues<GrammarEnum>( ) )
             {
                 if( grammar == GrammarEnum.None ) continue;
                 if( grammar == GrammarEnum.literal ) continue;
 
-                var fm = LazyFeatureMatrix.GetValue( grammar );
+                Engine engine = new( );
+                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Grammar = grammar } );
 
-                list.Add( (Enum.GetName( typeof( GrammarEnum ), grammar ), fm)! );
+                variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), LazyFeatureMatrix.GetValue( grammar ), engine ) );
             }
 
-            return list;
+            return variants;
         }
 
         #endregion
@@ -178,6 +179,9 @@ namespace BoostPlugin
                 grammar == GrammarEnum.grep ||
                 grammar == GrammarEnum.emacs;
 
+            bool is_awk =
+                grammar == GrammarEnum.awk;
+
             bool is_emacs =
                 grammar == GrammarEnum.emacs;
 
@@ -197,10 +201,10 @@ namespace BoostPlugin
                 InsideSets_XModeComments = false,
 
                 Flags = is_perl,
-                ScopedFlags = is_perl || is_emacs,
+                ScopedFlags = is_perl,
                 CircumflexFlags = false,
                 ScopedCircumflexFlags = false,
-                XFlag = false,
+                XFlag = is_perl,
                 XXFlag = false,
 
                 Literal_QE = is_perl || is_POSIX_extended,
@@ -215,9 +219,8 @@ namespace BoostPlugin
                 Esc_r = is_perl || is_POSIX_extended,
                 Esc_t = is_perl || is_POSIX_extended,
                 Esc_v = is_POSIX_extended,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = is_perl || is_POSIX_extended || is_POSIX_basic,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = is_perl || is_POSIX_extended,
                 Esc_xBrace = is_perl || is_POSIX_extended,
@@ -231,29 +234,28 @@ namespace BoostPlugin
                 Esc_NBrace = is_perl || is_POSIX_extended,
                 GenericEscape = true,
 
-                InsideSets_Esc_a = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_b = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_e = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_f = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_n = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_r = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_t = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_v = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_Octal0_1_3 = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_Octal_1_3 = false,
-                InsideSets_Esc_Octal_2_3 = false,
+                InsideSets_Esc_a = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_b = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_e = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_f = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_n = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_r = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_t = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_v = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
+                InsideSets_Esc_Octal0_1_3 = is_perl || is_awk || is_emacs,
                 InsideSets_Esc_oBrace = false,
-                InsideSets_Esc_x2 = is_perl || grammar == GrammarEnum.awk || is_emacs,
-                InsideSets_Esc_xBrace = is_perl || grammar == GrammarEnum.awk || is_emacs,
+                InsideSets_Esc_x2 = is_perl || is_awk || is_emacs,
+                InsideSets_Esc_xBrace = is_perl || is_awk || is_emacs,
                 InsideSets_Esc_u4 = false,
                 InsideSets_Esc_U8 = false,
                 InsideSets_Esc_uBrace = false,
                 InsideSets_Esc_UBrace = false,
-                InsideSets_Esc_c1 = is_perl || grammar == GrammarEnum.awk || is_emacs,
+                InsideSets_Esc_c1 = is_perl || is_awk || is_emacs,
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
-                InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = is_perl || grammar == GrammarEnum.awk || is_emacs,
+                InsideSets_Esc_NBrace = is_perl || is_awk || is_emacs,
+                InsideSets_GenericEscape = is_perl || is_awk || is_emacs,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
@@ -333,15 +335,14 @@ namespace BoostPlugin
                 NegativeLookahead = is_perl || is_emacs,
                 PositiveLookbehind = is_perl || is_emacs,
                 NegativeLookbehind = is_perl || is_emacs,
-                AtomicGroup = is_perl,
-                BranchReset = is_perl,
+                AtomicGroup = is_perl || is_emacs,
+                BranchReset = is_perl || is_emacs,
                 NonatomicPositiveLookahead = false,
                 NonatomicPositiveLookbehind = false,
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = is_perl || is_POSIX_basic,
-                Backref_Num = false,
+                Backref_Num = is_perl || is_POSIX_basic ? FeatureMatrix.BackrefEnum.OneDigit : FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = is_perl,
                 Backref_kLtGt = is_perl,
                 Backref_kBrace = is_perl,
@@ -368,12 +369,12 @@ namespace BoostPlugin
                                     is_POSIX_basic ? FeatureMatrix.PunctuationEnum.Backslashed :
                                     FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.Both,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = is_perl,
                 Conditional_BackrefByName = false,
-                Conditional_Pattern = false,
+                Conditional_Pattern = is_perl,
                 Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = is_perl,
                 Conditional_BackrefByName_LtGt = is_perl,
@@ -384,6 +385,7 @@ namespace BoostPlugin
 
                 ControlVerbs = is_perl,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,

@@ -118,14 +118,23 @@ namespace PythonPlugin
         }
 
 
-        public IReadOnlyList<(string? variantName, FeatureMatrix fm)> GetFeatureMatrices( )
+        public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return new List<(string?, FeatureMatrix)>
-            {
-                ("re", LazyFeatureMatrix.GetValue((ModuleEnum.re, 0))),
-                ("regex V0", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 0))),
-                ("regex V1", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 1)))
-            };
+            Engine engine_re = new( );
+            engine_re.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.re } );
+
+            Engine engine_regex_v0 = new( );
+            engine_regex_v0.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERSION0 = true, VERSION1 = false } );
+
+            Engine engine_regex_v1 = new( );
+            engine_regex_v1.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERSION0 = false, VERSION1 = true } );
+
+            return
+                [
+                    new FeatureMatrixVariant("re", LazyFeatureMatrix.GetValue((ModuleEnum.re, 0)), engine_re),
+                    new FeatureMatrixVariant("regex V0", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 0)), engine_regex_v0),
+                    new FeatureMatrixVariant("regex V1", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 1)), engine_regex_v1)
+                ];
         }
 
         #endregion
@@ -182,16 +191,15 @@ namespace PythonPlugin
                 InsideSets_Literal_qBrace = false,
 
                 Esc_a = true,
-                Esc_b = true,
+                Esc_b = false,
                 Esc_e = false,
                 Esc_f = true,
                 Esc_n = true,
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = true,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
-                Esc_Octal_1_3 = false,
-                Esc_Octal_2_3 = true,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = false,
@@ -213,9 +221,8 @@ namespace PythonPlugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
                 InsideSets_Esc_Octal0_1_3 = false,
-                InsideSets_Esc_Octal_1_3 = true,
-                InsideSets_Esc_Octal_2_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = false,
@@ -238,7 +245,7 @@ namespace PythonPlugin
                 Class_lL = false,
                 Class_N = false,
                 Class_O = false,
-                Class_R = false,
+                Class_R = is_regex,
                 Class_sS = true,
                 Class_sSx = false,
                 Class_uU = false,
@@ -246,7 +253,7 @@ namespace PythonPlugin
                 Class_wW = true,
                 Class_X = is_regex,
                 Class_Not = false,
-                Class_pP = false,
+                Class_pP = is_regex,
                 Class_pPBrace = is_regex,
                 Class_Name = false,
 
@@ -261,8 +268,8 @@ namespace PythonPlugin
                 InsideSets_Class_vV = false,
                 InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
-                InsideSets_Class_pP = false,
-                InsideSets_Class_pPBrace = false,
+                InsideSets_Class_pP = is_regex,
+                InsideSets_Class_pPBrace = is_regex,
                 InsideSets_Class_Name = is_regex,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
@@ -314,8 +321,7 @@ namespace PythonPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_1_9 = true, // TODO: actually it supports \1, \2, ... \99.
-                Backref_Num = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any, // TODO: actually it supports \1, \2, ... \99.
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -340,12 +346,12 @@ namespace PythonPlugin
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsage.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = true,
-                Conditional_Pattern = false,
+                Conditional_Pattern = true,
                 Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = false,
                 Conditional_BackrefByName_LtGt = false,
@@ -356,9 +362,10 @@ namespace PythonPlugin
 
                 ControlVerbs = is_regex,
                 ScriptRuns = false,
+                Callouts = false,
 
-                EmptyConstruct = false,
-                EmptyConstructX = false,
+                EmptyConstruct = is_regex,
+                EmptyConstructX = is_regex,
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
