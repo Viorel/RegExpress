@@ -343,6 +343,7 @@ namespace VBScriptPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,

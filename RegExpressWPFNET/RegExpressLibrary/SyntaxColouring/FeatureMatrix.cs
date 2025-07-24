@@ -229,6 +229,7 @@ namespace RegExpressLibrary.SyntaxColouring
 
         public bool ControlVerbs { get; init; }                           // (*verb), (*verb:...), (*:name), where verb is PRUNE, SKIP, MARK, THEN, COMMIT, F, FAIL, ACCEPT, UTF, UTF8 and UCP; (*:name) is similar to (*MARK:name)
         public bool ScriptRuns { get; init; }                             // (*...:...), for ex.: (*atomic:...)
+        public bool Callouts { get; init; }                               // "callouts": (*func) -- invoking custom functions 
 
         // 
 

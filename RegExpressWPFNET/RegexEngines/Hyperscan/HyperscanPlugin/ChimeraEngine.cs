@@ -345,6 +345,7 @@ namespace HyperscanPlugin
 
                 ControlVerbs = true,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = true,
                 EmptyConstructX = false,

@@ -347,8 +347,9 @@ namespace HyperscanPlugin
                 Conditional_DEFINE = false,
                 Conditional_VERSION = false,
 
-                ControlVerbs = true,
+                ControlVerbs = true, // (*UTF8), (*UCP), https://intel.github.io/hyperscan/dev-reference/compilation.html 
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = true,
                 EmptyConstructX = false,

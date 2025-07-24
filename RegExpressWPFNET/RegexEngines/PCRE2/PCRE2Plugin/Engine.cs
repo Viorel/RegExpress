@@ -124,7 +124,14 @@ namespace PCRE2Plugin
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
             Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { PCRE2_ALT_BSUX = true, PCRE2_EXTRA_ALT_BSUX = true, PCRE2_ALT_EXTENDED_CLASS = true } );
+            engine.mOptionsControl.Value.SetSelectedOptions(
+                new Options
+                {
+                    PCRE2_ALT_BSUX = true,
+                    PCRE2_EXTRA_ALT_BSUX = true,
+                    PCRE2_ALT_EXTENDED_CLASS = true,
+                    PCRE2_ALLOW_EMPTY_CLASS = true,
+                } );
 
             return
                 [
@@ -373,6 +380,7 @@ namespace PCRE2Plugin
 
                 ControlVerbs = true,
                 ScriptRuns = true,
+                Callouts = true,
 
                 EmptyConstruct = true,
                 EmptyConstructX = false,

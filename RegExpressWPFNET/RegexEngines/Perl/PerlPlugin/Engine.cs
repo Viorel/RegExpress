@@ -345,6 +345,7 @@ namespace PerlPlugin
 
                 ControlVerbs = true,
                 ScriptRuns = true,
+                Callouts = false,
 
                 EmptyConstruct = true,
                 EmptyConstructX = false,

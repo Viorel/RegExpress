@@ -386,6 +386,7 @@ namespace BoostPlugin
 
                 ControlVerbs = is_perl,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,

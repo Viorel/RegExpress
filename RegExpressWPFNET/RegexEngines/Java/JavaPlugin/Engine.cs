@@ -367,6 +367,7 @@ namespace JavaPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = true,
                 EmptyConstructX = is_regex,

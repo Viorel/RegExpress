@@ -254,7 +254,7 @@ class FeatureMatrixDetails
             new ( @"{ n, m } ", @"Allow spaces within {…} or \{…\} when spaces are allowed by options", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.XModeOnly ), // TODO
             new ( @"{,m}, \{,m\}", @"Equivalent to {0,m} or \{0,m\}", fm => fm.Quantifier_LowAbbrev, @"x{,3}", "xxx" ),
             new ( @"{expr}, \{expr\}", @"Approximate matching using given engine-specific expression", fm => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed ), // TODO
-#endif
+
             new ( @"Conditionals", null, null ),
 
             new ( @"(?(number)…|…)", @"Conditionals by number, +number and -number", fm => fm.Conditional_BackrefByNumber, @"(x)(?(1)y|z)", "xy" ),
@@ -267,18 +267,18 @@ class FeatureMatrixDetails
             new ( @"(?(R&name)…|…)", @"Recursive conditional by name", fm => fm.Conditional_RName, @"(?<A>(?'B'abc(?(R)(?(R&A)1)(?(R&B)2)X|(?1)(?2)(?R))))", "abcabc1Xabc2XabcXabcabc" ),
             new ( @"(?(DEFINE)…|…)", @"Defining subpatterns", fm => fm.Conditional_DEFINE, @"(?(DEFINE)(?<n>x.z))(?&n)", "xyz" ),
             new ( @"(?(VERSION…)…|…)", @"Checking for version using 'VERSION=decimal' or 'VERSION>=decimal'", fm => fm.Conditional_VERSION, @"(?(VERSION>=1)xyz|abc)", "xyz" ),
-#if false
-
+#endif
             new ( @"Miscellaneous", null, null ),
 
-            new ( @"(*verb)", @"Control verbs: (*verb), (*verb:…), (*:name)", fm => fm.ControlVerbs ),
-            new ( @"(*…:…)", @"Script runs, such as (*atomic:…)", fm => fm.ScriptRuns ),
+            new ( @"(*verb)", @"Control verbs: (*verb), (*verb:…), (*:name)", fm => fm.ControlVerbs, @"x|y(*FAIL)", "x" ),
+            new ( @"(*…:…)", @"Script runs, such as (*atomic:…)", fm => fm.ScriptRuns, @"(*atomic:x)", "x" ),
+            new ( @"(?Cn), (*func)", @"Callouts (custom functions)", fm => fm.Callouts ),
 
-            new ( @"(?)", @"Empty construct", fm => fm.EmptyConstruct ),
-            new ( @"(? )", @"Empty construct when whitespaces are enabled by options", fm => fm.EmptyConstructX ),
-            new ( @"[]", @"Empty set", fm => fm.EmptySet ),
+            new ( @"(?)", @"Empty construct", fm => fm.EmptyConstruct, @"x(?)y", "xy" ),
+            new ( @"(? )", @"Empty construct when whitespaces are enabled by options", fm => fm.EmptyConstructX, @"(?x)x(? )y", "xy" ),
+            new ( @"[]", @"Empty set", fm => fm.EmptySet, @"x[]?", "x" ),
 
-            new ( @"“.” on Surrogate Pairs", @"Split Surrogate Pair characters into two components", fm => fm.SplitSurrogatePairs ),
-#endif
+            new ( @"“.” on Surrogate Pairs", @"Split Surrogate Pair characters into components", fm => fm.SplitSurrogatePairs ), // TODO
+
         ];
 }

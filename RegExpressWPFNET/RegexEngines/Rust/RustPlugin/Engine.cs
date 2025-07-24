@@ -370,6 +370,7 @@ namespace RustPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,
@@ -577,6 +578,7 @@ namespace RustPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,
@@ -785,6 +787,7 @@ namespace RustPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = true,
@@ -993,6 +996,7 @@ namespace RustPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,

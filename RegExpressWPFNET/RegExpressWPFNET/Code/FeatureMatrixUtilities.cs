@@ -268,6 +268,7 @@ namespace RegExpressWPFNET.Code
 
             new FeatureMatrixDetails(  @"(*verb)", @"Control verbs: (*verb), (*verb:…), (*:name)", fm => fm.ControlVerbs ),
             new FeatureMatrixDetails(  @"(*…:…)", @"Script runs, such as (*atomic:…)", fm => fm.ScriptRuns ),
+            new FeatureMatrixDetails(  @"(*func) or (?C)", @"Callouts (custom functions)", fm => fm.Callouts ),
 
             new FeatureMatrixDetails(  @"(?)", @"Empty construct", fm => fm.EmptyConstruct ),
             new FeatureMatrixDetails(  @"(? )", @"Empty construct when whitespaces are enabled by options", fm => fm.EmptyConstructX ),

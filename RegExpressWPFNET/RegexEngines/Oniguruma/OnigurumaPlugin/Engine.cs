@@ -454,8 +454,9 @@ namespace OnigurumaPlugin
                 Conditional_DEFINE = syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG,
                 Conditional_VERSION = false,
 
-                ControlVerbs = details.ONIG_SYN_OP2_ASTERISK_CALLOUT_NAME,
+                ControlVerbs = details.ONIG_SYN_OP2_ASTERISK_CALLOUT_NAME, // several built-in callouts: https://github.com/kkos/oniguruma/blob/master/doc/CALLOUTS.BUILTIN
                 ScriptRuns = false,
+                Callouts = details.ONIG_SYN_OP2_ASTERISK_CALLOUT_NAME,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,

@@ -345,6 +345,7 @@ namespace SubRegPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false, // TODO: "a(? )b": with "xabc" no error, with "ab" gives error

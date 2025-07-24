@@ -376,10 +376,11 @@ namespace FortranPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,
-                EmptySet = true,
+                EmptySet = false,
 
                 SplitSurrogatePairs = false,
             };
@@ -584,6 +585,7 @@ namespace FortranPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,
@@ -793,10 +795,11 @@ namespace FortranPlugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = false,
                 EmptyConstructX = false,
-                EmptySet = true,
+                EmptySet = false,
 
                 SplitSurrogatePairs = false,
             };

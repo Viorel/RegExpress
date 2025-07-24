@@ -363,9 +363,10 @@ namespace PythonPlugin
 
                 ControlVerbs = is_regex,
                 ScriptRuns = false,
+                Callouts = false,
 
-                EmptyConstruct = false,
-                EmptyConstructX = false,
+                EmptyConstruct = is_regex,
+                EmptyConstructX = is_regex,
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,

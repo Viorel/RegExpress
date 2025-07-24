@@ -348,6 +348,7 @@ namespace RE2Plugin
 
                 ControlVerbs = false,
                 ScriptRuns = false,
+                Callouts = false,
 
                 EmptyConstruct = true,
                 EmptyConstructX = false,
