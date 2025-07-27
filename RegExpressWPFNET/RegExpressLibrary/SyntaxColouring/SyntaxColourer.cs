@@ -1469,13 +1469,14 @@ namespace RegExpressLibrary.SyntaxColouring
                 pb.Add( @"(?<class>\.)" );
             }
 
-            if( fm.VerticalLine == FeatureMatrix.PunctuationEnum.Normal )
+            switch( fm.VerticalLine )
             {
+            case FeatureMatrix.PunctuationEnum.Normal:
                 pb.Add( @"(?<sym>\|)" );
-            }
-            if( fm.VerticalLine == FeatureMatrix.PunctuationEnum.Backslashed )
-            {
+                break;
+            case FeatureMatrix.PunctuationEnum.Backslashed:
                 pb.Add( @"(?<sym>\\\|)" );
+                break;
             }
 
             if( fm.Literal_QE )

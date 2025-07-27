@@ -182,6 +182,7 @@ namespace RustPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = false,
                 XModeComments = true,
@@ -389,6 +390,7 @@ namespace RustPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = false,
                 XModeComments = true,
@@ -596,6 +598,7 @@ namespace RustPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = true,
                 XModeComments = true,
@@ -804,6 +807,7 @@ namespace RustPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = false,
                 XModeComments = false,

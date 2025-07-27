@@ -195,6 +195,7 @@ namespace BoostPlugin
                 VerticalLine = is_perl || is_POSIX_extended ? FeatureMatrix.PunctuationEnum.Normal :
                                 is_emacs ? FeatureMatrix.PunctuationEnum.Backslashed :
                                 FeatureMatrix.PunctuationEnum.None,
+                AlternationOnSeparateLines = grammar == GrammarEnum.grep || grammar == GrammarEnum.egrep,
 
                 InlineComments = is_perl || is_emacs, // using \(?# \) in emacs
                 XModeComments = is_perl,

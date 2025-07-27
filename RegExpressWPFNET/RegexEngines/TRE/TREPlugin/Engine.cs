@@ -166,6 +166,7 @@ namespace TREPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = isExtended ? FeatureMatrix.PunctuationEnum.Normal : FeatureMatrix.PunctuationEnum.None,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = isExtended,
                 XModeComments = false,

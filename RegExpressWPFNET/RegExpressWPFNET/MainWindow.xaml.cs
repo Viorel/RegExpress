@@ -49,7 +49,6 @@ namespace RegExpressWPFNET
         public static readonly RoutedUICommand GoToOptionsCommand = new( );
         public static readonly RoutedUICommand MoveTabLeftCommand = new( );
         public static readonly RoutedUICommand MoveTabRightCommand = new( );
-        public static readonly RoutedUICommand ExportFeatureMatrixCommand = new( );
 
         readonly List<RegexPlugin> mRegexPlugins = [];
         readonly List<RegexPlugin> mNoFmRegexPlugins = [];
@@ -371,42 +370,6 @@ namespace RegExpressWPFNET
             RenumberTabs( );
 
             current_tab.IsSelected = true;
-        }
-
-
-        private void ExportFeatureMatrixCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
-        {
-            e.CanExecute = true;
-        }
-
-
-        private void ExportFeatureMatrixCommand_Execute( object sender, ExecutedRoutedEventArgs e )
-        {
-            try
-            {
-                var engines = GetEngines( excludeNoFm: true );
-
-                string path = Path.Combine( Path.GetTempPath( ), Guid.NewGuid( ).ToString( "N" ) + ".html" );
-
-                using( var xw = XmlWriter.Create( path, new XmlWriterSettings { CloseOutput = true, Indent = true, OmitXmlDeclaration = true } ) )
-                {
-                    FeatureMatrixUtilities.ExportAsHtml( xw, engines );
-                }
-
-                var psi = new ProcessStartInfo
-                {
-                    FileName = path,
-                    UseShellExecute = true,
-                };
-
-                Process.Start( psi );
-            }
-            catch( Exception exc )
-            {
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                MessageBox.Show( exc.Message, "ERROR", MessageBoxButton.OKCancel, MessageBoxImage.Error );
-            }
         }
 
         #endregion

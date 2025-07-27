@@ -148,6 +148,7 @@ namespace DotNETFrameworkPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = true,
                 XModeComments = true,

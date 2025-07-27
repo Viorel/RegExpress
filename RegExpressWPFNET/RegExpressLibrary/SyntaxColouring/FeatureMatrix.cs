@@ -17,7 +17,6 @@ namespace RegExpressLibrary.SyntaxColouring
             Backslashed
         }
 
-
         public enum SpaceUsageEnum
         {
             None,           // for example, cannot put spaces in 'a{ 3 }'; must use 'a{3}'
@@ -45,6 +44,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool ExtendedBrackets { get; init; }                       // (?[...])
 
         public PunctuationEnum VerticalLine { get; init; }                // | or \| -- alternation
+        public bool AlternationOnSeparateLines { get; init; }             // put alternatives on separate lines (separated by '\n')
 
         public bool InlineComments { get; init; }                         // (?#comment) or \(?#comment\)
         public bool AnomalousInlineComments { get; init; }                // ![comment] //TODO: remove such engines

@@ -178,6 +178,7 @@ namespace JavaPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = false,
                 XModeComments = is_regex,

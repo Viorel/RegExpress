@@ -53,7 +53,8 @@ class FeatureMatrixDetails
             new ( @"(?[…])", @"Character group", fm => fm.ExtendedBrackets, @"(?[[x]])", "x" ),
 
             new ( @"|", @"Alternation", fm => fm.VerticalLine == FeatureMatrix.PunctuationEnum.Normal, @"x|y", "y" ),
-            new ( @"\|", @"Alternation", fm => fm.VerticalLine == FeatureMatrix.PunctuationEnum.Backslashed, @"x\|y", "y" ),
+            new ( @"\|", @"Alternation", fm => fm.VerticalLine == FeatureMatrix.PunctuationEnum.Backslashed  , @"x\|y", "y" ),
+            new ( @"new line (\n)", @"Alternatives on separate lines", fm => fm.AlternationOnSeparateLines, "x\ny", "y" ),
 
             new ( @"(?#comment)", @"Inline comment", fm => fm.InlineComments ), // TODO
             new ( @"#comment", @"Comment when enabled by options", fm => fm.XModeComments ),

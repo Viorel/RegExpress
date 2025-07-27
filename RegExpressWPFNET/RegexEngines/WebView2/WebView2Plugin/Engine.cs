@@ -172,6 +172,7 @@ namespace WebView2Plugin
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = false,
                 XModeComments = false,

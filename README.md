@@ -63,10 +63,14 @@ and included into **main** branch. (No additional installations required).
 
 ## Feature Matrix
 
-The different functionalities of regular expression engines are shown in these files:
+The various functionalities of regular expression engines are presented in the Excel and HTML file.
 
-* [Excel file](./RegExpressWPFNET/Tools/ExportFeatureMatrix/FeatureMatrix.xlsx).
-* [HTML file](./RegExpressWPFNET/Tools/ExportFeatureMatrix/FeatureMatrix.html).
+![Feature Matrix](FM.png)
+
+Download and open the file:
+
+* [Excel](./RegExpressWPFNET/Tools/ExportFeatureMatrix/RegexFeatureMatrix.xlsx),
+* [HTML](./RegExpressWPFNET/Tools/ExportFeatureMatrix/RegexFeatureMatrix.html).
 
 <br/>
 <br/>

@@ -156,6 +156,7 @@ namespace SubRegPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = false,
                 XModeComments = false,

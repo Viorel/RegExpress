@@ -179,6 +179,7 @@ namespace StdPlugin
                                             grammar == GrammarEnum.egrep ||
                                             grammar == GrammarEnum.awk ? FeatureMatrix.PunctuationEnum.Normal
                                             : FeatureMatrix.PunctuationEnum.None,
+                AlternationOnSeparateLines = grammar == GrammarEnum.grep || grammar == GrammarEnum.egrep,
 
                 InlineComments = false,
                 XModeComments = false,

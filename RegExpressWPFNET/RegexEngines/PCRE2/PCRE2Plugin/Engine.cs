@@ -191,6 +191,7 @@ namespace PCRE2Plugin
                 ExtendedBrackets = true,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = true,
                 XModeComments = true,

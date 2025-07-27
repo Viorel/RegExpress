@@ -157,6 +157,7 @@ namespace PerlPlugin
                 ExtendedBrackets = true,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = true,
                 XModeComments = true,

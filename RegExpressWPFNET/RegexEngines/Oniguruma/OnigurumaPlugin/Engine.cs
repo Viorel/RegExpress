@@ -267,6 +267,7 @@ namespace OnigurumaPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = details.ONIG_SYN_OP_VBAR_ALT ? FeatureMatrix.PunctuationEnum.Normal : details.ONIG_SYN_OP_ESC_VBAR_ALT ? FeatureMatrix.PunctuationEnum.Backslashed : FeatureMatrix.PunctuationEnum.None,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = details.ONIG_SYN_OP2_QMARK_GROUP_EFFECT, //........
                 XModeComments = true,

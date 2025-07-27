@@ -187,6 +187,7 @@ namespace FortranPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = false,
                 XModeComments = false,
@@ -395,6 +396,7 @@ namespace FortranPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.None,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = false,
                 XModeComments = false,
@@ -603,6 +605,7 @@ namespace FortranPlugin
                 ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
 
                 InlineComments = false,
                 AnomalousInlineComments = true,
