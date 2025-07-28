@@ -35,11 +35,15 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Style="{StaticResource StackPanelWithLabels}" >
-                    <TextBlock Text="Pattern" Style="{StaticResource Labels}" VerticalAlignment="Center" />
-                </StackPanel>
+                <Grid>
+                    <StackPanel Style="{StaticResource StackPanelWithLabels}" HorizontalAlignment="Left" >
+                        <TextBlock Text="Pattern" Style="{StaticResource Labels}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock x:Name="lblPatternInfo" d:Text="Length: 0" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin=" 0 0 4 0"
+                               FontSize="9.5" Opacity="0.77" />
+                </Grid>
                 <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
-                    <local:UCPattern x:Name="ucPattern" TextChanged="UcPattern_TextChanged" >
+                    <local:UCPattern x:Name="ucPattern" TextChanged="UcPattern_TextChanged" SelectionChanged="ucPattern_SelectionChanged" GotKeyboardFocus="ucPattern_GotKeyboardFocus" >
                         <local:UCPattern.Clip>
                             <MultiBinding Converter="{StaticResource BorderClipConverter}">
                                 <Binding Path="ActualWidth"  RelativeSource="{RelativeSource Self}"/>
@@ -54,38 +58,30 @@
             <GridSplitter Grid.Row="1" IsTabStop="False" />
 
             <Grid Grid.Row="2" Margin="0 4 0 1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*" MinHeight="33"/>
+                </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*" MinHeight="33"/>
-                    </Grid.RowDefinitions>
+                <Grid Grid.Row="0" >
 
-                    <StackPanel Grid.Row="0" Style="{StaticResource StackPanelWithLabels}">
-                        <TextBlock Text="Text" Style="{StaticResource Labels}"/>
-                        <TextBlock x:Name="lblTextInfo" Text="(Length)" Margin="16 1 0 0" >
-                            <TextBlock.LayoutTransform>
-                                <TransformGroup>
-                                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                                    <SkewTransform/>
-                                    <RotateTransform/>
-                                    <TranslateTransform/>
-                                </TransformGroup>
-                            </TextBlock.LayoutTransform>
-                        </TextBlock>
+                    <StackPanel Style="{StaticResource StackPanelWithLabels}" HorizontalAlignment="Left" >
+                        <TextBlock Text="Text" Style="{StaticResource Labels}" />
                     </StackPanel>
-                    <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
-                        <local:UCText x:Name="ucText" TextChanged="UcText_TextChanged" SelectionChanged="UcText_SelectionChanged" LostFocus="UcText_LostFocus" LocalUnderliningFinished="UcText_LocalUnderliningFinished" GotKeyboardFocus="UcText_GotKeyboardFocus" >
-                            <local:UCText.Clip>
-                                <MultiBinding Converter="{StaticResource BorderClipConverter}">
-                                    <Binding Path="ActualWidth"  RelativeSource="{RelativeSource Self}"/>
-                                    <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
-                                    <Binding Path="CornerRadius" RelativeSource="{RelativeSource AncestorType=Border}"/>
-                                </MultiBinding>
-                            </local:UCText.Clip>
-                        </local:UCText>
-                    </Border>
+                    <TextBlock x:Name="lblTextInfo" d:Text="Length: 0" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin=" 0 0 4 0"
+                               FontSize="9.5" Opacity="0.77"/>
                 </Grid>
+                <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
+                    <local:UCText x:Name="ucText" TextChanged="UcText_TextChanged" SelectionChanged="UcText_SelectionChanged" LostFocus="UcText_LostFocus" LocalUnderliningFinished="UcText_LocalUnderliningFinished" GotKeyboardFocus="UcText_GotKeyboardFocus" >
+                        <local:UCText.Clip>
+                            <MultiBinding Converter="{StaticResource BorderClipConverter}">
+                                <Binding Path="ActualWidth"  RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="ActualHeight" RelativeSource="{RelativeSource Self}"/>
+                                <Binding Path="CornerRadius" RelativeSource="{RelativeSource AncestorType=Border}"/>
+                            </MultiBinding>
+                        </local:UCText.Clip>
+                    </local:UCText>
+                </Border>
             </Grid>
 
             <GridSplitter Grid.Row="3" IsTabStop="False" />

@@ -27,6 +27,7 @@ namespace RegExpressWPFNET
     {
         readonly ResumableLoop FindMatchesLoop;
         readonly ResumableLoop UpdateWhitespaceWarningLoop;
+        readonly ResumableLoop ShowPatternInfoLoop;
         readonly ResumableLoop ShowTextInfoLoop;
         readonly ManualResetEvent StopIndeterminateProgressPreparationEvent = new( false );
 
@@ -40,6 +41,7 @@ namespace RegExpressWPFNET
         public bool IsFullyLoaded { get; private set; } = false;
         bool IsInChange = false;
         TabData? InitialTabData = null;
+        bool ucPatternHadFocus = false;
         bool ucTextHadFocus = false;
 
         public event EventHandler? Changed;
@@ -67,6 +69,7 @@ namespace RegExpressWPFNET
             RegexEngines = engines;
             DefaultRegexEngine = engines.First( );
 
+            lblPatternInfo.Visibility = Visibility.Collapsed;
             lblTextInfo.Visibility = Visibility.Collapsed;
             lblWarnings.Inlines.Remove( lblWhitespaceWarning1 );
             lblWarnings.Inlines.Remove( lblWhitespaceWarning2 );
@@ -74,9 +77,11 @@ namespace RegExpressWPFNET
 
             FindMatchesLoop = new ResumableLoop( "Match", FindMatchesThreadProc, 333, 555 );
             UpdateWhitespaceWarningLoop = new ResumableLoop( "WS Warning", UpdateWhitespaceWarningThreadProc, 444, 777 );
+            ShowPatternInfoLoop = new ResumableLoop( "PatternInfo", ShowPatternInfoThreadProc, 333, 555 );
             ShowTextInfoLoop = new ResumableLoop( "TextInfo", ShowTextInfoThreadProc, 333, 555 );
 
             UpdateWhitespaceWarningLoop.Priority = ThreadPriority.Lowest;
+            ShowPatternInfoLoop.Priority = ThreadPriority.Lowest;
             ShowTextInfoLoop.Priority = ThreadPriority.Lowest;
 
             foreach( var eng in RegexEngines )
@@ -241,9 +246,9 @@ namespace RegExpressWPFNET
             CurrentRegexEngine = RegexEngines.First( ); // default
             SetEngineOption( CurrentRegexEngine );
 
-            ucPattern.SetFocus( );
-
             IsFullyLoaded = true;
+
+            ucPattern.SetFocus( );
 
             Debug.Assert( !IsInChange );
 
@@ -308,9 +313,32 @@ namespace RegExpressWPFNET
             if( IsInChange ) return;
 
             FindMatchesLoop.SignalWaitAndExecute( );
+            ShowPatternInfoLoop.SignalWaitAndExecute( );
             UpdateWhitespaceWarningLoop.SignalWaitAndExecute( );
 
             Changed?.Invoke( this, EventArgs.Empty );
+        }
+
+        private void ucPattern_SelectionChanged( object sender, EventArgs e )
+        {
+            if( !IsFullyLoaded ) return;
+            if( IsInChange ) return;
+
+            ShowPatternInfoLoop.SignalWaitAndExecute( );
+        }
+
+
+        private void ucPattern_GotKeyboardFocus( object sender, KeyboardFocusChangedEventArgs e )
+        {
+            if( !IsFullyLoaded ) return;
+            if( IsInChange ) return;
+
+            if( !ucPatternHadFocus )
+            {
+                ucPatternHadFocus = true;
+
+                ShowPatternInfoLoop.SignalWaitAndExecute( );
+            }
         }
 
 
@@ -529,6 +557,7 @@ namespace RegExpressWPFNET
 
             ucPattern.SetRegexOptions( CurrentRegexEngine!, GetEolOption( ) );
             FindMatchesLoop.SignalWaitAndExecute( );
+            ShowPatternInfoLoop.SignalWaitAndExecute( );
             ShowTextInfoLoop.SignalWaitAndExecute( );
 
             Changed?.Invoke( this, EventArgs.Empty );
@@ -683,6 +712,7 @@ namespace RegExpressWPFNET
         private void RestartAll( )
         {
             FindMatchesLoop.SignalWaitAndExecute( );
+            ShowPatternInfoLoop.SignalWaitAndExecute( );
             ShowTextInfoLoop.SignalWaitAndExecute( );
             UpdateWhitespaceWarningLoop.SignalWaitAndExecute( );
         }
@@ -692,6 +722,7 @@ namespace RegExpressWPFNET
         {
             FindMatchesLoop.Terminate( );
             UpdateWhitespaceWarningLoop.Terminate( );
+            ShowPatternInfoLoop.Terminate( );
             ShowTextInfoLoop.Terminate( );
         }
 
@@ -700,6 +731,7 @@ namespace RegExpressWPFNET
         {
             FindMatchesLoop.SignalRewind( );
             UpdateWhitespaceWarningLoop.SignalRewind( );
+            ShowPatternInfoLoop.SignalRewind( );
             ShowTextInfoLoop.SignalRewind( );
         }
 
@@ -893,12 +925,43 @@ namespace RegExpressWPFNET
         }
 
 
+        void ShowPatternInfoThreadProc( ICancellable cnc )
+        {
+            UITaskHelper.BeginInvoke( this,
+                ( ) =>
+                {
+                    TextData td = ucPattern.GetTextData( GetEolOption( ) );
+
+                    if( cnc.IsCancellationRequested ) return;
+
+                    lblPatternInfo.Visibility = lblPatternInfo.Visibility == Visibility.Visible || td.Text.Length != 0 ? Visibility.Visible : Visibility.Collapsed;
+                    if( lblPatternInfo.Visibility == Visibility.Visible )
+                    {
+                        int text_elements = td.LengthInTextElements;
+
+                        string s = $"Length: {td.Text.Length:#,##0}";
+
+                        if( text_elements != td.Text.Length )
+                        {
+                            s = $"{s}  |  Text Elements: {text_elements:#,##0}";
+                        }
+
+                        if( ucPatternHadFocus )
+                        {
+                            s = $"Index: {td.SelectionStart:#,##0}  |  {s}";
+                        }
+
+                        lblPatternInfo.Text = s;
+                    }
+                } );
+        }
+
         void ShowTextInfoThreadProc( ICancellable cnc )
         {
             UITaskHelper.BeginInvoke( this,
                 ( ) =>
                 {
-                    var td = ucText.GetTextData( GetEolOption( ) );
+                    TextData td = ucText.GetTextData( GetEolOption( ) );
 
                     if( cnc.IsCancellationRequested ) return;
 
@@ -911,12 +974,12 @@ namespace RegExpressWPFNET
 
                         if( text_elements != td.Text.Length )
                         {
-                            s += $"  |  Text Elements: {text_elements:#,##0}";
+                            s = $"{s}  |  Text Elements: {text_elements:#,##0}";
                         }
 
                         if( ucTextHadFocus )
                         {
-                            s += $"  |  Index: {td.SelectionStart:#,##0}";
+                            s = $"Index: {td.SelectionStart:#,##0}  |  {s}";
                         }
 
                         lblTextInfo.Text = s;
@@ -1058,6 +1121,7 @@ namespace RegExpressWPFNET
 
                     using( FindMatchesLoop ) { }
                     using( UpdateWhitespaceWarningLoop ) { }
+                    using( ShowPatternInfoLoop ) { }
                     using( ShowTextInfoLoop ) { }
                 }
 

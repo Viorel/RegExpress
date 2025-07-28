@@ -67,6 +67,7 @@ namespace RegExpressWPFNET
         string? mEol;
 
         public event EventHandler? TextChanged;
+        public event EventHandler? SelectionChanged;
 
 
         public UCPattern( )
@@ -241,6 +242,8 @@ namespace RegExpressWPFNET
 
             UndoRedoHelper.HandleSelectionChanged( );
             HighlightingLoop.SignalWaitAndExecute( );
+
+            SelectionChanged?.Invoke( this, EventArgs.Empty );
         }
 
 
