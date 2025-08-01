@@ -48,7 +48,7 @@ namespace RegExpressLibrary
         public Action<StreamWriter>? StreamWriter { get; set; }
 
         public string[]? Arguments { get; set; }
-
+        public Dictionary<string, string> Environment { get; } = [];
 
         public ProcessHelper( string fileName )
         {
@@ -79,7 +79,7 @@ namespace RegExpressLibrary
 
             p.StartInfo.CreateNoWindow = true;
             //p.StartInfo.Domain
-            //p.StartInfo.Environment
+            foreach( var kvp in Environment ) p.StartInfo.Environment.Add( kvp.Key, kvp.Value );
             //p.StartInfo.EnvironmentVariables
             p.StartInfo.ErrorDialog = false;
             //p.StartInfo.ErrorDialogParentHandle

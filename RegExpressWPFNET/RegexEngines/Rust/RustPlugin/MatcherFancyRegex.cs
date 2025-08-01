@@ -66,6 +66,10 @@ namespace RustPlugin
                 sw.Write( json );
             };
 
+#if DEBUG
+            ph.Environment.Add( "RUST_BACKTRACE", "1" );
+#endif
+
             if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );

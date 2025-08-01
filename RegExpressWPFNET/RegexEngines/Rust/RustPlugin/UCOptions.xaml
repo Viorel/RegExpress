@@ -25,7 +25,7 @@
                 <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
                     <ComboBoxItem Tag ="regex" Content="regex 1.11.1" IsSelected="True" />
                     <ComboBoxItem Tag ="regex_lite" Content="regex_lite 0.1.6" />
-                    <ComboBoxItem Tag ="fancy_regex" Content="fancy_regex 0.14.0" />
+                    <ComboBoxItem Tag ="fancy_regex" Content="fancy_regex 0.16.0" />
                     <ComboBoxItem Tag ="regress" Content="regress 0.10.3" />
                 </ComboBox>
             </StackPanel>

@@ -241,9 +241,9 @@ namespace RegExpressWPFNET.Adorners
         {
             const int DOT_SIZE = 2;
 
-            var x = rect.Left + rect.Width / 2;
-            var y = Math.Floor( rect.Top + rect.Height / 2 - DOT_SIZE / 2 );
-            var dot_rect = new Rect( x, y, DOT_SIZE, DOT_SIZE );
+            double x = rect.Left + rect.Width / 2;
+            double y = Math.Floor( rect.Top + rect.Height / 2 - DOT_SIZE / 2 );
+            Rect dot_rect = new Rect( x, y, DOT_SIZE, DOT_SIZE );
 
             dc.DrawRectangle( WsBrush, null, dot_rect );
         }
@@ -253,10 +253,10 @@ namespace RegExpressWPFNET.Adorners
         {
             const int ARROW_WIDTH = 6;
 
-            var half_pen = TabPen.Thickness / 2;
+            double half_pen = TabPen.Thickness / 2;
 
-            var x = Math.Ceiling( rect.Left ) + half_pen;
-            var y = Math.Ceiling( rect.Top + rect.Height / 2 ) - half_pen;
+            double x = Math.Ceiling( rect.Left ) + half_pen;
+            double y = Math.Ceiling( rect.Top + rect.Height / 2 ) - half_pen;
 
             dc.DrawLine( TabPen, new Point( x, y ), new Point( x + ARROW_WIDTH, y ) );
             dc.DrawLine( TabPen, new Point( x + ARROW_WIDTH / 2, y - ARROW_WIDTH / 2 ), new Point( x + ARROW_WIDTH, y ) );
@@ -268,10 +268,10 @@ namespace RegExpressWPFNET.Adorners
         {
             const int EOL_WIDTH = 6;
 
-            var half_pen = EolPen.Thickness / 2;
+            double half_pen = EolPen.Thickness / 2;
 
-            var x = Math.Ceiling( eol_rect.Left + 2 ) + half_pen;
-            var y = Math.Ceiling( eol_rect.Top + eol_rect.Height / 2 ) - half_pen;
+            double x = Math.Ceiling( eol_rect.Left + 2 ) + half_pen;
+            double y = Math.Ceiling( eol_rect.Top + eol_rect.Height / 2 + eol_rect.Height / 8 ) - half_pen;
 
             dc.DrawLine( EolPen, new Point( x, y ), new Point( x + EOL_WIDTH, y ) );
             dc.DrawLine( EolPen, new Point( x + EOL_WIDTH, y ), new Point( x + EOL_WIDTH, y - eol_rect.Height * 0.35 ) );
@@ -287,10 +287,10 @@ namespace RegExpressWPFNET.Adorners
             double h = Math.Ceiling( rect.Height * 0.3 );
             double half_pen = EofPen.Thickness / 2;
 
-            var x = Math.Ceiling( rect.Left + 2 ) + half_pen;
-            var y = Math.Floor( rect.Top + ( rect.Height - h ) / 2 ) - half_pen;
+            double x = Math.Ceiling( rect.Left + 2 ) + half_pen;
+            double y = Math.Floor( rect.Top + ( rect.Height - h ) / 2 ) - half_pen;
 
-            var eof_rect = new Rect( x, y, EOF_WIDTH, h );
+            Rect eof_rect = new Rect( x, y, EOF_WIDTH, h );
 
             dc.DrawRectangle( EofBrush, EofPen, eof_rect );
         }
