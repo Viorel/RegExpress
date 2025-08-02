@@ -84,7 +84,7 @@ namespace RegExpressWPFNET
             ShowPatternInfoLoop.Priority = ThreadPriority.Lowest;
             ShowTextInfoLoop.Priority = ThreadPriority.Lowest;
 
-            foreach( var eng in RegexEngines )
+            foreach( var eng in RegexEngines.OrderBy( e => e.Name ) )
             {
                 eng.OptionsChanged += Engine_OptionsChanged;
 

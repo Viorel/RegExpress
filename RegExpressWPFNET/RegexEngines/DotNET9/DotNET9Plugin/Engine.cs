@@ -37,7 +37,7 @@ namespace DotNET8Plugin
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "Regex, .NET";
+        public string Name => ".NET";
 
         public string Subtitle => ".NET";
 

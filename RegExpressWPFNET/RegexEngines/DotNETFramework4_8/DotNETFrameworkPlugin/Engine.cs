@@ -38,7 +38,7 @@ namespace DotNETFrameworkPlugin
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "Regex, .NET Framework";
+        public string Name => ".NET Framework";
 
         public string Subtitle => ".NET Framework";
 
