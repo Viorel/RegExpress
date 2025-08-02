@@ -17,7 +17,7 @@ It includes the following Regular Expression engines:
 * **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel (in C).
 * **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41 (in C).
 * **[ICU Regular Expressions](https://icu.unicode.org/)** 77.1 (in C++).
-* **Rust** 1.88.0 crates: **[regex](https://docs.rs/regex)** 1.11.1, **[regex\_lite](https://docs.rs/regex_lite)** 0.1.6, **[fancy\_regex](https://docs.rs/fancy-regex)** 0.15.0 and **[regress](https://docs.rs/regress)** 0.10.3.
+* **Rust** 1.88.0 crates: **[regex](https://docs.rs/regex)** 1.11.1, **[regex\_lite](https://docs.rs/regex_lite)** 0.1.6, **[fancy\_regex](https://docs.rs/fancy-regex)** 0.16.1 and **[regress](https://docs.rs/regress)** 0.10.3.
 * **[Java](https://docs.oracle.com/en/java/javase/24/docs/api/java.base/java/util/regex/package-summary.html)** 24.0.1 (*java.util.regex* and *com.google.re2j* packages).
 * **[Python](https://www.python.org/)** 3.13.2 (standard *re* module, third-party *regex* module).
 * **[D](https://dlang.org/phobos/std_regex.html)** 2.109.1 (*std.regex* module).
