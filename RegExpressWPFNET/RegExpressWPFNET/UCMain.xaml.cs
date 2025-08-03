@@ -943,8 +943,10 @@ namespace RegExpressWPFNET
 
                         if( text_elements != td.Text.Length )
                         {
-                            s = $"{s}  |  Text Elements: {text_elements:#,##0}";
+                            s = $"{s}  |  Elements: {text_elements:#,##0}";
                         }
+
+                        s = $"{s}  |  Lines: {td.NumberOfLines:#,##0}";
 
                         if( ucPatternHadFocus )
                         {
@@ -974,10 +976,12 @@ namespace RegExpressWPFNET
 
                         if( text_elements != td.Text.Length )
                         {
-                            s = $"{s}  |  Text Elements: {text_elements:#,##0}";
+                            s = $"{s}  |  Elements: {text_elements:#,##0}";
                         }
 
-                        if( ucTextHadFocus )
+                        s = $"{s}  |  Lines: {td.NumberOfLines:#,##0}";
+
+                        if( ucPatternHadFocus )
                         {
                             s = $"Index: {td.SelectionStart:#,##0}  |  {s}";
                         }

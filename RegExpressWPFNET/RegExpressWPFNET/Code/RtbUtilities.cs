@@ -22,7 +22,9 @@ namespace RegExpressWPFNET.Code
 
     public class BaseTextData
     {
-        private int mLengthInTextElements = -1;
+        int mLengthInTextElements = -1;
+        int mNumberOfLines = -1;
+
 
         public readonly string Text; // (lines are separated by EOL specified in the call of 'GetBaseTextData' and 'GetTextData',
         public readonly string Eol;  //  which is also kept in 'Eol')
@@ -61,6 +63,34 @@ namespace RegExpressWPFNET.Code
                 }
 
                 return mLengthInTextElements;
+            }
+        }
+
+        public int NumberOfLines
+        {
+            get
+            {
+                if( mNumberOfLines < 0 )
+                {
+                    lock( this )
+                    {
+                        if( mNumberOfLines < 0 )
+                        {
+                            if( string.IsNullOrEmpty( Text ) )
+                            {
+                                mNumberOfLines = 0;
+                            }
+                            else
+                            {
+                                Regex re = new( pattern: Regex.Escape( Eol ) );
+
+                                mNumberOfLines = re.Matches( Text ).Count + 1;
+                            }
+                        }
+                    }
+                }
+
+                return mNumberOfLines;
             }
         }
     }

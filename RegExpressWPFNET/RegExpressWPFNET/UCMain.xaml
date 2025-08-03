@@ -40,7 +40,7 @@
                         <TextBlock Text="Pattern" Style="{StaticResource Labels}" VerticalAlignment="Center" />
                     </StackPanel>
                     <TextBlock x:Name="lblPatternInfo" d:Text="Length: 0" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin=" 0 0 4 0"
-                               FontSize="9.5" Opacity="0.77" />
+                               FontSize="9.25" Opacity="0.77" />
                 </Grid>
                 <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
                     <local:UCPattern x:Name="ucPattern" TextChanged="UcPattern_TextChanged" SelectionChanged="ucPattern_SelectionChanged" GotKeyboardFocus="ucPattern_GotKeyboardFocus" >
@@ -69,7 +69,7 @@
                         <TextBlock Text="Text" Style="{StaticResource Labels}" />
                     </StackPanel>
                     <TextBlock x:Name="lblTextInfo" d:Text="Length: 0" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin=" 0 0 4 0"
-                               FontSize="9.5" Opacity="0.77"/>
+                               FontSize="9.25" Opacity="0.77"/>
                 </Grid>
                 <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
                     <local:UCText x:Name="ucText" TextChanged="UcText_TextChanged" SelectionChanged="UcText_SelectionChanged" LostFocus="UcText_LostFocus" LocalUnderliningFinished="UcText_LocalUnderliningFinished" GotKeyboardFocus="UcText_GotKeyboardFocus" >
