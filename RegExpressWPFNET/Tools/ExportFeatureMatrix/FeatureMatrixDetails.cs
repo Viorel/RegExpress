@@ -57,8 +57,8 @@ class FeatureMatrixDetails
             new ( @"new line (\n)", @"Alternatives on separate lines", fm => fm.AlternationOnSeparateLines, "x\ny", "y" ),
 
             new ( @"(?#comment)", @"Inline comment", fm => fm.InlineComments ), // TODO
-            new ( @"#comment", @"Comment when enabled by options", fm => fm.XModeComments ),
-            new ( @"[#comment]", @"Comment inside […] when enabled by options", fm => fm.InsideSets_XModeComments ),
+            new ( @"#comment", @"Comment", fm => fm.XModeComments ),
+            new ( @"[#comment]", @"Comment inside […]", fm => fm.InsideSets_XModeComments ),
 
             new ( @"(?flags)", @"Inline options", fm => fm.Flags, @"(?i)x", "X" ),
             new ( @"(?flags:…)", @"Inline scoped options", fm => fm.ScopedFlags, @"(?i:x)", "X" ),
@@ -125,7 +125,7 @@ class FeatureMatrixDetails
 
             new ( @"Classes", null, null ),
 
-            new ( @".", @"Any, including or excepting newline (\n) depending on options", fm => fm.Class_Dot, @".", "x" ),
+            new ( @".", @"Any, including or excepting newline (\n)", fm => fm.Class_Dot, @".", "x" ),
             new ( @"\C", @"Single byte", fm => fm.Class_Cbyte, @"\C\C", "î" ),
             new ( @"\C", @"Single code point", fm => fm.Class_Ccp, @"\C", "x", @"\C\C", "î" ),
             new ( @"\d, \D", @"Digit", fm => fm.Class_dD, @"\d\D", "9x" ),
@@ -182,8 +182,8 @@ class FeatureMatrixDetails
 
             new ( @"Anchors", null, null ),
 
-            new ( @"^", @"Beginning of string or line, depending on options", fm => fm.Anchor_Circumflex, @"^x", "x" ),
-            new ( @"$", @"End, or before '\n' at end of string or line, depending on options", fm => fm.Anchor_Dollar, @"x$", "x" ),
+            new ( @"^", @"Beginning of string or line", fm => fm.Anchor_Circumflex, @"^x", "x" ),
+            new ( @"$", @"End, or before '\n' at end of string or line", fm => fm.Anchor_Dollar, @"x$", "x" ),
             new ( @"\A", @"Start of string", fm => fm.Anchor_A, @"\Ax", "x" ),
             new ( @"\Z", @"End of string, or before '\n' at end of string", fm => fm.Anchor_Z, @"x\Z", "x" ),
             new ( @"\z", @"End of string", fm => fm.Anchor_z, @"x\z", "x" ),
@@ -202,7 +202,7 @@ class FeatureMatrixDetails
             new ( @"(?'name'…)", @"Named group", fm => fm.NamedGroup_Apos, @"(?'n'x)", "x" ),
             new ( @"(?<name>…)", @"Named group", fm => fm.NamedGroup_LtGt, @"(?<n>x)", "x" ),
             new ( @"(?P<name>…)", @"Named group", fm => fm.NamedGroup_PLtGt, @"(?P<n>x)", "x" ),
-            new ( @"(?@…)", @"Capturing group, depending on options", fm => fm.NamedGroup_AtApos || fm.NamedGroup_AtLtGt || fm.CapturingGroup, @"(@<n>x)", "x" ),
+            new ( @"(?@…)", @"Capturing group", fm => fm.NamedGroup_AtApos || fm.NamedGroup_AtLtGt || fm.CapturingGroup, @"(@<n>x)", "x" ),
 
             new ( @"\1, \2, …, \9", @"Backreferences", fm => fm.Backref_Num == FeatureMatrix.BackrefEnum.OneDigit || fm.Backref_Num == FeatureMatrix.BackrefEnum.Any , @"(x)\1", "xx" ),
             new ( @"\nnn", @"Backreference, two or more digits", fm => fm.Backref_Num == FeatureMatrix.BackrefEnum.Any, @"(x)(x)(x)(x)(x)(x)(x)(x)(x)(y)\10", "xxxxxxxxxyy" ),
@@ -217,7 +217,7 @@ class FeatureMatrixDetails
             new ( @"\g-n", @"Relative subroutine \g-1, \g-2, …", fm => fm.Backref_gNegNum, @"(?<n>x)\g-1", "xx" ),
             new ( @"\g{…}", @"Subroutine \g{name}, \g{number}, \g{-number}, g{+number}", fm => fm.Backref_gBrace, @"(?<n>x)\g{n}", "xx" ),
             new ( @"(?P=name)", @"Subroutine by name", fm => fm.Backref_PEqName, @"(?P<n>x)(?P=n)", "xx" ),
-            new ( @"\k< … >, \g< … >", @"Allow spaces like '\k < name >' when whitespaces are enabled by options", fm => fm.AllowSpacesInBackref ), // TODO
+            new ( @"\k< … >, \g< … >", @"Allow spaces like '\k < name >'", fm => fm.AllowSpacesInBackref ), // TODO
 
             new ( @"Grouping", null, null ),
 
@@ -231,7 +231,7 @@ class FeatureMatrixDetails
             new ( @"(?*…)", @"Non-atomic positive lookahead", fm => fm.NonatomicPositiveLookahead, @"a(?*x)x", "ax" ),
             new ( @"(?<*…)", @"Non-atomic positive lookbehind ", fm => fm.NonatomicPositiveLookbehind, @"(?<*x)a", "xa" ),
             new ( @"(?~…)", @"Absent operator", fm => fm.AbsentOperator, @"/\*(?~\*\/)\*\/", "/* abc */" ),
-            new ( @"( ? … )", @"Allow spaces like '( ? < name >…)' when whitespaces are enabled by options", fm => fm.AllowSpacesInGroups ), // TODO
+            new ( @"( ? … )", @"Allow spaces like '( ? < name >…)'", fm => fm.AllowSpacesInGroups ), // TODO
 
             new ( @"Recursive patterns", null, null ),
 
@@ -251,9 +251,9 @@ class FeatureMatrixDetails
             new ( @"{n,m}", @"Between n and m times: {n}, {n,}, {n,m}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Normal, @"x{2,3}", "xx" ),
             new ( @"\{n,m\}", @"Between n and m times: \{n\}, \{n,\}, \{n,m\}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Backslashed, @"x\{2,3\}", "xx" ),
             new ( @"{ n, m } ", @"Allow spaces within {…} or \{…\}", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.Both ), // TODO
-            new ( @"{ n, m } ", @"Allow spaces within {…} or \{…\} when spaces are allowed by options", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.XModeOnly ), // TODO
+            new ( @"{ n, m } ", @"Allow spaces within {…} or \{…\}", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.XModeOnly ), // TODO
             new ( @"{,m}, \{,m\}", @"Equivalent to {0,m} or \{0,m\}", fm => fm.Quantifier_LowAbbrev, @"x{,3}", "xxx" ),
-            new ( @"{expr}, \{expr\}", @"Approximate matching using given engine-specific expression", fm => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed ), // TODO
+            new ( @"{expr}, \{expr\}", @"Approximate matching", fm => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed ), // TODO
 
             new ( @"Conditionals", null, null ),
 
@@ -275,7 +275,7 @@ class FeatureMatrixDetails
             new ( @"(?Cn), (*func)", @"Callouts (custom functions)", fm => fm.Callouts ),
 
             new ( @"(?)", @"Empty construct", fm => fm.EmptyConstruct, @"x(?)y", "xy" ),
-            new ( @"(? )", @"Empty construct when whitespaces are enabled by options", fm => fm.EmptyConstructX, @"(?x)x(? )y", "xy" ),
+            new ( @"(? )", @"Empty construct", fm => fm.EmptyConstructX, @"(?x)x(? )y", "xy" ),
             new ( @"[]", @"Empty set", fm => fm.EmptySet, @"x[]?", "x" ),
 
             new ( @"“.” on Surrogate Pairs", @"Split Surrogate Pair characters into components", fm => fm.SplitSurrogatePairs ), // TODO

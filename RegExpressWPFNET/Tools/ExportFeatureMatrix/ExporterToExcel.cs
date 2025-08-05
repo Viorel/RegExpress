@@ -92,7 +92,8 @@ partial class ExporterToExcel
             MergeExistingCells( cell1, cell2 );
             SetRowHeight( cell1, 49 );
 
-            SetColumnWidth( 1, 2, 20 );
+            SetColumnWidth( 1, 20 );
+            SetColumnWidth( 2, 40 );
 
             // table header
 
