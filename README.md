@@ -53,24 +53,22 @@ The minimal sources of third-party regular expression libraries are included.
 * Configurations: **“Debug, Any CPU”** or **“Release, Any CPU”**. The C++ projects use **“x64”**.
 * Operating Systems: **Windows 11**, **Windows 10**.
 
-<br/>
-
- 
 Some of engines require certain third-party library files, which were downloaded or compiled separately 
 and included into **main** branch. (No additional installations required).
+
+To avoid compilation errors after acquiring new release, use the “Rebuild Solution” command.
 
 <br/>
 
 ## Feature Matrix
 
-The various functionalities of regular expression engines are presented in the Excel and HTML file.
+The various functionalities of regular expression engines are presented in the Excel file.
 
 ![Feature Matrix](FM.png)
 
 Download and open the file:
 
-* [Excel](./RegExpressWPFNET/Tools/ExportFeatureMatrix/RegexFeatureMatrix.xlsx),
-* [HTML](./RegExpressWPFNET/Tools/ExportFeatureMatrix/RegexFeatureMatrix.html).
+* [RegexFeatureMatrix.xlsx](./RegExpressWPFNET/Tools/ExportFeatureMatrix/RegexFeatureMatrix.xlsx)
 
 <br/>
 <br/>
