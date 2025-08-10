@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:VBScriptPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             Loaded="UserControl_Loaded" Height="162" Width="202">
+             Loaded="UserControl_Loaded" Height="100" Width="300">
 
     <UserControl.Resources>
         <Style TargetType="ui:CheckboxWithNote">
@@ -17,8 +17,8 @@
     <Grid>
         <StackPanel>
             <StackPanel>
-                <ui:CheckboxWithNote Prop="IgnoreCase"/>
-                <ui:CheckboxWithNote Prop="Global"/>
+                <ui:CheckboxWithNote Prop="IgnoreCase" Note="case-insensitive search"/>
+                <ui:CheckboxWithNote Prop="Global" Note="match all occurrences"/>
             </StackPanel>
         </StackPanel>
     </Grid>

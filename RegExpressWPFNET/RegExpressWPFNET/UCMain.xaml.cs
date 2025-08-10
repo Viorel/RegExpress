@@ -981,7 +981,7 @@ namespace RegExpressWPFNET
 
                         s = $"{s}  |  Lines: {td.NumberOfLines:#,##0}";
 
-                        if( ucPatternHadFocus )
+                        if( ucTextHadFocus )
                         {
                             s = $"Index: {td.SelectionStart:#,##0}  |  {s}";
                         }

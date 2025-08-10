@@ -243,7 +243,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             std::wstring wtext = inbr.ReadString( );
 
             RE2::Options re2_options{};
-            RE2::Anchor re2_anchor = RE2::Anchor::UNANCHORED;
+            re2_options.set_log_errors( false ); // do not write logs to STDERR, which is reserved for our use
 
             re2_options.set_posix_syntax( inbr.ReadByte( ) != 0 );
             re2_options.set_longest_match( inbr.ReadByte( ) != 0 );
@@ -256,6 +256,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             re2_options.set_word_boundary( inbr.ReadByte( ) != 0 );
             re2_options.set_one_line( inbr.ReadByte( ) != 0 );
 
+            RE2::Anchor re2_anchor = RE2::Anchor::UNANCHORED;
+
             std::wstring anchor_s = inbr.ReadString( );
 
             if( anchor_s == L"UNANCHORED" ) re2_anchor = RE2::Anchor::UNANCHORED;
@@ -266,8 +268,6 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( max_mem ) re2_options.set_max_mem( max_mem.value() );
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
-
-            re2_options.set_log_errors( false ); // do not write logs to STDERR
 
             DoMatch( outbw, wpattern, wtext, re2_options, re2_anchor );
 

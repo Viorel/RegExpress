@@ -4,19 +4,6 @@
 #include "CheckedCast.h"
 
 
-namespace
-{
-    template<typename T>
-    struct StdDeleter
-    {
-        void operator ()( T* ptr )
-        {
-            _free_dbg( ptr, _NORMAL_BLOCK );
-        };
-    };
-}
-
-
 void StreamWriter::WriteBytes( const void* buffer0, uint32_t size ) const
 {
     static_assert( sizeof( size ) == sizeof( DWORD ), "" );

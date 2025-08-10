@@ -133,9 +133,11 @@ std::string BinaryReaderW::ReadPrefixedString( ) const
     int32_t length = ReadT<int32_t>( );
     if( length < 0 ) throw std::runtime_error( "Invalid string length." );
 
-    std::vector<char> buffer( length, 0 );
-    ReadBytes( &buffer[0], length );
+    std::string s( length, '\0' );
+    assert( s.size( ) == length );
 
-    return std::string( buffer.cbegin( ), buffer.cend( ) );
+    ReadBytes( &s[0], s.size() );
+
+    return s;
 }
 
