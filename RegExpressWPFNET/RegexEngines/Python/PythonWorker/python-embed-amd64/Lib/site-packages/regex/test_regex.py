@@ -4356,6 +4356,52 @@ thing
         self.assertEqual(bool(regex.match(r'<thinking>.*?</thinking>', '<thinking>xyz abc foo ', partial=True)), True)
         self.assertEqual(bool(regex.match(r'<thinking>.*?</thinking>', '<thinking>xyz abc foo bar', partial=True)), True)
 
+        # Git issue 551:
+        self.assertEqual(bool(regex.match(r'(?V1)[[\s\S]]', 'a')), True)
+        self.assertEqual(bool(regex.match(r'(?V1)[[\s\S]-a]', 'a')), True)
+        self.assertEqual(bool(regex.match(r'(?V1)[[\s\S]--a]', 'a')), False)
+        self.assertEqual(bool(regex.match(r'(?V1)[[a-z]--b]', 'a')), True)
+        self.assertEqual(bool(regex.match(r'(?V1)[[\s\S]--b]', 'a')), True)
+        self.assertEqual(bool(regex.match(r'(?V1)[a-[\s\S]]', 'a')), True)
+        self.assertEqual(bool(regex.match(r'(?V1)[a--[\s\S]]', 'a')), False)
+
+        self.assertEqual(regex.search(r'(?ifu)(H\N{LATIN SMALL LETTER O WITH DIAERESIS}gskolan?)[\\s\\S]*p',
+          'Yrkesh\N{LATIN SMALL LETTER O WITH DIAERESIS}gskola . Studie\N{LATIN SMALL LETTER A WITH DIAERESIS}mnen . Studie\N{LATIN SMALL LETTER A WITH DIAERESIS}mnen . Studie\N{LATIN SMALL LETTER A WITH DIAERESIS}mnen . Studie\N{LATIN SMALL LETTER A WITH DIAERESIS}mnen . Studie\N{LATIN SMALL LETTER A WITH DIAERESIS}mnen . Studie\N{LATIN SMALL LETTER A WITH DIAERESIS}mnen . Studie\N{LATIN SMALL LETTER A WITH DIAERESIS}mnen'),
+          None)
+
+        # Git issue 572: Inline ASCII modifier doesn't seem to affect anything
+        self.assertEqual(bool(regex.match(r'\d', '\uFF19')), True)
+        self.assertEqual(bool(regex.match(r'(?a:\d)', '\uFF19')), False)
+
+        # Git issue 575: Issues with ASCII/Unicode modifiers
+        self.assertEqual(regex.findall('\\d', '9\uFF19'), ['9', '\uff19'])
+        self.assertEqual(regex.findall('(?u:\\d)', '9\uFF19'), ['9', '\uff19'])
+        self.assertEqual(regex.findall('(?a:\\d)', '9\uFF19'), ['9'])
+
+        self.assertEqual(regex.findall('\\d', '9\uFF19', flags=regex.U), ['9', '\uff19'])
+        self.assertEqual(regex.findall('(?u:\\d)', '9\uFF19', flags=regex.U), ['9', '\uff19'])
+        self.assertEqual(regex.findall('(?a:\\d)', '9\uFF19', flags=regex.U), ['9'])
+
+        self.assertEqual(regex.findall('\\d', '9\uFF19', flags=regex.A), ['9'])
+        self.assertEqual(regex.findall('(?u:\\d)', '9\uFF19', flags=regex.A), ['9', '\uff19'])
+        self.assertEqual(regex.findall('(?a:\\d)', '9\uFF19', flags=regex.A), ['9'])
+
+        self.assertEqual(len(regex.findall(r'\p{L}', ''.join(chr(c) for c in range(0x100)), flags=0)), 117)
+        self.assertEqual(len(regex.findall(r'\p{L}', ''.join(chr(c) for c in range(0x100)), flags=regex.A)), 52)
+        self.assertEqual(len(regex.findall(r'\p{L}', ''.join(chr(c) for c in range(0x100)), flags=regex.U)), 117)
+
+        self.assertEqual(len(regex.findall(r'(?a:\p{L})', ''.join(chr(c) for c in range(0x100)), flags=0)), 52)
+        self.assertEqual(len(regex.findall(r'(?a:\p{L})', ''.join(chr(c) for c in range(0x100)), flags=regex.A)), 52)
+        self.assertEqual(len(regex.findall(r'(?a:\p{L})', ''.join(chr(c) for c in range(0x100)), flags=regex.U)), 52)
+
+        self.assertEqual(len(regex.findall(r'(?u:\p{L})', ''.join(chr(c) for c in range(0x100)), flags=0)), 117)
+        self.assertEqual(len(regex.findall(r'(?u:\p{L})', ''.join(chr(c) for c in range(0x100)), flags=regex.A)), 117)
+        self.assertEqual(len(regex.findall(r'(?u:\p{L})', ''.join(chr(c) for c in range(0x100)), flags=regex.U)), 117)
+
+        # Git issue 580: Regression in v2025.7.31: \P{L} no longer matches in simple patterns
+        self.assertEqual(bool(regex.match(r"\A\P{L}?\p{L}", "hello,")), True)
+        self.assertEqual(bool(regex.fullmatch(r"\A\P{L}*(?P<w>\p{L}+)\P{L}*\Z", "hello,")), True)
+
     def test_fuzzy_ext(self):
         self.assertEqual(bool(regex.fullmatch(r'(?r)(?:a){e<=1:[a-z]}', 'e')),
           True)

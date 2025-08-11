@@ -336,7 +336,7 @@ def _compile_firstset(info, fs):
     "Compiles the firstset for the pattern."
     reverse = bool(info.flags & REVERSE)
     fs = _check_firstset(info, reverse, fs)
-    if not fs:
+    if not fs or isinstance(fs, AnyAll):
         return []
 
     # Compile the firstset.
@@ -1103,6 +1103,11 @@ def parse_subpattern(source, info, flags_on, flags_off):
     "Parses a subpattern with scoped flags."
     saved_flags = info.flags
     info.flags = (info.flags | flags_on) & ~flags_off
+
+    # Ensure that there aren't multiple encoding flags set.
+    if info.flags & (ASCII | LOCALE | UNICODE):
+        info.flags = (info.flags & ~_ALL_ENCODINGS) | flags_on
+
     source.ignore_space = bool(info.flags & VERBOSE)
     try:
         subpattern = _parse_pattern(source, info)
@@ -1235,13 +1240,23 @@ def parse_escape(source, info, in_set):
         if not in_set:
             if info.flags & WORD:
                 value = WORD_POSITION_ESCAPES.get(ch)
+            elif info.flags & ASCII:
+                value = ASCII_POSITION_ESCAPES.get(ch)
+            elif info.flags & UNICODE:
+                value = UNICODE_POSITION_ESCAPES.get(ch)
             else:
                 value = POSITION_ESCAPES.get(ch)
 
             if value:
                 return value
 
-        value = CHARSET_ESCAPES.get(ch)
+        if info.flags & ASCII:
+            value = ASCII_CHARSET_ESCAPES.get(ch)
+        elif info.flags & UNICODE:
+            value = UNICODE_CHARSET_ESCAPES.get(ch)
+        else:
+            value = CHARSET_ESCAPES.get(ch)
+
         if value:
             return value
 
@@ -1380,11 +1395,26 @@ def parse_property(source, info, positive, in_set):
         prop_name, name = parse_property_name(source)
         if source.match("}"):
             # It's correctly delimited.
-            prop = lookup_property(prop_name, name, positive != negate, source)
+            if info.flags & ASCII:
+                encoding = ASCII_ENCODING
+            elif info.flags & UNICODE:
+                encoding = UNICODE_ENCODING
+            else:
+                encoding = 0
+
+            prop = lookup_property(prop_name, name, positive != negate, source,
+              encoding=encoding)
             return make_property(info, prop, in_set)
     elif ch and ch in "CLMNPSZ":
         # An abbreviated property, eg \pL.
-        prop = lookup_property(None, ch, positive, source)
+        if info.flags & ASCII:
+            encoding = ASCII_ENCODING
+        elif info.flags & UNICODE:
+            encoding = UNICODE_ENCODING
+        else:
+            encoding = 0
+
+        prop = lookup_property(None, ch, positive, source, encoding=encoding)
         return make_property(info, prop, in_set)
 
     # Not a property, so treat as a literal "p" or "P".
@@ -1634,7 +1664,7 @@ _POSIX_CLASSES = set('ALNUM DIGIT PUNCT XDIGIT'.split())
 
 _BINARY_VALUES = set('YES Y NO N TRUE T FALSE F'.split())
 
-def lookup_property(property, value, positive, source=None, posix=False):
+def lookup_property(property, value, positive, source=None, posix=False, encoding=0):
     "Looks up a property."
     # Normalise the names (which may still be lists).
     property = standardise_name(property) if property else None
@@ -1663,7 +1693,7 @@ def lookup_property(property, value, positive, source=None, posix=False):
 
             raise error("unknown property value", source.string, source.pos)
 
-        return Property((prop_id << 16) | val_id, positive)
+        return Property((prop_id << 16) | val_id, positive, encoding=encoding)
 
     # Only the value is provided.
     # It might be the name of a GC, script or block value.
@@ -1671,16 +1701,16 @@ def lookup_property(property, value, positive, source=None, posix=False):
         prop_id, value_dict = PROPERTIES.get(property)
         val_id = value_dict.get(value)
         if val_id is not None:
-            return Property((prop_id << 16) | val_id, positive)
+            return Property((prop_id << 16) | val_id, positive, encoding=encoding)
 
     # It might be the name of a binary property.
     prop = PROPERTIES.get(value)
     if prop:
         prop_id, value_dict = prop
         if set(value_dict) == _BINARY_VALUES:
-            return Property((prop_id << 16) | 1, positive)
+            return Property((prop_id << 16) | 1, positive, encoding=encoding)
 
-        return Property(prop_id << 16, not positive)
+        return Property(prop_id << 16, not positive, encoding=encoding)
 
     # It might be the name of a binary property starting with a prefix.
     if value.startswith("IS"):
@@ -1688,7 +1718,7 @@ def lookup_property(property, value, positive, source=None, posix=False):
         if prop:
             prop_id, value_dict = prop
             if "YES" in value_dict:
-                return Property((prop_id << 16) | 1, positive)
+                return Property((prop_id << 16) | 1, positive, encoding=encoding)
 
     # It might be the name of a script or block starting with a prefix.
     for prefix, property in (("IS", "SCRIPT"), ("IN", "BLOCK")):
@@ -1696,7 +1726,7 @@ def lookup_property(property, value, positive, source=None, posix=False):
             prop_id, value_dict = PROPERTIES.get(property)
             val_id = value_dict.get(value[2 : ])
             if val_id is not None:
-                return Property((prop_id << 16) | val_id, positive)
+                return Property((prop_id << 16) | val_id, positive, encoding=encoding)
 
     # Unknown property.
     if not source:
@@ -1832,6 +1862,7 @@ ZEROWIDTH_OP = 0x2
 FUZZY_OP = 0x4
 REVERSE_OP = 0x8
 REQUIRED_OP = 0x10
+ENCODING_OP_SHIFT = 5
 
 POS_TEXT = {False: "NON-MATCH", True: "MATCH"}
 CASE_TEXT = {NOCASE: "", IGNORECASE: " SIMPLE_IGNORE_CASE", FULLCASE: "",
@@ -1914,9 +1945,10 @@ class RegexBase:
 
 # Base class for zero-width nodes.
 class ZeroWidthBase(RegexBase):
-    def __init__(self, positive=True):
+    def __init__(self, positive=True, encoding=0):
         RegexBase.__init__(self)
         self.positive = bool(positive)
+        self.encoding = encoding
 
         self._key = self.__class__, self.positive
 
@@ -1931,11 +1963,12 @@ class ZeroWidthBase(RegexBase):
             flags |= FUZZY_OP
         if reverse:
             flags |= REVERSE_OP
+        flags |= self.encoding << ENCODING_OP_SHIFT
         return [(self._opcode, flags)]
 
     def dump(self, indent, reverse):
-        print("{}{} {}".format(INDENT * indent, self._op_name,
-          POS_TEXT[self.positive]))
+        print("{}{} {}{}".format(INDENT * indent, self._op_name,
+          POS_TEXT[self.positive], ["", " ASCII"][self.encoding]))
 
     def max_width(self):
         return 0
@@ -3211,18 +3244,20 @@ class Property(RegexBase):
       True): OP.PROPERTY_IGN_REV}
 
     def __init__(self, value, positive=True, case_flags=NOCASE,
-      zerowidth=False):
+      zerowidth=False, encoding=0):
         RegexBase.__init__(self)
         self.value = value
         self.positive = bool(positive)
         self.case_flags = CASE_FLAGS_COMBINATIONS[case_flags]
         self.zerowidth = bool(zerowidth)
+        self.encoding = encoding
 
         self._key = (self.__class__, self.value, self.positive,
           self.case_flags, self.zerowidth)
 
     def rebuild(self, positive, case_flags, zerowidth):
-        return Property(self.value, positive, case_flags, zerowidth)
+        return Property(self.value, positive, case_flags, zerowidth,
+          self.encoding)
 
     def optimise(self, info, reverse, in_set=False):
         return self
@@ -3241,13 +3276,15 @@ class Property(RegexBase):
             flags |= ZEROWIDTH_OP
         if fuzzy:
             flags |= FUZZY_OP
+        flags |= self.encoding << ENCODING_OP_SHIFT
         return [(self._opcode[self.case_flags, reverse], flags, self.value)]
 
     def dump(self, indent, reverse):
         prop = PROPERTY_NAMES[self.value >> 16]
         name, value = prop[0], prop[1][self.value & 0xFFFF]
-        print("{}PROPERTY {} {}:{}{}".format(INDENT * indent,
-          POS_TEXT[self.positive], name, value, CASE_TEXT[self.case_flags]))
+        print("{}PROPERTY {} {}:{}{}{}".format(INDENT * indent,
+          POS_TEXT[self.positive], name, value, CASE_TEXT[self.case_flags],
+          ["", " ASCII"][self.encoding]))
 
     def matches(self, ch):
         return _regex.has_property_value(self.value, ch) == self.positive
@@ -3813,8 +3850,20 @@ class SetUnion(SetBase):
             if isinstance(m, SetUnion) and m.positive:
                 # Union in union.
                 items.extend(m.items)
+            elif isinstance(m, AnyAll):
+                return AnyAll()
             else:
                 items.append(m)
+
+        # Are there complementary properties?
+        properties = (set(), set())
+
+        for m in items:
+            if isinstance(m, Property):
+                properties[m.positive].add((m.value, m.case_flags, m.zerowidth))
+
+        if properties[0] & properties[1]:
+            return AnyAll()
 
         if len(items) == 1:
             i = items[0]
@@ -4455,6 +4504,9 @@ CHARACTER_ESCAPES = {
     "v": "\v",
 }
 
+ASCII_ENCODING = 1
+UNICODE_ENCODING = 2
+
 # Predefined character set escape sequences.
 CHARSET_ESCAPES = {
     "d": lookup_property(None, "Digit", True),
@@ -4466,6 +4518,25 @@ CHARSET_ESCAPES = {
     "W": lookup_property(None, "Word", False),
 }
 
+ASCII_CHARSET_ESCAPES = dict(CHARSET_ESCAPES)
+ASCII_CHARSET_ESCAPES.update({
+    "d": lookup_property(None, "Digit", True, encoding=ASCII_ENCODING),
+    "D": lookup_property(None, "Digit", False, encoding=ASCII_ENCODING),
+    "s": lookup_property(None, "Space", True, encoding=ASCII_ENCODING),
+    "S": lookup_property(None, "Space", False, encoding=ASCII_ENCODING),
+    "w": lookup_property(None, "Word", True, encoding=ASCII_ENCODING),
+    "W": lookup_property(None, "Word", False, encoding=ASCII_ENCODING),
+})
+UNICODE_CHARSET_ESCAPES = dict(CHARSET_ESCAPES)
+UNICODE_CHARSET_ESCAPES.update({
+    "d": lookup_property(None, "Digit", True, encoding=UNICODE_ENCODING),
+    "D": lookup_property(None, "Digit", False, encoding=UNICODE_ENCODING),
+    "s": lookup_property(None, "Space", True, encoding=UNICODE_ENCODING),
+    "S": lookup_property(None, "Space", False, encoding=UNICODE_ENCODING),
+    "w": lookup_property(None, "Word", True, encoding=UNICODE_ENCODING),
+    "W": lookup_property(None, "Word", False, encoding=UNICODE_ENCODING),
+})
+
 # Positional escape sequences.
 POSITION_ESCAPES = {
     "A": StartOfString(),
@@ -4476,6 +4547,20 @@ POSITION_ESCAPES = {
     "M": EndOfWord(),
     "Z": EndOfString(),
 }
+ASCII_POSITION_ESCAPES = dict(POSITION_ESCAPES)
+ASCII_POSITION_ESCAPES.update({
+    "b": Boundary(encoding=ASCII_ENCODING),
+    "B": Boundary(False, encoding=ASCII_ENCODING),
+    "m": StartOfWord(encoding=ASCII_ENCODING),
+    "M": EndOfWord(encoding=ASCII_ENCODING),
+})
+UNICODE_POSITION_ESCAPES = dict(POSITION_ESCAPES)
+UNICODE_POSITION_ESCAPES.update({
+    "b": Boundary(encoding=UNICODE_ENCODING),
+    "B": Boundary(False, encoding=UNICODE_ENCODING),
+    "m": StartOfWord(encoding=UNICODE_ENCODING),
+    "M": EndOfWord(encoding=UNICODE_ENCODING),
+})
 
 # Positional escape sequences when WORD flag set.
 WORD_POSITION_ESCAPES = dict(POSITION_ESCAPES)

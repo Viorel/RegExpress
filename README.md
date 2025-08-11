@@ -19,7 +19,7 @@ It includes the following Regular Expression engines:
 * **[ICU Regular Expressions](https://icu.unicode.org/)** 77.1 (in C++).
 * **Rust** 1.88.0 crates: **[regex](https://docs.rs/regex)** 1.11.1, **[regex\_lite](https://docs.rs/regex_lite)** 0.1.6, **[fancy\_regex](https://docs.rs/fancy-regex)** 0.16.1 and **[regress](https://docs.rs/regress)** 0.10.3.
 * **[Java](https://docs.oracle.com/en/java/javase/24/docs/api/java.base/java/util/regex/package-summary.html)** 24.0.1 (*java.util.regex* and *com.google.re2j* packages).
-* **[Python](https://www.python.org/)** 3.13.2 (standard *re* module, third-party *regex* module).
+* **[Python](https://www.python.org/)** 3.13.6 (standard *re* module, third-party *regex* module).
 * **[D](https://dlang.org/phobos/std_regex.html)** 2.109.1 (*std.regex* module).
 * **[Perl](https://perldoc.perl.org/perlreref)** 5.40.2 (Strawberry Perl).
 * **Fortran [Forgex](https://github.com/ShinobuAmasaki/forgex)** v4.6 module (Intel® Fortran Compiler 2025.1.0).
@@ -68,7 +68,7 @@ The various functionalities of regular expression engines are presented in the E
 
 Download and open the file:
 
-* [RegexFeatureMatrix.xlsx](./RegExpressWPFNET/Tools/ExportFeatureMatrix/RegexFeatureMatrix.xlsx)
+* [RegexFeatureMatrix.xlsx](RegexFeatureMatrix.xlsx)
 
 <br/>
 <br/>

@@ -352,7 +352,7 @@ namespace PythonPlugin
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = true,
-                Conditional_Pattern = true,
+                Conditional_Pattern = is_regex,
                 Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = false,
                 Conditional_BackrefByName_LtGt = false,

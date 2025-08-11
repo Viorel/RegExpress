@@ -257,7 +257,7 @@ class FeatureMatrixDetails
 
             new ( @"Conditionals", null, null ),
 
-            new ( @"(?(number)…|…)", @"Conditionals by number, +number and -number", fm => fm.Conditional_BackrefByNumber, @"(x)(?(1)y|z)", "xy" ),
+            new ( @"(?(number)…|…)", @"Conditionals by number, +number, -number", fm => fm.Conditional_BackrefByNumber, @"(x)(?(1)y|z)", "xy" ),
             new ( @"(?(name)…|…)", @"Conditional by name", fm => fm.Conditional_BackrefByName, @"(?<n>x)(?(n)y|z)", "xy" ),
             new ( @"(?(pattern)…|…)", @"Conditional subpattern", fm => fm.Conditional_Pattern, @"x(?(?=.z)y|z)", "xyz" ),
             new ( @"(?(xxx)…|…)", @"Conditional by xxx name, or by xxx subpattern, if no such name", fm => fm.Conditional_PatternOrBackrefByName, @"x(?(y).|z)", "xy" ),

@@ -1,4 +1,4 @@
-To install the "regex" package into embeddable Python:
+To install the "regex" module into embeddable Python:
 
    - https://stackoverflow.com/questions/49737721/adding-packages-to-python-embedded-installation-for-windows.
    (Use "regex" instead of "numpy")
