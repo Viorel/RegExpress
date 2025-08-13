@@ -1,0 +1,26 @@
+// (should not have BOM)
+{
+  "module": "re",
+  "pattern": ".",
+  "text": "a\uD83D\uDE0Ec",
+  "flags": {
+    "ASCII": false,
+    "DOTALL": false,
+    "IGNORECASE": false,
+    "LOCALE": false,
+    "MULTILINE": false,
+    "VERBOSE": true,
+    "BESTMATCH": false,
+    "ENHANCEMATCH": false,
+    "FULLCASE": false,
+    "POSIX": false,
+    "REVERSE": false,
+    "UNICODE": false,
+    "WORD": false,
+    "VERSION0": false,
+    "VERSION1": true,
+    "overlapped": true,
+    "partial": false
+  },
+  "timeout": null
+}

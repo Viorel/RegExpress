@@ -134,6 +134,7 @@ rem -- Python --
 set BasePath=%SolutionDir%\RegexEngines\Python
 xcopy /D /R /Y "%BasePath%\PythonPlugin\bin\%Configuration%\%TargetDir%\PythonPlugin.dll" "%EnginesTargetPath%\Python\*"
 xcopy /D /R /Y /E "%BasePath%\PythonWorker\python-embed-amd64\*" "%EnginesTargetPath%\Python\python-embed-amd64\*"
+xcopy /D /R /Y "%BasePath%\PythonWorker\PythonWorker.py" "%EnginesTargetPath%\Python\*"
 
 
 rem -- D --

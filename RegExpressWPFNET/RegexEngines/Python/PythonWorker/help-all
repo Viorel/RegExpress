@@ -1,0 +1,128 @@
+usage: python-embed-amd64\python.exe [option] ... [-c cmd | -m mod | file | -] [arg] ...
+Options (and corresponding environment variables):
+-b     : issue warnings about converting bytes/bytearray to str and comparing
+         bytes/bytearray with str or bytes with int. (-bb: issue errors)
+-B     : don't write .pyc files on import; also PYTHONDONTWRITEBYTECODE=x
+-c cmd : program passed in as string (terminates option list)
+-d     : turn on parser debugging output (for experts only, only works on
+         debug builds); also PYTHONDEBUG=x
+-E     : ignore PYTHON* environment variables (such as PYTHONPATH)
+-h     : print this help message and exit (also -? or --help)
+-i     : inspect interactively after running script; forces a prompt even
+         if stdin does not appear to be a terminal; also PYTHONINSPECT=x
+-I     : isolate Python from the user's environment (implies -E, -P and -s)
+-m mod : run library module as a script (terminates option list)
+-O     : remove assert and __debug__-dependent statements; add .opt-1 before
+         .pyc extension; also PYTHONOPTIMIZE=x
+-OO    : do -O changes and also discard docstrings; add .opt-2 before
+         .pyc extension
+-P     : don't prepend a potentially unsafe path to sys.path; also
+         PYTHONSAFEPATH
+-q     : don't print version and copyright messages on interactive startup
+-s     : don't add user site directory to sys.path; also PYTHONNOUSERSITE=x
+-S     : don't imply 'import site' on initialization
+-u     : force the stdout and stderr streams to be unbuffered;
+         this option has no effect on stdin; also PYTHONUNBUFFERED=x
+-v     : verbose (trace import statements); also PYTHONVERBOSE=x
+         can be supplied multiple times to increase verbosity
+-V     : print the Python version number and exit (also --version)
+         when given twice, print more information about the build
+-W arg : warning control; arg is action:message:category:module:lineno
+         also PYTHONWARNINGS=arg
+-x     : skip first line of source, allowing use of non-Unix forms of #!cmd
+-X opt : set implementation-specific option
+--check-hash-based-pycs always|default|never:
+         control how Python invalidates hash-based .pyc files
+--help-env: print help about Python environment variables and exit
+--help-xoptions: print help about implementation-specific -X options and exit
+--help-all: print complete help information and exit
+
+Arguments:
+file   : program read from script file
+-      : program read from stdin (default; interactive mode if a tty)
+arg ...: arguments passed to program in sys.argv[1:]
+
+Environment variables that change behavior:
+PYTHONSTARTUP   : file executed on interactive startup (no default)
+PYTHONPATH      : ';'-separated list of directories prefixed to the
+                  default module search path.  The result is sys.path.
+PYTHONHOME      : alternate <prefix> directory (or <prefix>;<exec_prefix>).
+                  The default module search path uses <prefix>\python{major}{minor}.
+PYTHONPLATLIBDIR: override sys.platlibdir
+PYTHONCASEOK    : ignore case in 'import' statements (Windows)
+PYTHONIOENCODING: encoding[:errors] used for stdin/stdout/stderr
+PYTHONHASHSEED  : if this variable is set to 'random', a random value is used
+                  to seed the hashes of str and bytes objects.  It can also be
+                  set to an integer in the range [0,4294967295] to get hash
+                  values with a predictable seed.
+PYTHONMALLOC    : set the Python memory allocators and/or install debug hooks
+                  on Python memory allocators.  Use PYTHONMALLOC=debug to
+                  install debug hooks.
+PYTHONCOERCECLOCALE: if this variable is set to 0, it disables the locale
+                  coercion behavior.  Use PYTHONCOERCECLOCALE=warn to request
+                  display of locale coercion and locale compatibility warnings
+                  on stderr.
+PYTHONBREAKPOINT: if this variable is set to 0, it disables the default
+                  debugger.  It can be set to the callable of your debugger of
+                  choice.
+PYTHON_COLORS   : if this variable is set to 1, the interpreter will colorize
+                  various kinds of output.  Setting it to 0 deactivates
+                  this behavior.
+PYTHON_HISTORY  : the location of a .python_history file.
+
+These variables have equivalent command-line options (see --help for details):
+PYTHON_CPU_COUNT: override the return value of os.cpu_count() (-X cpu_count)
+PYTHONDEBUG     : enable parser debug mode (-d)
+PYTHONDEVMODE   : enable Python Development Mode (-X dev)
+PYTHONDONTWRITEBYTECODE: don't write .pyc files (-B)
+PYTHONFAULTHANDLER: dump the Python traceback on fatal errors (-X faulthandler)
+PYTHON_FROZEN_MODULES: whether to use frozen modules; the default is "on"
+                  for installed Python and "off" for a local build
+                  (-X frozen_modules)
+PYTHONINSPECT   : inspect interactively after running script (-i)
+PYTHONINTMAXSTRDIGITS: limit the size of int<->str conversions;
+                  0 disables the limit (-X int_max_str_digits=N)
+PYTHONNODEBUGRANGES: don't include extra location information in code objects
+                  (-X no_debug_ranges)
+PYTHONNOUSERSITE: disable user site directory (-s)
+PYTHONOPTIMIZE  : enable level 1 optimizations (-O)
+PYTHONPERFSUPPORT: support the Linux "perf" profiler (-X perf)
+PYTHONPROFILEIMPORTTIME: show how long each import takes (-X importtime)
+PYTHONPYCACHEPREFIX: root directory for bytecode cache (pyc) files
+                  (-X pycache_prefix)
+PYTHONSAFEPATH  : don't prepend a potentially unsafe path to sys.path.
+PYTHONTRACEMALLOC: trace Python memory allocations (-X tracemalloc)
+PYTHONUNBUFFERED: disable stdout/stderr buffering (-u)
+PYTHONUTF8      : control the UTF-8 mode (-X utf8)
+PYTHONVERBOSE   : trace import statements (-v)
+PYTHONWARNDEFAULTENCODING: enable opt-in EncodingWarning for 'encoding=None'
+                  (-X warn_default_encoding)
+PYTHONWARNINGS  : warning control (-W)
+
+The following implementation-specific options are available:
+-X cpu_count=N: override the return value of os.cpu_count();
+         -X cpu_count=default cancels overriding; also PYTHON_CPU_COUNT
+-X dev : enable Python Development Mode; also PYTHONDEVMODE
+-X faulthandler: dump the Python traceback on fatal errors;
+         also PYTHONFAULTHANDLER
+-X frozen_modules=[on|off]: whether to use frozen modules; the default is "on"
+         for installed Python and "off" for a local build;
+         also PYTHON_FROZEN_MODULES
+-X importtime: show how long each import takes; also PYTHONPROFILEIMPORTTIME
+-X int_max_str_digits=N: limit the size of int<->str conversions;
+         0 disables the limit; also PYTHONINTMAXSTRDIGITS
+-X no_debug_ranges: don't include extra location information in code objects;
+         also PYTHONNODEBUGRANGES
+-X perf: support the Linux "perf" profiler; also PYTHONPERFSUPPORT=1
+-X perf_jit: support the Linux "perf" profiler with DWARF support;
+         also PYTHON_PERF_JIT_SUPPORT=1
+-X pycache_prefix=PATH: write .pyc files to a parallel tree instead of to the
+         code tree; also PYTHONPYCACHEPREFIX
+-X showrefcount: output the total reference count and number of used
+         memory blocks when the program finishes or after each statement in
+         the interactive interpreter; only works on debug builds
+-X tracemalloc[=N]: trace Python memory allocations; N sets a traceback limit
+         of N frames (default: 1); also PYTHONTRACEMALLOC=N
+-X utf8[=0|1]: enable (1) or disable (0) UTF-8 mode; also PYTHONUTF8
+-X warn_default_encoding: enable opt-in EncodingWarning for 'encoding=None';
+         also PYTHONWARNDEFAULTENCODING
