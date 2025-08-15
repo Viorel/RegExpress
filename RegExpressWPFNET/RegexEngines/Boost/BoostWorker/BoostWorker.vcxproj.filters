@@ -13,28 +13,10 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Boost-min">
-      <UniqueIdentifier>{545be57e-6f3f-45e3-a3af-acd8c8b1c263}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Boost-min\libs\regex\src\posix_api.cpp">
-      <Filter>Boost-min</Filter>
-    </ClCompile>
-    <ClCompile Include="Boost-min\libs\regex\src\regex.cpp">
-      <Filter>Boost-min</Filter>
-    </ClCompile>
-    <ClCompile Include="Boost-min\libs\regex\src\regex_debug.cpp">
-      <Filter>Boost-min</Filter>
-    </ClCompile>
-    <ClCompile Include="Boost-min\libs\regex\src\static_mutex.cpp">
-      <Filter>Boost-min</Filter>
-    </ClCompile>
-    <ClCompile Include="Boost-min\libs\regex\src\wide_posix_api.cpp">
-      <Filter>Boost-min</Filter>
     </ClCompile>
     <ClCompile Include="Worker.cpp">
       <Filter>Source Files</Filter>

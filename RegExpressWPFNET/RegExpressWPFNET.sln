@@ -96,7 +96,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{34650736-6B83-4E66-A261-D012D0A62BCF}"
 	ProjectSection(SolutionItems) = preProject
 		..\README.md = ..\README.md
-		Tools\ExportFeatureMatrix\RegexFeatureMatrix.xlsx = Tools\ExportFeatureMatrix\RegexFeatureMatrix.xlsx
+		..\RegexFeatureMatrix.xlsx = ..\RegexFeatureMatrix.xlsx
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WebView2", "WebView2", "{DEE80AD8-9508-41BB-AA28-01890226DA3B}"
