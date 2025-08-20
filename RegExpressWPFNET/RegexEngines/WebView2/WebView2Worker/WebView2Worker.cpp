@@ -377,7 +377,7 @@ int DoMatch( StreamWriterW& outwr, StreamWriterW& errwr, HINSTANCE hInstance, LP
 
                         std::wstring flags_adjusted = std::wstring( flags );
 
-                        bool use_exec = flags_adjusted.erase( std::remove( flags_adjusted.begin( ), flags_adjusted.end( ), L'E' ), flags_adjusted.end( ) ) != flags_adjusted.end( );
+                        bool use_exec = std::erase( flags_adjusted, L'E' ) != 0;
 
                         flags_adjusted += L"d"; // to generates start and end indices for matches
 
