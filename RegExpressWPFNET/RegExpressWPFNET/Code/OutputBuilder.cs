@@ -87,7 +87,10 @@ namespace RegExpressWPFNET.Code
                     continue;
                 }
 
-                if( c >= 0x21 && c <= 0x7E )
+                if( c == ' ' ||
+                    c == '€' ||
+                    c == '£' ||
+                    ( c >= 0x21 && c <= 0x7E ) )
                 {
                     AppendNormal( c );
                     continue;
@@ -97,6 +100,7 @@ namespace RegExpressWPFNET.Code
                 {
                 case UnicodeCategory.UppercaseLetter:
                 case UnicodeCategory.LowercaseLetter:
+                    /*
                 case UnicodeCategory.TitlecaseLetter:
                 //case UnicodeCategory.ModifierLetter:
                 case UnicodeCategory.OtherLetter:
@@ -124,8 +128,8 @@ namespace RegExpressWPFNET.Code
                 case UnicodeCategory.CurrencySymbol:
                 //case UnicodeCategory.ModifierSymbol:
                 case UnicodeCategory.OtherSymbol:
-                    //case UnicodeCategory.OtherNotAssigned:
-
+                //case UnicodeCategory.OtherNotAssigned:
+                      */
                     AppendNormal( c );
 
                     break;
