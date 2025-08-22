@@ -39,7 +39,7 @@ namespace VBScriptPlugin
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "VBScript RegExp";
+        public string Name => "VBScript";
 
         public string Subtitle => $"VBScript";
 

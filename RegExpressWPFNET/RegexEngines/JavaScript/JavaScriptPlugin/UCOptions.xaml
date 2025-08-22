@@ -1,0 +1,92 @@
+﻿<UserControl x:Class="JavaScriptPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:JavaScriptPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="194.8" d:DesignWidth="530" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel VerticalAlignment="Top">
+
+            <StackPanel x:Name="pnl2" Orientation="Vertical" Margin="0 4 0 0">
+                <Grid Margin="0 0 0 4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+
+                    <Grid.LayoutTransform>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                    </Grid.LayoutTransform>
+                    
+                    <Grid.Resources>
+                        <Style TargetType="Label">
+                            <Setter Property="VerticalAlignment" Value="Center" />
+                            <Setter Property="Padding" Value="0 1 4 1"/>
+                        </Style>
+                        <Style TargetType="ComboBox">
+                            <Setter Property="HorizontalAlignment" Value="Left" />
+                            <Setter Property="VerticalAlignment" Value="Center" />
+                            <Setter Property="Padding" Value="4 2"/>
+                            <Setter Property="Margin" Value="1"/>
+                        </Style>
+                    </Grid.Resources>
+
+                    <Label Grid.Column="0" Grid.Row="0" Content="Runtime:" Target="{Binding ElementName=cbxRuntime}"/>
+                    <ComboBox x:Name="cbxRuntime" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Runtime, FallbackValue='WebView2'}" SelectionChanged="cbxFunction_SelectionChanged">
+                        <ComboBoxItem Tag ="WebView2" Content="WebView2"/>
+                        <ComboBoxItem Tag ="NodeJs" Content="Node.js"/>
+                    </ComboBox>
+
+                    <Label Grid.Column="0" Grid.Row="1" Content="Function:" Target="{Binding ElementName=cbxFunction}" />
+                    <ComboBox x:Name="cbxFunction" Grid.Column="1" Grid.Row="1" SelectedValuePath="Tag" SelectedValue="{Binding Function, FallbackValue='MatchAll'}" SelectionChanged="cbxFunction_SelectionChanged">
+                        <ComboBoxItem Tag ="MatchAll" Content="String.matchAll"/>
+                        <ComboBoxItem Tag ="Exec" Content="RegExp.exec"/>
+                    </ComboBox>
+                </Grid>
+
+                <ui:CheckboxWithNote Prop="i" Note="ignore case"/>
+                <ui:CheckboxWithNote Prop="m" Note="allows ‘^’ and ‘$’ to match newline characters"/>
+                <ui:CheckboxWithNote Prop="s" Note="allows ‘.’ to match newline characters"/>
+                <ui:CheckboxWithNote Prop="u" Note="treats pattern as a sequence of Unicode code points"/>
+                <ui:CheckboxWithNote Prop="v" Note="more Unicode features"/>
+                <ui:CheckboxWithNote Prop="y" Note="“sticky” search"/>
+                <ui:CheckboxWithNote Prop="g" Note="global search"/>
+                <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True"/>
+
+                <!--<StackPanel Orientation="Horizontal" Margin="0 4 0 0" >
+                    <StackPanel.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </StackPanel.LayoutTransform>
+
+                    <Label Content="Function:" Target="{Binding ElementName=cbxFunction}" VerticalAlignment="Center" Padding="0 2 4 2"/>
+                    <ComboBox x:Name="cbxFunction" SelectedValuePath="Tag" SelectedValue="{Binding Function, FallbackValue='MatchAll'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxFunction_SelectionChanged">
+                        <ComboBoxItem Tag ="MatchAll" Content="String.prototype.matchAll"/>
+                        <ComboBoxItem Tag ="Exec" Content="RegExp.prototype.exec"/>
+                    </ComboBox>
+                </StackPanel>-->
+            </StackPanel>
+
+        </StackPanel>
+    </Grid>
+</UserControl>
+    
