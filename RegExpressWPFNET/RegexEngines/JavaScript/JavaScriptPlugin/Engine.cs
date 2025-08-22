@@ -50,7 +50,7 @@ namespace JavaScriptPlugin
                 return opt.Runtime switch
                 {
                     RuntimeEnum.WebView2 => "JavaScript (WebView2)",
-                    RuntimeEnum.NodeJs => "JavaScript (NodeJs)",
+                    RuntimeEnum.NodeJs => "JavaScript (Node.js)",
                     _ => "Unknown"
                 };
             }
@@ -130,20 +130,33 @@ namespace JavaScriptPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine_u = new( );
-            engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { u = true, v = false } );
+            Engine wv_engine_no_uv = new( );
+            wv_engine_no_uv.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.WebView2, u = false, v = false } );
 
-            Engine engine_v = new( );
-            engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { u = false, v = true } );
+            Engine wv_engine_u = new( );
+            wv_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.WebView2, u = true, v = false } );
 
-            Engine engine_no_uv = new( );
-            engine_no_uv.mOptionsControl.Value.SetSelectedOptions( new Options { u = false, v = false } );
+            Engine wv_engine_v = new( );
+            wv_engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.WebView2, u = false, v = true } );
+
+            //Engine nd_engine_no_uv = new( );
+            //nd_engine_no_uv.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = false } );
+
+            //Engine nd_engine_u = new( );
+            //nd_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } );
+
+            //Engine nd_engine_v = new( );
+            //nd_engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = true } );
 
             return
                 [
-                    new ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value, engine_no_uv),
-                    new ("“u” flag", LazyFeatureMatrixWithUFlag.Value, engine_u),
-                    new ("“v” flag", LazyFeatureMatrixWithVFlag.Value, engine_v),
+                    new ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value, wv_engine_no_uv),
+                    new ("“u” flag", LazyFeatureMatrixWithUFlag.Value, wv_engine_u),
+                    new ("“v” flag", LazyFeatureMatrixWithVFlag.Value, wv_engine_v),
+
+                    //new ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value, nd_engine_no_uv),
+                    //new ("“u” flag", LazyFeatureMatrixWithUFlag.Value, nd_engine_u),
+                    //new ("“v” flag", LazyFeatureMatrixWithVFlag.Value, nd_engine_v),
                 ];
         }
 

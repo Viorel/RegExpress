@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.Unicode;
 using System.Threading.Tasks;
 using System.Windows.Documents;
 
@@ -87,10 +88,17 @@ namespace RegExpressWPFNET.Code
                     continue;
                 }
 
-                if( c == ' ' ||
+                if( ( c >= 0x21 && c <= 0x7E ) ||
+                    c == ' ' ||
+                    c == '$' ||
                     c == '€' ||
                     c == '£' ||
-                    ( c >= 0x21 && c <= 0x7E ) )
+                    c == '₣' ||
+                    c == '¢' ||
+                    c == '¥' ||
+                    c == '¤' ||
+                    ( c >= UnicodeRanges.Hebrew.FirstCodePoint && c < UnicodeRanges.Hebrew.FirstCodePoint + UnicodeRanges.Hebrew.Length && char.GetUnicodeCategory( c ) == UnicodeCategory.OtherLetter )
+                  )
                 {
                     AppendNormal( c );
                     continue;

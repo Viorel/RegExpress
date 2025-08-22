@@ -91,7 +91,7 @@ namespace JavaScriptPlugin
             {
                 ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "WebView2" );
 
-                cbi.Content = $"WebView2 ({version})";
+                cbi.Content = $"WebView2 {version}";
             } );
         }
 
@@ -103,7 +103,7 @@ namespace JavaScriptPlugin
             {
                 ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "NodeJs" );
 
-                cbi.Content = $"NodeJs ({version})";
+                cbi.Content = $"Node.js {version}";
             } );
         }
     }
