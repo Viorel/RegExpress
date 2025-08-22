@@ -5,150 +5,150 @@
   </Configurations>
   <Folder Name="/RegexEngines/" />
   <Folder Name="/RegexEngines/Boost/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Boost/BoostPlugin/BoostPlugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" />
+    <Project Path="RegexEngines/Boost/BoostPlugin/BoostPlugin.csproj">
+      <BuildDependency Project="RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" Id="2dc8dda0-afd5-46c3-825d-0055d385c792" />
+    <Project Path="RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" Id="2dc8dda0-afd5-46c3-825d-0055d385c792" />
   </Folder>
   <Folder Name="/RegexEngines/D/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/D/DPlugin/DPlugin.csproj" />
+    <Project Path="RegexEngines/D/DPlugin/DPlugin.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/DotNET9/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/DotNET9/DotNET9Plugin/DotNET9Plugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/DotNET9/DotNET9Worker/DotNET9Worker.csproj" />
+    <Project Path="RegexEngines/DotNET9/DotNET9Plugin/DotNET9Plugin.csproj">
+      <BuildDependency Project="RegexEngines/DotNET9/DotNET9Worker/DotNET9Worker.csproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/DotNET9/DotNET9Worker/DotNET9Worker.csproj" />
+    <Project Path="RegexEngines/DotNET9/DotNET9Worker/DotNET9Worker.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/DotNETFramework4_8/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/DotNETFramework4_8/DotNETFrameworkPlugin/DotNETFrameworkPlugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
+    <Project Path="RegexEngines/DotNETFramework4_8/DotNETFrameworkPlugin/DotNETFrameworkPlugin.csproj">
+      <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" Id="4129f02d-f0ea-4235-a8e7-ddd591dae7f6" />
+    <Project Path="RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" Id="4129f02d-f0ea-4235-a8e7-ddd591dae7f6" />
   </Folder>
   <Folder Name="/RegexEngines/Fortran/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
+    <Project Path="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/Hyperscan/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Hyperscan/HyperscanPlugin/HyperscanPlugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Hyperscan/HyperscanWorker/HyperscanWorker.vcxproj" />
+    <Project Path="RegexEngines/Hyperscan/HyperscanPlugin/HyperscanPlugin.csproj">
+      <BuildDependency Project="RegexEngines/Hyperscan/HyperscanWorker/HyperscanWorker.vcxproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Hyperscan/HyperscanWorker/HyperscanWorker.vcxproj" Id="fef47d65-7c99-456d-a17b-e8c110199da3" />
+    <Project Path="RegexEngines/Hyperscan/HyperscanWorker/HyperscanWorker.vcxproj" Id="fef47d65-7c99-456d-a17b-e8c110199da3" />
   </Folder>
   <Folder Name="/RegexEngines/ICU/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/ICU/ICUPlugin/ICUPlugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/ICU/ICUWorker/ICUWorker.vcxproj" />
+    <Project Path="RegexEngines/ICU/ICUPlugin/ICUPlugin.csproj">
+      <BuildDependency Project="RegexEngines/ICU/ICUWorker/ICUWorker.vcxproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/ICU/ICUWorker/ICUWorker.vcxproj" Id="a13ffb11-eb7d-4f3f-8f9d-d80f769502d0" />
+    <Project Path="RegexEngines/ICU/ICUWorker/ICUWorker.vcxproj" Id="a13ffb11-eb7d-4f3f-8f9d-d80f769502d0" />
   </Folder>
   <Folder Name="/RegexEngines/Java/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Java/JavaPlugin/JavaPlugin.csproj" />
+    <Project Path="RegexEngines/Java/JavaPlugin/JavaPlugin.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/JavaScript/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/WebView2/WebView2Plugin/WebView2Plugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/WebView2/WebView2Worker/WebView2Worker.vcxproj" />
+    <Project Path="RegexEngines/JavaScript/JavaScriptPlugin/JavaScriptPlugin.csproj">
+      <BuildDependency Project="RegexEngines/JavaScript/WebView2Worker/WebView2Worker.vcxproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/WebView2/WebView2Worker/WebView2Worker.vcxproj" Id="2d0502b5-8f7b-4fcc-864a-49bcf350b986" />
+    <Project Path="RegexEngines/JavaScript/WebView2Worker/WebView2Worker.vcxproj" Id="2d0502b5-8f7b-4fcc-864a-49bcf350b986" />
   </Folder>
   <Folder Name="/RegexEngines/Oniguruma/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Oniguruma/OnigurumaPlugin/OnigurumaPlugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Oniguruma/OnigurumaWorker/OnigurumaWorker.vcxproj" />
+    <Project Path="RegexEngines/Oniguruma/OnigurumaPlugin/OnigurumaPlugin.csproj">
+      <BuildDependency Project="RegexEngines/Oniguruma/OnigurumaWorker/OnigurumaWorker.vcxproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Oniguruma/OnigurumaWorker/OnigurumaWorker.vcxproj" Id="b34e75ef-a5e9-4512-83da-e9596cee05d5" />
+    <Project Path="RegexEngines/Oniguruma/OnigurumaWorker/OnigurumaWorker.vcxproj" Id="b34e75ef-a5e9-4512-83da-e9596cee05d5" />
   </Folder>
   <Folder Name="/RegexEngines/PCRE2/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/PCRE2/PCRE2Plugin/PCRE2Plugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/PCRE2/PCRE2Worker/PCRE2Worker.vcxproj" />
+    <Project Path="RegexEngines/PCRE2/PCRE2Plugin/PCRE2Plugin.csproj">
+      <BuildDependency Project="RegexEngines/PCRE2/PCRE2Worker/PCRE2Worker.vcxproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/PCRE2/PCRE2StaticLib/PCRE2StaticLib.vcxproj" Id="b56cf83f-93df-453f-9441-82cac478361a" />
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/PCRE2/PCRE2Worker/PCRE2Worker.vcxproj" Id="4decb5e2-208b-4363-a1f7-a993211df5c6" />
+    <Project Path="RegexEngines/PCRE2/PCRE2StaticLib/PCRE2StaticLib.vcxproj" Id="b56cf83f-93df-453f-9441-82cac478361a" />
+    <Project Path="RegexEngines/PCRE2/PCRE2Worker/PCRE2Worker.vcxproj" Id="4decb5e2-208b-4363-a1f7-a993211df5c6" />
   </Folder>
   <Folder Name="/RegexEngines/Perl/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Perl/PerlPlugin/PerlPlugin.csproj" />
+    <Project Path="RegexEngines/Perl/PerlPlugin/PerlPlugin.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/Python/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Python/PythonPlugin/PythonPlugin.csproj" />
+    <Project Path="RegexEngines/Python/PythonPlugin/PythonPlugin.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/RE2/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/RE2/AbseilStaticLib/AbseilStaticLib.vcxproj" Id="08949c31-f8a3-434a-8fe6-7ddcc6ef2ab6" />
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/RE2/RE2Plugin/RE2Plugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" />
+    <Project Path="RegexEngines/RE2/AbseilStaticLib/AbseilStaticLib.vcxproj" Id="08949c31-f8a3-434a-8fe6-7ddcc6ef2ab6" />
+    <Project Path="RegexEngines/RE2/RE2Plugin/RE2Plugin.csproj">
+      <BuildDependency Project="RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/RE2/RE2StaticLib/RE2StaticLib.vcxproj" Id="2fc49c2b-368f-421e-a3f3-2dabf86fbcfb" />
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" Id="21e036e6-459b-497f-8365-ec795000d990" />
+    <Project Path="RegexEngines/RE2/RE2StaticLib/RE2StaticLib.vcxproj" Id="2fc49c2b-368f-421e-a3f3-2dabf86fbcfb" />
+    <Project Path="RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" Id="21e036e6-459b-497f-8365-ec795000d990" />
   </Folder>
   <Folder Name="/RegexEngines/Rust/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />
+    <Project Path="RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/Std/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Std/StdPlugin/StdPlugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Std/StdWorker/StdWorker.vcxproj" />
+    <Project Path="RegexEngines/Std/StdPlugin/StdPlugin.csproj">
+      <BuildDependency Project="RegexEngines/Std/StdWorker/StdWorker.vcxproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Std/StdWorker/StdWorker.vcxproj" Id="092ccef1-3957-472d-b166-2f9ce8cfd534" />
+    <Project Path="RegexEngines/Std/StdWorker/StdWorker.vcxproj" Id="092ccef1-3957-472d-b166-2f9ce8cfd534" />
   </Folder>
   <Folder Name="/RegexEngines/SubReg/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/SubReg/SubRegPlugin/SubRegPlugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/SubReg/SubRegWorker/SubRegWorker.vcxproj" />
+    <Project Path="RegexEngines/SubReg/SubRegPlugin/SubRegPlugin.csproj">
+      <BuildDependency Project="RegexEngines/SubReg/SubRegWorker/SubRegWorker.vcxproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/SubReg/SubRegWorker/SubRegWorker.vcxproj" Id="3888ff1f-608f-466a-b19a-8a1d22178172" />
+    <Project Path="RegexEngines/SubReg/SubRegWorker/SubRegWorker.vcxproj" Id="3888ff1f-608f-466a-b19a-8a1d22178172" />
   </Folder>
   <Folder Name="/RegexEngines/TinyRegexC/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/TinyRegexC/TinyRegexCPlugin/TinyRegexCPlugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/TinyRegexC/TinyRegexCWorker/TinyRegexCWorker.vcxproj" />
+    <Project Path="RegexEngines/TinyRegexC/TinyRegexCPlugin/TinyRegexCPlugin.csproj">
+      <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker/TinyRegexCWorker.vcxproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/TinyRegexC/TinyRegexCWorker/TinyRegexCWorker.vcxproj" Id="5cac2b8b-1a6a-425c-b406-039a1c3d0f3f" />
+    <Project Path="RegexEngines/TinyRegexC/TinyRegexCWorker/TinyRegexCWorker.vcxproj" Id="5cac2b8b-1a6a-425c-b406-039a1c3d0f3f" />
   </Folder>
   <Folder Name="/RegexEngines/TRE/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/TRE/TRE/TRE/win32/tre.vcxproj" Id="69258b5d-ecae-40e4-8f64-5f063b05c998" />
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/TRE/TREPlugin/TREPlugin.csproj">
-      <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/TRE/TREWorker/TREWorker.vcxproj" />
+    <Project Path="RegexEngines/TRE/TRE/TRE/win32/tre.vcxproj" Id="69258b5d-ecae-40e4-8f64-5f063b05c998" />
+    <Project Path="RegexEngines/TRE/TREPlugin/TREPlugin.csproj">
+      <BuildDependency Project="RegexEngines/TRE/TREWorker/TREWorker.vcxproj" />
     </Project>
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/TRE/TREWorker/TREWorker.vcxproj" Id="c5b68349-b339-4272-84bb-f7e071c07f57" />
+    <Project Path="RegexEngines/TRE/TREWorker/TREWorker.vcxproj" Id="c5b68349-b339-4272-84bb-f7e071c07f57" />
   </Folder>
   <Folder Name="/RegexEngines/VBScript/">
-    <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/VBScript/VBScriptPlugin/VBScriptPlugin.csproj" />
+    <Project Path="RegexEngines/VBScript/VBScriptPlugin/VBScriptPlugin.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
-    <File Path="T:/Teste/2022/CSharpCore/RegExpress/README.md" />
-    <File Path="T:/Teste/2022/CSharpCore/RegExpress/RegexFeatureMatrix.xlsx" />
+    <File Path="../README.md" />
+    <File Path="../RegexFeatureMatrix.xlsx" />
   </Folder>
-  <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegExpressCppLibrary/RegExpressCppLibrary.vcxproj" Id="0a96a479-5737-4d64-8f1a-2cc87ca675e2" />
-  <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegExpressLibrary/RegExpressLibrary.csproj" />
-  <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegExpressWPFNET/RegExpressWPFNET.csproj">
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/SolutionEvents/SolutionEvents.vcxproj" />
+  <Project Path="RegExpressCppLibrary/RegExpressCppLibrary.vcxproj" Id="0a96a479-5737-4d64-8f1a-2cc87ca675e2" />
+  <Project Path="RegExpressLibrary/RegExpressLibrary.csproj" />
+  <Project Path="RegExpressWPFNET/RegExpressWPFNET.csproj">
+    <BuildDependency Project="SolutionEvents/SolutionEvents.vcxproj" />
   </Project>
-  <Project Path="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/SolutionEvents/SolutionEvents.vcxproj" Id="886c3f35-3ef7-4cc7-9274-244d45a1ba5a">
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Boost/BoostPlugin/BoostPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/D/DPlugin/DPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/DotNET9/DotNET9Plugin/DotNET9Plugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/DotNET9/DotNET9Worker/DotNET9Worker.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/DotNETFramework4_8/DotNETFrameworkPlugin/DotNETFrameworkPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Hyperscan/HyperscanPlugin/HyperscanPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Hyperscan/HyperscanWorker/HyperscanWorker.vcxproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/ICU/ICUPlugin/ICUPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/ICU/ICUWorker/ICUWorker.vcxproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Java/JavaPlugin/JavaPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Oniguruma/OnigurumaPlugin/OnigurumaPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Oniguruma/OnigurumaWorker/OnigurumaWorker.vcxproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/PCRE2/PCRE2Plugin/PCRE2Plugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/PCRE2/PCRE2Worker/PCRE2Worker.vcxproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Perl/PerlPlugin/PerlPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Python/PythonPlugin/PythonPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/RE2/RE2Plugin/RE2Plugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Std/StdPlugin/StdPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/Std/StdWorker/StdWorker.vcxproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/SubReg/SubRegPlugin/SubRegPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/SubReg/SubRegWorker/SubRegWorker.vcxproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/TinyRegexC/TinyRegexCPlugin/TinyRegexCPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/TinyRegexC/TinyRegexCWorker/TinyRegexCWorker.vcxproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/TRE/TREPlugin/TREPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/TRE/TREWorker/TREWorker.vcxproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/VBScript/VBScriptPlugin/VBScriptPlugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/WebView2/WebView2Plugin/WebView2Plugin.csproj" />
-    <BuildDependency Project="T:/Teste/2022/CSharpCore/RegExpress/RegExpressWPFNET/RegexEngines/WebView2/WebView2Worker/WebView2Worker.vcxproj" />
+  <Project Path="SolutionEvents/SolutionEvents.vcxproj" Id="886c3f35-3ef7-4cc7-9274-244d45a1ba5a">
+    <BuildDependency Project="RegexEngines/Boost/BoostPlugin/BoostPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/D/DPlugin/DPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET9/DotNET9Plugin/DotNET9Plugin.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET9/DotNET9Worker/DotNET9Worker.csproj" />
+    <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkPlugin/DotNETFrameworkPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
+    <BuildDependency Project="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/Hyperscan/HyperscanPlugin/HyperscanPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/Hyperscan/HyperscanWorker/HyperscanWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/ICU/ICUPlugin/ICUPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/ICU/ICUWorker/ICUWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/Java/JavaPlugin/JavaPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/JavaScript/JavaScriptPlugin/JavaScriptPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/JavaScript/WebView2Worker/WebView2Worker.vcxproj" />
+    <BuildDependency Project="RegexEngines/Oniguruma/OnigurumaPlugin/OnigurumaPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/Oniguruma/OnigurumaWorker/OnigurumaWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/PCRE2/PCRE2Plugin/PCRE2Plugin.csproj" />
+    <BuildDependency Project="RegexEngines/PCRE2/PCRE2Worker/PCRE2Worker.vcxproj" />
+    <BuildDependency Project="RegexEngines/Perl/PerlPlugin/PerlPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/Python/PythonPlugin/PythonPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/RE2/RE2Plugin/RE2Plugin.csproj" />
+    <BuildDependency Project="RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" />
+    <BuildDependency Project="RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/Std/StdPlugin/StdPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/Std/StdWorker/StdWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/SubReg/SubRegPlugin/SubRegPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/SubReg/SubRegWorker/SubRegWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCPlugin/TinyRegexCPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker/TinyRegexCWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/TRE/TREPlugin/TREPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/TRE/TREWorker/TREWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/VBScript/VBScriptPlugin/VBScriptPlugin.csproj" />
   </Project>
 </Solution>
