@@ -4,7 +4,7 @@ using System.Diagnostics;
 using RegExpressLibrary;
 
 
-namespace WebView2Plugin
+namespace JavaScriptPlugin
 {
     public class Plugin : RegexPlugin
     {

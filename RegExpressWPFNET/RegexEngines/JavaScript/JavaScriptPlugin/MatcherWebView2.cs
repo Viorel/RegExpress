@@ -16,7 +16,7 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.Matches.Simple;
 
 
-namespace WebView2Plugin
+namespace JavaScriptPlugin
 {
     static partial class MatcherWebView2
     {
@@ -24,7 +24,6 @@ namespace WebView2Plugin
         {
             public string? Version { get; set; }
         }
-
 
         public class ResponseMatch
         {
@@ -35,7 +34,6 @@ namespace WebView2Plugin
             public List<int[]>? Indices { get; set; }
         }
 
-
         public class ResponseMatches
         {
             public List<ResponseMatch>? Matches { get; set; }
@@ -43,6 +41,7 @@ namespace WebView2Plugin
             public string? Error { get; set; }
         }
 
+        static readonly Lazy<string?> LazyVersion = new( ( ) => GetVersion( ICancellable.NonCancellable ) );
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
@@ -133,7 +132,6 @@ namespace WebView2Plugin
 
             return new RegexMatches( matches.Count, matches );
         }
-
 
         public static string? GetVersion( ICancellable cnc )
         {
@@ -262,5 +260,25 @@ namespace WebView2Plugin
 
         [GeneratedRegex( @"^(?<v>\d+([.]\d+([.]\d+)?)?)([.]\d+)*$", RegexOptions.ExplicitCapture )]
         private static partial Regex SimplifyVersionRegex( );
+
+        internal static void StartGetVersion( Action<string?> setWebView2Version )
+        {
+            if( LazyVersion.IsValueCreated )
+            {
+                setWebView2Version( LazyVersion.Value );
+
+                return;
+            }
+
+            Thread t = new( ( ) =>
+            {
+                setWebView2Version( LazyVersion.Value );
+            } )
+            {
+                IsBackground = true
+            };
+
+            t.Start( );
+        }
     }
 }

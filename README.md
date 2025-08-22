@@ -12,7 +12,7 @@ It includes the following Regular Expression engines:
 * **[RE2](https://github.com/google/re2)** Library 2025-08-12 from Google (in C++).
 * **[Oniguruma](https://github.com/kkos/oniguruma)** Regular Expression Library 6.9.10 (in C++).
 * **[SubReg](https://github.com/mattbucknall/subreg)** 2024-08-11 (in C).
-* **JavaScript [RegExp](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)** object in Microsoft Edge [WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
+* **JavaScript [RegExp](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)** object in Microsoft Edge [WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/) and [Node.js](https://nodejs.org) 24.6.0.
 * **VBScript [RegExp](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85))** object used in Access, Excel, Word.
 * **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel (in C).
 * **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41 (in C).

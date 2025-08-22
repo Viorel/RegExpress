@@ -15,7 +15,7 @@ using System.Windows.Shapes;
 using RegExpressLibrary;
 
 
-namespace WebView2Plugin
+namespace JavaScriptPlugin
 {
     /// <summary>
     /// Interaction logic for UCOptions.xaml
@@ -33,8 +33,10 @@ namespace WebView2Plugin
             InitializeComponent( );
 
             DataContext = Options;
-        }
 
+            MatcherWebView2.StartGetVersion( SetWebView2Version );
+            MatcherNodeJs.StartGetVersion( SetNodeJsVersion );
+        }
 
         private void UserControl_Loaded( object sender, RoutedEventArgs e )
         {
@@ -42,7 +44,6 @@ namespace WebView2Plugin
 
             IsFullyLoaded = true;
         }
-
 
         void Notify( bool preferImmediateReaction )
         {
@@ -52,24 +53,20 @@ namespace WebView2Plugin
             Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
         }
 
-
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
         }
-
 
         private void cbxFunction_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             Notify( preferImmediateReaction: true );
         }
 
-
         internal Options GetSelectedOptions( )
         {
             return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
         }
-
 
         internal void SetSelectedOptions( Options options )
         {
@@ -86,5 +83,28 @@ namespace WebView2Plugin
             }
         }
 
+        void SetWebView2Version( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "WebView2" );
+
+                cbi.Content = $"WebView2 ({version})";
+            } );
+        }
+
+        void SetNodeJsVersion( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "NodeJs" );
+
+                cbi.Content = $"NodeJs ({version})";
+            } );
+        }
     }
 }

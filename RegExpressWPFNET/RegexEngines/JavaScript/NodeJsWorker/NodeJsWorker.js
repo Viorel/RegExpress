@@ -22,7 +22,7 @@ rl.once('close', () =>
 
     let cmd = input_object.cmd;
 
-    if( cmd === "v")
+    if( cmd === "version")
     {
       console.log( JSON.stringify( { node: process.versions.node, v8: process.versions.v8 } ) );
     }

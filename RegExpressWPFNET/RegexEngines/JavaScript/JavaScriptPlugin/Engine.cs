@@ -12,11 +12,10 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
 
-namespace WebView2Plugin
+namespace JavaScriptPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrixUnicodeUnaware = new( ( ) => BuildFeatureMatrix( uFlag: false, vFlag: false ) );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrixWithUFlag = new( ( ) => BuildFeatureMatrix( uFlag: true, vFlag: false ) );
@@ -153,21 +152,6 @@ namespace WebView2Plugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return MatcherWebView2.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
         }
 
         static FeatureMatrix BuildFeatureMatrix( bool uFlag, bool vFlag )

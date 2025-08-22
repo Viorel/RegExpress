@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 
-namespace WebView2Plugin
+namespace JavaScriptPlugin
 {
     enum RuntimeEnum
     {

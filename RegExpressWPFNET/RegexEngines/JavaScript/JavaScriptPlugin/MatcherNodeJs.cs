@@ -18,13 +18,14 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.Matches.Simple;
 
 
-namespace WebView2Plugin
+namespace JavaScriptPlugin
 {
     static partial class MatcherNodeJs
     {
         public class ResponseVersion
         {
-            public string? Version { get; set; }
+            public string? node { get; set; }
+            public string? v8 { get; set; }
         }
 
         public class ResponseMatch
@@ -43,6 +44,7 @@ namespace WebView2Plugin
             public string? Error { get; set; }
         }
 
+        static readonly Lazy<string?> LazyVersion = new( ( ) => GetVersion( ICancellable.NonCancellable ) );
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
@@ -58,7 +60,7 @@ namespace WebView2Plugin
 
             string func = options.Function switch { FunctionEnum.MatchAll => "matchAll", FunctionEnum.Exec => "exec", _ => throw new InvalidOperationException( ) };
 
-            var data = new { pattern, text, flags, func };
+            var data = new { cmd = "match", pattern, text, flags, func };
             string json = JsonSerializer.Serialize( data );
 
             using ProcessHelper ph = new( GetWorkerExePath( ) );
@@ -75,18 +77,18 @@ namespace WebView2Plugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            ResponseMatches? client_response = JsonSerializer.Deserialize<ResponseMatches>( ph.OutputStream );
+            ResponseMatches? response = JsonSerializer.Deserialize<ResponseMatches>( ph.OutputStream );
 
-            if( client_response == null ) throw new Exception( "JavaScript failed." );
-            if( !string.IsNullOrWhiteSpace( client_response.Error ) ) throw new Exception( client_response.Error );
+            if( response == null ) throw new Exception( "JavaScript failed." );
+            if( !string.IsNullOrWhiteSpace( response.Error ) ) throw new Exception( response.Error );
 
-            string[] distributed_names = FigureOutGroupNames( client_response );
+            string[] distributed_names = FigureOutGroupNames( response );
             Debug.Assert( distributed_names[0] == null );
 
             List<IMatch> matches = [];
             SimpleTextGetter stg = new( text );
 
-            foreach( var cm in client_response.Matches! )
+            foreach( var cm in response.Matches! )
             {
                 if( cm.Indices!.Any( ) )
                 {
@@ -131,35 +133,28 @@ namespace WebView2Plugin
             return new RegexMatches( matches.Count, matches );
         }
 
-        //.......................
         public static string? GetVersion( ICancellable cnc )
         {
+            var data = new { cmd = "version" };
+            string json = JsonSerializer.Serialize( data );
+
             using ProcessHelper ph = new( GetWorkerExePath( ) );
 
-            ph.AllEncoding = EncodingEnum.Unicode;
-            ph.Arguments = ["v"];
+            ph.AllEncoding = EncodingEnum.ASCII;
+
+            ph.StreamWriter = sw =>
+            {
+                sw.Write( json );
+                sw.Flush( );
+            };
 
             if( !ph.Start( cnc ) ) return null;
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            using StreamReader sr = new( ph.OutputStream, Encoding.Unicode );
-            string output_contents = sr.ReadToEnd( );
+            ResponseVersion? response = JsonSerializer.Deserialize<ResponseVersion>( ph.OutputStream );
 
-            ResponseVersion? v = JsonSerializer.Deserialize<ResponseVersion>( output_contents );
-
-            string? version = v!.Version;
-
-            // keep up to three components
-
-            if( version != null )
-            {
-                var m = SimplifyVersionRegex( ).Match( version );
-                if( m.Success )
-                {
-                    version = m.Groups["v"].Value;
-                }
-            }
+            string? version = response?.node;
 
             return version;
         }
@@ -314,8 +309,24 @@ namespace WebView2Plugin
             }
         }
 
+        internal static void StartGetVersion( Action<string?> setNodeJsVersion )
+        {
+            if( LazyVersion.IsValueCreated )
+            {
+                setNodeJsVersion( LazyVersion.Value );
 
-        [GeneratedRegex( @"^(?<v>\d+([.]\d+([.]\d+)?)?)([.]\d+)*$", RegexOptions.ExplicitCapture )]
-        private static partial Regex SimplifyVersionRegex( );
+                return;
+            }
+
+            Thread t = new( ( ) =>
+            {
+                setNodeJsVersion( LazyVersion.Value );
+            } )
+            {
+                IsBackground = true
+            };
+
+            t.Start( );
+        }
     }
 }
