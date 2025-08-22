@@ -159,7 +159,6 @@ namespace JavaScriptPlugin
             return version;
         }
 
-
         static string[] FigureOutGroupNames( ResponseMatches clientResponse )
         {
             if( clientResponse.Matches == null ) return new string[0];
@@ -260,7 +259,7 @@ namespace JavaScriptPlugin
             return dir;
         }
 
-        static readonly object Locker = new object( );
+        static readonly Lock Locker = new( );
         static string? TempFolder = null;
         static bool IsExtractionDone = false;
 

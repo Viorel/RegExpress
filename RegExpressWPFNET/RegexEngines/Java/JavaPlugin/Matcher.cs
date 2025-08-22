@@ -66,7 +66,7 @@ namespace JavaPlugin
             if( options.UNICODE_CHARACTER_CLASS ) sb.Append( ",UNICODE_CHARACTER_CLASS" );
             if( options.UNIX_LINES ) sb.Append( ",UNIX_LINES" );
             if( options.DISABLE_UNICODE_GROUPS ) sb.Append( ",DISABLE_UNICODE_GROUPS" );
-            if( options.LONGEST_MATCH) sb.Append( ",LONGEST_MATCH" );
+            if( options.LONGEST_MATCH ) sb.Append( ",LONGEST_MATCH" );
             if( options.useAnchoringBounds ) sb.Append( ",useAnchoringBounds" );
             if( options.useTransparentBounds ) sb.Append( ",useTransparentBounds" );
             sb.Append( ',' );
@@ -264,7 +264,7 @@ namespace JavaPlugin
         }
 
 
-        static readonly object Locker = new object( );
+        static readonly Lock Locker = new( );
         static string? JrePath = null;
         static bool IsJreExtractionDone = false;
 

@@ -310,7 +310,7 @@ namespace RegExpressWPFNET
         }
 
 
-        readonly object HighlighterLocker = new( );
+        readonly Lock HighlighterLocker = new( );
 
 
         void RecolouringThreadProc( ICancellable cnc )
