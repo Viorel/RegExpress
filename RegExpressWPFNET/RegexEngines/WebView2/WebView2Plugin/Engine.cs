@@ -34,16 +34,28 @@ namespace WebView2Plugin
             } );
         }
 
-
         #region IRegexEngine
 
-        public string Kind => "WebView2";
+        public string Kind => "JavaScript";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => "";//.......... LazyVersion.Value;
 
-        public string Name => "JavaScript (WebView2)";
+        public string Name => "JavaScript";
 
-        public string Subtitle => $"JavaScript";
+        public string Subtitle
+        {
+            get
+            {
+                Options opt = mOptionsControl.Value.GetSelectedOptions( );
+
+                return opt.Runtime switch
+                {
+                    RuntimeEnum.WebView2 => "JavaScript (WebView2)",
+                    RuntimeEnum.NodeJs => "JavaScript (NodeJs)",
+                    _ => "Unknown"
+                };
+            }
+        }
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd;
 
@@ -59,7 +71,6 @@ namespace WebView2Plugin
             return mOptionsControl.Value;
         }
 
-
         public string? ExportOptions( )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
@@ -67,7 +78,6 @@ namespace WebView2Plugin
 
             return json;
         }
-
 
         public void ImportOptions( string? json )
         {
@@ -95,14 +105,17 @@ namespace WebView2Plugin
             mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
 
-
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
             Options options = mOptionsControl.Value.GetSelectedOptions( );
 
-            return Matcher.GetMatches( cnc, pattern, text, options );
+            return options.Runtime switch
+            {
+                RuntimeEnum.WebView2 => MatcherWebView2.GetMatches( cnc, pattern, text, options ),
+                RuntimeEnum.NodeJs => MatcherNodeJs.GetMatches( cnc, pattern, text, options ),
+                _ => throw new NotSupportedException( ),
+            };
         }
-
 
         public SyntaxOptions GetSyntaxOptions( )
         {
@@ -137,18 +150,16 @@ namespace WebView2Plugin
 
         #endregion
 
-
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
         }
 
-
         static string? GetVersion( )
         {
             try
             {
-                return Matcher.GetVersion( NonCancellable.Instance );
+                return MatcherWebView2.GetVersion( NonCancellable.Instance );
             }
             catch( Exception exc )
             {
@@ -158,7 +169,6 @@ namespace WebView2Plugin
                 return null;
             }
         }
-
 
         static FeatureMatrix BuildFeatureMatrix( bool uFlag, bool vFlag )
         {

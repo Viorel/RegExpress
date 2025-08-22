@@ -9,6 +9,13 @@ using System.Threading.Tasks;
 
 namespace WebView2Plugin
 {
+    enum RuntimeEnum
+    {
+        None,
+        WebView2,
+        NodeJs,
+    }
+
     enum FunctionEnum
     {
         None,
@@ -18,7 +25,8 @@ namespace WebView2Plugin
 
     class Options
     {
-        public FunctionEnum Function { get; set; } = FunctionEnum.MatchAll;
+        public RuntimeEnum Runtime { get; set; } = RuntimeEnum.WebView2;
+        public FunctionEnum Function { get; set; } = FunctionEnum.Exec;
 
         public bool i { get; set; }
         public bool m { get; set; }

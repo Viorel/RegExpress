@@ -79,12 +79,13 @@ xcopy /D /R /Y "%BasePath%\OnigurumaPlugin\bin\%Configuration%\%TargetDir%\Onigu
 xcopy /D /R /Y "%BasePath%\OnigurumaWorker\bin\%Configuration%\%Platform%\OnigurumaWorker.exe" "%EnginesTargetPath%\Oniguruma\*.bin"
 
 
-rem -- WebView2 --
+rem -- JavaScript --
 
 set BasePath=%SolutionDir%\RegexEngines\WebView2
 xcopy /D /R /Y "%BasePath%\WebView2Plugin\bin\%Configuration%\%TargetDir%\WebView2Plugin.dll" "%EnginesTargetPath%\WebView2\*"
 xcopy /D /R /Y "%BasePath%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Worker.exe" "%EnginesTargetPath%\WebView2\*.bin"
 xcopy /D /R /Y "%BasePath%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Loader.dll" "%EnginesTargetPath%\WebView2\*"
+xcopy /D /R /Y "%BasePath%\NodeJsWorker\NodeJsWorker.zip" "%EnginesTargetPath%\WebView2\*.zip"
 
 
 rem -- VBScript --
