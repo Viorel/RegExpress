@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../../RegExpressLibrary/RegExpressLibrary.csproj" />
+  <Project Path="ExportFeatureMatrix.csproj" />
+</Solution>
