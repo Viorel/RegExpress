@@ -1,4 +1,4 @@
 @echo off
 call node --version
-echo { "cmd": "v" } | node NodeJsWorker.js
-echo { "cmd": "v" } | NodeJsWorker.exe
+echo { "cmd": "version" } | node NodeJsWorker.js
+echo { "cmd": "version" } | NodeJsWorker.exe

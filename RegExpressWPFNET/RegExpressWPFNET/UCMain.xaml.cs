@@ -932,29 +932,7 @@ namespace RegExpressWPFNET
                 {
                     TextData td = ucPattern.GetTextData( GetEolOption( ) );
 
-                    if( cnc.IsCancellationRequested ) return;
-
-                    lblPatternInfo.Visibility = lblPatternInfo.Visibility == Visibility.Visible || td.Text.Length != 0 ? Visibility.Visible : Visibility.Collapsed;
-                    if( lblPatternInfo.Visibility == Visibility.Visible )
-                    {
-                        int text_elements = td.LengthInTextElements;
-
-                        string s = $"Length: {td.Text.Length:#,##0}";
-
-                        if( text_elements != td.Text.Length )
-                        {
-                            s = $"{s}  |  Elements: {text_elements:#,##0}";
-                        }
-
-                        s = $"{s}  |  Lines: {td.NumberOfLines:#,##0}";
-
-                        if( ucPatternHadFocus )
-                        {
-                            s = $"Index: {td.SelectionStart:#,##0}  |  {s}";
-                        }
-
-                        lblPatternInfo.Text = s;
-                    }
+                    ShowTextInfo( cnc, lblPatternInfo, ucPatternHadFocus, td );
                 } );
         }
 
@@ -965,30 +943,58 @@ namespace RegExpressWPFNET
                 {
                     TextData td = ucText.GetTextData( GetEolOption( ) );
 
-                    if( cnc.IsCancellationRequested ) return;
-
-                    lblTextInfo.Visibility = lblTextInfo.Visibility == Visibility.Visible || td.Text.Length != 0 ? Visibility.Visible : Visibility.Collapsed;
-                    if( lblTextInfo.Visibility == Visibility.Visible )
-                    {
-                        int text_elements = td.LengthInTextElements;
-
-                        string s = $"Length: {td.Text.Length:#,##0}";
-
-                        if( text_elements != td.Text.Length )
-                        {
-                            s = $"{s}  |  Elements: {text_elements:#,##0}";
-                        }
-
-                        s = $"{s}  |  Lines: {td.NumberOfLines:#,##0}";
-
-                        if( ucTextHadFocus )
-                        {
-                            s = $"Index: {td.SelectionStart:#,##0}  |  {s}";
-                        }
-
-                        lblTextInfo.Text = s;
-                    }
+                    ShowTextInfo( cnc, lblTextInfo, ucTextHadFocus, td );
                 } );
+        }
+
+
+        static void ShowTextInfo( ICancellable cnc, TextBlock label, bool hadFocusFlag, TextData td )
+        {
+            if( cnc.IsCancellationRequested ) return;
+
+            label.Visibility = label.Visibility == Visibility.Visible || td.Text.Length != 0 ? Visibility.Visible : Visibility.Collapsed;
+            if( label.Visibility == Visibility.Visible )
+            {
+                int text_elements = td.LengthInTextElements;
+
+                string s = $"Length: {td.Text.Length:#,##0}";
+
+                if( text_elements != td.Text.Length )
+                {
+                    s = $"{s}\u2002|\u2002Elements: {text_elements:#,##0}";
+                }
+
+                if( cnc.IsCancellationRequested ) return;
+
+                s = $"{s}\u2002|\u2002Lines: {td.NumberOfLines:#,##0}";
+
+                if( hadFocusFlag )
+                {
+                    s = $"Index: {td.SelectionStart:#,##0}\u2002|\u2002{s}";
+
+                    if( td.SelectionStart >= 0 && td.SelectionStart < td.Text.Length )
+                    {
+                        if( !( char.IsSurrogate( td.Text, td.SelectionStart ) && td.SelectionStart + 1 < td.Text.Length ) )
+                        {
+                            char c = td.Text[td.SelectionStart];
+
+                            s = $"{s}\u2002|\u2002U+{(uint)c:X4}";
+                        }
+                        else
+                        {
+                            char c1 = td.Text[td.SelectionStart];
+                            char c2 = td.Text[td.SelectionStart + 1];
+                            Debug.Assert( char.IsSurrogatePair( c1, c2 ) );
+
+                            Rune r = new( c1, c2 );
+
+                            s = $"{s}\u2002|\u2002U+{r.Value:X} {(uint)c1:X4}:{(uint)c2:X4}";
+                        }
+                    }
+                }
+
+                label.Text = s;
+            }
         }
 
 

@@ -39,7 +39,7 @@
                     <StackPanel Style="{StaticResource StackPanelWithLabels}" HorizontalAlignment="Left" >
                         <TextBlock Text="Pattern" Style="{StaticResource Labels}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock x:Name="lblPatternInfo" d:Text="Length: 0" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin=" 0 0 8 0"
+                    <TextBlock x:Name="lblPatternInfo" d:Text="Index: 8  |  Length: 30" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin=" 0 0 8 1"
                                FontSize="9.25" Opacity="0.77" />
                 </Grid>
                 <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
@@ -68,7 +68,7 @@
                     <StackPanel Style="{StaticResource StackPanelWithLabels}" HorizontalAlignment="Left" >
                         <TextBlock Text="Text" Style="{StaticResource Labels}" />
                     </StackPanel>
-                    <TextBlock x:Name="lblTextInfo" d:Text="Length: 0" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin=" 0 0 8 0"
+                    <TextBlock x:Name="lblTextInfo" d:Text="Index: 10  |  Length: 200" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin=" 0 0 8 1"
                                FontSize="9.25" Opacity="0.77"/>
                 </Grid>
                 <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">

@@ -156,6 +156,12 @@ namespace JavaScriptPlugin
 
             string? version = response?.node;
 
+            //// also show the version of V8
+            //if( !string.IsNullOrWhiteSpace( response?.v8 ) )
+            //{
+            //    version = $"{version} (V8 {response.v8})";
+            //}
+
             return version;
         }
 

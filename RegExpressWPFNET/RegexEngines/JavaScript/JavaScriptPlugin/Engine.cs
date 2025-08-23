@@ -37,7 +37,7 @@ namespace JavaScriptPlugin
 
         public string Kind => "JavaScript";
 
-        public string? Version => "";//.......... LazyVersion.Value;
+        public string? Version => ""; // (versions are supplied by Runtimes, displayed in combobox)
 
         public string Name => "JavaScript";
 
