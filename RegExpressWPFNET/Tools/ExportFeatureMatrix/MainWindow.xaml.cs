@@ -67,23 +67,16 @@ namespace ExportFeatureMatrix
             if( ofd.ShowDialog( this ) != true ) return;
 
             tbEnginesFile.Text = ofd.FileName;
-
-            Properties.Settings.Default.EnginesJsonPath = ofd.FileName;
-            Properties.Settings.Default.Save( );
         }
 
         private void rbOutputExcel_Checked( object sender, RoutedEventArgs e )
         {
             tbOutputFile.Text = Properties.Settings.Default.OutputExcelPath;
-            Properties.Settings.Default.OutputType = (int)OutputTypeEnum.Excel;
-            Properties.Settings.Default.Save( );
         }
 
         private void rbOutputHtml_Checked( object sender, RoutedEventArgs e )
         {
             tbOutputFile.Text = Properties.Settings.Default.OutputHtmlPath;
-            Properties.Settings.Default.OutputType = (int)OutputTypeEnum.Html;
-            Properties.Settings.Default.Save( );
         }
 
         private void btnBrowseOutputFile_Click( object sender, RoutedEventArgs e )
@@ -141,8 +134,6 @@ namespace ExportFeatureMatrix
                 Properties.Settings.Default.OutputHtmlPath = ofd.FileName;
                 break;
             }
-
-            Properties.Settings.Default.Save( );
 
             tbOutputFile.Text = ofd.FileName;
         }
@@ -203,6 +194,19 @@ namespace ExportFeatureMatrix
 
                 return;
             }
+
+            Properties.Settings.Default.EnginesJsonPath = tbEnginesFile.Text;
+            Properties.Settings.Default.OutputType = (int)GetOutputType( );
+            switch( GetOutputType( ) )
+            {
+            case OutputTypeEnum.Excel:
+                Properties.Settings.Default.OutputExcelPath = tbOutputFile.Text;
+                break;
+            case OutputTypeEnum.Html:
+                Properties.Settings.Default.OutputHtmlPath = tbOutputFile.Text;
+                break;
+            }
+            Properties.Settings.Default.Save( );
 
             try
             {

@@ -33,9 +33,6 @@ namespace JavaScriptPlugin
             InitializeComponent( );
 
             DataContext = Options;
-
-            MatcherWebView2.StartGetVersion( SetWebView2Version );
-            MatcherNodeJs.StartGetVersion( SetNodeJsVersion );
         }
 
         private void UserControl_Loaded( object sender, RoutedEventArgs e )
@@ -43,6 +40,12 @@ namespace JavaScriptPlugin
             if( IsFullyLoaded ) return;
 
             IsFullyLoaded = true;
+
+            MatcherWebView2.StartGetVersion( SetWebView2Version );
+            MatcherNodeJs.StartGetVersion( SetNodeJsVersion );
+            MatcherQuickJs.StartGetVersion( SetQuickJsVersion );
+
+            UpdateControls( );
         }
 
         void Notify( bool preferImmediateReaction )
@@ -53,14 +56,49 @@ namespace JavaScriptPlugin
             Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
         }
 
-        private void CheckBox_Changed( object sender, RoutedEventArgs e )
+        private void cbxRuntime_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            Notify( preferImmediateReaction: false );
+            UpdateControls( );
+
+            Notify( preferImmediateReaction: true );
         }
 
         private void cbxFunction_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             Notify( preferImmediateReaction: true );
+        }
+
+        private void CheckBox_Changed( object sender, RoutedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
+
+        void UpdateControls( )
+        {
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
+
+            try
+            {
+                bool is_V8 = Options.Runtime == RuntimeEnum.WebView2 || Options.Runtime == RuntimeEnum.NodeJs;
+
+                checkboxV.IsEnabled = is_V8;
+                if( is_V8 )
+                {
+                    checkboxV.ClearValue( DataContextProperty ); // (to use inherited context)
+                }
+                else
+                {
+                    checkboxV.DataContext = new Options { v = false }; // (to show unchecked)
+                }
+
+                ++ChangeCounter;
+
+            }
+            finally
+            {
+                --ChangeCounter;
+            }
         }
 
         internal Options GetSelectedOptions( )
@@ -104,6 +142,18 @@ namespace JavaScriptPlugin
                 ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "NodeJs" );
 
                 cbi.Content = $"Node.js {version}";
+            } );
+        }
+
+        void SetQuickJsVersion( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "QuickJs" );
+
+                cbi.Content = $"QuickJs {version}";
             } );
         }
     }

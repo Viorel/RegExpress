@@ -7,7 +7,8 @@ HOW TO PREPARE THE WORKER
 
 - Execute "build.cmd" from command line console. It will create the "NodeJsWorker.exe" file.
 
-- Execute "compress.cmd". It will compress the "NodeJsWorker.exe" file to "NodeJsWorker.zip".
+- Compress the "NodeJsWorker.exe" file to "NodeJsWorker.zip" uzing ZIP format, ultra level, 
+  Deflate or Deflate64 method. Or execute the "compress.cmd".
 
 - To test, execute "test1.cmd" and "test2.cmd".
 
