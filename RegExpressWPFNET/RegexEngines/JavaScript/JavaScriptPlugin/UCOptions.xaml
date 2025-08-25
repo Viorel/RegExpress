@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:JavaScriptPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="194.8" d:DesignWidth="530" 
+             d:DesignHeight="248.4" d:DesignWidth="530" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -51,6 +51,7 @@
                         <ComboBoxItem Tag ="WebView2" Content="WebView2"/>
                         <ComboBoxItem Tag ="NodeJs" Content="Node.js"/>
                         <ComboBoxItem Tag ="QuickJs" Content="QuickJs"/>
+                        <ComboBoxItem Tag ="SpiderMonkey" Content="SpiderMonkey"/>
                     </ComboBox>
 
                     <Label Grid.Column="0" Grid.Row="1" Content="Function:" Target="{Binding ElementName=cbxFunction}" />
@@ -67,24 +68,12 @@
                 <ui:CheckboxWithNote x:Name="checkboxV" Prop="v" Note="more Unicode features"/>
                 <ui:CheckboxWithNote Prop="y" Note="“sticky” search"/>
                 <ui:CheckboxWithNote Prop="g" Note="global search"/>
-                <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True"/>
+                <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True" Margin="0 0 0 8"/>
+                
+                <ui:CheckboxWithNote x:Name="checkboxNoNativeRegexp" Prop="NoNativeRegexp" Text="--no-native-regexp" Note="disable native regexp compilation"/>
+                <ui:CheckboxWithNote x:Name="checkboxEnableDuplicateNames" Prop="EnableDuplicateNames" Text="--enable-regexp-duplicate-named-groups" Note="enable duplicate named capture groups"/>
+                <ui:CheckboxWithNote x:Name="checkboxEnableRegexpModifiers" Prop="EnableRegexpModifiers" Text="--enable-regexp-modifiers" Note="enable pattern modifiers"/>
 
-                <!--<StackPanel Orientation="Horizontal" Margin="0 4 0 0" >
-                    <StackPanel.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </StackPanel.LayoutTransform>
-
-                    <Label Content="Function:" Target="{Binding ElementName=cbxFunction}" VerticalAlignment="Center" Padding="0 2 4 2"/>
-                    <ComboBox x:Name="cbxFunction" SelectedValuePath="Tag" SelectedValue="{Binding Function, FallbackValue='MatchAll'}" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="cbxFunction_SelectionChanged">
-                        <ComboBoxItem Tag ="MatchAll" Content="String.prototype.matchAll"/>
-                        <ComboBoxItem Tag ="Exec" Content="RegExp.prototype.exec"/>
-                    </ComboBox>
-                </StackPanel>-->
             </StackPanel>
 
         </StackPanel>

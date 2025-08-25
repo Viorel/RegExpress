@@ -15,6 +15,7 @@ namespace JavaScriptPlugin
         WebView2,
         NodeJs,
         QuickJs,
+        SpiderMonkey,
     }
 
     enum FunctionEnum
@@ -33,9 +34,16 @@ namespace JavaScriptPlugin
         public bool m { get; set; }
         public bool s { get; set; }
         public bool u { get; set; }
-        public bool v { get; set; }
         public bool y { get; set; }
         public bool g { get; set; } = true;
+
+        // V8 (WebView2, NodeJs)
+        public bool v { get; set; }
+
+        // SpiderMonkey
+        public bool NoNativeRegexp { get; set; } // "--no-native-regexp"
+        public bool EnableDuplicateNames { get; set; } // "--enable-regexp-duplicate-named-groups"
+        public bool EnableRegexpModifiers { get; set; } // "--enable-regexp-modifiers"
 
         [JsonIgnore]
         public bool d { get; set; } = true; // to avoid binding errors and to show the checkbox in checked state

@@ -1,0 +1,3 @@
+The QuickJs runtime is got from https://bellard.org/quickjs/binary_releases/ and unarchived to "QuickJs" subfolder.
+
+To test it, execute "test1.cmd" from command line console.

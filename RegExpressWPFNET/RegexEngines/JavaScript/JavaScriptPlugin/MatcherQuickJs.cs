@@ -82,9 +82,6 @@ namespace JavaScriptPlugin
             if( response == null ) throw new Exception( "JavaScript failed." );
             if( !string.IsNullOrWhiteSpace( response.Error ) ) throw new Exception( response.Error );
 
-            string[] distributed_names = FigureOutGroupNames( response );
-            Debug.Assert( distributed_names[0] == null );
-
             List<IMatch> matches = [];
             SimpleTextGetter stg = new( text );
 
@@ -99,12 +96,20 @@ namespace JavaScriptPlugin
 
                     sm.AddGroup( sm.Index, sm.Length, true, "0" ); // (default group)
 
+                    HashSet<string> used_names = [];
+
                     for( int i = 1; i < cm.Indices.Count; ++i )
                     {
+                        // figure out the name
+                        string? n = cm.Groups?.FirstOrDefault( g => cm.Indices[i] != null && (g.Value[0], g.Value[1]) == (cm.Indices[i][0], cm.Indices[i][1]) && !used_names.Contains( g.Key ) ).Key;
+                        n ??= cm.Groups?.FirstOrDefault( g => cm.Indices[i] != null && (g.Value[0], g.Value[1]) == (cm.Indices[i][0], cm.Indices[i][1]) ).Key;
+
                         string name;
-                        if( i < distributed_names.Length && distributed_names[i] != null )
+
+                        if( n != null )
                         {
-                            name = distributed_names[i];
+                            name = n;
+                            used_names.Add( n );
                         }
                         else
                         {
@@ -158,81 +163,6 @@ namespace JavaScriptPlugin
             string? version = response?.version;
 
             return version;
-        }
-
-        static string[] FigureOutGroupNames( ResponseMatches clientResponse )
-        {
-            if( clientResponse.Matches == null ) return new string[0];
-
-            var possible_indices = new Dictionary<string, HashSet<int>>( );
-
-            foreach( var m in clientResponse.Matches )
-            {
-                if( m.Groups == null ) continue;
-
-                foreach( var g in m.Groups )
-                {
-                    string group_name = g.Key;
-                    int[] group_index = g.Value;
-
-                    var possible_indices_this_group = new List<int>( );
-
-                    for( var i = 1; i < m.Indices!.Count; ++i )
-                    {
-                        if( m.Indices[i] == null ) continue;
-
-                        if( group_index[0] == m.Indices[i][0] && group_index[1] == m.Indices[i][1] )
-                        {
-                            possible_indices_this_group.Add( i );
-                        }
-                    }
-
-                    HashSet<int>? existing_possible_indices;
-
-                    if( !possible_indices.TryGetValue( group_name, out existing_possible_indices ) )
-                    {
-                        possible_indices.Add( group_name, possible_indices_this_group.ToHashSet( ) );
-                    }
-                    else
-                    {
-                        possible_indices[group_name].UnionWith( possible_indices_this_group );
-                    }
-                }
-            }
-
-            // order by number of possibilities
-
-            var ordered = possible_indices.OrderBy( kv => kv.Value.Count ).ToArray( );
-
-            //// exclude previous, more probable possibilities
-
-            //for( int i = 1; i < ordered.Length; ++i )
-            //{
-            //	for( int j = 0; j < i; ++j )
-            //	{
-            //		ordered[i].Value.ExceptWith( ordered[j].Value );
-            //	}
-            //}
-
-            int max_group_number = ordered.Any( ) ? ordered.SelectMany( kv => kv.Value ).Max( ) : 0;
-
-            string[] distributed_names = new string[max_group_number + 1];
-
-            // keep one (first) possibility, which is not used yet
-
-            for( int i = 0; i < ordered.Length; ++i )
-            {
-                foreach( int k in ordered[i].Value )
-                {
-                    if( distributed_names[k] == null )
-                    {
-                        distributed_names[k] = ordered[i].Key;
-                        break;
-                    }
-                }
-            }
-
-            return distributed_names;
         }
 
         static string GetPluginDirectory( )
