@@ -389,6 +389,7 @@ namespace StdPlugin
                 EmptySet = grammar == GrammarEnum.ECMAScript,
 
                 SplitSurrogatePairs = true,
+                AllowDuplicateGroupName = false,
             };
         }
     }

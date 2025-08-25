@@ -352,6 +352,7 @@ namespace SubRegPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false, // (not applicable)
+                AllowDuplicateGroupName = false,
             };
         }
     }

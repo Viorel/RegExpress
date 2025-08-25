@@ -203,6 +203,7 @@ class FeatureMatrixDetails
             new ( @"(?<name>…)", @"Named group", fm => fm.NamedGroup_LtGt, @"(?<n>x)", "x" ),
             new ( @"(?P<name>…)", @"Named group", fm => fm.NamedGroup_PLtGt, @"(?P<n>x)", "x" ),
             new ( @"(?@…)", @"Capturing group", fm => fm.NamedGroup_AtApos || fm.NamedGroup_AtLtGt || fm.CapturingGroup, @"(@<n>x)", "x" ),
+            new ( @"Duplicate names", @"Allow duplicate group names", fm => fm.AllowDuplicateGroupName, @"(?<a>x)|(?<a>y)", "y"),
 
             new ( @"\1, \2, …, \9", @"Backreferences", fm => fm.Backref_Num == FeatureMatrix.BackrefEnum.OneDigit || fm.Backref_Num == FeatureMatrix.BackrefEnum.Any , @"(x)\1", "xx" ),
             new ( @"\nnn", @"Backreference, two or more digits", fm => fm.Backref_Num == FeatureMatrix.BackrefEnum.Any, @"(x)(x)(x)(x)(x)(x)(x)(x)(x)(y)\10", "xxxxxxxxxyy" ),
@@ -279,6 +280,5 @@ class FeatureMatrixDetails
             new ( @"[]", @"Empty set", fm => fm.EmptySet, @"x[]?", "x" ),
 
             new ( @"“.” on Surrogate Pairs", @"Split Surrogate Pair characters into components", fm => fm.SplitSurrogatePairs ), // TODO
-
         ];
 }

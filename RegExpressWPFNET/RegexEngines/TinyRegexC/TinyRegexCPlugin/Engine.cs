@@ -350,6 +350,7 @@ namespace TinyRegexCPlugin
                 EmptySet = true,
 
                 SplitSurrogatePairs = false, // (not applicable)
+                AllowDuplicateGroupName = false,
             };
         }
     }

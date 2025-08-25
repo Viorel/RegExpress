@@ -355,6 +355,7 @@ namespace RE2Plugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = true,
             };
         }
     }

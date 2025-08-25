@@ -362,6 +362,7 @@ namespace TREPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = false,
             };
         }
     }

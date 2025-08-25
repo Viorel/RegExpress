@@ -350,6 +350,7 @@ namespace VBScriptPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = true,
+                AllowDuplicateGroupName = false,
             };
         }
     }

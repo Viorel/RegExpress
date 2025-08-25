@@ -355,6 +355,7 @@ namespace ICUPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = false,
             };
         }
     }

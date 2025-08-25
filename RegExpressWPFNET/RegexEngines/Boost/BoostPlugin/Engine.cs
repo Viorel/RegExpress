@@ -393,6 +393,7 @@ namespace BoostPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = true,
+                AllowDuplicateGroupName = is_perl,
             };
         }
     }

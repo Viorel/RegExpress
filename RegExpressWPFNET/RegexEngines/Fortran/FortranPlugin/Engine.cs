@@ -383,6 +383,7 @@ namespace FortranPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = false,
             };
         }
 
@@ -592,6 +593,7 @@ namespace FortranPlugin
                 EmptySet = true,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = false,
             };
         }
 
@@ -802,6 +804,7 @@ namespace FortranPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = false,
             };
         }
     }

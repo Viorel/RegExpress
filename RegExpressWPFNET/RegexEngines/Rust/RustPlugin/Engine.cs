@@ -377,6 +377,7 @@ namespace RustPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = false,
             };
         }
 
@@ -585,6 +586,7 @@ namespace RustPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = false,
             };
         }
 
@@ -794,6 +796,7 @@ namespace RustPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = true,
             };
         }
 
@@ -1003,6 +1006,7 @@ namespace RustPlugin
                 EmptySet = true,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = false,
             };
         }
     }

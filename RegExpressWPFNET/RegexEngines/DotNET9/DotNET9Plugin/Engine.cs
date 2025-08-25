@@ -343,6 +343,7 @@ namespace DotNET8Plugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = true,
+                AllowDuplicateGroupName = true,
             };
         }
     }

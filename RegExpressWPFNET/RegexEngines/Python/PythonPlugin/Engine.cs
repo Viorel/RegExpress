@@ -370,6 +370,7 @@ namespace PythonPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = is_regex,
             };
         }
     }

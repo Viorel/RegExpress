@@ -142,10 +142,10 @@ namespace JavaScriptPlugin
             wv_engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.WebView2, u = false, v = true } );
 
             Engine qjs_engine_no_u = new( );
-            qjs_engine_no_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = false } );
+            qjs_engine_no_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.QuickJs, u = false, v = false } );
 
             Engine qjs_engine_u = new( );
-            qjs_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } );
+            qjs_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.QuickJs, u = true, v = false } );
 
             Engine sm_engine_no_u = new( );
             sm_engine_no_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.SpiderMonkey, u = false, v = false } );
@@ -387,6 +387,7 @@ namespace JavaScriptPlugin
                 EmptySet = true,
 
                 SplitSurrogatePairs = true,
+                AllowDuplicateGroupName = true,
             };
         }
 
@@ -592,6 +593,7 @@ namespace JavaScriptPlugin
                 EmptySet = true,
 
                 SplitSurrogatePairs = true,
+                AllowDuplicateGroupName = false,
             };
         }
 
@@ -797,6 +799,7 @@ namespace JavaScriptPlugin
                 EmptySet = true,
 
                 SplitSurrogatePairs = true,
+                AllowDuplicateGroupName = true,
             };
         }
     }

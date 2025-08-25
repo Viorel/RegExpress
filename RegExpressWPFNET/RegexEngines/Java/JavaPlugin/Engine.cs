@@ -374,6 +374,7 @@ namespace JavaPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = false,
             };
         }
     }

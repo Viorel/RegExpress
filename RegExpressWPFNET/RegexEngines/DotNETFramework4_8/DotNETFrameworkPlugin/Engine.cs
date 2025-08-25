@@ -344,6 +344,7 @@ namespace DotNETFrameworkPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = true,
+                AllowDuplicateGroupName = true,
             };
         }
     }

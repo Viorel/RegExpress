@@ -354,6 +354,7 @@ namespace DPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = true,
             };
         }
     }

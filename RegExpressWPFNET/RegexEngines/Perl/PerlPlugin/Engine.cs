@@ -352,6 +352,7 @@ namespace PerlPlugin
                 EmptySet = false,
 
                 SplitSurrogatePairs = false,
+                AllowDuplicateGroupName = true,
             };
         }
     }
