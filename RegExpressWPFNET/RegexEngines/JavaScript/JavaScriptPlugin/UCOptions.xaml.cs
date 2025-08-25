@@ -44,6 +44,7 @@ namespace JavaScriptPlugin
             MatcherWebView2.StartGetVersion( SetWebView2Version );
             MatcherNodeJs.StartGetVersion( SetNodeJsVersion );
             MatcherQuickJs.StartGetVersion( SetQuickJsVersion );
+            MatcherSpiderMonkey.StartGetVersion( SetSpiderMonkeyVersion );
 
             UpdateControls( );
         }
@@ -81,6 +82,7 @@ namespace JavaScriptPlugin
             try
             {
                 bool is_V8 = Options.Runtime == RuntimeEnum.WebView2 || Options.Runtime == RuntimeEnum.NodeJs;
+                bool is_SM = Options.Runtime == RuntimeEnum.SpiderMonkey;
 
                 checkboxV.IsEnabled = is_V8;
                 if( is_V8 )
@@ -91,6 +93,9 @@ namespace JavaScriptPlugin
                 {
                     checkboxV.DataContext = new Options { v = false }; // (to show unchecked)
                 }
+
+                checkboxNoNativeRegexp.Visibility = checkboxEnableDuplicateNames.Visibility = checkboxEnableRegexpModifiers.Visibility =
+                    is_SM ? Visibility.Visible : Visibility.Collapsed;
 
                 ++ChangeCounter;
 
@@ -154,6 +159,18 @@ namespace JavaScriptPlugin
                 ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "QuickJs" );
 
                 cbi.Content = $"QuickJs {version}";
+            } );
+        }
+
+        void SetSpiderMonkeyVersion( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "SpiderMonkey" );
+
+                cbi.Content = $"SpiderMonkey {version}";
             } );
         }
     }
