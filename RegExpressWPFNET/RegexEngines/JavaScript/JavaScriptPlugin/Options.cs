@@ -14,6 +14,7 @@ namespace JavaScriptPlugin
         None,
         WebView2,
         NodeJs,
+        QuickJs,
     }
 
     enum FunctionEnum

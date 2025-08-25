@@ -184,10 +184,10 @@ partial class ExporterToExcel
                     {
                         EngineData engine_data = engines_data[engine_index];
 
-                        if( progressOnEngines != null ) progressOnEngines( engine_data.Engine.Name, engine_index, engines_data.Length );
-
                         foreach( var m in engine_data.Matrices )
                         {
+                            if( progressOnEngines != null ) progressOnEngines( $"{engine_data.Engine.Name} {m.variant.Name}", engine_index, engines_data.Length );
+
                             bool flag_is_true = details.Func( m.variant.FeatureMatrix );
 
                             if( !verify || m.variant.RegexEngine == null || ( string.IsNullOrWhiteSpace( details.TestPatternMatch ) && string.IsNullOrWhiteSpace( details.TestPatternNoMatch ) ) )

@@ -17,9 +17,7 @@ namespace JavaScriptPlugin
     class Engine : IRegexEngine
     {
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrixUnicodeUnaware = new( ( ) => BuildFeatureMatrix( uFlag: false, vFlag: false ) );
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrixWithUFlag = new( ( ) => BuildFeatureMatrix( uFlag: true, vFlag: false ) );
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrixWithVFlag = new( ( ) => BuildFeatureMatrix( uFlag: false, vFlag: true ) );
+        static readonly LazyData<(RuntimeEnum runtime, bool uFlag, bool vFlag), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
 
         public Engine( )
@@ -51,6 +49,7 @@ namespace JavaScriptPlugin
                 {
                     RuntimeEnum.WebView2 => "JavaScript (WebView2)",
                     RuntimeEnum.NodeJs => "JavaScript (Node.js)",
+                    RuntimeEnum.QuickJs => "JavaScript (QuickJs)",
                     _ => "Unknown"
                 };
             }
@@ -112,6 +111,7 @@ namespace JavaScriptPlugin
             {
                 RuntimeEnum.WebView2 => MatcherWebView2.GetMatches( cnc, pattern, text, options ),
                 RuntimeEnum.NodeJs => MatcherNodeJs.GetMatches( cnc, pattern, text, options ),
+                RuntimeEnum.QuickJs => MatcherQuickJs.GetMatches( cnc, pattern, text, options ),
                 _ => throw new NotSupportedException( ),
             };
         }
@@ -124,7 +124,7 @@ namespace JavaScriptPlugin
             {
                 XLevel = XLevelEnum.none,
                 AllowEmptySets = true,
-                FeatureMatrix = ( options.v ? LazyFeatureMatrixWithVFlag : options.u ? LazyFeatureMatrixWithUFlag : LazyFeatureMatrixUnicodeUnaware ).Value
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (options.Runtime, options.u, options.v) )
             };
         }
 
@@ -139,24 +139,20 @@ namespace JavaScriptPlugin
             Engine wv_engine_v = new( );
             wv_engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.WebView2, u = false, v = true } );
 
-            //Engine nd_engine_no_uv = new( );
-            //nd_engine_no_uv.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = false } );
+            Engine qjs_engine_no_u = new( );
+            qjs_engine_no_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = false } );
 
-            //Engine nd_engine_u = new( );
-            //nd_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } );
-
-            //Engine nd_engine_v = new( );
-            //nd_engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = true } );
+            Engine qjs_engine_u = new( );
+            qjs_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } );
 
             return
                 [
-                    new ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value, wv_engine_no_uv),
-                    new ("“u” flag", LazyFeatureMatrixWithUFlag.Value, wv_engine_u),
-                    new ("“v” flag", LazyFeatureMatrixWithVFlag.Value, wv_engine_v),
+                    new ("no “uv” flags", LazyFeatureMatrix.GetValue((RuntimeEnum.WebView2, false, false)), wv_engine_no_uv),
+                    new ("“u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.WebView2, true, false)), wv_engine_u),
+                    new ("“v” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.WebView2, false, true)), wv_engine_v),
 
-                    //new ("no “u”, “v” flags", LazyFeatureMatrixUnicodeUnaware.Value, nd_engine_no_uv),
-                    //new ("“u” flag", LazyFeatureMatrixWithUFlag.Value, nd_engine_u),
-                    //new ("“v” flag", LazyFeatureMatrixWithVFlag.Value, nd_engine_v),
+                    new ("Qjs, no “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.QuickJs, false, false)), qjs_engine_no_u),
+                    new ("Qjs, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.QuickJs, true, false)), qjs_engine_u),
                 ];
         }
 
@@ -167,9 +163,11 @@ namespace JavaScriptPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        static FeatureMatrix BuildFeatureMatrix( bool uFlag, bool vFlag )
+        static FeatureMatrix BuildFeatureMatrix( (RuntimeEnum runtime, bool uFlag, bool vFlag) options )
         {
-            Debug.Assert( !( uFlag && vFlag ) );
+            (RuntimeEnum runtime, bool uFlag, bool vFlag) = options;
+            bool is_V8 = runtime == RuntimeEnum.WebView2 || runtime == RuntimeEnum.NodeJs;
+            bool is_Qjs = runtime == RuntimeEnum.QuickJs;
 
             return new FeatureMatrix
             {
@@ -204,14 +202,18 @@ namespace JavaScriptPlugin
                 Esc_r = true,
                 Esc_t = true,
                 Esc_v = true,
-                Esc_Octal = !uFlag && !vFlag ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
+                Esc_Octal = is_V8 ? !uFlag && !vFlag ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None
+                          : is_Qjs ? !uFlag ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None
+                          : FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
                 Esc_xBrace = false,
                 Esc_u4 = true,
                 Esc_U8 = false,
-                Esc_uBrace = uFlag || vFlag,
+                Esc_uBrace = is_V8 ? uFlag || vFlag
+                           : is_Qjs ? uFlag
+                           : false,
                 Esc_UBrace = false,
                 Esc_c1 = true,
                 Esc_C1 = false,
@@ -227,14 +229,18 @@ namespace JavaScriptPlugin
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
                 InsideSets_Esc_v = true,
-                InsideSets_Esc_Octal = !uFlag && !vFlag ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
+                InsideSets_Esc_Octal = is_V8 ? !uFlag && !vFlag ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None
+                                     : is_Qjs ? !uFlag ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None
+                                     : FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
                 InsideSets_Esc_xBrace = false,
                 InsideSets_Esc_u4 = true,
                 InsideSets_Esc_U8 = false,
-                InsideSets_Esc_uBrace = uFlag || vFlag,
+                InsideSets_Esc_uBrace = is_V8 ? uFlag || vFlag
+                                      : is_Qjs ? uFlag
+                                      : false,
                 InsideSets_Esc_UBrace = false,
                 InsideSets_Esc_c1 = true,
                 InsideSets_Esc_C1 = false,
@@ -260,7 +266,9 @@ namespace JavaScriptPlugin
                 Class_X = false,
                 Class_Not = false,
                 Class_pP = false,
-                Class_pPBrace = uFlag || vFlag,
+                Class_pPBrace = is_V8 ? uFlag || vFlag
+                              : is_Qjs ? uFlag
+                              : false,
                 Class_Name = false,
 
                 InsideSets_Class_dD = true,
@@ -275,7 +283,9 @@ namespace JavaScriptPlugin
                 InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
-                InsideSets_Class_pPBrace = uFlag || vFlag,
+                InsideSets_Class_pPBrace = is_V8 ? uFlag || vFlag
+                                         : is_Qjs ? uFlag
+                                         : false,
                 InsideSets_Class_Name = false,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
@@ -373,5 +383,6 @@ namespace JavaScriptPlugin
                 SplitSurrogatePairs = true,
             };
         }
+
     }
 }

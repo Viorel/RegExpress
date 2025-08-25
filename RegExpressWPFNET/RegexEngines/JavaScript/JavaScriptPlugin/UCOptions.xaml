@@ -47,9 +47,10 @@
                     </Grid.Resources>
 
                     <Label Grid.Column="0" Grid.Row="0" Content="Runtime:" Target="{Binding ElementName=cbxRuntime}"/>
-                    <ComboBox x:Name="cbxRuntime" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Runtime, FallbackValue='WebView2'}" SelectionChanged="cbxFunction_SelectionChanged">
+                    <ComboBox x:Name="cbxRuntime" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Runtime, FallbackValue='WebView2'}" SelectionChanged="cbxRuntime_SelectionChanged">
                         <ComboBoxItem Tag ="WebView2" Content="WebView2"/>
                         <ComboBoxItem Tag ="NodeJs" Content="Node.js"/>
+                        <ComboBoxItem Tag ="QuickJs" Content="QuickJs"/>
                     </ComboBox>
 
                     <Label Grid.Column="0" Grid.Row="1" Content="Function:" Target="{Binding ElementName=cbxFunction}" />
@@ -63,7 +64,7 @@
                 <ui:CheckboxWithNote Prop="m" Note="allows ‘^’ and ‘$’ to match newline characters"/>
                 <ui:CheckboxWithNote Prop="s" Note="allows ‘.’ to match newline characters"/>
                 <ui:CheckboxWithNote Prop="u" Note="treats pattern as a sequence of Unicode code points"/>
-                <ui:CheckboxWithNote Prop="v" Note="more Unicode features"/>
+                <ui:CheckboxWithNote x:Name="checkboxV" Prop="v" Note="more Unicode features"/>
                 <ui:CheckboxWithNote Prop="y" Note="“sticky” search"/>
                 <ui:CheckboxWithNote Prop="g" Note="global search"/>
                 <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True"/>
