@@ -200,18 +200,18 @@ namespace JavaScriptPlugin
         [GeneratedRegex( @"^(?<v>\d+([.]\d+([.]\d+)?)?)([.]\d+)*$", RegexOptions.ExplicitCapture )]
         private static partial Regex SimplifyVersionRegex( );
 
-        internal static void StartGetVersion( Action<string?> setWebView2Version )
+        internal static void StartGetVersion( Action<string?> setVersion )
         {
             if( LazyVersion.IsValueCreated )
             {
-                setWebView2Version( LazyVersion.Value );
+                setVersion( LazyVersion.Value );
 
                 return;
             }
 
             Thread t = new( ( ) =>
             {
-                setWebView2Version( LazyVersion.Value );
+                setVersion( LazyVersion.Value );
             } )
             {
                 IsBackground = true

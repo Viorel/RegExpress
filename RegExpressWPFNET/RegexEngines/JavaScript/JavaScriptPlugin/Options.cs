@@ -16,6 +16,7 @@ namespace JavaScriptPlugin
         NodeJs,
         QuickJs,
         SpiderMonkey,
+        Bun,
     }
 
     enum FunctionEnum

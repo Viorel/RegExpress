@@ -173,18 +173,18 @@ namespace JavaScriptPlugin
             return Path.Combine( GetWorkerDirectory( ), "QuickJsWorker.js" );
         }
 
-        internal static void StartGetVersion( Action<string?> setNodeJsVersion )
+        internal static void StartGetVersion( Action<string?> setVersion )
         {
             if( LazyVersion.IsValueCreated )
             {
-                setNodeJsVersion( LazyVersion.Value );
+                setVersion( LazyVersion.Value );
 
                 return;
             }
 
             Thread t = new( ( ) =>
             {
-                setNodeJsVersion( LazyVersion.Value );
+                setVersion( LazyVersion.Value );
             } )
             {
                 IsBackground = true

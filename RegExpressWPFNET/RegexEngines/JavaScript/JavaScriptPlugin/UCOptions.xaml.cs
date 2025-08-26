@@ -45,6 +45,7 @@ namespace JavaScriptPlugin
             MatcherNodeJs.StartGetVersion( SetNodeJsVersion );
             MatcherQuickJs.StartGetVersion( SetQuickJsVersion );
             MatcherSpiderMonkey.StartGetVersion( SetSpiderMonkeyVersion );
+            MatcherBun.StartGetVersion( SetBunVersion );
 
             UpdateControls( );
         }
@@ -171,6 +172,19 @@ namespace JavaScriptPlugin
                 ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "SpiderMonkey" );
 
                 cbi.Content = $"SpiderMonkey {version}";
+            } );
+
+        }
+
+        void SetBunVersion( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "Bun" );
+
+                cbi.Content = $"JavaScriptCore (Bun) {version}";
             } );
         }
     }
