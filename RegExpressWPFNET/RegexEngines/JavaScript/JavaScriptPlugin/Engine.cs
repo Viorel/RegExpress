@@ -132,14 +132,14 @@ namespace JavaScriptPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine wv_engine_no_uv = new( );
-            wv_engine_no_uv.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.WebView2, u = false, v = false } );
+            Engine njs_engine_no_uv = new( );
+            njs_engine_no_uv.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = false } );
 
-            Engine wv_engine_u = new( );
-            wv_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.WebView2, u = true, v = false } );
+            Engine njs_engine_u = new( );
+            njs_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } );
 
-            Engine wv_engine_v = new( );
-            wv_engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.WebView2, u = false, v = true } );
+            Engine njs_engine_v = new( );
+            njs_engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = true } );
 
             Engine qjs_engine_no_u = new( );
             qjs_engine_no_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.QuickJs, u = false, v = false } );
@@ -155,9 +155,9 @@ namespace JavaScriptPlugin
 
             return
                 [
-                    new ("no “uv” flags", LazyFeatureMatrix.GetValue((RuntimeEnum.WebView2, false, false)), wv_engine_no_uv),
-                    new ("“u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.WebView2, true, false)), wv_engine_u),
-                    new ("“v” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.WebView2, false, true)), wv_engine_v),
+                    new ("V8, no “uv” flags", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, false, false)), njs_engine_no_uv),
+                    new ("V8, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, true, false)), njs_engine_u),
+                    new ("V8, “v” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, false, true)), njs_engine_v),
 
                     new ("Qjs, no “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.QuickJs, false, false)), qjs_engine_no_u),
                     new ("Qjs, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.QuickJs, true, false)), qjs_engine_u),
