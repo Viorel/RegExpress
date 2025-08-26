@@ -140,25 +140,35 @@ namespace JavaScriptPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            using ProcessHelper ph = new( GetSpiderMonkeyExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.ASCII;
-            ph.Arguments = ["--version"]; // (Not documented?)
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            string version;
-
-            using( StreamReader sr = new( ph.OutputStream, Encoding.ASCII ) )
+            try
             {
-                version = sr.ReadToEnd( ).Trim( ); // example: "JavaScript-C143.0"
+                using ProcessHelper ph = new( GetSpiderMonkeyExePath( ) );
 
-                version = Regex.Replace( version, @"^JavaScript-", "" );
+                ph.AllEncoding = EncodingEnum.ASCII;
+                ph.Arguments = ["--version"]; // (Not documented?)
+
+                if( !ph.Start( cnc ) ) return null;
+
+                if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+
+                string version;
+
+                using( StreamReader sr = new( ph.OutputStream, Encoding.ASCII ) )
+                {
+                    version = sr.ReadToEnd( ).Trim( ); // example: "JavaScript-C143.0"
+
+                    version = Regex.Replace( version, @"^JavaScript-", "" );
+                }
+
+                return version;
             }
+            catch( Exception exc )
+            {
+                _ = exc;
+                if( Debugger.IsAttached ) Debugger.Break( );
 
-            return version;
+                return null;
+            }
         }
 
         static string GetPluginDirectory( )

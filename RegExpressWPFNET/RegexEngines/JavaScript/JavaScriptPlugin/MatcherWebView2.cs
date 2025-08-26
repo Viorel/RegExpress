@@ -140,34 +140,44 @@ namespace JavaScriptPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            using ProcessHelper ph = new( GetWorkerExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.Unicode;
-            ph.Arguments = ["v"];
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            using StreamReader sr = new( ph.OutputStream, Encoding.Unicode );
-            string output_contents = sr.ReadToEnd( );
-
-            ResponseVersion? v = JsonSerializer.Deserialize<ResponseVersion>( output_contents );
-
-            string? version = v!.Version;
-
-            // keep up to three components
-
-            if( version != null )
+            try
             {
-                var m = SimplifyVersionRegex( ).Match( version );
-                if( m.Success )
-                {
-                    version = m.Groups["v"].Value;
-                }
-            }
+                using ProcessHelper ph = new( GetWorkerExePath( ) );
 
-            return version;
+                ph.AllEncoding = EncodingEnum.Unicode;
+                ph.Arguments = ["v"];
+
+                if( !ph.Start( cnc ) ) return null;
+
+                if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+
+                using StreamReader sr = new( ph.OutputStream, Encoding.Unicode );
+                string output_contents = sr.ReadToEnd( );
+
+                ResponseVersion? v = JsonSerializer.Deserialize<ResponseVersion>( output_contents );
+
+                string? version = v!.Version;
+
+                // keep up to three components
+
+                if( version != null )
+                {
+                    var m = SimplifyVersionRegex( ).Match( version );
+                    if( m.Success )
+                    {
+                        version = m.Groups["v"].Value;
+                    }
+                }
+
+                return version;
+            }
+            catch( Exception exc )
+            {
+                _ = exc;
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                return null;
+            }
         }
 
 

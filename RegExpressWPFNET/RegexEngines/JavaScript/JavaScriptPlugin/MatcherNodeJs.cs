@@ -140,31 +140,41 @@ namespace JavaScriptPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            var data = new { cmd = "version" };
-            string json = JsonSerializer.Serialize( data );
-
-            using ProcessHelper ph = new( GetWorkerExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.ASCII;
-
-            ph.StreamWriter = sw =>
+            try
             {
-                sw.Write( json );
-                sw.Flush( );
-            };
+                var data = new { cmd = "version" };
+                string json = JsonSerializer.Serialize( data );
 
-            if( !ph.Start( cnc ) ) return null;
+                using ProcessHelper ph = new( GetWorkerExePath( ) );
 
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+                ph.AllEncoding = EncodingEnum.ASCII;
 
-            ResponseVersion? response = JsonSerializer.Deserialize<ResponseVersion>( ph.OutputStream );
+                ph.StreamWriter = sw =>
+                {
+                    sw.Write( json );
+                    sw.Flush( );
+                };
 
-            string? version = response?.v8 ?? response?.node; //
+                if( !ph.Start( cnc ) ) return null;
 
-            // example: "13.6.233.10-node.24"
-            if( version != null ) version = Regex.Replace( version, @"-node\..+$", "" );
+                if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            return version;
+                ResponseVersion? response = JsonSerializer.Deserialize<ResponseVersion>( ph.OutputStream );
+
+                string? version = response?.v8 ?? response?.node; //
+
+                // example: "13.6.233.10-node.24"
+                if( version != null ) version = Regex.Replace( version, @"-node\..+$", "" );
+
+                return version;
+            }
+            catch( Exception exc )
+            {
+                _ = exc;
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                return null;
+            }
         }
 
         static string GetPluginDirectory( )

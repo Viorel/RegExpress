@@ -135,9 +135,19 @@ namespace JavaScriptPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            string version_path = Path.Combine( GetWorkerDirectory( ), "VERSION" );
+            try
+            {
+                string version_path = Path.Combine( GetWorkerDirectory( ), "VERSION" );
 
-            return File.ReadAllText( version_path ).Trim( );
+                return File.ReadAllText( version_path ).Trim( );
+            }
+            catch( Exception exc )
+            {
+                _ = exc;
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                return null;
+            }
         }
 
         static string GetPluginDirectory( )
