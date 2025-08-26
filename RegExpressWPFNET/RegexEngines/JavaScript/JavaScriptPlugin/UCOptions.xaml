@@ -52,6 +52,7 @@
                         <ComboBoxItem Tag ="NodeJs" Content="V8 (Node.js)"/>
                         <ComboBoxItem Tag ="QuickJs" Content="QuickJs"/>
                         <ComboBoxItem Tag ="SpiderMonkey" Content="SpiderMonkey"/>
+                        <ComboBoxItem Tag ="Bun" Content="JavaScriptCore (Bun)"/>
                     </ComboBox>
 
                     <Label Grid.Column="0" Grid.Row="1" Content="Function:" Target="{Binding ElementName=cbxFunction}" />

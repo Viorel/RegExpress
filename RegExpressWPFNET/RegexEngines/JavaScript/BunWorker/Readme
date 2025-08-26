@@ -1,0 +1,14 @@
+HOW TO PREPARE THE WORKER
+
+- Download Bun binaries from https://github.com/oven-sh/bun/releases 
+  or from https://bun.com/docs/installation#downloading-bun-binaries-directly.
+  Currently it is "bun-windows-x64.zip".
+
+- Unarchive it to "bun-windows-x64" folder. (It currently contains a single file: "bun.exe").
+
+- Rearchive the "bun-windows-x64" folder to "bun-windows-x64.zip" uzing ZIP format, ultra level,
+  Deflate or Deflate64 method. Place it to this folder.
+
+- If required, edit the "BunWorker.js" file.
+
+- Commit the "bun-windows-x64.zip" and "BunWorker.js" files.
