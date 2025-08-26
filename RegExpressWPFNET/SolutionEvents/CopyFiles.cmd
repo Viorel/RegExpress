@@ -94,7 +94,7 @@ xcopy /D /R /Y "%BasePath%\QuickJsWorker\QuickJsWorker.js" "%EnginesTargetPath%\
 xcopy /D /R /Y "%BasePath%\SpiderMonkeyWorker\SpiderMonkey.zip" "%EnginesTargetPath%\JavaScript\SpiderMonkeyWorker\*.zip"
 xcopy /D /R /Y "%BasePath%\SpiderMonkeyWorker\SpiderMonkeyWorker.js" "%EnginesTargetPath%\JavaScript\SpiderMonkeyWorker\*"
 
-xcopy /D /R /Y "%BasePath%\BunWorker\bun-windows-x64.zip" "%EnginesTargetPath%\JavaScript\BunWorker\*.zip"
+xcopy /D /R /Y "%BasePath%\BunWorker\bun-windows-x64-baseline.zip" "%EnginesTargetPath%\JavaScript\BunWorker\*.zip"
 xcopy /D /R /Y "%BasePath%\BunWorker\BunWorker.js" "%EnginesTargetPath%\JavaScript\BunWorker\*"
 
 

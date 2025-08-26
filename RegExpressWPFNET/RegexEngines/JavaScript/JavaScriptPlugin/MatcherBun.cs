@@ -185,7 +185,7 @@ namespace JavaScriptPlugin
 
             Debug.Assert( TempFolder != null );
 
-            return Path.Combine( TempFolder!, "bun-windows-x64", "bun.exe" );
+            return Path.Combine( TempFolder!, "bun-windows-x64-baseline", "bun.exe" );
         }
 
         static string GetBunWorkerJsPath( )
@@ -217,7 +217,7 @@ namespace JavaScriptPlugin
                 {
                     string worker_dir = GetWorkerDirectory( );
                     string dest_folder = GetTemporaryDirectory( );
-                    string source_zip = Path.Combine( worker_dir, @"bun-windows-x64.zip" );
+                    string source_zip = Path.Combine( worker_dir, @"bun-windows-x64-baseline.zip" );
 
                     ZipFile.ExtractToDirectory( source_zip, dest_folder );
 
