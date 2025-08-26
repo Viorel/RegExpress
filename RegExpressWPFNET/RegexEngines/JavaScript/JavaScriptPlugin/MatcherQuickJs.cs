@@ -22,11 +22,6 @@ namespace JavaScriptPlugin
 {
     static partial class MatcherQuickJs
     {
-        public class ResponseVersion
-        {
-            public string? version { get; set; }
-        }
-
         public class ResponseMatch
         {
             [JsonPropertyName( "g" )]
@@ -140,29 +135,9 @@ namespace JavaScriptPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            var data = new { cmd = "version" };
-            string json = JsonSerializer.Serialize( data );
+            string version_path = Path.Combine( GetWorkerDirectory( ), "VERSION" );
 
-            using ProcessHelper ph = new( GetQuickJsExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.ASCII;
-            ph.Arguments = [GetQuickJsWorkerPath( )];
-
-            ph.StreamWriter = sw =>
-            {
-                sw.Write( json );
-                sw.Flush( );
-            };
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            ResponseVersion? response = JsonSerializer.Deserialize<ResponseVersion>( ph.OutputStream );
-
-            string? version = response?.version;
-
-            return version;
+            return File.ReadAllText( version_path ).Trim( );
         }
 
         static string GetPluginDirectory( )
@@ -173,14 +148,19 @@ namespace JavaScriptPlugin
             return assembly_dir;
         }
 
+        static string GetWorkerDirectory( )
+        {
+            return Path.Combine( GetPluginDirectory( ), "QuickJsWorker" );
+        }
+
         static string GetQuickJsExePath( )
         {
-            return Path.Combine( GetPluginDirectory( ), "QuickJsWorker", "qjs.exe" );
+            return Path.Combine( GetWorkerDirectory( ), "qjs.exe" );
         }
 
         static string GetQuickJsWorkerPath( )
         {
-            return Path.Combine( GetPluginDirectory( ), "QuickJsWorker", "QuickJsWorker.js" );
+            return Path.Combine( GetWorkerDirectory( ), "QuickJsWorker.js" );
         }
 
         internal static void StartGetVersion( Action<string?> setNodeJsVersion )

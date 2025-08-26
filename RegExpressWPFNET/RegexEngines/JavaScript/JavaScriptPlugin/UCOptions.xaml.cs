@@ -146,7 +146,7 @@ namespace JavaScriptPlugin
             {
                 ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "NodeJs" );
 
-                cbi.Content = $"Node.js {version}";
+                cbi.Content = $"V8 (Node.js) {version}";
             } );
         }
 

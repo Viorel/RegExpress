@@ -159,13 +159,10 @@ namespace JavaScriptPlugin
 
             ResponseVersion? response = JsonSerializer.Deserialize<ResponseVersion>( ph.OutputStream );
 
-            string? version = response?.node;
+            string? version = response?.v8 ?? response?.node; //
 
-            //// also show the version of V8
-            //if( !string.IsNullOrWhiteSpace( response?.v8 ) )
-            //{
-            //    version = $"{version} (V8 {response.v8})";
-            //}
+            // example: "13.6.233.10-node.24"
+            if( version != null ) version = Regex.Replace( version, @"-node\..+$", "" );
 
             return version;
         }

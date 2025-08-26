@@ -1,1 +1,1 @@
-echo { "cmd" : "version" } | "QuickJs\qjs.exe" QuickJsWorker.js
+type "QuickJs\VERSION"

@@ -22,11 +22,6 @@ namespace JavaScriptPlugin
 {
     static partial class MatcherSpiderMonkey
     {
-        public class ResponseVersion
-        {
-            public string? version { get; set; }
-        }
-
         public class ResponseMatch
         {
             [JsonPropertyName( "g" )]
@@ -62,7 +57,7 @@ namespace JavaScriptPlugin
             var data = new { cmd = "match", pattern, text, flags, func };
             string json = JsonSerializer.Serialize( data );
 
-            List<string> arguments = ["--nowarnings", GetWorkerJsPath( )];
+            List<string> arguments = ["--nowarnings", GetSpiderMonkeyWorkerJsPath( )];
             if( options.NoNativeRegexp ) arguments.Add( "--no-native-regexp" );
             if( options.EnableDuplicateNames ) arguments.Add( "--enable-regexp-duplicate-named-groups" );
             if( options.EnableRegexpModifiers ) arguments.Add( "--enable-regexp-modifiers" );
@@ -145,27 +140,23 @@ namespace JavaScriptPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            var data = new { cmd = "version" };
-            string json = JsonSerializer.Serialize( data );
-
             using ProcessHelper ph = new( GetSpiderMonkeyExePath( ) );
 
             ph.AllEncoding = EncodingEnum.ASCII;
-            ph.Arguments = ["--nowarnings", GetWorkerJsPath( )];
-
-            ph.StreamWriter = sw =>
-            {
-                sw.Write( json );
-                sw.Flush( );
-            };
+            ph.Arguments = ["--version"]; // (Not documented?)
 
             if( !ph.Start( cnc ) ) return null;
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            ResponseVersion? response = JsonSerializer.Deserialize<ResponseVersion>( ph.OutputStream );
+            string version;
 
-            string? version = response?.version;
+            using( StreamReader sr = new( ph.OutputStream, Encoding.ASCII ) )
+            {
+                version = sr.ReadToEnd( ).Trim( ); // example: "JavaScript-C143.0"
+
+                version = Regex.Replace( version, @"^JavaScript-", "" );
+            }
 
             return version;
         }
@@ -192,7 +183,7 @@ namespace JavaScriptPlugin
             return Path.Combine( TempFolder!, "spidermonkey", "spidermonkey.exe" );
         }
 
-        static string GetWorkerJsPath( )
+        static string GetSpiderMonkeyWorkerJsPath( )
         {
             return Path.Combine( GetWorkerDirectory( ), "SpiderMonkeyWorker.js" );
         }
