@@ -329,7 +329,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 }
                 if( fm.Esc_x2 )
                 {
-                    pb_character_escape.Add( @"\\x[0-9a-fA-F]{0,2}" ); // hexa, two digits
+                    pb_character_escape.Add( @"\\x[0-9a-fA-F]{1,2}" ); // hexa, two digits
                 }
                 if( fm.Esc_uBrace )
                 {
@@ -469,7 +469,7 @@ namespace RegExpressLibrary.SyntaxColouring
                     }
                     if( fm.InsideSets_Esc_x2 )
                     {
-                        pb_inside_sets.Add( @"\\x[0-9a-fA-F]{0,2}" ); // hexa, two digits
+                        pb_inside_sets.Add( @"\\x[0-9a-fA-F]{1,2}" ); // hexa, two digits
                     }
                     if( fm.InsideSets_Esc_uBrace )
                     {
