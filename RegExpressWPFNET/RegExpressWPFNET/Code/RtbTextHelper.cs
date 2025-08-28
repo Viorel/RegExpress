@@ -26,7 +26,6 @@ namespace RegExpressWPFNET.Code
             Eol = eol;
         }
 
-
         internal string GetText( )
         {
             Sb.Clear( );
@@ -34,23 +33,29 @@ namespace RegExpressWPFNET.Code
 
             foreach( Block block in Doc.Blocks )
             {
-                ProcessBlock( (dynamic)block );
+                ProcessBlock( block );
             }
 
             return Sb.ToString( );
         }
 
+        void ProcessBlock( Block block )
+        {
+            if( block is Section section ) { ProcessSection( section ); return; }
+            if( block is Paragraph para ) { ProcessParagraph( para ); return; }
 
-        void ProcessBlock( Section section )
+            throw new NotSupportedException( );
+        }
+
+        void ProcessSection( Section section )
         {
             foreach( Block block in section.Blocks )
             {
-                ProcessBlock( (dynamic)block );
+                ProcessBlock( block );
             }
         }
 
-
-        void ProcessBlock( Paragraph para )
+        void ProcessParagraph( Paragraph para )
         {
             if( IsAnotherParagraph )
             {
@@ -63,21 +68,28 @@ namespace RegExpressWPFNET.Code
 
             foreach( Inline inline in para.Inlines )
             {
-                ProcessInline( (dynamic)inline );
+                ProcessInline( inline );
             }
         }
 
+        void ProcessInline( Inline inline )
+        {
+            if( inline is Span span ) { ProcessSpan( span ); return; }
+            if( inline is Run run ) { ProcessRun( run ); return; }
+            if( inline is LineBreak lb ) { ProcessLineBreak( lb ); return; }
 
-        void ProcessInline( Span span )
+            throw new NotSupportedException( );
+        }
+
+        void ProcessSpan( Span span )
         {
             foreach( Inline inline in span.Inlines )
             {
-                ProcessInline( (dynamic)inline );
+                ProcessInline( inline );
             }
         }
 
-
-        void ProcessInline( Run run )
+        void ProcessRun( Run run )
         {
             //Unfortunately, '\r[\n]' and '\n' are possible inside Run 
             //Debug.Assert( !run.Text.Contains( '\r' ) );
@@ -113,8 +125,7 @@ namespace RegExpressWPFNET.Code
 
         }
 
-
-        void ProcessInline( LineBreak _) // unused '_' is here for dynamic dispatch
+        void ProcessLineBreak( LineBreak _ )
         {
             Sb.Append( Eol );
         }

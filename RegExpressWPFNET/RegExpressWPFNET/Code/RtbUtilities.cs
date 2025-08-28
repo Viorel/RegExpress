@@ -211,9 +211,8 @@ namespace RegExpressWPFNET.Code
 
         static (int selection_start, int selection_end) GetSelection( TextSelection selection, TextPointers pointers )
         {
-            // TODO: implement 'pointers.GetIndices' that takes two text pointers
             int selection_start = Math.Max( 0, pointers.GetIndex( selection.Start, LogicalDirection.Backward ) );
-            int selection_end = Math.Max( 0, pointers.GetIndex( selection.End, LogicalDirection.Forward ) );
+            int selection_end = selection.IsEmpty ? selection_start : Math.Max( 0, pointers.GetIndex( selection.End, LogicalDirection.Forward ) );
 
             return (selection_start, selection_end);
         }
