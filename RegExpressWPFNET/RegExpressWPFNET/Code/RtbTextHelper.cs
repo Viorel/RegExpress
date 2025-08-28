@@ -41,8 +41,8 @@ namespace RegExpressWPFNET.Code
 
         void ProcessBlock( Block block )
         {
-            if( block is Section section ) { ProcessSection( section ); return; }
             if( block is Paragraph para ) { ProcessParagraph( para ); return; }
+            if( block is Section section ) { ProcessSection( section ); return; }
 
             throw new NotSupportedException( );
         }
@@ -74,8 +74,8 @@ namespace RegExpressWPFNET.Code
 
         void ProcessInline( Inline inline )
         {
-            if( inline is Span span ) { ProcessSpan( span ); return; }
             if( inline is Run run ) { ProcessRun( run ); return; }
+            if( inline is Span span ) { ProcessSpan( span ); return; }
             if( inline is LineBreak lb ) { ProcessLineBreak( lb ); return; }
 
             throw new NotSupportedException( );
@@ -96,33 +96,32 @@ namespace RegExpressWPFNET.Code
             //Debug.Assert( !run.Text.Contains( '\n' ) );
             //Sb.Append( run.Text );
 
-            char prev_c = '\0';
+            string text = run.Text;
+            int start = 0;
 
-            foreach( char c in run.Text )
+            for(; ; )
             {
-                switch( c )
+                int i = text.IndexOf( '\r', start );
+
+                if( i < 0 )
                 {
-                case '\r':
-                    Sb.Append( Eol );
-                    break;
-                case '\n':
-                    if( prev_c == '\r' )
-                    {
-                        // ignore '\n' after '\r'
-                    }
-                    else
-                    {
-                        Sb.Append( Eol );
-                    }
-                    break;
-                default:
-                    Sb.Append( c );
+                    Sb.Append( text, start, text.Length - start );
+
                     break;
                 }
 
-                prev_c = c;
-            }
+                Sb.Append( text, start, i - start );
+                Sb.Append( Eol );
 
+                start = i + 1;
+
+                if( start < text.Length && text[start] == '\n' )
+                {
+                    // ignore '\n' after '\r'
+
+                    ++start;
+                }
+            }
         }
 
         void ProcessLineBreak( LineBreak _ )

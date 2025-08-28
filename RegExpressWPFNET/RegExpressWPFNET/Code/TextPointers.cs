@@ -30,7 +30,7 @@ namespace RegExpressWPFNET.Code
 
             foreach( var block in Doc.Blocks )
             {
-                var tb = FindTextPointerB( block, ref remaining_index );
+                var tb = FindTextPointer_Block( block, ref remaining_index );
 
                 if( tb != null ) return tb;
             }
@@ -50,7 +50,7 @@ namespace RegExpressWPFNET.Code
 
             foreach( var block in Doc.Blocks )
             {
-                var r = FindTextPointersB( block, ref rd );
+                var r = FindTextPointers_Block( block, ref rd );
                 if( r ) break;
             }
 
@@ -87,19 +87,19 @@ namespace RegExpressWPFNET.Code
 
         //---
 
-        TextPointer? FindTextPointerB( Block block, ref int remainingIndex )
+        TextPointer? FindTextPointer_Block( Block block, ref int remainingIndex )
         {
-            if( block is Section section ) return FindTextPointerBC( section, ref remainingIndex );
-            if( block is Paragraph para ) return FindTextPointerBC( para, ref remainingIndex );
+            if( block is Paragraph para ) return FindTextPointer_Paragraph( para, ref remainingIndex );
+            if( block is Section section ) return FindTextPointer_Section( section, ref remainingIndex );
 
             throw new NotSupportedException( );
         }
 
-        TextPointer? FindTextPointerBC( Section section, ref int remainingIndex )
+        TextPointer? FindTextPointer_Section( Section section, ref int remainingIndex )
         {
             foreach( var block in section.Blocks )
             {
-                var tp = FindTextPointerB( block, ref remainingIndex );
+                var tp = FindTextPointer_Block( block, ref remainingIndex );
 
                 if( tp != null ) return tp;
             }
@@ -107,13 +107,13 @@ namespace RegExpressWPFNET.Code
             return null;
         }
 
-        TextPointer? FindTextPointerBC( Paragraph paragraph, ref int remainingIndex )
+        TextPointer? FindTextPointer_Paragraph( Paragraph paragraph, ref int remainingIndex )
         {
             if( remainingIndex <= 0 ) return paragraph.ContentStart.GetInsertionPosition( LogicalDirection.Forward );
 
             foreach( var inline in paragraph.Inlines )
             {
-                var tp = FindTextPointerI( inline, ref remainingIndex );
+                var tp = FindTextPointer_Inline( inline, ref remainingIndex );
                 if( tp != null ) return tp;
             }
 
@@ -124,27 +124,27 @@ namespace RegExpressWPFNET.Code
             return null;
         }
 
-        TextPointer? FindTextPointerI( Inline inline, ref int remainingIndex )
+        TextPointer? FindTextPointer_Inline( Inline inline, ref int remainingIndex )
         {
-            if( inline is Span span ) return FindTextPointerIC( span, ref remainingIndex );
-            if( inline is Run run ) return FindTextPointerIC( run, ref remainingIndex );
-            if( inline is LineBreak lb ) return FindTextPointerIC( lb, ref remainingIndex );
+            if( inline is Run run ) return FindTextPointer_Run( run, ref remainingIndex );
+            if( inline is Span span ) return FindTextPointer_Span( span, ref remainingIndex );
+            if( inline is LineBreak lb ) return FindTextPointer_LineBreak( lb, ref remainingIndex );
 
             throw new NotSupportedException( );
         }
 
-        TextPointer? FindTextPointerIC( Span span, ref int remainingIndex )
+        TextPointer? FindTextPointer_Span( Span span, ref int remainingIndex )
         {
             foreach( var inline in span.Inlines )
             {
-                var tp = FindTextPointerI( inline, ref remainingIndex );
+                var tp = FindTextPointer_Inline( inline, ref remainingIndex );
                 if( tp != null ) return tp;
             }
 
             return null;
         }
 
-        TextPointer? FindTextPointerIC( Run run, ref int remainingIndex )
+        TextPointer? FindTextPointer_Run( Run run, ref int remainingIndex )
         {
             // Unfortunately, '\r[\n]' and '\n' are possible inside Run 
             //Debug.Assert( !run.Text.Contains( '\r' ) );
@@ -184,7 +184,7 @@ namespace RegExpressWPFNET.Code
             return null;
         }
 
-        TextPointer? FindTextPointerIC( LineBreak lb, ref int remainingIndex )
+        TextPointer? FindTextPointer_LineBreak( LineBreak lb, ref int remainingIndex )
         {
             if( remainingIndex <= 0 ) return lb.ElementStart;
 
@@ -213,26 +213,26 @@ namespace RegExpressWPFNET.Code
             }
         }
 
-        bool FindTextPointersB( Block block, ref RangeData rd )
+        bool FindTextPointers_Block( Block block, ref RangeData rd )
         {
-            if( block is Section section ) return FindTextPointersBC( section, ref rd );
-            if( block is Paragraph para ) return FindTextPointersBC( para, ref rd );
+            if( block is Paragraph para ) return FindTextPointers_Paragraph( para, ref rd );
+            if( block is Section section ) return FindTextPointers_Section( section, ref rd );
 
             throw new NotSupportedException( );
         }
 
-        bool FindTextPointersBC( Section section, ref RangeData rd )
+        bool FindTextPointers_Section( Section section, ref RangeData rd )
         {
             foreach( var block in section.Blocks )
             {
-                var r = FindTextPointersB( block, ref rd );
+                var r = FindTextPointers_Block( block, ref rd );
                 if( r ) return true;
             }
 
             return false;
         }
 
-        bool FindTextPointersBC( Paragraph paragraph, ref RangeData rd )
+        bool FindTextPointers_Paragraph( Paragraph paragraph, ref RangeData rd )
         {
             if( rd.Pointer1 == null && rd.Remaining1 <= 0 ) rd.Pointer1 = paragraph.ContentStart;
             if( rd.Pointer2 == null && rd.Remaining2 <= 0 ) rd.Pointer2 = paragraph.ContentStart;
@@ -241,7 +241,7 @@ namespace RegExpressWPFNET.Code
 
             foreach( var inline in paragraph.Inlines )
             {
-                var r = FindTextPointersI( inline, ref rd );
+                var r = FindTextPointers_Inline( inline, ref rd );
                 if( r ) return true;
             }
 
@@ -264,27 +264,27 @@ namespace RegExpressWPFNET.Code
             return rd.Done;
         }
 
-        bool FindTextPointersI( Inline inline, ref RangeData rd )
+        bool FindTextPointers_Inline( Inline inline, ref RangeData rd )
         {
-            if( inline is Span span ) return FindTextPointersIC( span, ref rd );
-            if( inline is Run run ) return FindTextPointersIC( run, ref rd );
-            if( inline is LineBreak lb ) return FindTextPointersIC( lb, ref rd );
+            if( inline is Run run ) return FindTextPointers_Run( run, ref rd );
+            if( inline is Span span ) return FindTextPointers_Span( span, ref rd );
+            if( inline is LineBreak lb ) return FindTextPointers_LineBreak( lb, ref rd );
 
             throw new NotSupportedException( );
         }
 
-        bool FindTextPointersIC( Span span, ref RangeData rd )
+        bool FindTextPointers_Span( Span span, ref RangeData rd )
         {
             foreach( var inline in span.Inlines )
             {
-                var r = FindTextPointersI( inline, ref rd );
+                var r = FindTextPointers_Inline( inline, ref rd );
                 if( r ) return true;
             }
 
             return false;
         }
 
-        bool FindTextPointersIC( Run run, ref RangeData rd )
+        bool FindTextPointers_Run( Run run, ref RangeData rd )
         {
             //Unfortunately, '\r[\n]' and '\n' are possible inside Run 
             //Debug.Assert( !run.Text.Contains( '\r' ) );
@@ -330,7 +330,7 @@ namespace RegExpressWPFNET.Code
             return false;
         }
 
-        bool FindTextPointersIC( LineBreak lb, ref RangeData rd )
+        bool FindTextPointers_LineBreak( LineBreak lb, ref RangeData rd )
         {
             if( rd.Pointer1 == null )
             {
@@ -361,39 +361,41 @@ namespace RegExpressWPFNET.Code
 
             foreach( var block in Doc.Blocks )
             {
-                if( FindStartIndexB( block, el, ref index ) ) return index;
+                if( FindStartIndex_Block( block, el, ref index ) ) return index;
             }
 
             return -1;
         }
 
-        bool FindStartIndexB( Block block, TextElement el, ref int index )
+        bool FindStartIndex_Block( Block block, TextElement el, ref int index )
         {
-            if( object.ReferenceEquals( block, el ) ) return true;
-
-            if( block is Section section ) return FindStartIndexBC( section, el, ref index );
-            if( block is Paragraph para ) return FindStartIndexBC( para, el, ref index );
+            if( block is Paragraph para ) return FindStartIndex_Paragraph( para, el, ref index );
+            if( block is Section section ) return FindStartIndex_Section( section, el, ref index );
 
             throw new NotSupportedException( );
         }
 
 
-        bool FindStartIndexBC( Section section, TextElement el, ref int index )
+        bool FindStartIndex_Section( Section section, TextElement el, ref int index )
         {
+            if( object.ReferenceEquals( section, el ) ) return true;
+
             foreach( var block in section.Blocks )
             {
-                if( FindStartIndexB( block, el, ref index ) ) return true;
+                if( FindStartIndex_Block( block, el, ref index ) ) return true;
             }
 
             return false;
         }
 
 
-        bool FindStartIndexBC( Paragraph para, TextElement el, ref int index )
+        bool FindStartIndex_Paragraph( Paragraph para, TextElement el, ref int index )
         {
+            if( object.ReferenceEquals( para, el ) ) return true;
+
             foreach( var inline in para.Inlines )
             {
-                if( FindStartIndexI( inline, el, ref index ) ) return true;
+                if( FindStartIndex_Inline( inline, el, ref index ) ) return true;
             }
 
             index += EolLength;
@@ -401,60 +403,62 @@ namespace RegExpressWPFNET.Code
             return false;
         }
 
-        bool FindStartIndexI( Inline inline, TextElement el, ref int index )
+        bool FindStartIndex_Inline( Inline inline, TextElement el, ref int index )
         {
-            if( object.ReferenceEquals( inline, el ) ) return true;
-
-            if( inline is Span span ) return FindStartIndexIC( span, el, ref index );
-            if( inline is Run run ) return FindStartIndexIC( run, el, ref index );
-            if( inline is LineBreak lb ) return FindStartIndexIC( lb, el, ref index );
+            if( inline is Run run ) return FindStartIndex_Run( run, el, ref index );
+            if( inline is Span span ) return FindStartIndex_Span( span, el, ref index );
+            if( inline is LineBreak lb ) return FindStartIndex_LineBreak( lb, el, ref index );
 
             throw new NotSupportedException( );
         }
 
-        bool FindStartIndexIC( Span span, TextElement el, ref int index )
+        bool FindStartIndex_Span( Span span, TextElement el, ref int index )
         {
+            if( object.ReferenceEquals( span, el ) ) return true;
+
             foreach( var inline in span.Inlines )
             {
-                if( FindStartIndexI( inline, el, ref index ) ) return true;
+                if( FindStartIndex_Inline( inline, el, ref index ) ) return true;
             }
 
             return false;
         }
 
-        bool FindStartIndexIC( Run run, TextElement el, ref int index )
+        bool FindStartIndex_Run( Run run, TextElement el, ref int index )
         {
-            char prev_c = '\0';
+            if( object.ReferenceEquals( run, el ) ) return true;
 
-            foreach( char c in run.Text )
+            string text = run.Text;
+            int start = 0;
+
+            for(; ; )
             {
-                switch( c )
+                int i = text.IndexOf( '\r', start );
+
+                if( i < 0 )
                 {
-                case '\r':
-                    index += EolLength;
-                    break;
-                case '\n':
-                    if( prev_c == '\r' )
-                    {
-                        // ignore '\n' after '\r'
-                    }
-                    else
-                    {
-                        index += EolLength;
-                    }
-                    break;
-                default:
-                    ++index;
+                    index += text.Length - start;
+
                     break;
                 }
 
-                prev_c = c;
+                index += i - start;
+                index += EolLength;
+
+                start = i + 1;
+
+                if( start < text.Length && text[start] == '\n' )
+                {
+                    // ignore '\n' after '\r'
+
+                    ++start;
+                }
             }
 
             return false;
         }
 
-        bool FindStartIndexIC( LineBreak lb, TextElement el, ref int index )
+        bool FindStartIndex_LineBreak( LineBreak lb, TextElement el, ref int index )
         {
             if( object.ReferenceEquals( lb, el ) ) return true;
 
