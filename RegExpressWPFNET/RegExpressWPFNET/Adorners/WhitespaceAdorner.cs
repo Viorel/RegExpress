@@ -20,7 +20,6 @@ namespace RegExpressWPFNET.Adorners
 {
     partial class WhitespaceAdorner : Adorner
     {
-        readonly ChangeEventHelper ChangeEventHelper;
         readonly Brush WsBrush = Brushes.LightSeaGreen;
         readonly Pen TabPen = new( Brushes.LightSeaGreen, 1 );
         readonly Pen EolPen = new( Brushes.LightSeaGreen, 1 );
@@ -41,11 +40,8 @@ namespace RegExpressWPFNET.Adorners
         internal bool IsDbgDisabled { get; set; } // (disable this adorner for debugging purposes)
 
 
-        public WhitespaceAdorner( MyRichTextBox rtb, ChangeEventHelper ceh ) : base( rtb )
+        public WhitespaceAdorner( MyRichTextBox rtb ) : base( rtb )
         {
-            ChangeEventHelper = ceh;
-            Debug.Assert( ChangeEventHelper != null );
-
             WsBrush.Freeze( );
             TabPen.Freeze( );
             EolPen.Freeze( );
@@ -95,7 +91,7 @@ namespace RegExpressWPFNET.Adorners
         private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
         {
             if( IsDbgDisabled ) return;
-            if( ChangeEventHelper == null || ChangeEventHelper.IsInChange ) return;
+            if( Rtb.ChangeEventHelper.IsInChange ) return;
             if( !mShowWhitespaces ) return;
 
             // invalidate some areas, but not too often
@@ -160,7 +156,7 @@ namespace RegExpressWPFNET.Adorners
         private void Rtb_ScrollChanged( object sender, RoutedEventArgs e )
         {
             if( IsDbgDisabled ) return;
-            if( ChangeEventHelper == null || ChangeEventHelper.IsInChange ) return;
+            if( Rtb.ChangeEventHelper.IsInChange ) return;
             if( !mShowWhitespaces ) return;
 
             InvalidateVisual( ); // to redraw what we already have, in new positions

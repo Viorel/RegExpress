@@ -11,7 +11,6 @@ namespace RegExpressWPFNET.Code
         internal readonly FlowDocument Doc;
         internal readonly int EolLength;
 
-
         public TextPointers( FlowDocument doc, int eolLength )
         {
             Debug.Assert( doc != null );
@@ -20,7 +19,6 @@ namespace RegExpressWPFNET.Code
             Doc = doc;
             EolLength = eolLength;
         }
-
 
         public TextPointer GetTextPointer( int index )
         {
@@ -38,13 +36,10 @@ namespace RegExpressWPFNET.Code
             return Doc.ContentEnd; //?
         }
 
-
-        public ValueTuple<TextPointer, TextPointer> GetTextPointers( int index1, int index2 )
+        public (TextPointer start, TextPointer end) GetTextPointers( int index1, int index2 )
         {
             Debug.Assert( index1 >= 0 );
             Debug.Assert( index2 >= 0 );
-
-            //return ValueTuple.Create( GetTextPointer( index1 ), GetTextPointer( index2 ) );	//
 
             RangeData rd = new( index1, index2 );
 
@@ -57,9 +52,8 @@ namespace RegExpressWPFNET.Code
             var tp1 = rd.Pointer1 ?? Doc.ContentEnd;
             var tp2 = rd.Pointer2 ?? Doc.ContentEnd;
 
-            return ValueTuple.Create( tp1, tp2 );
+            return (tp1, tp2);
         }
-
 
         public int GetIndex( TextPointer tp, LogicalDirection dir )
         {
@@ -86,6 +80,7 @@ namespace RegExpressWPFNET.Code
 
 
         //---
+
 
         TextPointer? FindTextPointer_Block( Block block, ref int remainingIndex )
         {

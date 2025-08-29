@@ -6,9 +6,11 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
+using RegExpressLibrary;
 using RegExpressWPFNET.Code;
 
 
@@ -16,13 +18,11 @@ namespace RegExpressWPFNET.Controls
 {
     internal class MyRichTextBox : RichTextBox
     {
-        readonly WeakReference<BaseTextData?> mCachedBaseTextData = new( null );
+        readonly WeakReference<TextData?>[] mCachedTextData = [new WeakReference<TextData?>( null ), new WeakReference<TextData?>( null ), new WeakReference<TextData?>( null )];
+        readonly SelectionInfo[] mCachedSelection = [new SelectionInfo( -1, -1 ), new SelectionInfo( -1, -1 ), new SelectionInfo( -1, -1 )];
 
-        public int LastGetTextDataDuration { get; private set; } = 0;
-
-
-        static readonly RoutedUICommand[] CommandsToDisable = new[]
-            {
+        static readonly RoutedUICommand[] CommandsToDisable =
+            [
                 EditingCommands.ToggleBold,
                 EditingCommands.ToggleBullets,
                 EditingCommands.ToggleItalic,
@@ -38,80 +38,187 @@ namespace RegExpressWPFNET.Controls
                 EditingCommands.AlignRight,
                 EditingCommands.IncreaseIndentation,
                 EditingCommands.DecreaseIndentation,
-            };
+            ];
 
+        public ChangeEventHelper ChangeEventHelper { get; private init; }
 
         public MyRichTextBox( )
         {
+            ChangeEventHelper = new ChangeEventHelper( this );
+
             AddCommandBindings( );
         }
-
 
         public MyRichTextBox( FlowDocument document ) : base( document )
         {
             AddCommandBindings( );
         }
 
-
-        internal TextData GetTextData( string? eol ) //, [CallerMemberName] string? caller = null, [CallerLineNumber] int line = 0, [CallerFilePath] string? file = null )
+        internal TextData GetTextData( string eol )//, [CallerMemberName] string? caller = null, [CallerFilePath] string? callerPath = null, [CallerLineNumber] int callerLine = 0 )
         {
-            var t1 = Environment.TickCount;
+#if DEBUG
+            if( eol != null ) TextData.DbgValidateEol( eol );
+#endif
 
-            TextData td;
+            //var t1 = Environment.TickCount;
 
-            if( mCachedBaseTextData.TryGetTarget( out BaseTextData? btd ) )
+            TextData? td;
+
+            if( eol == null )
             {
-                // nothing
+                // get any
+
+                foreach( var wr in mCachedTextData )
+                {
+                    if( wr.TryGetTarget( out td ) && td != null )
+                    {
+                        return td;
+                    }
+                }
+
+                eol = "\r\n";
             }
-            else
+
+            int eol_index = EolToIndex( eol );
+
+            if( mCachedTextData[eol_index].TryGetTarget( out td ) && td != null )
             {
-                btd = RtbUtilities.GetBaseTextDataInternal( this, eol ?? "\n" );
-                mCachedBaseTextData.SetTarget( btd );
+                return td;
             }
 
-            td = RtbUtilities.GetTextDataFrom( this, btd, eol ?? btd.Eol );
+            foreach( var wr in mCachedTextData ) // TODO: skip the checked one
+            {
+                if( wr.TryGetTarget( out td ) && td != null )
+                {
+                    TextData new_td = td.Export( eol );
 
-            var t2 = Environment.TickCount;
+                    mCachedTextData[eol_index].SetTarget( new_td );
 
-            LastGetTextDataDuration = t2 - t1; // (wrapping is ignored)
+                    return new_td;
+                }
+            }
 
-            //Debug.WriteLine( $"####### GetTextData: {LastGetTextDataDuration:F0} - {caller}:{line} '{Path.GetFileNameWithoutExtension( file )}'" );
+            RtbTextHelper th = new( Document, eol );
+            string text = th.GetText( );
+
+            td = new TextData( text, eol, new TextPointers( Document, eol.Length ) );
+
+            mCachedTextData[eol_index].SetTarget( td );
+
+            //var t2 = Environment.TickCount;
+            //Debug.WriteLine( $"####### {nameof( GetTextData )} {t2 - t1:F0}: {caller} - {Path.GetFileNameWithoutExtension( callerPath )}:{callerLine}" );
 
             return td;
         }
 
-
-        internal BaseTextData GetBaseTextData( string eol )//, [CallerMemberName] string? caller = null, [CallerFilePath] string? callerPath = null, [CallerLineNumber] int callerLine = 0 )
+        internal SelectionInfo GetSelection( string eol )
         {
-            //...
-            //var t1 = Environment.TickCount;
+            TextData.DbgValidateEol( eol );
 
-            BaseTextData? btd;
+            int eol_index = EolToIndex( eol );
 
-            if( mCachedBaseTextData.TryGetTarget( out btd ) )
+            SelectionInfo selection = mCachedSelection[eol_index];
+
+            if( selection.Start >= 0 ) return selection;
+
+            // try to re-use data for the same length of EOL
+
+            for( int i = 0; i < mCachedSelection.Length; ++i )
             {
-                btd = RtbUtilities.GetBaseTextDataFrom( this, btd, eol ?? btd.Eol );
+                if( IndexToEol( i ).Length == eol.Length && mCachedSelection[i].Start >= 0 )
+                {
+                    selection = mCachedSelection[i];
+
+                    mCachedSelection[eol_index] = selection;
+
+                    return selection;
+                }
             }
-            else
+
+            // try to adjust data of the different length
+            /*
+             * Too slow
+             * 
+            for( int i = 0; i < mCachedSelection.Length; ++i )
             {
-                btd = RtbUtilities.GetBaseTextDataInternal( this, eol ?? "\n" );
-                mCachedBaseTextData.SetTarget( btd );
+                if( mCachedSelection[i].Start >= 0 )
+                {
+                    Debug.Assert( mCachedSelection[i].End >= 0 );
+
+                    if( mCachedTextData[i].TryGetTarget( out TextData? td ) && td != null )
+                    {
+                        string cached_text = td.Text;
+                        string cached_eol = td.Eol;
+                        int cached_start = mCachedSelection[i].Start;
+                        int cached_end = mCachedSelection[i].End;
+                        int new_start = cached_start;
+                        int new_end = cached_end;
+                        int len_diff = eol.Length - cached_eol.Length;
+
+                        for( int j = 0; ; )
+                        {
+                            int k = cached_text.IndexOf( cached_eol, j );
+                            if( k < 0 || k >= cached_start ) break;
+
+                            new_start += len_diff;
+
+                            j = k + cached_eol.Length;
+                        }
+
+                        if( cached_end == cached_start )
+                        {
+                            new_end = new_start;
+                        }
+                        else
+                        {
+                            for( int j = 0; ; )
+                            {
+                                int k = cached_text.IndexOf( cached_eol, j );
+                                if( k < 0 || k >= cached_end ) break;
+
+                                new_end += len_diff;
+
+                                j = k + cached_eol.Length;
+                            }
+                        }
+
+                        selection = new SelectionInfo( new_start, new_end );
+
+                        mCachedSelection[eol_index] = selection;
+
+                        return selection;
+                    }
+                }
             }
+            */
 
-            //var t2 = Environment.TickCount;
-            //Debug.WriteLine( $"####### GetSimpleTextData {t2 - t1:F0}: {caller} - {Path.GetFileNameWithoutExtension( callerPath )}:{callerLine}" );
+            TextPointers tp = new( this.Document, eol.Length );
 
-            return btd;
+            int start = tp.GetIndex( this.Selection.Start, LogicalDirection.Backward ); // TODO: do a single scan
+            int end = this.Selection.IsEmpty ? start : tp.GetIndex( this.Selection.End, LogicalDirection.Forward );
+
+            selection = new SelectionInfo( start, end );
+
+            mCachedSelection[eol_index] = selection;
+
+            return selection;
         }
-
 
         protected override void OnTextChanged( TextChangedEventArgs e )
         {
-            mCachedBaseTextData.SetTarget( null );
+            if( ChangeEventHelper.IsInChange ) return;
+
+            foreach( var wr in mCachedTextData ) wr.SetTarget( null );
 
             base.OnTextChanged( e );
         }
 
+        protected override void OnSelectionChanged( RoutedEventArgs e )
+        {
+            for( var i = 0; i < mCachedSelection.Length; ++i ) mCachedSelection[i] = new SelectionInfo( -1, -1 );
+
+            base.OnSelectionChanged( e );
+        }
 
         void AddCommandBindings( )
         {
@@ -121,18 +228,37 @@ namespace RegExpressWPFNET.Controls
             }
         }
 
-
         void BlockedCanExecute( object sender, CanExecuteRoutedEventArgs e )
         {
             e.CanExecute = false;
             e.Handled = true;
         }
 
-
         void BlockedExecuted( object sender, ExecutedRoutedEventArgs e )
         {
             e.Handled = true;
         }
 
+        static int EolToIndex( string eol )
+        {
+            return eol switch
+            {
+                "\r\n" => 0,
+                "\r" => 1,
+                "\n" => 2,
+                _ => throw new InvalidOperationException( )
+            };
+        }
+
+        static string IndexToEol( int eolIndex )
+        {
+            return eolIndex switch
+            {
+                0 => "\r\n",
+                1 => "\r",
+                2 => "\n",
+                _ => throw new InvalidOperationException( )
+            };
+        }
     }
 }

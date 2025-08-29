@@ -19,98 +19,6 @@ using RegExpressLibrary;
 
 namespace RegExpressWPFNET.Code
 {
-
-    public class BaseTextData
-    {
-        int mLengthInTextElements = -1;
-        int mNumberOfLines = -1;
-
-
-        public readonly string Text; // (lines are separated by EOL specified in the call of 'GetBaseTextData' and 'GetTextData',
-        public readonly string Eol;  //  which is also kept in 'Eol')
-        internal readonly TextPointers TextPointers; // (maps string index of 'Text' to 'TextPointer')
-
-        internal BaseTextData( string text, string eol, TextPointers pointers )
-        {
-            Debug.Assert( eol.Length == pointers.EolLength );
-
-            Text = text;
-            Eol = eol;
-            TextPointers = pointers;
-        }
-
-
-        public int LengthInTextElements
-        {
-            get
-            {
-                if( mLengthInTextElements < 0 )
-                {
-                    lock( this )
-                    {
-                        if( mLengthInTextElements < 0 )
-                        {
-                            //var si = new StringInfo( Text );
-
-                            // For some reasons, "\r\n" is counted as one element (in contrast to .NET Framework 4.8)
-                            // Workaround:
-                            var si = new StringInfo( Text.Replace( "\r", "x" ) );
-                            // TODO: Reconsider in next versions of .NET
-
-                            mLengthInTextElements = si.LengthInTextElements;
-                        }
-                    }
-                }
-
-                return mLengthInTextElements;
-            }
-        }
-
-        public int NumberOfLines
-        {
-            get
-            {
-                if( mNumberOfLines < 0 )
-                {
-                    lock( this )
-                    {
-                        if( mNumberOfLines < 0 )
-                        {
-                            if( string.IsNullOrEmpty( Text ) )
-                            {
-                                mNumberOfLines = 0;
-                            }
-                            else
-                            {
-                                Regex re = new( pattern: Regex.Escape( Eol ) );
-
-                                mNumberOfLines = re.Matches( Text ).Count + 1;
-                            }
-                        }
-                    }
-                }
-
-                return mNumberOfLines;
-            }
-        }
-    }
-
-
-    public sealed class TextData : BaseTextData
-    {
-        public readonly int SelectionStart;
-        public readonly int SelectionEnd;
-
-
-        internal TextData( string text, string eol, TextPointers pointers, int selectionStart, int selectionEnd )
-            : base( text, eol, pointers )
-        {
-            SelectionStart = selectionStart;
-            SelectionEnd = selectionEnd;
-        }
-    }
-
-
     public static partial class RtbUtilities
     {
         const int MAX_BLOCKING_TIME_MS = 222;
@@ -131,93 +39,6 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        public static BaseTextData GetBaseTextDataInternal( RichTextBox rtb, string eol )
-        {
-            DbgValidateEol( eol );
-
-            FlowDocument doc = rtb.Document;
-            RtbTextHelper th = new RtbTextHelper( doc, eol );
-
-            string text = th.GetText( );
-
-            return new BaseTextData( text, eol, new TextPointers( doc, eol.Length ) );
-        }
-
-
-        public static BaseTextData GetBaseTextDataFrom( RichTextBox rtb, BaseTextData btd, string eol )
-        {
-            DbgValidateEol( eol );
-            DbgValidateEol( btd.Eol );
-            Debug.Assert( object.ReferenceEquals( rtb.Document, btd.TextPointers.Doc ) );
-
-            string text;
-            TextPointers textpointers;
-
-            if( btd.Eol == eol )
-            {
-                text = btd.Text;
-            }
-            else
-            {
-                text = btd.Text.Replace( btd.Eol, eol );
-            }
-
-            if( btd.Eol.Length == eol.Length )
-            {
-                textpointers = btd.TextPointers;
-            }
-            else
-            {
-                textpointers = new TextPointers( rtb.Document, eol.Length );
-
-            }
-
-            return new BaseTextData( text, eol, textpointers );
-        }
-
-
-        public static TextData GetTextDataFrom( RichTextBox rtb, BaseTextData btd, string eol )
-        {
-            DbgValidateEol( eol );
-            DbgValidateEol( btd.Eol );
-            Debug.Assert( object.ReferenceEquals( rtb.Document, btd.TextPointers.Doc ) );
-
-            string text;
-            TextPointers textpointers;
-
-            if( btd.Eol == eol )
-            {
-                text = btd.Text;
-            }
-            else
-            {
-                text = btd.Text.Replace( btd.Eol, eol );
-            }
-
-            if( btd.Eol.Length == eol.Length )
-            {
-                textpointers = btd.TextPointers;
-            }
-            else
-            {
-                textpointers = new TextPointers( rtb.Document, eol.Length );
-            }
-
-            var (selection_start, selection_end) = GetSelection( rtb.Selection, textpointers );
-
-            return new TextData( text, eol, textpointers, selection_start, selection_end );
-        }
-
-
-        static (int selection_start, int selection_end) GetSelection( TextSelection selection, TextPointers pointers )
-        {
-            int selection_start = Math.Max( 0, pointers.GetIndex( selection.Start, LogicalDirection.Backward ) );
-            int selection_end = selection.IsEmpty ? selection_start : Math.Max( 0, pointers.GetIndex( selection.End, LogicalDirection.Forward ) );
-
-            return (selection_start, selection_end);
-        }
-
-
         public static void SafeSelect( RichTextBox rtb, TextData td, int selectionStart, int selectionEnd )
         {
             var tps = td.TextPointers.GetTextPointers( selectionStart, selectionEnd );
@@ -226,7 +47,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        public static TextRange Range( this BaseTextData td, int start, int len )
+        public static TextRange Range( this TextData td, int start, int len )
         {
             var tps = td.TextPointers.GetTextPointers( start, start + len );
             var range = new TextRange( tps.Item1, tps.Item2 );
@@ -235,7 +56,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        public static TextRange Range0F( this BaseTextData td, int start, int len )
+        public static TextRange Range0F( this TextData td, int start, int len )
         {
             var tps = td.TextPointers.GetTextPointers( start, start + len );
             var range = new TextRange( tps.Item1, tps.Item2.GetInsertionPosition( LogicalDirection.Forward ) );
@@ -244,7 +65,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        public static TextRange Range0B( this BaseTextData td, int start, int len )
+        public static TextRange Range0B( this TextData td, int start, int len )
         {
             var tps = td.TextPointers.GetTextPointers( start, start + len );
             var range = new TextRange( tps.Item1, tps.Item2.GetInsertionPosition( LogicalDirection.Backward ) );
@@ -253,7 +74,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        public static TextRange RangeFB( this BaseTextData td, int start, int len )
+        public static TextRange RangeFB( this TextData td, int start, int len )
         {
             var tps = td.TextPointers.GetTextPointers( start, start + len );
             var range = new TextRange( tps.Item1.GetInsertionPosition( LogicalDirection.Forward ), tps.Item2.GetInsertionPosition( LogicalDirection.Backward ) );

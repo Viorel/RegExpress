@@ -35,25 +35,6 @@ namespace RegExpressWPFNET.Code
             }
         }
 
-        sealed class SelectionInfo
-        {
-            internal readonly int SelectionStart;
-            internal readonly int SelectionEnd;
-
-            public SelectionInfo( int selectionStart, int selectionEnd )
-            {
-                SelectionStart = selectionStart;
-                SelectionEnd = selectionEnd;
-            }
-
-            internal int Length => Math.Abs( SelectionStart - SelectionEnd );
-
-            public override string ToString( )
-            {
-                return $"{SelectionStart}..{SelectionEnd}";
-            }
-        }
-
         class UndoItem
         {
             internal readonly Diff Diff;
@@ -97,7 +78,7 @@ namespace RegExpressWPFNET.Code
             UndoList.Clear( );
             RedoList.Clear( );
 
-            UndoList.Add( new UndoItem( diff: GetDiff( "", td.Text ), selectionInfoA: new SelectionInfo( 0, 0 ), selectionInfoB: new SelectionInfo( td.SelectionStart, td.SelectionEnd ) ) );
+            UndoList.Add( new UndoItem( diff: GetDiff( "", td.Text ), selectionInfoA: new SelectionInfo( 0, 0 ), selectionInfoB: td.Selection ) );
         }
 
 
@@ -106,7 +87,7 @@ namespace RegExpressWPFNET.Code
             if( IsUndoOrRedo ) return;
 
             var td = Rtb.GetTextData( "\n" );
-            var si = new SelectionInfo( td.SelectionStart, td.SelectionEnd );
+            var si = td.Selection;
             var ui = new UndoItem( diff: GetDiff( PreviousText, td.Text ), selectionInfoA: PreviousSelection, selectionInfoB: si );
 
             // try combining
@@ -117,7 +98,7 @@ namespace RegExpressWPFNET.Code
                 if( IsTrackingTextChange && CanBeCombined( last, ui ) )
                 {
                     last.Diff!.Add += ui.Diff.Add;
-                    last.SelectionInfoB = new SelectionInfo( td.SelectionStart, td.SelectionEnd );
+                    last.SelectionInfoB = td.Selection;
                     combined = true;
                 }
             }
@@ -139,7 +120,7 @@ namespace RegExpressWPFNET.Code
 
             var td = Rtb.GetTextData( "\n" );
 
-            PreviousSelection = new SelectionInfo( td.SelectionStart, td.SelectionEnd );
+            PreviousSelection = td.Selection;
         }
 
 
@@ -167,10 +148,10 @@ namespace RegExpressWPFNET.Code
                 }
 
                 td = Rtb.GetTextData( "\n" );
-                RtbUtilities.SafeSelect( Rtb, td, last.SelectionInfoA.SelectionStart, last.SelectionInfoA.SelectionEnd );
+                RtbUtilities.SafeSelect( Rtb, td, last.SelectionInfoA.Start, last.SelectionInfoA.End );
 
                 PreviousText = td.Text;
-                PreviousSelection = new SelectionInfo( td.SelectionStart, td.SelectionEnd );// last.SelectionInfoA;
+                PreviousSelection = td.Selection;
 
                 IsTrackingTextChange = false;
 
@@ -208,10 +189,10 @@ namespace RegExpressWPFNET.Code
                 }
 
                 td = Rtb.GetTextData( "\n" );
-                RtbUtilities.SafeSelect( Rtb, td, last.SelectionInfoB.SelectionStart, last.SelectionInfoB.SelectionEnd );
+                RtbUtilities.SafeSelect( Rtb, td, last.SelectionInfoB.Start, last.SelectionInfoB.End );
 
                 PreviousText = td.Text;
-                PreviousSelection = new SelectionInfo( td.SelectionStart, td.SelectionEnd );// 
+                PreviousSelection = td.Selection;
 
                 IsTrackingTextChange = false;
 
@@ -265,7 +246,7 @@ namespace RegExpressWPFNET.Code
                 string.IsNullOrEmpty( ui2.Diff.Remove ) &&
                 ui1.SelectionInfoB.Length == 0 &&
                 ui2.SelectionInfoA.Length == 0 &&
-                ui1.SelectionInfoB.SelectionStart == ui2.SelectionInfoA.SelectionStart;
+                ui1.SelectionInfoB.Start == ui2.SelectionInfoA.Start;
         }
 
 

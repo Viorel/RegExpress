@@ -35,7 +35,6 @@ namespace RegExpressWPFNET
         readonly ResumableLoop RecolouringLoop;
         readonly ResumableLoop HighlightingLoop;
 
-        readonly ChangeEventHelper ChangeEventHelper;
         readonly UndoRedoHelper UndoRedoHelper;
 
         bool AlreadyLoaded = false;
@@ -74,10 +73,9 @@ namespace RegExpressWPFNET
         {
             InitializeComponent( );
 
-            ChangeEventHelper = new ChangeEventHelper( this.rtb );
             UndoRedoHelper = new UndoRedoHelper( this.rtb );
 
-            WhitespaceAdorner = new WhitespaceAdorner( rtb, ChangeEventHelper );
+            WhitespaceAdorner = new WhitespaceAdorner( rtb );
 
             PatternNormalStyleInfo = new StyleInfo( "PatternNormal" );
             PatternParaHighlightStyleInfo = new StyleInfo( "PatternParaHighlight" );
@@ -104,12 +102,6 @@ namespace RegExpressWPFNET
         public void Shutdown( )
         {
             TerminateAll( );
-        }
-
-
-        public BaseTextData GetBaseTextData( string eol )
-        {
-            return rtb.GetBaseTextData( eol );
         }
 
 
@@ -216,7 +208,7 @@ namespace RegExpressWPFNET
         private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
         {
             if( !IsLoaded ) return;
-            if( ChangeEventHelper.IsInChange ) return;
+            if( rtb.ChangeEventHelper.IsInChange ) return;
 
             UndoRedoHelper.HandleTextChanged( e );
 
@@ -237,7 +229,7 @@ namespace RegExpressWPFNET
         private void Rtb_SelectionChanged( object sender, RoutedEventArgs e )
         {
             if( !IsLoaded ) return;
-            if( ChangeEventHelper.IsInChange ) return;
+            if( rtb.ChangeEventHelper.IsInChange ) return;
             if( !rtb.IsFocused ) return;
 
             UndoRedoHelper.HandleSelectionChanged( );
@@ -250,7 +242,7 @@ namespace RegExpressWPFNET
         private void Rtb_ScrollChanged( object sender, ScrollChangedEventArgs e )
         {
             if( !IsLoaded ) return;
-            if( ChangeEventHelper.IsInChange ) return;
+            if( rtb.ChangeEventHelper.IsInChange ) return;
 
             RecolouringLoop.SignalWaitAndExecute( );
             HighlightingLoop.SignalWaitAndExecute( );
@@ -260,7 +252,7 @@ namespace RegExpressWPFNET
         private void Rtb_SizeChanged( object sender, SizeChangedEventArgs e )
         {
             if( !IsLoaded ) return;
-            if( ChangeEventHelper.IsInChange ) return;
+            if( rtb.ChangeEventHelper.IsInChange ) return;
 
             RecolouringLoop.SignalWaitAndExecute( );
             HighlightingLoop.SignalWaitAndExecute( );
@@ -270,7 +262,7 @@ namespace RegExpressWPFNET
         private void Rtb_GotFocus( object sender, RoutedEventArgs e )
         {
             if( !IsLoaded ) return;
-            if( ChangeEventHelper.IsInChange ) return;
+            if( rtb.ChangeEventHelper.IsInChange ) return;
 
             HighlightingLoop.SignalWaitAndExecute( );
 
@@ -287,7 +279,7 @@ namespace RegExpressWPFNET
         private void Rtb_LostFocus( object sender, RoutedEventArgs e )
         {
             if( !IsLoaded ) return;
-            if( ChangeEventHelper.IsInChange ) return;
+            if( rtb.ChangeEventHelper.IsInChange ) return;
 
             HighlightingLoop.SignalWaitAndExecute( );
         }
@@ -452,7 +444,7 @@ namespace RegExpressWPFNET
 
             ordered_segments.Sort( ( p1, p2 ) => p1.Item1.Index.CompareTo( p2.Item1.Index ) );
 
-            RtbUtilities.ApplyStyle( cnc, ChangeEventHelper, null, td, ordered_segments );
+            RtbUtilities.ApplyStyle( cnc, rtb.ChangeEventHelper, null, td, ordered_segments );
 #endif
 
             var uncovered_segments = new List<Segment> { new Segment( 0, td.Text.Length ) };
@@ -490,7 +482,7 @@ namespace RegExpressWPFNET
 
             if( cnc.IsCancellationRequested ) return;
 
-            RtbUtilities.ApplyStyle( cnc, ChangeEventHelper, null, td, segments_to_uncolour, PatternNormalStyleInfo );
+            RtbUtilities.ApplyStyle( cnc, rtb.ChangeEventHelper, null, td, segments_to_uncolour, PatternNormalStyleInfo );
         }
 
 
@@ -569,12 +561,12 @@ namespace RegExpressWPFNET
                 var visible_segment = new Segment( top_index, bottom_index - top_index + 1 );
                 highlights = new Highlights( );
 
-                SyntaxColourer.HighlightPattern( cnc, highlights, td.Text, td.SelectionStart, td.SelectionEnd, visible_segment, regex_engine.GetSyntaxOptions( ) );
+                SyntaxColourer.HighlightPattern( cnc, highlights, td.Text, td.Selection.Start, td.Selection.End, visible_segment, regex_engine.GetSyntaxOptions( ) );
             }
 
             if( cnc.IsCancellationRequested ) return;
 
-            ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
+            rtb.ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
                 lock( HighlighterLocker )
                 {

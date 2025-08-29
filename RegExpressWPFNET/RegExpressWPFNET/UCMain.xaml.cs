@@ -168,8 +168,8 @@ namespace RegExpressWPFNET
             else
             {
                 tabData.Subtitle = Subtitle;
-                tabData.Pattern = ucPattern.GetBaseTextData( "\n" ).Text;
-                tabData.Text = ucText.GetBaseTextData( "\n" ).Text;
+                tabData.Pattern = ucPattern.GetTextData( "\n" ).Text;
+                tabData.Text = ucText.GetTextData( "\n" ).Text;
                 tabData.ActiveKind = CurrentRegexEngine!.Kind;
                 tabData.ActiveVersion = CurrentRegexEngine.Version;
                 tabData.ShowFirstMatchOnly = cbShowFirstOnly.IsChecked == true;
@@ -748,9 +748,9 @@ namespace RegExpressWPFNET
                 ( ) =>
                 {
                     eol = GetEolOption( );
-                    pattern = ucPattern.GetBaseTextData( eol ).Text;
+                    pattern = ucPattern.GetTextData( eol ).Text;
                     if( cnc.IsCancellationRequested ) return;
-                    text = ucText.GetBaseTextData( eol ).Text;
+                    text = ucText.GetTextData( eol ).Text;
                     if( cnc.IsCancellationRequested ) return;
                     first_only = cbShowFirstOnly.IsChecked == true;
                     engine = CurrentRegexEngine;
@@ -970,20 +970,20 @@ namespace RegExpressWPFNET
 
                 if( hadFocusFlag )
                 {
-                    s = $"Index: {td.SelectionStart:#,##0}\u2002|\u2002{s}";
+                    s = $"Index: {td.Selection.Start:#,##0}\u2002|\u2002{s}";
 
-                    if( td.SelectionStart >= 0 && td.SelectionStart < td.Text.Length )
+                    if( td.Selection.Start >= 0 && td.Selection.Start < td.Text.Length ) //
                     {
-                        if( !( char.IsSurrogate( td.Text, td.SelectionStart ) && td.SelectionStart + 1 < td.Text.Length ) )
+                        if( !( char.IsSurrogate( td.Text, td.Selection.Start ) && td.Selection.Start + 1 < td.Text.Length ) )
                         {
-                            char c = td.Text[td.SelectionStart];
+                            char c = td.Text[td.Selection.Start];
 
                             s = $"{s}\u2002|\u2002U+{(uint)c:X4}";
                         }
                         else
                         {
-                            char c1 = td.Text[td.SelectionStart];
-                            char c2 = td.Text[td.SelectionStart + 1];
+                            char c1 = td.Text[td.Selection.Start];
+                            char c2 = td.Text[td.Selection.Start + 1];
                             Debug.Assert( char.IsSurrogatePair( c1, c2 ) );
 
                             Rune r = new( c1, c2 );
@@ -1003,14 +1003,14 @@ namespace RegExpressWPFNET
             bool has_whitespaces = false;
             bool show_whitespaces_option = false;
             string eol = "\r\n";
-            BaseTextData? td = null;
+            TextData? td = null;
 
             UITaskHelper.Invoke( this,
                 ( ) =>
                 {
                     show_whitespaces_option = cbShowWhitespaces.IsChecked == true;
                     eol = GetEolOption( );
-                    td = ucPattern.GetBaseTextData( eol );
+                    td = ucPattern.GetTextData( eol );
 
                     if( cnc.IsCancellationRequested ) return;
                 } );
@@ -1024,7 +1024,7 @@ namespace RegExpressWPFNET
                 UITaskHelper.Invoke( this,
                     ( ) =>
                     {
-                        td = ucText.GetBaseTextData( eol );
+                        td = ucText.GetTextData( eol );
                     } );
 
                 has_whitespaces = RegexHasWhitespace.IsMatch( td.Text );
