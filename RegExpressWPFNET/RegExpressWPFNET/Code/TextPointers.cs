@@ -364,6 +364,8 @@ namespace RegExpressWPFNET.Code
 
         bool FindStartIndex_Block( Block block, TextElement el, ref int index )
         {
+            if( object.ReferenceEquals( block, el ) ) return true;
+
             if( block is Paragraph para ) return FindStartIndex_Paragraph( para, el, ref index );
             if( block is Section section ) return FindStartIndex_Section( section, el, ref index );
 
@@ -373,8 +375,6 @@ namespace RegExpressWPFNET.Code
 
         bool FindStartIndex_Section( Section section, TextElement el, ref int index )
         {
-            if( object.ReferenceEquals( section, el ) ) return true;
-
             foreach( var block in section.Blocks )
             {
                 if( FindStartIndex_Block( block, el, ref index ) ) return true;
@@ -386,8 +386,6 @@ namespace RegExpressWPFNET.Code
 
         bool FindStartIndex_Paragraph( Paragraph para, TextElement el, ref int index )
         {
-            if( object.ReferenceEquals( para, el ) ) return true;
-
             foreach( var inline in para.Inlines )
             {
                 if( FindStartIndex_Inline( inline, el, ref index ) ) return true;
@@ -400,6 +398,8 @@ namespace RegExpressWPFNET.Code
 
         bool FindStartIndex_Inline( Inline inline, TextElement el, ref int index )
         {
+            if( object.ReferenceEquals( inline, el ) ) return true;
+
             if( inline is Run run ) return FindStartIndex_Run( run, el, ref index );
             if( inline is Span span ) return FindStartIndex_Span( span, el, ref index );
             if( inline is LineBreak lb ) return FindStartIndex_LineBreak( lb, el, ref index );
@@ -409,8 +409,6 @@ namespace RegExpressWPFNET.Code
 
         bool FindStartIndex_Span( Span span, TextElement el, ref int index )
         {
-            if( object.ReferenceEquals( span, el ) ) return true;
-
             foreach( var inline in span.Inlines )
             {
                 if( FindStartIndex_Inline( inline, el, ref index ) ) return true;
@@ -421,8 +419,6 @@ namespace RegExpressWPFNET.Code
 
         bool FindStartIndex_Run( Run run, TextElement el, ref int index )
         {
-            if( object.ReferenceEquals( run, el ) ) return true;
-
             string text = run.Text;
             int start = 0;
 
@@ -455,8 +451,6 @@ namespace RegExpressWPFNET.Code
 
         bool FindStartIndex_LineBreak( LineBreak lb, TextElement el, ref int index )
         {
-            if( object.ReferenceEquals( lb, el ) ) return true;
-
             index += EolLength;
 
             return false;

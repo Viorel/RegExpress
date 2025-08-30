@@ -111,9 +111,11 @@ namespace RegExpressWPFNET.Controls
             return td;
         }
 
-        internal SelectionInfo GetSelection( string eol )
+        internal SelectionInfo GetSelection( string eol ) //, [CallerMemberName] string? caller = null, [CallerFilePath] string? callerPath = null, [CallerLineNumber] int callerLine = 0 )
         {
             TextData.DbgValidateEol( eol );
+
+            //var t1 = Environment.TickCount;
 
             int eol_index = EolToIndex( eol );
 
@@ -200,6 +202,9 @@ namespace RegExpressWPFNET.Controls
             selection = new SelectionInfo( start, end );
 
             mCachedSelection[eol_index] = selection;
+
+            //var t2 = Environment.TickCount;
+            //Debug.WriteLine( $"####### {nameof( GetSelection )} {t2 - t1:F0}: {caller} - {Path.GetFileNameWithoutExtension( callerPath )}:{callerLine}" );
 
             return selection;
         }
