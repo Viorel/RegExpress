@@ -62,7 +62,12 @@ The minimal sources of third-party regular expression libraries are included.
 Some of engines require certain third-party library files, which were downloaded or compiled separately 
 and included into **main** branch. (No additional installations required).
 
-To avoid compilation errors after acquiring new release, use the “Rebuild Solution” command.
+> [!NOTE]
+> After loading the solution file in Visual Studio, make sure that 
+> the **RegExpressWPFNET** project is set as Startup Project.
+
+> [!NOTE]
+> To avoid compilation errors after acquiring new releases, use the “Rebuild Solution” command.
 
 <br/>
 
