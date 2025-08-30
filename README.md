@@ -14,10 +14,10 @@ It includes the following Regular Expression engines:
 * **[SubReg](https://github.com/mattbucknall/subreg)** 2024-08-11 (in C).
 * **JavaScript [RegExp](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)** object
   in Microsoft Edge [WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/), 
-  [V8 (via Node.js)](https://nodejs.org) 13.6.233.10,
+  V8 \(via [Node.js](https://nodejs.org)\) 13.6.233.10,
   [QuickJs](https://bellard.org/quickjs/) 2025-04-26,
   [SpiderMonkey](https://spidermonkey.dev/) C143.0
-  and [JavaScriptCore (via Bun 1.2.21)](https://bun.sh/).
+  and JavaScriptCore (via [Bun 1.2.21](https://bun.sh/)).
 * **VBScript [RegExp](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85))** object used in Access, Excel, Word.
 * **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel (in C).
 * **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41 (in C).
@@ -54,7 +54,7 @@ The minimal sources of third-party regular expression libraries are included.
 #### Details
 
 * Principal GIT branch: **main**.
-* Solution file: **RegExpressWPFNET.sln**.
+* Solution file: **RegExpressWPFNET.slnx**.
 * Startup project: **RegExpressWPFNET**.
 * Configurations: **“Debug, Any CPU”** or **“Release, Any CPU”**. The C++ projects use **“x64”**.
 * Operating Systems: **Windows 11**, **Windows 10**.

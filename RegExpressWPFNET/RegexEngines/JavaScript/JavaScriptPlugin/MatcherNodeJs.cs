@@ -70,7 +70,6 @@ namespace JavaScriptPlugin
             ph.StreamWriter = sw =>
             {
                 sw.Write( json );
-                sw.Flush( );
             };
 
             if( !ph.Start( cnc ) ) return RegexMatches.Empty;
@@ -152,7 +151,6 @@ namespace JavaScriptPlugin
                 ph.StreamWriter = sw =>
                 {
                     sw.Write( json );
-                    sw.Flush( );
                 };
 
                 if( !ph.Start( cnc ) ) return null;
