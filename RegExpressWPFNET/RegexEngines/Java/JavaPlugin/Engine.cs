@@ -373,8 +373,9 @@ namespace JavaPlugin
                 EmptyConstructX = is_regex,
                 EmptySet = false,
 
-                SplitSurrogatePairs = false,
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
+                FuzzyMatchingParams = false,
             };
         }
     }

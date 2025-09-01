@@ -88,7 +88,6 @@ namespace OnigurumaPlugin
             return (Options)MemberwiseClone( );
         }
 
-
         public override bool Equals( object? obj )
         {
             return obj is Options options &&
@@ -122,6 +121,7 @@ namespace OnigurumaPlugin
         public override int GetHashCode( )
         {
             HashCode hash = new HashCode( );
+
             hash.Add( Syntax );
             hash.Add( ONIG_OPTION_SINGLELINE );
             hash.Add( ONIG_OPTION_MULTILINE );
@@ -147,6 +147,7 @@ namespace OnigurumaPlugin
             hash.Add( ONIG_OPTION_NOT_BEGIN_POSITION );
             hash.Add( ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY );
             hash.Add( ONIG_SYN_STRICT_CHECK_BACKREF );
+
             return hash.ToHashCode( );
         }
     }

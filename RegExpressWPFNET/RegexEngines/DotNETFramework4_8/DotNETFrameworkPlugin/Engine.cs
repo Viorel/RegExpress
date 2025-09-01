@@ -345,6 +345,7 @@ namespace DotNETFrameworkPlugin
 
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = true,
+                FuzzyMatchingParams = false,
             };
         }
     }

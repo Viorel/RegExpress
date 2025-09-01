@@ -26,7 +26,7 @@ It includes the following Regular Expression engines:
   and **[regress](https://docs.rs/regress)** 0.10.3.
 * **[Java](https://docs.oracle.com/en/java/javase/24/docs/api/java.base/java/util/regex/package-summary.html)** 24.0.1 (*java.util.regex* and *com.google.re2j* packages).
 * **[Python](https://www.python.org/)** 3.13.6 (standard *re* module, third-party *regex* module).
-* **[D](https://dlang.org/phobos/std_regex.html)** 2.109.1 (*std.regex* module).
+* **[D](https://dlang.org/phobos/std_regex.html)** 2.111.0 (*std.regex* module).
 * **[Perl](https://perldoc.perl.org/perlreref)** 5.40.2 (Strawberry Perl).
 * **Fortran [Forgex](https://github.com/ShinobuAmasaki/forgex)** v4.6 module (Intel® Fortran Compiler 2025.1.0).
 * **[TRE](https://github.com/laurikari/tre)** 0.9.0 (in C).

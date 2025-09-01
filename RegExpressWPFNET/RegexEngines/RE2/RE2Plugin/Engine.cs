@@ -354,8 +354,9 @@ namespace RE2Plugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
-                SplitSurrogatePairs = false,
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = true,
+                FuzzyMatchingParams = false,
             };
         }
     }

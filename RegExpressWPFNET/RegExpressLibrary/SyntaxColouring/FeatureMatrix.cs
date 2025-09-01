@@ -82,7 +82,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Esc_c1 { get; init; }                                 // ex: \cM, which is \r, or \cZ, which is 0x1A
         public bool Esc_C1 { get; init; }                                 // same as Esc_c1
         public bool Esc_CMinus { get; init; }                             // ex: \C-Z, which is 0x1A
-        public bool Esc_NBrace { get; init; }                             // ex: \N{U+0041}, \N{LATIN CAPITAL LETTER A}
+        public bool Esc_NBrace { get; init; }                             // ex: \N{U+0041}, \N{LATIN CAPITAL LETTER A}, \N{COMMA} (some want \N{comma})
         public bool GenericEscape { get; init; }                          // \c, where c -- any character
 
         public bool InsideSets_Esc_a { get; init; }                       // \a
@@ -105,7 +105,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool InsideSets_Esc_c1 { get; init; }                      // ex: \cm, which is \r, or \cZ, which is 0x1A
         public bool InsideSets_Esc_C1 { get; init; }                      // same as InsideSets_Esc_c1
         public bool InsideSets_Esc_CMinus { get; init; }                  // ex: \C-Z, which is 0x1A
-        public bool InsideSets_Esc_NBrace { get; init; }                  // ex: \N{U+0041}, \N{unicode name}
+        public bool InsideSets_Esc_NBrace { get; init; }                  // ex: \N{U+0041}, \N{LATIN CAPITAL LETTER A}, \N{COMMA} (some want \N{comma})
         public bool InsideSets_GenericEscape { get; init; }               // [\c], where c -- any character
 
         public bool Class_Dot { get; init; }                              // . -- any, except newline (\n), or including newline in single-line mode
@@ -144,7 +144,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool InsideSets_Class_pPBrace { get; init; }               // \p{...}, \P{...}, \p{^...}, \P{^...}
         public bool InsideSets_Class_Name { get; init; }                  // ex: [[:digit:]]
         public bool InsideSets_Equivalence { get; init; }                 // ex: [[=a=]], matches 'a', 'A' and 'Á'
-        public bool InsideSets_Collating { get; init; }                   // ex: [[.ch.]], matches 'ch' as a single match
+        public bool InsideSets_Collating { get; init; }                   // ex: [[.ch.]], matches 'ch' as a single match, [[.comma.]] matches ','
 
         public bool InsideSets_Operators { get; init; }                   // allow operators inside [...]; see operators bellow; when 'Brackets' is 'true' 
         public bool InsideSets_OperatorsExtended { get; init; }           // allow operators inside (?[...]); see operators bellow; when 'ExtendedBrackets' is 'true' 
@@ -218,8 +218,9 @@ namespace RegExpressLibrary.SyntaxColouring
         public PunctuationEnum Quantifier_Plus { get; init; }             // + or \+
         public PunctuationEnum Quantifier_Question { get; init; }         // ? or \?
         public PunctuationEnum Quantifier_Braces { get; init; }           // {n}, {n,}, {n,m}, or \{n\}, \{n,\}, \{n,m\}
-        public PunctuationEnum Quantifier_Braces_FreeForm { get; init; }  // {expr} or \{expr\}, where 'expr' is an expression (not parsed by this colourer), usually related to Approximate Matching (example: "abcd{+1#2})".
-        public SpaceUsageEnum Quantifier_Braces_Spaces { get; init; }         // enable spaces like { n }, { n , m }
+        public PunctuationEnum Quantifier_Braces_FreeForm { get; init; }  // {expr} or \{expr\}, where 'expr' is an expression (not parsed by this colourer),
+                                                                          // usually related to Approximate Matching (example: "abcd{+1#2})". (See also 'FuzzyMatchingParams')
+        public SpaceUsageEnum Quantifier_Braces_Spaces { get; init; }     // enable spaces like { n }, { n , m }
         public bool Quantifier_LowAbbrev { get; init; }                   // also allow {,m} if Quantifier_Braces is set
 
         public bool Conditional_BackrefByNumber { get; init; }            // (?(number)...|...), (?(+number)...|...), (?(-number)...|...)
@@ -249,6 +250,8 @@ namespace RegExpressLibrary.SyntaxColouring
                                                                           // if it is 'false', then '.' returns a single result (32-bit surrogate pair)
 
         public bool AllowDuplicateGroupName { get; init; }                // allow duplicate names like "(?<n>abc)|(?<n>def)"
+
+        public bool FuzzyMatchingParams { get; init; }                    // parameters for fuzzy matching (programmatically, not pattern syntax); (see also 'Quantifier_Braces_FreeForm')
     }
 }
 

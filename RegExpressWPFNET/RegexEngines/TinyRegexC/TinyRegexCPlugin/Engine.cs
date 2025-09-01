@@ -351,6 +351,7 @@ namespace TinyRegexCPlugin
 
                 SplitSurrogatePairs = false, // (not applicable)
                 AllowDuplicateGroupName = false,
+                FuzzyMatchingParams = false,
             };
         }
     }

@@ -281,12 +281,12 @@ namespace PCRE2Plugin
 
                 InsideSets_Operators = PCRE2_ALT_EXTENDED_CLASS,
                 InsideSets_OperatorsExtended = true,
-                InsideSets_Operator_Ampersand = true,
-                InsideSets_Operator_Plus = true,
-                InsideSets_Operator_VerticalLine = true,
-                InsideSets_Operator_Minus = true,
-                InsideSets_Operator_Circumflex = true,
-                InsideSets_Operator_Exclamation = true,
+                InsideSets_Operator_Ampersand = true, // extended syntax: (?[[...]&[...]])
+                InsideSets_Operator_Plus = true, // extended
+                InsideSets_Operator_VerticalLine = true, // extended
+                InsideSets_Operator_Minus = true, // extended
+                InsideSets_Operator_Circumflex = true, // extended
+                InsideSets_Operator_Exclamation = true, // extended
                 InsideSets_Operator_DoubleAmpersand = PCRE2_ALT_EXTENDED_CLASS,
                 InsideSets_Operator_DoubleVerticalLine = PCRE2_ALT_EXTENDED_CLASS,
                 InsideSets_Operator_DoubleMinus = PCRE2_ALT_EXTENDED_CLASS,
@@ -375,6 +375,7 @@ namespace PCRE2Plugin
 
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = PCRE2_DUPNAMES,
+                FuzzyMatchingParams = false,
             };
         }
     }

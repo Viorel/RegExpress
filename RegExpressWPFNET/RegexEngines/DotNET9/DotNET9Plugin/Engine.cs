@@ -344,6 +344,7 @@ namespace DotNET8Plugin
 
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = true,
+                FuzzyMatchingParams = false,
             };
         }
     }

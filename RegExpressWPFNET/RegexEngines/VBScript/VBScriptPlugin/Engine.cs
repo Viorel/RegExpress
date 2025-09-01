@@ -351,6 +351,7 @@ namespace VBScriptPlugin
 
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
+                FuzzyMatchingParams = false,
             };
         }
     }

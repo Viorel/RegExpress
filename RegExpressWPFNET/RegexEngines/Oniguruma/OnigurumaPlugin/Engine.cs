@@ -130,7 +130,7 @@ namespace OnigurumaPlugin
                 string variant = syntax_name.StartsWith( "ONIG_SYNTAX_" ) ? syntax_name["ONIG_SYNTAX_".Length..] : syntax_name;
 
                 Engine engine = new( );
-                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = true } );
+                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA } );
 
                 variants.Add( new FeatureMatrixVariant( variant, MakeFeatureMatrix( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA } ), engine ) );
             }
@@ -385,7 +385,7 @@ namespace OnigurumaPlugin
                 Anchor_Dollar = details.ONIG_SYN_OP_LINE_ANCHOR,
                 Anchor_A = details.ONIG_SYN_OP_ESC_AZ_BUF_ANCHOR,
                 Anchor_Z = details.ONIG_SYN_OP_ESC_AZ_BUF_ANCHOR,
-                Anchor_z = details.ONIG_SYN_OP_ESC_AZ_BUF_ANCHOR,
+                Anchor_z = details.ONIG_SYN_OP_ESC_AZ_BUF_ANCHOR, // TODO: in Python syntax, it gives undefined operator (-213)
                 Anchor_G = details.ONIG_SYN_OP_ESC_CAPITAL_G_BEGIN_ANCHOR,
                 Anchor_bB = details.ONIG_SYN_OP_ESC_B_WORD_BOUND,
                 Anchor_bg = false,
@@ -447,7 +447,7 @@ namespace OnigurumaPlugin
                 Conditional_BackrefByName = false,
                 Conditional_Pattern = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE,
                 Conditional_PatternOrBackrefByName = false,
-                Conditional_BackrefByName_Apos = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE && syntax != SyntaxEnum.ONIG_SYNTAX_PERL,
+                Conditional_BackrefByName_Apos = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE && syntax != SyntaxEnum.ONIG_SYNTAX_PERL && syntax != SyntaxEnum.ONIG_SYNTAX_PYTHON,
                 Conditional_BackrefByName_LtGt = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE && syntax != SyntaxEnum.ONIG_SYNTAX_PERL,
                 Conditional_R = false,
                 Conditional_RName = false,
@@ -462,8 +462,9 @@ namespace OnigurumaPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
-                SplitSurrogatePairs = false,
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA || syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG || syntax == SyntaxEnum.ONIG_SYNTAX_RUBY,
+                FuzzyMatchingParams = false,
             };
 
             // TODO: "\M-x"

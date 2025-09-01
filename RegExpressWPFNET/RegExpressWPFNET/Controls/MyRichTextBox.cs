@@ -51,10 +51,12 @@ namespace RegExpressWPFNET.Controls
 
         public MyRichTextBox( FlowDocument document ) : base( document )
         {
+            ChangeEventHelper = new ChangeEventHelper( this );
+
             AddCommandBindings( );
         }
 
-        internal TextData GetTextData( string eol )//, [CallerMemberName] string? caller = null, [CallerFilePath] string? callerPath = null, [CallerLineNumber] int callerLine = 0 )
+        internal TextData GetTextData( string? eol )//, [CallerMemberName] string? caller = null, [CallerFilePath] string? callerPath = null, [CallerLineNumber] int callerLine = 0 )
         {
 #if DEBUG
             if( eol != null ) TextData.DbgValidateEol( eol );

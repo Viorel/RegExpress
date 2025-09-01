@@ -353,6 +353,7 @@ namespace SubRegPlugin
 
                 SplitSurrogatePairs = false, // (not applicable)
                 AllowDuplicateGroupName = false,
+                FuzzyMatchingParams = false,
             };
         }
     }

@@ -400,6 +400,7 @@ namespace JavaScriptPlugin
 
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = true,
+                FuzzyMatchingParams = false,
             };
         }
 
@@ -606,6 +607,7 @@ namespace JavaScriptPlugin
 
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
+                FuzzyMatchingParams = false,
             };
         }
 
@@ -812,6 +814,7 @@ namespace JavaScriptPlugin
 
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = true,
+                FuzzyMatchingParams = false,
             };
         }
 
@@ -1018,6 +1021,7 @@ namespace JavaScriptPlugin
 
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = true,
+                FuzzyMatchingParams = false,
             };
         }
     }

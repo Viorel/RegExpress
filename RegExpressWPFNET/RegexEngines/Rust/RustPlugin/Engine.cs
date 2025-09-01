@@ -118,23 +118,27 @@ namespace RustPlugin
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
             Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, octal = true } );
+            engine.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, unicode = true, octal = true } );
 
             Engine engine_lite = new( );
             engine_lite.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex_lite } );
 
             Engine engine_fancy = new( );
-            engine_fancy.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.fancy_regex } );
+            engine_fancy.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.fancy_regex, unicode = true } );
 
             Engine engine_regress = new( );
-            engine_regress.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress } );
+            engine_regress.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = false } );
+
+            Engine engine_regress_v = new( );
+            engine_regress_v.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } );
 
             return
                 [
-                    new FeatureMatrixVariant("regex", LazyData.GetValue( (CrateEnum.regex, isOctal:true, isUnicodeSets:false) ), engine),
+                    new FeatureMatrixVariant("regex (“u” flag)", LazyData.GetValue( (CrateEnum.regex, isOctal:true, isUnicodeSets:false) ), engine),
                     new FeatureMatrixVariant("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, isOctal:true, isUnicodeSets:false) ), engine_lite),
-                    new FeatureMatrixVariant("fancy_regex", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true, isUnicodeSets:false) ), engine_fancy),
-                    new FeatureMatrixVariant("regress", LazyData.GetValue( (CrateEnum.regress, isOctal:true, isUnicodeSets:false) ), engine_regress),
+                    new FeatureMatrixVariant("fancy_regex (“u” flag)", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true, isUnicodeSets:false) ), engine_fancy),
+                    new FeatureMatrixVariant("regress (“u” flag)", LazyData.GetValue( (CrateEnum.regress, isOctal:true, isUnicodeSets:false) ), engine_regress),
+                    new FeatureMatrixVariant("regress (“uv” flags)", LazyData.GetValue( (CrateEnum.regress, isOctal:true, isUnicodeSets:true) ), engine_regress_v),
                 ];
         }
 
@@ -376,8 +380,9 @@ namespace RustPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
-                SplitSurrogatePairs = false,
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
+                FuzzyMatchingParams = false,
             };
         }
 
@@ -585,8 +590,9 @@ namespace RustPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
-                SplitSurrogatePairs = false,
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
+                FuzzyMatchingParams = false,
             };
         }
 
@@ -795,8 +801,9 @@ namespace RustPlugin
                 EmptyConstructX = true,
                 EmptySet = false,
 
-                SplitSurrogatePairs = false,
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = true,
+                FuzzyMatchingParams = false,
             };
         }
 
@@ -825,7 +832,7 @@ namespace RustPlugin
 
                 Literal_QE = false,
                 InsideSets_Literal_QE = false,
-                InsideSets_Literal_qBrace = false,
+                InsideSets_Literal_qBrace = isUnicodeSets,
 
                 Esc_a = false,
                 Esc_b = false,
@@ -911,7 +918,7 @@ namespace RustPlugin
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 
-                InsideSets_Operators = true,
+                InsideSets_Operators = isUnicodeSets,
                 InsideSets_OperatorsExtended = false,
                 InsideSets_Operator_Ampersand = false,
                 InsideSets_Operator_Plus = false,
@@ -919,9 +926,9 @@ namespace RustPlugin
                 InsideSets_Operator_Minus = false,
                 InsideSets_Operator_Circumflex = false,
                 InsideSets_Operator_Exclamation = false,
-                InsideSets_Operator_DoubleAmpersand = false,
+                InsideSets_Operator_DoubleAmpersand = isUnicodeSets,
                 InsideSets_Operator_DoubleVerticalLine = false,
-                InsideSets_Operator_DoubleMinus = false,
+                InsideSets_Operator_DoubleMinus = isUnicodeSets,
                 InsideSets_Operator_DoubleTilde = false,
 
                 Anchor_Circumflex = true,
@@ -1005,8 +1012,9 @@ namespace RustPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
-                SplitSurrogatePairs = false,
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
+                FuzzyMatchingParams = false,
             };
         }
     }

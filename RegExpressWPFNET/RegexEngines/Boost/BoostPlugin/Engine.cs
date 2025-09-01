@@ -394,6 +394,7 @@ namespace BoostPlugin
 
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = is_perl,
+                FuzzyMatchingParams = false,
             };
         }
     }

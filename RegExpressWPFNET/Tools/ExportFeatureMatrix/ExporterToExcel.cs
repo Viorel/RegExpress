@@ -188,61 +188,56 @@ partial class ExporterToExcel
                         {
                             if( progressOnEngines != null ) progressOnEngines( $"{engine_data.Engine.Name} {m.variant.Name}", engine_index, engines_data.Length );
 
-                            bool flag_is_true = details.Func( m.variant.FeatureMatrix );
+                            bool direct_flag_is_true = details.DirectCheck == null ? false : details.DirectCheck( m.variant.FeatureMatrix );
+                            bool flag_is_true = direct_flag_is_true || details.Func( m.variant.FeatureMatrix );
 
-                            if( !verify || m.variant.RegexEngine == null || ( string.IsNullOrWhiteSpace( details.TestPatternMatch ) && string.IsNullOrWhiteSpace( details.TestPatternNoMatch ) ) )
+                            if( !verify || direct_flag_is_true || m.variant.RegexEngine == null || details.Rules.Count == 0 )
                             {
                                 cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, flag_is_true ? "+" : "" );
                                 if( flag_is_true ) cell1.StyleIndex = STYLE_ID_PLUS;
                             }
                             else
                             {
-                                bool is_match_satisfied;
-                                bool is_no_match_satisfied;
+                                bool satisfied = false;
 
-                                if( details.TestPatternMatch == null )
+                                foreach( var rule in details.Rules )
                                 {
-                                    is_match_satisfied = true;
-                                }
-                                else
-                                {
-                                    try
+                                    if( rule.TextToMatch != null )
                                     {
-                                        RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, details.TestPatternMatch, details.TestTextMatch! );
-                                        is_match_satisfied = matches.Count > 0;
+                                        try
+                                        {
+                                            RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, rule.Pattern, rule.TextToMatch );
+                                            satisfied = matches.Count > 0;
+                                        }
+                                        catch( Exception )
+                                        {
+                                            // ignore
+                                        }
                                     }
-                                    catch( Exception )
+                                    if( satisfied && rule.TextToNotMatch != null )
                                     {
-                                        is_match_satisfied = false;
-                                        // ignore
+                                        try
+                                        {
+                                            RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, rule.Pattern, rule.TextToNotMatch );
+                                            satisfied = matches.Count == 0;
+                                        }
+                                        catch( Exception )
+                                        {
+                                            satisfied = true;
+                                            // ignore
+                                        }
                                     }
-                                }
 
-                                if( details.TestPatternNoMatch == null )
-                                {
-                                    is_no_match_satisfied = true;
-                                }
-                                else
-                                {
-                                    try
-                                    {
-                                        RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, details.TestPatternNoMatch, details.TestTextNoMatch! );
-                                        is_no_match_satisfied = matches.Count == 0;
-                                    }
-                                    catch( Exception )
-                                    {
-                                        is_no_match_satisfied = false;
-                                        // ignore
-                                    }
+                                    if( satisfied ) break;
                                 }
 
                                 if( flag_is_true )
                                 {
-                                    cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, is_match_satisfied && is_no_match_satisfied ? "+" : "+???" );
+                                    cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, satisfied ? "+" : "+???" );
                                 }
                                 else
                                 {
-                                    cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, !( is_match_satisfied && is_no_match_satisfied ) ? "" : "???" );
+                                    cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, !satisfied ? "" : "???" );
                                 }
 
                                 if( flag_is_true ) cell1.StyleIndex = STYLE_ID_PLUS;

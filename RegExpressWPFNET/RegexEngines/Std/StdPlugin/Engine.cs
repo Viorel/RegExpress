@@ -278,7 +278,7 @@ namespace StdPlugin
                 InsideSets_Class_pPBrace = false,
                 InsideSets_Class_Name = true,
                 InsideSets_Equivalence = true,
-                InsideSets_Collating = true,
+                InsideSets_Collating = true, // TODO: it seems to be a defect of STL; it always matches the last (any) character
 
                 InsideSets_Operators = false,
                 InsideSets_OperatorsExtended = false,
@@ -390,6 +390,7 @@ namespace StdPlugin
 
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
+                FuzzyMatchingParams = false,
             };
         }
     }

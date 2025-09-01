@@ -121,7 +121,7 @@ namespace PythonPlugin
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
             Engine engine_re = new( );
-            engine_re.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.re } );
+            engine_re.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.re, VERSION0 = false, VERSION1 = false } );
 
             Engine engine_regex_v0 = new( );
             engine_regex_v0.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERSION0 = true, VERSION1 = false } );
@@ -346,7 +346,7 @@ namespace PythonPlugin
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
-                Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
+                Quantifier_Braces_FreeForm = is_regex ? FeatureMatrix.PunctuationEnum.Normal : FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
 
@@ -369,8 +369,9 @@ namespace PythonPlugin
                 EmptyConstructX = is_regex,
                 EmptySet = false,
 
-                SplitSurrogatePairs = false,
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = is_regex,
+                FuzzyMatchingParams = false,
             };
         }
     }

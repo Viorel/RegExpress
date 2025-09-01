@@ -972,7 +972,7 @@ namespace RegExpressWPFNET
                 {
                     s = $"Index: {td.Selection.Start:#,##0}\u2002|\u2002{s}";
 
-                    if( td.Selection.Start >= 0 && td.Selection.Start < td.Text.Length ) //
+                    if( td.Selection.Start >= 0 && td.Selection.Start < td.Text.Length )
                     {
                         if( !( char.IsSurrogate( td.Text, td.Selection.Start ) && td.Selection.Start + 1 < td.Text.Length ) )
                         {
@@ -990,6 +990,10 @@ namespace RegExpressWPFNET
 
                             s = $"{s}\u2002|\u2002U+{r.Value:X} {(uint)c1:X4}:{(uint)c2:X4}";
                         }
+                    }
+                    else
+                    {
+                        s = $"{s}\u2002|\u2002End";
                     }
                 }
 

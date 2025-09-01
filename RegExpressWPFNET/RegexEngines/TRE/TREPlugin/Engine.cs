@@ -314,7 +314,7 @@ namespace TREPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_Num = isExtended ? FeatureMatrix.BackrefEnum.OneDigit : FeatureMatrix.BackrefEnum.None,
+                Backref_Num = FeatureMatrix.BackrefEnum.OneDigit,
                 Backref_kApos = false,
                 Backref_kLtGt = false,
                 Backref_kBrace = false,
@@ -357,12 +357,13 @@ namespace TREPlugin
                 ScriptRuns = false,
                 Callouts = false,
 
-                EmptyConstruct = false,
+                EmptyConstruct = isExtended,
                 EmptyConstructX = false,
                 EmptySet = false,
 
-                SplitSurrogatePairs = false,
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
+                FuzzyMatchingParams = false,
             };
         }
     }
