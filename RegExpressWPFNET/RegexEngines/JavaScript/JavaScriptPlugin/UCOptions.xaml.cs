@@ -85,21 +85,11 @@ namespace JavaScriptPlugin
                 bool is_V8 = Options.Runtime == RuntimeEnum.WebView2 || Options.Runtime == RuntimeEnum.NodeJs;
                 bool is_SM = Options.Runtime == RuntimeEnum.SpiderMonkey;
 
-                checkboxV.IsEnabled = is_V8;
-                if( is_V8 )
-                {
-                    checkboxV.ClearValue( DataContextProperty ); // (to use inherited context)
-                }
-                else
-                {
-                    checkboxV.DataContext = new Options { v = false }; // (to show unchecked)
-                }
-
+                checkboxV.Visibility = is_V8 ? Visibility.Visible : Visibility.Collapsed;
                 checkboxNoNativeRegexp.Visibility = checkboxEnableDuplicateNames.Visibility = checkboxEnableRegexpModifiers.Visibility =
                     is_SM ? Visibility.Visible : Visibility.Collapsed;
 
                 ++ChangeCounter;
-
             }
             finally
             {

@@ -118,9 +118,12 @@ namespace ICUPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
+            Engine engine = new( );
+            engine.mOptionsControl.Value.SetSelectedOptions( new Options { UREGEX_COMMENTS = true } );
+
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, engine )
                 ];
         }
 

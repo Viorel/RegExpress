@@ -128,10 +128,10 @@ namespace JavaPlugin
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
             Engine engine_regex = new( );
-            engine_regex.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.regex } );
+            engine_regex.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.regex, COMMENTS = true } );
 
             Engine engine_re2j = new( );
-            engine_re2j.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.re2j } );
+            engine_re2j.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.re2j, COMMENTS = true } ); // (currently comments not supported)
 
             return
                 [

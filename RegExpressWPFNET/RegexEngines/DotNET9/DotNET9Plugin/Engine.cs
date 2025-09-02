@@ -109,9 +109,12 @@ namespace DotNET8Plugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
+            Engine engine = new( );
+            engine.mOptionsControl.Value.SetSelectedOptions( new Options { IgnorePatternWhitespace = true } );
+
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() ),
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, engine ),
                 ];
         }
 

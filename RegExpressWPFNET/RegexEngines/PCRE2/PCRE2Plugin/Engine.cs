@@ -133,6 +133,8 @@ namespace PCRE2Plugin
                     PCRE2_ALT_EXTENDED_CLASS = true,
                     PCRE2_ALLOW_EMPTY_CLASS = true,
                     PCRE2_DUPNAMES = true,
+                    PCRE2_EXTENDED = true,
+                    PCRE2_EXTENDED_MORE = true,
                 } );
 
             return

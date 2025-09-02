@@ -121,13 +121,13 @@ namespace PythonPlugin
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
             Engine engine_re = new( );
-            engine_re.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.re, VERSION0 = false, VERSION1 = false } );
+            engine_re.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.re, VERBOSE = true, VERSION0 = false, VERSION1 = false } );
 
             Engine engine_regex_v0 = new( );
-            engine_regex_v0.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERSION0 = true, VERSION1 = false } );
+            engine_regex_v0.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERBOSE = true, VERSION0 = true, VERSION1 = false } );
 
             Engine engine_regex_v1 = new( );
-            engine_regex_v1.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERSION0 = false, VERSION1 = true } );
+            engine_regex_v1.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERBOSE = true, VERSION0 = false, VERSION1 = true } );
 
             return
                 [

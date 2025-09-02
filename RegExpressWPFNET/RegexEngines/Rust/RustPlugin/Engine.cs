@@ -118,19 +118,19 @@ namespace RustPlugin
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
             Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, unicode = true, octal = true } );
+            engine.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, unicode = true, octal = true, ignore_whitespace = true } );
 
             Engine engine_lite = new( );
-            engine_lite.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex_lite } );
+            engine_lite.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex_lite, ignore_whitespace = true } );
 
             Engine engine_fancy = new( );
-            engine_fancy.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.fancy_regex, unicode = true } );
+            engine_fancy.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.fancy_regex, unicode = true, ignore_whitespace = true } );
 
             Engine engine_regress = new( );
-            engine_regress.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = false } );
+            engine_regress.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = false, ignore_whitespace = true } ); // currently 'ignore_whitespace' not supported'
 
             Engine engine_regress_v = new( );
-            engine_regress_v.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } );
+            engine_regress_v.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true, ignore_whitespace = true } ); // currently 'ignore_whitespace' not supported
 
             return
                 [

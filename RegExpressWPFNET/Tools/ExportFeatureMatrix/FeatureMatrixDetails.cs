@@ -92,9 +92,13 @@ class FeatureMatrixDetails
             new ( @"\|", @"Alternation", fm => fm.VerticalLine == FeatureMatrix.PunctuationEnum.Backslashed  , @"x\|y", "y", null ),
             new ( @"new line (\n)", @"Alternatives on separate lines", fm => fm.AlternationOnSeparateLines, "x\ny", "y", null ),
 
-            new ( @"(?#comment)", @"Inline comment", fm => fm.InlineComments ), // TODO
-            new ( @"#comment", @"Comment", fm => fm.XModeComments ),
-            new ( @"[#comment]", @"Comment inside […]", fm => fm.InsideSets_XModeComments ),
+            new ( @"(?#comment)", @"Inline comment", fm => fm.InlineComments, @"a(?#comment)b", "ab", null, @"a\(?#comment\)b", "ab", "a" ),
+            new ( @"#comment", @"Comment", fm => fm.XModeComments, "a#comment", "a", null, "(?x)a#comment", "a", null ), // ('\n' is required by Hyperscan)
+            new ( @"[#comment]", @"Comment inside […]", fm => fm.InsideSets_XModeComments,
+                "a[b#comment\nz]y", "azy", "acy",
+                "a(?x)[b#comment\nz]y", "azy", "acy",
+                "a(?xx)[b#comment\nz]y", "azy", "acy"
+                ),
 
             new ( @"(?flags)", @"Inline options", fm => fm.Flags, @"(?i)x", "X", null ),
             new ( @"(?flags:…)", @"Inline scoped options", fm => fm.ScopedFlags, @"(?i:x)", "X", null ),

@@ -126,7 +126,7 @@ namespace BoostPlugin
                 if( grammar == GrammarEnum.literal ) continue;
 
                 Engine engine = new( );
-                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Grammar = grammar } );
+                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Grammar = grammar, mod_x = true } );
 
                 variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), LazyFeatureMatrix.GetValue( grammar ), engine ) );
             }

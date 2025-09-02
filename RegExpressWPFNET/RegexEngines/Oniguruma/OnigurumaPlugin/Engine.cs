@@ -130,9 +130,15 @@ namespace OnigurumaPlugin
                 string variant = syntax_name.StartsWith( "ONIG_SYNTAX_" ) ? syntax_name["ONIG_SYNTAX_".Length..] : syntax_name;
 
                 Engine engine = new( );
-                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA } );
+                Options options = new( )
+                {
+                    Syntax = syntax,
+                    ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA,
+                    ONIG_OPTION_EXTEND = true,
+                };
+                engine.mOptionsControl.Value.SetSelectedOptions( options );
 
-                variants.Add( new FeatureMatrixVariant( variant, MakeFeatureMatrix( new Options { Syntax = syntax, ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA } ), engine ) );
+                variants.Add( new FeatureMatrixVariant( variant, MakeFeatureMatrix( options ), engine ) );
             }
 
             return variants;
