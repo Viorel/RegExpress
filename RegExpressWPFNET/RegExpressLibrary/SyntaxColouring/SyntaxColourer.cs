@@ -830,23 +830,23 @@ namespace RegExpressLibrary.SyntaxColouring
                         }
                         break;
                     }
-                    if( fm.Backref_gApos )
+                    if( fm.Backref_gApos != FeatureMatrix.BackrefModeEnum.None )
                     {
                         pb.Add( @"\\g \s* ' ((?<name>[^']*) '?)?" );
                     }
-                    if( fm.Backref_gLtGt )
+                    if( fm.Backref_gLtGt != FeatureMatrix.BackrefModeEnum.None )
                     {
                         pb.Add( @"\\g \s* < ((?<name>[^>]*) >?)?" );
                     }
-                    if( fm.Backref_gNum )
+                    if( fm.Backref_gNum != FeatureMatrix.BackrefModeEnum.None )
                     {
                         pb.Add( @"\\g (?<name>\d+)" );
                     }
-                    if( fm.Backref_gNegNum )
+                    if( fm.Backref_gNegNum != FeatureMatrix.BackrefModeEnum.None )
                     {
                         pb.Add( @"\\g (?<name>-\d+)" );
                     }
-                    if( fm.Backref_gBrace )
+                    if( fm.Backref_gBrace != FeatureMatrix.BackrefModeEnum.None )
                     {
                         pb.Add( @"\\g \s* \{ ((?<name>[^}]*) \}?)? " );
                     }
@@ -900,23 +900,23 @@ namespace RegExpressLibrary.SyntaxColouring
                         }
                         break;
                     }
-                    if( fm.Backref_gApos )
+                    if( fm.Backref_gApos != FeatureMatrix.BackrefModeEnum.None )
                     {
                         pb.Add( @"\\g ' ((?<name>[^']*) '?)?" );
                     }
-                    if( fm.Backref_gLtGt )
+                    if( fm.Backref_gLtGt != FeatureMatrix.BackrefModeEnum.None )
                     {
                         pb.Add( @"\\g < ((?<name>[^>]*) >?)?" );
                     }
-                    if( fm.Backref_gNum )
+                    if( fm.Backref_gNum != FeatureMatrix.BackrefModeEnum.None )
                     {
                         pb.Add( @"\\g (?<name>\d+)" );
                     }
-                    if( fm.Backref_gNegNum )
+                    if( fm.Backref_gNegNum != FeatureMatrix.BackrefModeEnum.None )
                     {
                         pb.Add( @"\\g (?<name>-\d+)" );
                     }
-                    if( fm.Backref_gBrace )
+                    if( fm.Backref_gBrace != FeatureMatrix.BackrefModeEnum.None )
                     {
                         pb.Add( @"\\g\{ ((?<name>[^}]*) \}?)? " );
                     }

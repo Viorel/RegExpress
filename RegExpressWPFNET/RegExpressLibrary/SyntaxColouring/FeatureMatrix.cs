@@ -38,6 +38,13 @@ namespace RegExpressLibrary.SyntaxColouring
             Any,            // one ore more digits: \1, \12, \123
         }
 
+        public enum BackrefModeEnum
+        {
+            None,
+            Value,          // match the found value
+            Pattern,        // re-apply the pattern
+        }
+
         public PunctuationEnum Parentheses { get; init; }                 // (...) or \(...\)
 
         public bool Brackets { get; init; }                               // [...]
@@ -200,11 +207,11 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Backref_kBrace { get; init; }                         // \k{name}
         public bool Backref_kNum { get; init; }                           // ex: \k2
         public bool Backref_kNegNum { get; init; }                        // ex: \k-2
-        public bool Backref_gApos { get; init; }                          // \g'name' or g'number'
-        public bool Backref_gLtGt { get; init; }                          // \g<name> or g<number>
-        public bool Backref_gNum { get; init; }                           // ex: \g2
-        public bool Backref_gNegNum { get; init; }                        // ex: \g-2
-        public bool Backref_gBrace { get; init; }                         // \g{name} or \g{number} or \g{-number} or g{+number}
+        public BackrefModeEnum Backref_gApos { get; init; }               // \g'name' or g'number'
+        public BackrefModeEnum Backref_gLtGt { get; init; }               // \g<name> or g<number>
+        public BackrefModeEnum Backref_gNum { get; init; }                // ex: \g2
+        public BackrefModeEnum Backref_gNegNum { get; init; }             // ex: \g-2
+        public BackrefModeEnum Backref_gBrace { get; init; }              // \g{name} or \g{number} or \g{-number} or g{+number}
         public bool Backref_PEqName { get; init; }                        // (?P=name)
         public bool AllowSpacesInBackref { get; init; }                   // allow spaces like '\k < name >' when whitespaces are enabled by options (currently only \k and \g with <name> and 'name' are supported)
 

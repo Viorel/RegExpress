@@ -18,7 +18,7 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace HyperscanPlugin
 {
-    static class Matcher
+    static class HyperscanMatcher
     {
         static readonly Encoding AsciiEncodingWithExceptionFallback = Encoding.GetEncoding( Encoding.ASCII.WebName, new EncoderExceptionFallback( ), new DecoderExceptionFallback( ) );
 

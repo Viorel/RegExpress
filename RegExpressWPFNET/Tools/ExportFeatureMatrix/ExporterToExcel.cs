@@ -93,7 +93,7 @@ partial class ExporterToExcel
             SetRowHeight( cell1, 49 );
 
             SetColumnWidth( 1, 20 );
-            SetColumnWidth( 2, 40 );
+            SetColumnWidth( 2, 45 );
 
             // table header
 

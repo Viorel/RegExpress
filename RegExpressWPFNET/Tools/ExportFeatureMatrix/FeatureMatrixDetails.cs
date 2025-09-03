@@ -255,12 +255,17 @@ class FeatureMatrixDetails
             new ( @"\k{name}", @"Backreference by name", fm => fm.Backref_kBrace, @"(?<n>x)\k{n}", "xx", null ),
             new ( @"\kn", @"Backreference \k1, \k2, …", fm => fm.Backref_kNum, @"(?<n>x)\k1", "xx", null ),
             new ( @"\k-n", @"Relative backreference \k-1, \k-2, …", fm => fm.Backref_kNegNum, @"(?<n>x)\k-1", "xx", null ),
-            new ( @"\g'…'", @"Subroutine by name or number", fm => fm.Backref_gApos, @"(?'n'x)\g'n'", "xx", null ),
-            new ( @"\g<…>", @"Subroutine by name or number", fm => fm.Backref_gLtGt, @"(?<n>x)\g<n>", "xx", null ),
-            new ( @"\gn", @"Subroutine \g1, \g2, …", fm => fm.Backref_gNum, @"(?<n>x)\g1", "xx", null ),
-            new ( @"\g-n", @"Relative subroutine \g-1, \g-2, …", fm => fm.Backref_gNegNum, @"(?<n>x)\g-1", "xx", null ),
-            new ( @"\g{…}", @"Subroutine \g{name}, \g{number}, \g{-number}, g{+number}", fm => fm.Backref_gBrace, @"(?<n>x)\g{n}", "xx", null ),
-            new ( @"(?P=name)", @"Subroutine by name", fm => fm.Backref_PEqName, @"(?P<n>x)(?P=n)", "xx", null ),
+            new ( @"\g'…'", @"Backreference by name", fm => fm.Backref_gApos== FeatureMatrix.BackrefModeEnum.Value, @"(?'n'[ab])\g'n'", "aa", "ba" ),
+            new ( @"\g'…'", @"Subroutine by name", fm => fm.Backref_gApos== FeatureMatrix.BackrefModeEnum.Pattern, @"(?'n'[ab])\g'n'", "ba", null ),
+            new ( @"\g<…>", @"Backreference by name", fm => fm.Backref_gLtGt== FeatureMatrix.BackrefModeEnum.Value, @"(?<n>[ab])\g<n>", "aa", "ba" ),
+            new ( @"\g<…>", @"Subroutine by name", fm => fm.Backref_gLtGt== FeatureMatrix.BackrefModeEnum.Pattern, @"(?<n>[ab])\g<n>", "ba", null ),
+            new ( @"\gn", @"Backreference \g1, \g2, …", fm => fm.Backref_gNum== FeatureMatrix.BackrefModeEnum.Value, @"([ab])\g1", "aa", "ba" ),
+            new ( @"\gn", @"Subroutine \g1, \g2, …", fm => fm.Backref_gNum== FeatureMatrix.BackrefModeEnum.Pattern, @"([ab])\g1", "ba", "b" ),
+            new ( @"\g-n", @"Relative backreference \g-1, \g-2, …", fm => fm.Backref_gNegNum == FeatureMatrix.BackrefModeEnum.Value, @"([ab])\g-1", "aa", "ba" ),
+            new ( @"\g-n", @"Relative subroutine \g-1, \g-2, …", fm => fm.Backref_gNegNum == FeatureMatrix.BackrefModeEnum.Pattern, @"([ab])\g-1", "ba", "b" ),
+            new ( @"\g{…}", @"Backreference \g{name}, \g{number}, \g{-number}, g{+number}", fm => fm.Backref_gBrace == FeatureMatrix.BackrefModeEnum.Value, @"(?<n>[ab])\g{n}", "aa", "ba" ),
+            new ( @"\g{…}", @"Subroutine \g{name}, \g{number}, \g{-number}, g{+number}", fm => fm.Backref_gBrace == FeatureMatrix.BackrefModeEnum.Pattern, @"(?<n>[ab])\g{n}", "ba", null ),
+            new ( @"(?P=name)", @"Backreference by name", fm => fm.Backref_PEqName, @"(?P<n>[ab])(?P=n)", "aa", "ba" ),
             new ( @"\k< … >, \g< … >", @"Allow spaces like '\k < name >'", fm => fm.AllowSpacesInBackref ), // TODO
 
             new ( @"Grouping" ),
@@ -309,7 +314,7 @@ class FeatureMatrixDetails
             new ( @"(?(R)…|…)", @"Recursive conditional: R, R+number, R-number", fm => fm.Conditional_R, @"(?(R)a+|(?R)b)", "aaaab", null ),
             new ( @"(?(R&name)…|…)", @"Recursive conditional by name", fm => fm.Conditional_RName, @"(?<A>(?'B'abc(?(R)(?(R&A)1)(?(R&B)2)X|(?1)(?2)(?R))))", "abcabc1Xabc2XabcXabcabc", null ),
             new ( @"(?(DEFINE)…|…)", @"Defining subpatterns", fm => fm.Conditional_DEFINE, @"(?(DEFINE)(?<n>x.z))(?&n)", "xyz", null ),
-            new ( @"(?(VERSION…)…|…)", @"Checking for version using 'VERSION=decimal' or 'VERSION>=decimal'", fm => fm.Conditional_VERSION, @"(?(VERSION>=1)xyz|abc)", "xyz", null ),
+            new ( @"(?(VERSION…)…|…)", @"Check version using 'VERSION=decimal' or 'VERSION>=decimal'", fm => fm.Conditional_VERSION, @"(?(VERSION>=1)xyz|abc)", "xyz", null ),
 
             new ( @"Miscellaneous" ),
 

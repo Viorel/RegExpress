@@ -12,16 +12,16 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
 
-namespace HyperscanPlugin
+namespace PCRE2Plugin
 {
-    class Engine : IRegexEngine
+    class HyperscanEngine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
+        readonly LazyData<(bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
 
-        public Engine( )
+        public HyperscanEngine( )
         {
             mOptionsControl = new Lazy<UCOptions>( ( ) =>
             {
@@ -35,15 +35,15 @@ namespace HyperscanPlugin
 
         #region IRegexEngine
 
-        public string Kind => "Hyperscan";
+        public string Kind => "PCRE2";
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "Hyperscan";
+        public string Name => "PCRE2";
 
         public string Subtitle => $"{Name}";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupDetails | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.OverlappingMatches;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 
         public string? NoteForCaptures => null;
 
@@ -105,25 +105,44 @@ namespace HyperscanPlugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
+            var options = mOptionsControl.Value.GetSelectedOptions( );
+
+            bool is_literal = options.PCRE2_LITERAL;
+            bool is_extended = options.PCRE2_EXTENDED;
+            bool is_extended_more = options.PCRE2_EXTENDED_MORE;
+            bool allow_empty_set = options.PCRE2_ALLOW_EMPTY_CLASS;
+
             return new SyntaxOptions
             {
-                XLevel = XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.Value
+                Literal = is_literal,
+                XLevel = is_extended_more ? XLevelEnum.xx : is_extended ? XLevelEnum.x : XLevelEnum.none,
+                AllowEmptySets = allow_empty_set,
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (PCRE2_ALT_BSUX: options.PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX: options.PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS: options.PCRE2_ALT_EXTENDED_CLASS, PCRE2_DUPNAMES: true) ),
             };
         }
 
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { HS_FLAG_UTF8 = true, HS_FLAG_SOM_LEFTMOST = false } );
-            // ('HS_FLAG_UTF8=true' allows non-latin letters, 'HS_FLAG_SOM_LEFTMOST=false' reduce the "Pattern is too large" errors)
+            HyperscanEngine engine = new( );
+            engine.mOptionsControl.Value.SetSelectedOptions(
+                new Options
+                {
+                    PCRE2_ALT_BSUX = true,
+                    PCRE2_EXTRA_ALT_BSUX = true,
+                    PCRE2_ALT_EXTENDED_CLASS = true,
+                    PCRE2_ALLOW_EMPTY_CLASS = true,
+                    PCRE2_DUPNAMES = true,
+                    PCRE2_EXTENDED = true,
+                    PCRE2_EXTENDED_MORE = true,
+                } );
 
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, engine )
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.GetValue((PCRE2_ALT_BSUX:true, PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true, PCRE2_DUPNAMES: true) ), engine)
                 ];
         }
+
 
         #endregion
 
@@ -149,15 +168,16 @@ namespace HyperscanPlugin
             }
         }
 
-
-        private static FeatureMatrix BuildFeatureMatrix( )
+        static FeatureMatrix BuildFeatureMatrix( (bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES) options )
         {
+            (bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES) = options;
+
             return new FeatureMatrix
             {
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,
 
                 Brackets = true,
-                ExtendedBrackets = false,
+                ExtendedBrackets = true,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
                 AlternationOnSeparateLines = false,
@@ -168,10 +188,10 @@ namespace HyperscanPlugin
 
                 Flags = true,
                 ScopedFlags = true,
-                CircumflexFlags = false,
-                ScopedCircumflexFlags = false,
+                CircumflexFlags = true,
+                ScopedCircumflexFlags = true,
                 XFlag = true,
-                XXFlag = false,
+                XXFlag = true,
 
                 Literal_QE = true,
                 InsideSets_Literal_QE = true,
@@ -189,10 +209,10 @@ namespace HyperscanPlugin
                 Esc_Octal0_1_3 = false,
                 Esc_oBrace = true,
                 Esc_x2 = true,
-                Esc_xBrace = true,
-                Esc_u4 = false,
+                Esc_xBrace = !( PCRE2_ALT_BSUX | PCRE2_EXTRA_ALT_BSUX ),
+                Esc_u4 = PCRE2_ALT_BSUX | PCRE2_EXTRA_ALT_BSUX,
                 Esc_U8 = false,
-                Esc_uBrace = false,
+                Esc_uBrace = PCRE2_EXTRA_ALT_BSUX,
                 Esc_UBrace = false,
                 Esc_c1 = true,
                 Esc_C1 = false,
@@ -212,10 +232,10 @@ namespace HyperscanPlugin
                 InsideSets_Esc_Octal0_1_3 = false,
                 InsideSets_Esc_oBrace = true,
                 InsideSets_Esc_x2 = true,
-                InsideSets_Esc_xBrace = true,
-                InsideSets_Esc_u4 = false,
+                InsideSets_Esc_xBrace = !( PCRE2_ALT_BSUX | PCRE2_EXTRA_ALT_BSUX ),
+                InsideSets_Esc_u4 = PCRE2_ALT_BSUX | PCRE2_EXTRA_ALT_BSUX,
                 InsideSets_Esc_U8 = false,
-                InsideSets_Esc_uBrace = false,
+                InsideSets_Esc_uBrace = PCRE2_EXTRA_ALT_BSUX,
                 InsideSets_Esc_UBrace = false,
                 InsideSets_Esc_c1 = true,
                 InsideSets_Esc_C1 = false,
@@ -230,15 +250,15 @@ namespace HyperscanPlugin
                 Class_hHhexa = false,
                 Class_hHhorspace = true,
                 Class_lL = false,
-                Class_N = false,
+                Class_N = true,
                 Class_O = false,
-                Class_R = false,
+                Class_R = true,
                 Class_sS = true,
                 Class_sSx = false,
                 Class_uU = false,
                 Class_vV = true,
                 Class_wW = true,
-                Class_X = false,
+                Class_X = true,
                 Class_Not = false,
                 Class_pP = true,
                 Class_pPBrace = true,
@@ -261,29 +281,29 @@ namespace HyperscanPlugin
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 
-                InsideSets_Operators = false,
-                InsideSets_OperatorsExtended = false,
-                InsideSets_Operator_Ampersand = false,
-                InsideSets_Operator_Plus = false,
-                InsideSets_Operator_VerticalLine = false,
-                InsideSets_Operator_Minus = false,
-                InsideSets_Operator_Circumflex = false,
-                InsideSets_Operator_Exclamation = false,
-                InsideSets_Operator_DoubleAmpersand = false,
-                InsideSets_Operator_DoubleVerticalLine = false,
-                InsideSets_Operator_DoubleMinus = false,
-                InsideSets_Operator_DoubleTilde = false,
+                InsideSets_Operators = PCRE2_ALT_EXTENDED_CLASS,
+                InsideSets_OperatorsExtended = true,
+                InsideSets_Operator_Ampersand = true, // extended syntax: (?[[...]&[...]])
+                InsideSets_Operator_Plus = true, // extended
+                InsideSets_Operator_VerticalLine = true, // extended
+                InsideSets_Operator_Minus = true, // extended
+                InsideSets_Operator_Circumflex = true, // extended
+                InsideSets_Operator_Exclamation = true, // extended
+                InsideSets_Operator_DoubleAmpersand = PCRE2_ALT_EXTENDED_CLASS,
+                InsideSets_Operator_DoubleVerticalLine = PCRE2_ALT_EXTENDED_CLASS,
+                InsideSets_Operator_DoubleMinus = PCRE2_ALT_EXTENDED_CLASS,
+                InsideSets_Operator_DoubleTilde = PCRE2_ALT_EXTENDED_CLASS,
 
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = true,
                 Anchor_Z = true,
                 Anchor_z = true,
-                Anchor_G = false,
+                Anchor_G = true,
                 Anchor_bB = true,
                 Anchor_bg = false,
                 Anchor_bBBrace = false,
-                Anchor_K = false,
+                Anchor_K = true,
                 Anchor_mM = false,
                 Anchor_LtGt = false,
                 Anchor_GraveApos = false,
@@ -297,67 +317,67 @@ namespace HyperscanPlugin
                 CapturingGroup = false,
 
                 NoncapturingGroup = true,
-                PositiveLookahead = false,
-                NegativeLookahead = false,
-                PositiveLookbehind = false,
-                NegativeLookbehind = false,
-                AtomicGroup = false,
-                BranchReset = false,
-                NonatomicPositiveLookahead = false,
-                NonatomicPositiveLookbehind = false,
+                PositiveLookahead = true,
+                NegativeLookahead = true,
+                PositiveLookbehind = true,
+                NegativeLookbehind = true,
+                AtomicGroup = true,
+                BranchReset = true,
+                NonatomicPositiveLookahead = true,
+                NonatomicPositiveLookbehind = true,
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_Num = FeatureMatrix.BackrefEnum.None,
-                Backref_kApos = false,
-                Backref_kLtGt = false,
-                Backref_kBrace = false,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
+                Backref_kApos = true,
+                Backref_kLtGt = true,
+                Backref_kBrace = true,
                 Backref_kNum = false,
                 Backref_kNegNum = false,
-                Backref_gApos = false,
-                Backref_gLtGt = false,
-                Backref_gNum = false,
-                Backref_gNegNum = false,
-                Backref_gBrace = false,
-                Backref_PEqName = false,
+                Backref_gApos = FeatureMatrix.BackrefModeEnum.Pattern,
+                Backref_gLtGt = FeatureMatrix.BackrefModeEnum.Pattern,
+                Backref_gNum = FeatureMatrix.BackrefModeEnum.Value,
+                Backref_gNegNum = FeatureMatrix.BackrefModeEnum.Value,
+                Backref_gBrace = FeatureMatrix.BackrefModeEnum.Value,
+                Backref_PEqName = true,
                 AllowSpacesInBackref = false,
 
-                Recursive_Num = false,
-                Recursive_PlusMinusNum = false,
-                Recursive_R = false,
-                Recursive_Name = false,
-                Recursive_PGtName = false,
+                Recursive_Num = true,
+                Recursive_PlusMinusNum = true,
+                Recursive_R = true,
+                Recursive_Name = true,
+                Recursive_PGtName = true,
 
                 Quantifier_Asterisk = true,
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
-                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
-                Quantifier_LowAbbrev = false,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
+                Quantifier_LowAbbrev = true,
 
-                Conditional_BackrefByNumber = false,
-                Conditional_BackrefByName = false,
-                Conditional_Pattern = false,
+                Conditional_BackrefByNumber = true,
+                Conditional_BackrefByName = true,
+                Conditional_Pattern = true,
                 Conditional_PatternOrBackrefByName = false,
-                Conditional_BackrefByName_Apos = false,
-                Conditional_BackrefByName_LtGt = false,
-                Conditional_R = false,
-                Conditional_RName = false,
-                Conditional_DEFINE = false,
-                Conditional_VERSION = false,
+                Conditional_BackrefByName_Apos = true,
+                Conditional_BackrefByName_LtGt = true,
+                Conditional_R = true,
+                Conditional_RName = true,
+                Conditional_DEFINE = true,
+                Conditional_VERSION = true,
 
-                ControlVerbs = true, // (*UTF8), (*UCP), https://intel.github.io/hyperscan/dev-reference/compilation.html 
-                ScriptRuns = false,
-                Callouts = false,
+                ControlVerbs = true,
+                ScriptRuns = true,
+                Callouts = true,
 
                 EmptyConstruct = true,
                 EmptyConstructX = false,
-                EmptySet = false,
+                EmptySet = true,
 
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = false,
-                FuzzyMatchingParams = true,
+                AllowDuplicateGroupName = PCRE2_DUPNAMES,
+                FuzzyMatchingParams = false,
             };
         }
     }
