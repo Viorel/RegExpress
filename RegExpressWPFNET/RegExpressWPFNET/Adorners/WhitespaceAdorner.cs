@@ -18,7 +18,7 @@ using RegExpressWPFNET.Controls;
 
 namespace RegExpressWPFNET.Adorners
 {
-    partial class WhitespaceAdorner : Adorner
+    sealed partial class WhitespaceAdorner : Adorner
     {
         readonly Brush WsBrush = Brushes.LightSeaGreen;
         readonly Pen TabPen = new( Brushes.LightSeaGreen, 1 );
@@ -184,11 +184,14 @@ namespace RegExpressWPFNET.Adorners
             List<Rect> positions_spaces;
             List<Rect> positions_tabs;
             List<Rect> positions_eols;
+            Rect position_eof;
+
             lock( this )
             {
                 positions_spaces = PositionsSpaces.ToList( );
                 positions_tabs = PositionsTabs.ToList( );
                 positions_eols = PositionsEols.ToList( );
+                position_eof = PositionEof;
             }
 
             foreach( var rect in positions_spaces )
@@ -206,9 +209,9 @@ namespace RegExpressWPFNET.Adorners
                 if( !rect.IsEmpty ) DrawEol( dc, rect );
             }
 
-            if( !PositionEof.IsEmpty )
+            if( !position_eof.IsEmpty )
             {
-                DrawEof( dc, PositionEof );
+                DrawEof( dc, position_eof );
             }
 
             dc.Pop( ); // (transform)
@@ -503,6 +506,8 @@ namespace RegExpressWPFNET.Adorners
                     UITaskHelper.Invoke( rtb,
                         ( ) =>
                         {
+                            Debug.Assert( td.TextPointers.Doc.Parent == rtb );
+
                             TextPointer left = td.TextPointers.GetTextPointer( index );
 
                             left_rect = left.GetCharacterRect( LogicalDirection.Forward );
@@ -559,6 +564,8 @@ namespace RegExpressWPFNET.Adorners
                     UITaskHelper.Invoke( rtb,
                         ( ) =>
                         {
+                            Debug.Assert( td.TextPointers.Doc.Parent == rtb );
+
                             TextPointer left = td.TextPointers.GetTextPointer( index );
 
                             eol_rect = left.GetCharacterRect( LogicalDirection.Forward );

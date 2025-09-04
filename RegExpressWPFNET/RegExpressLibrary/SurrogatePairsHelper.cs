@@ -72,13 +72,15 @@ namespace RegExpressLibrary
             int mi = 0;
             for( int ti = 0; ti < text.Length; )
             {
-                if( char.IsSurrogatePair( text, ti ) )
+                if( char.IsHighSurrogate( text, ti ) )
                 {
                     SurrogatePairs!.Add( mi );
                     ti += 2;
                 }
                 else
                 {
+                    Debug.Assert( !char.IsLowSurrogate( text, ti ) );
+
                     ++ti;
                 }
                 ++mi;

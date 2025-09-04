@@ -14,7 +14,7 @@ using System.Windows.Threading;
 
 namespace RegExpressWPFNET.Adorners
 {
-    class UnderliningAdorner : Adorner
+    sealed class UnderliningAdorner : Adorner
     {
         const int CAPS_HEIGHT = 3;
         readonly Vector OFFSET = new Vector( 0, 1 );

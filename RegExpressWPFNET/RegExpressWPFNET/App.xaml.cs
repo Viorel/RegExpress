@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 
 
 namespace RegExpressWPFNET
@@ -30,11 +31,10 @@ namespace RegExpressWPFNET
         public App( )
         {
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-            //Dispatcher.UnhandledException += Dispatcher_UnhandledException;
-            //DispatcherUnhandledException += App_DispatcherUnhandledException;
-            //TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+            Dispatcher.UnhandledException += Dispatcher_UnhandledException;
+            DispatcherUnhandledException += App_DispatcherUnhandledException;
+            TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
         }
-
 
         private void App_Startup( object sender, StartupEventArgs e )
         {
@@ -88,9 +88,22 @@ namespace RegExpressWPFNET
                 "RegExpress Error",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error
-
                 );
         }
 
+        private void TaskScheduler_UnobservedTaskException( object? sender, UnobservedTaskExceptionEventArgs e )
+        {
+            if( Debugger.IsAttached ) Debugger.Break( );
+        }
+
+        private void App_DispatcherUnhandledException( object sender, DispatcherUnhandledExceptionEventArgs e )
+        {
+            if( Debugger.IsAttached ) Debugger.Break( );
+        }
+
+        private void Dispatcher_UnhandledException( object sender, DispatcherUnhandledExceptionEventArgs e )
+        {
+            if( Debugger.IsAttached ) Debugger.Break( );
+        }
     }
 }

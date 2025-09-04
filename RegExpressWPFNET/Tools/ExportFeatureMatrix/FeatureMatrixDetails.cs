@@ -207,7 +207,7 @@ class FeatureMatrixDetails
             new ( @"[\p{…}], [\P{…}]", @"Unicode property", fm => fm.InsideSets_Class_pPBrace, @"[\p{L}][\P{L}]", "x9", null ),
             new ( @"[[:class:]]", @"Character class", fm => fm.InsideSets_Class_Name, @"[[:alpha:]]", "X", null ),
             new ( @"[[=elem=]]", @"Equivalence", fm => fm.InsideSets_Equivalence, @"[[=a=]][[=a=]]", "aA", null ), // 'Á' not matched by STL regex.
-            new ( @"[[.elem.]]", @"Collating symbol", fm => fm.InsideSets_Collating, @"a[[.ch.]]x", "achx", null ), // STL seems to hav a defect.
+            new ( @"[[.elem.]]", @"Collating symbol", fm => fm.InsideSets_Collating, @"a[[.ch.]]x", "achx", null ), // STL seems to have a defect.
 
             new ( @"Operators inside […]" ),
 

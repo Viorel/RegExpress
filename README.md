@@ -1,6 +1,6 @@
 ﻿# RegExpress
 
-A tester for Regular Expressions. Made in Visual Studio 2022 using C#, C++, WPF, .NET 9.
+A tester for researching Regular Expression engines. Made in Visual Studio 2022 using C#, C++, WPF, .NET 9.
 
 It includes the following Regular Expression engines:
 
@@ -39,17 +39,21 @@ Sample:
 
 ![Screenshot of RegExpress](Screenshot1.png)
 
-The regular expressions are saved and loaded automatically. Press the “➕” button to open more tabs. 
-Use the **Options** area to select and configure the Regular Expression engine.
+Enter the pattern and text to textboxes. The results are updated automatically. The found matches are colourised.
 
-The program can be built using Visual Studio 2022 and .NET 9. The sources are written in C# and C++. 
+Use the **Options** area to select and configure the Regular Expression engine. Press the “➕” button to open more tabs. 
 
-The following Visual Studio workloads are required:
+Currently the regular expressions are saved and loaded automatically, and a single instance can be started.
+
+The program can be built using Visual Studio 2022 and .NET 9. The following Visual Studio workloads are required:
 
 * .NET desktop development.
 * Desktop development with C++.
 
-The minimal sources of third-party regular expression libraries are included.
+Open the **RegExpressWPFNET.slnx** solution. Right-click the **RegExpressWPFNET** project in Solution Explorer
+and select “Set as Startup Project”. Select “Rebuild Solution” from BUILD menu. Then the program can be started.
+
+The sources are written in C# and C++. The minimal sources of third-party regular expression libraries are included.
 
 #### Details
 

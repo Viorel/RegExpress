@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary.SyntaxColouring
 {
-	public class Highlights
+	public sealed class Highlights
 	{
 		// (Positions in the text; empty if no highlights)
 

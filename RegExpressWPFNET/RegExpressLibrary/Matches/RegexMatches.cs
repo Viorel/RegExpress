@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary.Matches
 {
-	public class RegexMatches
+	public sealed class RegexMatches
 	{
 		public int Count { get; }
 		public IEnumerable<IMatch> Matches { get; }

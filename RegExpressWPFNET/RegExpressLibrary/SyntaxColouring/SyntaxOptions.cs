@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary.SyntaxColouring
 {
-    public class SyntaxOptions
+    public sealed class SyntaxOptions
     {
         public bool Literal { get; init; }
         public XLevelEnum XLevel { get; init; }

@@ -14,7 +14,7 @@ namespace RegExpressWPFNET.Code
 {
     // See: https://stackoverflow.com/questions/5649875/how-to-make-the-border-trim-the-child-elements
 
-    public class BorderClipConverter : IMultiValueConverter
+    public sealed class BorderClipConverter : IMultiValueConverter
     {
         public object Convert( object[] values, Type targetType, object parameter, CultureInfo culture )
         {

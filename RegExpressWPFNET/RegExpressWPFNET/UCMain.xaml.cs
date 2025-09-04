@@ -974,7 +974,7 @@ namespace RegExpressWPFNET
 
                     if( td.Selection.Start >= 0 && td.Selection.Start < td.Text.Length )
                     {
-                        if( !( char.IsSurrogate( td.Text, td.Selection.Start ) && td.Selection.Start + 1 < td.Text.Length ) )
+                        if( !( char.IsHighSurrogate( td.Text, td.Selection.Start ) && td.Selection.Start + 1 < td.Text.Length ) )
                         {
                             char c = td.Text[td.Selection.Start];
 

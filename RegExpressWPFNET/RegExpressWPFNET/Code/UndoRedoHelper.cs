@@ -16,7 +16,7 @@ namespace RegExpressWPFNET.Code
 {
     internal sealed partial class UndoRedoHelper
     {
-        class Diff
+        sealed class Diff
         {
             internal readonly int Position;
             internal readonly string Remove;
@@ -29,13 +29,15 @@ namespace RegExpressWPFNET.Code
                 Add = add;
             }
 
+            public bool IsEmpty => Remove.Length == 0 && Add.Length == 0;
+
             public override string ToString( )
             {
                 return $"At {Position}, Remove '{Remove}', Add '{Add}'";
             }
         }
 
-        class UndoItem
+        sealed class UndoItem
         {
             internal readonly Diff Diff;
             internal readonly SelectionInfo SelectionInfoA;
@@ -50,8 +52,8 @@ namespace RegExpressWPFNET.Code
         }
 
         readonly MyRichTextBox Rtb;
-        readonly List<UndoItem> UndoList = new( );
-        readonly List<UndoItem> RedoList = new( );
+        readonly List<UndoItem> UndoList = [];
+        readonly List<UndoItem> RedoList = [];
         string? PreviousText;
         SelectionInfo PreviousSelection = new( 0, 0 );
         bool IsUndoOrRedo = false;
@@ -138,11 +140,11 @@ namespace RegExpressWPFNET.Code
 
             try
             {
-                var td = Rtb.GetTextData( "\n" );
+                TextData td = Rtb.GetTextData( "\n" );
 
                 using( Rtb.DeclareChangeBlock( ) )
                 {
-                    var range = td.Range( last.Diff.Position, last.Diff.Add.Length );
+                    TextRange range = td.Range( last.Diff.Position, last.Diff.Add.Length );
                     range.Text = EolRegex( ).Replace( last.Diff.Remove, "\r" ); // (it does not like '\n')
                     range.ClearAllProperties( );
                 }
@@ -179,11 +181,11 @@ namespace RegExpressWPFNET.Code
 
             try
             {
-                var td = Rtb.GetTextData( "\n" );
+                TextData td = Rtb.GetTextData( "\n" );
 
                 using( Rtb.DeclareChangeBlock( ) )
                 {
-                    var range = td.Range( last.Diff.Position, last.Diff.Remove.Length );
+                    TextRange range = td.Range( last.Diff.Position, last.Diff.Remove.Length );
                     range.Text = EolRegex( ).Replace( last.Diff.Add, "\r" ); // (it does not like '\n')
                     range.ClearAllProperties( );
                 }
@@ -232,11 +234,32 @@ namespace RegExpressWPFNET.Code
             int i = 0;
             while( i < first.Length && i < second.Length && first[i] == second[i] ) ++i;
 
-            int j1 = first.Length - 1;
-            int j2 = second.Length - 1;
-            while( j1 >= i && j2 >= i && first[j1] == second[j2] ) { --j1; --j2; }
+            int j_first = first.Length - 1;
+            int j_second = second.Length - 1;
+            while( j_first >= i && j_second >= i && first[j_first] == second[j_second] ) { --j_first; --j_second; }
 
-            return new Diff( position: i, remove: first.Substring( i, j1 - i + 1 ), add: second.Substring( i, j2 - i + 1 ) );
+            // fix surrogate pairs; order: High Surrogate, Low Surrogate
+
+            if( i > 0 && i < first.Length && char.IsLowSurrogate( first, i ) && i < second.Length && char.IsLowSurrogate( second, i ) )
+            {
+                --i;
+                Debug.Assert( i >= 0 );
+                Debug.Assert( char.IsHighSurrogate( first, i ) );
+                Debug.Assert( char.IsHighSurrogate( second, i ) );
+            }
+
+            if( j_first >= 0 && j_first < first.Length && char.IsHighSurrogate( first, j_first ) )
+            {
+                ++j_first;
+                Debug.Assert( char.IsLowSurrogate( first, j_first ) );
+            }
+            if( j_second >= 0 && j_second < second.Length && char.IsHighSurrogate( second, j_second ) )
+            {
+                ++j_second;
+                Debug.Assert( char.IsLowSurrogate( second, j_second ) );
+            }
+
+            return new Diff( position: i, remove: first.Substring( i, j_first - i + 1 ), add: second.Substring( i, j_second - i + 1 ) );
         }
 
 

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary
 {
-    public class RegexEngineOptionsChangedArgs : EventArgs
+    public sealed class RegexEngineOptionsChangedArgs : EventArgs
     {
         public bool PreferImmediateReaction;
     }

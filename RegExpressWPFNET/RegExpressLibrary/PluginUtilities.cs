@@ -45,19 +45,6 @@ public class PluginLoadContext : AssemblyLoadContext
 }
 
 
-// "engines.json" file
-public class EnginesData
-{
-    public EngineData[]? engines { get; set; }
-}
-
-public class EngineData
-{
-    public string? path { get; set; }
-    public bool no_fm { get; set; } // do not include this plugin to "Feature Matrix" exports
-}
-
-
 public static class PluginLoader
 {
     public static readonly JsonSerializerOptions JsonOptions = new( ) { AllowTrailingCommas = true, IncludeFields = true, ReadCommentHandling = JsonCommentHandling.Skip, WriteIndented = true };

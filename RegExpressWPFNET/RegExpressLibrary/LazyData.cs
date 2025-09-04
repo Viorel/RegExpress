@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary
 {
-    public class LazyData<A1, T> where A1 : struct
+    public sealed class LazyData<A1, T> where A1 : struct
     {
         readonly Func<A1, T?> mInit;
         readonly Lazy<Dictionary<A1, T?>> mCache = new( );

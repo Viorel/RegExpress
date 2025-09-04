@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary.SyntaxColouring;
 
-public class FeatureMatrixVariant
+public sealed class FeatureMatrixVariant
 {
     public string? Name { get; private set; }
     public FeatureMatrix FeatureMatrix { get; private set; }

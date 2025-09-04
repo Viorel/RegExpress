@@ -59,6 +59,8 @@ namespace RegExpressWPFNET.Controls
         internal TextData GetTextData( string? eol )//, [CallerMemberName] string? caller = null, [CallerFilePath] string? callerPath = null, [CallerLineNumber] int callerLine = 0 )
         {
 #if DEBUG
+            Debug.Assert( Document.Parent == this );
+
             if( eol != null ) TextData.DbgValidateEol( eol );
 #endif
 
@@ -74,6 +76,8 @@ namespace RegExpressWPFNET.Controls
                 {
                     if( wr.TryGetTarget( out td ) && td != null )
                     {
+                        Debug.Assert( td.TextPointers.Doc == Document );
+
                         return td;
                     }
                 }
@@ -85,6 +89,8 @@ namespace RegExpressWPFNET.Controls
 
             if( mCachedTextData[eol_index].TryGetTarget( out td ) && td != null )
             {
+                Debug.Assert( td.TextPointers.Doc == Document );
+
                 return td;
             }
 
@@ -93,6 +99,8 @@ namespace RegExpressWPFNET.Controls
                 if( wr.TryGetTarget( out td ) && td != null )
                 {
                     TextData new_td = td.Export( eol );
+
+                    Debug.Assert( new_td.TextPointers.Doc == Document );
 
                     mCachedTextData[eol_index].SetTarget( new_td );
 
@@ -104,6 +112,8 @@ namespace RegExpressWPFNET.Controls
             string text = th.GetText( );
 
             td = new TextData( text, eol, new TextPointers( Document, eol.Length ) );
+
+            Debug.Assert( td.TextPointers.Doc == Document );
 
             mCachedTextData[eol_index].SetTarget( td );
 
@@ -195,6 +205,8 @@ namespace RegExpressWPFNET.Controls
                 }
             }
             */
+
+            Debug.Assert( this.Document.Parent == this );
 
             TextPointers tp = new( this.Document, eol.Length );
 

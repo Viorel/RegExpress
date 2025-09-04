@@ -38,7 +38,7 @@ namespace RegExpressWPFNET.Code
      */
 
 
-    class OutputBuilder
+    sealed class OutputBuilder
     {
         struct MyRun
         {

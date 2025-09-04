@@ -26,7 +26,7 @@ namespace RegExpressLibrary.SyntaxColouring
 
         readonly static Dictionary<Key, Regex> CachedRegexes = new( );
 
-        class ScopeInfo
+        sealed class ScopeInfo
         {
             internal XLevelEnum XLevel;
         }

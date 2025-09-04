@@ -12,7 +12,7 @@ using RegExpressWPFNET.Controls;
 
 namespace RegExpressWPFNET.Code;
 
-public class TextData
+public sealed class TextData
 {
     int mLengthInTextElements = -1;
     int mNumberOfLines = -1;

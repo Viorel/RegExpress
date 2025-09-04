@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary.SyntaxColouring
 {
-    public class ColouredSegments
+    public sealed class ColouredSegments
     {
         public List<Segment> Comments { get; } = new List<Segment>( );
         public List<Segment> CharacterClass { get; } = new List<Segment>( );

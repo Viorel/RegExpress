@@ -10,7 +10,7 @@ namespace RegExpressLibrary;
 /// Replaces WeakReference<T> to keep the data. For experiments only.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public class NonWeakReference<T> where T : class?
+public sealed class NonWeakReference<T> where T : class?
 {
     T? mTarget;
 

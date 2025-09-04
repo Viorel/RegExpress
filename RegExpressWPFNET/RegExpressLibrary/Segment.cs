@@ -29,13 +29,13 @@ namespace RegExpressLibrary
         }
 
 
-        public bool IsEmpty => Length == 0;
-        public int End => Index + Length;
+        public readonly bool IsEmpty => Length == 0;
+        public readonly int End => Index + Length;
 
-        public bool Contains( int x ) => !IsEmpty && x >= Index && x < End;
+        public readonly bool Contains( int x ) => !IsEmpty && x >= Index && x < End;
 
 
-        public bool Intersects( Segment b )
+        public readonly bool Intersects( Segment b )
         {
             var i = Math.Max( Index, b.Index );
             var e = Math.Min( End, b.End );
@@ -53,7 +53,7 @@ namespace RegExpressLibrary
         //}
 
 
-        public static readonly Segment Empty = new( 0, 0 );
+        public static Segment Empty { get; } = new( 0, 0 );
 
 
         public static Segment Intersection( Segment a, Segment b )
