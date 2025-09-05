@@ -69,9 +69,37 @@ namespace RegExpressWPFNET.Code
             int index = FindStartIndex( parent );
             if( index < 0 ) return -1;
 
-            if( parent is Run )
+            if( parent is Run run )
             {
-                return index + parent.ContentStart.GetOffsetToPosition( tp );
+                string text = new TextRange( run.ContentStart, tp ).Text;
+
+                int start = 0;
+
+                for(; ; )
+                {
+                    int i = text.IndexOf( '\r', start );
+
+                    if( i < 0 )
+                    {
+                        index += text.Length - start;
+
+                        break;
+                    }
+
+                    index += i - start;
+                    index += EolLength;
+
+                    start = i + 1;
+
+                    if( start < text.Length && text[start] == '\n' )
+                    {
+                        // ignore '\n' after '\r'
+
+                        ++start;
+                    }
+                }
+
+                return index;
             }
             else
             {

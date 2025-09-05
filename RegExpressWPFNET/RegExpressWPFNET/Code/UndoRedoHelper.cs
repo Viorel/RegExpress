@@ -40,14 +40,14 @@ namespace RegExpressWPFNET.Code
         sealed class UndoItem
         {
             internal readonly Diff Diff;
-            internal readonly SelectionInfo SelectionInfoA;
-            internal SelectionInfo SelectionInfoB;
+            internal readonly SelectionInfo SelectionBefore;
+            internal SelectionInfo SelectionAfter;
 
-            public UndoItem( Diff diff, SelectionInfo selectionInfoA, SelectionInfo selectionInfoB )
+            public UndoItem( Diff diff, SelectionInfo selectionBefore, SelectionInfo selectionAfter )
             {
                 Diff = diff;
-                SelectionInfoA = selectionInfoA;
-                SelectionInfoB = selectionInfoB;
+                SelectionBefore = selectionBefore;
+                SelectionAfter = selectionAfter;
             }
         }
 
@@ -71,60 +71,74 @@ namespace RegExpressWPFNET.Code
             Init( );
         }
 
-
         public void Init( )
         {
-            var td = Rtb.GetTextData( "\n" );
+            TextData td = Rtb.GetTextData( "\n" );
 
             PreviousText = td.Text;
             UndoList.Clear( );
             RedoList.Clear( );
 
-            UndoList.Add( new UndoItem( diff: GetDiff( "", td.Text ), selectionInfoA: new SelectionInfo( 0, 0 ), selectionInfoB: td.Selection ) );
+            UndoList.Add( new UndoItem( diff: GetDiff( "", td.Text ), selectionBefore: new SelectionInfo( 0, 0 ), selectionAfter: td.Selection ) );
         }
-
 
         public void HandleTextChanged( TextChangedEventArgs e )
         {
             if( IsUndoOrRedo ) return;
 
-            var td = Rtb.GetTextData( "\n" );
-            var si = td.Selection;
-            var ui = new UndoItem( diff: GetDiff( PreviousText, td.Text ), selectionInfoA: PreviousSelection, selectionInfoB: si );
+            TextData td = Rtb.GetTextData( "\n" );
+            SelectionInfo selection_after = td.Selection;
+            Diff diff = GetDiff( PreviousText, td.Text );
+
+            UndoItem new_undo_item = new( diff: diff, selectionBefore: PreviousSelection, selectionAfter: selection_after );
 
             // try combining
             bool combined = false;
-            if( UndoList.Count > 1 ) // (exclude the first initial one)
+            if( UndoList.Count > 1 ) // exclude the first initial one
             {
-                var last = UndoList.Last( );
-                if( IsTrackingTextChange && CanBeCombined( last, ui ) )
+                UndoItem last_undo_item = UndoList.Last( );
+
+                if( IsTrackingTextChange && CanBeCombined( last_undo_item, new_undo_item ) )
                 {
-                    last.Diff!.Add += ui.Diff.Add;
-                    last.SelectionInfoB = td.Selection;
+                    last_undo_item.Diff!.Add += new_undo_item.Diff.Add;
+                    last_undo_item.SelectionAfter = selection_after;
                     combined = true;
                 }
             }
 
-            if( !combined ) UndoList.Add( ui );
+            if( !combined ) UndoList.Add( new_undo_item );
 
             PreviousText = td.Text;
-            PreviousSelection = si;
+            PreviousSelection = selection_after;
 
             RedoList.Clear( );
 
             IsTrackingTextChange = true;
         }
 
-
         public void HandleSelectionChanged( )
         {
             if( IsUndoOrRedo ) return;
 
-            var td = Rtb.GetTextData( "\n" );
+            TextData td = Rtb.GetTextData( "\n" );
 
             PreviousSelection = td.Selection;
         }
 
+        void HandleLostFocus( object sender, RoutedEventArgs e )
+        {
+            IsTrackingTextChange = false;
+        }
+
+        void HandleUndo( object sender, ExecutedRoutedEventArgs e )
+        {
+            DoUndo( );
+        }
+
+        void HandleRedo( object sender, ExecutedRoutedEventArgs e )
+        {
+            DoRedo( );
+        }
 
         public bool DoUndo( )
         {
@@ -150,7 +164,7 @@ namespace RegExpressWPFNET.Code
                 }
 
                 td = Rtb.GetTextData( "\n" );
-                RtbUtilities.SafeSelect( Rtb, td, last.SelectionInfoA.Start, last.SelectionInfoA.End );
+                RtbUtilities.SafeSelect( Rtb, td, last.SelectionBefore.Start, last.SelectionBefore.End );
 
                 PreviousText = td.Text;
                 PreviousSelection = td.Selection;
@@ -165,7 +179,6 @@ namespace RegExpressWPFNET.Code
                 IsUndoOrRedo = false;
             }
         }
-
 
         public bool DoRedo( )
         {
@@ -188,10 +201,10 @@ namespace RegExpressWPFNET.Code
                     TextRange range = td.Range( last.Diff.Position, last.Diff.Remove.Length );
                     range.Text = EolRegex( ).Replace( last.Diff.Add, "\r" ); // (it does not like '\n')
                     range.ClearAllProperties( );
+                    Rtb.Selection.Select( range.End, range.End );
                 }
 
                 td = Rtb.GetTextData( "\n" );
-                RtbUtilities.SafeSelect( Rtb, td, last.SelectionInfoB.Start, last.SelectionInfoB.End );
 
                 PreviousText = td.Text;
                 PreviousSelection = td.Selection;
@@ -207,25 +220,6 @@ namespace RegExpressWPFNET.Code
             }
         }
 
-
-        void HandleLostFocus( object sender, RoutedEventArgs e )
-        {
-            IsTrackingTextChange = false;
-        }
-
-
-        void HandleUndo( object sender, ExecutedRoutedEventArgs e )
-        {
-            DoUndo( );
-        }
-
-
-        void HandleRedo( object sender, ExecutedRoutedEventArgs e )
-        {
-            DoRedo( );
-        }
-
-
         static Diff GetDiff( string? first, string? second )
         {
             first ??= string.Empty;
@@ -238,7 +232,8 @@ namespace RegExpressWPFNET.Code
             int j_second = second.Length - 1;
             while( j_first >= i && j_second >= i && first[j_first] == second[j_second] ) { --j_first; --j_second; }
 
-            // fix surrogate pairs; order: High Surrogate, Low Surrogate
+            // fix surrogate pairs;
+            // order in string: High Surrogate, Low Surrogate
 
             if( i > 0 && i < first.Length && char.IsLowSurrogate( first, i ) && i < second.Length && char.IsLowSurrogate( second, i ) )
             {
@@ -262,16 +257,17 @@ namespace RegExpressWPFNET.Code
             return new Diff( position: i, remove: first.Substring( i, j_first - i + 1 ), add: second.Substring( i, j_second - i + 1 ) );
         }
 
-
         static bool CanBeCombined( UndoItem ui1, UndoItem ui2 )
         {
             return
                 string.IsNullOrEmpty( ui2.Diff.Remove ) &&
-                ui1.SelectionInfoB.Length == 0 &&
-                ui2.SelectionInfoA.Length == 0 &&
-                ui1.SelectionInfoB.Start == ui2.SelectionInfoA.Start;
+                ui1.SelectionAfter.Length == 0 &&
+                ui2.SelectionBefore.Length == 0 &&
+                ui1.SelectionAfter.Start == ui2.SelectionBefore.Start &&
+                !EolRegex( ).IsMatch( ui1.Diff.Add ) &&
+                !EolRegex( ).IsMatch( ui2.Diff.Add )
+                ;
         }
-
 
         /*
         static string Undo( string s, Diff d )

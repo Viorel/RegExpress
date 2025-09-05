@@ -228,6 +228,7 @@ namespace RegExpressWPFNET.Controls
             if( ChangeEventHelper.IsInChange ) return;
 
             foreach( var wr in mCachedTextData ) wr.SetTarget( null );
+            for( var i = 0; i < mCachedSelection.Length; ++i ) mCachedSelection[i] = new SelectionInfo( -1, -1 );
 
             base.OnTextChanged( e );
         }
