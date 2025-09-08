@@ -28,6 +28,7 @@ namespace VBScriptPlugin
         {
             string options_str = "";
             if( options.IgnoreCase ) options_str += "i";
+            if( options.Multiline ) options_str += "m";
             if( options.Global ) options_str += "g";
 
             using ProcessHelper ph = new ProcessHelper( "cscript.exe" );

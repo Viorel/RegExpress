@@ -55,9 +55,11 @@ If command = "m" Or command = "e" Or command = "x" Then
 
     re.Pattern = pattern
     re.IgnoreCase = False
+    re.Multiline = False
     re.Global = False
 
     If InStr(options, "i") > 0 Then re.IgnoreCase = True 
+    If InStr(options, "m") > 0 Then re.Multiline = True 
     If InStr(options, "g") > 0 Then re.Global = True
 
     Dim ms

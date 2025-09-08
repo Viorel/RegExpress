@@ -26,13 +26,13 @@ namespace RegExpressWPFNET.Adorners
         readonly Pen EofPen = new( Brushes.LightSeaGreen, 1 );
         readonly Brush EofBrush = Brushes.Transparent;
 
-        readonly char[] SpacesAndTabs = new[] { ' ', '\t' }; // (For performance reasons, we only consider regular spaces)
+        readonly char[] SpacesAndTabs = [' ', '\t']; // (For performance reasons, we only consider regular spaces)
 
         readonly ResumableLoop Loop;
 
-        List<Rect> PositionsSpaces = new( );
-        List<Rect> PositionsTabs = new( );
-        List<Rect> PositionsEols = new( );
+        List<Rect> PositionsSpaces = [];
+        List<Rect> PositionsTabs = [];
+        List<Rect> PositionsEols = [];
         Rect PositionEof = Rect.Empty;
         bool mShowWhitespaces = false;
         int PreviousTextChangedTime = Environment.TickCount;
@@ -96,11 +96,11 @@ namespace RegExpressWPFNET.Adorners
 
             // invalidate some areas, but not too often
 
-            if( Environment.TickCount - PreviousTextChangedTime > 777 )
+            if( Environment.TickCount - PreviousTextChangedTime > 77 )
             {
-                var rtb = Rtb;
+                MyRichTextBox rtb = Rtb;
 
-                foreach( var change in e.Changes )
+                foreach( TextChange? change in e.Changes )
                 {
                     TextPointer start = rtb.Document.ContentStart.GetPositionAtOffset( change.Offset );
                     if( start == null ) continue;
