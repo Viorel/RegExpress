@@ -41,7 +41,7 @@
                 <ui:CheckboxWithNote Prop="nosubs" Note="do not keep track of the contents of capture groups"/>
                 <ui:CheckboxWithNote Prop="optimize" Note="emphasize speed of matching rather than speed of regular expression compilation"/>
                 <ui:CheckboxWithNote Prop="collate" Note="make matches locale-sensitive"/>
-                <ui:CheckboxWithNote IsEnabled="False" Text="multiline" Note="(not supported by std::wregex)"/>
+                <ui:CheckboxWithNote IsEnabled="False" IsChecked="True" Text="multiline" Note="(not supported; matching is multiline by default)"/>
             </StackPanel>
 
             <Label Margin="0 4 0 4" Padding="0">
