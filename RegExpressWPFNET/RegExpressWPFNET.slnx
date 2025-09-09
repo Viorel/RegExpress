@@ -113,7 +113,9 @@
   </Folder>
   <Project Path="RegExpressCppLibrary/RegExpressCppLibrary.vcxproj" Id="0a96a479-5737-4d64-8f1a-2cc87ca675e2" />
   <Project Path="RegExpressLibrary/RegExpressLibrary.csproj" />
-  <Project Path="RegExpressWPFNET/RegExpressWPFNET.csproj" />
+  <Project Path="RegExpressWPFNET/RegExpressWPFNET.csproj">
+    <BuildDependency Project="SolutionEvents/SolutionEvents.vcxproj" />
+  </Project>
   <Project Path="SolutionEvents/SolutionEvents.vcxproj" Id="886c3f35-3ef7-4cc7-9274-244d45a1ba5a">
     <BuildDependency Project="RegexEngines/Boost/BoostPlugin/BoostPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" />
@@ -148,6 +150,5 @@
     <BuildDependency Project="RegexEngines/TRE/TREPlugin/TREPlugin.csproj" />
     <BuildDependency Project="RegexEngines/TRE/TREWorker/TREWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/VBScript/VBScriptPlugin/VBScriptPlugin.csproj" />
-    <BuildDependency Project="RegExpressWPFNET/RegExpressWPFNET.csproj" />
   </Project>
 </Solution>
