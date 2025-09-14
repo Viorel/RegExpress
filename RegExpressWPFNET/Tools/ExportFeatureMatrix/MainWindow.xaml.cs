@@ -343,6 +343,10 @@ namespace ExportFeatureMatrix
 
                 tblProgress.Text = "";
             }
+
+            // to make sure that DLLs of engines are unloaded and unlocked
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
 
         void ShowProgressOnFeatures( string info, int index, int total )

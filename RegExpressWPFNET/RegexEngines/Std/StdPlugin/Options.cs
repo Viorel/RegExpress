@@ -9,6 +9,13 @@ using System.Threading.Tasks;
 
 namespace StdPlugin
 {
+    enum CompilerEnum
+    {
+        None,
+        MSVC,
+        GCC,
+    }
+
     enum GrammarEnum
     {
         None,
@@ -20,9 +27,9 @@ namespace StdPlugin
         egrep,
     }
 
-
     class Options
     {
+        public CompilerEnum Compiler { get; set; } = CompilerEnum.MSVC;
         public GrammarEnum Grammar { get; set; } = GrammarEnum.ECMAScript;
 
 
@@ -30,6 +37,7 @@ namespace StdPlugin
         public bool nosubs { get; set; }
         public bool optimize { get; set; }
         public bool collate { get; set; }
+        public bool multiline { get; set; } // not for MSVC, where it is true by default
 
 
         public bool match_not_bol { get; set; }
@@ -42,6 +50,7 @@ namespace StdPlugin
         public bool match_prev_avail { get; set; }
 
 
+        // MSVC specific
         public string? REGEX_MAX_STACK_COUNT { get; set; }
         public string? REGEX_MAX_COMPLEXITY_COUNT { get; set; }
 

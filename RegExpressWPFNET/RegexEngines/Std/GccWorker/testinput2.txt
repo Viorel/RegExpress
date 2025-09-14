@@ -1,0 +1,5 @@
+"m"
+".(a(.))"
+"xabcdYABCD"
+"ECMAScript"
+"icase multiline "

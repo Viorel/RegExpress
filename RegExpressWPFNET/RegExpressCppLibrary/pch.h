@@ -19,11 +19,13 @@
 
 #include <strsafe.h>
 
+#include <cassert>
 #include <string>
 #include <stdexcept>
 #include <type_traits>
 #include <cuchar>
 #include <format>
+#include <cctype>
 
 
 #endif //PCH_H

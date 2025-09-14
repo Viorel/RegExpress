@@ -1,0 +1,5 @@
+"m"
+"^a"
+"a\nA\na"
+"ECMAScript"
+"icase multiline match_not_bol"

@@ -17,8 +17,10 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace StdPlugin
 {
-    static class Matcher
+    static class MatcherMSVC
     {
+        static readonly Lazy<string?> LazyVersion = new( ( ) => GetVersion( ICancellable.NonCancellable ) );
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             Int32? REGEX_MAX_COMPLEXITY_COUNT = null;
@@ -147,7 +149,6 @@ namespace StdPlugin
             return version_s;
         }
 
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -157,5 +158,24 @@ namespace StdPlugin
             return worker_exe;
         }
 
+        internal static void StartGetVersion( Action<string?> setVersion )
+        {
+            if( LazyVersion.IsValueCreated )
+            {
+                setVersion( LazyVersion.Value );
+
+                return;
+            }
+
+            Thread t = new( ( ) =>
+            {
+                setVersion( LazyVersion.Value );
+            } )
+            {
+                IsBackground = true
+            };
+
+            t.Start( );
+        }
     }
 }

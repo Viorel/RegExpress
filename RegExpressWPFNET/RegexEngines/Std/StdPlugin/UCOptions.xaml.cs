@@ -41,6 +41,11 @@ namespace StdPlugin
             if( IsFullyLoaded ) return;
 
             IsFullyLoaded = true;
+
+            MatcherMSVC.StartGetVersion( SetMSVCVersion );
+            MatcherGCC.StartGetVersion( SetGCCVersion );
+
+            UpdateControls( );
         }
 
 
@@ -52,9 +57,15 @@ namespace StdPlugin
             Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
         }
 
+        private void cbxCompiler_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateControls( );
+            Notify( preferImmediateReaction: true );
+        }
 
         private void cbxGrammar_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
+            UpdateControls( );
             Notify( preferImmediateReaction: true );
         }
 
@@ -76,12 +87,30 @@ namespace StdPlugin
             Notify( preferImmediateReaction: false );
         }
 
+        void UpdateControls( )
+        {
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
+
+            try
+            {
+                ++ChangeCounter;
+
+                Options options = GetSelectedOptions( );
+
+                chkMultilineMSVC.Visibility = pnlMSVCConstants.Visibility = options.Compiler == CompilerEnum.MSVC ? Visibility.Visible : Visibility.Collapsed;
+                chkMultiline.Visibility = options.Compiler == CompilerEnum.GCC ? Visibility.Visible : Visibility.Collapsed;
+            }
+            finally
+            {
+                --ChangeCounter;
+            }
+        }
 
         internal Options GetSelectedOptions( )
         {
             return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
         }
-
 
         internal void SetSelectedOptions( Options options )
         {
@@ -91,11 +120,38 @@ namespace StdPlugin
 
                 Options = options.Clone( );
                 DataContext = Options;
+
+                UpdateControls( );
             }
             finally
             {
                 --ChangeCounter;
             }
         }
+
+        void SetMSVCVersion( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxCompiler.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "MSVC" );
+
+                cbi.Content = $"MSVC {version}";
+            } );
+        }
+
+        void SetGCCVersion( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxCompiler.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "GCC" );
+
+                cbi.Content = $"GCC {version}";
+            } );
+        }
+
     }
 }
