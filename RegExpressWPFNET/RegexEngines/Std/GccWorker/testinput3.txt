@@ -1,0 +1,5 @@
+"m"
+"a((b)|(c))) error"
+"abACAD"
+"ECMAScript"
+"icase"

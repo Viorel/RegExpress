@@ -196,10 +196,6 @@ namespace JavaScriptPlugin
             return worker_exe;
         }
 
-
-        [GeneratedRegex( @"^(?<v>\d+([.]\d+([.]\d+)?)?)([.]\d+)*$", RegexOptions.ExplicitCapture )]
-        private static partial Regex SimplifyVersionRegex( );
-
         internal static void StartGetVersion( Action<string?> setVersion )
         {
             if( LazyVersion.IsValueCreated )
@@ -219,5 +215,9 @@ namespace JavaScriptPlugin
 
             t.Start( );
         }
+
+        [GeneratedRegex( @"^(?<v>\d+([.]\d+([.]\d+)?)?)([.]\d+)*$", RegexOptions.ExplicitCapture )]
+        private static partial Regex SimplifyVersionRegex( );
+
     }
 }

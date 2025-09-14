@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:StdPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="536.021" d:DesignWidth="316.194" 
+             d:DesignHeight="369.652" d:DesignWidth="603.038" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -17,12 +17,39 @@
 
     <Grid>
         <StackPanel VerticalAlignment="Top">
-            <StackPanel Orientation="Horizontal" Margin="0">
-                <StackPanel.LayoutTransform>
+
+            <Grid>
+                <Grid.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </StackPanel.LayoutTransform>
-                <Label Content="Grammar:" Target="{Binding ElementName=cbxGrammar}" Padding="0 2 4 2"/>
-                <ComboBox x:Name="cbxGrammar" SelectedValuePath="Tag" SelectedValue="{Binding Grammar, FallbackValue='ECMAScript'}" VerticalAlignment="Center" SelectionChanged="cbxGrammar_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
+                </Grid.LayoutTransform>
+                <Grid.Resources>
+                    <Style TargetType="Label">
+                        <Setter Property="Padding" Value="0 2 4 2"/>
+                    </Style>
+                    <Style TargetType="ComboBox">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="MinWidth" Value="50"/>
+                        <Setter Property="Margin" Value="3 0 0 2"/>
+                    </Style>
+                </Grid.Resources>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Content="Compiler:" Target="{Binding ElementName=cbxCompiler}" />
+                <ComboBox x:Name="cbxCompiler" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Compiler, FallbackValue='MSVC'}" SelectionChanged="cbxCompiler_SelectionChanged">
+                    <ComboBoxItem Tag ="MSVC" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                    <ComboBoxItem Tag ="GCC" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                </ComboBox>
+
+                <Label Grid.Column="0" Grid.Row="1" Content="Grammar:" Target="{Binding ElementName=cbxGrammar}" />
+                <ComboBox x:Name="cbxGrammar" Grid.Column="1" Grid.Row="1" SelectedValuePath="Tag" SelectedValue="{Binding Grammar, FallbackValue='ECMAScript'}" SelectionChanged="cbxGrammar_SelectionChanged">
                     <ComboBoxItem Tag ="ECMAScript" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
                     <ComboBoxItem Tag ="basic" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                     <ComboBoxItem Tag ="extended" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
@@ -30,7 +57,7 @@
                     <ComboBoxItem Tag ="grep" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                     <ComboBoxItem Tag ="egrep" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                 </ComboBox>
-            </StackPanel>
+            </Grid>
 
             <Label Margin="0 4 0 4" Padding="0">
                 <Italic>syntax_option_type</Italic>
@@ -41,7 +68,8 @@
                 <ui:CheckboxWithNote Prop="nosubs" Note="do not keep track of the contents of capture groups"/>
                 <ui:CheckboxWithNote Prop="optimize" Note="emphasize speed of matching rather than speed of regular expression compilation"/>
                 <ui:CheckboxWithNote Prop="collate" Note="make matches locale-sensitive"/>
-                <ui:CheckboxWithNote IsEnabled="False" IsChecked="True" Text="multiline" Note="(not supported; matching is multiline by default)"/>
+                <ui:CheckboxWithNote x:Name="chkMultilineMSVC" IsEnabled="False" IsChecked="True" Text="multiline" Note="(not supported; matching is multiline by default)"/>
+                <ui:CheckboxWithNote x:Name="chkMultiline" Prop="multiline" Text="multiline" Note="“^” matches the beginning of a line and “$” matches the end of a line"/>
             </StackPanel>
 
             <Label Margin="0 4 0 4" Padding="0">
@@ -59,7 +87,7 @@
                 <ui:CheckboxWithNote Prop="match_prev_avail" Note="'--first' is a valid iterator; ignore match_not_bol and match_not_bow if set"/>
             </StackPanel>
 
-            <StackPanel Orientation="Vertical" Margin="0 4 0 0">
+            <StackPanel x:Name="pnlMSVCConstants" Orientation="Vertical" Margin="0 4 0 0">
                 <StackPanel.LayoutTransform>
                     <TransformGroup>
                         <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>

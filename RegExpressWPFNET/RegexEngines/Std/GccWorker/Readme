@@ -1,0 +1,28 @@
+HOW IT'S MADE
+-------------
+
+
+- Install MSYS2 according to https://code.visualstudio.com/docs/cpp/config-mingw. 
+
+    In short:
+        - install MSYS2
+        - Modify PATH
+        - restart consoles
+
+- Check g++ and gpp in console:
+
+    > g++ --version    
+    > gcc --version
+
+- Build in console:
+
+    > build.cmd
+
+    It will create the "GccWorker.exe". To check it, execute, for example:
+
+    > GccWorker.exe < testinput2.txt
+
+- Commit and push "GccWorker.exe" to Git.
+
+
+Note. It is also possible to use Visual Studio Code.
