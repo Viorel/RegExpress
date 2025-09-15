@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -45,6 +46,8 @@ namespace StdPlugin
             MatcherMSVC.StartGetVersion( SetMSVCVersion );
             MatcherGCC.StartGetVersion( SetGCCVersion );
 
+            cbiSystemLocale.Content = $"System ({CultureInfo.CurrentCulture.Name})"; // TODO: watch for system changes
+
             UpdateControls( );
         }
 
@@ -64,6 +67,12 @@ namespace StdPlugin
         }
 
         private void cbxGrammar_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateControls( );
+            Notify( preferImmediateReaction: true );
+        }
+
+        private void cbxLocale_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             UpdateControls( );
             Notify( preferImmediateReaction: true );
@@ -152,6 +161,5 @@ namespace StdPlugin
                 cbi.Content = $"GCC {version}";
             } );
         }
-
     }
 }

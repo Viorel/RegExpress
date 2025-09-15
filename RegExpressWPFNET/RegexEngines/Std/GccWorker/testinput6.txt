@@ -2,4 +2,5 @@
 "a((b)|(c))d"
 "acd"
 "ECMAScript"
+""
 "icase"

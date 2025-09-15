@@ -31,6 +31,7 @@ namespace StdPlugin
     {
         public CompilerEnum Compiler { get; set; } = CompilerEnum.MSVC;
         public GrammarEnum Grammar { get; set; } = GrammarEnum.ECMAScript;
+        public string Locale { get; set; } = ""; // ("C" -- default C-language locale; "" -- use current system locale; GCC also accepts "POSIX") 
 
 
         public bool icase { get; set; }

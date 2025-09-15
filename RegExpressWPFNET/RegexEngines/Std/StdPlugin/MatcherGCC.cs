@@ -33,8 +33,10 @@ namespace StdPlugin
                 sw.WriteLine( JsonSerializer.Serialize( pattern ) );
                 sw.WriteLine( JsonSerializer.Serialize( text ) );
 
-                string syntax = Enum.GetName( options.Grammar )!;
-                sw.WriteLine( JsonSerializer.Serialize( syntax ) );
+                string grammar = Enum.GetName( options.Grammar )!;
+                sw.WriteLine( JsonSerializer.Serialize( grammar ) );
+
+                sw.WriteLine( JsonSerializer.Serialize( options.Locale ) );
 
                 string flags = "";
                 if( options.icase ) flags += "icase ";

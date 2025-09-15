@@ -70,6 +70,8 @@ std::wstring ToWString( const std::string& s )
 
 std::string WStringToUtf8( const wchar_t* s )
 {
+    if( *s == 0 ) return std::string{};
+
     const auto size_needed = WideCharToMultiByte( CP_UTF8, WC_ERR_INVALID_CHARS, s, -1, nullptr, 0, nullptr, nullptr );
     if( size_needed <= 0 )
     {
@@ -95,6 +97,8 @@ std::string WStringToUtf8( const wchar_t* s )
 
 std::string WStringToUtf8( const std::wstring& s )
 {
+    if( s.length( ) == 0 ) return std::string{};
+
     const auto size_needed = WideCharToMultiByte( CP_UTF8, WC_ERR_INVALID_CHARS, s.c_str( ), CheckedCast( s.length( ) ), nullptr, 0, nullptr, nullptr );
     if( size_needed <= 0 )
     {
@@ -125,7 +129,7 @@ std::string WStringToUtf8( const std::wstring& s )
 std::string WStringToUtf8( const std::wstring& s, std::vector<int>* indices )
 {
     const char* old_locale = setlocale( LC_ALL, NULL );
-    const char* new_locale = setlocale( LC_CTYPE, ".utf8" );
+    const char* new_locale = setlocale( LC_CTYPE, ".utf8" ); // TODO: which language?
 
     if( new_locale == nullptr ) throw std::runtime_error( "Failed to set locale." );
 

@@ -24,7 +24,7 @@ extern long Default_REGEX_MAX_STACK_COUNT;
 extern long Default_REGEX_MAX_COMPLEXITY_COUNT;
 
 
-static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, wregex::flag_type regexFlags, regex_constants::match_flag_type matchFlags )
+static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& localeName, wregex::flag_type regexFlags, regex_constants::match_flag_type matchFlags )
 {
     ULONG ss = 1024 * 10;
     SetThreadStackGuarantee( &ss );
@@ -38,7 +38,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
             {
                 wregex regex{};
 
-                std::locale loc( "" ); // use default system locale
+                std::locale loc( WStringToUtf8( localeName ) ); // "" -- use default system locale, "C" -- C language locale, "POSIX" -- does not seem supported
                 regex.imbue( loc );
 
                 regex.assign( pattern, regexFlags );
@@ -110,7 +110,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER( hPrevInstance );
     UNREFERENCED_PARAMETER( lpCmdLine );
 
-    auto herr = GetStdHandle( STD_ERROR_HANDLE ); 
+    auto herr = GetStdHandle( STD_ERROR_HANDLE );
     if( herr == INVALID_HANDLE_VALUE )
     {
         auto lerr = GetLastError( );
@@ -175,6 +175,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             else if( grammar_s == L"grep" ) regex_flags |= regex_constants::syntax_option_type::grep;
             else if( grammar_s == L"egrep" ) regex_flags |= regex_constants::syntax_option_type::egrep;
 
+            std::wstring locale_s = inbr.ReadString( );
+
             if( inbr.ReadByte( ) ) regex_flags |= regex_constants::syntax_option_type::icase;
             if( inbr.ReadByte( ) ) regex_flags |= regex_constants::syntax_option_type::nosubs;
             if( inbr.ReadByte( ) ) regex_flags |= regex_constants::syntax_option_type::optimize;
@@ -199,7 +201,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-            DoMatch( outbw, pattern, text, regex_flags, match_flags );
+            DoMatch( outbw, pattern, text, locale_s, regex_flags, match_flags );
 
             return 0;
         }
@@ -221,4 +223,3 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         return 14;
     }
 }
-

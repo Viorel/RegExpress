@@ -12,7 +12,6 @@ int main( )
 {
     try
     {
-        // input is UTF-8
         string commandS;
         std::getline( std::cin, commandS );
 
@@ -28,21 +27,25 @@ int main( )
             string patternS;
             string textS;
             string syntaxS;
+            string localeS;
             string flagsS;
 
             std::getline( std::cin, patternS );
             std::getline( std::cin, textS );
             std::getline( std::cin, syntaxS );
+            std::getline( std::cin, localeS );
             std::getline( std::cin, flagsS );
 
             string patternA;
             string textA;
             string syntaxA;
+            string localeA;
             string flagsA;
 
             if( !PartialJSON::ParseString( &patternA, patternS.c_str( ) ) ) throw std::runtime_error( "cannot read pattern: '" + patternS + '\'' );
             if( !PartialJSON::ParseString( &textA, textS.c_str( ) ) ) throw std::runtime_error( "cannot read text: '" + textS + '\'' );
             if( !PartialJSON::ParseString( &syntaxA, syntaxS.c_str( ) ) ) throw std::runtime_error( "cannot read syntax: '" + syntaxS + '\'' );
+            if( !PartialJSON::ParseString( &localeA, localeS.c_str( ) ) ) throw std::runtime_error( "cannot read locale: '" + localeS + '\'' );
             if( !PartialJSON::ParseString( &flagsA, flagsS.c_str( ) ) ) throw std::runtime_error( "cannot read flags: '" + flagsS + '\'' );
 
             wstring patternW = PartialJSON::UTF8_to_wchar( patternA.c_str( ) );
@@ -82,7 +85,7 @@ int main( )
 
             wregex regex;
 
-            std::locale loc( "" ); // use default system locale
+            std::locale loc( localeA ); // "" -- use default system locale, "C" -- C language locale, "POSIX" -- POSIX
             regex.imbue( loc );
 
             regex.assign( patternW, regexFlags );
