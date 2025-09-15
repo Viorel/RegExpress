@@ -382,7 +382,7 @@ namespace FortranPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
             };
@@ -593,7 +593,7 @@ namespace FortranPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
-                SplitSurrogatePairs = false,
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
             };
@@ -805,7 +805,7 @@ namespace FortranPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
-                SplitSurrogatePairs = false,
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
             };

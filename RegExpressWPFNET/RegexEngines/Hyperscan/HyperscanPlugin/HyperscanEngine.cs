@@ -355,7 +355,7 @@ namespace HyperscanPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = true,
             };

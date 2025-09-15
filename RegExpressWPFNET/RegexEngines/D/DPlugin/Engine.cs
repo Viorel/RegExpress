@@ -356,7 +356,7 @@ namespace DPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
             };

@@ -380,7 +380,7 @@ namespace RustPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
             };
@@ -590,7 +590,7 @@ namespace RustPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
             };
@@ -801,7 +801,7 @@ namespace RustPlugin
                 EmptyConstructX = true,
                 EmptySet = false,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
             };
@@ -1012,7 +1012,7 @@ namespace RustPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
             };

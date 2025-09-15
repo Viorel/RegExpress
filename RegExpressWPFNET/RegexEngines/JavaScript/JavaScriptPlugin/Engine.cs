@@ -398,7 +398,7 @@ namespace JavaScriptPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = !uFlag && !vFlag,
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
             };
@@ -605,7 +605,7 @@ namespace JavaScriptPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = !uFlag,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
             };
@@ -812,7 +812,7 @@ namespace JavaScriptPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = !uFlag,
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
             };
@@ -1019,7 +1019,7 @@ namespace JavaScriptPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = !uFlag,
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
             };

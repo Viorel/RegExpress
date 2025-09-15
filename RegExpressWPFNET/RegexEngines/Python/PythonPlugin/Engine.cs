@@ -369,7 +369,7 @@ namespace PythonPlugin
                 EmptyConstructX = is_regex,
                 EmptySet = false,
 
-                SplitSurrogatePairs = true,
+                SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = is_regex,
                 FuzzyMatchingParams = false,
             };

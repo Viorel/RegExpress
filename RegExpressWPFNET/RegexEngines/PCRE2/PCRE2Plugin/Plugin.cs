@@ -12,7 +12,7 @@ namespace PCRE2Plugin
 
         public override IReadOnlyList<IRegexEngine> GetEngines( )
         {
-            return new[] { new HyperscanEngine( ) };
+            return new[] { new Engine( ) };
         }
 
         #endregion

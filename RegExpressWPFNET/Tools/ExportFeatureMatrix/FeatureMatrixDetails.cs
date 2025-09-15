@@ -325,9 +325,10 @@ class FeatureMatrixDetails
             new ( @"(?)", @"Empty construct", fm => fm.EmptyConstruct, @"x(?)y", "xy", "x" ),
             new ( @"(? )", @"Empty construct", fm => fm.EmptyConstructX, @"(?x)a(? )b", "ab", null ),
             new ( @"[]", @"Empty set", fm => fm.EmptySet, @"x[]?", "x", null ),
-
-            // (all seems to split the surrogate pairs)
-            //new ( @"Split surrogates", @"“.” splits Surrogate Pair characters into components", fm => fm.SplitSurrogatePairs, @"a..b", "a❤️b", null ), 
+            new ( @"Split surrogates", @"“.” matches the components of surrogate pairs", fm => fm.SplitSurrogatePairs, 
+                @"..", "💕", null,
+                @"....", "💕", null // (for some strange Fortran engines)
+                ),
 
             new ( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", fm => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed,
                     @"(test){i}", "teXst", null,

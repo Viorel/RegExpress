@@ -14,14 +14,14 @@ using RegExpressLibrary.SyntaxColouring;
 
 namespace PCRE2Plugin
 {
-    class HyperscanEngine : IRegexEngine
+    class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
         readonly LazyData<(bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
 
-        public HyperscanEngine( )
+        public Engine( )
         {
             mOptionsControl = new Lazy<UCOptions>( ( ) =>
             {
@@ -124,7 +124,7 @@ namespace PCRE2Plugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            HyperscanEngine engine = new( );
+            Engine engine = new( );
             engine.mOptionsControl.Value.SetSelectedOptions(
                 new Options
                 {
