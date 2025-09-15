@@ -6,15 +6,16 @@ HOW IT'S MADE
 
     In short:
         - install MSYS2
+        - install toolchain
         - Modify PATH
         - restart consoles
 
-- Check g++ and gpp in console:
+- Check g++ and gcc in console:
 
     > g++ --version    
     > gcc --version
 
-- Build in console:
+- Build:
 
     > build.cmd
 

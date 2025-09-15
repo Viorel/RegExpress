@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 //#include <format> // does not seem to be implemented
+#include <locale>
 #include <regex>
 
 #include ".\..\..\..\RegExpressCppLibrary\PartialJSON.h"
@@ -79,7 +80,12 @@ int main( )
             if( flagsA.find( " match_continuous " ) != std::string::npos ) matchFlags |= regex_constants::match_continuous;
             if( flagsA.find( " match_prev_avail " ) != std::string::npos ) matchFlags |= regex_constants::match_prev_avail;
 
-            wregex regex( patternW, regexFlags );
+            wregex regex;
+
+            std::locale loc( "" ); // use default system locale
+            regex.imbue( loc );
+
+            regex.assign( patternW, regexFlags );
 
             wcregex_iterator results_begin( textW.c_str( ), textW.c_str( ) + textW.length( ), regex, matchFlags );
             wcregex_iterator results_end{};

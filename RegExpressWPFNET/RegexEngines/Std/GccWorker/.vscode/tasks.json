@@ -7,6 +7,7 @@
             "args": [
                 "--std", "c++23",
                 "-Os",
+                "-static",
                 "-fdiagnostics-color=always",
                 "${file}",
                 ".\\..\\..\\..\\RegExpressCppLibrary\\PartialJSON.cpp",

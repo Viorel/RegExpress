@@ -36,7 +36,12 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
     {
         [&]( )
             {
-                wregex regex( pattern, regexFlags );
+                wregex regex{};
+
+                std::locale loc( "" ); // use default system locale
+                regex.imbue( loc );
+
+                regex.assign( pattern, regexFlags );
 
                 wcregex_iterator results_begin( text.c_str( ), text.c_str( ) + text.length( ), regex, matchFlags );
                 wcregex_iterator results_end{};
@@ -105,7 +110,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER( hPrevInstance );
     UNREFERENCED_PARAMETER( lpCmdLine );
 
-    auto herr = GetStdHandle( STD_ERROR_HANDLE );
+    auto herr = GetStdHandle( STD_ERROR_HANDLE ); 
     if( herr == INVALID_HANDLE_VALUE )
     {
         auto lerr = GetLastError( );
@@ -193,7 +198,6 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             Variable_REGEX_MAX_STACK_COUNT = REGEX_MAX_STACK_COUNT.value_or( Default_REGEX_MAX_STACK_COUNT );
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
-
 
             DoMatch( outbw, pattern, text, regex_flags, match_flags );
 
