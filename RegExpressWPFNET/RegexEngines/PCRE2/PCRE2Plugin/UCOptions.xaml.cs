@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -40,6 +41,8 @@ namespace PCRE2Plugin
             if( IsFullyLoaded ) return;
 
             IsFullyLoaded = true;
+
+            cbiSystemLocale.Content = $"System ({CultureInfo.CurrentCulture.Name})"; // TODO: watch for system changes
         }
 
 
@@ -53,6 +56,11 @@ namespace PCRE2Plugin
 
 
         private void cbxAlgorithm_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
+        private void cbxLocale_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             Notify( preferImmediateReaction: true );
         }
@@ -87,6 +95,5 @@ namespace PCRE2Plugin
                 --ChangeCounter;
             }
         }
-
     }
 }

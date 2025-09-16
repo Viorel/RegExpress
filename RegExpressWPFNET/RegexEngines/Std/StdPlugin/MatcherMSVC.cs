@@ -62,7 +62,7 @@ namespace StdPlugin
                 bw.Write( text );
 
                 bw.Write( Enum.GetName( options.Grammar )! );
-                bw.Write( options.Locale );
+                bw.Write( options.Locale ?? "" );
 
                 bw.Write( Convert.ToByte( options.icase ) );
                 bw.Write( Convert.ToByte( options.nosubs ) );

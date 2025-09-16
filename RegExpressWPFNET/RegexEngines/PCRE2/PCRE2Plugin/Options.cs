@@ -18,6 +18,7 @@ namespace PCRE2Plugin
     internal class Options
     {
         public AlgorithmEnum Algorithm { get; set; } = AlgorithmEnum.Standard;
+        public string Locale { get; set; } = "C"; // ("C" -- default C-language locale; "" -- use current system locale) 
 
 
         // Compile options (from https://pcre2project.github.io/pcre2/doc/pcre2_compile/)

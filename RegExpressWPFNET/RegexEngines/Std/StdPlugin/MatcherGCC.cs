@@ -36,7 +36,7 @@ namespace StdPlugin
                 string grammar = Enum.GetName( options.Grammar )!;
                 sw.WriteLine( JsonSerializer.Serialize( grammar ) );
 
-                sw.WriteLine( JsonSerializer.Serialize( options.Locale ) );
+                sw.WriteLine( JsonSerializer.Serialize( options.Locale ?? "" ) );
 
                 string flags = "";
                 if( options.icase ) flags += "icase ";

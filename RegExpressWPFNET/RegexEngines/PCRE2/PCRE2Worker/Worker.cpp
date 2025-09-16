@@ -140,7 +140,7 @@ static std::wstring GetErrorText( int errorNumber )
 }
 
 
-static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithmName, int compileOptions, int extraCompileOptions, int matcherOptions, int jitOptions,
+static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithmName, const wstring& locale, int compileOptions, int extraCompileOptions, int matcherOptions, int jitOptions,
     std::optional<uint32_t> depth_limit, std::optional<uint32_t> heap_limit, std::optional<uint32_t> match_limit,
     std::optional<uint64_t> max_pattern_compiled_length, std::optional<uint64_t> offset_limit, std::optional<uint32_t> parens_nest_limit
 )
@@ -172,6 +172,16 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                 if( compile_context == nullptr )
                 {
                     throw std::runtime_error( "Failed to create compile context." );
+                }
+
+                {
+                    // https://www.pcre.org/current/doc/html/pcre2api.html#localesupport
+
+                    auto old_locale = _wsetlocale( LC_ALL, locale.c_str( ) );
+                    if( old_locale == nullptr ) throw std::runtime_error( std::format( "Cannot set locale '{}'.", WStringToUtf8( locale ) ) );
+                    auto tables = pcre2_maketables( NULL ); // TODO: free the table later, or leave it as it is
+
+                    pcre2_set_character_tables( compile_context, tables );
                 }
 
                 pcre2_set_compile_extra_options( compile_context, extraCompileOptions );
@@ -533,6 +543,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             std::wstring text = inbr.ReadString( );
 
             std::wstring algorithm = inbr.ReadString( );
+            std::wstring locale = inbr.ReadString( );
 
             // Compile options
 
@@ -645,7 +656,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-            DoMatch( outbw, pattern, text, algorithm, compile_options, extra_compile_options, matcher_options, jit_options,
+            DoMatch( outbw, pattern, text, algorithm, locale, compile_options, extra_compile_options, matcher_options, jit_options,
                 depth_limit, heap_limit, match_limit, max_pattern_compiled_length, offset_limit, parens_nest_limit );
 
             return 0;

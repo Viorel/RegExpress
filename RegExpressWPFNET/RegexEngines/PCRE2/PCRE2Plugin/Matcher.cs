@@ -120,6 +120,7 @@ namespace PCRE2Plugin
                 bw.Write( text );
 
                 bw.Write( Enum.GetName( options.Algorithm )! );
+                bw.Write( options.Locale );
 
                 // Compile options
 
