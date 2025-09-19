@@ -9,5 +9,4 @@ authors = ["Viorel <Viorel@noreply.github.com>"]
 [dependencies]
 rustc_version_runtime = "0.3.0"
 json = "0.12.4"
-regex = "1.11.1"
-
+regex = "1.11.2"

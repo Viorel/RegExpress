@@ -18,7 +18,7 @@ namespace RustPlugin
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly LazyData<(CrateEnum crate, bool isOctal, bool isUnicodeSets), FeatureMatrix> LazyData = new( BuildFeatureMatrix );
+        static readonly LazyData<(CrateEnum crate, StructEnum @struct, bool isOctal, bool isUnicodeSets, bool isOniguruma), FeatureMatrix> LazyData = new( BuildFeatureMatrix );
 
         public Engine( )
         {
@@ -111,7 +111,7 @@ namespace RustPlugin
             {
                 XLevel = ( options.crate == CrateEnum.regex || options.crate == CrateEnum.fancy_regex || options.crate == CrateEnum.regex_lite ) && options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = options.crate == CrateEnum.regress,
-                FeatureMatrix = LazyData.GetValue( (options.crate, options.octal, options.unicode_sets) )
+                FeatureMatrix = LazyData.GetValue( (options.crate, options.@struct, options.octal, options.unicode_sets, options.oniguruma_mode) )
             };
         }
 
@@ -134,11 +134,11 @@ namespace RustPlugin
 
             return
                 [
-                    new FeatureMatrixVariant("regex (“u” flag)", LazyData.GetValue( (CrateEnum.regex, isOctal:true, isUnicodeSets:false) ), engine),
-                    new FeatureMatrixVariant("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, isOctal:true, isUnicodeSets:false) ), engine_lite),
-                    new FeatureMatrixVariant("fancy_regex (“u” flag)", LazyData.GetValue( (CrateEnum.fancy_regex, isOctal:true, isUnicodeSets:false) ), engine_fancy),
-                    new FeatureMatrixVariant("regress (“u” flag)", LazyData.GetValue( (CrateEnum.regress, isOctal:true, isUnicodeSets:false) ), engine_regress),
-                    new FeatureMatrixVariant("regress (“uv” flags)", LazyData.GetValue( (CrateEnum.regress, isOctal:true, isUnicodeSets:true) ), engine_regress_v),
+                    new FeatureMatrixVariant("regex (“u” flag)", LazyData.GetValue( (CrateEnum.regex, StructEnum.RegexBuilder, isOctal:true, isUnicodeSets:false, isOniguruma:false) ), engine),
+                    new FeatureMatrixVariant("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, StructEnum.RegexBuilder, isOctal:true, isUnicodeSets:false, isOniguruma:false) ), engine_lite),
+                    new FeatureMatrixVariant("fancy_regex (“u” flag)", LazyData.GetValue( (CrateEnum.fancy_regex, StructEnum.RegexBuilder, isOctal:true, isUnicodeSets:false, isOniguruma:false) ), engine_fancy),
+                    new FeatureMatrixVariant("regress (“u” flag)", LazyData.GetValue( (CrateEnum.regress, StructEnum.RegexBuilder, isOctal:true, isUnicodeSets:false, isOniguruma:false) ), engine_regress),
+                    new FeatureMatrixVariant("regress (“uv” flags)", LazyData.GetValue( (CrateEnum.regress, StructEnum.RegexBuilder, isOctal:true, isUnicodeSets:true, isOniguruma:false) ), engine_regress_v),
                 ];
         }
 
@@ -164,20 +164,22 @@ namespace RustPlugin
             }
         }
 
-        private static FeatureMatrix BuildFeatureMatrix( (CrateEnum crate, bool isOctal, bool isUnicodeSets) data )
+        private static FeatureMatrix BuildFeatureMatrix( (CrateEnum crate, StructEnum @struct, bool isOctal, bool isUnicodeSets, bool isOniguruma) data )
         {
             return data.crate switch
             {
-                CrateEnum.regex => BuildFeatureMatrix_RegexCrate( data.isOctal ),
-                CrateEnum.regex_lite => BuildFeatureMatrix_RegexLiteCrate( ),
-                CrateEnum.fancy_regex => BuildFeatureMatrix_FancyRegexCrate( ),
-                CrateEnum.regress => BuildFeatureMatrix_RegressCrate( data.isUnicodeSets ),
+                CrateEnum.regex => BuildFeatureMatrix_RegexCrate( data.@struct, data.isOctal ),
+                CrateEnum.regex_lite => BuildFeatureMatrix_RegexLiteCrate( data.@struct ),
+                CrateEnum.fancy_regex => BuildFeatureMatrix_FancyRegexCrate( data.@struct, data.isOniguruma ),
+                CrateEnum.regress => BuildFeatureMatrix_RegressCrate( data.@struct, data.isUnicodeSets ),
                 _ => throw new InvalidOperationException( ),
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_RegexCrate( bool isOctal )
+        private static FeatureMatrix BuildFeatureMatrix_RegexCrate( StructEnum @struct, bool isOctal )
         {
+            isOctal &= @struct == StructEnum.RegexBuilder;
+
             return new FeatureMatrix
             {
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,
@@ -386,7 +388,7 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_RegexLiteCrate( )
+        private static FeatureMatrix BuildFeatureMatrix_RegexLiteCrate( StructEnum @struct )
         {
             return new FeatureMatrix
             {
@@ -596,8 +598,10 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_FancyRegexCrate( )
+        private static FeatureMatrix BuildFeatureMatrix_FancyRegexCrate( StructEnum @struct, bool isOniguruma )
         {
+            isOniguruma &= @struct == StructEnum.RegexBuilder;
+
             return new FeatureMatrix
             {
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,
@@ -731,7 +735,7 @@ namespace RustPlugin
                 Anchor_bBBrace = false,
                 Anchor_K = true,
                 Anchor_mM = false,
-                Anchor_LtGt = true,
+                Anchor_LtGt = !isOniguruma,
                 Anchor_GraveApos = false,
                 Anchor_yY = false,
 
@@ -807,8 +811,10 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_RegressCrate( bool isUnicodeSets )
+        private static FeatureMatrix BuildFeatureMatrix_RegressCrate( StructEnum @struct, bool isUnicodeSets )
         {
+            isUnicodeSets &= @struct == StructEnum.RegexBuilder;
+
             return new FeatureMatrix
             {
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,

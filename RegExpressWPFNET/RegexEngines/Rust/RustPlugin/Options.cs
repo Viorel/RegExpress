@@ -38,6 +38,7 @@ namespace RustPlugin
         public bool crlf { get; set; } // ('regex_lite' specific)
         public bool no_opt { get; set; } // ('regress' specific)
         public bool unicode_sets { get; set; } // ('regress' specific)
+        public bool oniguruma_mode { get; set; } // ('fancy_regex' specific)
 
         // Regex and Regex_lite crates
 

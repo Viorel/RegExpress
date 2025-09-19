@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="407.075" d:DesignWidth="489.6" 
+             d:DesignHeight="437.732" d:DesignWidth="489.6" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -23,10 +23,10 @@
                 </StackPanel.LayoutTransform>
                 <Label Content="Crate:" Target="{Binding ElementName=cbxCrate}" Padding="0 2 4 2" MinWidth="40"/>
                 <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
-                    <ComboBoxItem Tag ="regex" Content="regex 1.11.1" IsSelected="True" />
-                    <ComboBoxItem Tag ="regex_lite" Content="regex_lite 0.1.6" />
-                    <ComboBoxItem Tag ="fancy_regex" Content="fancy_regex 0.16.1" />
-                    <ComboBoxItem Tag ="regress" Content="regress 0.10.3" />
+                    <ComboBoxItem Tag ="regex" Content="regex 1.11.2" IsSelected="True" />
+                    <ComboBoxItem Tag ="regex_lite" Content="regex_lite 0.1.7" />
+                    <ComboBoxItem Tag ="fancy_regex" Content="fancy_regex 0.16.2" />
+                    <ComboBoxItem Tag ="regress" Content="regress 0.10.4" />
                 </ComboBox>
             </StackPanel>
 
@@ -51,6 +51,7 @@
                 <ui:CheckboxWithNote x:Name="chbx_ignore_whitespace" Prop="ignore_whitespace" Note="(x) ignore whitespaces, allow “#” to start line comments"/>
                 <ui:CheckboxWithNote x:Name="chbx_unicode" Prop="unicode" Note="(u) match Unicode characters"/>
                 <ui:CheckboxWithNote x:Name="chbx_octal" Prop="octal" Note="support octal syntax"/>
+                <ui:CheckboxWithNote x:Name="chbx_oniguruma_mode" Prop="oniguruma_mode" Note="do not treat “\&lt;” and “\&gt;” as left and right word-bounds"/>
 
                 <StackPanel Orientation="Vertical">
                     <StackPanel.Resources>

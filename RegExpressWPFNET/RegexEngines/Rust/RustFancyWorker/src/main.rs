@@ -77,6 +77,7 @@ fn main()
         reb.ignore_whitespace(options.find('x').is_some());
         reb.dot_matches_new_line(options.find('s').is_some());
         reb.unicode_mode(options.find('u').is_some());
+        reb.oniguruma_mode(options.find('O').is_some());
 
         let s = parsed["bl"].as_str().unwrap_or("");
 

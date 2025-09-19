@@ -8,5 +8,4 @@ authors = ["Viorel <Viorel@noreply.github.com>"]
 
 [dependencies]
 json = "0.12.4"
-regress = "0.10.3"
-
+regress = "0.10.4"

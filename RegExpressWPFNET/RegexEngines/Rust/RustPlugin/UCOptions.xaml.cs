@@ -133,6 +133,8 @@ namespace RustPlugin
 
                     pnlFancyRegexCrateLimits.Visibility = crate == CrateEnum.fancy_regex ? Visibility.Visible : Visibility.Collapsed;
                 }
+
+                chbx_oniguruma_mode.Visibility = crate == CrateEnum.fancy_regex ? Visibility.Visible : Visibility.Collapsed;
             }
             finally
             {
