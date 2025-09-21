@@ -1,0 +1,27 @@
+﻿<UserControl x:Class="AdaPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:AdaPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="80.8" d:DesignWidth="557.242" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+
+        <StackPanel Orientation="Vertical" VerticalAlignment="Top" Margin="0">
+            <ui:CheckboxWithNote Prop="Case_Insensitive" Note="matching in a case insensitive manner" />
+            <ui:CheckboxWithNote Prop="Single_Line" Note="^ and $ will ignore \n (unless Multiple_Lines is also specified), and '.' will match \n" />
+            <ui:CheckboxWithNote Prop="Multiple_Lines" Note="^ and $ will also match on internal newlines (ASCII.LF)" />
+        </StackPanel>
+
+    </Grid>
+</UserControl>

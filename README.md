@@ -31,6 +31,7 @@ It includes the following Regular Expression engines:
 * **Fortran [Forgex](https://github.com/ShinobuAmasaki/forgex)** v4.6 module (Intel® Fortran Compiler 2025.1.0).
 * **[TRE](https://github.com/laurikari/tre)** 0.9.0 (in C).
 * **[tiny-regex-c](https://github.com/rurban/tiny-regex-c)** 2022-06-21 (in C).
+* **Ada GNAT.Regpat** 15.2.0 (in Ada).
 
 
 <br/>

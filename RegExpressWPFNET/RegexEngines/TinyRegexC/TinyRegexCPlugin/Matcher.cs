@@ -30,7 +30,7 @@ namespace TinyRegexCPlugin
             }
             catch( EncoderFallbackException exc )
             {
-                throw new Exception( string.Format( "Tiny-regex-c only supports ASCII character encoding.\r\nThe pattern contains an invalid character at position {0}.", exc.Index ) );
+                throw new Exception( string.Format( "Tiny-regex-c only supports the ASCII character encoding.\r\nThe pattern contains an invalid character at position {0}.", exc.Index ) );
             }
 
             try
@@ -39,7 +39,7 @@ namespace TinyRegexCPlugin
             }
             catch( EncoderFallbackException exc )
             {
-                throw new Exception( string.Format( "Tiny-regex-c only supports ASCII character encoding.\r\nThe text contains an invalid character at position {0}.", exc.Index ) );
+                throw new Exception( string.Format( "Tiny-regex-c only supports the ASCII character encoding.\r\nThe text contains an invalid character at position {0}.", exc.Index ) );
             }
 
             string flags = "";

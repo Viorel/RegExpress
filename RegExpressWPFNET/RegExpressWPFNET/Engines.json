@@ -60,6 +60,9 @@
     },
     {
       "path": "Engines\\TinyRegexC\\TinyRegexCPlugin.dll"
+    },
+    {
+      "path": "Engines\\Ada\\AdaPlugin.dll"
     }
   ]
 }
