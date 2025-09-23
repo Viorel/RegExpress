@@ -4,6 +4,9 @@
     <Platform Name="x64" />
   </Configurations>
   <Folder Name="/RegexEngines/" />
+  <Folder Name="/RegexEngines/Ada/">
+    <Project Path="RegexEngines/Ada/AdaPlugin/AdaPlugin.csproj" />
+  </Folder>
   <Folder Name="/RegexEngines/Boost/">
     <Project Path="RegexEngines/Boost/BoostPlugin/BoostPlugin.csproj">
       <BuildDependency Project="RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" />
@@ -117,6 +120,7 @@
     <BuildDependency Project="SolutionEvents/SolutionEvents.vcxproj" />
   </Project>
   <Project Path="SolutionEvents/SolutionEvents.vcxproj" Id="886c3f35-3ef7-4cc7-9274-244d45a1ba5a">
+    <BuildDependency Project="RegexEngines/Ada/AdaPlugin/AdaPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Boost/BoostPlugin/BoostPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/D/DPlugin/DPlugin.csproj" />

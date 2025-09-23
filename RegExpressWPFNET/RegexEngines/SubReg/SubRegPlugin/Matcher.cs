@@ -31,7 +31,7 @@ namespace SubRegPlugin
             }
             catch( EncoderFallbackException exc )
             {
-                throw new Exception( string.Format( "SubReg only supports ASCII character encoding.\r\nThe pattern contains an invalid character at position {0}.", exc.Index ) );
+                throw new Exception( string.Format( "SubReg only supports the ASCII character encoding.\r\nThe pattern contains an invalid character at position {0}.", exc.Index ) );
             }
 
             try
@@ -40,7 +40,7 @@ namespace SubRegPlugin
             }
             catch( EncoderFallbackException exc )
             {
-                throw new Exception( string.Format( "SubReg only supports ASCII character encoding.\r\nThe text contains an invalid character at position {0}.", exc.Index ) );
+                throw new Exception( string.Format( "SubReg only supports the ASCII character encoding.\r\nThe text contains an invalid character at position {0}.", exc.Index ) );
             }
 
             if( string.IsNullOrWhiteSpace( options.max_captures ) || !Int32.TryParse( options.max_captures, out int max_captures ) || max_captures < 0 )

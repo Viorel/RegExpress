@@ -187,3 +187,9 @@ set BasePath=%SolutionDir%\RegexEngines\TinyRegexC
 xcopy /D /R /Y "%BasePath%\TinyRegexCPlugin\bin\%Configuration%\%TargetDir%\TinyRegexCPlugin.dll" "%EnginesTargetPath%\TinyRegexC\*"
 xcopy /D /R /Y "%BasePath%\TinyRegexCWorker\bin\%Configuration%\%Platform%\TinyRegexCWorker.exe" "%EnginesTargetPath%\TinyRegexC\*.bin"
 
+
+rem -- Ada --
+
+set BasePath=%SolutionDir%\RegexEngines\Ada
+xcopy /D /R /Y "%BasePath%\AdaPlugin\bin\%Configuration%\%TargetDir%\AdaPlugin.dll" "%EnginesTargetPath%\Ada\*"
+xcopy /D /R /Y "%BasePath%\AdaWorker\adaworker.exe" "%EnginesTargetPath%\Ada\*.bin"

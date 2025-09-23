@@ -1,0 +1,26 @@
+
+- Install MSYS2 according to https://code.visualstudio.com/docs/cpp/config-mingw. 
+
+    In short:
+        - install MSYS2
+        - install toolchain (NOTE. We are using UCRT, not MINGW environment)
+        - Modify PATH
+        - restart consoles
+
+    This is also required for GCC C++.
+
+- Install Ada to MSYS2
+
+    > pacman -S mingw-w64-ucrt-x86_64-gnatcoll-core
+
+- Install gprbuild
+
+    > pacman -S mingw-w64-ucrt-x86_64-gprbuild
+
+- Build
+
+    > build.cmd
+
+    It will create "adaworker.exe"
+
+- Commit and push "adaworker.exe" to Git.
