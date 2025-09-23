@@ -382,9 +382,11 @@ namespace FortranPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
         }
 
@@ -593,9 +595,11 @@ namespace FortranPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
+                AsciiOnly = true, // (defective match: '..' matches the character  and an empty space between characters)
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
             };
         }
 
@@ -805,9 +809,11 @@ namespace FortranPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
+                AsciiOnly = true, // (defective match: '.' matches the character and an empty space between characters)
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
         }
     }

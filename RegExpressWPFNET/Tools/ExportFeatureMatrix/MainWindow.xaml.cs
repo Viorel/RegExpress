@@ -291,7 +291,12 @@ namespace ExportFeatureMatrix
                             {
                                 if( Debugger.IsAttached ) Debugger.Break( );
 
-                                MessageBox.Show( this, exc.Message, CAPTION, MessageBoxButton.OK, MessageBoxImage.Error );
+                                string message = exc.Message;
+
+                                Dispatcher.BeginInvoke( ( ) =>
+                                {
+                                    MessageBox.Show( this, exc.Message, CAPTION, MessageBoxButton.OK, MessageBoxImage.Error );
+                                } );
                             }
                         }
 
@@ -345,8 +350,8 @@ namespace ExportFeatureMatrix
             }
 
             // to make sure that DLLs of engines are unloaded and unlocked
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
+            GC.Collect( );
+            GC.WaitForPendingFinalizers( );
         }
 
         void ShowProgressOnFeatures( string info, int index, int total )

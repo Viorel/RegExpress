@@ -382,9 +382,11 @@ namespace RustPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
         }
 
@@ -592,9 +594,11 @@ namespace RustPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
         }
 
@@ -805,9 +809,11 @@ namespace RustPlugin
                 EmptyConstructX = true,
                 EmptySet = false,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
         }
 
@@ -1018,9 +1024,11 @@ namespace RustPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             };
         }
     }

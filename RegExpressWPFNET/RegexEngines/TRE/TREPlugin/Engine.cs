@@ -361,9 +361,11 @@ namespace TREPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
         }
     }

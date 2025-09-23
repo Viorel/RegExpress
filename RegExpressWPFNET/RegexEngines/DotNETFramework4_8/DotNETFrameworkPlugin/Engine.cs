@@ -343,9 +343,11 @@ namespace DotNETFrameworkPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             };
         }
     }

@@ -37,4 +37,17 @@ namespace RegExpressLibrary
 
         #endregion ICancellable
     }
+
+    public sealed class SimpleCancellable : ICancellable
+    {
+        bool mCancel = false;
+
+        public void SetCancel( ) => mCancel = true;
+
+        #region ICancellable
+
+        public bool IsCancellationRequested => mCancel;
+
+        #endregion ICancellable
+    }
 }

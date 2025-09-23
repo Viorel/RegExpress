@@ -166,25 +166,24 @@ tbody > tr > td:nth-child(2)
         // body
         xw.WriteStartElement( "tbody" );
         {
-            foreach( var d in FeatureMatrixDetails.AllFeatureMatrixDetails )
+            foreach( FeatureMatrixGroup group in FeatureMatrixDetails.AllFeatureMatrixDetails )
             {
-                if( d.Func == null )
-                {
-                    xw.WriteEndElement( ); // </tbody>
-                    xw.WriteStartElement( "tbody" );
+                xw.WriteEndElement( ); // </tbody>
+                xw.WriteStartElement( "tbody" );
 
-                    xw.WriteStartElement( "tr" );
-                    {
-                        xw.WriteStartElement( "th" );
-                        xw.WriteAttributeString( "colspan", "100%" );
-                        xw.WriteValue( d.ShortDesc );
-                        xw.WriteEndElement( ); // </th>
-                    }
-                    xw.WriteEndElement( ); // </tr>
-                }
-                else
+                xw.WriteStartElement( "tr" );
                 {
-                    WriteRow( xw, d.ShortDesc, d.Desc, engines, all_matrices, d.Func );
+                    xw.WriteStartElement( "th" );
+                    xw.WriteAttributeString( "colspan", "100%" );
+                    xw.WriteValue( group.Name );
+                    xw.WriteEndElement( ); // </th>
+                }
+                xw.WriteEndElement( ); // </tr>
+
+                foreach( FeatureMatrixDetails details in group.Details )
+                {
+                    // TODO: adjust
+                    WriteRow( xw, details.ShortDesc, details.Desc, engines, all_matrices, details.Func );
                 }
             }
         }
@@ -198,7 +197,6 @@ tbody > tr > td:nth-child(2)
         xw.WriteEndElement( ); // </body>
         xw.WriteEndElement( ); // </html>
     }
-
 
     static void WriteRow( XmlWriter xw, string shortDesc, string? desc,
         IEnumerable<IRegexEngine> engines, IReadOnlyList<FeatureMatrixVariant>[] allMatrices,

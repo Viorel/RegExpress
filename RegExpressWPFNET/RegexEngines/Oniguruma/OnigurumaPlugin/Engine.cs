@@ -468,9 +468,11 @@ namespace OnigurumaPlugin
                 EmptyConstructX = false,
                 EmptySet = false,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA || syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG || syntax == SyntaxEnum.ONIG_SYNTAX_RUBY,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
 
             // TODO: "\M-x"

@@ -373,9 +373,11 @@ namespace JavaPlugin
                 EmptyConstructX = is_regex,
                 EmptySet = false,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
         }
     }

@@ -349,9 +349,11 @@ namespace TinyRegexCPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
+                AsciiOnly = true,
                 SplitSurrogatePairs = false, // (not applicable)
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
         }
     }

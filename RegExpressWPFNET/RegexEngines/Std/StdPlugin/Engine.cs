@@ -386,9 +386,12 @@ namespace StdPlugin
                 EmptyConstructX = false,
                 EmptySet = grammar == GrammarEnum.ECMAScript,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
+
             };
         }
 
@@ -623,9 +626,11 @@ namespace StdPlugin
                 EmptyConstructX = false,
                 EmptySet = grammar == GrammarEnum.ECMAScript,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             };
         }
     }

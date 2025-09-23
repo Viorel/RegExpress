@@ -341,9 +341,11 @@ namespace AdaPlugin
                 EmptyConstructX = false, // TODO: "a(? )b": with "xabc" no error, with "ab" gives error
                 EmptySet = false,
 
+                AsciiOnly = true,
                 SplitSurrogatePairs = false, // (not applicable)
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             };
         }
     }

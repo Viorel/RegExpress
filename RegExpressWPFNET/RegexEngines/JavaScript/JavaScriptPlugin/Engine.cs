@@ -398,9 +398,11 @@ namespace JavaScriptPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag && !vFlag,
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             };
         }
 
@@ -605,9 +607,11 @@ namespace JavaScriptPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             };
         }
 
@@ -812,9 +816,11 @@ namespace JavaScriptPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag,
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             };
         }
 
@@ -1019,9 +1025,11 @@ namespace JavaScriptPlugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag,
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
         }
     }

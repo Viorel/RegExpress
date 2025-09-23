@@ -45,6 +45,13 @@ namespace RegExpressLibrary.SyntaxColouring
             Pattern,        // re-apply the pattern
         }
 
+        public enum CatastrophicBacktrackingEnum
+        {
+            None,       // infinite matching or timeout on catastrophic patterns
+            Accept,     // no catastrophic patterns; the patterns are solved in reasonable amount of time
+            Reject      // detects possible catastrophic patterns and rejects them, giving an error
+        }
+
         public PunctuationEnum Parentheses { get; init; }                 // (...) or \(...\)
 
         public bool Brackets { get; init; }                               // [...]
@@ -253,12 +260,16 @@ namespace RegExpressLibrary.SyntaxColouring
 
         //
 
+        public bool AsciiOnly { get; init; }                              // supports ASCII characters only (no Unicode)
+
         public bool SplitSurrogatePairs { get; init; }                    // when the text contains a surrogate pair (e.g. “😎” U+1F60E), then “.” matches two components separately: D83D and DE0E‎
                                                                           // if it is 'false', then '.' returns a single result (32-bit surrogate pair)
 
         public bool AllowDuplicateGroupName { get; init; }                // allow duplicate names like "(?<n>abc)|(?<n>def)"
 
         public bool FuzzyMatchingParams { get; init; }                    // parameters for fuzzy matching (programmatically, not pattern syntax); (see also 'Quantifier_Braces_FreeForm')
+
+        public CatastrophicBacktrackingEnum TreatmentOfCatastrophicPatterns { get; init; } // what happens in case of "(a*)*b" on "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac"
     }
 }
 

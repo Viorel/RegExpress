@@ -375,9 +375,11 @@ namespace PCRE2Plugin
                 EmptyConstructX = false,
                 EmptySet = true,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = PCRE2_DUPNAMES,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
         }
     }

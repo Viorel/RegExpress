@@ -369,9 +369,11 @@ namespace PythonPlugin
                 EmptyConstructX = is_regex,
                 EmptySet = false,
 
+                AsciiOnly = false,
                 SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = is_regex,
                 FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = key.module == ModuleEnum.regex ? FeatureMatrix.CatastrophicBacktrackingEnum.Accept : FeatureMatrix.CatastrophicBacktrackingEnum.None,
             };
         }
     }

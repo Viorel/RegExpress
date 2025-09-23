@@ -158,23 +158,26 @@ partial class ExporterToExcel
 
             // body
 
-            for( int feature_index = 0; feature_index < FeatureMatrixDetails.AllFeatureMatrixDetails.Length; feature_index++ )
+            int total_features = FeatureMatrixDetails.AllFeatureMatrixDetails.SelectMany( d => d.Details ).Count( );
+            int feature_index = 0;
+
+            foreach( FeatureMatrixGroup group in FeatureMatrixDetails.AllFeatureMatrixDetails )
             {
-                FeatureMatrixDetails details = FeatureMatrixDetails.AllFeatureMatrixDetails[feature_index];
+                // name of the group, on separate row
 
-                if( progressOnFeatures != null ) progressOnFeatures( $"{details.ShortDesc} {details.Desc}", feature_index, FeatureMatrixDetails.AllFeatureMatrixDetails.Length );
+                cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, group.Name );
+                cell1.StyleIndex = STYLE_ID_FEATURE_GROUP;
+                cell2 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + total_variants + 1 ), row_index, "" );
+                MergeExistingCells( cell1, cell2 );
 
-                if( details.Func == null )
+                ++row_index;
+
+                foreach( FeatureMatrixDetails details in group.Details )
                 {
-                    // name of the group
+                    if( progressOnFeatures != null ) progressOnFeatures( $"{details.ShortDesc} {details.Desc}", feature_index, total_features );
 
-                    cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, details.ShortDesc );
-                    cell1.StyleIndex = STYLE_ID_FEATURE_GROUP;
-                    cell2 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + total_variants + 1 ), row_index, "" );
-                    MergeExistingCells( cell1, cell2 );
-                }
-                else
-                {
+                    ++feature_index;
+
                     cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, details.ShortDesc );
                     cell1.StyleIndex = STYLE_ID_FEATURE;
                     cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + 1 ), row_index, details.Desc ?? "" );
@@ -188,7 +191,7 @@ partial class ExporterToExcel
                         {
                             if( progressOnEngines != null ) progressOnEngines( $"{engine_data.Engine.Name} {m.variant.Name}", engine_index, engines_data.Length );
 
-                            bool direct_flag_is_true = details.DirectCheck == null ? false : details.DirectCheck( m.variant.FeatureMatrix );
+                            bool direct_flag_is_true = details.DirectCheck == null ? false : ( verify && details.DirectCheck( m.variant.RegexEngine, m.variant.FeatureMatrix ) );
                             bool flag_is_true = direct_flag_is_true || details.Func( m.variant.FeatureMatrix );
 
                             if( !verify || direct_flag_is_true || m.variant.RegexEngine == null || details.Rules.Count == 0 )
@@ -244,9 +247,9 @@ partial class ExporterToExcel
                             }
                         }
                     }
-                }
 
-                ++row_index;
+                    ++row_index;
+                }
             }
 
             // bottom row
