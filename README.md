@@ -86,6 +86,64 @@ Download and open the file:
 
 * [RegexFeatureMatrix.xlsx](RegexFeatureMatrix.xlsx)
 
-<br/>
+
+#### Example of several essential indicators:
+
+* Engines that support named groups (`(?<name>...)`, `(?P<name>...)`):
+	* **Regex** (.NET)
+	* **RE2**
+	* **PCRE2**
+	* **Boost.Regex**
+	* **Oniguruma**
+	* **JavaScript**
+	* **Hyperscan**
+	* **Chimera**
+	* **ICU**
+	* **regex**, **fancy_regex**, **regress** (Rust)
+	* **regex**, **re2j** (Java)
+	* **re**, **regex** (Python)
+	* **D**
+	* **Perl**
+<!--
+* Engines that supports Unicode, not just ASCII characters:
+	* **Regex** (.NET)
+	* **std::wregex**
+	* **RE2**
+	* **PCRE2**
+	* **Boost.Regex**
+	* **Oniguruma**
+	* **JavaScript**
+	* **VBScript**
+	* **Hyperscan**
+	* **Chimera**
+	* **ICU**
+	* **regex**, **fancy_regex**, **regress** (Rust)
+	* **regex**, **re2j** (Java)
+	* **re**, **regex** (Python)
+	* **D**
+	* **Perl**
+	* **Forgex** (Fortran)
+	* **TRE**
+-->
+* Engines that seems protected against “catastrophic backtracking” or timeout errors<br/>(pattern: `(a*)*b`, text: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac`):
+	* **RE2**
+	* **PCRE2**
+	* **Oniguruma**
+	* **JavaScript** (**Bun** engine)
+	* **Hyperscan**
+	* **Chimera**
+	* **regex**, **fancy_regex** (Rust)
+	* **regex** (Python)
+	* **D**
+	* **Perl**
+	* **Forgex** (Fortran)
+	* **TRE**
+	* **tiny-regex-c**
+
+* Engines that support fuzzy or approximate matching:
+	* **Hyperscan**
+	* **regex** (Python)
+	* **TRE**
+
 <br/>
 <br/>
