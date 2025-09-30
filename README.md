@@ -32,7 +32,7 @@ It includes the following Regular Expression engines:
 * **[TRE](https://github.com/laurikari/tre)** 0.9.0 (in C).
 * **[tiny-regex-c](https://github.com/rurban/tiny-regex-c)** 2022-06-21 (in C).
 * **Ada GNAT.Regpat** 15.2.0 (in Ada).
-* **VCL** [TRegEx](https://docwiki.embarcadero.com/Libraries/Florence/en/System.RegularExpressions) 29.0 (C++Builder, Delphi).
+* **[TRegEx](https://docwiki.embarcadero.com/Libraries/Florence/en/System.RegularExpressions)** 29.0 (C++Builder, Delphi).
 
 
 <br/>
@@ -105,7 +105,7 @@ Download and open the file:
 	* **re**, **regex** (Python)
 	* **D**
 	* **Perl**
-	* **VCL (TRegEx)**
+	* **TRegEx**
 <!--
 * Engines that supports Unicode, not just ASCII characters:
 	* **Regex** (.NET)
@@ -141,7 +141,7 @@ Download and open the file:
 	* **Forgex** (Fortran)
 	* **TRE**
 	* **tiny-regex-c**
-	* **VCL (TRegEx)**
+	* **TRegEx**
 
 * Engines that support fuzzy or approximate matching:
 	* **Hyperscan**

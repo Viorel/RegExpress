@@ -33,13 +33,13 @@ namespace CppBuilderPlugin
 
         #region IRegexEngine
 
-        public string Kind => "VCL";
+        public string Kind => "TRegEx";
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "VCL (C++Builder, Delphi)";
+        public string Name => "TRegEx (C++Builder, Delphi)";
 
-        public string Subtitle => "VCL";
+        public string Subtitle => "TRegEx";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 
@@ -115,7 +115,7 @@ namespace CppBuilderPlugin
             Engine engine = new( );
             engine.mOptionsControl.Value.SetSelectedOptions( new Options { } ); //
 
-            variants.Add( new FeatureMatrixVariant( $"VCL (C++Builder, Delphi)", LazyFeatureMatrix.Value, engine ) );
+            variants.Add( new FeatureMatrixVariant( $"TRegEx (C++Builder, Delphi)", LazyFeatureMatrix.Value, engine ) );
 
             return variants;
         }

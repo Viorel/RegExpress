@@ -195,9 +195,9 @@ xcopy /D /R /Y "%BasePath%\AdaPlugin\bin\%Configuration%\%TargetDir%\AdaPlugin.d
 xcopy /D /R /Y "%BasePath%\AdaWorker\adaworker.exe" "%EnginesTargetPath%\Ada\*.bin"
 
 
-rem -- VCL --
+rem -- C++Builder --
 
-set BasePath=%SolutionDir%\RegexEngines\VCL
-xcopy /D /R /Y "%BasePath%\CppBuilderPlugin\bin\%Configuration%\%TargetDir%\CppBuilderPlugin.dll" "%EnginesTargetPath%\VCL\*"
-xcopy /D /R /Y "%BasePath%\CppBuilderWorker\Win64\Release\CppBuilderWorker.exe" "%EnginesTargetPath%\VCL\*.bin"
+set BasePath=%SolutionDir%\RegexEngines\CppBuilder
+xcopy /D /R /Y "%BasePath%\CppBuilderPlugin\bin\%Configuration%\%TargetDir%\CppBuilderPlugin.dll" "%EnginesTargetPath%\CppBuilder\*"
+xcopy /D /R /Y "%BasePath%\CppBuilderWorker\Win64\Release\CppBuilderWorker.exe" "%EnginesTargetPath%\CppBuilder\*.bin"
 

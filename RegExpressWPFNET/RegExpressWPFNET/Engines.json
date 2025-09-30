@@ -65,7 +65,7 @@
       "path": "Engines\\Ada\\AdaPlugin.dll"
     },
     {
-      "path": "Engines\\VCL\\CppBuilderPlugin.dll"
+      "path": "Engines\\CppBuilder\\CppBuilderPlugin.dll"
     }
   ]
 }
