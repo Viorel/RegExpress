@@ -1,0 +1,1 @@
+echo { "pattern" : "(?<n>x)?(b)", "text" : "ab", "flags": "iN" } | Win64\Release\CppBuilderWorker.exe 1>o 2>e & type o & type e
