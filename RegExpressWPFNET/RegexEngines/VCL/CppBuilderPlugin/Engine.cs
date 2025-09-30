@@ -37,9 +37,9 @@ namespace CppBuilderPlugin
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "VCL (C++ Builder, Delphi)";
+        public string Name => "VCL (C++Builder, Delphi)";
 
-        public string Subtitle => Name;
+        public string Subtitle => "VCL";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 
@@ -103,7 +103,7 @@ namespace CppBuilderPlugin
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
-                AllowEmptySets = false, //.................?
+                AllowEmptySets = false,
                 FeatureMatrix = LazyFeatureMatrix.Value,
             };
         }
@@ -115,7 +115,7 @@ namespace CppBuilderPlugin
             Engine engine = new( );
             engine.mOptionsControl.Value.SetSelectedOptions( new Options { } ); //
 
-            variants.Add( new FeatureMatrixVariant( $"VCL (C++ Builder, Delphi)", LazyFeatureMatrix.Value, engine ) );
+            variants.Add( new FeatureMatrixVariant( $"VCL (C++Builder, Delphi)", LazyFeatureMatrix.Value, engine ) );
 
             return variants;
         }
@@ -149,7 +149,7 @@ namespace CppBuilderPlugin
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,
 
                 Brackets = true,
-                ExtendedBrackets = true,
+                ExtendedBrackets = false,
 
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
                 AlternationOnSeparateLines = false,
@@ -160,13 +160,13 @@ namespace CppBuilderPlugin
 
                 Flags = true,
                 ScopedFlags = true,
-                CircumflexFlags = true,
-                ScopedCircumflexFlags = true,
+                CircumflexFlags = false,
+                ScopedCircumflexFlags = false,
                 XFlag = true,
-                XXFlag = true,
+                XXFlag = false,
 
-                Literal_QE = false,
-                InsideSets_Literal_QE = false,
+                Literal_QE = true,
+                InsideSets_Literal_QE = true,
                 InsideSets_Literal_qBrace = false,
 
                 Esc_a = true,
@@ -188,7 +188,7 @@ namespace CppBuilderPlugin
                 Esc_UBrace = false,
                 Esc_c1 = true,
                 Esc_CMinus = false,
-                Esc_NBrace = true,
+                Esc_NBrace = false,
                 GenericEscape = true,
 
                 InsideSets_Esc_a = true,
@@ -209,14 +209,14 @@ namespace CppBuilderPlugin
                 InsideSets_Esc_uBrace = false,
                 InsideSets_Esc_UBrace = false,
                 InsideSets_Esc_c1 = true,
-                InsideSets_Esc_C1 = false, //...
+                InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
-                InsideSets_Esc_NBrace = true,
+                InsideSets_Esc_NBrace = false,
                 InsideSets_GenericEscape = true,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
-                Class_Ccp = false,
+                Class_Ccp = true,
                 Class_dD = true,
                 Class_hHhexa = false,
                 Class_hHhorspace = true,
@@ -253,13 +253,13 @@ namespace CppBuilderPlugin
                 InsideSets_Collating = false,
 
                 InsideSets_Operators = false,
-                InsideSets_OperatorsExtended = true,
-                InsideSets_Operator_Ampersand = true,
-                InsideSets_Operator_Plus = true,
-                InsideSets_Operator_VerticalLine = true,
-                InsideSets_Operator_Minus = true,
-                InsideSets_Operator_Circumflex = true,
-                InsideSets_Operator_Exclamation = true,
+                InsideSets_OperatorsExtended = false,
+                InsideSets_Operator_Ampersand = false,
+                InsideSets_Operator_Plus = false,
+                InsideSets_Operator_VerticalLine = false,
+                InsideSets_Operator_Minus = false,
+                InsideSets_Operator_Circumflex = false,
+                InsideSets_Operator_Exclamation = false,
                 InsideSets_Operator_DoubleAmpersand = false,
                 InsideSets_Operator_DoubleVerticalLine = false,
                 InsideSets_Operator_DoubleMinus = false,
@@ -272,8 +272,8 @@ namespace CppBuilderPlugin
                 Anchor_z = true,
                 Anchor_G = true,
                 Anchor_bB = true,
-                Anchor_bg = true,
-                Anchor_bBBrace = true,
+                Anchor_bg = false,
+                Anchor_bBBrace = false,
                 Anchor_K = true,
                 Anchor_mM = false,
                 Anchor_LtGt = false,
@@ -305,8 +305,8 @@ namespace CppBuilderPlugin
                 Backref_kBrace = true,
                 Backref_kNum = false,
                 Backref_kNegNum = false,
-                Backref_gApos = FeatureMatrix.BackrefModeEnum.None,
-                Backref_gLtGt = FeatureMatrix.BackrefModeEnum.None,
+                Backref_gApos = FeatureMatrix.BackrefModeEnum.Pattern,
+                Backref_gLtGt = FeatureMatrix.BackrefModeEnum.Pattern,
                 Backref_gNum = FeatureMatrix.BackrefModeEnum.Value,
                 Backref_gNegNum = FeatureMatrix.BackrefModeEnum.Value,
                 Backref_gBrace = FeatureMatrix.BackrefModeEnum.Value,
@@ -325,10 +325,10 @@ namespace CppBuilderPlugin
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
-                Quantifier_LowAbbrev = true,
+                Quantifier_LowAbbrev = false,
 
                 Conditional_BackrefByNumber = true,
-                Conditional_BackrefByName = false,
+                Conditional_BackrefByName = true,
                 Conditional_Pattern = true,
                 Conditional_PatternOrBackrefByName = false,
                 Conditional_BackrefByName_Apos = true,
@@ -339,7 +339,7 @@ namespace CppBuilderPlugin
                 Conditional_VERSION = false,
 
                 ControlVerbs = true,
-                ScriptRuns = true,
+                ScriptRuns = false,
                 Callouts = false,
 
                 EmptyConstruct = true,
@@ -348,7 +348,7 @@ namespace CppBuilderPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
-                AllowDuplicateGroupName = true,
+                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             };
