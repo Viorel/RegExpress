@@ -10,9 +10,6 @@
 #include "CheckedCast.h"
 #include "SEHFilter.h"
 
-#include "PCRE2.h"
-
-
 using namespace std;
 
 

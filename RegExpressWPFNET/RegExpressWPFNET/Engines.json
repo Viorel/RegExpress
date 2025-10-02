@@ -66,6 +66,9 @@
     },
     {
       "path": "Engines\\CppBuilder\\CppBuilderPlugin.dll"
+    },
+    {
+      "path": "Engines\\Qt\\QtPlugin.dll"
     }
   ]
 }

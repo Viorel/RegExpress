@@ -1,0 +1,6 @@
+!x64/
+x64/*
+!x64/Release/
+x64/Release/*
+!x64/Release/Qt6Core.dll
+!x64/Release/QtWorker.exe

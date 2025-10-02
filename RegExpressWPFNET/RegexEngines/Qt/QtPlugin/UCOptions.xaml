@@ -1,0 +1,30 @@
+﻿<UserControl x:Class="QtPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:QtPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="164.938" d:DesignWidth="591.038" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel Orientation="Vertical" Margin="0">
+            <ui:CheckboxWithNote Prop="CaseInsensitiveOption" Note="match against the subject string in a case insensitive way"/>
+            <ui:CheckboxWithNote Prop="DotMatchesEverythingOption" Note="the dot metacharacter (.) in the pattern string is allowed to match any character in the subject string, including newlines"/>
+            <ui:CheckboxWithNote Prop="MultilineOption" Note="the caret (^) and the dollar ($) metacharacters in the pattern string are allowed to match, respectively, immediately after and immediately before any newline in the subject string, as well as at the very beginning and at the very end of the subject string"/>
+            <ui:CheckboxWithNote Prop="ExtendedPatternSyntaxOption" Note="any whitespace in the pattern string which is not escaped and outside a character class is ignored. An unescaped sharp (#) outside a character class causes all the following characters, until the first newline (included), to be ignored"/>
+            <ui:CheckboxWithNote Prop="InvertedGreedinessOption" Note="the greediness of the quantifiers is inverted: *, +, ?, {m,n}, etc. become lazy, while their lazy versions (*?, +?, ??, {m,n}?, etc.) become greedy"/>
+            <ui:CheckboxWithNote Prop="DontCaptureOption" Note="the non-named capturing groups do not capture substrings; named capturing groups still work as intended"/>
+            <ui:CheckboxWithNote Prop="UseUnicodePropertiesOption" Note="the meaning of the \w, \d, etc., character classes, as well as the meaning of their counterparts (\W, \D, etc.), is changed from matching ASCII characters only to matching any character with the corresponding Unicode property"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
+    

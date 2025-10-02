@@ -201,3 +201,11 @@ set BasePath=%SolutionDir%\RegexEngines\CppBuilder
 xcopy /D /R /Y "%BasePath%\CppBuilderPlugin\bin\%Configuration%\%TargetDir%\CppBuilderPlugin.dll" "%EnginesTargetPath%\CppBuilder\*"
 xcopy /D /R /Y "%BasePath%\CppBuilderWorker\Win64\Release\CppBuilderWorker.exe" "%EnginesTargetPath%\CppBuilder\*.bin"
 
+
+rem -- Qt --
+
+set BasePath=%SolutionDir%\RegexEngines\Qt
+xcopy /D /R /Y "%BasePath%\QtPlugin\bin\%Configuration%\%TargetDir%\QtPlugin.dll" "%EnginesTargetPath%\Qt\*"
+xcopy /D /R /Y "%BasePath%\QtWorker\x64\Release\QtWorker.exe" "%EnginesTargetPath%\Qt\*.bin"
+xcopy /D /R /Y "%BasePath%\QtWorker\x64\Release\Qt6Core.dll" "%EnginesTargetPath%\Qt\*"
+

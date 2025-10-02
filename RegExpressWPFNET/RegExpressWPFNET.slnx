@@ -74,6 +74,9 @@
   <Folder Name="/RegexEngines/Python/">
     <Project Path="RegexEngines/Python/PythonPlugin/PythonPlugin.csproj" />
   </Folder>
+  <Folder Name="/RegexEngines/Qt/">
+    <Project Path="RegexEngines/Qt/QtPlugin/QtPlugin.csproj" />
+  </Folder>
   <Folder Name="/RegexEngines/RE2/">
     <Project Path="RegexEngines/RE2/AbseilStaticLib/AbseilStaticLib.vcxproj" Id="08949c31-f8a3-434a-8fe6-7ddcc6ef2ab6" />
     <Project Path="RegexEngines/RE2/RE2Plugin/RE2Plugin.csproj">
@@ -126,6 +129,7 @@
     <BuildDependency Project="RegexEngines/Ada/AdaPlugin/AdaPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Boost/BoostPlugin/BoostPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/CppBuilder/CppBuilderPlugin/CppBuilderPlugin.csproj" />
     <BuildDependency Project="RegexEngines/D/DPlugin/DPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNET9/DotNET9Plugin/DotNET9Plugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNET9/DotNET9Worker/DotNET9Worker.csproj" />
@@ -145,6 +149,7 @@
     <BuildDependency Project="RegexEngines/PCRE2/PCRE2Worker/PCRE2Worker.vcxproj" />
     <BuildDependency Project="RegexEngines/Perl/PerlPlugin/PerlPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Python/PythonPlugin/PythonPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/Qt/QtPlugin/QtPlugin.csproj" />
     <BuildDependency Project="RegexEngines/RE2/RE2Plugin/RE2Plugin.csproj" />
     <BuildDependency Project="RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" />
     <BuildDependency Project="RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />
@@ -157,6 +162,5 @@
     <BuildDependency Project="RegexEngines/TRE/TREPlugin/TREPlugin.csproj" />
     <BuildDependency Project="RegexEngines/TRE/TREWorker/TREWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/VBScript/VBScriptPlugin/VBScriptPlugin.csproj" />
-    <BuildDependency Project="RegexEngines/CppBuilder/CppBuilderPlugin/CppBuilderPlugin.csproj" />
   </Project>
 </Solution>
