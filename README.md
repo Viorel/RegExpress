@@ -33,7 +33,7 @@ It includes the following Regular Expression engines:
 * **[tiny-regex-c](https://github.com/rurban/tiny-regex-c)** 2022-06-21 (in C).
 * **Ada GNAT.Regpat** 15.2.0 (in Ada).
 * **[TRegEx](https://docwiki.embarcadero.com/Libraries/Florence/en/System.RegularExpressions)** 29.0 (C++Builder, Delphi).
-
+* **[QRegularExpression](https://doc.qt.io/qt-6/qregularexpression.html)** class (based on PCRE2) from Qt 6.9.3 (in C++).
 
 <br/>
 
