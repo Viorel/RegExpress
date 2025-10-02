@@ -44,6 +44,6 @@ namespace RegExpressLibrary
 
         SyntaxOptions GetSyntaxOptions( );
 
-        IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( );
+        IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( ); // should include "Ignore pattern whitespace"
     }
 }

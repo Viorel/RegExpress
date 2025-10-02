@@ -102,7 +102,7 @@ namespace CppBuilderPlugin
 
             return new SyntaxOptions
             {
-                XLevel = XLevelEnum.none,
+                XLevel = options.roIgnorePatternSpace ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = false,
                 FeatureMatrix = LazyFeatureMatrix.Value,
             };
@@ -113,7 +113,7 @@ namespace CppBuilderPlugin
             List<FeatureMatrixVariant> variants = [];
 
             Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { } ); //
+            engine.mOptionsControl.Value.SetSelectedOptions( new Options { roIgnorePatternSpace = true } ); //
 
             variants.Add( new FeatureMatrixVariant( $"TRegEx (C++Builder, Delphi)", LazyFeatureMatrix.Value, engine ) );
 

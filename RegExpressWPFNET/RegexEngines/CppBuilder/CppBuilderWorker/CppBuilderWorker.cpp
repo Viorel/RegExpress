@@ -18,9 +18,6 @@ static void DoWork( )
 {
     try
     {
-        //UnicodeString input_json = R"({ "pattern": ".", "text": "abc" })";
-        //TStringReader* string_reader = new TStringReader(input_json);
-        //TJsonTextReader* json_reader = new TJsonTextReader(string_reader);
 #if 1
         THandleStream* stdin_stream = new THandleStream( THandle( GetStdHandle( STD_INPUT_HANDLE ) ) );
         TStreamReader* stream_reader = new TStreamReader( stdin_stream );
@@ -73,7 +70,7 @@ static void DoWork( )
         {
             TMatch match = matches[i];
 
-            std::wcout << L"M " << match.Index << L" " << match.Length << L"\n"; // (starting at 1)
+            std::wcout << L"M " << match.Index << L" " << match.Length << std::endl; // (starting at 1)
 
             TGroupCollection groups = match.Groups;
 
@@ -83,7 +80,7 @@ static void DoWork( )
 
                 if( !group.Success )
                 {
-                    std::wcout << L"g -1 -1\n";
+                    std::wcout << L"g -1 -1" << std::endl;
                 }
                 else
                 {
@@ -103,22 +100,22 @@ static void DoWork( )
                         }
                     }
 
-                    std::wcout << L"\n";
+                    std::wcout << std::endl;
                 }
             }
         }
     }
     catch( const Exception& exc )
     {
-        std::wcerr << exc.Message << L"\n";
+        std::wcerr << exc.Message << std::endl;
     }
     catch( const std::exception& exc )
     {
-        std::wcerr << exc.what( ) << L"\n";
+        std::wcerr << exc.what( ) << std::endl;
     }
     catch( ... )
     {
-        std::wcerr << L"Unknown error\n";
+        std::wcerr << L"Unknown error" << std::endl;
     }
 }
 
@@ -130,7 +127,10 @@ int WINAPI _tWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmd
     }
     __except( EXCEPTION_EXECUTE_HANDLER )
     {
-        std::wcerr << L"SEH Exception caught: Access violation occurred!\n";
+        //LPEXCEPTION_POINTER exception_pointers = ::GetExceptionInformation();
+        DWORD code = ::GetExceptionCode();
+
+        std::wcerr << L"SEH Exception code: " << std::hex << code << L"h" << std::endl;
     }
 }
 
