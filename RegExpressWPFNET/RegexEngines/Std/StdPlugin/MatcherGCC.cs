@@ -109,48 +109,6 @@ namespace StdPlugin
                         }
                     }
                 }
-
-
-
-                /*
-                    var sr = ph.StreamReader;
-
-                    List<IMatch> matches = new( );
-                    SimpleTextGetter stg = new( text );
-                    SimpleMatch? current_match = null;
-
-                    if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response." );
-
-                    bool done = false;
-
-                    while( !done )
-                    {
-                        switch( br.ReadByte( ) )
-                        {
-                        case (byte)'m':
-                        {
-                            Int64 index = br.ReadInt64( );
-                            Int64 length = br.ReadInt64( );
-                            current_match = SimpleMatch.Create( (int)index, (int)length, stg );
-                            matches.Add( current_match );
-                        }
-                        break;
-                        case (byte)'g':
-                        {
-                            if( current_match == null ) throw new Exception( "Invalid response." );
-                            Int64 index = br.ReadInt64( );
-                            Int64 length = br.ReadInt64( );
-                            bool success = index >= 0;
-                            current_match.AddGroup( success ? (int)index : 0, success ? (int)length : 0, success, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ) );
-                        }
-                        break;
-                        case (byte)'e':
-                            done = true;
-                            break;
-                        default:
-                            throw new Exception( "Invalid response." );
-                        }
-                */
             }
 
             return new RegexMatches( matches.Count, matches );

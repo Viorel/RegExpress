@@ -284,7 +284,6 @@ namespace ExportFeatureMatrix
                                     }
 
                                     tblProgress.Text = "";
-                                    mThread = null;
                                 } );
                             }
                             catch( Exception exc )
@@ -298,6 +297,8 @@ namespace ExportFeatureMatrix
                                     MessageBox.Show( this, exc.Message, CAPTION, MessageBoxButton.OK, MessageBoxImage.Error );
                                 } );
                             }
+
+                            mThread = null;
                         }
 
                         mThread = new( action )

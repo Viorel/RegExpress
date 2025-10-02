@@ -1,0 +1,14 @@
+HOW IT'S MADE
+-----------------
+
+- Install the C++ Builder Community.
+
+- Start the C++ Builder; load the project: "CppBuilderWorker.cbproj".
+
+- Edit the code, if required.
+
+- Make sure that the current configuration is "Release", "Win64".
+
+- Rebuild the project. It will generate the "Win64\Release\CppBuilderWorker.exe" file.
+
+- Commit the changed files, including "CppBuilderWorker.exe".

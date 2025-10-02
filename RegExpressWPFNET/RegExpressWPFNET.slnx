@@ -13,6 +13,9 @@
     </Project>
     <Project Path="RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" Id="2dc8dda0-afd5-46c3-825d-0055d385c792" />
   </Folder>
+  <Folder Name="/RegexEngines/CppBuilder/">
+    <Project Path="RegexEngines/CppBuilder/CppBuilderPlugin/CppBuilderPlugin.csproj" />
+  </Folder>
   <Folder Name="/RegexEngines/D/">
     <Project Path="RegexEngines/D/DPlugin/DPlugin.csproj" />
   </Folder>
@@ -154,5 +157,6 @@
     <BuildDependency Project="RegexEngines/TRE/TREPlugin/TREPlugin.csproj" />
     <BuildDependency Project="RegexEngines/TRE/TREWorker/TREWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/VBScript/VBScriptPlugin/VBScriptPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/CppBuilder/CppBuilderPlugin/CppBuilderPlugin.csproj" />
   </Project>
 </Solution>

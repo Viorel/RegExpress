@@ -193,3 +193,11 @@ rem -- Ada --
 set BasePath=%SolutionDir%\RegexEngines\Ada
 xcopy /D /R /Y "%BasePath%\AdaPlugin\bin\%Configuration%\%TargetDir%\AdaPlugin.dll" "%EnginesTargetPath%\Ada\*"
 xcopy /D /R /Y "%BasePath%\AdaWorker\adaworker.exe" "%EnginesTargetPath%\Ada\*.bin"
+
+
+rem -- C++Builder --
+
+set BasePath=%SolutionDir%\RegexEngines\CppBuilder
+xcopy /D /R /Y "%BasePath%\CppBuilderPlugin\bin\%Configuration%\%TargetDir%\CppBuilderPlugin.dll" "%EnginesTargetPath%\CppBuilder\*"
+xcopy /D /R /Y "%BasePath%\CppBuilderWorker\Win64\Release\CppBuilderWorker.exe" "%EnginesTargetPath%\CppBuilder\*.bin"
+

@@ -181,7 +181,7 @@ class FeatureMatrixDetails
                 new ( @"new line (\n)", @"Alternatives on separate lines", fm => fm.AlternationOnSeparateLines, "x\ny", "y", null ),
 
                 new ( @"(?#comment)", @"Inline comment", fm => fm.InlineComments, @"a(?#comment)b", "ab", null, @"a\(?#comment\)b", "ab", "a" ),
-                new ( @"#comment", @"Comment", fm => fm.XModeComments, "a#comment", "a", null, "(?x)a#comment", "a", null ), // ('\n' is required by Hyperscan)
+                new ( @"#comment", @"Comment", fm => fm.XModeComments, "a#comment", "a", null, "(?x)a#comment", "a", null, "(?x)a#comment\n", "a", null ), // ('\n' is required by Hyperscan)
                 new ( @"[#comment]", @"Comment inside […]", fm => fm.InsideSets_XModeComments,
                     "a[b#comment\nz]y", "azy", "acy",
                     "a(?x)[b#comment\nz]y", "azy", "acy",
