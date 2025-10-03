@@ -106,27 +106,8 @@ Download and open the file:
 	* **D**
 	* **Perl**
 	* **TRegEx**
-<!--
-* Engines that supports Unicode, not just ASCII characters:
-	* **Regex** (.NET)
-	* **std::wregex**
-	* **RE2**
-	* **PCRE2**
-	* **Boost.Regex**
-	* **Oniguruma**
-	* **JavaScript**
-	* **VBScript**
-	* **Hyperscan**
-	* **Chimera**
-	* **ICU**
-	* **regex**, **fancy_regex**, **regress** (Rust)
-	* **regex**, **re2j** (Java)
-	* **re**, **regex** (Python)
-	* **D**
-	* **Perl**
-	* **Forgex** (Fortran)
-	* **TRE**
--->
+	* **Qt**
+
 * Engines that seems protected against “catastrophic backtracking” or timeout errors<br/>(pattern: `(a*)*b`, text: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac`):
 	* **RE2**
 	* **PCRE2**
@@ -141,7 +122,9 @@ Download and open the file:
 	* **Forgex** (Fortran)
 	* **TRE**
 	* **tiny-regex-c**
+	* **wregex** with polynomial option set (GCC)
 	* **TRegEx**
+	* **Qt**
 
 * Engines that support fuzzy or approximate matching:
 	* **Hyperscan**
