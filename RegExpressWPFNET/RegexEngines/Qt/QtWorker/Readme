@@ -1,0 +1,21 @@
+HOW IT'S MADE
+------------------------
+
+- Install the Qt (Free Community edition)
+  
+  NOTE. During installation, select "Custom", and specify "MSVC" (not just "MINGW", or instead of).
+
+- In Visual Studio, install the "Qt Visual Studio Tools" extension.
+
+  It will ask to configure the Qt version by selecting the folder with previously installed Qt.
+
+- In Visual Studio, load the "QtWorker.sln" solution. If required, edit the code.
+
+- Build the "Release", "x64" configuration. 
+
+  It will generate the next files in "x64\Release":
+    
+    - "Qt6Core.dll"
+    - "QtWorker.exe"
+
+- Commit the "Qt6Core.dll" and "QtWorker.exe" files.
