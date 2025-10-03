@@ -408,7 +408,7 @@ int DoMatch( StreamWriterW& outwr, StreamWriterW& errwr, HINSTANCE hInstance, LP
                                 L" } " EOL
                                 L" catch( err ) " EOL
                                 L" { " EOL
-                                L"  return { \"Error\": err.message }" EOL
+                                L"  return { \"Error\": `${err.name}: ${err.message}` }" EOL
                                 L" } " EOL
                                 L"} )()";
                         }
@@ -434,7 +434,7 @@ int DoMatch( StreamWriterW& outwr, StreamWriterW& errwr, HINSTANCE hInstance, LP
                                 L" } " EOL
                                 L" catch( err ) " EOL
                                 L" { " EOL
-                                L"  return { \"Error\": err.message }" EOL
+                                L"  return { \"Error\": `${err.name}: ${err.message}` }" EOL
                                 L" } " EOL
                                 L"} )()";
                         }

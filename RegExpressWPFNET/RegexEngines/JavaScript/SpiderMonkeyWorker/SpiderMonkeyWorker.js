@@ -74,5 +74,5 @@ try
 }
 catch( err )
 {
-  console.log( JSON.stringify( { Error: err.message } ) ); 
+  console.log( JSON.stringify( { Error: `${err.name}: ${err.message}` } ) ); 
 } 
