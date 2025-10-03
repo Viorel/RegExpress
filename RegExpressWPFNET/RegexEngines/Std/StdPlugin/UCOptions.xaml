@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:StdPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="416.938" d:DesignWidth="603.038" 
+             d:DesignHeight="460.185" d:DesignWidth="641.043" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -79,6 +79,7 @@
                 <ui:CheckboxWithNote Prop="collate" Note="make matches locale-sensitive"/>
                 <ui:CheckboxWithNote x:Name="chkMultilineMSVC" IsEnabled="False" IsChecked="True" Text="multiline" Note="(not supported; matching is multiline by default)"/>
                 <ui:CheckboxWithNote x:Name="chkMultiline" Prop="multiline" Text="multiline" Note="“^” matches the beginning of a line and “$” matches the end of a line"/>
+                <ui:CheckboxWithNote x:Name="chkPolynomial" Prop="polynomial" Text="polynomial" Note="ensure space complexity of compiled regex and time complexity execution are not exponential"/>
             </StackPanel>
 
             <Label Margin="0 4 0 4" Padding="0">

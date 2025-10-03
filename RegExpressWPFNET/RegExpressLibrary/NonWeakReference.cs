@@ -24,20 +24,15 @@ public sealed class NonWeakReference<T> where T : class?
         this.mTarget = target;
     }
 
-    public bool TryGetTarget( out T target )
+    public bool TryGetTarget( out T? target )
     {
         target = mTarget;
 
         return target != null;
     }
 
-    public void SetTarget( T target )
+    public void SetTarget( T? target )
     {
-        if( target == null )
-        {
-            int x = 0;
-        }
-
         this.mTarget = target;
     }
 }

@@ -71,6 +71,7 @@ int main( )
             if( flagsA.find( " optimize " ) != std::string::npos ) regexFlags |= regex_constants::optimize;
             if( flagsA.find( " collate " ) != std::string::npos ) regexFlags |= regex_constants::collate;
             if( flagsA.find( " multiline " ) != std::string::npos ) regexFlags |= regex_constants::multiline;
+            if( flagsA.find( " polynomial " ) != std::string::npos ) regexFlags |= regex_constants::__polynomial;
 
             regex_constants::match_flag_type matchFlags = regex_constants::match_default;
 

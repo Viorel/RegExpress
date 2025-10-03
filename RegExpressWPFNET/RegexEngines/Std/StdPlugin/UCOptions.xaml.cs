@@ -108,7 +108,7 @@ namespace StdPlugin
                 Options options = GetSelectedOptions( );
 
                 chkMultilineMSVC.Visibility = pnlMSVCConstants.Visibility = options.Compiler == CompilerEnum.MSVC ? Visibility.Visible : Visibility.Collapsed;
-                chkMultiline.Visibility = options.Compiler == CompilerEnum.GCC ? Visibility.Visible : Visibility.Collapsed;
+                chkMultiline.Visibility = chkPolynomial.Visibility = options.Compiler == CompilerEnum.GCC ? Visibility.Visible : Visibility.Collapsed;
             }
             finally
             {

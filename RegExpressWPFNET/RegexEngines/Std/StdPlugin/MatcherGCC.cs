@@ -44,6 +44,7 @@ namespace StdPlugin
                 if( options.optimize ) flags += "optimize ";
                 if( options.collate ) flags += "collate ";
                 if( options.multiline ) flags += "multiline ";
+                if( options.polynomial ) flags += "polynomial ";
 
                 if( options.match_not_bol ) flags += "match_not_bol ";
                 if( options.match_not_eol ) flags += "match_not_eol ";

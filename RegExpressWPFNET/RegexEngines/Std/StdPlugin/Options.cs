@@ -50,10 +50,14 @@ namespace StdPlugin
         public bool match_continuous { get; set; }
         public bool match_prev_avail { get; set; }
 
-
         // MSVC specific
+
         public string? REGEX_MAX_STACK_COUNT { get; set; }
         public string? REGEX_MAX_COMPLEXITY_COUNT { get; set; }
+
+        // GCC specific
+
+        public bool polynomial { get; set; }
 
 
         public Options Clone( )
