@@ -122,7 +122,7 @@ Download and open the file:
 	* **Forgex** (Fortran)
 	* **TRE**
 	* **tiny-regex-c**
-	* **wregex** with polynomial option set (GCC)
+	* **wregex** (GCC) with polynomial option set, without back-references 
 	* **TRegEx**
 	* **Qt**
 

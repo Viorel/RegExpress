@@ -630,7 +630,7 @@ namespace StdPlugin
                 SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
-                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None, // 'Accept' when 'polynomial' option is set; otherwise it hangs; however, this option disables back-references
             };
         }
     }
