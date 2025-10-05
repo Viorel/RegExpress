@@ -6,7 +6,8 @@ It includes the following Regular Expression engines:
 
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-9.0)** class from .NET 9.
 * **[Regex](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8)** class from .NET Framework 4.8.
-* **[wregex](https://docs.microsoft.com/en-us/cpp/standard-library/regex)** class from C++ Standard Template Library (MSVC) and GCC.
+* **[wregex](https://docs.microsoft.com/en-us/cpp/standard-library/regex)** class from C++ Standard Template Library (MSVC 
+  and GCC) and the [SRELL](https://www.akenotsuki.com/misc/srell/en/) variation.
 * **[Boost.Regex](https://www.boost.org/doc/libs/1_89_0/libs/regex/doc/html/index.html)** from Boost C++ Libraries 1.89.0.
 * **[PCRE2](https://pcre.org/)** Open Source Regex Library 10.46 (in C).
 * **[RE2](https://github.com/google/re2)** Library 2025-08-12 from Google (in C++).
@@ -90,8 +91,9 @@ Download and open the file:
 
 #### Example of several essential indicators:
 
-* Engines that support named groups (`(?<name>...)`, `(?P<name>...)`):
-	* **Regex** (.NET)
+* Engines that support named groups (`(?<name>...)` or `(?P<name>...)`):
+	* **Regex** (.NET, .NET Framework)
+	* **wregex** (SRELL)
 	* **RE2**
 	* **PCRE2**
 	* **Boost.Regex**
@@ -100,35 +102,35 @@ Download and open the file:
 	* **Hyperscan**
 	* **Chimera**
 	* **ICU**
-	* **regex**, **fancy_regex**, **regress** (Rust)
-	* **regex**, **re2j** (Java)
-	* **re**, **regex** (Python)
+	* Rust: **regex**, **fancy_regex**, **regress** crates
+	* Java: **regex**, **re2j** packages
+	* Python: **re**, **regex** packages
 	* **D**
 	* **Perl**
 	* **TRegEx**
 	* **Qt**
 
-* Engines that seems protected against “catastrophic backtracking” or timeout errors<br/>(pattern: `(a*)*b`, text: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac`):
+* Engines that seems protected against “catastrophic backtracking” or timeout errors<br/>(pattern: `(a*)*b`, text: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac`):
 	* **RE2**
 	* **PCRE2**
 	* **Oniguruma**
-	* **JavaScript** (**Bun** engine)
+	* JavaScript: **Bun** engine
 	* **Hyperscan**
 	* **Chimera**
-	* **regex**, **fancy_regex** (Rust)
-	* **regex** (Python)
+	* Rust: **regex**, **fancy_regex** crates
+	* Python: **regex** package
 	* **D**
 	* **Perl**
-	* **Forgex** (Fortran)
+	* Fortran: **Forgex** module
 	* **TRE**
 	* **tiny-regex-c**
-	* **wregex** (GCC) with polynomial option set, without back-references 
+	* **wregex** (GCC with polynomial option set, without back-references) 
 	* **TRegEx**
 	* **Qt**
 
 * Engines that support fuzzy or approximate matching:
 	* **Hyperscan**
-	* **regex** (Python)
+	* Python: **regex** package
 	* **TRE**
 
 <br/>

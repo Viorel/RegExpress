@@ -108,7 +108,7 @@ class FeatureMatrixDetails
                     {
                     case FeatureMatrix.PunctuationEnum.Normal:
                     {
-                        var _ = engine.GetMatches( cnc, @"(a*)*b", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac" );
+                        var _ = engine.GetMatches( cnc, @"(a*)*b", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac" );
                         result = CatastrophicBacktrackingResultEnum.Passed;
                         break;
                     }

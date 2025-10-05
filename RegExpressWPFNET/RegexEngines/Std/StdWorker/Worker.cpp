@@ -11,9 +11,6 @@
 #include "SEHFilter.h"
 
 
-using namespace std;
-
-
 #define TO_STR2(s) L#s
 #define TO_STR(s) TO_STR2(s)
 
@@ -24,7 +21,7 @@ extern long Default_REGEX_MAX_STACK_COUNT;
 extern long Default_REGEX_MAX_COMPLEXITY_COUNT;
 
 
-static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& localeName, wregex::flag_type regexFlags, regex_constants::match_flag_type matchFlags )
+static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, const std::wstring& localeName, std::wregex::flag_type regexFlags, std::regex_constants::match_flag_type matchFlags )
 {
     ULONG ss = 1024 * 10;
     SetThreadStackGuarantee( &ss );
@@ -36,15 +33,15 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
     {
         [&]( )
             {
-                wregex regex{};
+                std::wregex regex{};
 
                 std::locale loc( WStringToUtf8( localeName ) ); // "" -- use default system locale, "C" -- C language locale, "POSIX" -- does not seem supported
                 regex.imbue( loc );
 
                 regex.assign( pattern, regexFlags );
 
-                wcregex_iterator results_begin( text.c_str( ), text.c_str( ) + text.length( ), regex, matchFlags );
-                wcregex_iterator results_end{};
+                std::wcregex_iterator results_begin( text.c_str( ), text.c_str( ) + text.length( ), regex, matchFlags );
+                std::wcregex_iterator results_end{};
 
                 outbw.WriteT<char>( 'b' );
 
@@ -165,33 +162,33 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             std::wstring pattern = inbr.ReadString( );
             std::wstring text = inbr.ReadString( );
 
-            wregex::flag_type regex_flags{};
+            std::wregex::flag_type regex_flags{};
 
             std::wstring grammar_s = inbr.ReadString( );
-            if( grammar_s == L"ECMAScript" ) regex_flags |= regex_constants::syntax_option_type::ECMAScript;
-            else if( grammar_s == L"basic" ) regex_flags |= regex_constants::syntax_option_type::basic;
-            else if( grammar_s == L"extended" ) regex_flags |= regex_constants::syntax_option_type::extended;
-            else if( grammar_s == L"awk" ) regex_flags |= regex_constants::syntax_option_type::awk;
-            else if( grammar_s == L"grep" ) regex_flags |= regex_constants::syntax_option_type::grep;
-            else if( grammar_s == L"egrep" ) regex_flags |= regex_constants::syntax_option_type::egrep;
+            if( grammar_s == L"ECMAScript" ) regex_flags |= std::regex_constants::syntax_option_type::ECMAScript;
+            else if( grammar_s == L"basic" ) regex_flags |= std::regex_constants::syntax_option_type::basic;
+            else if( grammar_s == L"extended" ) regex_flags |= std::regex_constants::syntax_option_type::extended;
+            else if( grammar_s == L"awk" ) regex_flags |= std::regex_constants::syntax_option_type::awk;
+            else if( grammar_s == L"grep" ) regex_flags |= std::regex_constants::syntax_option_type::grep;
+            else if( grammar_s == L"egrep" ) regex_flags |= std::regex_constants::syntax_option_type::egrep;
 
             std::wstring locale_s = inbr.ReadString( );
 
-            if( inbr.ReadByte( ) ) regex_flags |= regex_constants::syntax_option_type::icase;
-            if( inbr.ReadByte( ) ) regex_flags |= regex_constants::syntax_option_type::nosubs;
-            if( inbr.ReadByte( ) ) regex_flags |= regex_constants::syntax_option_type::optimize;
-            if( inbr.ReadByte( ) ) regex_flags |= regex_constants::syntax_option_type::collate;
+            if( inbr.ReadByte( ) ) regex_flags |= std::regex_constants::syntax_option_type::icase;
+            if( inbr.ReadByte( ) ) regex_flags |= std::regex_constants::syntax_option_type::nosubs;
+            if( inbr.ReadByte( ) ) regex_flags |= std::regex_constants::syntax_option_type::optimize;
+            if( inbr.ReadByte( ) ) regex_flags |= std::regex_constants::syntax_option_type::collate;
 
-            regex_constants::match_flag_type match_flags = regex_constants::match_flag_type::match_default;
+            std::regex_constants::match_flag_type match_flags = std::regex_constants::match_flag_type::match_default;
 
-            if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_not_bol;
-            if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_not_eol;
-            if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_not_bow;
-            if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_not_eow;
-            if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_any;
-            if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_not_null;
-            if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_continuous;
-            if( inbr.ReadByte( ) ) match_flags |= regex_constants::match_flag_type::match_prev_avail;
+            if( inbr.ReadByte( ) ) match_flags |= std::regex_constants::match_flag_type::match_not_bol;
+            if( inbr.ReadByte( ) ) match_flags |= std::regex_constants::match_flag_type::match_not_eol;
+            if( inbr.ReadByte( ) ) match_flags |= std::regex_constants::match_flag_type::match_not_bow;
+            if( inbr.ReadByte( ) ) match_flags |= std::regex_constants::match_flag_type::match_not_eow;
+            if( inbr.ReadByte( ) ) match_flags |= std::regex_constants::match_flag_type::match_any;
+            if( inbr.ReadByte( ) ) match_flags |= std::regex_constants::match_flag_type::match_not_null;
+            if( inbr.ReadByte( ) ) match_flags |= std::regex_constants::match_flag_type::match_continuous;
+            if( inbr.ReadByte( ) ) match_flags |= std::regex_constants::match_flag_type::match_prev_avail;
 
             auto REGEX_MAX_COMPLEXITY_COUNT = inbr.ReadOptional<int32_t>( );
             Variable_REGEX_MAX_COMPLEXITY_COUNT = REGEX_MAX_COMPLEXITY_COUNT.value_or( Default_REGEX_MAX_COMPLEXITY_COUNT );

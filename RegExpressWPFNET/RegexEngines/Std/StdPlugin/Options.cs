@@ -14,6 +14,7 @@ namespace StdPlugin
         None,
         MSVC,
         GCC,
+        SRELL,
     }
 
     enum GrammarEnum
@@ -40,7 +41,6 @@ namespace StdPlugin
         public bool collate { get; set; }
         public bool multiline { get; set; } // not for MSVC, where it is true by default
 
-
         public bool match_not_bol { get; set; }
         public bool match_not_eol { get; set; }
         public bool match_not_bow { get; set; }
@@ -59,6 +59,11 @@ namespace StdPlugin
 
         public bool polynomial { get; set; }
 
+        // SRELL specific
+
+        public bool dotall { get; set; }
+        public bool unicodesets { get; set; }
+        public bool vmode { get; set; }
 
         public Options Clone( )
         {

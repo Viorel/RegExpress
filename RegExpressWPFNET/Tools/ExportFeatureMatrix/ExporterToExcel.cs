@@ -271,7 +271,7 @@ partial class ExporterToExcel
 
         static string MakeHeader( EngineData engineData )
         {
-            return $"{engineData.Engine.Name}\r\n{engineData.Engine.Version}";
+            return $"{engineData.Engine.Name}\r\n {engineData.Engine.Version} ";
         }
     }
 
