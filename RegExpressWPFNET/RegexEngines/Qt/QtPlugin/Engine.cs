@@ -110,14 +110,24 @@ namespace QtPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            List<FeatureMatrixVariant> variants = [];
+            return
+                [
+                    new FeatureMatrixVariant( $"Qt", LazyFeatureMatrix.Value, new Engine() )
+                ];
+        }
 
-            Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { ExtendedPatternSyntaxOption = true } );
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.CaseInsensitiveOption = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
 
-            variants.Add( new FeatureMatrixVariant( $"Qt", LazyFeatureMatrix.Value, engine ) );
-
-            return variants;
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.ExtendedPatternSyntaxOption = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
         }
 
         #endregion
@@ -351,6 +361,7 @@ namespace QtPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = true,
             };
         }
     }

@@ -114,6 +114,17 @@ namespace AdaPlugin
                 ];
         }
 
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.Case_Insensitive = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
         #endregion
 
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
@@ -346,6 +357,7 @@ namespace AdaPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                Σσς = false,
             };
         }
     }

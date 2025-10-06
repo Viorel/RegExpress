@@ -117,15 +117,25 @@ namespace DPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { x = true } );
-
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, engine ),
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() ),
                 ];
         }
 
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.i = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.x = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
         #endregion
 
 
@@ -361,6 +371,7 @@ namespace DPlugin
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = true,
             };
         }
     }

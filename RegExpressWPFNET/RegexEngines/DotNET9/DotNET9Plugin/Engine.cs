@@ -109,13 +109,24 @@ namespace DotNET8Plugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { IgnorePatternWhitespace = true } );
-
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, engine ),
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() ),
                 ];
+        }
+
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.IgnoreCase = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.IgnorePatternWhitespace = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
         }
 
         #endregion
@@ -350,6 +361,7 @@ namespace DotNET8Plugin
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                Σσς = false,
             };
         }
     }

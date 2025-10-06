@@ -121,6 +121,14 @@ namespace SubRegPlugin
                 ];
         }
 
+        public void SetIgnoreCase( bool yes )
+        {
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
         #endregion
 
 
@@ -356,6 +364,7 @@ namespace SubRegPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
+                Σσς = false,
             };
         }
     }

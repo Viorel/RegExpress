@@ -18,7 +18,7 @@ namespace JavaPlugin
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly LazyData<PackageEnum, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        static readonly LazyData<(PackageEnum, bool isUnicodeCase), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
 
         public Engine( )
@@ -120,7 +120,7 @@ namespace JavaPlugin
             {
                 Literal = is_regex && options.LITERAL,
                 XLevel = is_regex && options.COMMENTS ? XLevelEnum.x : XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( options.Package )
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (options.Package, isUnicodeCase: is_regex && options.UNICODE_CASE) )
             };
         }
 
@@ -128,16 +128,30 @@ namespace JavaPlugin
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
             Engine engine_regex = new( );
-            engine_regex.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.regex, COMMENTS = true } );
+            engine_regex.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.regex, UNICODE_CASE = true, } );
 
             Engine engine_re2j = new( );
-            engine_re2j.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.re2j, COMMENTS = true } ); // (currently comments not supported)
+            engine_re2j.mOptionsControl.Value.SetSelectedOptions( new Options { Package = PackageEnum.re2j } );
 
             return
                 [
-                    new FeatureMatrixVariant("regex", LazyFeatureMatrix.GetValue(PackageEnum.regex), engine_regex),
-                    new FeatureMatrixVariant("re2j", LazyFeatureMatrix.GetValue(PackageEnum.re2j), engine_re2j),
+                    new FeatureMatrixVariant("regex", LazyFeatureMatrix.GetValue((PackageEnum.regex, isUnicodeCase: true)), engine_regex),
+                    new FeatureMatrixVariant("re2j", LazyFeatureMatrix.GetValue((PackageEnum.re2j, isUnicodeCase: false)), engine_re2j),
                 ];
+        }
+
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.CASE_INSENSITIVE = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.COMMENTS = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
         }
 
         #endregion
@@ -165,8 +179,10 @@ namespace JavaPlugin
         }
 
 
-        static FeatureMatrix BuildFeatureMatrix( PackageEnum package )
+        static FeatureMatrix BuildFeatureMatrix( (PackageEnum package, bool isUnicodeCase) data )
         {
+            (PackageEnum package, bool isUnicodeCase) = data;
+
             bool is_regex = package == PackageEnum.regex;
             bool is_re2j = package == PackageEnum.re2j;
 
@@ -378,6 +394,7 @@ namespace JavaPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = ( package == PackageEnum.regex && isUnicodeCase ) || package == PackageEnum.re2j,
             };
         }
     }

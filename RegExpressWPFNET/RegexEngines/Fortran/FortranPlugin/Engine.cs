@@ -141,6 +141,14 @@ namespace FortranPlugin
                 ];
         }
 
+        public void SetIgnoreCase( bool yes )
+        {
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
         #endregion
 
 
@@ -387,6 +395,7 @@ namespace FortranPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = false,
             };
         }
 
@@ -600,6 +609,7 @@ namespace FortranPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
+                Σσς = false,
             };
         }
 
@@ -814,6 +824,7 @@ namespace FortranPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = false,
             };
         }
     }

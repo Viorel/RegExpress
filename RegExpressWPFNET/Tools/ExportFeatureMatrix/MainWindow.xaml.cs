@@ -312,26 +312,6 @@ namespace ExportFeatureMatrix
                         tblProgress.Text = "Creating file...";
                     }
                     break;
-                    case OutputTypeEnum.Html:
-                    {
-                        ExporterToHtml exporter = new( );
-
-                        exporter.Export( tbOutputFile.Text, plugins! );
-
-                        tblProgress.Text = "DONE.";
-
-                        if( MessageBox.Show( this, "The file was created.\r\n\r\nOpen it?", CAPTION, MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Yes ) == MessageBoxResult.OK )
-                        {
-                            Process process = new( );
-                            process.StartInfo.FileName = tbOutputFile.Text;
-                            process.StartInfo.UseShellExecute = true;
-
-                            process.Start( );
-                        }
-
-                        tblProgress.Text = "";
-                    }
-                    break;
                     default:
                         throw new NotSupportedException( $"Output type not supported: '{output_type}'" );
                     }

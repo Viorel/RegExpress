@@ -118,13 +118,24 @@ namespace ICUPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { UREGEX_COMMENTS = true } );
-
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, engine )
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
                 ];
+        }
+
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.UREGEX_CASE_INSENSITIVE = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.UREGEX_COMMENTS = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
         }
 
         #endregion
@@ -362,6 +373,7 @@ namespace ICUPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                Σσς = true,
             };
         }
     }

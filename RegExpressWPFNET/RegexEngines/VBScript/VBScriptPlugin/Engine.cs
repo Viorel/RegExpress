@@ -120,6 +120,17 @@ namespace VBScriptPlugin
                 ];
         }
 
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.IgnoreCase = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
         #endregion
 
 
@@ -354,6 +365,7 @@ namespace VBScriptPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                Σσς = false,
             };
         }
     }

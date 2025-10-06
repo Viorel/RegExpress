@@ -124,6 +124,17 @@ namespace RE2Plugin
                 ];
         }
 
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.case_sensitive = !yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
         #endregion
 
 
@@ -359,6 +370,7 @@ namespace RE2Plugin
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = true,
             };
         }
     }

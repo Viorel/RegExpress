@@ -121,6 +121,17 @@ namespace HyperscanPlugin
                 ];
         }
 
+        public void SetIgnoreCase( bool yes )
+        {
+            ChimeraOptions options = mOptionsControl.Value.GetSelectedOptions( );
+            options.CH_FLAG_CASELESS = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
         #endregion
 
 
@@ -356,6 +367,7 @@ namespace HyperscanPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = true,
             };
         }
     }

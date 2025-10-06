@@ -134,7 +134,6 @@ namespace OnigurumaPlugin
                 {
                     Syntax = syntax,
                     ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA,
-                    ONIG_OPTION_EXTEND = true,
                 };
                 engine.mOptionsControl.Value.SetSelectedOptions( options );
 
@@ -144,6 +143,19 @@ namespace OnigurumaPlugin
             return variants;
         }
 
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.ONIG_OPTION_IGNORECASE = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.ONIG_OPTION_EXTEND = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
 
         #endregion
 
@@ -473,6 +485,7 @@ namespace OnigurumaPlugin
                 AllowDuplicateGroupName = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA || syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG || syntax == SyntaxEnum.ONIG_SYNTAX_RUBY,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = true,
             };
 
             // TODO: "\M-x"

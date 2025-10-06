@@ -174,7 +174,7 @@ partial class ExporterToExcel
 
                 foreach( FeatureMatrixDetails details in group.Details )
                 {
-                    if( progressOnFeatures != null ) progressOnFeatures( $"{details.ShortDesc} {details.Desc}", feature_index, total_features );
+                    if( progressOnFeatures != null ) progressOnFeatures( $"{details.ShortDesc} ({details.Desc})", feature_index, total_features );
 
                     ++feature_index;
 
@@ -191,10 +191,9 @@ partial class ExporterToExcel
                         {
                             if( progressOnEngines != null ) progressOnEngines( $"{engine_data.Engine.Name} {m.variant.Name}", engine_index, engines_data.Length );
 
-                            bool direct_flag_is_true = details.DirectCheck == null ? false : ( verify && details.DirectCheck( m.variant.RegexEngine, m.variant.FeatureMatrix ) );
-                            bool flag_is_true = direct_flag_is_true || details.Func( m.variant.FeatureMatrix );
+                            bool flag_is_true = details.ValueGetter( m.variant.FeatureMatrix );
 
-                            if( !verify || direct_flag_is_true || m.variant.RegexEngine == null || details.Rules.Count == 0 )
+                            if( !verify || m.variant.RegexEngine == null || details.Rules.Count == 0 )
                             {
                                 cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, flag_is_true ? "+" : "" );
                                 if( flag_is_true ) cell1.StyleIndex = STYLE_ID_PLUS;
@@ -205,30 +204,46 @@ partial class ExporterToExcel
 
                                 foreach( var rule in details.Rules )
                                 {
-                                    if( rule.TextToMatch != null )
+                                    if( rule.Pattern != null )
                                     {
-                                        try
+                                        if( rule.TextToMatch != null )
                                         {
-                                            RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, rule.Pattern, rule.TextToMatch );
-                                            satisfied = matches.Count > 0;
+                                            try
+                                            {
+                                                m.variant.RegexEngine.SetIgnoreCase( rule.IgnoreCase );
+                                                m.variant.RegexEngine.SetIgnorePatternWhitespace( rule.IgnorePatternWhitespace );
+
+                                                RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, rule.Pattern, rule.TextToMatch );
+                                                satisfied = matches.Count > 0;
+                                            }
+                                            catch( Exception )
+                                            {
+                                                // ignore
+                                            }
                                         }
-                                        catch( Exception )
+                                        if( satisfied && rule.TextToNotMatch != null )
                                         {
-                                            // ignore
+                                            try
+                                            {
+                                                m.variant.RegexEngine.SetIgnoreCase( rule.IgnoreCase );
+                                                m.variant.RegexEngine.SetIgnorePatternWhitespace( rule.IgnorePatternWhitespace );
+
+                                                RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, rule.Pattern, rule.TextToNotMatch );
+                                                satisfied = matches.Count == 0;
+                                            }
+                                            catch( Exception )
+                                            {
+                                                satisfied = true;
+                                                // ignore
+                                            }
                                         }
                                     }
-                                    if( satisfied && rule.TextToNotMatch != null )
+                                    else if( rule.DirectCheck != null )
                                     {
-                                        try
-                                        {
-                                            RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, rule.Pattern, rule.TextToNotMatch );
-                                            satisfied = matches.Count == 0;
-                                        }
-                                        catch( Exception )
-                                        {
-                                            satisfied = true;
-                                            // ignore
-                                        }
+                                        m.variant.RegexEngine.SetIgnoreCase( rule.IgnoreCase );
+                                        m.variant.RegexEngine.SetIgnorePatternWhitespace( rule.IgnorePatternWhitespace );
+
+                                        satisfied = rule.DirectCheck( m.variant.RegexEngine, m.variant.FeatureMatrix );
                                     }
 
                                     if( satisfied ) break;

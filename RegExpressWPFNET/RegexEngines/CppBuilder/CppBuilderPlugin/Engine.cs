@@ -110,14 +110,24 @@ namespace CppBuilderPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            List<FeatureMatrixVariant> variants = [];
+            return 
+                [
+                    new FeatureMatrixVariant( $"TRegEx (C++Builder, Delphi)", LazyFeatureMatrix.Value, new Engine() )
+                ];
+        }
 
-            Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { roIgnorePatternSpace = true } ); //
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.roIgnoreCase = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
 
-            variants.Add( new FeatureMatrixVariant( $"TRegEx (C++Builder, Delphi)", LazyFeatureMatrix.Value, engine ) );
-
-            return variants;
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.roIgnorePatternSpace = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
         }
 
         #endregion
@@ -351,6 +361,7 @@ namespace CppBuilderPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = true,
             };
         }
     }

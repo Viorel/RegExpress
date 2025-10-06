@@ -133,8 +133,6 @@ namespace PCRE2Plugin
                     PCRE2_ALT_EXTENDED_CLASS = true,
                     PCRE2_ALLOW_EMPTY_CLASS = true,
                     PCRE2_DUPNAMES = true,
-                    PCRE2_EXTENDED = true,
-                    PCRE2_EXTENDED_MORE = true,
                 } );
 
             return
@@ -142,7 +140,20 @@ namespace PCRE2Plugin
                     new FeatureMatrixVariant( null, LazyFeatureMatrix.GetValue((PCRE2_ALT_BSUX:true, PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true, PCRE2_DUPNAMES: true) ), engine)
                 ];
         }
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.PCRE2_CASELESS = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
 
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.PCRE2_EXTENDED = yes;
+            options.PCRE2_EXTENDED_MORE = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
 
         #endregion
 
@@ -380,6 +391,7 @@ namespace PCRE2Plugin
                 AllowDuplicateGroupName = PCRE2_DUPNAMES,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = false,
             };
         }
     }

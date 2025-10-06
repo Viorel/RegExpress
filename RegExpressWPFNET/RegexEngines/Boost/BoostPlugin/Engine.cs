@@ -126,12 +126,26 @@ namespace BoostPlugin
                 if( grammar == GrammarEnum.literal ) continue;
 
                 Engine engine = new( );
-                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Grammar = grammar, mod_x = true } );
+                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Grammar = grammar } );
 
                 variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), LazyFeatureMatrix.GetValue( grammar ), engine ) );
             }
 
             return variants;
+        }
+
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.icase = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.mod_x = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
         }
 
         #endregion
@@ -349,7 +363,7 @@ namespace BoostPlugin
                 Backref_kBrace = is_perl,
                 Backref_kNum = is_perl,
                 Backref_kNegNum = is_perl,
-                Backref_gApos = is_perl? FeatureMatrix.BackrefModeEnum.Value : FeatureMatrix.BackrefModeEnum.None,
+                Backref_gApos = is_perl ? FeatureMatrix.BackrefModeEnum.Value : FeatureMatrix.BackrefModeEnum.None,
                 Backref_gLtGt = is_perl ? FeatureMatrix.BackrefModeEnum.Value : FeatureMatrix.BackrefModeEnum.None,
                 Backref_gNum = is_perl ? FeatureMatrix.BackrefModeEnum.Value : FeatureMatrix.BackrefModeEnum.None,
                 Backref_gNegNum = is_perl ? FeatureMatrix.BackrefModeEnum.Value : FeatureMatrix.BackrefModeEnum.None,
@@ -397,6 +411,7 @@ namespace BoostPlugin
                 AllowDuplicateGroupName = is_perl,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
+                Σσς = false,
             };
         }
     }

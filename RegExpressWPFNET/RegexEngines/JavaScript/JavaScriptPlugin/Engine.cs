@@ -178,6 +178,18 @@ namespace JavaScriptPlugin
                 ];
         }
 
+
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.i = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
         #endregion
 
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
@@ -403,6 +415,7 @@ namespace JavaScriptPlugin
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                Σσς = true,
             };
         }
 
@@ -612,6 +625,7 @@ namespace JavaScriptPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                Σσς = true,
             };
         }
 
@@ -821,6 +835,7 @@ namespace JavaScriptPlugin
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                Σσς = true,
             };
         }
 
@@ -1030,6 +1045,7 @@ namespace JavaScriptPlugin
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = true,
             };
         }
     }

@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:StdPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="576.985" d:DesignWidth="674.643" 
+             d:DesignHeight="508.472" d:DesignWidth="674.643" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -43,7 +43,7 @@
                     <RowDefinition/>
                 </Grid.RowDefinitions>
 
-                <Label Grid.Column="0" Grid.Row="0" Content="Compiler:" Target="{Binding ElementName=cbxCompiler}" />
+                <Label Grid.Column="0" Grid.Row="0" Content="Implementation:" Target="{Binding ElementName=cbxCompiler}" />
                 <ComboBox x:Name="cbxCompiler" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Compiler, FallbackValue='MSVC'}" SelectionChanged="cbxCompiler_SelectionChanged">
                     <ComboBoxItem Tag="MSVC" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
                     <ComboBoxItem Tag="GCC" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />

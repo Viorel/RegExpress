@@ -121,6 +121,14 @@ namespace TinyRegexCPlugin
                 ];
         }
 
+        public void SetIgnoreCase( bool yes )
+        {
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
         #endregion
 
 
@@ -354,6 +362,7 @@ namespace TinyRegexCPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = false,
             };
         }
     }

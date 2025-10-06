@@ -156,6 +156,17 @@ namespace StdPlugin
             return variants;
         }
 
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.icase = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
         #endregion
 
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
@@ -295,7 +306,7 @@ namespace StdPlugin
                 InsideSets_Class_pPBrace = false,
                 InsideSets_Class_Name = true,
                 InsideSets_Equivalence = true,
-                InsideSets_Collating = true, // TODO: it seems to be a defect of STL; it always matches the last (any) character
+                InsideSets_Collating = false, // TODO: should be 'true'; it seems to be a defect of STL; it always matches the last (any) character
 
                 InsideSets_Operators = false,
                 InsideSets_OperatorsExtended = false,
@@ -410,7 +421,7 @@ namespace StdPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
-
+                Σσς = false,
             };
         }
 
@@ -650,6 +661,7 @@ namespace StdPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None, // 'Accept' when 'polynomial' option is set; otherwise it hangs; however, this option disables back-references
+                Σσς = false,
             };
         }
 
@@ -889,7 +901,7 @@ namespace StdPlugin
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
-
+                Σσς = true,
             };
         }
     }

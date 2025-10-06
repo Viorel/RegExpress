@@ -18,7 +18,7 @@ namespace RustPlugin
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
         readonly Lazy<UCOptions> mOptionsControl;
-        static readonly LazyData<(CrateEnum crate, StructEnum @struct, bool isOctal, bool isUnicodeSets, bool isOniguruma), FeatureMatrix> LazyData = new( BuildFeatureMatrix );
+        static readonly LazyData<(CrateEnum crate, StructEnum @struct, bool isOctal, bool isUnicode, bool isUnicodeSets, bool isOniguruma), FeatureMatrix> LazyData = new( BuildFeatureMatrix );
 
         public Engine( )
         {
@@ -111,35 +111,49 @@ namespace RustPlugin
             {
                 XLevel = ( options.crate == CrateEnum.regex || options.crate == CrateEnum.fancy_regex || options.crate == CrateEnum.regex_lite ) && options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = options.crate == CrateEnum.regress,
-                FeatureMatrix = LazyData.GetValue( (options.crate, options.@struct, options.octal, options.unicode_sets, options.oniguruma_mode) )
+                FeatureMatrix = LazyData.GetValue( (crate: options.crate, @struct: options.@struct, isOctal: options.octal, isUnicode: options.unicode, isUnicodeSets: options.unicode_sets, isOniguruma: options.oniguruma_mode) )
             };
         }
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, unicode = true, octal = true, ignore_whitespace = true } );
+            Engine engine_regex = new( );
+            engine_regex.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, unicode = true, octal = true } );
 
             Engine engine_lite = new( );
-            engine_lite.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex_lite, ignore_whitespace = true } );
+            engine_lite.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex_lite, @struct = StructEnum.RegexBuilder } );
 
             Engine engine_fancy = new( );
-            engine_fancy.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.fancy_regex, unicode = true, ignore_whitespace = true } );
+            engine_fancy.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.fancy_regex, @struct = StructEnum.RegexBuilder, unicode = true } );
 
             Engine engine_regress = new( );
-            engine_regress.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = false, ignore_whitespace = true } ); // currently 'ignore_whitespace' not supported'
+            engine_regress.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = false } ); // currently 'ignore_whitespace' not supported'
 
             Engine engine_regress_v = new( );
-            engine_regress_v.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true, ignore_whitespace = true } ); // currently 'ignore_whitespace' not supported
+            engine_regress_v.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } ); // currently 'ignore_whitespace' not supported
 
             return
                 [
-                    new FeatureMatrixVariant("regex (“u” flag)", LazyData.GetValue( (CrateEnum.regex, StructEnum.RegexBuilder, isOctal:true, isUnicodeSets:false, isOniguruma:false) ), engine),
-                    new FeatureMatrixVariant("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, StructEnum.RegexBuilder, isOctal:true, isUnicodeSets:false, isOniguruma:false) ), engine_lite),
-                    new FeatureMatrixVariant("fancy_regex (“u” flag)", LazyData.GetValue( (CrateEnum.fancy_regex, StructEnum.RegexBuilder, isOctal:true, isUnicodeSets:false, isOniguruma:false) ), engine_fancy),
-                    new FeatureMatrixVariant("regress (“u” flag)", LazyData.GetValue( (CrateEnum.regress, StructEnum.RegexBuilder, isOctal:true, isUnicodeSets:false, isOniguruma:false) ), engine_regress),
-                    new FeatureMatrixVariant("regress (“uv” flags)", LazyData.GetValue( (CrateEnum.regress, StructEnum.RegexBuilder, isOctal:true, isUnicodeSets:true, isOniguruma:false) ), engine_regress_v),
+                    new FeatureMatrixVariant("regex (“u” flag)", LazyData.GetValue( (CrateEnum.regex, StructEnum.RegexBuilder, isOctal:true, isUnicode:true, isUnicodeSets:false, isOniguruma:false) ), engine_regex),
+                    new FeatureMatrixVariant("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, StructEnum.RegexBuilder, isOctal:true, isUnicode:false, isUnicodeSets:false, isOniguruma:false) ), engine_lite),
+                    new FeatureMatrixVariant("fancy_regex (“u” flag)", LazyData.GetValue( (CrateEnum.fancy_regex, StructEnum.RegexBuilder, isOctal:true, isUnicode:true, isUnicodeSets:false, isOniguruma:false) ), engine_fancy),
+                    new FeatureMatrixVariant("regress (“u” flag)", LazyData.GetValue( (CrateEnum.regress, StructEnum.RegexBuilder, isOctal:true, isUnicode:true, isUnicodeSets:false, isOniguruma:false) ), engine_regress),
+                    new FeatureMatrixVariant("regress (“uv” flags)", LazyData.GetValue( (CrateEnum.regress, StructEnum.RegexBuilder, isOctal:true, isUnicode:true, isUnicodeSets:true, isOniguruma:false) ), engine_regress_v),
                 ];
+        }
+
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.case_insensitive = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.ignore_whitespace = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
         }
 
         #endregion
@@ -164,19 +178,19 @@ namespace RustPlugin
             }
         }
 
-        private static FeatureMatrix BuildFeatureMatrix( (CrateEnum crate, StructEnum @struct, bool isOctal, bool isUnicodeSets, bool isOniguruma) data )
+        private static FeatureMatrix BuildFeatureMatrix( (CrateEnum crate, StructEnum @struct, bool isOctal, bool isUnicode, bool isUnicodeSets, bool isOniguruma) data )
         {
             return data.crate switch
             {
-                CrateEnum.regex => BuildFeatureMatrix_RegexCrate( data.@struct, data.isOctal ),
+                CrateEnum.regex => BuildFeatureMatrix_RegexCrate( data.@struct, data.isOctal, data.isUnicode ),
                 CrateEnum.regex_lite => BuildFeatureMatrix_RegexLiteCrate( data.@struct ),
-                CrateEnum.fancy_regex => BuildFeatureMatrix_FancyRegexCrate( data.@struct, data.isOniguruma ),
+                CrateEnum.fancy_regex => BuildFeatureMatrix_FancyRegexCrate( data.@struct, data.isUnicode, data.isOniguruma ),
                 CrateEnum.regress => BuildFeatureMatrix_RegressCrate( data.@struct, data.isUnicodeSets ),
                 _ => throw new InvalidOperationException( ),
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_RegexCrate( StructEnum @struct, bool isOctal )
+        private static FeatureMatrix BuildFeatureMatrix_RegexCrate( StructEnum @struct, bool isOctal, bool isUnicode )
         {
             isOctal &= @struct == StructEnum.RegexBuilder;
 
@@ -387,6 +401,7 @@ namespace RustPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = isUnicode,
             };
         }
 
@@ -599,10 +614,11 @@ namespace RustPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = false,
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_FancyRegexCrate( StructEnum @struct, bool isOniguruma )
+        private static FeatureMatrix BuildFeatureMatrix_FancyRegexCrate( StructEnum @struct, bool isUnicode, bool isOniguruma )
         {
             isOniguruma &= @struct == StructEnum.RegexBuilder;
 
@@ -618,7 +634,7 @@ namespace RustPlugin
 
                 InlineComments = true,
                 XModeComments = true,
-                InsideSets_XModeComments = false,
+                InsideSets_XModeComments = true,
 
                 Flags = true,
                 ScopedFlags = true,
@@ -814,6 +830,7 @@ namespace RustPlugin
                 AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = isUnicode,
             };
         }
 
@@ -1029,6 +1046,7 @@ namespace RustPlugin
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                Σσς = true,
             };
         }
     }

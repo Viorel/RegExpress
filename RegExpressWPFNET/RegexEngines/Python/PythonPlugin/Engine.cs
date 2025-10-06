@@ -121,13 +121,13 @@ namespace PythonPlugin
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
             Engine engine_re = new( );
-            engine_re.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.re, VERBOSE = true, VERSION0 = false, VERSION1 = false } );
+            engine_re.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.re, VERSION0 = false, VERSION1 = false } );
 
             Engine engine_regex_v0 = new( );
-            engine_regex_v0.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERBOSE = true, VERSION0 = true, VERSION1 = false } );
+            engine_regex_v0.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERSION0 = true, VERSION1 = false } );
 
             Engine engine_regex_v1 = new( );
-            engine_regex_v1.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERBOSE = true, VERSION0 = false, VERSION1 = true } );
+            engine_regex_v1.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERSION0 = false, VERSION1 = true } );
 
             return
                 [
@@ -135,6 +135,20 @@ namespace PythonPlugin
                     new FeatureMatrixVariant("regex V0", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 0)), engine_regex_v0),
                     new FeatureMatrixVariant("regex V1", LazyFeatureMatrix.GetValue((ModuleEnum.regex, 1)), engine_regex_v1)
                 ];
+        }
+
+        public void SetIgnoreCase( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.IGNORECASE = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
+        }
+
+        public void SetIgnorePatternWhitespace( bool yes )
+        {
+            Options options = mOptionsControl.Value.GetSelectedOptions( );
+            options.VERBOSE = yes;
+            mOptionsControl.Value.SetSelectedOptions( options );
         }
 
         #endregion
@@ -374,6 +388,7 @@ namespace PythonPlugin
                 AllowDuplicateGroupName = is_regex,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = key.module == ModuleEnum.regex ? FeatureMatrix.CatastrophicBacktrackingEnum.Accept : FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                Σσς = true,
             };
         }
     }

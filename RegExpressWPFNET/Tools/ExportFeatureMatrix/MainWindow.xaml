@@ -28,7 +28,7 @@
                 </Style>
             </StackPanel.Resources>
             <RadioButton x:Name="rbOutputExcel" Content="Excel" VerticalAlignment="Center" Checked="rbOutputExcel_Checked"/>
-            <RadioButton x:Name="rbOutputHtml" Content="HTML" VerticalAlignment="Center" Checked="rbOutputHtml_Checked"/>
+            <RadioButton x:Name="rbOutputHtml" Content="HTML" VerticalAlignment="Center" IsEnabled="False" Checked="rbOutputHtml_Checked"/>
         </StackPanel>
 
         <TextBox x:Name="tbOutputFile" VerticalAlignment="Top" Margin="0 100 23 0" Padding="1.5" />
