@@ -45,6 +45,7 @@ namespace StdPlugin
 
             MatcherMSVC.StartGetVersion( SetMSVCVersion );
             MatcherGCC.StartGetVersion( SetGCCVersion );
+            MatcherSRELL.StartGetVersion( SetSRELLVersion );
 
             cbiSystemLocale.Content = $"System ({CultureInfo.CurrentCulture.Name})"; // TODO: watch for system changes
 
@@ -107,8 +108,17 @@ namespace StdPlugin
 
                 Options options = GetSelectedOptions( );
 
-                chkMultilineMSVC.Visibility = pnlMSVCConstants.Visibility = options.Compiler == CompilerEnum.MSVC ? Visibility.Visible : Visibility.Collapsed;
-                chkMultiline.Visibility = chkPolynomial.Visibility = options.Compiler == CompilerEnum.GCC ? Visibility.Visible : Visibility.Collapsed;
+                bool is_MSVC = options.Compiler == CompilerEnum.MSVC;
+                bool is_GCC = options.Compiler == CompilerEnum.GCC;
+                bool is_SRELL = options.Compiler == CompilerEnum.SRELL;
+
+                cbxLocale.Visibility = is_MSVC || is_GCC ? Visibility.Visible : Visibility.Collapsed;
+                cbxLocaleDisabled.Visibility = !( is_MSVC || is_GCC ) ? Visibility.Visible : Visibility.Collapsed;
+
+                chkMultilineMSVC.Visibility = pnlMSVCConstants.Visibility = is_MSVC ? Visibility.Visible : Visibility.Collapsed;
+                chkMultiline.Visibility = is_GCC || is_SRELL ? Visibility.Visible : Visibility.Collapsed;
+                chkPolynomial.Visibility = is_GCC ? Visibility.Visible : Visibility.Collapsed;
+                chkDotall.Visibility = chkUnicodesets.Visibility = chkVMode.Visibility = is_SRELL ? Visibility.Visible : Visibility.Collapsed;
             }
             finally
             {
@@ -159,6 +169,18 @@ namespace StdPlugin
                 ComboBoxItem cbi = cbxCompiler.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "GCC" );
 
                 cbi.Content = $"GCC {version}";
+            } );
+        }
+
+        void SetSRELLVersion( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxCompiler.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "SRELL" );
+
+                cbi.Content = $"SRELL {version}";
             } );
         }
     }

@@ -2,7 +2,7 @@
 <ChildProcessDebuggingSettings IsEnabled="false" xmlns="http://schemas.microsoft.com/vstudio/ChildProcessDebuggingSettings/2014">
   <DefaultRule Attach="false" />
   <Rule IsEnabled="false" ProcessName="RE2Worker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
-  <Rule IsEnabled="true" ProcessName="StdWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
+  <Rule IsEnabled="false" ProcessName="StdWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="PCRE2Worker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="BoostWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="OnigurumaWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
@@ -13,4 +13,5 @@
   <Rule IsEnabled="false" ProcessName="XRegExpWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="TREWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="TinyRegexCWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
+  <Rule IsEnabled="true" ProcessName="SrellWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
 </ChildProcessDebuggingSettings>

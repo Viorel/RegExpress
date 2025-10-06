@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:StdPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="460.185" d:DesignWidth="641.043" 
+             d:DesignHeight="576.985" d:DesignWidth="674.643" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -47,6 +47,7 @@
                 <ComboBox x:Name="cbxCompiler" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Compiler, FallbackValue='MSVC'}" SelectionChanged="cbxCompiler_SelectionChanged">
                     <ComboBoxItem Tag="MSVC" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
                     <ComboBoxItem Tag="GCC" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ComboBoxItem Tag="SRELL" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                 </ComboBox>
 
                 <Label Grid.Column="0" Grid.Row="1" Content="Grammar:" Target="{Binding ElementName=cbxGrammar}" />
@@ -65,6 +66,9 @@
                     <ComboBoxItem Tag="POSIX" Content="POSIX" />
                     <ComboBoxItem x:Name="cbiSystemLocale" Tag="" Content="System" />
                 </ComboBox>
+                <ComboBox x:Name="cbxLocaleDisabled" Grid.Column="1" Grid.Row="2" SelectedValuePath="Tag" IsEnabled="False" >
+                    <ComboBoxItem Content="" IsSelected="True"/>
+                </ComboBox>
 
             </Grid>
 
@@ -78,8 +82,11 @@
                 <ui:CheckboxWithNote Prop="optimize" Note="emphasize speed of matching rather than speed of regular expression compilation"/>
                 <ui:CheckboxWithNote Prop="collate" Note="make matches locale-sensitive"/>
                 <ui:CheckboxWithNote x:Name="chkMultilineMSVC" IsEnabled="False" IsChecked="True" Text="multiline" Note="(not supported; matching is multiline by default)"/>
-                <ui:CheckboxWithNote x:Name="chkMultiline" Prop="multiline" Text="multiline" Note="“^” matches the beginning of a line and “$” matches the end of a line"/>
-                <ui:CheckboxWithNote x:Name="chkPolynomial" Prop="polynomial" Text="polynomial" Note="ensure space complexity of compiled regex and time complexity execution are not exponential"/>
+                <ui:CheckboxWithNote x:Name="chkMultiline" Prop="multiline" Note="“^” matches the beginning of a line and “$” matches the end of a line"/>
+                <ui:CheckboxWithNote x:Name="chkPolynomial" Prop="polynomial" Note="ensure space complexity of compiled regex and time complexity execution are not exponential"/>
+                <ui:CheckboxWithNote x:Name="chkDotall" Prop="dotall" Note="“.” matches every code point"/>
+                <ui:CheckboxWithNote x:Name="chkUnicodesets" Prop="unicodesets" Note="“v-mode”, more unicode features"/>
+                <ui:CheckboxWithNote x:Name="chkVMode" Prop="vmode" Note="“v-mode”, more unicode features"/>
             </StackPanel>
 
             <Label Margin="0 4 0 4" Padding="0">

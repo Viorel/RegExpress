@@ -89,7 +89,9 @@
     <Project Path="RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/Std/">
+    <Project Path="RegexEngines/Std/SrellWorker/SrellWorker.vcxproj" />
     <Project Path="RegexEngines/Std/StdPlugin/StdPlugin.csproj">
+      <BuildDependency Project="RegexEngines/Std/SrellWorker/SrellWorker.vcxproj" />
       <BuildDependency Project="RegexEngines/Std/StdWorker/StdWorker.vcxproj" />
     </Project>
     <Project Path="RegexEngines/Std/StdWorker/StdWorker.vcxproj" Id="092ccef1-3957-472d-b166-2f9ce8cfd534" />
