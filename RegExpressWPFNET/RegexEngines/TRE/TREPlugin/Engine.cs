@@ -17,21 +17,39 @@ namespace TREPlugin
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
-        readonly Lazy<UCOptions> mOptionsControl;
         static readonly LazyData<bool /* isExtended */, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
+        Options mOptions = new( );
+        readonly Lazy<UCOptions> mOptionsControl;
 
         public Engine( )
         {
             mOptionsControl = new Lazy<UCOptions>( ( ) =>
             {
-                var oc = new UCOptions( );
+                UCOptions oc = new( );
+                oc.SetOptions( Options );
                 oc.Changed += OptionsControl_Changed;
 
                 return oc;
             } );
         }
 
+        public Options Options
+        {
+            get
+            {
+                return mOptions;
+            }
+            set
+            {
+                mOptions = value;
+
+                if( mOptionsControl.IsValueCreated )
+                {
+                    mOptionsControl.Value.SetOptions( mOptions );
+                }
+            }
+        }
 
         #region IRegexEngine
 
@@ -58,71 +76,56 @@ namespace TREPlugin
             return mOptionsControl.Value;
         }
 
-
         public string? ExportOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
+            string json = JsonSerializer.Serialize( Options, JsonUtilities.JsonOptions );
 
             return json;
         }
 
-
         public void ImportOptions( string? json )
         {
-            Options options_obj;
-
             if( string.IsNullOrWhiteSpace( json ) )
             {
-                options_obj = new Options( );
+                Options = new Options( );
             }
             else
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
+                    Options = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {
                     // ignore versioning errors, for example
                     if( Debugger.IsAttached ) Debugger.Break( );
 
-                    options_obj = new Options( );
+                    Options = new Options( );
                 }
             }
-
-            mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
-
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return Matcher.GetMatches( cnc, pattern, text, options );
+            return Matcher.GetMatches( cnc, pattern, text, Options );
         }
 
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            var options = mOptionsControl.Value.GetSelectedOptions( );
-
             return new SyntaxOptions
             {
-                Literal = options.REG_LITERAL,
+                Literal = Options.REG_LITERAL,
                 XLevel = XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( options.REG_EXTENDED ),
+                FeatureMatrix = LazyFeatureMatrix.GetValue( Options.REG_EXTENDED ),
             };
         }
 
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine_extended = new( );
-            engine_extended.mOptionsControl.Value.SetSelectedOptions( new Options { REG_EXTENDED = true } );
-
-            Engine engine_basic = new( );
-            engine_basic.mOptionsControl.Value.SetSelectedOptions( new Options { REG_EXTENDED = false } );
+            Engine engine_extended = new( ) { Options = new Options { REG_EXTENDED = true } };
+            Engine engine_basic = new( ) { Options = new Options { REG_EXTENDED = false } };
 
             return
                 [
@@ -133,9 +136,8 @@ namespace TREPlugin
 
         public void SetIgnoreCase( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.REG_ICASE = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.REG_ICASE = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )

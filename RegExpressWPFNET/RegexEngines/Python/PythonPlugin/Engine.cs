@@ -20,21 +20,39 @@ namespace PythonPlugin
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
-        readonly Lazy<UCOptions> mOptionsControl;
         static readonly LazyData<(ModuleEnum, int), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
+        Options mOptions = new( );
+        readonly Lazy<UCOptions> mOptionsControl;
 
         public Engine( )
         {
             mOptionsControl = new Lazy<UCOptions>( ( ) =>
             {
-                var oc = new UCOptions( );
+                UCOptions oc = new( );
+                oc.SetOptions( Options );
                 oc.Changed += OptionsControl_Changed;
 
                 return oc;
             } );
         }
 
+        public Options Options
+        {
+            get
+            {
+                return mOptions;
+            }
+            set
+            {
+                mOptions = value;
+
+                if( mOptionsControl.IsValueCreated )
+                {
+                    mOptionsControl.Value.SetOptions( mOptions );
+                }
+            }
+        }
 
         #region IRegexEngine
 
@@ -61,73 +79,56 @@ namespace PythonPlugin
             return mOptionsControl.Value;
         }
 
-
         public string? ExportOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
+            string json = JsonSerializer.Serialize( Options, JsonUtilities.JsonOptions );
 
             return json;
         }
 
-
         public void ImportOptions( string? json )
         {
-            Options options_obj;
-
             if( string.IsNullOrWhiteSpace( json ) )
             {
-                options_obj = new Options( );
+                Options = new Options( );
             }
             else
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
+                    Options = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {
                     // ignore versioning errors, for example
                     if( Debugger.IsAttached ) Debugger.Break( );
 
-                    options_obj = new Options( );
+                    Options = new Options( );
                 }
             }
-
-            mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
-
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return Matcher.GetMatches( cnc, pattern, text, options );
+            return Matcher.GetMatches( cnc, pattern, text, Options );
         }
 
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
             return new SyntaxOptions
             {
-                XLevel = options.VERBOSE ? XLevelEnum.x : XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( (options.Module, options.Module == ModuleEnum.regex ? options.VERSION1 ? 1 : 0 : 0) )
+                XLevel = Options.VERBOSE ? XLevelEnum.x : XLevelEnum.none,
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (Options.Module, Options.Module == ModuleEnum.regex ? Options.VERSION1 ? 1 : 0 : 0) )
             };
         }
 
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine_re = new( );
-            engine_re.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.re, VERSION0 = false, VERSION1 = false } );
-
-            Engine engine_regex_v0 = new( );
-            engine_regex_v0.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERSION0 = true, VERSION1 = false } );
-
-            Engine engine_regex_v1 = new( );
-            engine_regex_v1.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.regex, VERSION0 = false, VERSION1 = true } );
+            Engine engine_re = new( ) { Options = new Options { Module = ModuleEnum.re, VERSION0 = false, VERSION1 = false } };
+            Engine engine_regex_v0 = new( ) { Options = new Options { Module = ModuleEnum.regex, VERSION0 = true, VERSION1 = false } };
+            Engine engine_regex_v1 = new( ) { Options = new Options { Module = ModuleEnum.regex, VERSION0 = false, VERSION1 = true } };
 
             return
                 [
@@ -139,16 +140,14 @@ namespace PythonPlugin
 
         public void SetIgnoreCase( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.IGNORECASE = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.IGNORECASE = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.VERBOSE = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.VERBOSE = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         #endregion

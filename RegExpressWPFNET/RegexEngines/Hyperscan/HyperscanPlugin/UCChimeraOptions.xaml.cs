@@ -70,19 +70,14 @@ namespace HyperscanPlugin
         }
 
 
-        internal ChimeraOptions GetSelectedOptions( )
-        {
-            return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
-        }
-
-
-        internal void SetSelectedOptions( ChimeraOptions options )
+        internal void SetOptions( ChimeraOptions options )
         {
             try
             {
                 ++ChangeCounter;
 
-                Options = options.Clone( );
+                if( object.ReferenceEquals( options, Options ) ) DataContext = null;
+                Options = options;
                 DataContext = Options;
             }
             finally
@@ -90,6 +85,5 @@ namespace HyperscanPlugin
                 --ChangeCounter;
             }
         }
-
     }
 }

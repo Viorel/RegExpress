@@ -67,19 +67,14 @@ namespace RE2Plugin
             Notify( preferImmediateReaction: false );
         }
 
-        internal Options GetSelectedOptions( )
-        {
-            return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
-        }
-
-
-        internal void SetSelectedOptions( Options options )
+        internal void SetOptions( Options options )
         {
             try
             {
                 ++ChangeCounter;
 
-                Options = options.Clone( );
+                if( object.ReferenceEquals( options, Options ) ) DataContext = null;
+                Options = options;
                 DataContext = Options;
             }
             finally

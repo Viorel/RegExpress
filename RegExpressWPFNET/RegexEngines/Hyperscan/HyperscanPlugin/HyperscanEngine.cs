@@ -17,21 +17,39 @@ namespace HyperscanPlugin
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
-        readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
+        HyperscanOptions mOptions = new( );
+        readonly Lazy<UCHyperscanOptions> mOptionsControl;
 
         public Engine( )
         {
-            mOptionsControl = new Lazy<UCOptions>( ( ) =>
+            mOptionsControl = new Lazy<UCHyperscanOptions>( ( ) =>
             {
-                var oc = new UCOptions( );
+                UCHyperscanOptions oc = new( );
+                oc.SetOptions( Options );
                 oc.Changed += OptionsControl_Changed;
 
                 return oc;
             } );
         }
 
+        public HyperscanOptions Options
+        {
+            get
+            {
+                return mOptions;
+            }
+            set
+            {
+                mOptions = value;
+
+                if( mOptionsControl.IsValueCreated )
+                {
+                    mOptionsControl.Value.SetOptions( mOptions );
+                }
+            }
+        }
 
         #region IRegexEngine
 
@@ -58,50 +76,39 @@ namespace HyperscanPlugin
             return mOptionsControl.Value;
         }
 
-
         public string? ExportOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
+            string json = JsonSerializer.Serialize( Options, JsonUtilities.JsonOptions );
 
             return json;
         }
 
-
         public void ImportOptions( string? json )
         {
-            Options options_obj;
-
             if( string.IsNullOrWhiteSpace( json ) )
             {
-                options_obj = new Options( );
+                Options = new HyperscanOptions( );
             }
             else
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
+                    Options = JsonSerializer.Deserialize<HyperscanOptions>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {
                     // ignore versioning errors, for example
                     if( Debugger.IsAttached ) Debugger.Break( );
 
-                    options_obj = new Options( );
+                    Options = new HyperscanOptions( );
                 }
             }
-
-            mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
-
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return HyperscanMatcher.GetMatches( cnc, pattern, text, options );
+            return HyperscanMatcher.GetMatches( cnc, pattern, text, Options );
         }
-
 
         public SyntaxOptions GetSyntaxOptions( )
         {
@@ -115,8 +122,7 @@ namespace HyperscanPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions( new Options { HS_FLAG_UTF8 = true, HS_FLAG_SOM_LEFTMOST = false } );
+            Engine engine = new( ) { Options = new HyperscanOptions { HS_FLAG_UTF8 = true, HS_FLAG_SOM_LEFTMOST = false } };
             // ('HS_FLAG_UTF8=true' allows non-latin letters, 'HS_FLAG_SOM_LEFTMOST=false' reduce the "Pattern is too large" errors)
 
             return
@@ -127,9 +133,8 @@ namespace HyperscanPlugin
 
         public void SetIgnoreCase( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.HS_FLAG_CASELESS = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.HS_FLAG_CASELESS = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )

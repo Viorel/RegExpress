@@ -17,18 +17,38 @@ namespace QtPlugin
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
-        readonly Lazy<UCOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+
+        Options mOptions = new( );
+        readonly Lazy<UCOptions> mOptionsControl;
 
         public Engine( )
         {
             mOptionsControl = new Lazy<UCOptions>( ( ) =>
             {
-                var oc = new UCOptions( );
+                UCOptions oc = new( );
+                oc.SetOptions( Options );
                 oc.Changed += OptionsControl_Changed;
 
                 return oc;
             } );
+        }
+
+        public Options Options
+        {
+            get
+            {
+                return mOptions;
+            }
+            set
+            {
+                mOptions = value;
+
+                if( mOptionsControl.IsValueCreated )
+                {
+                    mOptionsControl.Value.SetOptions( mOptions );
+                }
+            }
         }
 
         #region IRegexEngine
@@ -57,52 +77,43 @@ namespace QtPlugin
 
         public string? ExportOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
+            string json = JsonSerializer.Serialize( Options, JsonUtilities.JsonOptions );
 
             return json;
         }
 
         public void ImportOptions( string? json )
         {
-            Options options_obj;
-
             if( string.IsNullOrWhiteSpace( json ) )
             {
-                options_obj = new Options( );
+                Options = new Options( );
             }
             else
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
+                    Options = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {
                     // ignore versioning errors, for example
                     if( Debugger.IsAttached ) Debugger.Break( );
 
-                    options_obj = new Options( );
+                    Options = new Options( );
                 }
             }
-
-            mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return Matcher.GetMatches( cnc, pattern, text, options );
+            return Matcher.GetMatches( cnc, pattern, text, Options );
         }
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            var options = mOptionsControl.Value.GetSelectedOptions( );
-
             return new SyntaxOptions
             {
-                XLevel = options.ExtendedPatternSyntaxOption ? XLevelEnum.x : XLevelEnum.none,
+                XLevel = Options.ExtendedPatternSyntaxOption ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = false,
                 FeatureMatrix = LazyFeatureMatrix.Value,
             };
@@ -118,16 +129,14 @@ namespace QtPlugin
 
         public void SetIgnoreCase( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.CaseInsensitiveOption = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.CaseInsensitiveOption = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.ExtendedPatternSyntaxOption = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.ExtendedPatternSyntaxOption = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         #endregion

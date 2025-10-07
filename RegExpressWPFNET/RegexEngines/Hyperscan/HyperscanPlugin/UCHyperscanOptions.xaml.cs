@@ -18,17 +18,17 @@ using RegExpressLibrary;
 namespace HyperscanPlugin
 {
     /// <summary>
-    /// Interaction logic for UCOptions.xaml
+    /// Interaction logic for UCHyperscanOptions.xaml
     /// </summary>
-    public partial class UCOptions : UserControl
+    public partial class UCHyperscanOptions : UserControl
     {
         internal event EventHandler<RegexEngineOptionsChangedArgs>? Changed;
 
         bool IsFullyLoaded = false;
         int ChangeCounter = 0;
-        Options Options = new( );
+        HyperscanOptions Options = new( );
 
-        public UCOptions( )
+        public UCHyperscanOptions( )
         {
             InitializeComponent( );
 
@@ -75,19 +75,14 @@ namespace HyperscanPlugin
             Notify( preferImmediateReaction: true );
         }
 
-        internal Options GetSelectedOptions( )
-        {
-            return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
-        }
-
-
-        internal void SetSelectedOptions( Options options )
+        internal void SetOptions( HyperscanOptions options )
         {
             try
             {
                 ++ChangeCounter;
 
-                Options = options.Clone( );
+                if( object.ReferenceEquals( options, Options ) ) DataContext = null;
+                Options = options;
                 DataContext = Options;
             }
             finally
@@ -95,7 +90,5 @@ namespace HyperscanPlugin
                 --ChangeCounter;
             }
         }
-
-
     }
 }

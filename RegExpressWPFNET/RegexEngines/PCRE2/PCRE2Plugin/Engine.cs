@@ -17,21 +17,39 @@ namespace PCRE2Plugin
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
+
+        Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
         readonly LazyData<(bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
-
 
         public Engine( )
         {
             mOptionsControl = new Lazy<UCOptions>( ( ) =>
             {
-                var oc = new UCOptions( );
+                UCOptions oc = new( );
+                oc.SetOptions( Options );
                 oc.Changed += OptionsControl_Changed;
 
                 return oc;
             } );
         }
 
+        public Options Options
+        {
+            get
+            {
+                return mOptions;
+            }
+            set
+            {
+                mOptions = value;
+
+                if( mOptionsControl.IsValueCreated )
+                {
+                    mOptionsControl.Value.SetOptions( mOptions );
+                }
+            }
+        }
 
         #region IRegexEngine
 
@@ -58,82 +76,69 @@ namespace PCRE2Plugin
             return mOptionsControl.Value;
         }
 
-
         public string? ExportOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
+            string json = JsonSerializer.Serialize( Options, JsonUtilities.JsonOptions );
 
             return json;
         }
 
-
         public void ImportOptions( string? json )
         {
-            Options options_obj;
-
             if( string.IsNullOrWhiteSpace( json ) )
             {
-                options_obj = new Options( );
+                Options = new Options( );
             }
             else
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
+                    Options = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {
                     // ignore versioning errors, for example
                     if( Debugger.IsAttached ) Debugger.Break( );
 
-                    options_obj = new Options( );
+                    Options = new Options( );
                 }
             }
-
-            mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
-
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return Matcher.GetMatches( cnc, pattern, text, options );
+            return Matcher.GetMatches( cnc, pattern, text, Options );
         }
-
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            var options = mOptionsControl.Value.GetSelectedOptions( );
-
-            bool is_literal = options.PCRE2_LITERAL;
-            bool is_extended = options.PCRE2_EXTENDED;
-            bool is_extended_more = options.PCRE2_EXTENDED_MORE;
-            bool allow_empty_set = options.PCRE2_ALLOW_EMPTY_CLASS;
+            bool is_literal = Options.PCRE2_LITERAL;
+            bool is_extended = Options.PCRE2_EXTENDED;
+            bool is_extended_more = Options.PCRE2_EXTENDED_MORE;
+            bool allow_empty_set = Options.PCRE2_ALLOW_EMPTY_CLASS;
 
             return new SyntaxOptions
             {
                 Literal = is_literal,
                 XLevel = is_extended_more ? XLevelEnum.xx : is_extended ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = allow_empty_set,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( (PCRE2_ALT_BSUX: options.PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX: options.PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS: options.PCRE2_ALT_EXTENDED_CLASS, PCRE2_DUPNAMES: true) ),
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (PCRE2_ALT_BSUX: Options.PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX: Options.PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS: Options.PCRE2_ALT_EXTENDED_CLASS, PCRE2_DUPNAMES: true) ),
             };
         }
 
-
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine = new( );
-            engine.mOptionsControl.Value.SetSelectedOptions(
-                new Options
+            Engine engine = new( )
+            {
+                Options = new Options
                 {
                     PCRE2_ALT_BSUX = true,
                     PCRE2_EXTRA_ALT_BSUX = true,
                     PCRE2_ALT_EXTENDED_CLASS = true,
                     PCRE2_ALLOW_EMPTY_CLASS = true,
                     PCRE2_DUPNAMES = true,
-                } );
+                }
+            };
 
             return
                 [
@@ -142,17 +147,15 @@ namespace PCRE2Plugin
         }
         public void SetIgnoreCase( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.PCRE2_CASELESS = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.PCRE2_CASELESS = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.PCRE2_EXTENDED = yes;
-            options.PCRE2_EXTENDED_MORE = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.PCRE2_EXTENDED = yes;
+            Options.PCRE2_EXTENDED_MORE = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         #endregion

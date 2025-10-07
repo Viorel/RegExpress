@@ -108,18 +108,14 @@ namespace JavaPlugin
             }
         }
 
-        internal Options GetSelectedOptions( )
-        {
-            return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
-        }
-
-        internal void SetSelectedOptions( Options options )
+        internal void SetOptions( Options options )
         {
             try
             {
                 ++ChangeCounter;
 
-                Options = options.Clone( );
+                if( object.ReferenceEquals( options, Options ) ) DataContext = null;
+                Options = options;
                 DataContext = Options;
 
                 UpdateControls( );
@@ -132,9 +128,7 @@ namespace JavaPlugin
 
         internal string GetSelectedPackageTitle( )
         {
-            Options options = GetSelectedOptions( );
-
-            return options.Package switch
+            return Options.Package switch
             {
                 PackageEnum.regex => "regex",
                 PackageEnum.re2j => "re2j",

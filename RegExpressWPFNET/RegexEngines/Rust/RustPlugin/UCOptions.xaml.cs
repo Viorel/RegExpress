@@ -142,18 +142,14 @@ namespace RustPlugin
             }
         }
 
-        internal Options GetSelectedOptions( )
-        {
-            return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
-        }
-
-        internal void SetSelectedOptions( Options options )
+        internal void SetOptions( Options options )
         {
             try
             {
                 ++ChangeCounter;
 
-                Options = options.Clone( );
+                if( object.ReferenceEquals( options, Options ) ) DataContext = null;
+                Options = options;
                 DataContext = Options;
 
                 UpdateControls( );
@@ -166,9 +162,7 @@ namespace RustPlugin
 
         internal string? GetSelectedCrateTitle( )
         {
-            Options options = GetSelectedOptions( );
-
-            return options.crate switch
+            return Options.crate switch
             {
                 CrateEnum.regex => "regex",
                 CrateEnum.regex_lite => "regex_lite",

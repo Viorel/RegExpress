@@ -23,7 +23,7 @@ namespace HyperscanPlugin
         static readonly Encoding AsciiEncodingWithExceptionFallback = Encoding.GetEncoding( Encoding.ASCII.WebName, new EncoderExceptionFallback( ), new DecoderExceptionFallback( ) );
 
 
-        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
+        public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, HyperscanOptions options )
         {
             if( !string.IsNullOrWhiteSpace( options.LevenshteinDistance ) && !UInt32.TryParse( options.LevenshteinDistance, out var _ ) )
             {

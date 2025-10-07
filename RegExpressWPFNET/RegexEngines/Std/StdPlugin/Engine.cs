@@ -16,18 +16,38 @@ namespace StdPlugin
 {
     class Engine : IRegexEngine
     {
-        readonly Lazy<UCOptions> mOptionsControl;
         static readonly LazyData<(CompilerEnum, GrammarEnum, bool uflag, bool vflag), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+
+        Options mOptions = new( );
+        readonly Lazy<UCOptions> mOptionsControl;
 
         public Engine( )
         {
             mOptionsControl = new Lazy<UCOptions>( ( ) =>
             {
                 UCOptions oc = new( );
+                oc.SetOptions( Options );
                 oc.Changed += OptionsControl_Changed;
 
                 return oc;
             } );
+        }
+
+        public Options Options
+        {
+            get
+            {
+                return mOptions;
+            }
+            set
+            {
+                mOptions = value;
+
+                if( mOptionsControl.IsValueCreated )
+                {
+                    mOptionsControl.Value.SetOptions( mOptions );
+                }
+            }
         }
 
         #region IRegexEngine
@@ -38,7 +58,7 @@ namespace StdPlugin
 
         public string Name => "wregex";
 
-        public string Subtitle => $"{mOptionsControl.Value.GetSelectedOptions( ).Compiler switch { CompilerEnum.MSVC => "std::wregex", CompilerEnum.GCC => "std::wregex (GCC)", CompilerEnum.SRELL => "srell:wregex", _ => " (Unknown)" }}";
+        public string Subtitle => $"{Options.Compiler switch { CompilerEnum.MSVC => "std::wregex", CompilerEnum.GCC => "std::wregex (GCC)", CompilerEnum.SRELL => "srell:wregex", _ => " (Unknown)" }}";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 
@@ -56,60 +76,51 @@ namespace StdPlugin
 
         public string? ExportOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
+            string json = JsonSerializer.Serialize( Options, JsonUtilities.JsonOptions );
 
             return json;
         }
 
         public void ImportOptions( string? json )
         {
-            Options options_obj;
-
             if( string.IsNullOrWhiteSpace( json ) )
             {
-                options_obj = new Options( );
+                Options = new Options( );
             }
             else
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
+                    Options = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {
                     // ignore versioning errors, for example
                     if( Debugger.IsAttached ) Debugger.Break( );
 
-                    options_obj = new Options( );
+                    Options = new Options( );
                 }
             }
-
-            mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return options.Compiler switch
+            return Options.Compiler switch
             {
-                CompilerEnum.MSVC => MatcherMSVC.GetMatches( cnc, pattern, text, options ),
-                CompilerEnum.GCC => MatcherGCC.GetMatches( cnc, pattern, text, options ),
-                CompilerEnum.SRELL => MatcherSRELL.GetMatches( cnc, pattern, text, options ),
+                CompilerEnum.MSVC => MatcherMSVC.GetMatches( cnc, pattern, text, Options ),
+                CompilerEnum.GCC => MatcherGCC.GetMatches( cnc, pattern, text, Options ),
+                CompilerEnum.SRELL => MatcherSRELL.GetMatches( cnc, pattern, text, Options ),
                 _ => throw new InvalidOperationException( )
             };
         }
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            var options = mOptionsControl.Value.GetSelectedOptions( );
-
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
-                AllowEmptySets = options.Grammar == GrammarEnum.ECMAScript,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( (options.Compiler, options.Grammar, options.Compiler == CompilerEnum.SRELL && options.unicodesets, options.Compiler == CompilerEnum.SRELL && options.vmode) )
+                AllowEmptySets = Options.Grammar == GrammarEnum.ECMAScript,
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (Options.Compiler, Options.Grammar, Options.Compiler == CompilerEnum.SRELL && Options.unicodesets, Options.Compiler == CompilerEnum.SRELL && Options.vmode) )
             };
         }
 
@@ -121,8 +132,7 @@ namespace StdPlugin
             {
                 if( grammar == GrammarEnum.None ) continue;
 
-                Engine engine = new( );
-                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Compiler = CompilerEnum.MSVC, Grammar = grammar } );
+                Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.MSVC, Grammar = grammar } };
 
                 variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), LazyFeatureMatrix.GetValue( (CompilerEnum.MSVC, grammar, false, false) ), engine ) );
             }
@@ -130,8 +140,7 @@ namespace StdPlugin
             {
                 GrammarEnum grammar = GrammarEnum.ECMAScript;
 
-                Engine engine = new( );
-                engine.mOptionsControl.Value.SetSelectedOptions( new Options { Compiler = CompilerEnum.GCC, Grammar = grammar } );
+                Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.GCC, Grammar = grammar } };
 
                 variants.Add( new FeatureMatrixVariant( $"GCC, {Enum.GetName( grammar )}", LazyFeatureMatrix.GetValue( (CompilerEnum.GCC, grammar, false, false) ), engine ) );
             }
@@ -140,14 +149,12 @@ namespace StdPlugin
                 GrammarEnum grammar = GrammarEnum.ECMAScript;
 
                 {
-                    Engine engine = new( );
-                    engine.mOptionsControl.Value.SetSelectedOptions( new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = false, vmode = false } );
+                    Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = false, vmode = false } };
 
                     variants.Add( new FeatureMatrixVariant( $"SRELL, {Enum.GetName( grammar )}, no “uv”", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, false, false) ), engine ) );
                 }
                 {
-                    Engine engine = new( );
-                    engine.mOptionsControl.Value.SetSelectedOptions( new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = true, vmode = true } );
+                    Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = true, vmode = true } };
 
                     variants.Add( new FeatureMatrixVariant( $"SRELL, {Enum.GetName( grammar )}, “uv”", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, true, true) ), engine ) );
                 }
@@ -158,9 +165,8 @@ namespace StdPlugin
 
         public void SetIgnoreCase( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.icase = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.icase = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )

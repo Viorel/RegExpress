@@ -106,11 +106,9 @@ namespace StdPlugin
             {
                 ++ChangeCounter;
 
-                Options options = GetSelectedOptions( );
-
-                bool is_MSVC = options.Compiler == CompilerEnum.MSVC;
-                bool is_GCC = options.Compiler == CompilerEnum.GCC;
-                bool is_SRELL = options.Compiler == CompilerEnum.SRELL;
+                bool is_MSVC = Options.Compiler == CompilerEnum.MSVC;
+                bool is_GCC = Options.Compiler == CompilerEnum.GCC;
+                bool is_SRELL = Options.Compiler == CompilerEnum.SRELL;
 
                 cbxLocale.Visibility = is_MSVC || is_GCC ? Visibility.Visible : Visibility.Collapsed;
                 cbxLocaleDisabled.Visibility = !( is_MSVC || is_GCC ) ? Visibility.Visible : Visibility.Collapsed;
@@ -126,18 +124,14 @@ namespace StdPlugin
             }
         }
 
-        internal Options GetSelectedOptions( )
-        {
-            return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
-        }
-
-        internal void SetSelectedOptions( Options options )
+        internal void SetOptions( Options options )
         {
             try
             {
                 ++ChangeCounter;
 
-                Options = options.Clone( );
+                if( object.ReferenceEquals( options, Options ) ) DataContext = null;
+                Options = options;
                 DataContext = Options;
 
                 UpdateControls( );

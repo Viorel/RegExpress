@@ -17,21 +17,39 @@ namespace HyperscanPlugin
     class ChimeraEngine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
-        readonly Lazy<UCChimeraOptions> mOptionsControl;
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
+        ChimeraOptions mOptions = new( );
+        readonly Lazy<UCChimeraOptions> mOptionsControl;
 
         public ChimeraEngine( )
         {
             mOptionsControl = new Lazy<UCChimeraOptions>( ( ) =>
             {
-                var oc = new UCChimeraOptions( );
+                UCChimeraOptions oc = new( );
+                oc.SetOptions( Options );
                 oc.Changed += OptionsControl_Changed;
 
                 return oc;
             } );
         }
 
+        public ChimeraOptions Options
+        {
+            get
+            {
+                return mOptions;
+            }
+            set
+            {
+                mOptions = value;
+
+                if( mOptionsControl.IsValueCreated )
+                {
+                    mOptionsControl.Value.SetOptions( mOptions );
+                }
+            }
+        }
 
         #region IRegexEngine
 
@@ -58,50 +76,39 @@ namespace HyperscanPlugin
             return mOptionsControl.Value;
         }
 
-
         public string? ExportOptions( )
         {
-            ChimeraOptions options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
+            string json = JsonSerializer.Serialize( Options, JsonUtilities.JsonOptions );
 
             return json;
         }
 
-
         public void ImportOptions( string? json )
         {
-            ChimeraOptions options_obj;
-
             if( string.IsNullOrWhiteSpace( json ) )
             {
-                options_obj = new ChimeraOptions( );
+                Options = new ChimeraOptions( );
             }
             else
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<ChimeraOptions>( json, JsonUtilities.JsonOptions )!;
+                    Options = JsonSerializer.Deserialize<ChimeraOptions>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {
                     // ignore versioning errors, for example
                     if( Debugger.IsAttached ) Debugger.Break( );
 
-                    options_obj = new ChimeraOptions( );
+                    Options = new ChimeraOptions( );
                 }
             }
-
-            mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
-
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            ChimeraOptions options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return ChimeraMatcher.GetMatches( cnc, pattern, text, options );
+            return ChimeraMatcher.GetMatches( cnc, pattern, text, Options );
         }
-
 
         public SyntaxOptions GetSyntaxOptions( )
         {
@@ -123,9 +130,8 @@ namespace HyperscanPlugin
 
         public void SetIgnoreCase( bool yes )
         {
-            ChimeraOptions options = mOptionsControl.Value.GetSelectedOptions( );
-            options.CH_FLAG_CASELESS = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.CH_FLAG_CASELESS = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )

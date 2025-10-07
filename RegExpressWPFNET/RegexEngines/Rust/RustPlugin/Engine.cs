@@ -17,18 +17,38 @@ namespace RustPlugin
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
-        readonly Lazy<UCOptions> mOptionsControl;
         static readonly LazyData<(CrateEnum crate, StructEnum @struct, bool isOctal, bool isUnicode, bool isUnicodeSets, bool isOniguruma), FeatureMatrix> LazyData = new( BuildFeatureMatrix );
+
+        Options mOptions = new( );
+        readonly Lazy<UCOptions> mOptionsControl;
 
         public Engine( )
         {
             mOptionsControl = new Lazy<UCOptions>( ( ) =>
             {
-                var oc = new UCOptions( );
+                UCOptions oc = new( );
+                oc.SetOptions( Options );
                 oc.Changed += OptionsControl_Changed;
 
                 return oc;
             } );
+        }
+
+        public Options Options
+        {
+            get
+            {
+                return mOptions;
+            }
+            set
+            {
+                mOptions = value;
+
+                if( mOptionsControl.IsValueCreated )
+                {
+                    mOptionsControl.Value.SetOptions( mOptions );
+                }
+            }
         }
 
         #region IRegexEngine
@@ -57,80 +77,62 @@ namespace RustPlugin
 
         public string? ExportOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
+            string json = JsonSerializer.Serialize( Options, JsonUtilities.JsonOptions );
 
             return json;
         }
 
         public void ImportOptions( string? json )
         {
-            Options options_obj;
-
             if( string.IsNullOrWhiteSpace( json ) )
             {
-                options_obj = new Options( );
+                Options = new Options( );
             }
             else
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
+                    Options = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {
                     // ignore versioning errors, for example
                     if( Debugger.IsAttached ) Debugger.Break( );
 
-                    options_obj = new Options( );
+                    Options = new Options( );
                 }
             }
-
-            mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return options.crate switch
+            return Options.crate switch
             {
-                CrateEnum.regex => MatcherRegex.GetMatches( cnc, pattern, text, options ),
-                CrateEnum.regex_lite => MatcherRegexLite.GetMatches( cnc, pattern, text, options ),
-                CrateEnum.fancy_regex => MatcherFancyRegex.GetMatches( cnc, pattern, text, options ),
-                CrateEnum.regress => MatcherRegress.GetMatches( cnc, pattern, text, options ),
+                CrateEnum.regex => MatcherRegex.GetMatches( cnc, pattern, text, Options ),
+                CrateEnum.regex_lite => MatcherRegexLite.GetMatches( cnc, pattern, text, Options ),
+                CrateEnum.fancy_regex => MatcherFancyRegex.GetMatches( cnc, pattern, text, Options ),
+                CrateEnum.regress => MatcherRegress.GetMatches( cnc, pattern, text, Options ),
                 _ => throw new InvalidOperationException( )
             };
         }
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
             return new SyntaxOptions
             {
-                XLevel = ( options.crate == CrateEnum.regex || options.crate == CrateEnum.fancy_regex || options.crate == CrateEnum.regex_lite ) && options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
-                AllowEmptySets = options.crate == CrateEnum.regress,
-                FeatureMatrix = LazyData.GetValue( (crate: options.crate, @struct: options.@struct, isOctal: options.octal, isUnicode: options.unicode, isUnicodeSets: options.unicode_sets, isOniguruma: options.oniguruma_mode) )
+                XLevel = ( Options.crate == CrateEnum.regex || Options.crate == CrateEnum.fancy_regex || Options.crate == CrateEnum.regex_lite ) && Options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
+                AllowEmptySets = Options.crate == CrateEnum.regress,
+                FeatureMatrix = LazyData.GetValue( (crate: Options.crate, @struct: Options.@struct, isOctal: Options.octal, isUnicode: Options.unicode, isUnicodeSets: Options.unicode_sets, isOniguruma: Options.oniguruma_mode) )
             };
         }
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine_regex = new( );
-            engine_regex.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, unicode = true, octal = true } );
-
-            Engine engine_lite = new( );
-            engine_lite.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regex_lite, @struct = StructEnum.RegexBuilder } );
-
-            Engine engine_fancy = new( );
-            engine_fancy.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.fancy_regex, @struct = StructEnum.RegexBuilder, unicode = true } );
-
-            Engine engine_regress = new( );
-            engine_regress.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = false } ); // currently 'ignore_whitespace' not supported'
-
-            Engine engine_regress_v = new( );
-            engine_regress_v.mOptionsControl.Value.SetSelectedOptions( new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } ); // currently 'ignore_whitespace' not supported
+            Engine engine_regex = new( ) { Options = new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, unicode = true, octal = true } };
+            Engine engine_lite = new( ) { Options = new Options { crate = CrateEnum.regex_lite, @struct = StructEnum.RegexBuilder } };
+            Engine engine_fancy = new( ) { Options = new Options { crate = CrateEnum.fancy_regex, @struct = StructEnum.RegexBuilder, unicode = true } };
+            Engine engine_regress = new( ) { Options = new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = false } }; // currently 'ignore_whitespace' not supported'
+            Engine engine_regress_v = new( ) { Options = new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } }; // currently 'ignore_whitespace' not supported
 
             return
                 [
@@ -144,16 +146,14 @@ namespace RustPlugin
 
         public void SetIgnoreCase( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.case_insensitive = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.case_insensitive = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.ignore_whitespace = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.ignore_whitespace = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         #endregion

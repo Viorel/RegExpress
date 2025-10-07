@@ -16,19 +16,38 @@ namespace JavaScriptPlugin
 {
     class Engine : IRegexEngine
     {
-        readonly Lazy<UCOptions> mOptionsControl;
         static readonly LazyData<(RuntimeEnum runtime, bool uFlag, bool vFlag), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
+        Options mOptions = new( );
+        readonly Lazy<UCOptions> mOptionsControl;
 
         public Engine( )
         {
             mOptionsControl = new Lazy<UCOptions>( ( ) =>
             {
-                var oc = new UCOptions( );
+                UCOptions oc = new( );
+                oc.SetOptions( Options );
                 oc.Changed += OptionsControl_Changed;
 
                 return oc;
             } );
+        }
+
+        public Options Options
+        {
+            get
+            {
+                return mOptions;
+            }
+            set
+            {
+                mOptions = value;
+
+                if( mOptionsControl.IsValueCreated )
+                {
+                    mOptionsControl.Value.SetOptions( mOptions );
+                }
+            }
         }
 
         #region IRegexEngine
@@ -43,9 +62,7 @@ namespace JavaScriptPlugin
         {
             get
             {
-                Options opt = mOptionsControl.Value.GetSelectedOptions( );
-
-                return opt.Runtime switch
+                return Options.Runtime switch
                 {
                     RuntimeEnum.WebView2 => "JavaScript (WebView2)",
                     RuntimeEnum.NodeJs => "JavaScript (Node.js)",
@@ -73,93 +90,67 @@ namespace JavaScriptPlugin
 
         public string? ExportOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
+            string json = JsonSerializer.Serialize( Options, JsonUtilities.JsonOptions );
 
             return json;
         }
 
         public void ImportOptions( string? json )
         {
-            Options options_obj;
-
             if( string.IsNullOrWhiteSpace( json ) )
             {
-                options_obj = new Options( );
+                Options = new Options( );
             }
             else
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
+                    Options = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {
                     // ignore versioning errors, for example
                     if( Debugger.IsAttached ) Debugger.Break( );
 
-                    options_obj = new Options( );
+                    Options = new Options( );
                 }
             }
-
-            mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return options.Runtime switch
+            return Options.Runtime switch
             {
-                RuntimeEnum.WebView2 => MatcherWebView2.GetMatches( cnc, pattern, text, options ),
-                RuntimeEnum.NodeJs => MatcherNodeJs.GetMatches( cnc, pattern, text, options ),
-                RuntimeEnum.QuickJs => MatcherQuickJs.GetMatches( cnc, pattern, text, options ),
-                RuntimeEnum.SpiderMonkey => MatcherSpiderMonkey.GetMatches( cnc, pattern, text, options ),
-                RuntimeEnum.Bun => MatcherBun.GetMatches( cnc, pattern, text, options ),
+                RuntimeEnum.WebView2 => MatcherWebView2.GetMatches( cnc, pattern, text, Options ),
+                RuntimeEnum.NodeJs => MatcherNodeJs.GetMatches( cnc, pattern, text, Options ),
+                RuntimeEnum.QuickJs => MatcherQuickJs.GetMatches( cnc, pattern, text, Options ),
+                RuntimeEnum.SpiderMonkey => MatcherSpiderMonkey.GetMatches( cnc, pattern, text, Options ),
+                RuntimeEnum.Bun => MatcherBun.GetMatches( cnc, pattern, text, Options ),
                 _ => throw new NotSupportedException( ),
             };
         }
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            var options = mOptionsControl.Value.GetSelectedOptions( );
-
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
                 AllowEmptySets = true,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( (options.Runtime, options.u, options.v) )
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (Options.Runtime, Options.u, Options.v) )
             };
         }
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine njs_engine_no_uv = new( );
-            njs_engine_no_uv.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = false } );
-
-            Engine njs_engine_u = new( );
-            njs_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } );
-
-            Engine njs_engine_v = new( );
-            njs_engine_v.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = true } );
-
-            Engine qjs_engine_no_u = new( );
-            qjs_engine_no_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.QuickJs, u = false, v = false } );
-
-            Engine qjs_engine_u = new( );
-            qjs_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.QuickJs, u = true, v = false } );
-
-            Engine sm_engine_no_u = new( );
-            sm_engine_no_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.SpiderMonkey, u = false, v = false } );
-
-            Engine sm_engine_u = new( );
-            sm_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.SpiderMonkey, u = true, v = false } );
-
-            Engine bun_engine_no_u = new( );
-            bun_engine_no_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.Bun, u = false, v = false } );
-
-            Engine bun_engine_u = new( );
-            bun_engine_u.mOptionsControl.Value.SetSelectedOptions( new Options { Runtime = RuntimeEnum.Bun, u = true, v = false } );
+            Engine njs_engine_no_uv = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = false } };
+            Engine njs_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } };
+            Engine njs_engine_v = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = true } };
+            Engine qjs_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.QuickJs, u = false, v = false } };
+            Engine qjs_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.QuickJs, u = true, v = false } };
+            Engine sm_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.SpiderMonkey, u = false, v = false } };
+            Engine sm_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.SpiderMonkey, u = true, v = false } };
+            Engine bun_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.Bun, u = false, v = false } };
+            Engine bun_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.Bun, u = true, v = false } };
 
             return
                 [
@@ -178,12 +169,10 @@ namespace JavaScriptPlugin
                 ];
         }
 
-
         public void SetIgnoreCase( bool yes )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            options.i = yes;
-            mOptionsControl.Value.SetSelectedOptions( options );
+            Options.i = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )

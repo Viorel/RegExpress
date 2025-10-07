@@ -41,11 +41,11 @@ namespace PythonPlugin
 
             IsFullyLoaded = true;
 
-            UpdateUI( );
+            UpdateControls( );
         }
 
 
-        void UpdateUI( )
+        void UpdateControls( )
         {
             if( !IsFullyLoaded ) return;
 
@@ -74,26 +74,21 @@ namespace PythonPlugin
 
         private void cbxModule_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            UpdateUI( );
+            UpdateControls( );
             Notify( preferImmediateReaction: true );
         }
 
-
-        internal Options GetSelectedOptions( )
-        {
-            return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
-        }
-
-
-        internal void SetSelectedOptions( Options options )
+        internal void SetOptions( Options options )
         {
             try
             {
                 ++ChangeCounter;
 
-                Options = options.Clone( );
+                if( object.ReferenceEquals( options, Options ) ) DataContext = null;
+                Options = options;
                 DataContext = Options;
-                UpdateUI( );
+
+                UpdateControls( );
             }
             finally
             {

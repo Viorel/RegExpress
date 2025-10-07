@@ -81,18 +81,14 @@ namespace FortranPlugin
             }
         }
 
-        internal Options GetSelectedOptions( )
-        {
-            return Dispatcher.CheckAccess( ) ? Options : Options.Clone( );
-        }
-
-        internal void SetSelectedOptions( Options options )
+        internal void SetOptions( Options options )
         {
             try
             {
                 ++ChangeCounter;
 
-                Options = options.Clone( );
+                if( object.ReferenceEquals( options, Options ) ) DataContext = null;
+                Options = options;
                 DataContext = Options;
 
                 UpdateControls( );
@@ -105,9 +101,7 @@ namespace FortranPlugin
 
         internal string? GetSelectedModuleTitle( )
         {
-            Options options = GetSelectedOptions( );
-
-            return options.Module switch
+            return Options.Module switch
             {
                 ModuleEnum.Forgex => "Forgex",
                 ModuleEnum.RegexPerazz => "Regex-Perazz",
@@ -115,6 +109,5 @@ namespace FortranPlugin
                 _ => "Unknown"
             };
         }
-
     }
 }

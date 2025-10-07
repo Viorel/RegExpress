@@ -17,21 +17,39 @@ namespace FortranPlugin
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
-        readonly Lazy<UCOptions> mOptionsControl;
         static readonly LazyData<ModuleEnum, FeatureMatrix> LazyFeatureMatrices = new( BuildFeatureMatrix );
 
+        Options mOptions = new( );
+        readonly Lazy<UCOptions> mOptionsControl;
 
         public Engine( )
         {
             mOptionsControl = new Lazy<UCOptions>( ( ) =>
             {
-                var oc = new UCOptions( );
+                UCOptions oc = new( );
+                oc.SetOptions( Options );
                 oc.Changed += OptionsControl_Changed;
 
                 return oc;
             } );
         }
 
+        public Options Options
+        {
+            get
+            {
+                return mOptions;
+            }
+            set
+            {
+                mOptions = value;
+
+                if( mOptionsControl.IsValueCreated )
+                {
+                    mOptionsControl.Value.SetOptions( mOptions );
+                }
+            }
+        }
 
         #region IRegexEngine
 
@@ -58,80 +76,61 @@ namespace FortranPlugin
             return mOptionsControl.Value;
         }
 
-
         public string? ExportOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-            string json = JsonSerializer.Serialize( options, JsonUtilities.JsonOptions );
+            string json = JsonSerializer.Serialize( Options, JsonUtilities.JsonOptions );
 
             return json;
         }
 
-
         public void ImportOptions( string? json )
         {
-            Options options_obj;
-
             if( string.IsNullOrWhiteSpace( json ) )
             {
-                options_obj = new Options( );
+                Options = new Options( );
             }
             else
             {
                 try
                 {
-                    options_obj = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
+                    Options = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
                 catch
                 {
                     // ignore versioning errors, for example
                     if( Debugger.IsAttached ) Debugger.Break( );
 
-                    options_obj = new Options( );
+                    Options = new Options( );
                 }
             }
-
-            mOptionsControl.Value.SetSelectedOptions( options_obj );
         }
-
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
-            return options.Module switch
+            return Options.Module switch
             {
-                ModuleEnum.Forgex => MatcherForgex.GetMatches( cnc, pattern, text, options ),
-                ModuleEnum.RegexPerazz => MatcherRegexPerazz.GetMatches( cnc, pattern, text, options ),
-                ModuleEnum.RegexJeyemhex => MatcherRegexJeyemhex.GetMatches( cnc, pattern, text, options ),
+                ModuleEnum.Forgex => MatcherForgex.GetMatches( cnc, pattern, text, Options ),
+                ModuleEnum.RegexPerazz => MatcherRegexPerazz.GetMatches( cnc, pattern, text, Options ),
+                ModuleEnum.RegexJeyemhex => MatcherRegexJeyemhex.GetMatches( cnc, pattern, text, Options ),
                 _ => throw new InvalidOperationException( )
             };
         }
 
-
         public SyntaxOptions GetSyntaxOptions( )
         {
-            Options options = mOptionsControl.Value.GetSelectedOptions( );
-
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
                 AllowEmptySets = true,
-                FeatureMatrix = LazyFeatureMatrices.GetValue( options.Module )
+                FeatureMatrix = LazyFeatureMatrices.GetValue( Options.Module )
             };
         }
 
-
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine_forgex = new( );
-            engine_forgex.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.Forgex } );
-
-            Engine engine_perazz = new( );
-            engine_perazz.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.RegexPerazz } );
-
-            Engine engine_jayemhex = new( );
-            engine_jayemhex.mOptionsControl.Value.SetSelectedOptions( new Options { Module = ModuleEnum.RegexJeyemhex } );
+            Engine engine_forgex = new( ) { Options = new Options { Module = ModuleEnum.Forgex } };
+            Engine engine_perazz = new( ) { Options = new Options { Module = ModuleEnum.RegexPerazz } };
+            Engine engine_jayemhex = new( ) { Options = new Options { Module = ModuleEnum.RegexJeyemhex } };
 
             return
                 [
