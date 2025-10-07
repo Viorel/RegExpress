@@ -44,10 +44,7 @@ namespace CppBuilderPlugin
             {
                 mOptions = value;
 
-                if( mOptionsControl.IsValueCreated )
-                {
-                    mOptionsControl.Value.SetOptions( mOptions );
-                }
+                if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
             }
         }
 
@@ -121,7 +118,7 @@ namespace CppBuilderPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            return 
+            return
                 [
                     new FeatureMatrixVariant( $"TRegEx (C++Builder, Delphi)", LazyFeatureMatrix.Value, new Engine() )
                 ];

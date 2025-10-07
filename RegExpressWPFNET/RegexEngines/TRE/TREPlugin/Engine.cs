@@ -44,10 +44,7 @@ namespace TREPlugin
             {
                 mOptions = value;
 
-                if( mOptionsControl.IsValueCreated )
-                {
-                    mOptionsControl.Value.SetOptions( mOptions );
-                }
+                if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
             }
         }
 

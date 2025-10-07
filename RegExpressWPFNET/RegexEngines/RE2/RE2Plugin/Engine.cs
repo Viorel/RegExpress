@@ -44,10 +44,7 @@ namespace RE2Plugin
             {
                 mOptions = value;
 
-                if( mOptionsControl.IsValueCreated )
-                {
-                    mOptionsControl.Value.SetOptions( mOptions );
-                }
+                if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
             }
         }
 
