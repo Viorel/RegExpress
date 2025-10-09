@@ -67,7 +67,7 @@
                     <ComboBoxItem x:Name="cbiSystemLocale" Tag="" Content="System" />
                 </ComboBox>
                 <ComboBox x:Name="cbxLocaleDisabled" Grid.Column="1" Grid.Row="2" SelectedValuePath="Tag" IsEnabled="False" >
-                    <ComboBoxItem Content="" IsSelected="True"/>
+                    <ComboBoxItem Content="n/a" IsSelected="True" />
                 </ComboBox>
 
             </Grid>
