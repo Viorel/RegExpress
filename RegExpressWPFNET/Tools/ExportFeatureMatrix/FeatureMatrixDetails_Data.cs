@@ -169,8 +169,8 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"[\C-C]", @"Control character ", fm => fm.InsideSets_Esc_CMinus)
                     .Test( @"[\C-M]", "\r", null ),
                 new FeatureMatrixDetails( @"[\N{…}]", @"Unicode name or 'U+code'", fm => fm.InsideSets_Esc_NBrace)
-                    .Test( @"[\N{COMMA}]", ",", null )
-                    .Test( @"[\N{comma}]", ",", null ),
+                    .Test( @"[\N{COMMA}]", ",", "M" ) // (see also '\N' -- any except '\n')
+                    .Test( @"[\N{comma}]", ",", "m" ),
                 new FeatureMatrixDetails( @"[\any]", @"Generic escape", fm => fm.InsideSets_GenericEscape)
                     .Test( @"[\-]", "-", @"\"),
             ] ),
@@ -192,8 +192,7 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"\l, \L", @"Lowercase character", fm => fm.Class_lL)
                     .Test( @"\l\L", "xX", null ),
                 new FeatureMatrixDetails( @"\N", @"Any except '\n'", fm => fm.Class_N)
-                    .Test( @"\N", "a", null )
-                    .Test( @"\N", "\n", null ),
+                    .Test( @"\N", "a", "\n" ),
                 new FeatureMatrixDetails( @"\O", @"Any", fm => fm.Class_O)
                     .Test( @"\O", "a", null ),
                 new FeatureMatrixDetails( @"\R", @"Line break", fm => fm.Class_R)
