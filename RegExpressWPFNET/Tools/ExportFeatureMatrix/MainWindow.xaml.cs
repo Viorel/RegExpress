@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.Media;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -269,6 +270,8 @@ namespace ExportFeatureMatrix
 
                                 Dispatcher.Invoke( ( ) =>
                                 {
+                                    SystemSounds.Exclamation.Play();
+
                                     tblProgress.Text = "DONE.";
 
                                     textBlockFeature.Visibility = progressOnFeatures.Visibility =
