@@ -9,6 +9,10 @@ namespace CompileTimeRegexPlugin
 {
     internal class Options
     {
+        public bool case_insensitive { get; set; }
+        public bool multiline { get; set; }
+        public bool singleline { get; set; }
+
         public Options Clone( )
         {
             return (Options)MemberwiseClone( );

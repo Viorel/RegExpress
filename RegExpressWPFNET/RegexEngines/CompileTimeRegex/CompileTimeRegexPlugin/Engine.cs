@@ -56,7 +56,7 @@ namespace CompileTimeRegexPlugin
 
         public string Name => "CTRE";
 
-        public string Subtitle => "";
+        public string Subtitle => "CTRE";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 

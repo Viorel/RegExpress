@@ -9,7 +9,17 @@
              d:DesignHeight="52" d:DesignWidth="391.642" 
              Loaded="UserControl_Loaded">
 
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+    
     <Grid>
-        
+        <StackPanel VerticalAlignment="Top">
+            <ui:CheckboxWithNote Prop="case_insensitive"/>
+            <ui:CheckboxWithNote Prop="multiline"/>
+            <ui:CheckboxWithNote Prop="singleline"/>
+        </StackPanel>
     </Grid>
 </UserControl>

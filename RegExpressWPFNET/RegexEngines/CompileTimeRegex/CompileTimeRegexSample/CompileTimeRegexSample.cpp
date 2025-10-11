@@ -23,9 +23,9 @@ static void DoWork( )
     try
     {
         static constexpr ctll::fixed_string pattern = /*START-PATTERN*/L"."/*END-PATTERN*/;
-        std::wstring_view text = /*START-TEXT*/L"abc"/*END-TEXT*/;
+        std::wstring_view text = /*START-TEXT*/L"a\nb"/*END-TEXT*/;
 
-        auto sa = ctre::search_all<pattern>( text );
+        auto sa = ctre::search_all<pattern /*START-MODIFIERS*/, ctre::singleline /*END-MODIFIERS*/ >( text );
 
         std::string::const_iterator::difference_type previous_position = -1;
 

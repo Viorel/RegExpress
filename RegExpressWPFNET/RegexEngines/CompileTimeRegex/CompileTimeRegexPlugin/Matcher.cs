@@ -47,9 +47,18 @@ namespace CompileTimeRegexPlugin
                 {
                     string cpp_contents = File.ReadAllText( Path.Combine( worker_dir, "CompileTimeRegexSample.cpp" ) );
 
+                    string flags;
+                    if( options.case_insensitive ) flags = ", ctre::case_insensitive"; else flags = ", ctre::case_sensitive";
+                    if( options.multiline ) flags += ", ctre::multiline";
+                    if( options.singleline ) flags += ", ctre::singleline";
+
                     cpp_contents = ReplaceRegex( ).Replace( cpp_contents, m =>
                     {
-                        return m.Groups["p"].Success ? "L" + ToCString( pattern ) : m.Groups["t"].Success ? "L" + ToCString( text ) : "";
+                        return
+                            m.Groups["pattern"].Success ? "L" + ToCString( pattern ) :
+                            m.Groups["text"].Success ? "L" + ToCString( text ) :
+                            m.Groups["flags"].Success ? flags :
+                            "";
                     } );
 
                     File.WriteAllText( Path.Combine( temp_dir, "CompileTimeRegexSample.cpp" ), cpp_contents );
@@ -266,7 +275,7 @@ namespace CompileTimeRegexPlugin
             return sb.Append( '"' ).ToString( );
         }
 
-        [GeneratedRegex( @"(?<p>/\*START-PATTERN\*/.*?/\*END-PATTERN\*/) | (?<t>/\*START-TEXT\*/.*?/\*END-TEXT\*/)", RegexOptions.IgnorePatternWhitespace )]
+        [GeneratedRegex( @"(?<pattern>/\*START-PATTERN\*/.*?/\*END-PATTERN\*/) | (?<text>/\*START-TEXT\*/.*?/\*END-TEXT\*/) | (?<flags>/\*START-MODIFIERS\*/.*?/\*END-MODIFIERS\*/)", RegexOptions.IgnorePatternWhitespace )]
         private static partial Regex ReplaceRegex( );
 
         [GeneratedRegex( @"(?<=\\.*?\(\d+\):\s*)error.*?:.*?(?=\r|\n|$)", RegexOptions.IgnorePatternWhitespace )]
