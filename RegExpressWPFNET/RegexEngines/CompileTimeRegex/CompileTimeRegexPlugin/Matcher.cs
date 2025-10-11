@@ -20,9 +20,6 @@ namespace CompileTimeRegexPlugin
 {
     static partial class Matcher
     {
-        static readonly Encoding StrictAsciiEncoding = Encoding.GetEncoding( "ASCII", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback );
-
-
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             string temp_dir = Path.Combine( Path.GetTempPath( ), Path.GetRandomFileName( ) );
@@ -275,8 +272,8 @@ namespace CompileTimeRegexPlugin
         [GeneratedRegex( @"(?<=\\.*?\(\d+\):\s*)error.*?:.*?(?=\r|\n|$)", RegexOptions.IgnorePatternWhitespace )]
         private static partial Regex ErrorMessageRegex( );
 
-        [GeneratedRegex( "\\(\\? ((?'a'')|<) (?'n'.*?) (?(a)'|>)", RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace )]
-        private static partial Regex PossibleNamesRegex( );
+        //[GeneratedRegex( "\\(\\? ((?'a'')|<) (?'n'.*?) (?(a)'|>)", RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace )]
+        //private static partial Regex PossibleNamesRegex( );
 
         [GeneratedRegex( @"(?ix)^\s* M \s+ (\d+) \s+ (\d+)" )]
         private static partial Regex ParseMatchRegex( );
