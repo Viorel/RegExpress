@@ -12,7 +12,15 @@ static void write_capture( const auto& sa, const auto& match )
     if constexpr( I < N )
     {
         const auto& g = match.get<I>( );
-        std::cout << "g " << g.begin( ) - sa.begin( ).orig_begin << " " << g.size( ) << std::endl;
+
+        if( !g )
+        {
+            std::cout << "g -1 -1" << std::endl;
+        }
+        else
+        {
+            std::cout << "g " << g.begin( ) - sa.begin( ).orig_begin << " " << g.size( ) << std::endl;
+        }
 
         write_capture<I + 1, N>( sa, match );
     }

@@ -24,6 +24,8 @@ namespace CompileTimeRegexPlugin
         {
             string temp_dir = Path.Combine( Path.GetTempPath( ), Path.GetRandomFileName( ) );
 
+            // TODO: schedule deletion so that the folder is deleted even if thread is interrupted
+
             try
             {
                 new DirectoryInfo( temp_dir ).Create( );
@@ -248,7 +250,9 @@ namespace CompileTimeRegexPlugin
 
                 if( value >= '0' && value <= '9' ||
                     value >= 'A' && value <= 'Z' ||
-                    value >= 'a' && value <= 'z' ) // TODO: add more
+                    value >= 'a' && value <= 'z' ||
+                    value == ' '
+                    ) // TODO: add more
                 {
                     sb.Append( unchecked((char)value) );
                     ++i;
@@ -278,7 +282,18 @@ namespace CompileTimeRegexPlugin
         [GeneratedRegex( @"(?<pattern>/\*START-PATTERN\*/.*?/\*END-PATTERN\*/) | (?<text>/\*START-TEXT\*/.*?/\*END-TEXT\*/) | (?<flags>/\*START-MODIFIERS\*/.*?/\*END-MODIFIERS\*/)", RegexOptions.IgnorePatternWhitespace )]
         private static partial Regex ReplaceRegex( );
 
-        [GeneratedRegex( @"(?<=\\.*?\(\d+\):\s*)error.*?:.*?(?=\r|\n|$)", RegexOptions.IgnorePatternWhitespace )]
+        /* Example of errors:
+        **********************************************************************
+        ** Visual Studio 2022 Developer Command Prompt v17.14.16
+        ** Copyright (c) 2025 Microsoft Corporation
+        **********************************************************************
+        [vcvarsall.bat] Environment initialized for: 'x64'
+        CompileTimeRegexSample.cpp
+        CompileTimeRegexSample.cpp(34): error C2026: string too big, trailing characters truncated
+        CompileTimeRegexSample.cpp(34): fatal error C1003: error count exceeds 100; stopping compilation
+        */
+
+        [GeneratedRegex( @"(?<=\(\d+\):\s*) (fatal\s+)? error.*?:.*?(?=\r|\n|$)", RegexOptions.IgnorePatternWhitespace )]
         private static partial Regex ErrorMessageRegex( );
 
         //[GeneratedRegex( "\\(\\? ((?'a'')|<) (?'n'.*?) (?(a)'|>)", RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace )]
