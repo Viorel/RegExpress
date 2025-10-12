@@ -170,7 +170,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         {
             // get version
 
-            auto v = L"4.090"; // TODO: get it programmatically
+            auto v = L"4.100"; // TODO: get it programmatically
 
             outbw.Write( v );
 
