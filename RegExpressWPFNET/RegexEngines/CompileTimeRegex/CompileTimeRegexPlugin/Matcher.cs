@@ -20,11 +20,19 @@ namespace CompileTimeRegexPlugin
 {
     static partial class Matcher
     {
+        static readonly Lock Locker = new( );
+        static readonly List<string> PathsToDeleteOnExit = [];
+
+        static Matcher( )
+        {
+            Application.Current.Exit += HandleExit;
+        }
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             string temp_dir = Path.Combine( Path.GetTempPath( ), Path.GetRandomFileName( ) );
 
-            // TODO: schedule deletion so that the folder is deleted even if thread is interrupted
+            lock( Locker ) PathsToDeleteOnExit.Add( temp_dir );
 
             try
             {
@@ -180,6 +188,8 @@ namespace CompileTimeRegexPlugin
                 try
                 {
                     new DirectoryInfo( temp_dir ).Delete( recursive: true );
+
+                    lock( Locker ) PathsToDeleteOnExit.Remove( temp_dir );
                 }
                 catch
                 {
@@ -279,6 +289,28 @@ namespace CompileTimeRegexPlugin
             return sb.Append( '"' ).ToString( );
         }
 
+        private static void HandleExit( object sender, ExitEventArgs e )
+        {
+            lock( Locker ) // ('lock' probably not needed)
+            {
+                foreach( string path in PathsToDeleteOnExit )
+                {
+                    try
+                    {
+                        new DirectoryInfo( path ).Delete( recursive: true );
+                    }
+                    catch
+                    {
+                        // ignore?
+                    }
+                }
+
+                PathsToDeleteOnExit.Clear( );
+            }
+        }
+
+
+
         [GeneratedRegex( @"(?<pattern>/\*START-PATTERN\*/.*?/\*END-PATTERN\*/) | (?<text>/\*START-TEXT\*/.*?/\*END-TEXT\*/) | (?<flags>/\*START-MODIFIERS\*/.*?/\*END-MODIFIERS\*/)", RegexOptions.IgnorePatternWhitespace )]
         private static partial Regex ReplaceRegex( );
 
@@ -293,7 +325,7 @@ namespace CompileTimeRegexPlugin
         CompileTimeRegexSample.cpp(34): fatal error C1003: error count exceeds 100; stopping compilation
         */
 
-        [GeneratedRegex( @"(?<=\(\d+\):\s*) (fatal\s+)? error.*?:.*?(?=\r|\n|$)", RegexOptions.IgnorePatternWhitespace )]
+        [GeneratedRegex( @"(?<=(\(\d+\): | ^)\s*) (fatal\s+)? error.*?:.*?(?=\r|\n|$)", RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase | RegexOptions.Multiline )]
         private static partial Regex ErrorMessageRegex( );
 
         //[GeneratedRegex( "\\(\\? ((?'a'')|<) (?'n'.*?) (?(a)'|>)", RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace )]
