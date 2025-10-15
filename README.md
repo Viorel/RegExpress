@@ -35,6 +35,7 @@ It includes the following Regular Expression engines:
 * **Ada GNAT.Regpat** 15.2.0 (in Ada).
 * **[TRegEx](https://docwiki.embarcadero.com/Libraries/Florence/en/System.RegularExpressions)** 29.0 (C++Builder, Delphi).
 * **[QRegularExpression](https://doc.qt.io/qt-6/qregularexpression.html)** class (based on PCRE2) from Qt 6.9.3 (in C++).
+* **[compile-time-regular-expressions (CTRE)](https://github.com/hanickadot/compile-time-regular-expressions)**[^1] 3.10.0  (in C++).
 
 <br/>
 
@@ -109,6 +110,7 @@ Download and open the file:
 	* **Perl**
 	* **TRegEx**
 	* **Qt**
+	* **CTRE**
 
 * Engines that seems protected against “catastrophic backtracking” or timeout errors<br/>(pattern: `(a*)*b`, text: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac`):
 	* **RE2**
@@ -127,11 +129,17 @@ Download and open the file:
 	* **wregex** (GCC with polynomial option set, without back-references) 
 	* **TRegEx**
 	* **Qt**
+	* **CTRE**
 
 * Engines that support fuzzy or approximate matching:
 	* **Hyperscan**
 	* Python: **regex** package
 	* **TRE**
+
+<br/>
+<br/>
+
+[^1]: The **CTRE** engine is available in selected environments only.
 
 <br/>
 <br/>
