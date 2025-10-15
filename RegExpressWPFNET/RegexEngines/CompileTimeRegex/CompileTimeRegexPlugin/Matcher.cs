@@ -25,18 +25,27 @@ namespace CompileTimeRegexPlugin
 
         static Matcher( )
         {
-            Application.Current.Exit += HandleExit;
+            AppDomain.CurrentDomain.ProcessExit += HandleExit;
         }
+
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            string[] possible_group_names =
+                PossibleNamesRegex( )
+                    .Matches( pattern )
+                    .Select( m => m.Groups["n"] )
+                    .Where( g => g.Success )
+                    .Select( g => g.Value )
+                    .ToArray( );
+
             string temp_dir = Path.Combine( Path.GetTempPath( ), Path.GetRandomFileName( ) );
 
             lock( Locker ) PathsToDeleteOnExit.Add( temp_dir );
 
             try
             {
-                new DirectoryInfo( temp_dir ).Create( );
+                Directory.CreateDirectory( temp_dir );
 
                 string worker_dir = GetWorkerDirectory( );
 
@@ -62,13 +71,17 @@ namespace CompileTimeRegexPlugin
                     if( options.multiline ) flags += ", ctre::multiline";
                     if( options.singleline ) flags += ", ctre::singleline";
 
+                    string names = string.Join( ", ", possible_group_names.Select( n => "L" + ToCString( n ) ) );
+                    if( !string.IsNullOrWhiteSpace( names ) ) names = ", " + names;
+
                     cpp_contents = ReplaceRegex( ).Replace( cpp_contents, m =>
                     {
                         return
                             m.Groups["pattern"].Success ? "L" + ToCString( pattern ) :
                             m.Groups["text"].Success ? "L" + ToCString( text ) :
                             m.Groups["flags"].Success ? flags :
-                            "";
+                            m.Groups["names"].Success ? names :
+                            throw new InvalidOperationException( );
                     } );
 
                     File.WriteAllText( Path.Combine( temp_dir, "CompileTimeRegexSample.cpp" ), cpp_contents );
@@ -110,15 +123,6 @@ namespace CompileTimeRegexPlugin
                     if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
                     if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-                    //string[] possible_group_names =
-                    //    PossibleNamesRegex( )
-                    //        .Matches( pattern )
-                    //        .Select( m => m.Groups["n"] )
-                    //        .Where( g => g.Success )
-                    //        .Select( g => g.Value )
-                    //        .ToArray( );
-                    //Application.Current.Exit += (o,a ) => { } ;
 
                     List<IMatch> matches = [];
                     SimpleTextGetter stg = new( text );
@@ -172,6 +176,35 @@ namespace CompileTimeRegexPlugin
                                 continue;
                             }
                         }
+                        {
+                            Match n = ParseNamedGroupRegex( ).Match( line );
+                            if( n.Success )
+                            {
+                                if( current_match == null ) throw new Exception( "Invalid response." );
+
+                                int i = int.Parse( n.Groups[1].Value, CultureInfo.InvariantCulture );
+                                int index = int.Parse( n.Groups[2].Value, CultureInfo.InvariantCulture );
+                                int length = int.Parse( n.Groups[3].Value, CultureInfo.InvariantCulture );
+
+                                if( i >= 0 && i < possible_group_names.Length )
+                                {
+                                    string name = possible_group_names[i];
+
+                                    // try to assign the name
+
+                                    SimpleGroup? candidate_group = current_match.Groups
+                                        .Skip( 1 )
+                                        .Cast<SimpleGroup>( )
+                                        .Where( g => g.Index == index && g.Length == length )
+                                        .Where( g => int.TryParse( g.Name, CultureInfo.InvariantCulture, out var _ ) )
+                                        .FirstOrDefault( );
+
+                                    if( candidate_group != null ) candidate_group.SetName( name );
+                                }
+
+                                continue;
+                            }
+                        }
                     }
 
                     return new RegexMatches( matches.Count, matches );
@@ -187,7 +220,7 @@ namespace CompileTimeRegexPlugin
             {
                 try
                 {
-                    new DirectoryInfo( temp_dir ).Delete( recursive: true );
+                    Directory.Delete( temp_dir, recursive: true );
 
                     lock( Locker ) PathsToDeleteOnExit.Remove( temp_dir );
                 }
@@ -289,7 +322,7 @@ namespace CompileTimeRegexPlugin
             return sb.Append( '"' ).ToString( );
         }
 
-        private static void HandleExit( object sender, ExitEventArgs e )
+        private static void HandleExit( object? sender, EventArgs e )
         {
             lock( Locker ) // ('lock' probably not needed)
             {
@@ -297,7 +330,7 @@ namespace CompileTimeRegexPlugin
                 {
                     try
                     {
-                        new DirectoryInfo( path ).Delete( recursive: true );
+                        Directory.Delete( path, recursive: true );
                     }
                     catch
                     {
@@ -310,8 +343,7 @@ namespace CompileTimeRegexPlugin
         }
 
 
-
-        [GeneratedRegex( @"(?<pattern>/\*START-PATTERN\*/.*?/\*END-PATTERN\*/) | (?<text>/\*START-TEXT\*/.*?/\*END-TEXT\*/) | (?<flags>/\*START-MODIFIERS\*/.*?/\*END-MODIFIERS\*/)", RegexOptions.IgnorePatternWhitespace )]
+        [GeneratedRegex( @"(?<pattern>/\*START-PATTERN\*/.*?/\*END-PATTERN\*/) | (?<text>/\*START-TEXT\*/.*?/\*END-TEXT\*/) | (?<flags>/\*START-MODIFIERS\*/.*?/\*END-MODIFIERS\*/) | (?<names>/\*START-NAMES\*/.*?/\*END-NAMES\*/)", RegexOptions.IgnorePatternWhitespace )]
         private static partial Regex ReplaceRegex( );
 
         /* Example of errors:
@@ -328,13 +360,16 @@ namespace CompileTimeRegexPlugin
         [GeneratedRegex( @"(?<=(\(\d+\): | ^)\s*) (fatal\s+)? error.*?:.*?(?=\r|\n|$)", RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase | RegexOptions.Multiline )]
         private static partial Regex ErrorMessageRegex( );
 
-        //[GeneratedRegex( "\\(\\? ((?'a'')|<) (?'n'.*?) (?(a)'|>)", RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace )]
-        //private static partial Regex PossibleNamesRegex( );
+        [GeneratedRegex( "\\(\\? ((?'a'')|<) (?'n'.*?) (?(a)'|>)", RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace )]
+        private static partial Regex PossibleNamesRegex( );
 
         [GeneratedRegex( @"(?ix)^\s* M \s+ (\d+) \s+ (\d+)" )]
         private static partial Regex ParseMatchRegex( );
 
         [GeneratedRegex( @"(?ix)^\s* g \s+ (-?\d+) \s+ (-?\d+)" )]
         private static partial Regex ParseGroupRegex( );
+
+        [GeneratedRegex( @"(?ix)^\s* n \s+ (\d+) \s+ (\d+) \s+ (\d+)" )]
+        private static partial Regex ParseNamedGroupRegex( );
     }
 }

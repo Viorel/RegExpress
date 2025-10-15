@@ -1,13 +1,64 @@
-﻿// CompileTimeRegexSample.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
-#include <iostream>
+﻿#include <iostream>
 #include <exception>
+#include <type_traits>
 
 #include ".\\compile-time-regular-expressions\\single-header\\ctre-unicode.hpp"
 
+
+template <typename Iterator, typename... Captures>
+class Results
+{
+private:
+
+    using CAPTURES = ctre::captures<ctre::captured_content<0>::template storage<Iterator>, typename Captures::template storage<Iterator>...>;
+    CAPTURES captures{};
+
+public:
+
+    template<int I, ctll::fixed_string FIRST_NAME, ctll::fixed_string... TAIL_NAMES>
+    constexpr void WriteNames( const auto& sa, const auto& match ) const noexcept
+    {
+        constexpr bool exists = CAPTURES::template exists<FIRST_NAME>( );
+
+        if constexpr( !exists )
+        {
+            // name not found
+        }
+        else
+        {
+            auto g = match.get<FIRST_NAME>( );
+
+            if( !g )
+            {
+                // named group does not match
+            }
+            else
+            {
+                auto position = std::distance( sa.begin( ).orig_begin, g.begin( ) );
+                auto size = g.size( );
+
+                std::cout << "n " << I << " " << position << " " << size << std::endl;
+            }
+        }
+
+        WriteNames<I + 1, TAIL_NAMES...>( sa, match );
+    }
+
+    template<int I>
+    constexpr void WriteNames( const auto& sa, const auto& match ) const noexcept
+    {
+        // no names
+    }
+};
+
+template <typename Iterator, typename... Captures>
+constexpr static Results<Iterator, Captures...> MakeResults( const ctre::regex_results<Iterator, Captures...>& ) noexcept
+{
+    return Results<Iterator, Captures...>{};
+}
+
 template<size_t I, size_t N>
-static void write_capture( const auto& sa, const auto& match )
+static void WriteCaptures( const auto& sa, const auto& match )
 {
     if constexpr( I < N )
     {
@@ -22,7 +73,7 @@ static void write_capture( const auto& sa, const auto& match )
             std::cout << "g " << g.begin( ) - sa.begin( ).orig_begin << " " << g.size( ) << std::endl;
         }
 
-        write_capture<I + 1, N>( sa, match );
+        WriteCaptures<I + 1, N>( sa, match );
     }
 }
 
@@ -30,8 +81,8 @@ static void DoWork( )
 {
     try
     {
-        static constexpr ctll::fixed_string pattern = /*START-PATTERN*/L"."/*END-PATTERN*/;
-        std::wstring_view text = /*START-TEXT*/L"a\nb"/*END-TEXT*/;
+        static constexpr ctll::fixed_string pattern = /*START-PATTERN*/L"(?<n>.)(?<m>.)"/*END-PATTERN*/;
+        std::wstring_view text = /*START-TEXT*/L"a\nbcd"/*END-TEXT*/;
 
         auto sa = ctre::search_all<pattern /*START-MODIFIERS*/, ctre::singleline /*END-MODIFIERS*/ >( text );
 
@@ -40,7 +91,7 @@ static void DoWork( )
         for( const auto& match : sa )
         {
             const auto& g = match.get<0>( );
-            auto position = g.begin( ) - sa.begin( ).orig_begin;
+            auto position = std::distance( sa.begin( ).orig_begin, g.begin( ) );
 
             if( previous_position == position )
             {
@@ -53,7 +104,11 @@ static void DoWork( )
 
             constexpr size_t count = match.count( );
 
-            write_capture<1, count>( sa, match );
+            WriteCaptures<1, count>( sa, match );
+
+            auto my_results = MakeResults( match );
+
+            my_results.WriteNames<0/*START-NAMES*/, L"n", L"x", "m"/*END-NAMES*/>( sa, match );
         }
     }
     catch( const std::exception& exc )
