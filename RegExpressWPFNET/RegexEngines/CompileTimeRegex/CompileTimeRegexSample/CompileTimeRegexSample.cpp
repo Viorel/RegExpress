@@ -70,7 +70,10 @@ static void WriteCaptures( const auto& sa, const auto& match )
         }
         else
         {
-            std::cout << "g " << g.begin( ) - sa.begin( ).orig_begin << " " << g.size( ) << std::endl;
+            auto position = std::distance( sa.begin( ).orig_begin, g.begin( ) );
+            auto size = g.size( );
+
+            std::cout << "g " << position << " " << size << std::endl;
         }
 
         WriteCaptures<I + 1, N>( sa, match );
