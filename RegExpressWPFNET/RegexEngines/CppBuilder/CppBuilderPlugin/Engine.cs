@@ -54,7 +54,7 @@ namespace CppBuilderPlugin
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "TRegEx (C++Builder, Delphi)";
+        public string Name => "TRegEx";
 
         public string Subtitle => "TRegEx";
 
