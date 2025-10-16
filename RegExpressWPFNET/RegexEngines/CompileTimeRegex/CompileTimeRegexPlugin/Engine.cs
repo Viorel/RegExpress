@@ -361,7 +361,7 @@ namespace CompileTimeRegexPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = false,
+                AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
