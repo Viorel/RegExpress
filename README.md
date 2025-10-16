@@ -18,7 +18,7 @@ It includes the following Regular Expression engines:
   V8 \(via [Node.js](https://nodejs.org)\) 13.6.233.10,
   [QuickJs](https://bellard.org/quickjs/) 2025-04-26,
   [SpiderMonkey](https://spidermonkey.dev/) C143.0
-  and JavaScriptCore (via [Bun 1.2.21](https://bun.sh/)).
+  and JavaScriptCore (via [Bun 1.2.21](https://bun.sh/)[^1]).
 * **VBScript [RegExp](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85))** object used in Access, Excel, Word.
 * **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel (in C).
 * **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41 (in C).
@@ -35,7 +35,7 @@ It includes the following Regular Expression engines:
 * **Ada GNAT.Regpat** 15.2.0 (in Ada).
 * **[TRegEx](https://docwiki.embarcadero.com/Libraries/Florence/en/System.RegularExpressions)** 29.0 (C++Builder, Delphi).
 * **[QRegularExpression](https://doc.qt.io/qt-6/qregularexpression.html)** class (based on PCRE2) from Qt 6.9.3 (in C++).
-* **[compile-time-regular-expressions (CTRE)](https://github.com/hanickadot/compile-time-regular-expressions)**[^1] 3.10.0  (in C++).
+* **[compile-time-regular-expressions (CTRE)](https://github.com/hanickadot/compile-time-regular-expressions)**[^2] 3.10.0  (in C++).
 
 <br/>
 
@@ -139,7 +139,8 @@ Download and open the file:
 <br/>
 <br/>
 
-[^1]: The **CTRE** engine is available in selected environments only.
+[^1]: The **Bun** JavaScript engine requires a modern 64-bit processor.
+[^2]: The **CTRE** engine is available in selected environments only.
 
 <br/>
 <br/>
