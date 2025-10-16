@@ -8,6 +8,10 @@
         Title="Export Feature Matrix" Height="333" Width="666" MinWidth="400" MinHeight="240" 
         Loaded="Window_Loaded">
 
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo x:Name="taskBarItemInfo" Description="Export Feature Matrix" ProgressState="None" ProgressValue="0" />
+    </Window.TaskbarItemInfo>
+
     <Window.Resources>
         <Style TargetType="Label">
             <Setter Property="Padding" Value="0 4"/>

@@ -153,18 +153,29 @@ namespace RegExpressWPFNET
 
                 TabItem? first_tab = null;
 
-                for( int i = 0; i < all_tab_data.Tabs.Count; i++ )
+                try
                 {
-                    TabData? tab_data = all_tab_data.Tabs[i];
+                    taskBarItemInfo.ProgressState = all_tab_data.Tabs.Count >= 3 ? System.Windows.Shell.TaskbarItemProgressState.Normal : System.Windows.Shell.TaskbarItemProgressState.None;
 
-                    Debug.WriteLine( $"  tab {i}: {tab_data.ActiveKind} {tab_data.ActiveVersion}" );
+                    for( int i = 0; i < all_tab_data.Tabs.Count; i++ )
+                    {
+                        taskBarItemInfo.ProgressValue = ( (double)i ) / all_tab_data.Tabs.Count;
 
-                    TabItem tab = AddNewTab( tab_data );
+                        TabData? tab_data = all_tab_data.Tabs[i];
 
-                    first_tab ??= tab;
+                        Debug.WriteLine( $"  tab {i}: {tab_data.ActiveKind} {tab_data.ActiveVersion}" );
+
+                        TabItem tab = AddNewTab( tab_data );
+
+                        first_tab ??= tab;
+                    }
+
+                    if( first_tab != null ) tabControl.SelectedItem = first_tab;
                 }
-
-                if( first_tab != null ) tabControl.SelectedItem = first_tab;
+                finally
+                {
+                    taskBarItemInfo.ProgressState = System.Windows.Shell.TaskbarItemProgressState.None;
+                }
             }
 
             // --- Delay effect

@@ -12,6 +12,10 @@
         Closing="Window_Closing"
         >
 
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo x:Name="taskBarItemInfo" Description="RegExpress" ProgressState="None" ProgressValue="0" />
+    </Window.TaskbarItemInfo>
+
     <Window.CommandBindings>
         <CommandBinding Command="{x:Static local:MainWindow.NewTabCommand}" CanExecute="NewTabCommand_CanExecute" Executed="NewTabCommand_Execute"/>
         <CommandBinding Command="{x:Static local:MainWindow.CloseTabCommand}" CanExecute="CloseTabCommand_CanExecute" Executed="CloseTabCommand_Execute"/>

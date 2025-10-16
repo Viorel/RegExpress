@@ -264,18 +264,25 @@ namespace ExportFeatureMatrix
                         {
                             try
                             {
+                                Dispatcher.Invoke( ( ) =>
+                                {
+                                    taskBarItemInfo.ProgressState = System.Windows.Shell.TaskbarItemProgressState.Indeterminate;
+                                } );
+
                                 ExporterToExcel exporter = new( );
 
                                 exporter.Export( output_file, plugins!, is_verify, ShowProgressOnFeatures, ShowProgressOnEngines );
 
                                 Dispatcher.Invoke( ( ) =>
                                 {
-                                    SystemSounds.Exclamation.Play();
+                                    SystemSounds.Exclamation.Play( );
 
                                     tblProgress.Text = "DONE.";
 
                                     textBlockFeature.Visibility = progressOnFeatures.Visibility =
                                         textBlockEngine.Visibility = progressOnEngines.Visibility = Visibility.Hidden;
+
+                                    taskBarItemInfo.ProgressState = System.Windows.Shell.TaskbarItemProgressState.None;
 
                                     if( MessageBox.Show( this, "The file was created.\r\n\r\nOpen it?", CAPTION, MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Yes ) == MessageBoxResult.OK )
                                     {
@@ -298,6 +305,8 @@ namespace ExportFeatureMatrix
                                 Dispatcher.BeginInvoke( ( ) =>
                                 {
                                     MessageBox.Show( this, exc.Message, CAPTION, MessageBoxButton.OK, MessageBoxImage.Error );
+
+                                    taskBarItemInfo.ProgressState = System.Windows.Shell.TaskbarItemProgressState.None;
                                 } );
                             }
 
@@ -348,6 +357,12 @@ namespace ExportFeatureMatrix
 
                 textBlockFeature.Visibility = Visibility.Visible;
                 progressOnFeatures.Visibility = Visibility.Visible;
+
+                if( total > 0 )
+                {
+                    taskBarItemInfo.ProgressState = System.Windows.Shell.TaskbarItemProgressState.Normal;
+                    taskBarItemInfo.ProgressValue = ( (double)index ) / total;
+                }
             } );
         }
 
