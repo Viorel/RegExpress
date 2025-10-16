@@ -103,9 +103,9 @@ Download and open the file:
 	* **Hyperscan**
 	* **Chimera**
 	* **ICU**
-	* Rust: **regex**, **fancy_regex**, **regress** crates
-	* Java: **regex**, **re2j** packages
-	* Python: **re**, **regex** packages
+	* Rust: **regex**, **fancy_regex**, **regress**
+	* Java: **regex**, **re2j**
+	* Python: **re**, **regex**
 	* **D**
 	* **Perl**
 	* **TRegEx**
@@ -116,14 +116,14 @@ Download and open the file:
 	* **RE2**
 	* **PCRE2**
 	* **Oniguruma**
-	* JavaScript: **Bun** engine
+	* JavaScript: **Bun**
 	* **Hyperscan**
 	* **Chimera**
-	* Rust: **regex**, **fancy_regex** crates
-	* Python: **regex** package
+	* Rust: **regex**, **fancy_regex**
+	* Python: **regex**
 	* **D**
 	* **Perl**
-	* Fortran: **Forgex** module
+	* Fortran: **Forgex**
 	* **TRE**
 	* **tiny-regex-c**
 	* **wregex** (GCC with polynomial option set, without back-references) 
@@ -133,13 +133,13 @@ Download and open the file:
 
 * Engines that support fuzzy or approximate matching:
 	* **Hyperscan**
-	* Python: **regex** package
+	* Python: **regex**
 	* **TRE**
 
 <br/>
 <br/>
 
-[^1]: The **Bun** JavaScript engine requires a modern 64-bit processor.
+[^1]: The **Bun** engine requires a modern 64-bit processor.
 [^2]: The **CTRE** engine is available in selected environments only.
 
 <br/>
