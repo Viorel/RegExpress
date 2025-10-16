@@ -210,3 +210,12 @@ xcopy /D /R /Y "%BasePath%\QtPlugin\bin\%Configuration%\%TargetDir%\QtPlugin.dll
 xcopy /D /R /Y "%BasePath%\QtWorker\x64\Release\QtWorker.exe" "%EnginesTargetPath%\Qt\*.bin"
 xcopy /D /R /Y "%BasePath%\QtWorker\x64\Release\Qt6Core.dll" "%EnginesTargetPath%\Qt\*"
 
+
+rem -- CTRE --
+
+set BasePath=%SolutionDir%\RegexEngines\CompileTimeRegex
+xcopy /D /R /Y "%BasePath%\CompileTimeRegexPlugin\bin\%Configuration%\%TargetDir%\CompileTimeRegexPlugin.dll" "%EnginesTargetPath%\CompileTimeRegex\*"
+xcopy /D /R /Y /E "%BasePath%\CompileTimeRegexSample\compile-time-regular-expressions\*" "%EnginesTargetPath%\CompileTimeRegex\compile-time-regular-expressions\*"
+xcopy /D /R /Y "%BasePath%\CompileTimeRegexSample\build.cmd" "%EnginesTargetPath%\CompileTimeRegex\*"
+xcopy /D /R /Y "%BasePath%\CompileTimeRegexSample\CompileTimeRegexSample.cpp" "%EnginesTargetPath%\CompileTimeRegex\*"
+

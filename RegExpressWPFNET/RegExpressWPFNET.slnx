@@ -13,6 +13,9 @@
     </Project>
     <Project Path="RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" Id="2dc8dda0-afd5-46c3-825d-0055d385c792" />
   </Folder>
+  <Folder Name="/RegexEngines/CompileTimeRegex/">
+    <Project Path="RegexEngines/CompileTimeRegex/CompileTimeRegexPlugin/CompileTimeRegexPlugin.csproj" />
+  </Folder>
   <Folder Name="/RegexEngines/CppBuilder/">
     <Project Path="RegexEngines/CppBuilder/CppBuilderPlugin/CppBuilderPlugin.csproj" />
   </Folder>
@@ -131,6 +134,7 @@
     <BuildDependency Project="RegexEngines/Ada/AdaPlugin/AdaPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Boost/BoostPlugin/BoostPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Boost/BoostWorker/BoostWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/CompileTimeRegex/CompileTimeRegexPlugin/CompileTimeRegexPlugin.csproj" />
     <BuildDependency Project="RegexEngines/CppBuilder/CppBuilderPlugin/CppBuilderPlugin.csproj" />
     <BuildDependency Project="RegexEngines/D/DPlugin/DPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNET9/DotNET9Plugin/DotNET9Plugin.csproj" />
