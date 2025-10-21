@@ -378,6 +378,7 @@ namespace StdPlugin
                 Recursive_R = false,
                 Recursive_Name = false,
                 Recursive_PGtName = false,
+                Recursive_ReturnGroups = false,
 
                 Quantifier_Asterisk = true,
                 Quantifier_Plus = grammar == GrammarEnum.extended ||
@@ -618,6 +619,7 @@ namespace StdPlugin
                 Recursive_R = false,
                 Recursive_Name = false,
                 Recursive_PGtName = false,
+                Recursive_ReturnGroups = false,
 
                 Quantifier_Asterisk = true,
                 Quantifier_Plus = grammar == GrammarEnum.extended ||
@@ -858,6 +860,7 @@ namespace StdPlugin
                 Recursive_R = false,
                 Recursive_Name = false,
                 Recursive_PGtName = false,
+                Recursive_ReturnGroups = false,
 
                 Quantifier_Asterisk = true,
                 Quantifier_Plus = grammar == GrammarEnum.extended ||

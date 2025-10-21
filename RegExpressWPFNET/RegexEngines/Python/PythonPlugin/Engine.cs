@@ -351,6 +351,7 @@ namespace PythonPlugin
                 Recursive_R = is_regex,
                 Recursive_Name = is_regex,
                 Recursive_PGtName = is_regex,
+                Recursive_ReturnGroups = false,
 
                 Quantifier_Asterisk = true,
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,

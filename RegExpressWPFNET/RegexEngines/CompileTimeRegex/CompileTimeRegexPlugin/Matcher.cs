@@ -28,7 +28,6 @@ namespace CompileTimeRegexPlugin
             AppDomain.CurrentDomain.ProcessExit += HandleExit;
         }
 
-
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             string[] possible_group_names =
@@ -166,10 +165,7 @@ namespace CompileTimeRegexPlugin
                                 int length = int.Parse( g.Groups[2].Value, CultureInfo.InvariantCulture );
                                 bool success = index >= 0;
 
-                                string? name = null;
-                                // TODO: find name
-
-                                name ??= current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
+                                string name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
 
                                 current_match.AddGroup( success ? (int)index : 0, success ? (int)length : 0, success, name );
 
@@ -195,11 +191,12 @@ namespace CompileTimeRegexPlugin
                                     SimpleGroup? candidate_group = current_match.Groups
                                         .Skip( 1 )
                                         .Cast<SimpleGroup>( )
+                                        .Where( g => g.Success )
                                         .Where( g => g.Index == index && g.Length == length )
                                         .Where( g => int.TryParse( g.Name, CultureInfo.InvariantCulture, out var _ ) )
                                         .FirstOrDefault( );
 
-                                    if( candidate_group != null ) candidate_group.SetName( name );
+                                    candidate_group?.SetName( name );
                                 }
 
                                 continue;
@@ -309,7 +306,7 @@ namespace CompileTimeRegexPlugin
                 {
                     sb.Append( $"\\u{value:X4}" );
                     Debug.Assert( rune.Utf16SequenceLength == 1 );
-                    i += 1;
+                    ++i;
                 }
                 else
                 {

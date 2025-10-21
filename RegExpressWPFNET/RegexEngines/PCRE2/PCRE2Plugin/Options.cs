@@ -96,10 +96,10 @@ namespace PCRE2Plugin
 
         // JIT options
 
+        public bool UseJIT { get; set; }
         public bool PCRE2_JIT_COMPLETE { get; set; }
         public bool PCRE2_JIT_PARTIAL_SOFT { get; set; }
         public bool PCRE2_JIT_PARTIAL_HARD { get; set; }
-        public bool PCRE2_JIT_TEST_ALLOC { get; set; }
 
 
         // Limits

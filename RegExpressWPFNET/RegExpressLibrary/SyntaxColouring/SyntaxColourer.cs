@@ -747,25 +747,26 @@ namespace RegExpressLibrary.SyntaxColouring
                 switch( fm.Parentheses )
                 {
                 case FeatureMatrix.PunctuationEnum.Normal:
+                    // NOTE. 'FeatureMatrix.Recursive_ReturnGroups' is not checked; the '(group list)' was added unconditionally, letting the engine to detect the unsupported construct
                     if( fm.Recursive_Num )
                     {
-                        pb.Add( @"\(\? (?<name>\d+) \)?" );
+                        pb.Add( @"\(\? (?<name>\d+) (\(.*?\))? \)?" );
                     }
                     if( fm.Recursive_PlusMinusNum )
                     {
-                        pb.Add( @"\(\? (?<name>[+\-]\d+) \)?" );
+                        pb.Add( @"\(\? (?<name>[+\-]\d+) (\(.*?\))? \)?" );
                     }
                     if( fm.Recursive_R )
                     {
-                        pb.Add( @"\(\? R \)?" );
+                        pb.Add( @"\(\? R (\(.*?\))? \)?" );
                     }
                     if( fm.Recursive_Name )
                     {
-                        pb.Add( @"\(\? & ((?<name>[^)]+) \)?)?" );
+                        pb.Add( @"\(\? & ((?<name>[^)(]+) (\(.*?\))? \)?)?" );
                     }
                     if( fm.Recursive_PGtName )
                     {
-                        pb.Add( @"\(\? P > ((?<name>[^)]+) \)?)?" );
+                        pb.Add( @"\(\? P > ((?<name>[^)(]+) (\(.*?\))? \)?)?" );
                     }
                     break;
                 default:

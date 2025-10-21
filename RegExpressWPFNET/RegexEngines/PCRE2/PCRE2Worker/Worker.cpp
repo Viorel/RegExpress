@@ -137,7 +137,8 @@ static std::wstring GetErrorText( int errorNumber )
 }
 
 
-static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithmName, const wstring& locale, int compileOptions, int extraCompileOptions, int matcherOptions, int jitOptions,
+static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithmName, const wstring& locale,
+    int compileOptions, int extraCompileOptions, int matcherOptions, bool useJit, int jitOptions,
     std::optional<uint32_t> depth_limit, std::optional<uint32_t> heap_limit, std::optional<uint32_t> match_limit,
     std::optional<uint64_t> max_pattern_compiled_length, std::optional<uint64_t> offset_limit, std::optional<uint32_t> parens_nest_limit
 )
@@ -202,7 +203,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                     throw std::runtime_error( WStringToUtf8( std::format( L"Error {} at {}: {}.", errornumber, erroroffset, GetErrorText( errornumber ) ) ) );
                 }
 
-                if( jitOptions > 0 )
+                if( useJit )
                 {
                     errornumber = pcre2_jit_compile( re, jitOptions );
 
@@ -234,15 +235,31 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                 case Standard:
                     match_data = pcre2_match_data_create_from_pattern( re, NULL );
 
-                    rc = pcre2_match(
-                        re,                         /* the compiled pattern */
-                        reinterpret_cast<PCRE2_SPTR16>( text.c_str( ) ),  /* the subject string */
-                        PCRE2_ZERO_TERMINATED,      /* the length of the subject */
-                        0,                          /* start at offset 0 in the subject */
-                        matcherOptions,             /* options */
-                        match_data,                 /* block for storing the result */
-                        match_context               /* match context */
-                    );
+                    if( !useJit )
+                    {
+                        rc = pcre2_match(
+                            re,                         /* the compiled pattern */
+                            reinterpret_cast<PCRE2_SPTR16>( text.c_str( ) ),  /* the subject string */
+                            PCRE2_ZERO_TERMINATED,      /* the length of the subject */
+                            0,                          /* start at offset 0 in the subject */
+                            matcherOptions,             /* options */
+                            match_data,                 /* block for storing the result */
+                            match_context               /* match context */
+                        );
+                    }
+                    else
+                    {
+                        rc = pcre2_jit_match(
+                            re,                         /* the compiled pattern */
+                            reinterpret_cast<PCRE2_SPTR16>( text.c_str( ) ),  /* the subject string */
+                            text.length( ),              /* the length of the subject */ // ('PCRE2_ZERO_TERMINATED' not supported by 'pcre2_jit_match')
+                            0,                          /* start at offset 0 in the subject */
+                            matcherOptions,             /* options */
+                            match_data,                 /* block for storing the result */
+                            match_context               /* match context */
+                        );
+                    }
+
                     break;
                 case DFA:
                     dfa_workspace.resize( 1000 ); // (see 'pcre2test.c')
@@ -261,7 +278,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                     );
                     break;
                 default:
-                    throw std::runtime_error( "" );
+                    throw std::runtime_error( "Invalid algorithm" );
                     break;
                 }
 
@@ -295,6 +312,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                     WriteMatch( outbw, re, ovector, rc, algorithm == Algorithm::Standard );
 
                     // find next matches
+                    // TODO: use the new 'pcre2_next_match'
 
                     {
                         const wchar_t* subject = text.c_str( );
@@ -615,12 +633,16 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
             // JIT options
 
+            bool use_jit;
             int jit_options = 0;
 
-            if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_COMPLETE;
-            if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_PARTIAL_SOFT;
-            if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_PARTIAL_HARD;
-            if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_TEST_ALLOC;
+            use_jit = inbr.ReadByte( ) != 0;
+            if( use_jit )
+            {
+                if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_COMPLETE;
+                if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_PARTIAL_SOFT;
+                if( inbr.ReadByte( ) ) jit_options |= PCRE2_JIT_PARTIAL_HARD;
+            }
 
             // Limits
 
@@ -653,7 +675,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-            DoMatch( outbw, pattern, text, algorithm, locale, compile_options, extra_compile_options, matcher_options, jit_options,
+            DoMatch( outbw, pattern, text, algorithm, locale, compile_options, extra_compile_options, matcher_options, use_jit, jit_options,
                 depth_limit, heap_limit, match_limit, max_pattern_compiled_length, offset_limit, parens_nest_limit );
 
             return 0;

@@ -11,12 +11,11 @@ class Results
 private:
 
     using CAPTURES = ctre::captures<ctre::captured_content<0>::template storage<Iterator>, typename Captures::template storage<Iterator>...>;
-    CAPTURES captures{};
 
 public:
 
     template<int I, ctll::fixed_string FIRST_NAME, ctll::fixed_string... TAIL_NAMES>
-    constexpr void WriteNames( const auto& sa, const auto& match ) const noexcept
+    constexpr static void WriteNames( const auto& sa, const auto& match )
     {
         constexpr bool exists = CAPTURES::template exists<FIRST_NAME>( );
 
@@ -45,7 +44,7 @@ public:
     }
 
     template<int I>
-    constexpr void WriteNames( const auto& sa, const auto& match ) const noexcept
+    constexpr static void WriteNames( const auto& sa, const auto& match )
     {
         // no names
     }
@@ -111,7 +110,7 @@ static void DoWork( )
 
             auto my_results = MakeResults( match );
 
-            my_results.WriteNames<0/*START-NAMES*/, L"n", L"x", "m"/*END-NAMES*/>( sa, match );
+            my_results.WriteNames<0 /*START-NAMES*/, L"n", L"x", "m"/*END-NAMES*/>( sa, match );
         }
     }
     catch( const std::exception& exc )
@@ -126,7 +125,7 @@ static void DoWork( )
 
 int main( )
 {
-#define EXCEPTION_EXECUTE_HANDLER      1 // (copied from 'excpt.h' to avoid including larger header files)
+    constexpr auto EXCEPTION_EXECUTE_HANDLER = 1; // (copied from 'excpt.h' to avoid including larger header files);
 
     __try
     {

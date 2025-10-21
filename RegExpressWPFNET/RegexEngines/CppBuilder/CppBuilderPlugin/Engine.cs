@@ -334,6 +334,7 @@ namespace CppBuilderPlugin
                 Recursive_R = true,
                 Recursive_Name = true,
                 Recursive_PGtName = true,
+                Recursive_ReturnGroups = false,
 
                 Quantifier_Asterisk = true,
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,

@@ -1,4 +1,5 @@
 TYPICAL UPDATE PROCEDURE
+------------------------
 
 - Get the PCRE2 sources from GitHub (from Releases page, https://github.com/PCRE2Project/pcre2/releases) 
   to a separate folder.
@@ -11,7 +12,7 @@ TYPICAL UPDATE PROCEDURE
 
 - Delete the unneeded copied "*.in" files.
 
-- Delete the unneded copied ".c" files that contain the "main(" function.
+- Delete the unneeded copied ".c" files that contain the "main(" function.
 
 - Rename "config.h.generic" to "config.h".
 
@@ -19,10 +20,10 @@ TYPICAL UPDATE PROCEDURE
 
 - Rename "pcre2_chartables.c.dist" to "pcre2_chartables.c".
 
-- Re-add all copied "*.c" files to "PCRE2 Sources" filter in Visual Studio.
+- Remove and re-add all copied "*.c" files to "PCRE2 Sources" filter in Visual Studio.
   The files from "deps\sljit" do not have to be added.
 
-- Select all ".c" files, go to Properties, set:
+- Select all ".c" files, go to Properties, for all configurations, set:
 
     Advanced, Forced Include File: "$(ProjectDir)ForcedInclude.h"
 
@@ -32,3 +33,6 @@ TYPICAL UPDATE PROCEDURE
     "pcre2_jit_misc.c"
     "pcre2_printint.c"
     "pcre2_ucptables.c"
+
+    (It seems that these files are not more present in PCRE2 10.47).
+

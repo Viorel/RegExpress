@@ -453,6 +453,7 @@ namespace OnigurumaPlugin
                 Recursive_R = false, //details.ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL, // TODO: does not seem to work
                 Recursive_Name = details.ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL,
                 Recursive_PGtName = details.ONIG_SYN_OP2_QMARK_CAPITAL_P_NAME,
+                Recursive_ReturnGroups = false,
 
                 Quantifier_Asterisk = details.ONIG_SYN_OP_ASTERISK_ZERO_INF,
                 Quantifier_Plus = details.ONIG_SYN_OP_PLUS_ONE_INF ? FeatureMatrix.PunctuationEnum.Normal : details.ONIG_SYN_OP_ESC_PLUS_ONE_INF ? FeatureMatrix.PunctuationEnum.Backslashed : FeatureMatrix.PunctuationEnum.None,

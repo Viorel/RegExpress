@@ -227,6 +227,8 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Recursive_R { get; init; }                              // (?R)
         public bool Recursive_Name { get; init; }                           // (?&name)
         public bool Recursive_PGtName { get; init; }                        // (?P>name)
+        public bool Recursive_ReturnGroups { get; init; }                   // additionally to above, returns a list of groups, for example: '(?&a(<b>,<c>))' -- match the subroutine 'a' and return groups 'b' and 'c'
+                                                                            // see: "Recursion and subroutines with returned capture groups", https://pcre2project.github.io/pcre2/doc/pcre2pattern/
 
         public bool Quantifier_Asterisk { get; init; }                      // *
         public PunctuationEnum Quantifier_Plus { get; init; }               // + or \+

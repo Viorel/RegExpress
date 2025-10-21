@@ -426,6 +426,8 @@ partial class FeatureMatrixDetails
                     .Test( @"(?<n>a)(?&n)", "aa", null ),
                 new FeatureMatrixDetails( @"(?P>name)", @"Recursive subpattern by name", fm => fm.Recursive_PGtName)
                     .Test( @"(?P<n>a)(?P>n)", "aa", null ),
+                new FeatureMatrixDetails( @"(?…(grouplist))", @"Additionally return capturing groups", fm => fm.Recursive_ReturnGroups)
+                    .Test( @"(?<a>A(?<b>.))(?&a(<b>))\k<b>", "ABACC", "ABACB"),
             ] ),
 
             new ( @"Quantifiers",

@@ -43,8 +43,17 @@ namespace PCRE2Plugin
             IsFullyLoaded = true;
 
             cbiSystemLocale.Content = $"System ({CultureInfo.CurrentCulture.Name})"; // TODO: watch for system changes
+
+            UpdateUI( );
         }
 
+        void UpdateUI( )
+        {
+            pnlJIT.IsEnabled = Options.UseJIT;
+
+            // if disabled, show unchecked
+            //pnlJIT.DataContext = Options.UseJIT ? Options : new Options { PCRE2_JIT_COMPLETE = false, PCRE2_JIT_PARTIAL_SOFT = false, PCRE2_JIT_PARTIAL_HARD = false };
+        }
 
         void Notify( bool preferImmediateReaction )
         {
@@ -67,6 +76,8 @@ namespace PCRE2Plugin
 
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
+            UpdateUI( );
+
             Notify( preferImmediateReaction: false );
         }
 

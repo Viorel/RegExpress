@@ -13,6 +13,10 @@
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
+        <Style TargetType="CheckBox">
+            <EventSetter Event="Checked" Handler="CheckBox_Changed"/>
+            <EventSetter Event="Unchecked" Handler="CheckBox_Changed"/>
+        </Style>
         <Style TargetType="TextBox">
             <EventSetter Event="TextChanged" Handler="TextBox_TextChanged"/>
         </Style>
@@ -144,15 +148,13 @@
             <ui:CheckboxWithNote Prop="PCRE2_DFA_SHORTEST" Note="Return only the shortest match"/>
         </StackPanel>
 
-        <Label Margin="0 4 0 4" Padding="0">
-            <Italic>JIT Options</Italic>
-        </Label>
-
-        <StackPanel>
-            <ui:CheckboxWithNote Prop="PCRE2_JIT_COMPLETE" Note="Generate code for complete matches"/>
-            <ui:CheckboxWithNote Prop="PCRE2_JIT_PARTIAL_SOFT" Note="Compile code for soft partial matching"/>
-            <ui:CheckboxWithNote Prop="PCRE2_JIT_PARTIAL_HARD" Note="Compile code for hard partial matching"/>
-            <ui:CheckboxWithNote Prop="PCRE2_JIT_TEST_ALLOC" Note="Test the availability of JIT and allocator"/>
+        <StackPanel Margin="0 8 0 0">
+            <CheckBox Content="Use JIT" IsChecked="{Binding UseJIT}"/>
+            <StackPanel x:Name="pnlJIT" Margin="18 2 0 4" >
+                <ui:CheckboxWithNote Prop="PCRE2_JIT_COMPLETE" Note="Generate code for complete matches"/>
+                <ui:CheckboxWithNote Prop="PCRE2_JIT_PARTIAL_SOFT" Note="Compile code for soft partial matching"/>
+                <ui:CheckboxWithNote Prop="PCRE2_JIT_PARTIAL_HARD" Note="Compile code for hard partial matching"/>
+            </StackPanel>
         </StackPanel>
 
         <Label Margin="0 4 0 4" Padding="0">

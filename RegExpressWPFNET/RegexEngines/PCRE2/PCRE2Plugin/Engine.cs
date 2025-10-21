@@ -358,6 +358,7 @@ namespace PCRE2Plugin
                 Recursive_R = true,
                 Recursive_Name = true,
                 Recursive_PGtName = true,
+                Recursive_ReturnGroups = true,
 
                 Quantifier_Asterisk = true,
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,

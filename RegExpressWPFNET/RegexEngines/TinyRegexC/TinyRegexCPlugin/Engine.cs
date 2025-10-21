@@ -333,6 +333,7 @@ namespace TinyRegexCPlugin
                 Recursive_R = false,
                 Recursive_Name = false,
                 Recursive_PGtName = false,
+                Recursive_ReturnGroups = false,
 
                 Quantifier_Asterisk = true,
                 Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,

@@ -376,6 +376,7 @@ namespace BoostPlugin
                 Recursive_R = is_perl,
                 Recursive_Name = is_perl,
                 Recursive_PGtName = false,
+                Recursive_ReturnGroups = false,
 
                 Quantifier_Asterisk = true,
                 Quantifier_Plus = is_perl || is_POSIX_extended || is_emacs ? FeatureMatrix.PunctuationEnum.Normal : FeatureMatrix.PunctuationEnum.None,

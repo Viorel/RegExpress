@@ -189,14 +189,17 @@ namespace PCRE2Plugin
 
                 // JIT Options
 
-                bw.Write( Convert.ToByte( options.PCRE2_JIT_COMPLETE ) );
-                bw.Write( Convert.ToByte( options.PCRE2_JIT_PARTIAL_SOFT ) );
-                bw.Write( Convert.ToByte( options.PCRE2_JIT_PARTIAL_HARD ) );
-                bw.Write( Convert.ToByte( options.PCRE2_JIT_TEST_ALLOC ) );
+                bw.Write( Convert.ToByte( options.UseJIT ) );
+                if( options.UseJIT )
+                {
+                    bw.Write( Convert.ToByte( options.PCRE2_JIT_COMPLETE ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_JIT_PARTIAL_SOFT ) );
+                    bw.Write( Convert.ToByte( options.PCRE2_JIT_PARTIAL_HARD ) );
+                }
 
                 // Limits
 
-                bw.WriteOptional( depth_limit  );
+                bw.WriteOptional( depth_limit );
                 bw.WriteOptional( heap_limit );
                 bw.WriteOptional( match_limit );
                 bw.WriteOptional( max_pattern_compiled_length );
