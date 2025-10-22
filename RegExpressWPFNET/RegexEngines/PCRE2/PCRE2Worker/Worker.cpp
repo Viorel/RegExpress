@@ -312,12 +312,13 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                     WriteMatch( outbw, re, ovector, rc, algorithm == Algorithm::Standard );
 
                     // find next matches
-                    // TODO: use the new 'pcre2_next_match'
 
+                    const wchar_t* subject = text.c_str( );
+                    auto subject_length = text.length( );
+
+                    if constexpr( false )
                     {
-                        const wchar_t* subject = text.c_str( );
-                        auto subject_length = text.length( );
-
+                        // old approach, before PCRE2 10.47
 
                         // their tricky stuffs; code and comments are from 'pcre2demo.c'
 
@@ -386,14 +387,28 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                             switch( algorithm )
                             {
                             case Standard:
-                                rc = pcre2_match(
-                                    re,                   /* the compiled pattern */
-                                    reinterpret_cast<PCRE2_SPTR16>( subject ),              /* the subject string */
-                                    subject_length,       /* the length of the subject */
-                                    start_offset,         /* starting offset in the subject */
-                                    options,              /* options */
-                                    match_data,           /* block for storing the result */
-                                    NULL );               /* use default match context */
+                                if( !useJit )
+                                {
+                                    rc = pcre2_match(
+                                        re,                   /* the compiled pattern */
+                                        reinterpret_cast<PCRE2_SPTR16>( subject ),              /* the subject string */
+                                        subject_length,       /* the length of the subject */
+                                        start_offset,         /* starting offset in the subject */
+                                        options,              /* options */
+                                        match_data,           /* block for storing the result */
+                                        NULL );               /* use default match context */
+                                }
+                                else
+                                {
+                                    rc = pcre2_jit_match(
+                                        re,                   /* the compiled pattern */
+                                        reinterpret_cast<PCRE2_SPTR16>( subject ),              /* the subject string */
+                                        subject_length,       /* the length of the subject */
+                                        start_offset,         /* starting offset in the subject */
+                                        options,              /* options */
+                                        match_data,           /* block for storing the result */
+                                        NULL );               /* use default match context */
+                                }
                                 break;
                             case DFA:
                                 rc = pcre2_dfa_match(
@@ -409,7 +424,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                                 );
                                 break;
                             default:
-                                throw std::runtime_error( "" );
+                                throw std::runtime_error( "Invalid algorithm" );
                                 break;
                             }
 
@@ -461,7 +476,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 
                             if( rc == 0 )
                             {
-                                throw std::runtime_error( "'ovector' was not big enough for all the captured substrings" );
+                                throw std::runtime_error( "'ovector' was not big enough for all the captured substrings." );
                             }
 
                             if( ovector[0] > ovector[1] )
@@ -473,6 +488,105 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                             WriteMatch( outbw, re, ovector, rc, algorithm == Algorithm::Standard );
 
                         } /* End of loop to find second and subsequent matches */
+                    }
+                    else
+                    {
+                        // new approach, since PCRE2 10.47
+                        // https://pcre2project.github.io/pcre2/doc/pcre2demo/
+
+                        PCRE2_SIZE ovector_last[2];
+
+                        ovector_last[0] = ovector[0];
+                        ovector_last[1] = ovector[1];
+
+                        for( ;;)
+                        {
+                            PCRE2_SIZE start_offset;
+                            uint32_t options;
+
+                            /* After each successful match, we use pcre2_next_match() to obtain the match
+                            * parameters for subsequent match attempts. */
+
+                            if( !pcre2_next_match( match_data, &start_offset, &options ) )
+                            {
+                                // no more attempts
+                                break;
+                            }
+
+                            /* Run the next matching operation */
+
+                            switch( algorithm )
+                            {
+                            case Standard:
+                                if( !useJit )
+                                {
+                                    rc = pcre2_match(
+                                        re,                   /* the compiled pattern */
+                                        reinterpret_cast<PCRE2_SPTR16>( subject ),              /* the subject string */
+                                        subject_length,       /* the length of the subject */
+                                        start_offset,         /* starting offset in the subject */
+                                        options,              /* options */
+                                        match_data,           /* block for storing the result */
+                                        NULL );               /* use default match context */
+                                }
+                                else
+                                {
+                                    rc = pcre2_jit_match(
+                                        re,                   /* the compiled pattern */
+                                        reinterpret_cast<PCRE2_SPTR16>( subject ),              /* the subject string */
+                                        subject_length,       /* the length of the subject */
+                                        start_offset,         /* starting offset in the subject */
+                                        options,              /* options */
+                                        match_data,           /* block for storing the result */
+                                        NULL );               /* use default match context */
+                                }
+                                break;
+                            case DFA:
+                                rc = pcre2_dfa_match(
+                                    re,                         /* the compiled pattern */
+                                    reinterpret_cast<PCRE2_SPTR16>( subject ),  /* the subject string */
+                                    subject_length,             /* the length of the subject */
+                                    start_offset,               /* start at offset 0 in the subject */
+                                    options,                    /* options */
+                                    match_data,                 /* block for storing the result */
+                                    match_context,              /* match context */
+                                    dfa_workspace.data( ),
+                                    dfa_workspace.size( )
+                                );
+                                break;
+                            default:
+                                throw std::runtime_error( "Invalid algorithm" );
+                                break;
+                            }
+
+                            /* If this match attempt fails, exit the loop for subsequent matches. */
+
+                            if( rc == PCRE2_ERROR_NOMATCH ) break;
+
+                            /* Other matching errors are not recoverable. */
+
+                            if( rc < 0 )
+                            {
+                                throw std::runtime_error( WStringToUtf8( std::format( L"Error {}: {}.", rc, GetErrorText( rc ) ) ) );
+                            }
+
+                            if( rc == 0 )
+                            {
+                                throw std::runtime_error( "'ovector' was not big enough for all the captured substrings." );
+                            }
+
+                            if( !( ovector[1] > ovector_last[1] ||
+                                 ( ovector[1] == ovector[0] && ovector_last[1] > ovector_last[0] &&
+                                    ovector[1] == ovector_last[1] ) ) )
+                            {
+                                throw std::runtime_error( "\\K was used in an assertion to yield non-advancing matches." );
+                            }
+
+                            ovector_last[0] = ovector[0];
+                            ovector_last[1] = ovector[1];
+
+                            WriteMatch( outbw, re, ovector, rc, algorithm == Algorithm::Standard );
+                        }
                     }
                 }
 
