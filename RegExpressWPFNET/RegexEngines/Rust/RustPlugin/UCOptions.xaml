@@ -23,8 +23,8 @@
                 </StackPanel.LayoutTransform>
                 <Label Content="Crate:" Target="{Binding ElementName=cbxCrate}" Padding="0 2 4 2" MinWidth="40"/>
                 <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
-                    <ComboBoxItem Tag ="regex" Content="regex 1.11.2" IsSelected="True" />
-                    <ComboBoxItem Tag ="regex_lite" Content="regex_lite 0.1.7" />
+                    <ComboBoxItem Tag ="regex" Content="regex 1.12.2" IsSelected="True" />
+                    <ComboBoxItem Tag ="regex_lite" Content="regex_lite 0.1.8" />
                     <ComboBoxItem Tag ="fancy_regex" Content="fancy_regex 0.16.2" />
                     <ComboBoxItem Tag ="regress" Content="regress 0.10.4" />
                 </ComboBox>
