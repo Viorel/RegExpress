@@ -28,7 +28,7 @@
                 <ComboBox x:Name="cbxPackage" SelectedValuePath="Tag" SelectedValue="{Binding Package, FallbackValue='regex'}" VerticalAlignment="Center" MinWidth="90" SelectionChanged="cbxPackage_SelectionChanged">
                     <!-- //TODO: put the version programmatically -->
                     <ComboBoxItem Tag ="regex" Content="java.util.regex" IsSelected="True" />
-                    <ComboBoxItem Tag ="re2j" Content="com.google.re2j" IsSelected="false" />
+                    <ComboBoxItem Tag ="re2j" Content="com.google.re2j 1.8" IsSelected="false" />
                 </ComboBox>
             </StackPanel>
 

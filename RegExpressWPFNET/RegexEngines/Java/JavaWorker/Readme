@@ -5,14 +5,16 @@ To edit "JavaWorker.java"
 
 or:
 
-- Get a copy of JDK without installation (from official Download pages), use Visual Studio Code, 
-  use "Extension Pack for Java" extension, go to File, Preferences, Settings, find and edit this settings:
+- Get a copy of JDK without installation (from official Download pages, "x64 Compressed Archive" for Windows),
+  use Visual Studio Code, use "Extension Pack for Java" extension, go to File, Preferences, Settings, 
+  find and edit this settings:
 
   "java.jdt.ls.java.home": "...path-to-JDK..."
 
+- The new version of RE2J can be got from https://github.com/google/re2j/releases.
 
-To recompile "JavaWorker.java"
-------------------------------
+To recompile the "JavaWorker.java" and "RE2JWorker.java"
+--------------------------------------------------------
 
 - Get a copy of JDK without installation, or install JDK.
 
@@ -30,13 +32,14 @@ To re-make the minimal JRE ("JRE-min.zip")
 
 - Get a copy of JDK without installation, or install JDK.
 
-- If "JavaWorker.class" is not made yet, recompile the "JavaWorker.java" as explained before.
+- If "JavaWorker.class" is not made yet, recompile the "JavaWorker.java" as explained before. (Use the new JDK).
 
 - Adjust the JDK_ROOT variable in "deps.bat" and "makejre.bat".
 
 - Run "deps.bat". Notice the modules displayed in the last column (usually "java.base").
 
-- Adjust the "--add-modules" argument in "makejre.bat". It will be a comma-separated list of modules from previous step.
+- Adjust the "--add-modules" argument in "makejre.bat". It will be a comma-separated list of modules 
+  from previous step (usually just "java.base").
 
 - Delete the "JRE-min" folder if exists.
 
