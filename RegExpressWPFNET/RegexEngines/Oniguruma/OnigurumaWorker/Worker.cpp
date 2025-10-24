@@ -14,10 +14,6 @@
 using namespace std;
 
 
-#define TO_STR2(s) L#s
-#define TO_STR(s) TO_STR2(s)
-
-
 static const char* TryGetErrorSymbol0( int code )
 {
 
@@ -143,195 +139,195 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
     __try
     {
         [&]( )
-        {
-            std::unique_ptr<regex_t, decltype( &onig_free )> regex( nullptr, &onig_free );
-
             {
-                regex_t* native_regex;
-                OnigErrorInfo einfo;
-                int r;
+                std::unique_ptr<regex_t, decltype( &onig_free )> regex( nullptr, &onig_free );
 
-                r = onig_new(
-                    &native_regex,
-                    (UChar*)pattern.c_str( ),
-                    (UChar*)( pattern.c_str( ) + pattern.length( ) ),
-                    compileOptions,
-                    ONIG_ENCODING_UTF16_LE,
-                    &adjustedSyntax,
-                    &einfo );
-
-                if( r ) throw std::runtime_error( WStringToUtf8( FormatError( r, &einfo ) ) );
-
-                regex.reset( native_regex );
-            }
-
-            // extract group names
-
-            std::vector<std::wstring> group_names;
-            {
-                onig_foreach_name( regex.get( ),
-                    []( const OnigUChar* name, const OnigUChar* nameEnd, int numberOfGroups, int* groupNumberList, OnigRegex regex, void* lparam ) -> int
-                    {
-                        std::vector<std::wstring>& group_names = *( std::vector<std::wstring>* )lparam;
-
-                        std::wstring group_name( (wchar_t*)name, (wchar_t*)nameEnd );
-
-                        int* nums;
-                        int r = onig_name_to_group_numbers( regex, name, nameEnd, &nums );
-
-                        for( int i = 0; i < r; ++i )
-                        {
-                            int group_number = nums[i];
-
-                            while( group_names.size( ) <= group_number ) group_names.push_back( L"" );
-
-                            group_names[group_number] = group_name;
-                        }
-
-                        return 0;
-                    },
-                    &group_names );
-            }
-
-
-            std::unique_ptr<OnigMatchParam, decltype( &onig_free_match_param )>     match_param( onig_new_match_param( ), &onig_free_match_param );
-            std::unique_ptr<OnigRegion, void( * )( OnigRegion* )>                   region( onig_region_new( ), []( OnigRegion* reg ) { onig_region_free( reg, 1 ); } );
-
-            // currently default parameters are used
-            onig_initialize_match_param( match_param.get( ) );
-
-            //onig_set_match_stack_limit_size_of_match_param ( OnigMatchParam * param, unsigned int limit );
-            //onig_set_retry_limit_in_match_of_match_param ( OnigMatchParam * param, unsigned long limit );
-            //onig_set_subexp_call_max_nest_level(  ); 
-
-            int r;
-            const wchar_t* start = text.c_str( );
-            const wchar_t* previous_start = start;
-
-            outbw.WriteT<char>( 'b' );
-
-            for( ;;)
-            {
-                r = onig_search_with_param(
-                    regex.get( ),
-                    (UChar*)text.c_str( ), (UChar*)( text.c_str( ) + text.length( ) ),
-                    (UChar*)start, (UChar*)( text.c_str( ) + text.length( ) ),
-                    region.get( ),
-                    searchOptions,
-                    match_param.get( ) );
-
-                if( r == ONIG_MISMATCH ) break;
-
-                if( r < 0 ) throw std::runtime_error( WStringToUtf8( FormatError( r, nullptr ) ) );
-
-                int match_index = -1;
-                int match_length = -1;
-
-                for( int i = 0; i < region->num_regs; ++i )
                 {
-                    int group_number = i;
-                    std::wstring group_name;
-                    if( group_number < group_names.size( ) ) group_name = group_names[group_number];
-                    if( group_name.empty( ) ) group_name = to_wstring( group_number );
+                    regex_t* native_regex;
+                    OnigErrorInfo einfo;
+                    int r;
 
-                    if( region->beg[i] >= 0 )
+                    r = onig_new(
+                        &native_regex,
+                        (UChar*)pattern.c_str( ),
+                        (UChar*)( pattern.c_str( ) + pattern.length( ) ),
+                        compileOptions,
+                        ONIG_ENCODING_UTF16_LE,
+                        &adjustedSyntax,
+                        &einfo );
+
+                    if( r ) throw std::runtime_error( WStringToUtf8( FormatError( r, &einfo ) ) );
+
+                    regex.reset( native_regex );
+                }
+
+                // extract group names
+
+                std::vector<std::wstring> group_names;
+                {
+                    onig_foreach_name( regex.get( ),
+                        []( const OnigUChar* name, const OnigUChar* nameEnd, int numberOfGroups, int* groupNumberList, OnigRegex regex, void* lparam ) -> int
+                        {
+                            std::vector<std::wstring>& group_names = *( std::vector<std::wstring>* )lparam;
+
+                            std::wstring group_name( (wchar_t*)name, (wchar_t*)nameEnd );
+
+                            int* nums;
+                            int r = onig_name_to_group_numbers( regex, name, nameEnd, &nums );
+
+                            for( int i = 0; i < r; ++i )
+                            {
+                                int group_number = nums[i];
+
+                                while( group_names.size( ) <= group_number ) group_names.push_back( L"" );
+
+                                group_names[group_number] = group_name;
+                            }
+
+                            return 0;
+                        },
+                        &group_names );
+                }
+
+
+                std::unique_ptr<OnigMatchParam, decltype( &onig_free_match_param )>     match_param( onig_new_match_param( ), &onig_free_match_param );
+                std::unique_ptr<OnigRegion, void( * )( OnigRegion* )>                   region( onig_region_new( ), []( OnigRegion* reg ) { onig_region_free( reg, 1 ); } );
+
+                // currently default parameters are used
+                onig_initialize_match_param( match_param.get( ) );
+
+                //onig_set_match_stack_limit_size_of_match_param ( OnigMatchParam * param, unsigned int limit );
+                //onig_set_retry_limit_in_match_of_match_param ( OnigMatchParam * param, unsigned long limit );
+                //onig_set_subexp_call_max_nest_level(  ); 
+
+                const wchar_t* start = text.c_str( );
+                const wchar_t* previous_start = start;
+
+                outbw.WriteT<char>( 'b' );
+
+                for( ;;)
+                {
+                    int r;
+                    r = onig_search_with_param(
+                        regex.get( ),
+                        (UChar*)text.c_str( ), (UChar*)( text.c_str( ) + text.length( ) ),
+                        (UChar*)start, (UChar*)( text.c_str( ) + text.length( ) ),
+                        region.get( ),
+                        searchOptions,
+                        match_param.get( ) );
+
+                    if( r == ONIG_MISMATCH ) break;
+
+                    if( r < 0 ) throw std::runtime_error( WStringToUtf8( FormatError( r, nullptr ) ) );
+
+                    int match_index = -1;
+                    int match_length = -1;
+
+                    for( int i = 0; i < region->num_regs; ++i )
                     {
-                        // succeeded group
+                        int group_number = i;
+                        std::wstring group_name;
+                        if( group_number < group_names.size( ) ) group_name = group_names[group_number];
+                        if( group_name.empty( ) ) group_name = to_wstring( group_number );
 
-                        assert( ( region->beg[i] % sizeof( wchar_t ) ) == 0 ); // even positions expected
-                        assert( ( region->end[i] % sizeof( wchar_t ) ) == 0 );
-
-                        int begin = region->beg[i] / sizeof( wchar_t );
-                        int end = region->end[i] / sizeof( wchar_t );
-
-                        if( i == 0 )
+                        if( region->beg[i] >= 0 )
                         {
-                            match_index = begin;
-                            match_length = end - begin;
+                            // succeeded group
 
-                            outbw.WriteT<char>( 'm' );
-                            outbw.WriteT<int32_t>( match_index );
-                            outbw.WriteT<int32_t>( match_length );
-                        }
+                            assert( ( region->beg[i] % sizeof( wchar_t ) ) == 0 ); // even positions expected
+                            assert( ( region->end[i] % sizeof( wchar_t ) ) == 0 );
 
-                        // default group 0
+                            int begin = region->beg[i] / sizeof( wchar_t );
+                            int end = region->end[i] / sizeof( wchar_t );
 
-                        outbw.WriteT<char>( 'g' );
-                        outbw.WriteT<char>( 1 );
-                        outbw.WriteT<int32_t>( begin );
-                        outbw.WriteT<int32_t>( end - begin );
-                        outbw.Write( group_name );
+                            if( i == 0 )
+                            {
+                                match_index = begin;
+                                match_length = end - begin;
 
-                        // captures
+                                outbw.WriteT<char>( 'm' );
+                                outbw.WriteT<int32_t>( match_index );
+                                outbw.WriteT<int32_t>( match_length );
+                            }
 
-                        int number_of_captures = onig_number_of_captures( regex.get( ) );
-                        int number_of_capture_histories = onig_number_of_capture_histories( regex.get( ) );
-                        OnigCaptureTreeNode* capture_tree = onig_get_capture_tree( region.get( ) );
+                            // default group 0
 
-                        {
-                            struct TraverseTreeData { int groupNumber; BinaryWriterW* bw; } data{ group_number, &outbw };
+                            outbw.WriteT<char>( 'g' );
+                            outbw.WriteT<char>( 1 );
+                            outbw.WriteT<int32_t>( begin );
+                            outbw.WriteT<int32_t>( end - begin );
+                            outbw.Write( group_name );
 
-                            onig_capture_tree_traverse( region.get( ), ONIG_TRAVERSE_CALLBACK_AT_FIRST,
-                                []( int group, int beg, int end, int level, int at, void* arg ) -> int
-                                {
-                                    const TraverseTreeData* data = (TraverseTreeData*)arg;
+                            // captures
 
-                                    if( group == 0 )
+                            //int number_of_captures = onig_number_of_captures( regex.get( ) );
+                            //int number_of_capture_histories = onig_number_of_capture_histories( regex.get( ) );
+                            //const OnigCaptureTreeNode* capture_tree = onig_get_capture_tree( region.get( ) );
+
+                            {
+                                struct TraverseTreeData { int groupNumber; BinaryWriterW* bw; } data{ group_number, &outbw };
+
+                                onig_capture_tree_traverse( region.get( ), ONIG_TRAVERSE_CALLBACK_AT_FIRST,
+                                    []( int group, int beg, int end, int level, int at, void* arg ) -> int
                                     {
-                                        // skip, not needed
-                                    }
-                                    else
-                                    {
-                                        if( group == data->groupNumber )
+                                        const TraverseTreeData* data = (TraverseTreeData*)arg;
+
+                                        if( group == 0 )
                                         {
-                                            assert( ( beg % 2 ) == 0 ); // event positions expected
-                                            assert( ( end % 2 ) == 0 );
-
-                                            data->bw->WriteT<char>( 'c' );
-                                            data->bw->WriteT<int32_t>( beg / 2 );
-                                            data->bw->WriteT<int32_t>( ( end - beg ) / 2 );
+                                            // skip, not needed
                                         }
-                                    }
+                                        else
+                                        {
+                                            if( group == data->groupNumber )
+                                            {
+                                                assert( ( beg % 2 ) == 0 ); // event positions expected
+                                                assert( ( end % 2 ) == 0 );
 
-                                    return 0;
-                                },
-                                &data );
-                        }
-                    }
-                    else
-                    {
-                        // failed group
+                                                data->bw->WriteT<char>( 'c' );
+                                                data->bw->WriteT<int32_t>( beg / 2 );
+                                                data->bw->WriteT<int32_t>( ( end - beg ) / 2 );
+                                            }
+                                        }
 
-                        if( i == 0 )
-                        {
-                            assert( false );
+                                        return 0;
+                                    },
+                                    &data );
+                            }
                         }
                         else
                         {
-                            outbw.WriteT<char>( 'g' );
-                            outbw.WriteT<char>( 0 );
-                            outbw.WriteT<int32_t>( 0 );
-                            outbw.WriteT<int32_t>( 0 );
-                            outbw.Write( group_name );
+                            // failed group
+
+                            if( i == 0 )
+                            {
+                                assert( false );
+                            }
+                            else
+                            {
+                                outbw.WriteT<char>( 'g' );
+                                outbw.WriteT<char>( 0 );
+                                outbw.WriteT<int32_t>( 0 );
+                                outbw.WriteT<int32_t>( 0 );
+                                outbw.Write( group_name );
+                            }
                         }
                     }
+
+                    // TODO: check if it should be much more complicated -- see PCRE2
+
+                    start = text.c_str( ) + match_index + match_length;
+
+                    if( start == previous_start )
+                    {
+                        ++start;
+                    }
+
+                    previous_start = start;
                 }
 
-                // TODO: check if it should be much more complicated -- see PCRE2
+                outbw.WriteT<char>( 'e' );
 
-                start = text.c_str( ) + match_index + match_length;
-
-                if( start == previous_start )
-                {
-                    ++start;
-                }
-
-                previous_start = start;
-            }
-
-            outbw.WriteT<char>( 'e' );
-
-        }( );
+            }( );
 
         return;
     }
@@ -400,8 +396,6 @@ void ReadOptions( BinaryReaderW& inbr, decltype( ONIG_SYNTAX_ONIGURUMA )* syntax
     *fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = inbr.ReadByte( ) != 0;
     *fONIG_SYN_STRICT_CHECK_BACKREF = inbr.ReadByte( ) != 0;
 }
-
-
 
 
 #define ALL_DATA_FLAGS \
@@ -492,7 +486,7 @@ struct Details
 #undef DECLARE_BEHAVIOUR
 #undef DECLARE_COMPILE_OPTION
 
-        Details( OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions )
+        Details( const OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions )
     {
 #define DECLARE_OP(name) f##name = (adjustedSyntax.op & name) != 0;
 #define DECLARE_OP2(name) f##name = (adjustedSyntax.op2 & name) != 0;
@@ -508,6 +502,8 @@ struct Details
     }
 };
 #pragma pack(pop)
+
+#undef ALL_DATA_FLAGS
 
 
 void WriteDetails( BinaryWriterW& outbw, /*const*/ OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions )

@@ -127,17 +127,3 @@ std::wstring BinaryReaderW::ReadString( ) const
     return s;
 }
 
-
-std::string BinaryReaderW::ReadPrefixedString( ) const
-{
-    int32_t length = ReadT<int32_t>( );
-    if( length < 0 ) throw std::runtime_error( "Invalid string length." );
-
-    std::string s( length, '\0' );
-    assert( s.size( ) == length );
-
-    ReadBytes( &s[0], s.size() );
-
-    return s;
-}
-

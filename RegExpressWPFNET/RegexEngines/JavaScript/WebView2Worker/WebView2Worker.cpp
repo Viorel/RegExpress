@@ -466,7 +466,10 @@ int DoMatch( StreamWriterW& outwr, StreamWriterW& errwr, HINSTANCE hInstance, LP
 
                         return S_OK;
                     } ).Get( ) );
-                return S_OK;
+
+#undef EOL
+
+                    return S_OK;
             } ).Get( ) );
 
     // <-- WebView2 sample code ends here -->

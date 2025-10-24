@@ -174,6 +174,7 @@ const char* ErrorText( hs_error_t err )
         E( HS_UNKNOWN_ERROR );
     default: return "Unknown error";
     }
+#undef E
 }
 
 
@@ -432,6 +433,7 @@ const char* ChimeraErrorText( hs_error_t err )
         E( CH_FAIL_INTERNAL );
     default: return "Unknown error";
     }
+#undef E
 }
 
 

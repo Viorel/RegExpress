@@ -150,6 +150,18 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
     {
         [&]( )
             {
+                if( useJit )
+                {
+                    // check if JIT is available
+
+                    auto r = pcre2_jit_compile( NULL, PCRE2_JIT_TEST_ALLOC );
+
+                    if( r == PCRE2_ERROR_JIT_UNSUPPORTED )
+                    {
+                        throw std::runtime_error( WStringToUtf8( std::format( L"Error {}: {}.", r, GetErrorText( r ) ) ) );
+                    }
+                }
+
                 enum Algorithm { Standard, DFA } algorithm;
 
                 if( algorithmName == L"Standard" )
@@ -576,7 +588,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                             }
 
                             if( !( ovector[1] > ovector_last[1] ||
-                                 ( ovector[1] == ovector[0] && ovector_last[1] > ovector_last[0] &&
+                                ( ovector[1] == ovector[0] && ovector_last[1] > ovector_last[0] &&
                                     ovector[1] == ovector_last[1] ) ) )
                             {
                                 throw std::runtime_error( "\\K was used in an assertion to yield non-advancing matches." );

@@ -88,7 +88,6 @@ public:
     }
 
     std::wstring ReadString( ) const;
-    std::string ReadPrefixedString( ) const;
 
 };
 
