@@ -1,0 +1,4 @@
+Package: gmp-6.3.0
+Sources: https://gmplib.org/download/gmp/gmp-6.3.0.tar.bz2
+Patch: gmp-6.3.0.diff
+Homepage: http://gmplib.org/

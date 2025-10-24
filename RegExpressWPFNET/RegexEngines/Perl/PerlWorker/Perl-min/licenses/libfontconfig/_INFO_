@@ -1,0 +1,4 @@
+Package: fontconfig-2.15.0
+Sources: https://www.freedesktop.org/software/fontconfig/release/fontconfig-2.15.0.tar.gz
+Patch: fontconfig-2.15.0.diff
+Homepage: http://www.fontconfig.org/

@@ -10,7 +10,7 @@ use strict;
 use warnings;
 our ( %Config, $VERSION );
 
-$VERSION = "5.040002";
+$VERSION = "5.042000";
 
 # Skip @Config::EXPORT because it only contains %Config, which we special
 # case below as it's not a function. @Config::EXPORT won't change in the
@@ -56,11 +56,11 @@ sub import {
     return;
 }
 
-die "$0: Perl lib version (5.40.2) doesn't match executable '$^X' version ($])"
+die "$0: Perl lib version (5.42.0) doesn't match executable '$^X' version ($])"
     unless $^V;
 
-$^V eq 5.40.2
-    or die sprintf "%s: Perl lib version (5.40.2) doesn't match executable '$^X' version (%vd)", $0, $^V;
+$^V eq 5.42.0
+    or die sprintf "%s: Perl lib version (5.42.0) doesn't match executable '$^X' version (%vd)", $0, $^V;
 
 
 sub FETCH {
@@ -98,7 +98,7 @@ tie %Config, 'Config', {
     ldlibpthname => '',
     libpth => 'C:\\strawberry\\c\\lib C:\\strawberry\\c\\x86_64-w64-mingw32\\lib C:\\strawberry\\c\\lib\\gcc\\x86_64-w64-mingw32\\13.2.0 C:\\strawberry\\c\\x86_64-w64-mingw32\\lib C:\\strawberry\\c\\lib\\gcc\\x86_64-w64-mingw32\\13.2.0',
     osname => 'MSWin32',
-    osvers => '10.0.22631.5335',
+    osvers => '10.0.26100.4652',
     path_sep => ';',
     privlibexp => 'C:\\strawberry\\perl\\lib',
     scriptdir => 'C:\\strawberry\\perl\\bin',
@@ -107,7 +107,7 @@ tie %Config, 'Config', {
     so => 'dll',
     useithreads => 'define',
     usevendorprefix => 'define',
-    version => '5.40.2',
+    version => '5.42.0',
 };
 eval {
 	require Portable;

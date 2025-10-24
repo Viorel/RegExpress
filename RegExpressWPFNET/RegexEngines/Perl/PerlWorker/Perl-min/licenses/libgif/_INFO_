@@ -1,0 +1,4 @@
+Package: giflib-5.2.2
+Sources: http://downloads.sourceforge.net/giflib/giflib-5.2.2.tar.gz
+Patch: giflib-5.2.2.diff
+Homepage: http://giflib.sourceforge.net/

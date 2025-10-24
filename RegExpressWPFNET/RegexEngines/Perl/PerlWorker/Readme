@@ -1,0 +1,9 @@
+
+Perl can be got from:
+
+    - "https://github.com/StrawberryPerl/Perl-Dist-Strawberry"
+    - or "https://strawberryperl.com/"
+    
+The portable version is used.
+
+Only the needed files are copied to "Perl-min" subfolder.

@@ -1,0 +1,4 @@
+Package: mpfr-4.2.1
+Sources: https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.1.tar.gz
+Patch: mpfr-4.2.1.diff
+Homepage: http://www.mpfr.org/

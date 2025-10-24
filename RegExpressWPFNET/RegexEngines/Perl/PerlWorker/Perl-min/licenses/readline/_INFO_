@@ -1,0 +1,4 @@
+Package: readline-8.2
+Sources: https://ftp.gnu.org/gnu/readline/readline-8.2.tar.gz
+Patch: readline-8.2.diff
+Homepage: https://tiswww.case.edu/php/chet/readline/rltop.html

@@ -10,8 +10,8 @@ use strict;
 
 use Config;
 "$Config{'archname'}-$Config{'osvers'}" eq
-"MSWin32\-x64\-multi\-thread-10\.0\.22631\.5335" or
-	die "Errno architecture (MSWin32\-x64\-multi\-thread-10\.0\.22631\.5335) does not match executable architecture ($Config{'archname'}-$Config{'osvers'})";
+"MSWin32\-x64\-multi\-thread-10\.0\.26100\.4652" or
+	die "Errno architecture (MSWin32\-x64\-multi\-thread-10\.0\.26100\.4652) does not match executable architecture ($Config{'archname'}-$Config{'osvers'})";
 
 our $VERSION = "1.38";
 $VERSION = eval $VERSION;

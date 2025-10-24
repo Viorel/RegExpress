@@ -1,0 +1,4 @@
+Package: freetype-2.13.2
+Sources: https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz
+Patch: freetype-2.13.2.diff
+Homepage: http://www.freetype.org/

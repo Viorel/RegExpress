@@ -12,60 +12,6 @@ our $VERSION = '0.9933';
 our $CLASS = 'version';
 our (@ISA, $STRICT, $LAX);
 
-# !!!!Delete this next block completely when adding to Perl core!!!!
-{
-    local $SIG{'__DIE__'};
-    eval "use version::vxs $VERSION";
-    if ( $@ ) { # don't have the XS version installed
-	eval "use version::vpp $VERSION"; # don't tempt fate
-	die "$@" if ( $@ );
-	push @ISA, "version::vpp";
-	local $^W;
-	*version::qv = \&version::vpp::qv;
-	*version::declare = \&version::vpp::declare;
-	*version::_VERSION = \&version::vpp::_VERSION;
-	*version::vcmp = \&version::vpp::vcmp;
-	*version::new = \&version::vpp::new;
-	*version::numify = \&version::vpp::numify;
-	*version::normal = \&version::vpp::normal;
-	*version::to_decimal = \&version::vpp::to_decimal;
-	*version::to_dotted_decimal = \&version::vpp::to_dotted_decimal;
-	*version::tuple = \&version::vpp::tuple;
-	*version::from_tuple = \&version::vpp::from_tuple;
-	if ($] >= 5.009000) {
-	    no strict 'refs';
-	    *version::stringify = \&version::vpp::stringify;
-	    *{'version::(""'} = \&version::vpp::stringify;
-	    *{'version::(<=>'} = \&version::vpp::vcmp;
-	    *{'version::(cmp'} = \&version::vpp::vcmp;
-	    *version::parse = \&version::vpp::parse;
-	}
-    }
-    else { # use XS module
-	push @ISA, "version::vxs";
-	local $^W;
-	*version::declare = \&version::vxs::declare;
-	*version::qv = \&version::vxs::qv;
-	*version::_VERSION = \&version::vxs::_VERSION;
-	*version::vcmp = \&version::vxs::VCMP;
-	*version::new = \&version::vxs::new;
-	*version::numify = \&version::vxs::numify;
-	*version::normal = \&version::vxs::normal;
-	*version::to_decimal = \&version::vxs::to_decimal;
-	*version::to_dotted_decimal = \&version::vxs::to_dotted_decimal;
-	*version::tuple = \&version::vxs::tuple;
-	*version::from_tuple = \&version::vxs::from_tuple;
-	if ($] >= 5.009000) {
-	    no strict 'refs';
-	    *version::stringify = \&version::vxs::stringify;
-	    *{'version::(""'} = \&version::vxs::stringify;
-	    *{'version::(<=>'} = \&version::vxs::VCMP;
-	    *{'version::(cmp'} = \&version::vxs::VCMP;
-	    *version::parse = \&version::vxs::parse;
-	}
-    }
-}
-
 # avoid using Exporter
 require version::regex;
 *version::is_lax = \&version::regex::is_lax;

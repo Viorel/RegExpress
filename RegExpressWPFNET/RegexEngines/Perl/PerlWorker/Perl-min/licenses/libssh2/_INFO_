@@ -1,0 +1,4 @@
+Package: libssh2-1.11.0
+Sources: https://www.libssh2.org/download/libssh2-1.11.0.tar.gz
+Patch: libssh2-1.11.0.diff
+Homepage: http://www.libssh2.org

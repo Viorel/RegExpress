@@ -1,0 +1,4 @@
+Package: freeglut-3.4.0
+Sources: http://downloads.sourceforge.net/freeglut/freeglut-3.4.0.tar.gz
+Patch: freeglut-3.4.0.diff
+Homepage: http://freeglut.sourceforge.net/
