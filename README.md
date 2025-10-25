@@ -15,15 +15,15 @@ It includes the following Regular Expression engines:
 * **[SubReg](https://github.com/mattbucknall/subreg)** 2024-08-11 (in C).
 * **JavaScript [RegExp](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)** object
   in Microsoft Edge [WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/), 
-  V8 \(via [Node.js](https://nodejs.org)\) 13.6.233.10,
-  [QuickJs](https://bellard.org/quickjs/) 2025-04-26,
-  [SpiderMonkey](https://spidermonkey.dev/) C143.0
-  and JavaScriptCore (via [Bun 1.2.21](https://bun.sh/)[^1]).
+  V8 \(via [Node.js](https://nodejs.org)\) 14.1.146,
+  [QuickJs](https://bellard.org/quickjs/) 2025-09-13,
+  [SpiderMonkey](https://spidermonkey.dev/) C145.0
+  and JavaScriptCore (via [Bun 1.3.1](https://bun.sh/)[^1]).
 * **VBScript [RegExp](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85))** object used in Access, Excel, Word.
 * **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel (in C).
 * **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41 (in C).
 * **[ICU Regular Expressions](https://icu.unicode.org/)** 77.1 (in C++).
-* **Rust** 1.90.0 crates: **[regex](https://docs.rs/regex)** 1.11.2, **[regex\_lite](https://docs.rs/regex_lite)** 0.1.7, **[fancy\_regex](https://docs.rs/fancy-regex)** 0.16.2 
+* **Rust** 1.90.0 crates: **[regex](https://docs.rs/regex)** 1.12.2, **[regex\_lite](https://docs.rs/regex_lite)** 0.1.8, **[fancy\_regex](https://docs.rs/fancy-regex)** 0.16.2 
   and **[regress](https://docs.rs/regress)** 0.10.4.
 * **[Java](https://docs.oracle.com/en/java/javase/24/docs/api/java.base/java/util/regex/package-summary.html)** 24.0.1 (*java.util.regex* and *com.google.re2j* packages).
 * **[Python](https://www.python.org/)** 3.13.6 (standard *re* module, third-party *regex* module).

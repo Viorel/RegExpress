@@ -6,6 +6,6 @@ namespace RegExpressLibrary
 {
     public abstract class RegexPlugin
     {
-        public abstract IReadOnlyList<IRegexEngine> GetEngines();
+        public abstract IReadOnlyList<IRegexEngine> GetEngines(); // returns fresh engines (not cached)
     }
 }

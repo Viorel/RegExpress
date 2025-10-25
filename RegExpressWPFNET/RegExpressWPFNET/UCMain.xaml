@@ -39,7 +39,7 @@
                     <StackPanel Style="{StaticResource StackPanelWithLabels}" HorizontalAlignment="Left" >
                         <TextBlock Text="Pattern" Style="{StaticResource Labels}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock x:Name="lblPatternInfo" d:Text="Index: 8  |  Length: 30" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin=" 0 0 8 1"
+                    <TextBlock x:Name="lblPatternInfo" d:Text="Index: 8  |  Length: 30" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0 0 9 1"
                                FontSize="9.25" Opacity="0.77" />
                 </Grid>
                 <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
@@ -68,7 +68,7 @@
                     <StackPanel Style="{StaticResource StackPanelWithLabels}" HorizontalAlignment="Left" >
                         <TextBlock Text="Text" Style="{StaticResource Labels}" />
                     </StackPanel>
-                    <TextBlock x:Name="lblTextInfo" d:Text="Index: 10  |  Length: 200" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin=" 0 0 8 1"
+                    <TextBlock x:Name="lblTextInfo" d:Text="Index: 10  |  Length: 200" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0 0 9 1"
                                FontSize="9.25" Opacity="0.77"/>
                 </Grid>
                 <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0">
@@ -164,15 +164,25 @@
                                     </TransformGroup>
                                 </StackPanel.LayoutTransform>
                                 <Label Content="Engine: " VerticalAlignment="Center"/>
-                                <ComboBox x:Name="cbxEngine" VerticalAlignment="Center" SelectionChanged="CbxEngine_SelectionChanged" MaxDropDownHeight="Auto" MinWidth="64" VerticalContentAlignment="Center" Padding="3 0 2 0">
-                                    <ComboBox.Resources>
-                                        <Style TargetType="ComboBoxItem">
-                                            <Setter Property="Padding" Value="3 1 4 1"/>
-                                        </Style>
-                                    </ComboBox.Resources>
-                                    <d:ComboBoxItem IsSelected="True">TEST Long text</d:ComboBoxItem>
-                                    <!-- NOTE. The 'Tag' is the 'Id' of engine; see 'IRegexEngine.Id' -->
-                                    <!-- (filled programmatically) -->
+                                <ComboBox x:Name="cbxEngine" VerticalAlignment="Center" SelectionChanged="CbxEngine_SelectionChanged" MaxDropDownHeight="Auto" VerticalContentAlignment="Center" Padding="3 0 2 0">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="1 0 0 0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Version, TargetNullValue='Unknown version', FallbackValue='Unknown version'}" VerticalAlignment="Center" HorizontalAlignment="Left" 
+                                                           Margin="6 0 1 0">
+                                                    <!--<TextBlock.LayoutTransform>
+                                                        <ScaleTransform ScaleX="0.8" ScaleY="1"/>
+                                                    </TextBlock.LayoutTransform>-->
+                                                </TextBlock>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                    <d:ComboBoxItem IsSelected="True">Some engine</d:ComboBoxItem>
                                 </ComboBox>
                             </StackPanel>
                             <Separator/>

@@ -1,7 +1,9 @@
 HOW TO PREPARE THE WORKER
+-------------------------
 
-- Install Node.js, or download standalone binaries. (In case of standaline binaries, 
-  the ".cmd" files bellow should be adjusted to include paths).
+- Install Node.js, or download "Standalone Binary" from https://nodejs.org/en/download.
+  Select the current version. (In case of standaline binaries, the ".cmd" files bellow 
+  should be adjusted to include paths).
 
 - Edit "NodeJsWorker.js" if required.
 

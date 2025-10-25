@@ -1,4 +1,5 @@
 HOW TO PREPARE THE RUNTIME
+--------------------------
 
 - Install Node.js, or download standalone binaries. (In case of standaline binaries, 
   the commands bellow should be adjusted to include paths).
@@ -7,7 +8,7 @@ HOW TO PREPARE THE RUNTIME
 
     npm install jsvu -g
 
-- Run jsvu, select "SpiderMonkey" when it asks. The engine will be installed to "C:\Users\<USER>\.jsvu\engines\spidermonkey".
+- Run jsvu, select "SpiderMonkey" only when it asks. The engine will be installed to "C:\Users\<USER>\.jsvu\engines\spidermonkey".
 
 - Archive the "spidermonkey" folder to "spidermonkey.zip" uzing ZIP format, ultra level, Deflate or Deflate64 method.
   (for example: "7z.exe a -tzip -mx9 -mm=deflate64 spidermonkey.zip spidermonkey").

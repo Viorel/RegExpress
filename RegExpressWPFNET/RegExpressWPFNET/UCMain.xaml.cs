@@ -66,8 +66,8 @@ namespace RegExpressWPFNET
         {
             InitializeComponent( );
 
-            RegexEngines = engines;
-            DefaultRegexEngine = engines.First( );
+            RegexEngines = engines.OrderBy( e => e.Name ).Select( e => { e.OptionsChanged += Engine_OptionsChanged; return e; } ).ToArray( );
+            DefaultRegexEngine = engines[0];
 
             lblPatternInfo.Visibility = Visibility.Collapsed;
             lblTextInfo.Visibility = Visibility.Collapsed;
@@ -84,21 +84,8 @@ namespace RegExpressWPFNET
             ShowPatternInfoLoop.Priority = ThreadPriority.Lowest;
             ShowTextInfoLoop.Priority = ThreadPriority.Lowest;
 
-            foreach( var eng in RegexEngines.OrderBy( e => e.Name ) )
-            {
-                eng.OptionsChanged += Engine_OptionsChanged;
-
-                string content = eng.Name + " " + ( eng.Version?.ToString( ) ?? "unknown version" );
-
-                var cbxi = new ComboBoxItem
-                {
-                    Tag = eng.CombinedId,
-                    Content = content,
-                    IsSelected = eng.CombinedId == DefaultRegexEngine.CombinedId,
-                };
-
-                cbxEngine.Items.Add( cbxi );
-            }
+            cbxEngine.ItemsSource = RegexEngines;
+            cbxEngine.SelectedItem = DefaultRegexEngine;
 
             // because 'Unloaded' event is not always called
             // (https://stackoverflow.com/questions/14479038/how-to-fire-unload-event-of-usercontrol-in-a-wpf-window)
@@ -243,7 +230,7 @@ namespace RegExpressWPFNET
         {
             if( IsFullyLoaded ) return;
 
-            CurrentRegexEngine = RegexEngines.First( ); // default
+            CurrentRegexEngine = DefaultRegexEngine;
             SetEngineOption( CurrentRegexEngine );
 
             IsFullyLoaded = true;
@@ -449,7 +436,7 @@ namespace RegExpressWPFNET
             if( !IsFullyLoaded ) return;
             if( IsInChange ) return;
 
-            CurrentRegexEngine = RegexEngines.Single( eng => eng.CombinedId.Equals( ( (ComboBoxItem)e.AddedItems[0]! ).Tag ) );
+            CurrentRegexEngine = (IRegexEngine)e.AddedItems[0]!;
 
             ShowOverlappingMatchesWarning( false );
 
@@ -1065,10 +1052,9 @@ namespace RegExpressWPFNET
 
         void SetEngineOption( IRegexEngine engine )
         {
-            var cbxitem = cbxEngine.Items.Cast<ComboBoxItem>( ).Single( i => engine.CombinedId.Equals( i.Tag ) );
-            cbxEngine.SelectedItem = cbxitem;
-            UpdateSubtitle( );
+            cbxEngine.SelectedItem = engine;
 
+            UpdateSubtitle( );
             UpdateOptions( engine );
         }
 
