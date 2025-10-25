@@ -423,7 +423,7 @@ namespace JavaScriptPlugin
                 InsideSets_XModeComments = false,
 
                 Flags = false,
-                ScopedFlags = false,
+                ScopedFlags = true,
                 CircumflexFlags = false,
                 ScopedCircumflexFlags = false,
                 XFlag = false,
