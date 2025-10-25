@@ -127,6 +127,9 @@ namespace BoostPlugin
             {
                 if( grammar == GrammarEnum.None ) continue;
                 if( grammar == GrammarEnum.literal ) continue;
+                if( grammar == GrammarEnum.normal ) continue; // not interested; seems similar to 'ECMAScript'
+                if( grammar == GrammarEnum.JavaScript ) continue; // not interested; seems similar to 'ECMAScript'
+                if( grammar == GrammarEnum.JScript ) continue; // not interested; seems similar to 'ECMAScript'
 
                 Engine engine = new( ) { Options = new Options { Grammar = grammar } };
 
