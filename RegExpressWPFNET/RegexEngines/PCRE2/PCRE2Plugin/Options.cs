@@ -110,6 +110,7 @@ namespace PCRE2Plugin
         public string? MaxPatternCompiledLength { get; set; }
         public string? OffsetLimit { get; set; }
         public string? ParensNestLimit { get; set; }
+        public string? MaxVarLookbehind { get; set; }
 
         public Options Clone( )
         {

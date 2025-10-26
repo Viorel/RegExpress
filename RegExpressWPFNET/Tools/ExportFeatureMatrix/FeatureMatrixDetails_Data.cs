@@ -6,6 +6,7 @@ partial class FeatureMatrixDetails
 {
     internal static readonly FeatureMatrixGroup[] AllFeatureMatrixDetails =
         [
+
             new ( @"General",
             [
                 new FeatureMatrixDetails( @"(…)", @"Grouping constructs", fm => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal)
@@ -392,16 +393,22 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"(?!…)", @"Negative lookahead ", fm => fm.NegativeLookahead)
                     .Test( @"a(?!x)y", "ay", null )
                     .Test( @"\(?!x\)y", "ay", null ),
-                new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind (fixed-length)", fm => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind, fixed-length", fm => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @"(?<=x)a", "xa", null )
                     .Test( @"\(?<=x\)a", "xa", null ),
-                new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind (variable-length)", fm => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind, bounded-length", fm => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                    .Test( @"(?<=x|yz)a", "xa", null )
+                    .Test( @"\(?<=x|yz\)a", "xa", null ),
+                new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind, variable-length", fm => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @"(?<=x.+)a", "x123a", null )
                     .Test( @"\(?<=x.+\)a", "x123a", null ),
-                new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind (fixed-length)", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, fixed-length", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @"(?<!x)a", "ya", "xa" )
                     .Test( @"\(?<!x\)a", "ya", "xa" ),
-                new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind (variable-length)", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, bounded-length", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                    .Test( @"(?<!x|yz)a", "ya", "xa" )
+                    .Test( @"\(?<!x|yz\)a", "ya", "xa" ),
+                new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, variable-length", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @"(?<!x.*)a", "ya", "xa" )
                     .Test( @"\(?<!x.*\)a", "ya", "xa" ),
                 new FeatureMatrixDetails( @"(?>…)", @"Atomic group", fm => fm.AtomicGroup)
@@ -518,5 +525,6 @@ partial class FeatureMatrixDetails
                     .IgnoreCase()
                     .Test( @"ΣΣΣ", "Σσς", null),
             ] ),
+
         ];
 }

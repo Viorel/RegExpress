@@ -55,8 +55,9 @@ namespace RegExpressLibrary.SyntaxColouring
         public enum LookModeEnum
         {
             None,           // lookbehind is not supported
-            FixedLength,    // only fixed-length lookbehind is supported, such as "(?<=abc)", while "(?<=a.*c)" is not supported
-            AnyLength,      // both fixed- and variable-length are supported, such as "(?<=abc)" and "(?<=a.*c)"
+            FixedLength,    // only fixed-length lookbehind is supported, such as "(?<=abc)", while "(?<=a|xy) and "(?<=a.*c)" is not supported
+            BoundedLength,  // variable-length lookbehind is supported, but only if the length is limited, such as "(?<=abc)" or "(?<=a|xy)", while the unbounded "(?<=a.*c)" is not supported
+            AnyLength,      // fixed-, bounded- and unbounded-length are supported, such as "(?<=abc)", "(?<=a|xy)" and "(?<=a.*c)"
         }
 
         public PunctuationEnum Parentheses { get; init; }                   // (...) or \(...\)

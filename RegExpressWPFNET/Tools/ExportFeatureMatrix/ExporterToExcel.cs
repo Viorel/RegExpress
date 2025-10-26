@@ -174,7 +174,7 @@ partial class ExporterToExcel
 
                 foreach( FeatureMatrixDetails details in group.Details )
                 {
-                    if( progressOnFeatures != null ) progressOnFeatures( $"{details.ShortDesc} ({details.Desc})", feature_index, total_features );
+                    progressOnFeatures?.Invoke( $"{details.ShortDesc} ({details.Desc})", feature_index, total_features );
 
                     ++feature_index;
 
@@ -189,7 +189,7 @@ partial class ExporterToExcel
 
                         foreach( var m in engine_data.Matrices )
                         {
-                            if( progressOnEngines != null ) progressOnEngines( $"{engine_data.Engine.Name} {m.variant.Name}", engine_index, engines_data.Length );
+                            progressOnEngines?.Invoke( $"{engine_data.Engine.Name} {m.variant.Name}", engine_index, engines_data.Length );
 
                             bool flag_is_true = details.ValueGetter( m.variant.FeatureMatrix );
 

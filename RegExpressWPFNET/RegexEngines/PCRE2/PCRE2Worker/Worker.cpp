@@ -140,7 +140,7 @@ static std::wstring GetErrorText( int errorNumber )
 static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithmName, const wstring& locale,
     int compileOptions, int extraCompileOptions, int matcherOptions, bool useJit, int jitOptions,
     std::optional<uint32_t> depth_limit, std::optional<uint32_t> heap_limit, std::optional<uint32_t> match_limit,
-    std::optional<uint64_t> max_pattern_compiled_length, std::optional<uint64_t> offset_limit, std::optional<uint32_t> parens_nest_limit
+    std::optional<uint64_t> max_pattern_compiled_length, std::optional<uint64_t> offset_limit, std::optional<uint32_t> parens_nest_limit, std::optional<uint32_t> max_varlookbehind
 )
 {
     DWORD code;
@@ -198,6 +198,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 
                 if( max_pattern_compiled_length ) pcre2_set_max_pattern_compiled_length( compile_context, max_pattern_compiled_length.value( ) );
                 if( parens_nest_limit ) pcre2_set_parens_nest_limit( compile_context, parens_nest_limit.value( ) );
+                if( max_varlookbehind ) pcre2_set_max_varlookbehind( compile_context, max_varlookbehind.value( ) );
 
                 int errornumber;
                 PCRE2_SIZE erroroffset;
@@ -778,6 +779,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             std::optional<uint64_t> max_pattern_compiled_length;
             std::optional<uint64_t> offset_limit;
             std::optional<uint32_t> parens_nest_limit;
+            std::optional<uint32_t> max_varlookbehind;
 
             uint8_t is_not_null;
 
@@ -799,10 +801,13 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             is_not_null = inbr.ReadT<uint8_t>( );
             if( is_not_null ) parens_nest_limit = inbr.ReadT<uint32_t>( );
 
+            is_not_null = inbr.ReadT<uint8_t>( );
+            if( is_not_null ) max_varlookbehind = inbr.ReadT<uint32_t>( );
+
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
             DoMatch( outbw, pattern, text, algorithm, locale, compile_options, extra_compile_options, matcher_options, use_jit, jit_options,
-                depth_limit, heap_limit, match_limit, max_pattern_compiled_length, offset_limit, parens_nest_limit );
+                depth_limit, heap_limit, match_limit, max_pattern_compiled_length, offset_limit, parens_nest_limit, max_varlookbehind );
 
             return 0;
         }

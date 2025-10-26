@@ -28,7 +28,7 @@ namespace PCRE2Plugin
             {
                 if( !UInt32.TryParse( options.DepthLimit, out var depth_limit0 ) )
                 {
-                    throw new ApplicationException( "Invalid depth_limit." );
+                    throw new ApplicationException( "Invalid 'depth_limit'." );
                 }
                 else
                 {
@@ -42,7 +42,7 @@ namespace PCRE2Plugin
             {
                 if( !UInt32.TryParse( options.HeapLimit, out var heap_limit0 ) )
                 {
-                    throw new ApplicationException( "Invalid heap_limit." );
+                    throw new ApplicationException( "Invalid 'heap_limit'." );
                 }
                 else
                 {
@@ -56,7 +56,7 @@ namespace PCRE2Plugin
             {
                 if( !UInt32.TryParse( options.MatchLimit, out var match_limit0 ) )
                 {
-                    throw new ApplicationException( "Invalid match_limit." );
+                    throw new ApplicationException( "Invalid 'match_limit'." );
                 }
                 else
                 {
@@ -70,7 +70,7 @@ namespace PCRE2Plugin
             {
                 if( !UInt64.TryParse( options.MaxPatternCompiledLength, out var max_pattern_compiled_length0 ) )
                 {
-                    throw new ApplicationException( "Invalid max_pattern_compiled_length." );
+                    throw new ApplicationException( "Invalid 'max_pattern_compiled_length'." );
                 }
                 else
                 {
@@ -84,7 +84,7 @@ namespace PCRE2Plugin
             {
                 if( !UInt64.TryParse( options.OffsetLimit, out var offset_limit0 ) )
                 {
-                    throw new ApplicationException( "Invalid offset_limit." );
+                    throw new ApplicationException( "Invalid 'offset_limit'." );
                 }
                 else
                 {
@@ -98,7 +98,7 @@ namespace PCRE2Plugin
             {
                 if( !UInt32.TryParse( options.ParensNestLimit, out var parens_nest_limit0 ) )
                 {
-                    throw new ApplicationException( "Invalid parens_nest_limit." );
+                    throw new ApplicationException( "Invalid 'parens_nest_limit'." );
                 }
                 else
                 {
@@ -106,6 +106,19 @@ namespace PCRE2Plugin
                 }
             }
 
+            UInt32? max_varlookbehind = null;
+
+            if( !string.IsNullOrWhiteSpace( options.MaxVarLookbehind ) )
+            {
+                if( !UInt32.TryParse( options.MaxVarLookbehind, out var max_varlookbehind0 ) )
+                {
+                    throw new ApplicationException( "Invalid 'max_varlookbehind'." );
+                }
+                else
+                {
+                    max_varlookbehind = max_varlookbehind0;
+                }
+            }
 
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
@@ -205,7 +218,7 @@ namespace PCRE2Plugin
                 bw.WriteOptional( max_pattern_compiled_length );
                 bw.WriteOptional( offset_limit );
                 bw.WriteOptional( parens_nest_limit );
-
+                bw.WriteOptional( max_varlookbehind );
 
                 bw.Write( (byte)'e' );
             };
