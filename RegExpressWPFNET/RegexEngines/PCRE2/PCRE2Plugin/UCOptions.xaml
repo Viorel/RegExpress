@@ -34,7 +34,7 @@
                 </Style>
                 <Style TargetType="ComboBox">
                     <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="MinWidth" Value="120"/>
+                    <Setter Property="MinWidth" Value="150"/>
                     <Setter Property="Margin" Value="3 0 0 2"/>
                 </Style>
             </Grid.Resources>
@@ -46,19 +46,38 @@
             <Grid.RowDefinitions>
                 <RowDefinition/>
                 <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
             </Grid.RowDefinitions>
 
 
             <Label Grid.Column="0" Grid.Row="0" Content="Algorithm:" Target="{Binding ElementName=cbxAlgorithm}" />
-            <ComboBox x:Name="cbxAlgorithm" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Algorithm, FallbackValue='Standard'}" SelectionChanged="cbxAlgorithm_SelectionChanged">
+            <ComboBox x:Name="cbxAlgorithm" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Algorithm, FallbackValue='Standard'}" SelectionChanged="cbx_SelectionChanged">
                 <ComboBoxItem Tag ="Standard" Content="Perl-compatible" IsSelected="True" />
                 <ComboBoxItem Tag ="DFA" Content="DFA" />
             </ComboBox>
 
             <Label Grid.Column="0" Grid.Row="1" Content="Locale:" Target="{Binding ElementName=cbxLocale}" />
-            <ComboBox x:Name="cbxLocale" Grid.Column="1" Grid.Row="1" SelectedValuePath="Tag" SelectedValue="{Binding Locale, FallbackValue='C'}" SelectionChanged="cbxLocale_SelectionChanged">
+            <ComboBox x:Name="cbxLocale" Grid.Column="1" Grid.Row="1" SelectedValuePath="Tag" SelectedValue="{Binding Locale, FallbackValue='C'}" SelectionChanged="cbx_SelectionChanged">
                 <ComboBoxItem Tag="C" Content="C" IsSelected="True" />
                 <ComboBoxItem x:Name="cbiSystemLocale" Tag="" Content="System"/>
+            </ComboBox>
+
+            <Label Grid.Column="0" Grid.Row="2" Content="Newline:" Target="{Binding ElementName=cbxNewline}" />
+            <ComboBox x:Name="cbxNewline" Grid.Column="1" Grid.Row="2" SelectedValuePath="Tag" SelectedValue="{Binding Newline, FallbackValue='Default'}" SelectionChanged="cbx_SelectionChanged">
+                <ComboBoxItem Tag="Default" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                <ComboBoxItem Tag="PCRE2_NEWLINE_CR" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                <ComboBoxItem Tag="PCRE2_NEWLINE_LF" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                <ComboBoxItem Tag="PCRE2_NEWLINE_CRLF" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                <ComboBoxItem Tag="PCRE2_NEWLINE_ANYCRLF" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                <ComboBoxItem Tag="PCRE2_NEWLINE_ANY" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+            </ComboBox>
+
+            <Label Grid.Column="0" Grid.Row="3" Content="BSR:" Target="{Binding ElementName=cbxBsr}" />
+            <ComboBox x:Name="cbxBsr" Grid.Column="1" Grid.Row="3" SelectedValuePath="Tag" SelectedValue="{Binding Bsr, FallbackValue='Default'}" SelectionChanged="cbx_SelectionChanged">
+                <ComboBoxItem Tag="Default" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                <ComboBoxItem Tag="PCRE2_BSR_ANYCRLF" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                <ComboBoxItem Tag="PCRE2_BSR_UNICODE" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
             </ComboBox>
         </Grid>
 

@@ -134,6 +134,8 @@ namespace PCRE2Plugin
 
                 bw.Write( Enum.GetName( options.Algorithm )! );
                 bw.Write( options.Locale );
+                bw.Write( Enum.GetName( options.Newline )! );
+                bw.Write( Enum.GetName( options.Bsr )! );
 
                 // Compile options
 

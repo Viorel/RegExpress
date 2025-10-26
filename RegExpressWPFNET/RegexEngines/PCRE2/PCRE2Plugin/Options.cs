@@ -14,11 +14,31 @@ namespace PCRE2Plugin
         DFA,
     }
 
+    enum NewlineEnum
+    {
+        None = 0,
+        Default,
+        PCRE2_NEWLINE_CR,
+        PCRE2_NEWLINE_LF,
+        PCRE2_NEWLINE_CRLF,
+        PCRE2_NEWLINE_ANYCRLF,
+        PCRE2_NEWLINE_ANY,
+    }
+
+    enum BsrEnum
+    {
+        None = 0,
+        Default,
+        PCRE2_BSR_ANYCRLF,
+        PCRE2_BSR_UNICODE,
+    }
 
     internal class Options
     {
         public AlgorithmEnum Algorithm { get; set; } = AlgorithmEnum.Standard;
         public string Locale { get; set; } = "C"; // ("C" -- default C-language locale; "" -- use current system locale) 
+        public NewlineEnum Newline { get; set; } = NewlineEnum.Default;
+        public BsrEnum Bsr { get; set; } = BsrEnum.Default;
 
 
         // Compile options (from https://pcre2project.github.io/pcre2/doc/pcre2_compile/)

@@ -63,13 +63,7 @@ namespace PCRE2Plugin
             Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
         }
 
-
-        private void cbxAlgorithm_SelectionChanged( object sender, SelectionChangedEventArgs e )
-        {
-            Notify( preferImmediateReaction: true );
-        }
-
-        private void cbxLocale_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        private void cbx_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             Notify( preferImmediateReaction: true );
         }

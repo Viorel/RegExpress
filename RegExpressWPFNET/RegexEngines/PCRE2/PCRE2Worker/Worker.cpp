@@ -137,7 +137,7 @@ static std::wstring GetErrorText( int errorNumber )
 }
 
 
-static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithmName, const wstring& locale,
+static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text, const wstring& algorithmName, const wstring& locale, std::optional<uint32_t> newline, std::optional<uint32_t> bsr,
     int compileOptions, int extraCompileOptions, int matcherOptions, bool useJit, int jitOptions,
     std::optional<uint32_t> depth_limit, std::optional<uint32_t> heap_limit, std::optional<uint32_t> match_limit,
     std::optional<uint64_t> max_pattern_compiled_length, std::optional<uint64_t> offset_limit, std::optional<uint32_t> parens_nest_limit, std::optional<uint32_t> max_varlookbehind
@@ -199,6 +199,8 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                 if( max_pattern_compiled_length ) pcre2_set_max_pattern_compiled_length( compile_context, max_pattern_compiled_length.value( ) );
                 if( parens_nest_limit ) pcre2_set_parens_nest_limit( compile_context, parens_nest_limit.value( ) );
                 if( max_varlookbehind ) pcre2_set_max_varlookbehind( compile_context, max_varlookbehind.value( ) );
+                if( newline ) pcre2_set_newline( compile_context, newline.value( ) );
+                if( bsr ) pcre2_set_bsr( compile_context, bsr.value( ) );
 
                 int errornumber;
                 PCRE2_SIZE erroroffset;
@@ -686,6 +688,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
             std::wstring algorithm = inbr.ReadString( );
             std::wstring locale = inbr.ReadString( );
+            std::wstring newlineName = inbr.ReadString( );
+            std::wstring bsrName = inbr.ReadString( );
 
             // Compile options
 
@@ -806,7 +810,58 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-            DoMatch( outbw, pattern, text, algorithm, locale, compile_options, extra_compile_options, matcher_options, use_jit, jit_options,
+            std::optional<uint32_t> newline;
+
+            if( newlineName == L"Default" )
+            {
+                newline.reset( );
+            }
+            else if( newlineName == L"PCRE2_NEWLINE_CR" )
+            {
+                newline = PCRE2_NEWLINE_CR;
+            }
+            else if( newlineName == L"PCRE2_NEWLINE_LF" )
+            {
+                newline = PCRE2_NEWLINE_LF;
+            }
+            else if( newlineName == L"PCRE2_NEWLINE_CRLF" )
+            {
+                newline = PCRE2_NEWLINE_CRLF;
+            }
+            else if( newlineName == L"PCRE2_NEWLINE_ANYCRLF" )
+            {
+                newline = PCRE2_NEWLINE_ANYCRLF;
+            }
+            else if( newlineName == L"PCRE2_NEWLINE_ANY" )
+            {
+                newline = PCRE2_NEWLINE_ANY;
+            }
+            else
+            {
+                throw std::runtime_error( std::format( "Unsupported newline: '{}'", WStringToUtf8( newlineName ) ) );
+            }
+
+            std::optional<uint32_t> bsr;
+
+            if( bsrName == L"Default" )
+            {
+                bsr.reset( );
+            }
+            else if( bsrName == L"PCRE2_BSR_ANYCRLF" )
+            {
+                bsr = PCRE2_BSR_ANYCRLF;
+            }
+            else if( bsrName == L"PCRE2_BSR_UNICODE" )
+            {
+                bsr = PCRE2_BSR_UNICODE;
+            }
+            else
+            {
+                throw std::runtime_error( std::format( "Unsupported BSR: '{}'", WStringToUtf8( bsrName ) ) );
+            }
+
+            DoMatch( outbw, pattern, text, algorithm, locale, newline, bsr,
+                compile_options, extra_compile_options, matcher_options, use_jit, jit_options,
                 depth_limit, heap_limit, match_limit, max_pattern_compiled_length, offset_limit, parens_nest_limit, max_varlookbehind );
 
             return 0;
