@@ -52,6 +52,13 @@ namespace RegExpressLibrary.SyntaxColouring
             Reject          // detects possible catastrophic patterns and rejects them, giving an error
         }
 
+        public enum LookModeEnum
+        {
+            None,           // lookbehind is not supported
+            FixedLength,    // only fixed-length lookbehind is supported, such as "(?<=abc)", while "(?<=a.*c)" is not supported
+            AnyLength,      // both fixed- and variable-length are supported, such as "(?<=abc)" and "(?<=a.*c)"
+        }
+
         public PunctuationEnum Parentheses { get; init; }                   // (...) or \(...\)
 
         public bool Brackets { get; init; }                                 // [...]
@@ -199,8 +206,8 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool NoncapturingGroup { get; init; }                        // (?:...)
         public bool PositiveLookahead { get; init; }                        // (?=...)
         public bool NegativeLookahead { get; init; }                        // (?!...)
-        public bool PositiveLookbehind { get; init; }                       // (?<=...)
-        public bool NegativeLookbehind { get; init; }                       // (?<!...)
+        public LookModeEnum PositiveLookbehind { get; init; }               // (?<=...)
+        public LookModeEnum NegativeLookbehind { get; init; }               // (?<!...)
         public bool AtomicGroup { get; init; }                              // (?>...)
         public bool BranchReset { get; init; }                              // (?|...)
         public bool NonatomicPositiveLookahead { get; init; }               // (?*...)

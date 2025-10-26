@@ -174,6 +174,7 @@ namespace PythonPlugin
 
         static FeatureMatrix BuildFeatureMatrix( (ModuleEnum module, int version) key )
         {
+            bool is_re = key.module == ModuleEnum.re;
             bool is_regex = key.module == ModuleEnum.regex;
 
             return new FeatureMatrix
@@ -323,8 +324,8 @@ namespace PythonPlugin
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
                 NegativeLookahead = true,
-                PositiveLookbehind = true,
-                NegativeLookbehind = true,
+                PositiveLookbehind = is_re ? FeatureMatrix.LookModeEnum.FixedLength : is_regex ? FeatureMatrix.LookModeEnum.AnyLength : FeatureMatrix.LookModeEnum.None,
+                NegativeLookbehind = is_re ? FeatureMatrix.LookModeEnum.FixedLength : is_regex ? FeatureMatrix.LookModeEnum.AnyLength : FeatureMatrix.LookModeEnum.None,
                 AtomicGroup = true,
                 BranchReset = is_regex,
                 NonatomicPositiveLookahead = false,

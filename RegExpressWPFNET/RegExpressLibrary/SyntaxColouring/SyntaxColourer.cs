@@ -994,11 +994,11 @@ namespace RegExpressLibrary.SyntaxColouring
                         {
                             pb.Add( @"\(\s*\?\s*!" );
                         }
-                        if( fm.PositiveLookbehind )
+                        if( fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                         {
                             pb.Add( @"\(\s*\?\s*<\s*=" );
                         }
-                        if( fm.NegativeLookbehind )
+                        if( fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                         {
                             pb.Add( @"\(\s*\?\s*<\s*!" );
                         }
@@ -1049,11 +1049,11 @@ namespace RegExpressLibrary.SyntaxColouring
                         {
                             pb.Add( @"\(\?!" );
                         }
-                        if( fm.PositiveLookbehind )
+                        if( fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                         {
                             pb.Add( @"\(\?<=" );
                         }
-                        if( fm.NegativeLookbehind )
+                        if( fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                         {
                             pb.Add( @"\(\?<!" );
                         }
@@ -1122,11 +1122,11 @@ namespace RegExpressLibrary.SyntaxColouring
                         {
                             pb.Add( @"\\\(\?!" );
                         }
-                        if( fm.PositiveLookbehind )
+                        if( fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                         {
                             pb.Add( @"\\\(\?<=" );
                         }
-                        if( fm.NegativeLookbehind )
+                        if( fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                         {
                             pb.Add( @"\\\(\?<!" );
                         }
@@ -1177,11 +1177,11 @@ namespace RegExpressLibrary.SyntaxColouring
                     {
                         throw new InvalidOperationException( );
                     }
-                    if( fm.PositiveLookbehind )
+                    if( fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     {
                         throw new InvalidOperationException( );
                     }
-                    if( fm.NegativeLookbehind )
+                    if( fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     {
                         throw new InvalidOperationException( );
                     }

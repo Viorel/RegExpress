@@ -112,7 +112,17 @@ Download and open the file:
 	* **Qt**
 	* **CTRE**
 
-* Engines that seems protected against “catastrophic backtracking” or timeout errors<br/>(pattern: `(a*)*b`, text: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac`):
+* Engines that support variable-length positive and negative lookbehinds (`(?<=...` and `(?<!...)`)
+	* **Regex** (.NET, .NET Framework)
+	* **wregex** (SRELL)
+	* **Oniguruma**
+	* **JavaScript**
+	* Rust: **regress**
+	* Java: **regex**
+	* Python: **regex**
+	* **D**
+
+* Engines that are protected against “catastrophic backtracking” or timeout errors<br/>(pattern: `(a*)*b`, text: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac`):
 	* **RE2**
 	* **PCRE2**
 	* **Oniguruma**
@@ -135,9 +145,6 @@ Download and open the file:
 	* **Hyperscan**
 	* Python: **regex**
 	* **TRE**
-
-<br/>
-<br/>
 
 [^1]: The **Bun** engine requires a modern 64-bit processor.
 [^2]: The **CTRE** engine is available in selected environments only.

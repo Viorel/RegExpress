@@ -392,12 +392,18 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"(?!…)", @"Negative lookahead ", fm => fm.NegativeLookahead)
                     .Test( @"a(?!x)y", "ay", null )
                     .Test( @"\(?!x\)y", "ay", null ),
-                new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind", fm => fm.PositiveLookbehind)
+                new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind (fixed-length)", fm => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @"(?<=x)a", "xa", null )
                     .Test( @"\(?<=x\)a", "xa", null ),
-                new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind", fm => fm.NegativeLookbehind)
-                    .Test( @"(?<!x)a", "ya", null )
-                    .Test( @"\(?<!x\)a", "ya", null ),
+                new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind (variable-length)", fm => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                    .Test( @"(?<=x.+)a", "x123a", null )
+                    .Test( @"\(?<=x.+\)a", "x123a", null ),
+                new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind (fixed-length)", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                    .Test( @"(?<!x)a", "ya", "xa" )
+                    .Test( @"\(?<!x\)a", "ya", "xa" ),
+                new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind (variable-length)", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                    .Test( @"(?<!x.*)a", "ya", "xa" )
+                    .Test( @"\(?<!x.*\)a", "ya", "xa" ),
                 new FeatureMatrixDetails( @"(?>…)", @"Atomic group", fm => fm.AtomicGroup)
                     .Test( @"(?>x)", "x", null )
                     .Test( @"\(?>x\)", "x", null ),
@@ -413,7 +419,7 @@ partial class FeatureMatrixDetails
                 //new FeatureMatrixDetails( @"( ? … )", @"Allow spaces like '( ? < name >…)'", fm => fm.AllowSpacesInGroups ), // TODO
             ] ),
 
-            new ( @"Recursive patterns",
+        new ( @"Recursive patterns",
             [
                 new FeatureMatrixDetails( @"(?n)", @"Recursive subpattern by number", fm => fm.Recursive_Num)
                     .Test( @"(x.)(?1)", "xyxz", "xyZ"),
