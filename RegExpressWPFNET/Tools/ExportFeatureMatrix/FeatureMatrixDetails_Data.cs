@@ -324,7 +324,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a\yb", "ab", null ),
             ] ),
 
-            new ( @"Named groups, subroutines and backreferences",
+        new ( @"Named groups, subroutines and backreferences",
             [
                 new FeatureMatrixDetails( @"(?'name'…)", @"Named group", fm => fm.NamedGroup_Apos)
                     .Test( @"(?'n'x)", "x", null )
@@ -335,6 +335,34 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"(?P<name>…)", @"Named group", fm => fm.NamedGroup_PLtGt)
                     .Test( @"(?P<n>x)", "x", null )
                     .Test( @"\(?P<n>x\)", "x", null ),
+                new FeatureMatrixDetails( @"(?<name2-name1>…)", @"Balancing group", fm => (fm.NamedGroup_Apos || fm.NamedGroup_LtGt || fm.NamedGroup_PLtGt) && fm.BalancingGroup)
+                    .Test( (e,fm)=>
+                    {
+                        try
+                        {
+                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(?<left>left).*(?<right-left>right)", "leftXYZright" );
+                            if( matches.Count !=1 ) return false;
+
+                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First();
+                            if( !match.Success ) return false;
+
+                            RegExpressLibrary.Matches.IGroup? g1 = match.Groups.Skip(1).FirstOrDefault();
+                            if( g1 == null) return false;
+                            if( g1.Success) return false;
+
+                            RegExpressLibrary.Matches.IGroup? g2 = match.Groups.Skip(2).FirstOrDefault();
+                            if( g2 == null) return false;
+                            if( !g2.Success) return false;
+
+                            if( g2.Value != "XYZ") return false;
+
+                            return true;
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    }),
                 new FeatureMatrixDetails( @"(?@…)", @"Capturing group", fm => fm.NamedGroup_AtApos || fm.NamedGroup_AtLtGt || fm.CapturingGroup)
                     .Test( @"(?@<n>x)", "x", null ),
                 new FeatureMatrixDetails( @"Duplicate names", @"Allow duplicate group names", fm => fm.AllowDuplicateGroupName)

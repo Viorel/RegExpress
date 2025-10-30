@@ -304,6 +304,7 @@ namespace RE2Plugin
                 NamedGroup_PLtGt = true,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = false,
                 CapturingGroup = false,
 
                 NoncapturingGroup = true,

@@ -308,6 +308,7 @@ namespace ICUPlugin
                 NamedGroup_PLtGt = false,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = false,
                 CapturingGroup = false,
 
                 NoncapturingGroup = true,

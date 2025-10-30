@@ -344,6 +344,7 @@ namespace StdPlugin
                 NamedGroup_PLtGt = false,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = false,
                 CapturingGroup = false,
 
                 NoncapturingGroup = grammar == GrammarEnum.ECMAScript,
@@ -585,6 +586,7 @@ namespace StdPlugin
                 NamedGroup_PLtGt = false,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = false,
                 CapturingGroup = false,
 
                 NoncapturingGroup = grammar == GrammarEnum.ECMAScript,
@@ -826,6 +828,7 @@ namespace StdPlugin
                 NamedGroup_PLtGt = false,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = false,
                 CapturingGroup = false,
 
                 NoncapturingGroup = grammar == GrammarEnum.ECMAScript,

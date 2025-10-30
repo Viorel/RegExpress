@@ -301,6 +301,7 @@ namespace CppBuilderPlugin
                 NamedGroup_PLtGt = true,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = false,
                 CapturingGroup = false,
 
                 NoncapturingGroup = true,

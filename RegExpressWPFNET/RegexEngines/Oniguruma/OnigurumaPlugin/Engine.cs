@@ -420,6 +420,7 @@ namespace OnigurumaPlugin
                 NamedGroup_PLtGt = details.ONIG_SYN_OP2_QMARK_CAPITAL_P_NAME,
                 NamedGroup_AtApos = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
                 NamedGroup_AtLtGt = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
+                BalancingGroup = false,
                 CapturingGroup = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
 
                 NoncapturingGroup = details.ONIG_SYN_OP2_QMARK_GROUP_EFFECT,

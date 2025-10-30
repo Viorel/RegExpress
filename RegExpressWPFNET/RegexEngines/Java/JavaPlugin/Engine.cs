@@ -327,6 +327,7 @@ namespace JavaPlugin
                 NamedGroup_PLtGt = is_re2j,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = false,
                 CapturingGroup = false,
 
                 NoncapturingGroup = true,

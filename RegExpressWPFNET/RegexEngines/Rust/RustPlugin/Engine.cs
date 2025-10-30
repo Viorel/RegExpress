@@ -333,6 +333,8 @@ namespace RustPlugin
                 NamedGroup_PLtGt = true,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = false,
+                CapturingGroup = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = false,
@@ -547,6 +549,8 @@ namespace RustPlugin
                 NamedGroup_PLtGt = true,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = false,
+                CapturingGroup = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = false,
@@ -763,6 +767,7 @@ namespace RustPlugin
                 NamedGroup_PLtGt = true,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = false,
                 CapturingGroup = false,
 
                 NoncapturingGroup = true,
@@ -980,6 +985,7 @@ namespace RustPlugin
                 NamedGroup_PLtGt = false,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = false,
                 CapturingGroup = false,
 
                 NoncapturingGroup = true,

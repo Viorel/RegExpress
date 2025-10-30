@@ -301,6 +301,7 @@ namespace DotNET8Plugin
                 NamedGroup_PLtGt = false,
                 NamedGroup_AtApos = false,
                 NamedGroup_AtLtGt = false,
+                BalancingGroup = true,
                 CapturingGroup = false,
 
                 NoncapturingGroup = true,

@@ -65,7 +65,7 @@
 
             <Label Grid.Column="0" Grid.Row="2" Content="Newline:" Target="{Binding ElementName=cbxNewline}" />
             <ComboBox x:Name="cbxNewline" Grid.Column="1" Grid.Row="2" SelectedValuePath="Tag" SelectedValue="{Binding Newline, FallbackValue='Default'}" SelectionChanged="cbx_SelectionChanged">
-                <ComboBoxItem Tag="Default" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                <ComboBoxItem Tag="Default" Content="unspecified" IsSelected="True" />
                 <ComboBoxItem Tag="PCRE2_NEWLINE_CR" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                 <ComboBoxItem Tag="PCRE2_NEWLINE_LF" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                 <ComboBoxItem Tag="PCRE2_NEWLINE_CRLF" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
@@ -75,23 +75,11 @@
 
             <Label Grid.Column="0" Grid.Row="3" Content="BSR:" Target="{Binding ElementName=cbxBsr}" />
             <ComboBox x:Name="cbxBsr" Grid.Column="1" Grid.Row="3" SelectedValuePath="Tag" SelectedValue="{Binding Bsr, FallbackValue='Default'}" SelectionChanged="cbx_SelectionChanged">
-                <ComboBoxItem Tag="Default" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                <ComboBoxItem Tag="Default" Content="unspecified" IsSelected="True" />
                 <ComboBoxItem Tag="PCRE2_BSR_ANYCRLF" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
                 <ComboBoxItem Tag="PCRE2_BSR_UNICODE" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
             </ComboBox>
         </Grid>
-
-        <StackPanel Orientation="Horizontal" >
-            <StackPanel.LayoutTransform>
-                <TransformGroup>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                    <SkewTransform/>
-                    <RotateTransform/>
-                    <TranslateTransform/>
-                </TransformGroup>
-            </StackPanel.LayoutTransform>
-
-        </StackPanel>
 
         <Label Margin="0 4 0 4" Padding="0">
             <Italic>Compile Options</Italic>
