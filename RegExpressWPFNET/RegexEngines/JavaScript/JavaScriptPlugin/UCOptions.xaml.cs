@@ -46,6 +46,7 @@ namespace JavaScriptPlugin
             MatcherQuickJs.StartGetVersion( SetQuickJsVersion );
             MatcherSpiderMonkey.StartGetVersion( SetSpiderMonkeyVersion );
             MatcherBun.StartGetVersion( SetBunVersion );
+            MatcherRE2JS.StartGetVersion( SetRE2JSVersion );
 
             UpdateControls( );
         }
@@ -84,10 +85,16 @@ namespace JavaScriptPlugin
             {
                 bool is_V8 = Options.Runtime == RuntimeEnum.WebView2 || Options.Runtime == RuntimeEnum.NodeJs;
                 bool is_SM = Options.Runtime == RuntimeEnum.SpiderMonkey;
+                bool is_RE2JS = Options.Runtime == RuntimeEnum.RE2JS;
+
+                cbxFunction.Visibility = !is_RE2JS ? Visibility.Visible : Visibility.Collapsed;
+                cbxFunctionRE2JS.Visibility = is_RE2JS ? Visibility.Visible : Visibility.Collapsed;
+
+                pnlCommon.Visibility = !is_RE2JS ? Visibility.Visible : Visibility.Collapsed;
+                pnlRE2JS.Visibility = is_RE2JS ? Visibility.Visible : Visibility.Collapsed;
+                pnlSM.Visibility = is_SM ? Visibility.Visible : Visibility.Collapsed;
 
                 checkboxV.Visibility = is_V8 ? Visibility.Visible : Visibility.Collapsed;
-                checkboxNoNativeRegexp.Visibility = checkboxEnableDuplicateNames.Visibility = checkboxEnableRegexpModifiers.Visibility =
-                    is_SM ? Visibility.Visible : Visibility.Collapsed;
 
                 ++ChangeCounter;
             }
@@ -173,6 +180,18 @@ namespace JavaScriptPlugin
                 ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "Bun" );
 
                 cbi.Content = $"JavaScriptCore (Bun) {version}";
+            } );
+        }
+
+        void SetRE2JSVersion( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "RE2JS" );
+
+                cbi.Content = $"RE2JS {version}";
             } );
         }
     }

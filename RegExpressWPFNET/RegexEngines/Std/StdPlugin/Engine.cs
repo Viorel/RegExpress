@@ -148,12 +148,12 @@ namespace StdPlugin
                 {
                     Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = false, vmode = false } };
 
-                    variants.Add( new FeatureMatrixVariant( $"SRELL, {Enum.GetName( grammar )}, no “uv”", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, false, false) ), engine ) );
+                    variants.Add( new FeatureMatrixVariant( $"SRELL, {Enum.GetName( grammar )}", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, false, false) ), engine ) );
                 }
                 {
                     Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = true, vmode = true } };
 
-                    variants.Add( new FeatureMatrixVariant( $"SRELL, {Enum.GetName( grammar )}, “uv”", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, true, true) ), engine ) );
+                    variants.Add( new FeatureMatrixVariant( $"SRELL, {Enum.GetName( grammar )}, “uv” flags", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, true, true) ), engine ) );
                 }
             }
 

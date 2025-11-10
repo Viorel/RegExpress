@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:JavaScriptPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="248.4" d:DesignWidth="530" 
+             d:DesignHeight="344.468" d:DesignWidth="683.921" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -32,7 +32,7 @@
                     <Grid.LayoutTransform>
                         <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                     </Grid.LayoutTransform>
-                    
+
                     <Grid.Resources>
                         <Style TargetType="Label">
                             <Setter Property="VerticalAlignment" Value="Center" />
@@ -53,6 +53,7 @@
                         <ComboBoxItem Tag ="QuickJs" Content="QuickJs"/>
                         <ComboBoxItem Tag ="SpiderMonkey" Content="SpiderMonkey"/>
                         <ComboBoxItem Tag ="Bun" Content="JavaScriptCore (Bun)"/>
+                        <ComboBoxItem Tag ="RE2JS" Content="RE2JS"/>
                     </ComboBox>
 
                     <Label Grid.Column="0" Grid.Row="1" Content="Function:" Target="{Binding ElementName=cbxFunction}" />
@@ -60,20 +61,35 @@
                         <ComboBoxItem Tag ="MatchAll" Content="String.matchAll"/>
                         <ComboBoxItem Tag ="Exec" Content="RegExp.exec"/>
                     </ComboBox>
+                    <ComboBox x:Name="cbxFunctionRE2JS" Grid.Column="1" Grid.Row="1" IsEnabled="False" >
+                        <ComboBoxItem Tag ="" Content="Matcher.find" IsSelected="True"/>
+                    </ComboBox>
                 </Grid>
 
-                <ui:CheckboxWithNote Prop="i" Note="ignore case"/>
-                <ui:CheckboxWithNote Prop="m" Note="allows ‘^’ and ‘$’ to match newline characters"/>
-                <ui:CheckboxWithNote Prop="s" Note="allows ‘.’ to match newline characters"/>
-                <ui:CheckboxWithNote Prop="u" Note="treats pattern as a sequence of Unicode code points"/>
-                <ui:CheckboxWithNote x:Name="checkboxV" Prop="v" Note="more Unicode features"/>
-                <ui:CheckboxWithNote Prop="y" Note="“sticky” search"/>
-                <ui:CheckboxWithNote Prop="g" Note="global search"/>
-                <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True" Margin="0 0 0 8"/>
-                
-                <ui:CheckboxWithNote x:Name="checkboxNoNativeRegexp" Prop="NoNativeRegexp" Text="--no-native-regexp" Note="disable native regexp compilation"/>
-                <ui:CheckboxWithNote x:Name="checkboxEnableDuplicateNames" Prop="EnableDuplicateNames" Text="--enable-regexp-duplicate-named-groups" Note="enable duplicate named capture groups"/>
-                <ui:CheckboxWithNote x:Name="checkboxEnableRegexpModifiers" Prop="EnableRegexpModifiers" Text="--enable-regexp-modifiers" Note="enable pattern modifiers"/>
+                <StackPanel x:Name="pnlCommon" Orientation="Vertical" Margin="0">
+                    <ui:CheckboxWithNote Prop="i" Note="ignore case"/>
+                    <ui:CheckboxWithNote Prop="m" Note="allows ‘^’ and ‘$’ to match newline characters"/>
+                    <ui:CheckboxWithNote Prop="s" Note="allows ‘.’ to match newline characters"/>
+                    <ui:CheckboxWithNote Prop="u" Note="treats pattern as a sequence of Unicode code points"/>
+                    <ui:CheckboxWithNote x:Name="checkboxV" Prop="v" Note="more Unicode features"/>
+                    <ui:CheckboxWithNote Prop="y" Note="“sticky” search"/>
+                    <ui:CheckboxWithNote Prop="g" Note="global search"/>
+                    <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True"/>
+                </StackPanel>
+
+                <StackPanel x:Name="pnlRE2JS" Orientation="Vertical" Margin="0">
+                    <ui:CheckboxWithNote Prop="i" Text="RE2JS.CASE_INSENSITIVE" Note="case insensitive matching"/>
+                    <ui:CheckboxWithNote Prop="s" Text="RE2JS.DOTALL" Note="dot (.) matches all characters, including newline"/>
+                    <ui:CheckboxWithNote Prop="m" Text="RE2JS.MULTILINE" Note="multiline matching: ^ and $ match at beginning and end of line, not just beginning and end of input"/>
+                    <ui:CheckboxWithNote Prop="DISABLE_UNICODE_GROUPS" Text="RE2JS.DISABLE_UNICODE_GROUPS" Note="Unicode groups (e.g. \p{Greek}) will be syntax errors"/>
+                    <ui:CheckboxWithNote Prop="LONGEST_MATCH" Text="RE2JS.LONGEST_MATCH" Note="matches longest possible string (changes the match semantics to leftmost-longest)"/>
+                </StackPanel>
+
+                <StackPanel x:Name="pnlSM" Orientation="Vertical" Margin="0 8 0 0">
+                    <ui:CheckboxWithNote x:Name="checkboxNoNativeRegexp" Prop="NoNativeRegexp" Text="--no-native-regexp" Note="disable native regexp compilation"/>
+                    <ui:CheckboxWithNote x:Name="checkboxEnableDuplicateNames" Prop="EnableDuplicateNames" Text="--enable-regexp-duplicate-named-groups" Note="enable duplicate named capture groups"/>
+                    <ui:CheckboxWithNote x:Name="checkboxEnableRegexpModifiers" Prop="EnableRegexpModifiers" Text="--enable-regexp-modifiers" Note="enable pattern modifiers"/>
+                </StackPanel>
 
             </StackPanel>
 

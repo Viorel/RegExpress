@@ -85,13 +85,17 @@ rem -- JavaScript --
 
 set BasePath=%SolutionDir%\RegexEngines\JavaScript
 xcopy /D /R /Y "%BasePath%\JavaScriptPlugin\bin\%Configuration%\%TargetDir%\JavaScriptPlugin.dll" "%EnginesTargetPath%\JavaScript\*"
+
 xcopy /D /R /Y "%BasePath%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Worker.exe" "%EnginesTargetPath%\JavaScript\*.bin"
 xcopy /D /R /Y "%BasePath%\WebView2Worker\bin\%Configuration%\%Platform%\WebView2Loader.dll" "%EnginesTargetPath%\JavaScript\*"
 
 xcopy /D /R /Y "%BasePath%\NodeJsWorker\NodeJsWorker.zip" "%EnginesTargetPath%\JavaScript\*.zip"
-xcopy /D /R /Y /E "%BasePath%\QuickJsWorker\QuickJs\*.*" "%EnginesTargetPath%\JavaScript\QuickJsWorker\*"
 
+xcopy /D /R /Y /E "%BasePath%\QuickJsWorker\QuickJs\*.*" "%EnginesTargetPath%\JavaScript\QuickJsWorker\*"
 xcopy /D /R /Y "%BasePath%\QuickJsWorker\QuickJsWorker.js" "%EnginesTargetPath%\JavaScript\QuickJsWorker\*"
+
+xcopy /D /R /Y /E "%BasePath%\QuickJsWorker\RE2JSWorker\re2js\*.*" "%EnginesTargetPath%\JavaScript\RE2JSWorker\re2js\*"
+xcopy /D /R /Y "%BasePath%\QuickJsWorker\RE2JSWorker\RE2JSWorker.js" "%EnginesTargetPath%\JavaScript\RE2JSWorker\*"
 
 xcopy /D /R /Y "%BasePath%\SpiderMonkeyWorker\SpiderMonkey.zip" "%EnginesTargetPath%\JavaScript\SpiderMonkeyWorker\*.zip"
 xcopy /D /R /Y "%BasePath%\SpiderMonkeyWorker\SpiderMonkeyWorker.js" "%EnginesTargetPath%\JavaScript\SpiderMonkeyWorker\*"

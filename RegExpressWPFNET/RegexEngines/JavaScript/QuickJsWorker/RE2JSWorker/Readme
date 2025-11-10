@@ -1,0 +1,8 @@
+HOW
+---
+
+Use NodeJs (see the standalone version used by sibling NodeJs worker). Install the module:
+
+    > npm install -g re2js 
+
+Copy the installed module from NodeJs to this worker.

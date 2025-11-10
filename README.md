@@ -17,8 +17,9 @@ It includes the following Regular Expression engines:
   in Microsoft Edge [WebView2](https://docs.microsoft.com/en-us/microsoft-edge/webview2/), 
   V8 \(via [Node.js](https://nodejs.org)\) 14.1.146,
   [QuickJs](https://bellard.org/quickjs/) 2025-09-13,
-  [SpiderMonkey](https://spidermonkey.dev/) C145.0
-  and JavaScriptCore (via [Bun 1.3.1](https://bun.sh/)[^1]).
+  [SpiderMonkey](https://spidermonkey.dev/) C145.0,
+  JavaScriptCore (via [Bun 1.3.1](https://bun.sh/)[^1])
+  and [RE2JS](https://github.com/le0pard/re2js) 1.2.0.
 * **VBScript [RegExp](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85))** object used in Access, Excel, Word.
 * **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel (in C).
 * **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41 (in C).

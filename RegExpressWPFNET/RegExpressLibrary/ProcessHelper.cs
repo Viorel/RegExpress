@@ -32,9 +32,9 @@ namespace RegExpressLibrary
         StreamReader? StreamReaderObj = null;
         Stream? OutputStreamObj = null;
 
-        public EncodingEnum InputEncoding { get; set; }
-        public EncodingEnum OutputEncoding { get; set; }
-        public EncodingEnum ErrorEncoding { get; set; }
+        public EncodingEnum InputEncoding { get; set; } = EncodingEnum.None;
+        public EncodingEnum OutputEncoding { get; set; } = EncodingEnum.None;
+        public EncodingEnum ErrorEncoding { get; set; } = EncodingEnum.None;
 
         public EncodingEnum AllEncoding
         {
@@ -44,11 +44,12 @@ namespace RegExpressLibrary
             }
         }
 
-        public Action<BinaryWriter>? BinaryWriter { get; set; }
-        public Action<StreamWriter>? StreamWriter { get; set; }
+        public Action<BinaryWriter>? BinaryWriter { get; set; } = null;
+        public Action<StreamWriter>? StreamWriter { get; set; } = null;
 
-        public string[]? Arguments { get; set; }
+        public string[]? Arguments { get; set; } = null;
         public Dictionary<string, string> Environment { get; } = [];
+        public string? WorkingDirectory { get; set; } = null;
 
         public ProcessHelper( string fileName )
         {
@@ -98,7 +99,7 @@ namespace RegExpressLibrary
             //p.StartInfo.Verb
             //p.StartInfo.Verbs
             p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            //p.StartInfo.WorkingDirectory
+            p.StartInfo.WorkingDirectory = WorkingDirectory;
 
             StringBuilder sb_errors = new( );
 
