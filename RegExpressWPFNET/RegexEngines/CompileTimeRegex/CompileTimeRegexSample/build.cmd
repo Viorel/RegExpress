@@ -1,5 +1,11 @@
 cd /d "%~dp0"
 
+set bat_path="C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat"
+if exist %bat_path% goto compile
+
+set bat_path="D:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat"
+if exist %bat_path% goto compile
+
 set bat_path="C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 if exist %bat_path% goto compile
 

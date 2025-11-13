@@ -1,6 +1,6 @@
 ﻿# RegExpress
 
-A tester for researching Regular Expression engines. Made in Visual Studio 2022 using C#, C++, WPF, .NET 9.
+A tester for researching Regular Expression engines. Made in Visual Studio 2026 using C#, C++, WPF, .NET 9.
 
 It includes the following Regular Expression engines:
 
@@ -50,7 +50,7 @@ Use the **Options** area to select and configure the Regular Expression engine. 
 
 Currently the regular expressions are saved and loaded automatically, and a single instance can be started.
 
-The program can be built using Visual Studio 2022 and .NET 9. The following Visual Studio workloads are required:
+The program can be built using Visual Studio 2026 or Visual Studio 2022 and .NET 9. The following Visual Studio workloads are required:
 
 * .NET desktop development.
 * Desktop development with C++.
@@ -94,58 +94,58 @@ Download and open the file:
 #### Example of several essential indicators:
 
 * Engines that support named groups (`(?<name>...)` or `(?P<name>...)`):
-	* **Regex** (.NET, .NET Framework)
-	* **wregex** (SRELL)
-	* **RE2**
-	* **PCRE2**
-	* **Boost.Regex**
-	* **Oniguruma**
-	* **JavaScript**
-	* **Hyperscan**
-	* **Chimera**
-	* **ICU**
-	* Rust: **regex**, **fancy_regex**, **regress**
-	* Java: **regex**, **re2j**
-	* Python: **re**, **regex**
-	* **D**
-	* **Perl**
-	* **TRegEx**
-	* **Qt**
-	* **CTRE**
+    * **Regex** (.NET, .NET Framework)
+    * **wregex** (SRELL)
+    * **RE2**
+    * **PCRE2**
+    * **Boost.Regex**
+    * **Oniguruma**
+    * **JavaScript**
+    * **Hyperscan**
+    * **Chimera**
+    * **ICU**
+    * Rust: **regex**, **fancy_regex**, **regress**
+    * Java: **regex**, **re2j**
+    * Python: **re**, **regex**
+    * **D**
+    * **Perl**
+    * **TRegEx**
+    * **Qt**
+    * **CTRE**
 
 * Engines that support variable-length positive and negative lookbehinds (`(?<=...` and `(?<!...)`)
-	* **Regex** (.NET, .NET Framework)
-	* **wregex** (SRELL)
-	* **Oniguruma**
-	* **JavaScript**
-	* Rust: **regress**
-	* Java: **regex**
-	* Python: **regex**
-	* **D**
+    * **Regex** (.NET, .NET Framework)
+    * **wregex** (SRELL)
+    * **Oniguruma**
+    * **JavaScript**
+    * Rust: **regress**
+    * Java: **regex**
+    * Python: **regex**
+    * **D**
 
 * Engines that are protected against “catastrophic backtracking” or timeout errors<br/>(pattern: `(a*)*b`, text: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac`):
-	* **RE2**
-	* **PCRE2**
-	* **Oniguruma**
-	* JavaScript: **Bun**
-	* **Hyperscan**
-	* **Chimera**
-	* Rust: **regex**, **fancy_regex**
-	* Python: **regex**
-	* **D**
-	* **Perl**
-	* Fortran: **Forgex**
-	* **TRE**
-	* **tiny-regex-c**
-	* **wregex** (GCC with polynomial option set, without back-references) 
-	* **TRegEx**
-	* **Qt**
-	* **CTRE**
+    * **RE2**
+    * **PCRE2**
+    * **Oniguruma**
+    * JavaScript: **Bun**
+    * **Hyperscan**
+    * **Chimera**
+    * Rust: **regex**, **fancy_regex**
+    * Python: **regex**
+    * **D**
+    * **Perl**
+    * Fortran: **Forgex**
+    * **TRE**
+    * **tiny-regex-c**
+    * **wregex** (GCC with polynomial option set, without back-references) 
+    * **TRegEx**
+    * **Qt**
+    * **CTRE**
 
 * Engines that support fuzzy or approximate matching:
-	* **Hyperscan**
-	* Python: **regex**
-	* **TRE**
+    * **Hyperscan**
+    * Python: **regex**
+    * **TRE**
 
 [^1]: The **Bun** engine requires a modern 64-bit processor.
 [^2]: The **CTRE** engine is available in selected environments only.
