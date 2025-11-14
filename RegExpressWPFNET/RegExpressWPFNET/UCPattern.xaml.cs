@@ -205,6 +205,19 @@ namespace RegExpressWPFNET
         }
 
 
+        private void Rtb_SelectionChanged( object sender, RoutedEventArgs e )
+        {
+            if( !IsLoaded ) return;
+            if( rtb.ChangeEventHelper.IsInChange ) return;
+            if( !rtb.IsFocused ) return;
+
+            UndoRedoHelper.HandleSelectionChanged( );
+            HighlightingLoop.SignalWaitAndExecute( );
+
+            SelectionChanged?.Invoke( this, EventArgs.Empty );
+        }
+
+
         private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
         {
             if( !IsLoaded ) return;
@@ -223,19 +236,16 @@ namespace RegExpressWPFNET
             HighlightingLoop.SignalWaitAndExecute( );
 
             TextChanged?.Invoke( this, EventArgs.Empty );
-        }
 
-
-        private void Rtb_SelectionChanged( object sender, RoutedEventArgs e )
-        {
-            if( !IsLoaded ) return;
-            if( rtb.ChangeEventHelper.IsInChange ) return;
-            if( !rtb.IsFocused ) return;
-
-            UndoRedoHelper.HandleSelectionChanged( );
-            HighlightingLoop.SignalWaitAndExecute( );
-
-            SelectionChanged?.Invoke( this, EventArgs.Empty );
+            // apply default style to new text (not always complete; ignore errors)
+            try
+            {
+                RtbUtilities.ApplyStyleToNewText( rtb, rtb.ChangeEventHelper, e, PatternNormalStyleInfo );
+            }
+            catch
+            {
+                // ignore
+            }
         }
 
 

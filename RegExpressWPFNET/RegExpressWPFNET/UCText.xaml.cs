@@ -307,6 +307,16 @@ namespace RegExpressWPFNET
             MatchesUpdatedEvent.Reset( );
 
             TextChanged?.Invoke( this, EventArgs.Empty );
+
+            // apply default style to new text (not always complete; ignore errors)
+            try
+            {
+                RtbUtilities.ApplyStyleToNewText( rtb, rtb.ChangeEventHelper, e, NormalStyleInfo );
+            }
+            catch
+            {
+                // ignore
+            }
         }
 
 

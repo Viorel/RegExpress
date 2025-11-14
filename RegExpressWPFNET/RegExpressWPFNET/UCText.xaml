@@ -19,8 +19,8 @@
         <AdornerDecorator>
             <local_controls:MyRichTextBox x:Name="rtb" 
                      Panel.ZIndex="1" 
-                     TextChanged="Rtb_TextChanged" 
                      SelectionChanged="Rtb_SelectionChanged" 
+                     TextChanged="Rtb_TextChanged" 
                      ScrollViewer.ScrollChanged="Rtb_ScrollChanged"
                      SizeChanged="Rtb_SizeChanged"
                      GotFocus="Rtb_GotFocus" 

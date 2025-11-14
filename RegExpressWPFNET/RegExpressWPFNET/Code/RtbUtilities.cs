@@ -411,6 +411,27 @@ namespace RegExpressWPFNET.Code
             }
         }
 
+        public static void ApplyStyleToNewText( RichTextBox rtb, ChangeEventHelper ch, TextChangedEventArgs e, StyleInfo styleInfo )
+        {
+            // apply default style to new text (not always complete)
+
+            if( e.Changes.Count > 0 )
+            {
+                TextChange c = e.Changes.Last( );
+
+                if( c.AddedLength > 0 )
+                {
+                    TextPointer p1 = rtb.Document.ContentStart.GetPositionAtOffset( c.Offset );
+                    TextPointer p2 = rtb.Document.ContentStart.GetPositionAtOffset( c.Offset + c.AddedLength );
+                    TextRange r = new( p1, p2 );
+
+                    ch.Do( ( ) =>
+                    {
+                        r.Style( styleInfo );
+                    } );
+                }
+            }
+        }
 
         public static void BringIntoViewInvoked( ICancellable cnc, RichTextBox rtb, TextPointer start, TextPointer end, bool fullHorizontalScrollIfInvisible )
         {
