@@ -311,7 +311,7 @@ namespace RegExpressWPFNET
             // apply default style to new text (not always complete; ignore errors)
             try
             {
-                RtbUtilities.ApplyStyleToNewText( rtb, rtb.ChangeEventHelper, e, NormalStyleInfo );
+                RtbUtilities.ApplyStyleToNewText( rtb, rtb.ChangeEventHelper, e.Changes, NormalStyleInfo );
             }
             catch
             {

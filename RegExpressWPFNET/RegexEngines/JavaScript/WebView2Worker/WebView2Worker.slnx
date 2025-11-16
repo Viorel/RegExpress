@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="../../../RegExpressCppLibrary/RegExpressCppLibrary.vcxproj" Id="0a96a479-5737-4d64-8f1a-2cc87ca675e2" />
+  <Project Path="WebView2Worker.vcxproj" Id="2d0502b5-8f7b-4fcc-864a-49bcf350b986" />
+</Solution>

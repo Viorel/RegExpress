@@ -240,7 +240,7 @@ namespace RegExpressWPFNET
             // apply default style to new text (not always complete; ignore errors)
             try
             {
-                RtbUtilities.ApplyStyleToNewText( rtb, rtb.ChangeEventHelper, e, PatternNormalStyleInfo );
+                RtbUtilities.ApplyStyleToNewText( rtb, rtb.ChangeEventHelper, e.Changes, PatternNormalStyleInfo );
             }
             catch
             {

@@ -9,7 +9,7 @@ HOW IT'S MADE
 
   It will ask to configure the Qt version by selecting the folder with previously installed Qt.
 
-- In Visual Studio, load the "QtWorker.sln" solution. If required, edit the code.
+- In Visual Studio, load the "QtWorker.slnx" solution. If required, edit the code.
 
 - Build the "Release", "x64" configuration. 
 
@@ -19,3 +19,5 @@ HOW IT'S MADE
     - "QtWorker.exe"
 
 - Commit the "Qt6Core.dll" and "QtWorker.exe" files.
+
+NOTE. The "QtWorker.vcxproj" project must not be added to main solution.

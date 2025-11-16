@@ -1,7 +1,7 @@
 
 To recompile this engine:
 
-- Install the "Intel® Fortran Compiler", including the extension for Visual Studio.
+- Install the "Intel® Fortran Compiler" (Standalone, for Windows, Offline), including the extension for Visual Studio.
 - Load and recompile the solution (.sln) in Visual Studio, using "Release, x64" configuration.
 - Commit the changes to Git, including the "x64\Release\FortranForgexWorker.exe" file.
 

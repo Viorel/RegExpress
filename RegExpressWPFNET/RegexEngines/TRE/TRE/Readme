@@ -7,7 +7,7 @@ HOW IT'S MADE
 
     ~ lib
     ~ local_includes
-    ~ win32 (including the "tre.vcxproj" project; the ".sln" and other ".vcxproj" are not needed)
+    ~ win32 (including the "tre.vcxproj" project; the ".slnx" and other ".vcxproj" are not needed)
 
 - Open the "tre.vcxproj" project in Visual Studio.
 

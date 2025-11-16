@@ -411,13 +411,13 @@ namespace RegExpressWPFNET.Code
             }
         }
 
-        public static void ApplyStyleToNewText( RichTextBox rtb, ChangeEventHelper ch, TextChangedEventArgs e, StyleInfo styleInfo )
+        public static void ApplyStyleToNewText( RichTextBox rtb, ChangeEventHelper ch, ICollection<TextChange> changes, StyleInfo styleInfo )
         {
             // apply default style to new text (not always complete)
 
-            if( e.Changes.Count > 0 )
+            if( changes.Count > 0 )
             {
-                TextChange c = e.Changes.Last( );
+                TextChange c = changes.Last( );
 
                 if( c.AddedLength > 0 )
                 {
