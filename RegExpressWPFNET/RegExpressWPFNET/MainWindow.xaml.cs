@@ -130,7 +130,8 @@ namespace RegExpressWPFNET
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if (RegExpressLibrary.InternalConfig.HandleException( exc ))
+                    throw;
             }
 
 #if DEBUG
@@ -224,7 +225,7 @@ namespace RegExpressWPFNET
                 }
                 catch( Exception exc )
                 {
-                    if( Debugger.IsAttached ) Debugger.Break( );
+                    if( Debugger.IsAttached ) InternalConfig.HandleException( exc );
                     else Debug.Fail( exc.Message, exc.ToString( ) );
 
                     // ignore
@@ -465,7 +466,8 @@ namespace RegExpressWPFNET
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if (InternalConfig.HandleException( exc ))
+                    throw;
 
                 // ignore
             }
@@ -518,7 +520,7 @@ namespace RegExpressWPFNET
             }
             catch( Exception exc )
             {
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if( Debugger.IsAttached ) InternalConfig.HandleException( exc );
                 else Debug.Fail( exc.Message, exc.ToString( ) );
 
                 // ignore
@@ -588,7 +590,7 @@ namespace RegExpressWPFNET
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if( Debugger.IsAttached ) InternalConfig.HandleException( exc );
 
                 // ignore
             }

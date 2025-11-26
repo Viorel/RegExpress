@@ -879,7 +879,7 @@ namespace RegExpressWPFNET
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if( Debugger.IsAttached ) InternalConfig.HandleException( exc );
 
                 // ignore
             }
@@ -899,7 +899,7 @@ namespace RegExpressWPFNET
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                InternalConfig.HandleException( exc );
 
                 // ignore
             }

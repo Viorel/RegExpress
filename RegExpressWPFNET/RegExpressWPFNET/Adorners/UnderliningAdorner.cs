@@ -98,7 +98,8 @@ namespace RegExpressWPFNET.Adorners
                         // TODO: 'ExecutionEngineException' is now obsolete.
 
                         _ = exc;
-                        if( Debugger.IsAttached ) Debugger.Break( );
+                        if (RegExpressLibrary.InternalConfig.HandleException( exc ))
+                            throw;
                         // ignore and accept the ranges
                     }
                 }

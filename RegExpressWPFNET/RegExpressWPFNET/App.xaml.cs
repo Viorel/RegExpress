@@ -93,17 +93,20 @@ namespace RegExpressWPFNET
 
         private void TaskScheduler_UnobservedTaskException( object? sender, UnobservedTaskExceptionEventArgs e )
         {
-            if( Debugger.IsAttached ) Debugger.Break( );
+            if (RegExpressLibrary.InternalConfig.HandleException( e.Exception ))
+                    throw e.Exception;
         }
 
         private void App_DispatcherUnhandledException( object sender, DispatcherUnhandledExceptionEventArgs e )
         {
-            if( Debugger.IsAttached ) Debugger.Break( );
+            if (RegExpressLibrary.InternalConfig.HandleException( e.Exception ))
+                    throw e.Exception;
         }
 
         private void Dispatcher_UnhandledException( object sender, DispatcherUnhandledExceptionEventArgs e )
         {
-            if( Debugger.IsAttached ) Debugger.Break( );
+            if (RegExpressLibrary.InternalConfig.HandleException( e.Exception ))
+                    throw e.Exception;
         }
     }
 }

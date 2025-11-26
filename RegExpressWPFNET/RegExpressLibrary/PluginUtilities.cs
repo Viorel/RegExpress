@@ -64,9 +64,8 @@ public static class PluginLoader
         }
         catch( Exception exc )
         {
-            if( Debugger.IsAttached ) Debugger.Break( );
-
-            MessageBox.Show( ownerWindow, $"Failed to load plugins using '{enginesJsonPath}'.\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
+            if (InternalConfig.HandleException($"Failed to load plugins using '{enginesJsonPath}'", exc ))
+                throw;
 
             return (null, null);
         }
@@ -106,18 +105,17 @@ public static class PluginLoader
                             }
                             catch( Exception exc )
                             {
-                                if( Debugger.IsAttached ) Debugger.Break( );
+                                if (InternalConfig.HandleException( $"Failed to create plugin \"{engine_data.path}\"", exc ))
+                                    throw;
 
-                                MessageBox.Show( ownerWindow, $"Failed to create plugin \"{engine_data.path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
                             }
                         }
                     }
                 }
                 catch( Exception exc )
                 {
-                    if( Debugger.IsAttached ) Debugger.Break( );
-
-                    MessageBox.Show( $"Failed to load plugin \"{engine_data.path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
+                    if (InternalConfig.HandleException( $"Failed to create plugin \"{engine_data.path}\"", exc ))
+                       throw;
                 }
             }
         }
