@@ -47,6 +47,26 @@ namespace RegExpressWPFNET.Code
             return PixelsFromInvariantString( value ) * r;
         }
 
+        private static string[]? _commandLineArgs;
+        public static bool GetCommandLineArg( String arg, out String? NextVal )
+        {
+            _commandLineArgs ??= Environment.GetCommandLineArgs( );
+            var pos = Array.IndexOf( _commandLineArgs, "--" + arg );
+            NextVal = null;
+            if( pos == -1 )
+                return false;
+            if( pos + 1 < _commandLineArgs.Length )
+                NextVal = _commandLineArgs[pos + 1];
+            return true;
+        }
+        public static string? GetCommandLineArgStr( String arg )
+        {
+            if (! GetCommandLineArg( arg, out String? NextVal ))
+                return null;
+            return NextVal;
+        }
+        public static bool GetCommandLineExists(String arg) => GetCommandLineArg( arg, out _ );
+
 
         [Conditional( "DEBUG" )]
         public static void DbgSimpleLog( Exception exc, [CallerFilePath] string? filePath = null, [CallerMemberName] string? memberName = null, [CallerLineNumber] int lineNumber = 0 )

@@ -12,8 +12,16 @@
         IsVisibleChanged="UserControl_IsVisibleChanged" 
         >
 
-    <Grid Margin="9 7 9 9">
-        <Grid.ColumnDefinitions>
+	<Grid Margin="9 7 9 9">
+		<Grid.Resources>
+			<Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+				<Setter Property="Margin" Value="5,0" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="Padding" Value="2" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+			</Style>
+		</Grid.Resources>
+		<Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" MinWidth="33"/>
             <ColumnDefinition Width="5"/>
             <ColumnDefinition x:Name="RightColumn" Width="222" MinWidth="33"/>
@@ -67,7 +75,8 @@
 
                     <StackPanel Style="{StaticResource StackPanelWithLabels}" HorizontalAlignment="Left" >
                         <TextBlock Text="Text" Style="{StaticResource Labels}" />
-                    </StackPanel>
+                        <Button Content="Load File" Click="LoadFile_Click" />
+					</StackPanel>
                     <TextBlock x:Name="lblTextInfo" d:Text="Index: 10  |  Length: 200" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0 0 9 1"
                                FontSize="9.25" Opacity="0.77"/>
                 </Grid>
