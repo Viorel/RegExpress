@@ -35,7 +35,7 @@ namespace RegExpressWPFNET
 
         readonly IReadOnlyList<IRegexEngine> RegexEngines;
         readonly IRegexEngine DefaultRegexEngine;
-        IRegexEngine? CurrentRegexEngine = null;
+        public IRegexEngine? CurrentRegexEngine = null;
         readonly HashSet<IRegexEngine> RegexEnginesUsed = new( );
 
         public bool IsFullyLoaded { get; private set; } = false;

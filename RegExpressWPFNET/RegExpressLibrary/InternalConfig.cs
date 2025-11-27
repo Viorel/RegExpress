@@ -12,6 +12,12 @@ namespace RegExpressLibrary
     public static class InternalConfig
     {
         public static bool SHOW_DEBUG_BUTTONS = false;
+        public static bool DEBUG_LOG_AI_MESSAGES = true;
+
+        /// <summary>
+        /// as the target text can be long lets not keep the old versions around two options are update the target text with the new text, or remove the old one add a note and add the new one
+        /// </summary>
+        public static bool DONT_UPDATE_OLD_AI_TEXT_MARK_REMOVED = true;
         public static string[]? limited_engine_dlls;
         [Flags]
         public enum ON_EXCEPTION_ACTION

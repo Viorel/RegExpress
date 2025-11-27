@@ -4,6 +4,7 @@
         <OutputType>WinExe</OutputType>
         <Nullable>enable</Nullable>
         <UseWPF>true</UseWPF>
+        <LangVersion>preview</LangVersion>
         <ApplicationIcon>RegExpress.ico</ApplicationIcon>
         <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
@@ -19,6 +20,12 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="MdXaml" Version="1.27.0" />
+      <PackageReference Include="Microsoft.SemanticKernel" Version="1.67.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\PilotAIAssistantControl\PilotAIAssistantControlWPF\PilotAIAssistantControlWPF.csproj" />
         <ProjectReference Include="..\RegExpressLibrary\RegExpressLibrary.csproj" />
     </ItemGroup>
 

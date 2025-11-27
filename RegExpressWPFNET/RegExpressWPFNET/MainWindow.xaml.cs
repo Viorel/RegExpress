@@ -27,6 +27,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Xml;
+
+using PilotAIAssistantControl;
 using RegExpressLibrary;
 using RegExpressWPFNET.Code;
 using Path = System.IO.Path;
@@ -130,7 +132,7 @@ namespace RegExpressWPFNET
             catch( Exception exc )
             {
                 _ = exc;
-                if (RegExpressLibrary.InternalConfig.HandleException( exc ))
+                if( RegExpressLibrary.InternalConfig.HandleException( exc ) )
                     throw;
             }
 
@@ -177,6 +179,13 @@ namespace RegExpressWPFNET
                 {
                     taskBarItemInfo.ProgressState = System.Windows.Shell.TaskbarItemProgressState.None;
                 }
+
+                // Import AI settings
+                //all_tab_data.AIConfig = new();
+                ucAi.ImportData( all_tab_data.AIConfig );
+                if( all_tab_data.AITabOpen )
+                    ucAi.IsExpanded = true;
+
             }
 
             // --- Delay effect
@@ -210,7 +219,14 @@ namespace RegExpressWPFNET
                 var old_metrics = old_uc_main.GetMetrics( );
                 new_uc_main.ApplyMetrics( old_metrics, full: false );
             }
+            if( new_uc_main != null )
+            {
+                AiOptions.CurrentTab = new_uc_main;
+                ucAi.Configure( AiOptions );
+            }
+
         }
+        OurIAIUIOptions AiOptions = new( );
 
 
         private void Window_Closing( object sender, System.ComponentModel.CancelEventArgs e )
@@ -429,6 +445,10 @@ namespace RegExpressWPFNET
                     all_data.Tabs.Add( tab_data );
                 }
 
+
+                all_data.AIConfig =  ucAi.ExportData( );
+                all_data.AITabOpen = ucAi.IsExpanded;
+
                 string json = JsonSerializer.Serialize( all_data, PluginLoader.JsonOptions );
                 string my_file = GetMyDataFile( );
 
@@ -466,7 +486,7 @@ namespace RegExpressWPFNET
             catch( Exception exc )
             {
                 _ = exc;
-                if (InternalConfig.HandleException( exc ))
+                if( InternalConfig.HandleException( exc ) )
                     throw;
 
                 // ignore
@@ -776,10 +796,54 @@ namespace RegExpressWPFNET
         }
 
 
+        private void AiExpander_Expanded( object sender, RoutedEventArgs e )
+        {
+            // Connect the AI panel to the current tab when expanded
+            var uc_main = GetActiveUCMain( );
+            if( uc_main != null )
+            {
+                AiOptions.CurrentTab = uc_main;
+                ucAi.Configure( AiOptions );
+            }
+        }
+
+
         [GeneratedRegex( @"^Regex\s*(\d+)$" )]
         private static partial Regex HeaderParserRegex( );
 
         #endregion
 
+
+
+        public class OurIAIUIOptions : AIOptions
+        {
+            public override string HintForUserInput => "Ask about a regex or matching...";
+            public override string ReferenceTextDisplayName => "Target Text";
+            public override string FormatUserQuestion( string userQuestion ) => $"Current pattern:\n```{CurrentTab.CurrentRegexEngine?.AIPatternCodeblockType}\n{CurrentTab.ucPattern.GetTextData( "\n" ).Text}\n```\n\nMy question: {userQuestion}";
+            public UCMain? CurrentTab;
+
+            public override string GetCurrentReferenceText( ) => CurrentTab?.ucText.GetTextData( "\n" ).Text;
+            public override IEnumerable<ICodeblockAction> CodeblockActions => [ GenericCodeblockAction.ClipboardAction,
+                new GenericCodeblockAction("📝 Use as Pattern", async ( block ) =>
+                {
+
+                    if( CurrentTab == null ) return false;
+                    CurrentTab.ucPattern.SetText( block.Code );
+                    return true;
+                } )
+                {
+                    Tooltip="Use this code block as the regex pattern",
+                    FeedbackOnAction="✓ Applied!"
+                }
+        ];
+
+            public override void HandleDebugMessage( string msg )
+            {
+                if( InternalConfig.DEBUG_LOG_AI_MESSAGES )
+                    System.Diagnostics.Debug.WriteLine( msg );
+            }
+
+            public override string GetSystemPrompt( ) => CurrentTab?.CurrentRegexEngine?.GetSystemPrompt( ) ?? null;
+        }
     }
 }
