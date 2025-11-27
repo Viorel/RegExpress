@@ -80,6 +80,11 @@ public static class PluginLoader
         {
             foreach( EngineData engine_data in engines_data.engines )
             {
+                if ( InternalConfig.limited_engine_dlls?.Length > 0 && !InternalConfig.limited_engine_dlls.Any( dll => engine_data.path.Contains(dll, StringComparison.CurrentCultureIgnoreCase) ) )
+                {
+                    Debug.WriteLine( $"Skipping plugin due to limited_engine_dlls \"{engine_data.path}\"..." );
+                    continue;
+                }
                 string plugin_absolute_path = Path.Combine( plugin_root_folder, engine_data.path! );
 
                 try

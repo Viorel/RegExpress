@@ -12,6 +12,7 @@ namespace RegExpressLibrary
     public static class InternalConfig
     {
         public static bool SHOW_DEBUG_BUTTONS = false;
+        public static string[]? limited_engine_dlls;
         [Flags]
         public enum ON_EXCEPTION_ACTION
         {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RegExpressWPFNET.Code;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -60,6 +61,11 @@ namespace RegExpressWPFNET
                 Shutdown( );
 
                 return;
+            }
+            var onlyEngine = Utilities.GetCommandLineArgStr( "only-engine-dll" );
+            if( !String.IsNullOrWhiteSpace( onlyEngine ) )
+            {
+                RegExpressLibrary.InternalConfig.limited_engine_dlls = new[] { onlyEngine! };
             }
         }
 
