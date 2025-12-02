@@ -4,6 +4,10 @@
       "path": "Engines\\DotNET9\\DotNET9Plugin.dll"
     },
     {
+      "path": "Engines\\HtmlAgilityPack\\HtmlAgilityPackPlugin.dll",
+      "no_fm": true
+    },
+    {
       "path": "Engines\\DotNETFramework4_8\\DotNETFrameworkPlugin.dll",
       "no_fm": true
     },

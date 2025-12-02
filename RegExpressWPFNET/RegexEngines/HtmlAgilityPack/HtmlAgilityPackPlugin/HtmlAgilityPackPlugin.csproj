@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Nullable>enable</Nullable>
+        <UseWPF>true</UseWPF>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+        <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Universal.HtmlAgilityPack" Version="1.0.2">
+          <PrivateAssets>All</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\RegExpressLibrary\RegExpressLibrary.csproj">
+            <Private>false</Private>
+            <ExcludeAssets>runtime</ExcludeAssets>
+        </ProjectReference>
+    </ItemGroup>
+
+</Project>

@@ -41,6 +41,9 @@
   <Folder Name="/RegexEngines/Fortran/">
     <Project Path="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
   </Folder>
+  <Folder Name="/RegexEngines/HtmlAgilityPack/">
+    <Project Path="RegexEngines/HtmlAgilityPack/HtmlAgilityPackPlugin/HtmlAgilityPackPlugin.csproj" />
+  </Folder>
   <Folder Name="/RegexEngines/Hyperscan/">
     <Project Path="RegexEngines/Hyperscan/HyperscanPlugin/HyperscanPlugin.csproj">
       <BuildDependency Project="RegexEngines/Hyperscan/HyperscanWorker/HyperscanWorker.vcxproj" />
@@ -146,6 +149,7 @@
     <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkPlugin/DotNETFrameworkPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     <BuildDependency Project="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/HtmlAgilityPack/HtmlAgilityPackPlugin/HtmlAgilityPackPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Hyperscan/HyperscanPlugin/HyperscanPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Hyperscan/HyperscanWorker/HyperscanWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/ICU/ICUPlugin/ICUPlugin.csproj" />

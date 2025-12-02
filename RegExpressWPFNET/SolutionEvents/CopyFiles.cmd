@@ -118,6 +118,14 @@ xcopy /D /R /Y "%BasePath%\HyperscanPlugin\bin\%Configuration%\%TargetDir%\Hyper
 xcopy /D /R /Y "%BasePath%\HyperscanWorker\bin\%Configuration%\%Platform%\HyperscanWorker.exe" "%EnginesTargetPath%\Hyperscan\*.bin"
 
 
+rem -- HtmlAgilityPack --
+
+set BasePath=%SolutionDir%\RegexEngines\HtmlAgilityPack
+xcopy /D /R /Y "%BasePath%\HtmlAgilityPackPlugin\bin\%Configuration%\%TargetDir%\HtmlAgilityPackPlugin.dll" "%EnginesTargetPath%\HtmlAgilityPack\*"
+xcopy /D /R /Y "%BasePath%\HtmlAgilityPackPlugin\bin\%Configuration%\%TargetDir%\HtmlAgilityPack.dll" "%EnginesTargetPath%\HtmlAgilityPack\*"
+xcopy /D /R /Y "%BasePath%\HtmlAgilityPackPlugin\bin\%Configuration%\%TargetDir%\Universal.*.dll" "%EnginesTargetPath%\HtmlAgilityPack\*"
+
+
 rem -- ICU --
 
 set BasePath=%SolutionDir%\RegexEngines\ICU
