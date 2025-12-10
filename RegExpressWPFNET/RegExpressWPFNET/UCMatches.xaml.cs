@@ -367,6 +367,8 @@ namespace RegExpressWPFNET
             adorner_layer.Add( LocalUnderliningAdorner );
             adorner_layer.Add( ExternalUnderliningAdorner );
 
+            rtbMatches.SizeChanged += RtbMatches_SizeChanged;
+
             AlreadyLoaded = true;
         }
 
@@ -414,9 +416,28 @@ namespace RegExpressWPFNET
         }
 
 
+        private void RtbMatches_SizeChanged( object sender, SizeChangedEventArgs e )
+        {
+            if( e.WidthChanged )
+            {
+                ShowMatchesLoop.SignalRewind( );
+                ShowMatchesLoop.SignalWaitAndExecute( );
+            }
+        }
+
+        /* These two directly relate to each other.  the larger the multiplier the more negative the padding consideration.  The idea is to try and make sure lines dont overflow when super small or when very long.
+
+
+        */
+        static double CharWidthMultiplier = 1.00;
+        static int viewportPaddingConsideration = 20;
+        static int MaxPaddedSuffix = 21; // "(index, length)" suffix  14 is 6 digits for index and 4 for length, this only effects our wrap calculations but the bigger it is the more space at end of line
+        string GetMatchIndexAndLengthSuffix(int index1, int len1) => ($"\x200E  （{index1}, {len1}）").PadLeft(MaxPaddedSuffix);
         void ShowMatchesThreadProc( ICancellable cnc )
         {
             int match_infos_version = 0;
+            viewportPaddingConsideration = 5;
+            CharWidthMultiplier = 1.03;
 
             lock( MatchInfos )
             {
@@ -463,6 +484,8 @@ namespace RegExpressWPFNET
             Typeface? type_face = null;
             double font_size = 0;
             double pixels_per_dip = 0;
+            double viewport_width = 0;
+            double char_width = 10; //number doesn't really matter we will compute it
 
             ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
             {
@@ -496,6 +519,10 @@ namespace RegExpressWPFNET
                 type_face = new Typeface( rtbMatches.FontFamily, rtbMatches.FontStyle, rtbMatches.FontWeight, rtbMatches.FontStretch );
                 font_size = rtbMatches.FontSize;
                 pixels_per_dip = VisualTreeHelper.GetDpi( rtbMatches ).PixelsPerDip;
+
+                viewport_width = rtbMatches.ViewportWidth;
+                var formatted_text = new FormattedText( "W", CultureInfo.CurrentCulture, FlowDirection.LeftToRight, type_face, font_size, Brushes.Black, pixels_per_dip );
+                char_width = formatted_text.Width * CharWidthMultiplier;
             } );
 
             if( cnc.IsCancellationRequested ) return;
@@ -508,6 +535,15 @@ namespace RegExpressWPFNET
             double max_text_width = 0;
 
             int left_width = EvaluateLeftWidth( matches, show_succeeded_groups_only );
+
+            // Calculate max content chars once - all rows share the same left column width
+            int max_content_chars = 10; // minimum
+            {
+                double left_col_width = left_width * char_width;
+                double suffix_width = MaxPaddedSuffix * char_width; 
+                double available = viewport_width - left_col_width - suffix_width - viewportPaddingConsideration;
+                max_content_chars = Math.Max( max_content_chars, (int)( available / char_width ) );
+            }
 
             foreach( IMatch match in matches.Matches )
             {
@@ -597,12 +633,17 @@ namespace RegExpressWPFNET
                         }
                         else
                         {
-                            (value_inline, string value_plain_text) = match_run_builder.Build( match.Value, span.ContentEnd, MaxMatchLength + right_space_for_match );
-                            value_inline.Style( MatchValueStyleInfo, highlight_style );
-                            plain_text += value_plain_text;
+                            // Use TruncateAndRender for consistency with Groups/Captures
+                            // Match has no left/right context, so pass empty strings
+                            OutputBuilder sibling_builder = new( null ); // not used but required by signature
+                            value_inline = TruncateAndRender( span,
+                                "", match.Value, "",  // no left/right context
+                                max_content_chars,
+                                match_run_builder, sibling_builder,
+                                MatchValueStyleInfo, highlight_style, GroupSiblingValueStyleInfo );
                         }
 
-                        string index_and_length = $"\x200E  （{match.Index}, {match.Length}）";
+                        string index_and_length = GetMatchIndexAndLengthSuffix(match.Index,match.Length);
                         run = new Run( index_and_length, span.ContentEnd );
                         run.Style( MatchNormalStyleInfo, LocationStyleInfo );
                         plain_text += index_and_length;
@@ -628,7 +669,7 @@ namespace RegExpressWPFNET
                 if( max_number_achieved ) break;
                 if( cnc.IsCancellationRequested ) break;
 
-                plain_text = "".PadRight( left_width + left_space_for_match + MaxMatchLength + right_space_for_match + 20, 'W' );
+
 
                 FormattedText ft = new(
                     plain_text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
@@ -728,7 +769,6 @@ namespace RegExpressWPFNET
                         // (NOTE. Overlaps of groups are possible in this example: (?=(..))
 
                         Inline value_inline;
-                        Inline inl;
 
                         if( !group.Success )
                         {
@@ -770,20 +810,11 @@ namespace RegExpressWPFNET
                                 }
                             }
 
-                            if( left.Length > 0 )
-                            {
-                                (inl, _) = sibling_run_builder.Build( left, span.ContentEnd );
-                                inl.Style( GroupSiblingValueStyleInfo );
-                            }
-
-                            (value_inline, _) = match_run_builder.Build( middle, span.ContentEnd, left_space_for_match + MaxMatchLength + MaxMatchRightOutdent - left.Length );
-                            value_inline.Style( GroupValueStyleInfo, highlight_light_style );
-
-                            if( right.Length > 0 )
-                            {
-                                (inl, _) = sibling_run_builder.Build( right, span.ContentEnd, left_space_for_match + MaxMatchLength + MaxMatchRightOutdent - ( left.Length + middle.Length ) );
-                                inl.Style( GroupSiblingValueStyleInfo );
-                            }
+                            value_inline = TruncateAndRender( span,
+                                left, middle, right,
+                                max_content_chars,
+                                match_run_builder, sibling_run_builder,
+                                GroupValueStyleInfo, highlight_light_style, GroupSiblingValueStyleInfo );
                         }
 
                         if( cnc.IsCancellationRequested ) return;
@@ -792,7 +823,7 @@ namespace RegExpressWPFNET
                         {
                             if( !no_group_details )
                             {
-                                run = new Run( $"\x200E  （{group.Index}, {group.Length}）", span.ContentEnd );
+                                run = new Run( GetMatchIndexAndLengthSuffix(group.Index,group.Length), span.ContentEnd );
                                 run.Style( MatchNormalStyleInfo, LocationStyleInfo );
                             }
                         }
@@ -812,7 +843,8 @@ namespace RegExpressWPFNET
                         {
                             AppendCaptures( cnc, group_info, para, left_width, left_space_for_match,
                                 MaxMatchLeftOutdent, MaxMatchLength, MaxMatchRightOutdent,
-                                text, match, group, highlight_light_style, match_run_builder, sibling_run_builder );
+                                text, match, group, highlight_light_style, match_run_builder, sibling_run_builder,
+                                max_content_chars );
                         }
                     } );
                 }
@@ -897,7 +929,8 @@ namespace RegExpressWPFNET
         void AppendCaptures( ICancellable cnc, GroupInfo groupInfo, Paragraph para, int leftWidth, int leftSpaceForMatch,
             int MaxMatchLeftOutdent, int MaxMatchLength, int MaxMatchRightOutdent,
             string text, IMatch match, IGroup group, StyleInfo highlightStyle,
-            OutputBuilder runBuilder, OutputBuilder siblingRunBuilder )
+            OutputBuilder runBuilder, OutputBuilder siblingRunBuilder,
+            int maxContentChars )
         {
             int capture_number = -1;
             foreach( ICapture capture in group.Captures )
@@ -1004,23 +1037,14 @@ namespace RegExpressWPFNET
                         left = left.PadLeft( left_space_for_capture );
                     }
 
-                    if( left.Length > 0 )
-                    {
-                        (inline, _) = siblingRunBuilder.Build( left, span.ContentEnd );
-                        inline.Style( GroupSiblingValueStyleInfo );
-                    }
-
-                    (value_inline, _) = runBuilder.Build( middle, span.ContentEnd, leftSpaceForMatch + MaxMatchLength + MaxMatchRightOutdent - left.Length );
-                    value_inline.Style( GroupValueStyleInfo, highlightStyle );
-
-                    if( right.Length > 0 )
-                    {
-                        (inline, _) = siblingRunBuilder.Build( right, span.ContentEnd, leftSpaceForMatch + MaxMatchLength + MaxMatchRightOutdent - ( left.Length + middle.Length ) );
-                        inline.Style( GroupSiblingValueStyleInfo );
-                    }
+                    value_inline = TruncateAndRender( span,
+                        left, middle, right,
+                        maxContentChars,
+                        runBuilder, siblingRunBuilder,
+                        GroupValueStyleInfo, highlightStyle, GroupSiblingValueStyleInfo );
                 }
 
-                inline = new Run( $"\x200E  （{capture.Index}, {capture.Length}）", span.ContentEnd );
+                inline = new Run( GetMatchIndexAndLengthSuffix(capture.Index,capture.Length), span.ContentEnd );
                 inline.Style( MatchNormalStyleInfo, LocationStyleInfo );
 
                 para.Inlines.Add( span );
@@ -1032,6 +1056,61 @@ namespace RegExpressWPFNET
 
                 groupInfo.CaptureInfos.Add( capture_info );
             }
+        }
+
+        Inline TruncateAndRender(
+            Span span,
+            string left, string middle, string right,
+            int maxChars,
+            OutputBuilder valueBuilder, OutputBuilder siblingBuilder,
+            StyleInfo valueStyle, StyleInfo highlightStyle, StyleInfo siblingStyle )
+        {
+            Inline value_inline;
+
+            // Distribute available chars: prioritize middle (the actual value)
+            int len_middle = Math.Min( middle.Length, maxChars );
+            int remaining_chars = maxChars - len_middle;
+
+            int len_left = 0;
+            int len_right = 0;
+
+            if( remaining_chars > 0 )
+            {
+                int half = remaining_chars / 2;
+                len_left = Math.Min( left.Length, half );
+                len_right = Math.Min( right.Length, remaining_chars - len_left );
+
+                // If left is short, give more to right
+                if( left.Length < half )
+                {
+                    len_right = Math.Min( right.Length, remaining_chars - left.Length );
+                }
+            }
+
+            // For left context, we want to show the END of the string (closest to the match)
+            // OutputBuilder truncates from the end, so we need to substring from the right part first
+            if( left.Length > 0 && len_left > 0 )
+            {
+                string left_portion = left.Substring( left.Length - len_left );
+                Inline inline;
+                (inline, _) = siblingBuilder.Build( left_portion, span.ContentEnd, len_left );
+                inline.Style( siblingStyle );
+            }
+
+            // Middle (the actual match/group/capture value) - let OutputBuilder handle truncation
+            (value_inline, _) = valueBuilder.Build( middle, span.ContentEnd, len_middle );
+            value_inline.Style( valueStyle, highlightStyle );
+
+            // For right context, we want to show the START of the string (closest to the match)
+            // OutputBuilder naturally truncates from the end, which is what we want
+            if( right.Length > 0 && len_right > 0 )
+            {
+                Inline inline;
+                (inline, _) = siblingBuilder.Build( right, span.ContentEnd, len_right );
+                inline.Style( siblingStyle );
+            }
+
+            return value_inline;
         }
 
 
