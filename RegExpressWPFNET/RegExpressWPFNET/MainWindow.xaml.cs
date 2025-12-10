@@ -416,6 +416,30 @@ namespace RegExpressWPFNET
             AutoSaveLoop.SignalWaitAndExecute( );
         }
 
+        void UCMain_ScopeToNewTabRequested( object? sender, ScopeToMatchEventArgs e )
+        {
+            if( !IsFullyLoaded ) return;
+            if( sender is not UCMain sourceUcMain ) return;
+
+            var tab_data = new TabData( );
+            sourceUcMain.ExportTabData( tab_data );
+
+            var fullText = sourceUcMain.ucText.GetTextData(tab_data.Eol).Text ?? ""; //we need to manually get the text data with the proper EOL as the offsets are based on the EOL the user has selected.
+
+            int start = Math.Max( 0, e.Segment.Index );
+            int length = Math.Min( e.Segment.Length, fullText.Length - start );
+            tab_data.Text = fullText.Substring( start, length );
+            tab_data.Pattern="";
+            var title = "Scoped Tab";
+            if (tabControl.SelectedItem is  TabItem ti && ti.Header != null){
+                var curTitle = ti.Header.ToString();
+                var lastSpace = curTitle.LastIndexOf(' ');
+                if (lastSpace != -1)
+                    title += " of" + curTitle.Substring(lastSpace);
+            }
+            AddNewTab( tab_data,tabControl.SelectedIndex+1, title );
+        }
+
         void AutoSaveThreadProc( ICancellable cnc )
         {
             Dispatcher.InvokeAsync( SaveAllTabData, DispatcherPriority.ApplicationIdle );
@@ -631,7 +655,7 @@ namespace RegExpressWPFNET
 
         #region Tabs
 
-        TabItem AddNewTab( TabData? tabData )
+        TabItem AddNewTab( TabData? tabData, int insertAt=-1, String? forceTitle=null )
         {
             int max =
                 GetMainTabs( )
@@ -654,7 +678,7 @@ namespace RegExpressWPFNET
             var new_tab_item = new TabItem
             {
                 //Header = string.IsNullOrWhiteSpace( tab_data?.Name ) ? $"Tab {max + 1}" : tab_data.Name;
-                Header = $"Regex {max + 1}",
+                Header = forceTitle ?? $"Regex {max + 1}",
                 HeaderTemplate = (DataTemplate)tabControl.Resources["TabTemplate"]
             };
 
@@ -665,12 +689,14 @@ namespace RegExpressWPFNET
             };
 
             new_tab_item.Content = uc_main;
-
-            tabControl.Items.Insert( tabControl.Items.IndexOf( tabItemNew ), new_tab_item );
+            if (insertAt == -1)
+                insertAt = tabControl.Items.IndexOf( tabItemNew );
+            tabControl.Items.Insert( insertAt, new_tab_item );
 
             if( tabData != null ) uc_main.ApplyTabData( tabData );
 
             uc_main.Changed += UCMain_Changed;
+            uc_main.ScopeToNewTabRequested += UCMain_ScopeToNewTabRequested;
 
             tabControl.SelectedItem = new_tab_item; //?
 

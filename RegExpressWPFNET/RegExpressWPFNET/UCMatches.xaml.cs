@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing.Text;
 using System.Globalization;
 using System.Linq;
 using System.Printing;
@@ -28,6 +29,12 @@ using RegExpressWPFNET.Code.OutputInfo;
 
 namespace RegExpressWPFNET
 {
+    public class ScopeToMatchEventArgs : EventArgs
+    {
+        public Segment Segment { get; }
+        public ScopeToMatchEventArgs( Segment segment ) => Segment = segment;
+    }
+
     /// <summary>
     /// Interaction logic for UCMatches.xaml
     /// </summary>
@@ -72,6 +79,7 @@ namespace RegExpressWPFNET
 
         public event EventHandler? SelectionChanged;
         public event EventHandler? Cancelled;
+        public event EventHandler<ScopeToMatchEventArgs>? ScopeToMatchRequested;
 
 
         public UCMatches( )
@@ -114,11 +122,11 @@ namespace RegExpressWPFNET
             ExternalUnderliningLoop = new ResumableLoop( "Matches External Underline", ExternalUnderliningThreadProc, 333, 555 );
 
 
-            pnlDebug.Visibility = InternalConfig.SHOW_DEBUG_BUTTONS ?  Visibility.Visible :  Visibility.Collapsed;
+            pnlDebug.Visibility = InternalConfig.SHOW_DEBUG_BUTTONS ? Visibility.Visible : Visibility.Collapsed;
 #if !DEBUG
 			pnlDebug.Visibility = Visibility.Collapsed;
 #endif
-            //LocalUnderliningAdorner.IsDbgDisabled = true; 
+            //LocalUnderliningAdorner.IsDbgDisabled = true;
             //ExternalUnderliningAdorner.IsDbgDisabled = true;
         }
 
@@ -572,6 +580,9 @@ namespace RegExpressWPFNET
 
                         para = new Paragraph( span );
 
+                        if( match.Length > 0 )
+                            span.Inlines.Add( CreateScopeButton( new Segment( match.TextIndex, match.TextLength ) ) );
+
                         string start_text = match_name_text.PadRight( left_width + left_space_for_match );
                         var start_run = new Run( start_text, span.ContentEnd );
                         start_run.Style( MatchNormalStyleInfo );
@@ -707,6 +718,9 @@ namespace RegExpressWPFNET
                     ChangeEventHelper.Invoke( CancellationToken.None, ( ) =>
                     {
                         var span = new Span( );
+
+                        if( group.Success && group.Length > 0 )
+                            span.Inlines.Add( CreateScopeButton( new Segment( group.TextIndex, group.TextLength ) ) );
 
                         var start_run = new Run( group_name_text.PadRight( left_width ), span.ContentEnd );
                         start_run.Style( GroupNameStyleInfo );
@@ -954,6 +968,9 @@ namespace RegExpressWPFNET
                 string capture_name_text = $"  ◦ Cᴀᴘᴛᴜʀᴇ {capture_number}";
 
                 var span = new Span( );
+
+                if( capture.Length > 0 )
+                    span.Inlines.Add( CreateScopeButton( new Segment( capture.TextIndex, capture.TextLength ) ) );
 
                 var start_run = new Run( capture_name_text.PadRight( leftWidth ), span.ContentEnd );
                 start_run.Style( GroupNameStyleInfo );
@@ -1291,6 +1308,38 @@ namespace RegExpressWPFNET
             if( w < MIN_LEFT_WIDTH ) return MIN_LEFT_WIDTH;
 
             return MIN_LEFT_WIDTH + ( ( w - MIN_LEFT_WIDTH ) / 4 + 1 ) * 4;
+        }
+
+
+        InlineUIContainer CreateScopeButton( Segment segment )
+        {
+            var ContentBlock = new TextBlock( );
+            ContentBlock.FontFamily = new( "Segoe Fluent Icons, Segoe MDL2 Assets" );
+            ContentBlock.Text = ""; //magnifier
+            var btn = new Button
+            {
+                Content = ContentBlock,
+                FontSize = 14,
+                Padding = new Thickness( 1, 1, 1, 1 ),
+                Margin = new Thickness( 0, 0, 3, 0 ),
+                VerticalAlignment = VerticalAlignment.Bottom,
+                //Foreground=Brushes.Blue,
+                VerticalContentAlignment = VerticalAlignment.Bottom,
+                Cursor = Cursors.Hand,
+                ToolTip = "Open this range in a new tab",
+                Tag = segment
+            };
+            btn.Click += ScopeButton_Click;
+            return new InlineUIContainer( btn ) { BaselineAlignment = BaselineAlignment.Center };
+        }
+
+
+        void ScopeButton_Click( object sender, RoutedEventArgs e )
+        {
+            if( sender is Button btn && btn.Tag is Segment segment && segment.Length > 0 )
+            {
+                ScopeToMatchRequested?.Invoke( this, new ScopeToMatchEventArgs( segment ) );
+            }
         }
 
 
