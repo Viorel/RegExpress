@@ -48,16 +48,42 @@ namespace RegExpressWPFNET.Code
         }
 
         private static string[]? _commandLineArgs;
-        public static bool GetCommandLineArg( String arg, out String? NextVal )
+        public static bool GetCommandLineArg( String arg, out String? NextVal ) {
+            NextVal=null;
+            var arr = GetCommandLineArgArr( arg, 1 );
+            if (arr.Length == 0)
+                return false;
+            NextVal = arr[0];
+            return true;
+        }
+        /// <summary>
+        /// return an array with each occurrence of the arg, allows --ignore a --ignore b
+        /// </summary>
+        /// <param name="arg"></param>
+        /// <returns></returns>
+        public static string[] GetCommandLineArgArr( string arg, int max = 0 )
         {
             _commandLineArgs ??= Environment.GetCommandLineArgs( );
-            var pos = Array.IndexOf( _commandLineArgs, "--" + arg );
-            NextVal = null;
-            if( pos == -1 )
-                return false;
-            if( pos + 1 < _commandLineArgs.Length )
-                NextVal = _commandLineArgs[pos + 1];
-            return true;
+            List<string> ret = new();
+            bool addNext = false;
+            string targetArg = "--" + arg;
+
+            foreach( var cmdArg in _commandLineArgs )
+            {
+                if( cmdArg.Equals( targetArg, StringComparison.CurrentCultureIgnoreCase) )
+                {
+                    addNext = true;
+                }
+                else if( addNext )
+                {
+                    ret.Add( cmdArg );
+                    if (ret.Count == max)
+                        break;
+                    addNext = false;
+                }
+            }
+
+            return ret.ToArray( );
         }
         public static string? GetCommandLineArgStr( String arg )
         {

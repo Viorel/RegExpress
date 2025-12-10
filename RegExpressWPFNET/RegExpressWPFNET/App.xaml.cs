@@ -62,10 +62,10 @@ namespace RegExpressWPFNET
 
                 return;
             }
-            var onlyEngine = Utilities.GetCommandLineArgStr( "only-engine-dll" );
-            if( !String.IsNullOrWhiteSpace( onlyEngine ) )
+            var onlyEngine = Utilities.GetCommandLineArgArr( "only-engine-dll" );
+            if( onlyEngine.Length > 0 )
             {
-                RegExpressLibrary.InternalConfig.limited_engine_dlls = new[] { onlyEngine! };
+                RegExpressLibrary.InternalConfig.limited_engine_dlls = onlyEngine;
             }
         }
 
