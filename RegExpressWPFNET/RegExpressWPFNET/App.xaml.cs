@@ -49,7 +49,7 @@ namespace RegExpressWPFNET
 
                 SetForegroundWindow( other_process.MainWindowHandle );
 
-                Shutdown( );
+                Environment.Exit(0); // Calling shutdown still constructs MainWindow.xaml which in turn attempts to save the session before it loads erasing the session data
 
                 return;
             }
@@ -58,7 +58,7 @@ namespace RegExpressWPFNET
 
             if( other_process != null )
             {
-                Shutdown( );
+                Environment.Exit(0); // Calling shutdown still constructs MainWindow.xaml which in turn attempts to save the session before it loads erasing the session data
 
                 return;
             }
