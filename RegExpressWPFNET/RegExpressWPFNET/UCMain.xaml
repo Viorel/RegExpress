@@ -235,7 +235,7 @@
                                         </TransformGroup>
                                     </StackPanel.LayoutTransform>
                                     <Label Content="Newline:" VerticalAlignment="Center" Target="{Binding ElementName=cbxEol}"/>
-                                    <ComboBox x:Name="cbxEol" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="CbxEol_SelectionChanged" >
+                                    <ComboBox x:Name="cbxEol" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="CbxEol_SelectionChanged" Width="220" >
                                         <ComboBox.Resources>
                                             <Style x:Key="Note" TargetType="TextBlock">
                                                 <Setter Property="Opacity" Value="0.77"/>
