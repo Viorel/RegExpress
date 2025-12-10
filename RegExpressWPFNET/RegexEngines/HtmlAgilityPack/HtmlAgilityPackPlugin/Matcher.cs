@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using HtmlAgilityPack;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
@@ -12,6 +13,12 @@ namespace HtmlAgilityPackPlugin
 {
     static class Matcher
     {
+        // Cache the FieldInfo for the private _outerlength field
+        // HtmlAgilityPack's OuterHtml property returns reconstructed/normalized HTML which may differ
+        // in length from the original text (e.g., due to CRLF normalization). The private _outerlength
+        // field contains the actual length in the original source text.
+        private static readonly FieldInfo? OuterLengthField = typeof( HtmlNode ).GetField( "_outerlength", BindingFlags.NonPublic | BindingFlags.Instance );
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             if( string.IsNullOrWhiteSpace( pattern ) )
@@ -58,8 +65,19 @@ namespace HtmlAgilityPackPlugin
 
                     // Get the position of the node in the original text (for highlighting)
                     int index = node.StreamPosition;
-                    string outerHtml = node.OuterHtml;
-                    int length = outerHtml.Length;
+
+                    // Use the private _outerlength field to get the actual length in the original text.
+                    // OuterHtml.Length can differ due to HTML normalization (e.g., CRLF → LF conversion).
+                    int length;
+                    if( OuterLengthField != null )
+                    {
+                        length = (int)( OuterLengthField.GetValue( node ) ?? node.OuterHtml.Length );
+                    }
+                    else
+                    {
+                        // Fallback if reflection fails (shouldn't happen, but be safe)
+                        length = node.OuterHtml.Length;
+                    }
 
                     // Validate and clamp the index/length to avoid out-of-bounds
                     if( index < 0 ) index = 0;
