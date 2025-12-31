@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -102,7 +103,7 @@ namespace DotNETFrameworkPlugin
 
             if( !ph.Start( cnc ) ) return null;
 
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new VersionNotFoundException( ph.Error );
 
             VersionResponse response = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream )!;
 
