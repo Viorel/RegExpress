@@ -8,11 +8,16 @@
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              StartupUri="MainWindow.xaml"
              Startup="App_Startup"
+             ThemeMode="System"
              >
 
     <Application.Resources>
-
-        <SolidColorBrush x:Key="NormalBackground" Color="White"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+       <local_controls:BoolNullVisibilityCollapsedConverter x:Key="boolNullVisibilityCollapsedConverter" />
+       <SolidColorBrush x:Key="NormalBackground" Color="White"/>
 
         <Style x:Key="StackPanelWithLabels" TargetType="StackPanel" PresentationOptions:Freeze="True">
             <Setter Property="Orientation" Value="Horizontal"/>
@@ -115,27 +120,34 @@
             <Setter Property="Padding" Value="1 4 0 0"/>
         </Style>
 
+            <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Margin" Value="3"/>
+            </Style>
+            <Style TargetType="Button" x:Key="OurAccentButtonStyle" BasedOn="{StaticResource AccentButtonStyle}">
+                <Setter Property="Margin" Value="3"/>
+            </Style>
 
-        <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
-            <Style.Triggers>
+            <Style TargetType="CheckBox" BasedOn="{StaticResource DefaultCheckBoxStyle}">
+                <Setter Property="MinWidth" Value="50"/>
+                <Style.Triggers>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-            <Setter Property="Padding" Value="3 2"/>
-            <Setter Property="Height" Value="20"/>
-        </Style>
+            <Style TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
+                <Setter Property="Padding" Value="3 2"/>
+                <Setter Property="Margin" Value="3"/>
+            </Style>
 
-        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource DefaultComboBoxItemStyle}">
             <Setter Property="Padding" Value="3 2"/>
             <Setter Property="Margin" Value="0"/>
         </Style>
 
         <Style TargetType="Separator" BasedOn="{StaticResource {x:Type Separator}}">
-            <Setter Property="Margin" Value="3 3 3 4" />
+            <Setter Property="Margin" Value="3" />
         </Style>
 
         <!-- Inline Styles -->
@@ -613,7 +625,7 @@
             </Setter>
         </Style>
         -->
-
+        </ResourceDictionary>
     </Application.Resources>
 
 </Application>

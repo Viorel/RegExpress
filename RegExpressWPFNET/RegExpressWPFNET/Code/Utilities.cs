@@ -47,6 +47,52 @@ namespace RegExpressWPFNET.Code
             return PixelsFromInvariantString( value ) * r;
         }
 
+        private static string[]? _commandLineArgs;
+        public static bool GetCommandLineArg( String arg, out String? NextVal ) {
+            NextVal=null;
+            var arr = GetCommandLineArgArr( arg, 1 );
+            if (arr.Length == 0)
+                return false;
+            NextVal = arr[0];
+            return true;
+        }
+        /// <summary>
+        /// return an array with each occurrence of the arg, allows --ignore a --ignore b
+        /// </summary>
+        /// <param name="arg"></param>
+        /// <returns></returns>
+        public static string[] GetCommandLineArgArr( string arg, int max = 0 )
+        {
+            _commandLineArgs ??= Environment.GetCommandLineArgs( );
+            List<string> ret = new();
+            bool addNext = false;
+            string targetArg = "--" + arg;
+
+            foreach( var cmdArg in _commandLineArgs )
+            {
+                if( cmdArg.Equals( targetArg, StringComparison.CurrentCultureIgnoreCase) )
+                {
+                    addNext = true;
+                }
+                else if( addNext )
+                {
+                    ret.Add( cmdArg );
+                    if (ret.Count == max)
+                        break;
+                    addNext = false;
+                }
+            }
+
+            return ret.ToArray( );
+        }
+        public static string? GetCommandLineArgStr( String arg )
+        {
+            if (! GetCommandLineArg( arg, out String? NextVal ))
+                return null;
+            return NextVal;
+        }
+        public static bool GetCommandLineExists(String arg) => GetCommandLineArg( arg, out _ );
+
 
         [Conditional( "DEBUG" )]
         public static void DbgSimpleLog( Exception exc, [CallerFilePath] string? filePath = null, [CallerMemberName] string? memberName = null, [CallerLineNumber] int lineNumber = 0 )
@@ -69,7 +115,8 @@ namespace RegExpressWPFNET.Code
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if (RegExpressLibrary.InternalConfig.HandleException( exc ))
+                    throw;
             }
         }
 
@@ -88,7 +135,8 @@ namespace RegExpressWPFNET.Code
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if (RegExpressLibrary.InternalConfig.HandleException( exc ))
+                    throw;
             }
         }
     }

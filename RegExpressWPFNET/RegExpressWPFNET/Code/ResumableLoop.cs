@@ -220,7 +220,7 @@ namespace RegExpressWPFNET.Code
                     catch( Exception exc )
                     {
                         _ = exc;
-                        if( Debugger.IsAttached ) Debugger.Break( );
+                        InternalConfig.HandleException( exc );
 
                         throw; // TODO: maybe restart the loop?
                     }
@@ -237,7 +237,7 @@ namespace RegExpressWPFNET.Code
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                InternalConfig.HandleException(exc);
                 throw;
             }
         }
