@@ -164,7 +164,8 @@ namespace JavaScriptPlugin
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if (InternalConfig.HandleException( exc ))
+                    throw;
 
                 return null;
             }
@@ -234,7 +235,8 @@ namespace JavaScriptPlugin
                         catch( Exception exc )
                         {
                             _ = exc;
-                            if( Debugger.IsAttached ) Debugger.Break( );
+                            if (InternalConfig.HandleException( exc ))
+                                throw;
 
                             // ignore
                         }
@@ -245,7 +247,8 @@ namespace JavaScriptPlugin
                 catch( Exception exc )
                 {
                     _ = exc;
-                    if( Debugger.IsAttached ) Debugger.Break( );
+                    if (InternalConfig.HandleException( exc ))
+                        throw;
 
                     TempFolder = null;
                 }

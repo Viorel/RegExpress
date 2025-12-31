@@ -158,7 +158,8 @@ namespace JavaScriptPlugin
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if (InternalConfig.HandleException( exc ))
+                    throw;
 
                 return null;
             }

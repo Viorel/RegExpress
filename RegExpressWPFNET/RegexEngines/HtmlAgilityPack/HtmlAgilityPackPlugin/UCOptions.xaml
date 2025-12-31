@@ -1,0 +1,41 @@
+<UserControl x:Class="HtmlAgilityPackPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:HtmlAgilityPackPlugin"
+             mc:Ignorable="d"
+             Loaded="UserControl_Loaded" d:DesignHeight="120" d:DesignWidth="400" >
+
+    <Grid>
+        <StackPanel>
+            <GroupBox Header="Selector Type" Margin="0 0 0 6">
+                <StackPanel>
+                    <RadioButton x:Name="rbXPath" Content="XPath" GroupName="SelectorMode"
+                                 Checked="SelectorMode_Changed" Margin="0 2"/>
+                    <RadioButton x:Name="rbCssSelector" Content="CSS Selector (QuerySelectorAll)" GroupName="SelectorMode"
+                                 Checked="SelectorMode_Changed" Margin="0 2"/>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Output Mode" Margin="0 0 0 6">
+                <StackPanel>
+                    <RadioButton x:Name="rbOuterHtml" Content="Outer HTML (full element)" GroupName="OutputMode"
+                                 Checked="OutputMode_Changed" Margin="0 2"/>
+                    <RadioButton x:Name="rbInnerHtml" Content="Inner HTML (element contents)" GroupName="OutputMode"
+                                 Checked="OutputMode_Changed" Margin="0 2"/>
+                    <RadioButton x:Name="rbInnerText" Content="Inner Text (text only)" GroupName="OutputMode"
+                                 Checked="OutputMode_Changed" Margin="0 2"/>
+                </StackPanel>
+            </GroupBox>
+
+            <TextBlock TextWrapping="Wrap" Margin="0 6 0 0" Foreground="Gray" FontSize="11">
+                <Run Text="Examples:"/>
+                <LineBreak/>
+                <Run Text="XPath: //td[@class='toplevel-repo']/a"/>
+                <LineBreak/>
+                <Run Text="CSS: td.toplevel-repo > a"/>
+            </TextBlock>
+        </StackPanel>
+    </Grid>
+</UserControl>

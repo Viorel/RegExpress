@@ -5,15 +5,23 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RegExpressWPFNET"
         mc:Ignorable="d"
-        Width="800" 
-        Height="450" 
-        Loaded="UserControl_Loaded" 
+        Width="800"
+        Height="450"
+        Loaded="UserControl_Loaded"
         Unloaded="UserControl_Unloaded"
-        IsVisibleChanged="UserControl_IsVisibleChanged" 
+        IsVisibleChanged="UserControl_IsVisibleChanged"
         >
 
-    <Grid Margin="9 7 9 9">
-        <Grid.ColumnDefinitions>
+	<Grid Margin="9 7 9 9">
+		<Grid.Resources>
+			<Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+				<Setter Property="Margin" Value="5,0" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="Padding" Value="2" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+			</Style>
+		</Grid.Resources>
+		<Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" MinWidth="33"/>
             <ColumnDefinition Width="5"/>
             <ColumnDefinition x:Name="RightColumn" Width="222" MinWidth="33"/>
@@ -67,7 +75,8 @@
 
                     <StackPanel Style="{StaticResource StackPanelWithLabels}" HorizontalAlignment="Left" >
                         <TextBlock Text="Text" Style="{StaticResource Labels}" />
-                    </StackPanel>
+                        <Button Content="Load File" Click="LoadFile_Click" />
+					</StackPanel>
                     <TextBlock x:Name="lblTextInfo" d:Text="Index: 10  |  Length: 200" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0 0 9 1"
                                FontSize="9.25" Opacity="0.77"/>
                 </Grid>
@@ -107,7 +116,7 @@
                     </StackPanel>
                 </Grid>
                 <Border Grid.Row="1" Margin="0" Style="{StaticResource RtbBorder}" >
-                    <local:UCMatches x:Name="ucMatches" SelectionChanged="UcMatches_SelectionChanged" Cancelled="UcMatches_Cancelled" LostFocus="UcMatches_LostFocus" Margin="0 -0.05 0 0">
+                    <local:UCMatches x:Name="ucMatches" SelectionChanged="UcMatches_SelectionChanged" Cancelled="UcMatches_Cancelled" ScopeToMatchRequested="UcMatches_ScopeToMatchRequested" LostFocus="UcMatches_LostFocus" Margin="0 -0.05 0 0">
                         <local:UCMatches.Clip>
                             <MultiBinding Converter="{StaticResource BorderClipConverter}">
                                 <Binding Path="ActualWidth"  RelativeSource="{RelativeSource Self}"/>
@@ -173,7 +182,7 @@
                                                     <ColumnDefinition />
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="1 0 0 0"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding Version, TargetNullValue='Unknown version', FallbackValue='Unknown version'}" VerticalAlignment="Center" HorizontalAlignment="Left" 
+                                                <TextBlock Grid.Column="1" Text="{Binding Version, TargetNullValue='Unknown version', FallbackValue='Unknown version'}" VerticalAlignment="Center" HorizontalAlignment="Left"
                                                            Margin="6 0 1 0">
                                                     <!--<TextBlock.LayoutTransform>
                                                         <ScaleTransform ScaleX="0.8" ScaleY="1"/>
@@ -209,7 +218,7 @@
                                 <CheckBox x:Name="cbUnderline" Content="Underline current match" Checked="CbUnderline_CheckedChanged" Unchecked="CbUnderline_CheckedChanged" HorizontalAlignment="Left"/>
                                 <CheckBox x:Name="cbShowWhitespaces" Checked="CbShowWhitespaces_CheckedChanged" Unchecked="CbShowWhitespaces_CheckedChanged" HorizontalAlignment="Left">
                                     <TextBlock>
-                                            Show whitespaces 
+                                            Show whitespaces
                                             <Span x:Name="lblWarnings">
                                                 <Run x:Name="lblWhitespaceWarning1" Foreground="OrangeRed" ToolTip="There are imperceptible whitespaces. Click to show.">&#x26a0;</Run>
                                                 <Run x:Name="lblWhitespaceWarning2" Foreground="Silver" ToolTip="There are imperceptible whitespaces.">&#x26a0;</Run>
@@ -226,7 +235,7 @@
                                         </TransformGroup>
                                     </StackPanel.LayoutTransform>
                                     <Label Content="Newline:" VerticalAlignment="Center" Target="{Binding ElementName=cbxEol}"/>
-                                    <ComboBox x:Name="cbxEol" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="CbxEol_SelectionChanged" >
+                                    <ComboBox x:Name="cbxEol" VerticalAlignment="Center" Margin="3 0 0 0" SelectionChanged="CbxEol_SelectionChanged" Width="220" >
                                         <ComboBox.Resources>
                                             <Style x:Key="Note" TargetType="TextBlock">
                                                 <Setter Property="Opacity" Value="0.77"/>

@@ -35,7 +35,7 @@ namespace RegExpressWPFNET
 
         readonly IReadOnlyList<IRegexEngine> RegexEngines;
         readonly IRegexEngine DefaultRegexEngine;
-        IRegexEngine? CurrentRegexEngine = null;
+        public IRegexEngine? CurrentRegexEngine = null;
         readonly HashSet<IRegexEngine> RegexEnginesUsed = new( );
 
         public bool IsFullyLoaded { get; private set; } = false;
@@ -46,6 +46,7 @@ namespace RegExpressWPFNET
 
         public event EventHandler? Changed;
         public event EventHandler? NewTabClicked;
+        public event EventHandler<ScopeToMatchEventArgs>? ScopeToNewTabRequested;
 
         static readonly DependencyProperty SubtitleProperty = DependencyProperty.Register( nameof( Subtitle ), typeof( string ), typeof( UCMain ) );
 
@@ -135,7 +136,7 @@ namespace RegExpressWPFNET
         {
             if( InitialTabData != null )
             {
-                // did not have chance to finish initialisation 
+                // did not have chance to finish initialisation
 
                 tabData.Subtitle = InitialTabData.Subtitle;
                 tabData.Pattern = InitialTabData.Pattern;
@@ -256,10 +257,25 @@ namespace RegExpressWPFNET
 
                     StopAll( );
                     RestartAll( );
+                    if( IsFirstNewTab )
+                    {
+                        IsFirstNewTab = false;
+                        var loadFile = Utilities.GetCommandLineArgStr( "text-load-file" );
+                        if( !String.IsNullOrWhiteSpace( loadFile ) )
+                        {
+                            ucText.SetText( File.ReadAllText( loadFile ) );
+                        }
+                        loadFile = Utilities.GetCommandLineArgStr( "pattern-load-file" );
+                        if( !String.IsNullOrWhiteSpace( loadFile ) )
+                        {
+                            ucPattern.SetText( File.ReadAllText( loadFile ) );
+                        }
+                    }
                 }
+
             }
         }
-
+        private static bool IsFirstNewTab = true;
 
         private void UserControl_Unloaded( object sender, RoutedEventArgs e )
         {
@@ -407,6 +423,15 @@ namespace RegExpressWPFNET
             FindMatchesLoop.SignalRewind( );
 
             ucMatches.ShowError( new Exception( "Operation cancelled." ), false );
+        }
+
+
+        private void UcMatches_ScopeToMatchRequested( object sender, ScopeToMatchEventArgs e )
+        {
+            if( !IsFullyLoaded ) return;
+            if( IsInChange ) return;
+
+            ScopeToNewTabRequested?.Invoke( this, e );
         }
 
 
@@ -597,7 +622,7 @@ namespace RegExpressWPFNET
                     }
                 }
 
-                engine ??= DefaultRegexEngine; // use the default engine 
+                engine ??= DefaultRegexEngine; // use the default engine
 
                 CurrentRegexEngine = engine;
                 SetEngineOption( engine );
@@ -870,7 +895,7 @@ namespace RegExpressWPFNET
             }
             catch( ThreadInterruptedException )
             {
-                // ignore					   
+                // ignore
             }
             catch( ThreadAbortException )
             {
@@ -879,7 +904,7 @@ namespace RegExpressWPFNET
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if( Debugger.IsAttached ) InternalConfig.HandleException( exc );
 
                 // ignore
             }
@@ -899,7 +924,7 @@ namespace RegExpressWPFNET
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                InternalConfig.HandleException( exc );
 
                 // ignore
             }
@@ -1154,5 +1179,26 @@ namespace RegExpressWPFNET
         [GeneratedRegex( @"\t|([ ](\r|\n|$))|((\r|\n)$)", RegexOptions.ExplicitCapture )]
         private static partial Regex HasWhitespaceRegex( );
 
+        private void LoadFile_Click( object sender, RoutedEventArgs e )
+        {
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "All files (*.*)|*.*|Text files (*.txt)|*.txt",
+                FilterIndex = 1
+            };
+
+            if( openFileDialog.ShowDialog( ) == true )
+            {
+                try
+                {
+                    string fileContent = File.ReadAllText( openFileDialog.FileName );
+                    ucText.SetText( fileContent );
+                }
+                catch( Exception ex )
+                {
+                    MessageBox.Show( $"Error reading file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error );
+                }
+            }
+        }
     }
 }
