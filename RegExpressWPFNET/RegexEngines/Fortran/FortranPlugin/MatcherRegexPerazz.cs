@@ -90,7 +90,7 @@ namespace FortranPlugin
                 if( !string.IsNullOrWhiteSpace( line ) )
                 {
                     // invalid line
-                    if( Debugger.IsAttached ) Debugger.Break( );
+                    InternalConfig.HandleOtherCriticalError("Invalid Line");
                 }
 #endif
             }

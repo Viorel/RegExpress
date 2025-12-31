@@ -114,7 +114,7 @@ namespace RegExpressWPFNET
             ExternalUnderliningLoop = new ResumableLoop( "Matches External Underline", ExternalUnderliningThreadProc, 333, 555 );
 
 
-            pnlDebug.Visibility = Visibility.Collapsed;
+            pnlDebug.Visibility = InternalConfig.SHOW_DEBUG_BUTTONS ?  Visibility.Visible :  Visibility.Collapsed;
 #if !DEBUG
 			pnlDebug.Visibility = Visibility.Collapsed;
 #endif

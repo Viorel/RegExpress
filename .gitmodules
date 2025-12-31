@@ -1,0 +1,3 @@
+[submodule "PilotAIAssistantControl"]
+	path = PilotAIAssistantControl
+	url = https://github.com/mitchcapper/PilotAIAssistantControl
