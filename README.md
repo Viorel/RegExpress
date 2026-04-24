@@ -26,7 +26,7 @@ It includes the following Regular Expression engines:
 * **[ICU Regular Expressions](https://icu.unicode.org/)** 77.1 (in C++).
 * **Rust** 1.95.0 crates: **[regex](https://docs.rs/regex)** 1.12.3, **[regex\_lite](https://docs.rs/regex_lite)** 0.1.9, **[fancy\_regex](https://docs.rs/fancy-regex)** 0.18.0 
   and **[regress](https://docs.rs/regress)** 0.11.1.
-* **[Java](https://docs.oracle.com/en/java/javase/24/docs/api/java.base/java/util/regex/package-summary.html)** 24.0.1 (*java.util.regex* and *com.google.re2j* packages).
+* **[Java](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html)** 26.0.1 (*java.util.regex* and *com.google.re2j* packages).
 * **[Python](https://www.python.org/)** 3.13.6 (standard *re* module, third-party *regex* module).
 * **[D](https://dlang.org/phobos/std_regex.html)** 2.112.0 (*std.regex* module).
 * **[Perl](https://perldoc.perl.org/perlreref)** 5.40.2 (Strawberry Perl).
