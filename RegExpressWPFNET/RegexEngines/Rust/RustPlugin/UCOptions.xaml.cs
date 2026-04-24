@@ -102,12 +102,13 @@ namespace RustPlugin
                 };
 
                 bool regex_or_regex_lite = crate == CrateEnum.regex || crate == CrateEnum.regex_lite;
+                bool fancy = crate == CrateEnum.fancy_regex;
 
                 pnlStruct.Visibility =
-                    pnlRegexBuilderOptions.Visibility = regex_or_regex_lite || crate == CrateEnum.fancy_regex ? Visibility.Visible : Visibility.Collapsed;
+                    pnlRegexBuilderOptions.Visibility = regex_or_regex_lite || fancy ? Visibility.Visible : Visibility.Collapsed;
                 pnlRegressOptions.Visibility = crate == CrateEnum.regress ? Visibility.Visible : Visibility.Collapsed;
 
-                if( regex_or_regex_lite || crate == CrateEnum.fancy_regex )
+                if( regex_or_regex_lite || fancy )
                 {
                     bool is_builder = @struct == StructEnum.RegexBuilder;
 
@@ -122,19 +123,20 @@ namespace RustPlugin
                     {
                         pnlRegexBuilderOptions.DataContext = new Options( ); // (to show defaults)
                     }
-
-                    chbx_crlf.Visibility = crate == CrateEnum.regex_lite ? Visibility.Visible : Visibility.Collapsed;
-                    chbx_swap_greed.Visibility = regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
-                    chbx_unicode.Visibility = crate == CrateEnum.regex || crate == CrateEnum.fancy_regex ? Visibility.Visible : Visibility.Collapsed;
-                    chbx_octal.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
-
-                    pnlRegexCrateLimits.Visibility = regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
-                    dsl.IsEnabled = crate == CrateEnum.regex;
-
-                    pnlFancyRegexCrateLimits.Visibility = crate == CrateEnum.fancy_regex ? Visibility.Visible : Visibility.Collapsed;
                 }
 
-                chbx_oniguruma_mode.Visibility = crate == CrateEnum.fancy_regex ? Visibility.Visible : Visibility.Collapsed;
+                pnlRegexCrateLimits.Visibility = regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
+                dsl.IsEnabled = crate == CrateEnum.regex;
+
+                pnlFancyRegexCrateLimits.Visibility = fancy ? Visibility.Visible : Visibility.Collapsed;
+
+                chbx_crlf.Visibility = regex_or_regex_lite || fancy ? Visibility.Visible : Visibility.Collapsed;
+                chbx_swap_greed.Visibility = regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
+                chbx_unicode.Visibility = crate == CrateEnum.regex || fancy ? Visibility.Visible : Visibility.Collapsed;
+                chbx_octal.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                chbx_oniguruma_mode.Visibility = fancy ? Visibility.Visible : Visibility.Collapsed;
+                chbx_find_not_empty.Visibility = fancy ? Visibility.Visible : Visibility.Collapsed;
+                chbx_ignore_numbered_groups_when_named_groups_exist.Visibility = fancy ? Visibility.Visible : Visibility.Collapsed;
             }
             finally
             {

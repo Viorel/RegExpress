@@ -273,6 +273,9 @@ namespace ExportFeatureMatrix
 
                                 exporter.Export( output_file, plugins!, is_verify, ShowProgressOnFeatures, ShowProgressOnEngines );
 
+                                // if the file existed, the time remains unchanged; set the current time
+                                //File.SetCreationTimeUtc( output_file, DateTime.UtcNow); 
+
                                 Dispatcher.Invoke( ( ) =>
                                 {
                                     SystemSounds.Exclamation.Play( );

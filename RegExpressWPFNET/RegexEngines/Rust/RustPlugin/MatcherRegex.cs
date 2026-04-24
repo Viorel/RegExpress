@@ -65,6 +65,7 @@ namespace RustPlugin
             if( options.case_insensitive ) o.Append( "i" );
             if( options.multi_line ) o.Append( "m" );
             if( options.dot_matches_new_line ) o.Append( "s" );
+            if( options.crlf ) o.Append( "R" );
             if( options.swap_greed ) o.Append( "U" );
             if( options.ignore_whitespace ) o.Append( "x" );
             if( options.unicode ) o.Append( "u" );

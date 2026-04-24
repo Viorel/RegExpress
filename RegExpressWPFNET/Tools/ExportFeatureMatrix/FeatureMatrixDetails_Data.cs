@@ -311,7 +311,7 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"\b{g}", @"Unicode extended grapheme cluster boundary", fm => fm.Anchor_bg)
                     .Test( @"\b{g}x", "y x", null ),
                 new FeatureMatrixDetails( @"\b{…}, \B{…}", @"Typed boundary", fm => fm.Anchor_bBBrace)
-                    .Test( @"\b{wb}x", "y x", null ),
+                    .Test( @"\b{wb}x", "y x", null ).Test( @"\b{start}x", "y x", null ),
                 new FeatureMatrixDetails( @"\K", @"Keep the stuff left of the \K", fm => fm.Anchor_K)
                     .Test( @"a\Kb", "ab", null ),
                 new FeatureMatrixDetails( @"\m, \M", @"Start of word, end of word", fm => fm.Anchor_mM)
@@ -526,7 +526,8 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"(*verb)", @"Control verbs: (*verb), (*verb:…), (*:name)", fm => fm.ControlVerbs)
                     .Test( @"x(*ACCEPT)|y(*FAIL)", "x", null )
                     .Test( @"(*UCP)a", "a", null )
-                    .Test( @"x(*SKIP)y", "xy", null ),
+                    .Test( @"x(*SKIP)y", "xy", null )
+                    .Test( @"a(*FAIL)|b", "b", null ),
                 new FeatureMatrixDetails( @"(*…:…)", @"Script runs, such as (*atomic:…)", fm => fm.ScriptRuns)
                     .Test( @"(*atomic:x)", "x", null ),
                 new FeatureMatrixDetails( @"(?Cn), (*func)", @"Callouts (custom functions)", fm => fm.Callouts ),

@@ -35,10 +35,12 @@ namespace RustPlugin
         public bool ignore_whitespace { get; set; }
         public bool unicode { get; set; } = true;
         public bool octal { get; set; }
-        public bool crlf { get; set; } // ('regex_lite' specific)
+        public bool crlf { get; set; } // ('regex', 'regex_lite', 'fancy_regex' specific, the (?R) flag)
         public bool no_opt { get; set; } // ('regress' specific)
         public bool unicode_sets { get; set; } // ('regress' specific)
         public bool oniguruma_mode { get; set; } // ('fancy_regex' specific)
+        public bool find_not_empty { get; set; } // ('fancy_regex' specific)
+        public bool ignore_numbered_groups_when_named_groups_exist { get; set; } // ('fancy_regex' specific)
 
         // Regex and Regex_lite crates
 

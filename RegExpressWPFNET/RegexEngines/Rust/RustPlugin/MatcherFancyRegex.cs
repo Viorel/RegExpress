@@ -42,8 +42,11 @@ namespace RustPlugin
             if( options.multi_line ) o.Append( 'm' );
             if( options.ignore_whitespace ) o.Append( 'x' );
             if( options.dot_matches_new_line ) o.Append( 's' );
+            if( options.crlf ) o.Append( "R" );
             if( options.unicode ) o.Append( 'u' );
             if( options.oniguruma_mode ) o.Append( 'O' );
+            if( options.find_not_empty ) o.Append( 'E' );
+            if( options.ignore_numbered_groups_when_named_groups_exist ) o.Append( 'n' );
 
             var obj = new
             {

@@ -938,7 +938,16 @@ namespace RegExpressLibrary.SyntaxColouring
                 switch( fm.Parentheses )
                 {
                 case FeatureMatrix.PunctuationEnum.Normal:
-                    pb.Add( @"(?<flags>\(\? (?<on>(?!R\))[a-zA-Z01]+)? (?<dash>-)? (?<off>[a-zA-Z01]+)? (\) | $) (?(on)|(?(dash)(?(off)|(?!))|(?!))) )" );
+                    if( fm.Recursive_R )
+                    {
+                        // (?R) is recursivity, not a flag
+                        pb.Add( @"(?<flags>\(\? (?<on>(?!R\))[a-zA-Z01]+)? (?<dash>-)? (?<off>[a-zA-Z01]+)? (\) | $) (?(on)|(?(dash)(?(off)|(?!))|(?!))) )" );
+                    }
+                    else
+                    {
+                        // (?R) is a flag in some Rust engines
+                        pb.Add( @"(?<flags>\(\? (?<on>(?!\))[a-zA-Z01]+)? (?<dash>-)? (?<off>[a-zA-Z01]+)? (\) | $) (?(on)|(?(dash)(?(off)|(?!))|(?!))) )" );
+                    }
                     break;
                 case FeatureMatrix.PunctuationEnum.Backslashed:
                     pb.Add( @"(?<flags>\\\(\? (?<on>(?!R\))[a-zA-Z]+)? (?<dash>-)? (?<off>[a-zA-Z]+)? (\\\) | $) (?(on)|(?(dash)(?(off)|(?!))|(?!))) )" );
@@ -1430,13 +1439,13 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     pb.Add( @"\\G" );
                 }
-                if( fm.Anchor_bg )
-                {
-                    pb.Add( @"\\b\{(g\}?)?" );
-                }
                 if( fm.Anchor_bBBrace )
                 {
                     pb.Add( @"\\[bB] (\{ ( [^}]+ \}?)?)?" );
+                }
+                if( fm.Anchor_bg )
+                {
+                    pb.Add( @"\\b\{(g\}?)?" );
                 }
                 if( fm.Anchor_bB )
                 {

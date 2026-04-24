@@ -76,8 +76,11 @@ fn main()
         reb.multi_line(options.find('m').is_some());
         reb.ignore_whitespace(options.find('x').is_some());
         reb.dot_matches_new_line(options.find('s').is_some());
+        reb.crlf(options.find('R').is_some());
         reb.unicode_mode(options.find('u').is_some());
         reb.oniguruma_mode(options.find('O').is_some());
+        reb.find_not_empty(options.find('E').is_some());
+        reb.ignore_numbered_groups_when_named_groups_exist(options.find('n').is_some());
 
         let s = parsed["bl"].as_str().unwrap_or("");
 

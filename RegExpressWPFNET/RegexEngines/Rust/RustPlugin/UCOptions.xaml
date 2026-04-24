@@ -23,10 +23,11 @@
                 </StackPanel.LayoutTransform>
                 <Label Content="Crate:" Target="{Binding ElementName=cbxCrate}" Padding="0 2 4 2" MinWidth="40"/>
                 <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
-                    <ComboBoxItem Tag ="regex" Content="regex 1.12.2" IsSelected="True" />
-                    <ComboBoxItem Tag ="regex_lite" Content="regex_lite 0.1.8" />
-                    <ComboBoxItem Tag ="fancy_regex" Content="fancy_regex 0.16.2" />
-                    <ComboBoxItem Tag ="regress" Content="regress 0.10.4" />
+                    <!--TODO: determine versions programmatically (when possible) -->
+                    <ComboBoxItem Tag ="regex" Content="regex 1.12.3" IsSelected="True" />
+                    <ComboBoxItem Tag ="regex_lite" Content="regex_lite 0.1.9" />
+                    <ComboBoxItem Tag ="fancy_regex" Content="fancy_regex 0.18.0" />
+                    <ComboBoxItem Tag ="regress" Content="regress 0.11.1" />
                 </ComboBox>
             </StackPanel>
 
@@ -52,6 +53,8 @@
                 <ui:CheckboxWithNote x:Name="chbx_unicode" Prop="unicode" Note="(u) match Unicode characters"/>
                 <ui:CheckboxWithNote x:Name="chbx_octal" Prop="octal" Note="support octal syntax"/>
                 <ui:CheckboxWithNote x:Name="chbx_oniguruma_mode" Prop="oniguruma_mode" Note="do not treat “\&lt;” and “\&gt;” as left and right word-bounds"/>
+                <ui:CheckboxWithNote x:Name="chbx_find_not_empty" Prop="find_not_empty" Note="require that matches are non-empty"/>
+                <ui:CheckboxWithNote x:Name="chbx_ignore_numbered_groups_when_named_groups_exist" Prop="ignore_numbered_groups_when_named_groups_exist" Note="treat unnamed capture groups as non-capturing when named groups exist"/>
 
                 <StackPanel Orientation="Vertical">
                     <StackPanel.Resources>
