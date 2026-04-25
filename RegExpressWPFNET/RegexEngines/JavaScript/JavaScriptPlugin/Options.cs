@@ -78,6 +78,7 @@ namespace JavaScriptPlugin
 
         public bool DISABLE_UNICODE_GROUPS { get; set; }
         public bool LONGEST_MATCH { get; set; }
+        public bool LOOKBEHINDS { get; set; }
 
         [JsonIgnore]
         public bool d { get; set; } = true; // to avoid binding errors and to show the checkbox in checked state

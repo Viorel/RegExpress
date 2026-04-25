@@ -16,7 +16,7 @@ namespace JavaScriptPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly LazyData<(RuntimeEnum runtime, bool uFlag, bool vFlag), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        static readonly LazyData<(RuntimeEnum runtime, bool uFlag, bool vFlag, bool enableLookbehind), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -135,7 +135,7 @@ namespace JavaScriptPlugin
             {
                 XLevel = XLevelEnum.none,
                 AllowEmptySets = true,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( (Options.Runtime, Options.u, Options.v) )
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (Options.Runtime, Options.u, Options.v, Options.LOOKBEHINDS) )
             };
         }
 
@@ -150,24 +150,24 @@ namespace JavaScriptPlugin
             Engine sm_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.SpiderMonkey, u = true, v = false } };
             Engine bun_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.Bun, u = false, v = false } };
             Engine bun_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.Bun, u = true, v = false } };
-            Engine re2js_engine = new( ) { Options = new Options { Runtime = RuntimeEnum.RE2JS } };
+            Engine re2js_engine = new( ) { Options = new Options { Runtime = RuntimeEnum.RE2JS, LOOKBEHINDS = true } };
 
             return
                 [
-                    new ("V8", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, false, false)), njs_engine_no_uv),
-                    new ("V8, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, true, false)), njs_engine_u),
-                    new ("V8, “v” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, false, true)), njs_engine_v),
+                    new ("V8", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, false, false, false)), njs_engine_no_uv),
+                    new ("V8, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, true, false, false)), njs_engine_u),
+                    new ("V8, “v” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, false, true, false)), njs_engine_v),
 
-                    new ("Qjs", LazyFeatureMatrix.GetValue((RuntimeEnum.QuickJs, false, false)), qjs_engine_no_u),
-                    new ("Qjs, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.QuickJs, true, false)), qjs_engine_u),
+                    new ("Qjs", LazyFeatureMatrix.GetValue((RuntimeEnum.QuickJs, false, false, false)), qjs_engine_no_u),
+                    new ("Qjs, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.QuickJs, true, false, false)), qjs_engine_u),
 
-                    new ("SM", LazyFeatureMatrix.GetValue((RuntimeEnum.SpiderMonkey, false, false)), sm_engine_no_u),
-                    new ("SM, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.SpiderMonkey, true, false)), sm_engine_u),
+                    new ("SM", LazyFeatureMatrix.GetValue((RuntimeEnum.SpiderMonkey, false, false, false)), sm_engine_no_u),
+                    new ("SM, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.SpiderMonkey, true, false, false)), sm_engine_u),
 
-                    new ("Bun", LazyFeatureMatrix.GetValue((RuntimeEnum.Bun, false, false)), bun_engine_no_u),
-                    new ("Bun, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.Bun, true, false)), bun_engine_u),
+                    new ("Bun", LazyFeatureMatrix.GetValue((RuntimeEnum.Bun, false, false, false)), bun_engine_no_u),
+                    new ("Bun, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.Bun, true, false, false)), bun_engine_u),
 
-                    new ("RE2JS", LazyFeatureMatrix.GetValue((RuntimeEnum.RE2JS, false, false)), re2js_engine),
+                    new ("RE2JS", LazyFeatureMatrix.GetValue((RuntimeEnum.RE2JS, false, false, true)), re2js_engine),
                 ];
         }
 
@@ -188,7 +188,7 @@ namespace JavaScriptPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        static FeatureMatrix BuildFeatureMatrix( (RuntimeEnum runtime, bool uFlag, bool vFlag) options )
+        static FeatureMatrix BuildFeatureMatrix( (RuntimeEnum runtime, bool uFlag, bool vFlag, bool enableLookbehind) options )
         {
             return options.runtime switch
             {
@@ -196,7 +196,7 @@ namespace JavaScriptPlugin
                 RuntimeEnum.QuickJs => BuildFeatureMatrix_QuickJs( options.uFlag ),
                 RuntimeEnum.SpiderMonkey => BuildFeatureMatrix_SpiderMonkey( options.uFlag ),
                 RuntimeEnum.Bun => BuildFeatureMatrix_Bun( options.uFlag ),
-                RuntimeEnum.RE2JS => BuildFeatureMatrix_RE2JS( options.uFlag ),
+                RuntimeEnum.RE2JS => BuildFeatureMatrix_RE2JS( options.uFlag, options.enableLookbehind ),
                 _ => throw new NotImplementedException( ),
             };
         }
@@ -1045,7 +1045,7 @@ namespace JavaScriptPlugin
             };
         }
 
-        static FeatureMatrix BuildFeatureMatrix_RE2JS( bool uFlag )
+        static FeatureMatrix BuildFeatureMatrix_RE2JS( bool uFlag, bool enableLookbehind )
         {
             return new FeatureMatrix
             {
@@ -1195,8 +1195,8 @@ namespace JavaScriptPlugin
                 NoncapturingGroup = true,
                 PositiveLookahead = false,
                 NegativeLookahead = false,
-                PositiveLookbehind = FeatureMatrix.LookModeEnum.None,
-                NegativeLookbehind = FeatureMatrix.LookModeEnum.None,
+                PositiveLookbehind = enableLookbehind ? FeatureMatrix.LookModeEnum.AnyLength : FeatureMatrix.LookModeEnum.None,
+                NegativeLookbehind = enableLookbehind ? FeatureMatrix.LookModeEnum.AnyLength : FeatureMatrix.LookModeEnum.None,
                 AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

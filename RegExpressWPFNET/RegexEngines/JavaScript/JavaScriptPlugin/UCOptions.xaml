@@ -83,6 +83,7 @@
                     <ui:CheckboxWithNote Prop="m" Text="RE2JS.MULTILINE" Note="multiline matching: ^ and $ match at beginning and end of line, not just beginning and end of input"/>
                     <ui:CheckboxWithNote Prop="DISABLE_UNICODE_GROUPS" Text="RE2JS.DISABLE_UNICODE_GROUPS" Note="Unicode groups (e.g. \p{Greek}) will be syntax errors"/>
                     <ui:CheckboxWithNote Prop="LONGEST_MATCH" Text="RE2JS.LONGEST_MATCH" Note="matches longest possible string (changes the match semantics to leftmost-longest)"/>
+                    <ui:CheckboxWithNote Prop="LOOKBEHINDS" Text="RE2JS.LOOKBEHINDS" Note="enable linear-time captureless lookbehinds"/>
                 </StackPanel>
 
                 <StackPanel x:Name="pnlSM" Orientation="Vertical" Margin="0 8 0 0">

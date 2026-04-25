@@ -51,7 +51,8 @@ namespace JavaScriptPlugin
                 options.m ? "m" : "",
                 options.s ? "s" : "",
                 options.DISABLE_UNICODE_GROUPS ? "U" : "",
-                options.LONGEST_MATCH ? "l" : ""
+                options.LONGEST_MATCH ? "l" : "",
+                options.LOOKBEHINDS ? "B" : ""
                 );
 
             var data = new { pattern, text, flags };

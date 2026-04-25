@@ -16,6 +16,7 @@ try
   if( flags.includes("m")) flags_number |= RE2JS.MULTILINE;
   if( flags.includes("U")) flags_number |= RE2JS.DISABLE_UNICODE_GROUPS;
   if( flags.includes("l")) flags_number |= RE2JS.LONGEST_MATCH;
+  if( flags.includes("B")) flags_number |= RE2JS.LOOKBEHINDS;
 
   const compiled_pattern = RE2JS.compile( pattern, flags_number );
   const matcher = compiled_pattern.matcher( text );

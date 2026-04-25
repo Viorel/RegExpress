@@ -1037,7 +1037,7 @@ namespace RegExpressLibrary.SyntaxColouring
                         }
                         if( fm.NamedGroup_LtGt )
                         {
-                            pb.Add( @"\(\s*\?\s* < ((?<name>[^>]*) >?)?" );
+                            pb.Add( @"\(\s*\?\s* < (?![=!]) ((?<name>[^>]*) >?)?" );
                         }
                         if( fm.NamedGroup_PLtGt )
                         {
@@ -1092,7 +1092,7 @@ namespace RegExpressLibrary.SyntaxColouring
                         }
                         if( fm.NamedGroup_LtGt )
                         {
-                            pb.Add( @"\(\? < ((?<name>[^>]*) >?)?" );
+                            pb.Add( @"\(\? < (?![=!]) ((?<name>[^>]*) >?)?" );
                         }
                         if( fm.NamedGroup_PLtGt )
                         {
