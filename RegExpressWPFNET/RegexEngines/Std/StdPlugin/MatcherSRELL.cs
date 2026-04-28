@@ -23,6 +23,19 @@ namespace StdPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            UInt64? limit_counter = null;
+            if( !string.IsNullOrWhiteSpace( options.limit_counter ) )
+            {
+                if( !UInt64.TryParse( options.limit_counter, out var limit_counter0 ) )
+                {
+                    throw new Exception( "Invalid option: 'limit_counter'." );
+                }
+                else
+                {
+                    limit_counter = limit_counter0;
+                }
+            }
+
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.Unicode;
@@ -55,6 +68,8 @@ namespace StdPlugin
                 bw.Write( Convert.ToByte( options.match_not_null ) );
                 bw.Write( Convert.ToByte( options.match_continuous ) );
                 bw.Write( Convert.ToByte( options.match_prev_avail ) );
+
+                bw.WriteOptional( limit_counter );
 
                 bw.Write( (byte)'e' );
             };

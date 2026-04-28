@@ -64,6 +64,7 @@ namespace StdPlugin
         public bool dotall { get; set; }
         public bool unicodesets { get; set; }
         public bool vmode { get; set; }
+        public string? limit_counter { get; set; }
 
         public Options Clone( )
         {

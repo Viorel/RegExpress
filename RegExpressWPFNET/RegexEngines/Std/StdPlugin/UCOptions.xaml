@@ -118,6 +118,20 @@
                 <Label Content="__REGEX__MAX__COMPLEXITY__COUNT:" Target="{Binding ElementName=tbREGEX_MAX_COMPLEXITY_COUNT}" FontStyle="Italic" HorizontalAlignment="Left" Margin="0 4 0 3" Padding="0"/>
                 <TextBox x:Name="tbREGEX_MAX_COMPLEXITY_COUNT" Text="{Binding REGEX_MAX_COMPLEXITY_COUNT, UpdateSourceTrigger=PropertyChanged}" Width="150" HorizontalAlignment="Left" TextChanged="tbREGEX_MAX_COMPLEXITY_COUNT_TextChanged"  />
             </StackPanel>
+
+            <StackPanel x:Name="pnlSRELLConstants" Orientation="Vertical" Margin="0 4 0 0">
+                <StackPanel.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </StackPanel.LayoutTransform>
+                <Label Content="limit__counter:" Target="{Binding ElementName=tb_limit_counter}" FontStyle="Italic" HorizontalAlignment="Left" Margin="0 4 0 3" Padding="0"/>
+                <TextBox x:Name="tb_limit_counter" Text="{Binding limit_counter, UpdateSourceTrigger=PropertyChanged}" Width="150" HorizontalAlignment="Left" TextChanged="tb_limit_counter_TextChanged"  />
+            </StackPanel>
+
         </StackPanel>
     </Grid>
 </UserControl>

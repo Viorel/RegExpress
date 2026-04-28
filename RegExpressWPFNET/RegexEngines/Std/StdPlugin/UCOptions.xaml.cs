@@ -97,6 +97,12 @@ namespace StdPlugin
             Notify( preferImmediateReaction: false );
         }
 
+
+        private void tb_limit_counter_TextChanged( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
+
         void UpdateControls( )
         {
             if( !IsFullyLoaded ) return;
@@ -116,7 +122,7 @@ namespace StdPlugin
                 chkMultilineMSVC.Visibility = pnlMSVCConstants.Visibility = is_MSVC ? Visibility.Visible : Visibility.Collapsed;
                 chkMultiline.Visibility = is_GCC || is_SRELL ? Visibility.Visible : Visibility.Collapsed;
                 chkPolynomial.Visibility = is_GCC ? Visibility.Visible : Visibility.Collapsed;
-                chkDotall.Visibility = chkUnicodesets.Visibility = chkVMode.Visibility = is_SRELL ? Visibility.Visible : Visibility.Collapsed;
+                chkDotall.Visibility = chkUnicodesets.Visibility = chkVMode.Visibility = pnlSRELLConstants.Visibility = is_SRELL ? Visibility.Visible : Visibility.Collapsed;
             }
             finally
             {
