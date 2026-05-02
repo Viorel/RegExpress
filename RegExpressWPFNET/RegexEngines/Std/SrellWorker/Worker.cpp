@@ -175,7 +175,9 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 		{
 			// get version
 
-			auto v = L"2026.01"; // TODO: get it programmatically
+			// example (from "SRELL/single-header/srell.hpp"): 
+			//   #define SRELL_HPP_ 202602
+			auto v = std::format( L"{}.{:02}", SRELL_HPP_ / 100, SRELL_HPP_ % 100 ); // TODO: make sure that it still works; it does not seem documented
 
 			outbw.Write( v );
 

@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) version 2026.01
+**  SRELL (std::regex-like library) version 2026.02
 **
 **  Copyright (c) 2012-2026, Nozomu Katoo. All rights reserved.
 **
@@ -31,7 +31,7 @@
 */
 
 #ifndef SRELL_HPP_
-#define SRELL_HPP_ 202601
+#define SRELL_HPP_ 202602
 
 #include <climits>
 #include <cwchar>
@@ -1259,12 +1259,6 @@ public:
 
 	simple_array &append(const simple_array &right, const size_type pos, size_type len)
 	{
-		{
-			const size_type len2 = right.size_ - pos;
-			if (len > len2)
-				len = len2;
-		}
-
 		if (len)
 		{
 			const size_type oldsize = size_;
@@ -16830,13 +16824,13 @@ private:
 			}
 		}
 
+		bmtable_[256] = culensum;
+
 		++culensum;
 
 		for (ui_l32 i = 0; i < 256; ++i)
 			if (bmtable_[i] == 0)
 				bmtable_[i] = culensum;
-
-		bmtable_[256] = --culensum;
 	}
 
 public:	//  For debug.
@@ -17591,6 +17585,8 @@ protected:
 	{
 		u32array u32;
 
+		this->reset(flags);
+
 		if (!to_u32array(u32, begin, end) || !compile_core(u32.data(), u32.data() + u32.size(), flags & regex_constants::pflagsmask_))
 		{
 #if !defined(SRELLDBG_NO_BMH)
@@ -17648,7 +17644,6 @@ private:
 		cvars_type cvars;
 		state_type flstate;
 
-		this->reset(flags);
 		cvars.reset(flags, begin);
 
 		flstate.reset(st_epsilon);
@@ -20415,8 +20410,10 @@ private:
 
 #if !defined(SRELLDBG_NO_MPREWINDER)
 
-	bool has_obstacle_to_reverse(state_size_type pos, const state_size_type end, const bool check_optseq) const
+	int has_obstacle_to_reverse(state_size_type pos, const state_size_type end) const
 	{
+		int delib = 0;
+
 		for (; pos < end;)
 		{
 			const state_type &s = this->NFA_states[pos];
@@ -20424,7 +20421,7 @@ private:
 			if (s.type == st_epsilon)
 			{
 				if (s.char_num == epsilon_type::et_alt)
-					return true;
+					return 1;
 					//  The rewinder cannot support Alternatives because forward matching
 					//  and backward matching can go through different routes:
 					//  * In a forward search /(?:.|ab)c/ against "abc" matches "abc",
@@ -20433,33 +20430,33 @@ private:
 				//  Because of the same reason, the rewinder cannot support an optional
 				//  group either. Semantically, /(\d+-)?\d{1,2}-\d{1,2}/ is equivalent to
 				//  /(\d+-|)\d{1,2}-\d{1,2}/.
-				if (check_optseq)
+				if (s.char_num == epsilon_type::et_jmpinlp)
 				{
-					if (s.char_num == epsilon_type::et_jmpinlp)
-					{
-						pos += s.next1;
-						continue;
-					}
-
-					if (s.char_num == epsilon_type::et_dfastrsk && !this->NFA_states[pos + s.nearnext()].is_character_or_class())
-						return true;
+					pos += s.next1;
+					continue;
 				}
+
+				if (s.char_num == epsilon_type::et_dfastrsk && !this->NFA_states[pos + s.nearnext()].is_character_or_class())
+					return 1;
+
+				if (s.next1 > s.next2)
+					delib = -1;
 
 			}
 			else if (s.type == st_backreference)
-				return true;
+				return 1;
 			else if (s.type == st_lookaround_open)
-				return true;
-			else if (check_optseq && s.type == st_check_counter)
+				return 1;
+			else if (s.type == st_check_counter)
 			{
 				if (s.quantifier.atleast == 0 && !this->NFA_states[pos + 3].is_character_or_class())
-					return true;
+					return 1;
 				pos += 3;
 				continue;
 			}
 			++pos;
 		}
-		return false;
+		return delib;
 	}
 
 	state_size_type skip_bracket(const ui_l32 no, const state_array &NFAs, state_size_type pos) const
@@ -20897,7 +20894,10 @@ private:
 				break;
 
 			const ui_l32 cunum = nextcc.num_codeunits<utf_traits>();
-			const bool has_obstacle = has_obstacle_to_reverse(cur, boundary, true);
+			const int has_obstacle = has_obstacle_to_reverse(cur, boundary);
+
+			if (has_obstacle == -1 && bp_cunum <= 4)
+				break;
 
 			if (bp_cunum >= cunum)
 			{
@@ -20907,7 +20907,7 @@ private:
 				needs_rerun |= next_nr;
 			}
 
-			if (has_obstacle)
+			if (has_obstacle == 1)
 				break;
 
 			const state_size_type atomlen = boundary - cur;
