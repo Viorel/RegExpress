@@ -30,7 +30,7 @@ It includes the following Regular Expression engines:
 * **[Python](https://www.python.org/)** 3.13.6 (standard *re* module, third-party *regex* module).
 * **[D](https://dlang.org/phobos/std_regex.html)** 2.112.0 (*std.regex* module).
 * **[Perl](https://perldoc.perl.org/perlreref)** 5.40.2 (Strawberry Perl).
-* **Fortran [Forgex](https://github.com/ShinobuAmasaki/forgex)** v4.6 module (Intel® Fortran Compiler 2025.1.0).
+* **Fortran [Forgex](https://github.com/ShinobuAmasaki/forgex)** v4.6 module (Intel® Fortran Compiler 2026.0.0).
 * **[TRE](https://github.com/laurikari/tre)** 0.9.0 (in C).
 * **[tiny-regex-c](https://github.com/rurban/tiny-regex-c)** 2022-06-21 (in C).
 * **Ada GNAT.Regpat** 15.2.0 (in Ada).

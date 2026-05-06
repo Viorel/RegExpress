@@ -324,7 +324,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a\yb", "ab", null ),
             ] ),
 
-        new ( @"Named groups, subroutines and backreferences",
+            new ( @"Named groups, subroutines and backreferences",
             [
                 new FeatureMatrixDetails( @"(?'name'…)", @"Named group", fm => fm.NamedGroup_Apos)
                     .Test( @"(?'n'x)", "x", null )
@@ -410,7 +410,7 @@ partial class FeatureMatrixDetails
                 //new FeatureMatrixDetails( @"\k< … >, \g< … >", @"Allow spaces like '\k < name >'", fm => fm.AllowSpacesInBackref ), // TODO
             ] ),
 
-            new ( @"Grouping",
+            new ( @"Grouping and Lookaround",
             [
                 new FeatureMatrixDetails( @"(?:…)", @"Non-capturing group", fm => fm.NoncapturingGroup)
                     .Test( @"(?:x)", "x", null )
@@ -454,7 +454,7 @@ partial class FeatureMatrixDetails
                 //new FeatureMatrixDetails( @"( ? … )", @"Allow spaces like '( ? < name >…)'", fm => fm.AllowSpacesInGroups ), // TODO
             ] ),
 
-        new ( @"Recursive patterns",
+            new ( @"Recursive patterns",
             [
                 new FeatureMatrixDetails( @"(?n)", @"Recursive subpattern by number", fm => fm.Recursive_Num)
                     .Test( @"(x.)(?1)", "xyxz", "xyZ"),
