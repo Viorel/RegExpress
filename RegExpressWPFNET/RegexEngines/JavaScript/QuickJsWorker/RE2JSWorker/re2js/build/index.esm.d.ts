@@ -33,9 +33,13 @@ export class Matcher {
     /**
      *
      * @param {RE2JS} pattern
-     * @param {Utf8MatcherInput|Utf16MatcherInput|number[]|string} input
+     * @param {string|number[]|Uint8Array} input
      */
-    constructor(pattern: RE2JS, input: Utf8MatcherInput | Utf16MatcherInput | number[] | string);
+    constructor(pattern: RE2JS, input: string | number[] | Uint8Array);
+    /**
+     * The pattern being matched.
+     * @type {RE2JS}
+     */
     patternInput: RE2JS;
     /** @type {number} */
     patternGroupCount: number;
@@ -65,11 +69,11 @@ export class Matcher {
     anchorFlag: number | undefined;
     /**
      * Resets the {@code Matcher} and changes the input.
-     * @param {Utf8MatcherInput|Utf16MatcherInput} input
+     * @param {MatcherInputBase} input
      * @returns {Matcher} the {@code Matcher} itself, for chained method calls
      */
-    resetMatcherInput(input: Utf8MatcherInput | Utf16MatcherInput): Matcher;
-    matcherInput: Utf8MatcherInput | Utf16MatcherInput | undefined;
+    resetMatcherInput(input: MatcherInputBase): Matcher;
+    matcherInput: MatcherInputBase | undefined;
     /**
      * Returns the start of the named group of the most recent match, or -1 if the group was not
      * matched.
@@ -98,7 +102,7 @@ export class Matcher {
     /**
      * Returns the named group of the most recent match, or {@code null} if the group was not matched.
      * @param {string|number} [group=0]
-     * @returns {?string}
+     * @returns {string|null}
      */
     group(group?: string | number): string | null;
     /**
@@ -137,11 +141,11 @@ export class Matcher {
      * Matches the input against the pattern (unanchored), starting at a specified position. If there
      * is a match, {@code find} sets the match state to describe it.
      *
-     * @param {number} [start=null] the input position where the search begins
+     * @param {number|null} [start=null] the input position where the search begins
      * @returns {boolean} if it finds a match
      * @throws IndexOutOfBoundsException if start is not a valid input position
      */
-    find(start?: number): boolean;
+    find(start?: number | null): boolean;
     /**
      * Helper: does match starting at start, with RE2 anchor flag.
      * @param {number} startByte
@@ -299,10 +303,10 @@ export class RE2JS {
      * RE2JS-compatible syntax, and handling Unicode sequences properly. It ensures that the
      * resulting regex is safe and properly formatted before compilation.
      *
-     * @param {string} expr - The regular expression string to be translated.
+     * @param {string|RegExp} expr - The regular expression string to be translated.
      * @returns {string} - The transformed regular expression string, ready for compilation.
      */
-    static translateRegExp(expr: string): string;
+    static translateRegExp(expr: string | RegExp): string;
     /**
      * Helper: create new RE2JS with given regex and flags. Flregex is the regex with flags applied.
      * @param {string} regex
@@ -314,11 +318,11 @@ export class RE2JS {
      * Matches a string against a regular expression.
      *
      * @param {string} regex the regular expression
-     * @param {string|number[]} input the input
+     * @param {string|number[]|Uint8Array} input the input
      * @returns {boolean} true if the regular expression matches the entire input
      * @throws RE2JSSyntaxException if the regular expression is malformed
      */
-    static matches(regex: string, input: string | number[]): boolean;
+    static matches(regex: string, input: string | number[] | Uint8Array): boolean;
     /**
      * This is visible for testing.
      * @private
@@ -351,37 +355,37 @@ export class RE2JS {
     /**
      * Matches a string against a regular expression.
      *
-     * @param {string|number[]} input the input
+     * @param {string|number[]|Uint8Array} input the input
      * @returns {boolean} true if the regular expression matches the entire input
      */
-    matches(input: string | number[]): boolean;
+    matches(input: string | number[] | Uint8Array): boolean;
     /**
      * Creates a new {@code Matcher} matching the pattern against the input.
      *
-     * @param {string|number[]} input the input string
+     * @param {string|number[]|Uint8Array} input the input string
      * @returns {Matcher}
      */
-    matcher(input: string | number[]): Matcher;
+    matcher(input: string | number[] | Uint8Array): Matcher;
     /**
      * Tests whether the regular expression matches any part of the input string.
      * Performance Note: This method is highly optimized. Because it only returns
      * a boolean and does not extract capture groups, it bypasses the `Matcher` overhead
      * and guarantees execution on the high-speed DFA engine whenever possible.
      *
-     * @param {string|number[]} input - The input string or UTF-8 byte array to test against.
+     * @param {string|number[]|Uint8Array} input - The input string or UTF-8 byte array to test against.
      * @returns {boolean} `true` if the pattern is found anywhere in the input, `false` otherwise.
      */
-    test(input: string | number[]): boolean;
+    test(input: string | number[] | Uint8Array): boolean;
     /**
      * Tests whether the regular expression matches the ENTIRE input string.
      * * **Performance Note:** This operates identically to `.matches()`, but is significantly
      * faster because it does not request capture group data. By requesting 0 capture groups,
      * it securely routes execution through the DFA fast-path.
      *
-     * @param {string|number[]} input - The input string or UTF-8 byte array to test against.
+     * @param {string|number[]|Uint8Array} input - The input string or UTF-8 byte array to test against.
      * @returns {boolean} `true` if the exact input string fully matches the pattern, `false` otherwise.
      */
-    testExact(input: string | number[]): boolean;
+    testExact(input: string | number[] | Uint8Array): boolean;
     /**
      * Splits input around instances of the regular expression. It returns an array giving the strings
      * that occur before, between, and after instances of the regular expression.
@@ -481,9 +485,17 @@ export class RE2JSSyntaxException extends RE2JSException {
     getPattern(): string | null;
 }
 export class RE2Set {
+    /** @type {number} */
     static UNANCHORED: number;
+    /** @type {number} */
     static ANCHOR_START: number;
+    /** @type {number} */
     static ANCHOR_BOTH: number;
+    /**
+     * Constructs a new RE2Set with the specified anchor mode and flags.
+     * @param {number} [anchor=RE2Set.UNANCHORED] - The anchoring mode (e.g., RE2Set.UNANCHORED).
+     * @param {number} [flags=0] - The public flags to apply to all patterns in the set.
+     */
     constructor(anchor?: number, flags?: number);
     anchor: number;
     jsFlags: number;
@@ -498,49 +510,44 @@ export class RE2Set {
         prefixRune: number;
         longest: boolean;
     } | null;
-    add(pattern: any): number;
+    /**
+     * Adds a new regular expression pattern to the set.
+     * Patterns cannot be added after the set has been compiled.
+     * @param {string} pattern - The regular expression pattern to add.
+     * @returns {number} The integer index assigned to the added pattern.
+     * @throws {RE2JSCompileException} If patterns are added after compilation.
+     */
+    add(pattern: string): number;
+    /**
+     * Compiles the added patterns into a single state machine.
+     * This is automatically called on the first match if not called explicitly.
+     * @returns {void}
+     */
     compile(): void;
-    match(input: any): any[];
+    /**
+     * Matches the input against the compiled set of regular expressions.
+     * @param {string|number[]|Uint8Array} input - The input string or UTF-8 byte array to match against.
+     * @returns {number[]} An array of indices representing the patterns that successfully matched the input.
+     */
+    match(input: string | number[] | Uint8Array): number[];
 }
-declare class Utf8MatcherInput extends MatcherInputBase {
-    constructor(bytes?: null);
-    bytes: any;
-    getEncoding(): any;
+export function re(stringsOrFlags: any, ...values: any[]): RE2JS | ((strings: any, ...tagValues: any[]) => RE2JS);
+/**
+ * Abstract the representations of input text supplied to Matcher.
+ */
+declare class MatcherInputBase {
+    static Encoding: any;
+    getEncoding(): void;
     /**
      *
-     * @returns {string}
+     * @returns {boolean}
      */
-    asCharSequence(): string;
+    isUTF8Encoding(): boolean;
     /**
      *
-     * @returns {number[]}
+     * @returns {boolean}
      */
-    asBytes(): number[];
-    /**
-     *
-     * @returns {number}
-     */
-    length(): number;
-}
-declare class Utf16MatcherInput extends MatcherInputBase {
-    constructor(charSequence?: null);
-    charSequence: any;
-    getEncoding(): any;
-    /**
-     *
-     * @returns {string}
-     */
-    asCharSequence(): string;
-    /**
-     *
-     * @returns {number[]}
-     */
-    asBytes(): number[];
-    /**
-     *
-     * @returns {number}
-     */
-    length(): number;
+    isUTF16Encoding(): boolean;
 }
 /**
  * A Prog is a compiled regular expression program.
@@ -586,23 +593,6 @@ declare class DFA {
     step(state: any, charCode: any, anchor: any): any;
     match(input: any, pos: any, anchor: any): boolean | null;
     matchSet(input: any, pos: any, anchor: any): any[] | null;
-}
-/**
- * Abstract the representations of input text supplied to Matcher.
- */
-declare class MatcherInputBase {
-    static Encoding: any;
-    getEncoding(): void;
-    /**
-     *
-     * @returns {boolean}
-     */
-    isUTF8Encoding(): boolean;
-    /**
-     *
-     * @returns {boolean}
-     */
-    isUTF16Encoding(): boolean;
 }
 export {};
 //# sourceMappingURL=index.esm.d.ts.map

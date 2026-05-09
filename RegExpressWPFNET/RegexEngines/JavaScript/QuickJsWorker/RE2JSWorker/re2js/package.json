@@ -1,8 +1,9 @@
 {
   "name": "re2js",
-  "version": "2.2.3",
+  "version": "2.5.0",
   "description": "RE2JS is the JavaScript port of RE2, a regular expression engine that provides linear time matching",
   "type": "module",
+  "sideEffects": false,
   "keywords": [
     "re2js",
     "re2",
@@ -39,12 +40,13 @@
     "lint": "pnpify run prettier --check src tools *.config.js && eslint src/**/*.js tools/**/*.js babel.config.js jest.config.js",
     "test": "node --experimental-vm-modules --disable-warning=ExperimentalWarning $(yarn bin jest) -c jest.config.js",
     "test:watch": "node --experimental-vm-modules --disable-warning=ExperimentalWarning $(yarn bin jest) -c jest.config.js --watch",
-    "format": "pnpify run prettier --write src tools *.config.js"
+    "format": "pnpify run prettier --write src tools *.config.js",
+    "test:deno": "jest -c jest.config.js"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/eslint-parser": "^7.28.6",
-    "@babel/preset-env": "^7.29.2",
+    "@babel/preset-env": "^7.29.5",
     "@eslint/js": "^9.39.4",
     "@jest/globals": "^30.3.0",
     "@rollup/plugin-babel": "^7.0.0",
@@ -56,11 +58,11 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-node": "^0.3.10",
     "eslint-plugin-import": "^2.32.0",
-    "globals": "^17.5.0",
+    "globals": "^17.6.0",
     "jest": "^30.3.0",
     "lodash": "^4.18.1",
     "prettier": "^3.8.3",
-    "rollup": "^4.60.2",
+    "rollup": "^4.60.3",
     "typescript": "^6.0.3",
     "unicode-property-value-aliases": "^3.9.0"
   },

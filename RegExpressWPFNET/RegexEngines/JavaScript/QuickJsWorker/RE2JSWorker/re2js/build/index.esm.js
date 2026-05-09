@@ -2,7 +2,7 @@
  * re2js
  * RE2JS is the JavaScript port of RE2, a regular expression engine that provides linear time matching
  *
- * @version v2.2.3
+ * @version v2.5.0
  * @author Oleksii Vasyliev
  * @homepage https://github.com/le0pard/re2js#readme
  * @repository github:le0pard/re2js
@@ -198,7 +198,9 @@ const decodeOrbit = str => {
   let currentKey = 0;
   for (let i = 0; i < res.length; i += 2) {
     currentKey += res[i];
-    map.set(currentKey, res[i + 1]);
+    const zz = res[i + 1];
+    const delta = zz >>> 1 ^ -(zz & 1);
+    map.set(currentKey, currentKey + delta);
   }
   return map;
 };
@@ -222,7 +224,7 @@ class UnicodeTables {
   static _CASE_ORBIT = null;
   static get CASE_ORBIT() {
     if (!this._CASE_ORBIT) {
-      this._CASE_ORBIT = decodeOrbit('rCrDIzDYqpII-LiC8cQlHa+0HGrpI6EzClClOBmOBkOBoOBpOBnOBrOBsOBqOlByPBzPBxPyK5crCz+HCydD1dD4dB5dB6dC8dEgeBheCieDmeDpeHj-HCweD1fDxeB+9HBwfC1FE2eBxfBjeBjdD1eDmpIHycB0fEmdBgda6cBhdD4cB1cdyhBC0hBK+hBDhiBBiiBIqiBIgkHChkHKikHDjkHBkkHImkHYjjBBnkH9gGygBB0gBB+gBBhhBBlkHBihBBqhBBijBBqypB4OhzHB70H6BgzHD-GiHo8HBp8HBq8HBr8HBs8HBt8HBu8HBv8HBg8HBh8HBi8HBj8HBk8HBl8HBm8HBn8HB48HB58HB68HB78HB88HB98HB+8HB-8HBw8HBx8HBy8HBz8HB08HB18HB28HB38HBo9HBp9HBq9HBr9HBs9HBt9HBu9HBv9HBg9HBh9HBi9HBj9HBk9HBl9HBm9HBn9HE89HJz9HClaFs+HJj+HHwcQwdQ8-HJz-HqJpdErCBlG-ohBrypBBokH6lVm4+BBl4+B');
+      this._CASE_ORBIT = decodeOrbit('rCgCIgCY+rQI4QiCuuBLgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCCgCBgCBgCBgCBgCBgCBgCB+7OB-BB-BB-BB-BB-BBskQB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BC-BB-BB-BB-BB-BB-BB-BByHBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBDCBBBCBBBCBBCCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBCCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBxHBCBBBCBBBCBBB3SBmMBkNBCBBBCBBB8MBCBBB6MB6MBCBBC+EB0MB2MBCBBB6MB+MBiGBmNBiNBCBBBmKBikzCBmNBqNBkIBsNBCBBBCBBBCBBB0NBCBBB0NDCBBB0NBCBBByNByNBCBBBCBBB2NBCBBDCBBCwDFCBCBDBCBCBDBCBCBDBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBB9EBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBCCBCBDBCBBBhGBvDBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBjICCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBH2iVBCBBBlKBwiVB+jVB+jVBCBBBlMBqEBuEBCBBBCBBBCBBBCBBBCBBB+hVB4hVB8hVBjNB7MC5MB5MCzMC1MB+0yCE5MB20yCC9MBu2yCBwyyCBo0yCChNBlNBo0yCBu-UBi0yCDlNC6-UBpNDrNIu+UDzNCm0yCBzNE0yyCBzNBpEBxNBxNBtEG1NLqxyCBkxyCnFoFrBCBBBCBBDCBBEkIBkIBkICoHHsCCqCBqCBqCCgEC+DB+DBmkOBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCC+BBgCBgCBgCBgCBgCBgCBgCBgCBrCBpCBpCBpCBmjOB-BB8BB-BB-BBgEB-BB-BByBBqgOBsDB-BBtwBB-BB-BB-BBsBBgDBCB-BB-BB-BBeB-BB-BB61OB-BB-BB-DB9DB9DBQB7DBmCE9CBrDBPBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBrFB-EBOBnHB3FB-FCCBBBNBCBBCjIBjIBjIBgFBgFBgFBgFBgFBgFBgFBgFBgFBgFBgFBgFBgFBgFBgFBgFBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCB-BB-BB8kMB-BB6kMB-BB-BB-BB-BB-BB-BB-BB-BB-BBokMB-BB-BBkkMBkkMB-BB-BB-BB-BB-BB-BB-BB4jMB-BB-BB-BB-BB-BB-EB-EB-EB-EB-EB-EB-EB-EB-EB-EB-EB-EB-EB-EB-EB-EBCBBBCBoiMBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBJCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBeBCBBBCBBBCBBBCBBBCBBBCBBBCBBBdBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBCgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDL-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-C64CgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOBgmOCgmOGgmODg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FBg8FDg8FBg8FBg8FhVg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBg9rCBQBQBQBQBQBQDPBPBPBPBPBPjkC7mMB5mMBnmMBjmMBCBlmMB3lMBpiMBk8kCBCBBG-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FB-7FD-7FB-7FB-7F6FoglCEsuHRwjlCyDCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCB0DBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBG1DD97OCCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBQBQBQBQBQBQBQBQBPBPBPBPBPBPBPBPBQBQBQBQBQBQDPBPBPBPBPBPDQBQBQBQBQBQBQBQBPBPBPBPBPBPBPBPBQBQBQBQBQBQBQBQBPBPBPBPBPBPBPBPBQBQBQBQBQBQDPBPBPBPBPBPEQCQCQCQCPCPCPCPBQBQBQBQBQBQBQBQBPBPBPBPBPBPBPBPB0EB0EBsFBsFBsFBsFBoGBoGBgIBgIBgHBgHB8HB8HDQBQBQBQBQBQBQBQBPBPBPBPBPBPBPBPBQBQBQBQBQBQBQBQBPBPBPBPBPBPBPBPBQBQBQBQBQBQBQBQBPBPBPBPBPBPBPBPBQBQCSFPBPBzEBzEBRCxnOFSFrFBrFBrFBrFBREQBQClkOFPBPBnGBnGFQBQCljOCODPBPB-GB-GBNHSF-HB-HB7HB7HBRqJ53OE9tQBrmQH4Bc3BSgBBgBBgBBgBBgBBgBBgBBgBBgBBgBBgBBgBBgBBgBBgBBgBBfBfBfBfBfBfBfBfBfBfBfBfBfBfBfBfECBByZ0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BB0BBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzBBzB34BgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDBgDB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CB-CBCBBBt-UBruHBt+UB1iVBviVBCBBBCBBBCBBB3hVB5-UB9hVB7hVCCBBCCBBI9jVB9jVBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBICBBBCBBECBBN-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOB-lOC-lOG-lOzoeCBBBCBBBCBBBCBBBCBBBCBl8kCBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBTCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBnECBBBCBBBCBBBCBBBCBBBCBBBCBBDCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBKCBBBCBBBnglCBCBBBCBBBCBBBCBBBCBBECBBBvyyCDCBBBCBBBgDCCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBn0yCB90yCB10yCBh0yCBn0yCCjxyCBzyyCBpxyCBg6BBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBB-CBl0yCBvjlCBCBBBCBBBt2yCBCBBBCBBBCBBBCBBBCBBBCBBBCBBBCBBBhkzCZCBB9a-5Bd-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCB-8rCm6TCBB7gBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCH-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BmlBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvChDwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCBwCFvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvCBvC1DuCBuCBuCBuCBuCBuCBuCBuCBuCBuCBuCCuCBuCBuCBuCBuCBuCBuCBuCBuCBuCBuCBuCBuCBuCBuCCuCBuCBuCBuCBuCBuCBuCCuCBuCCtCBtCBtCBtCBtCBtCBtCBtCBtCBtCBtCCtCBtCBtCBtCBtCBtCBtCBtCBtCBtCBtCBtCBtCBtCBtCCtCBtCBtCBtCBtCBtCBtCCtCBtCk2BgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEBgEO-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-DB-D+CgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCL-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-B74CgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BhrVgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCBgCB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BB-BhB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BB2BD1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BB1BtxekCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBkCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjCBjC');
     }
     return this._CASE_ORBIT;
   }
@@ -517,7 +519,7 @@ class Unicode {
   // is tests whether rune is in the specified table of ranges.
   static is(ranges, r) {
     // Fast path for Latin-1 characters using linear search.
-    if (r <= this.MAX_LATIN1) {
+    if (r <= Unicode.MAX_LATIN1) {
       for (let i = 0; i < ranges.length; i++) {
         const rhi = ranges.getHi(i);
         if (r > rhi) {
@@ -534,24 +536,24 @@ class Unicode {
     }
 
     // Fallback to binary search for runes outside Latin-1
-    return ranges.length > 0 && r >= ranges.getLo(0) && this.is32(ranges, r);
+    return ranges.length > 0 && r >= ranges.getLo(0) && Unicode.is32(ranges, r);
   }
 
   // isUpper reports whether the rune is an upper case letter.
   static isUpper(r) {
-    if (r <= this.MAX_LATIN1) {
+    if (r <= Unicode.MAX_LATIN1) {
       const s = String.fromCodePoint(r);
       return s.toUpperCase() === s && s.toLowerCase() !== s;
     }
-    return this.is(UnicodeTables.Upper, r);
+    return Unicode.is(UnicodeTables.Upper, r);
   }
 
   // isPrint reports whether the rune is printable (Unicode L/M/N/P/S or ' ').
   static isPrint(r) {
-    if (r <= this.MAX_LATIN1) {
-      return r >= 0x20 && r < this.MAX_ASCII || r >= 0xa1 && r !== 0xad;
+    if (r <= Unicode.MAX_LATIN1) {
+      return r >= 0x20 && r < Unicode.MAX_ASCII || r >= 0xa1 && r !== 0xad;
     }
-    return this.is(UnicodeTables.Print, r);
+    return Unicode.is(UnicodeTables.Print, r);
   }
 
   // simpleFold iterates over Unicode code points equivalent under
@@ -606,11 +608,13 @@ class Unicode {
 
     // Fast path for the common case where both runes are ASCII characters.
     // Coerces both runes to lowercase if applicable.
-    if (r1 <= this.MAX_ASCII && r2 <= this.MAX_ASCII) {
-      if (Codepoint.CODES.get('A') <= r1 && r1 <= Codepoint.CODES.get('Z')) {
+    if (r1 <= Unicode.MAX_ASCII && r2 <= Unicode.MAX_ASCII) {
+      // 65 is 'A', 90 is 'Z'
+      if (65 <= r1 && r1 <= 90) {
         r1 |= 0x20;
       }
-      if (Codepoint.CODES.get('A') <= r2 && r2 <= Codepoint.CODES.get('Z')) {
+      // 65 is 'A', 90 is 'Z'
+      if (65 <= r2 && r2 <= 90) {
         r2 |= 0x20;
       }
       return r1 === r2;
@@ -618,7 +622,7 @@ class Unicode {
 
     // Fall back to full Unicode case folding otherwise.
     // Invariant: r1 must be non-negative
-    for (let r = this.simpleFold(r1); r !== r1; r = this.simpleFold(r)) {
+    for (let r = Unicode.simpleFold(r1); r !== r1; r = Unicode.simpleFold(r)) {
       if (r === r2) {
         return true;
       }
@@ -627,6 +631,31 @@ class Unicode {
   }
 }
 
+/**
+ * Size of the precomputed single-byte lookup table.
+ * Covers standard ASCII and Latin-1 characters for fast-path execution.
+ */
+const FAST_PATH_TABLE_SIZE = 256;
+/**
+ * Precomputed lookup table for Word Boundary (\b, \B) assertions.
+ * * By precomputing the boolean results for standard ASCII word ranges
+ * ('a'-'z', 'A'-'Z', '0'-'9', '_'), we completely eliminate 4 logical
+ * branches from the NFA's hot execution loop. This prevents costly
+ * CPU branch mispredictions when scanning large strings.
+ */
+const WORD_RUNE_TABLE = new Uint8Array(FAST_PATH_TABLE_SIZE);
+for (let i = 0; i < FAST_PATH_TABLE_SIZE; i++) {
+  WORD_RUNE_TABLE[i] = 97 <= i && i <= 122 ||
+  // 'a' - 'z'
+  65 <= i && i <= 90 ||
+  // 'A' - 'Z'
+  48 <= i && i <= 57 ||
+  // '0' - '9'
+  i === 95 // '_'
+  ? 1 : 0;
+}
+let cachedNativeEncoder = null;
+let cachedNativeDecoder = null;
 /**
  * Various constants and helper utilities.
  */
@@ -672,7 +701,7 @@ class Utils {
   static escapeRune(rune) {
     let out = '';
     if (Unicode.isPrint(rune)) {
-      if (this.METACHARACTERS.indexOf(String.fromCodePoint(rune)) >= 0) {
+      if (Utils.METACHARACTERS.indexOf(String.fromCodePoint(rune)) >= 0) {
         out += '\\';
       }
       out += String.fromCodePoint(rune);
@@ -725,12 +754,21 @@ class Utils {
     return out;
   }
 
-  // Returns the array of runes in the specified Java UTF-16 string.
+  // Returns the array of runes in the specified JS UTF-16 string.
   static stringToRunes(str) {
-    return Array.from(String(str)).map(s => s.codePointAt(0));
+    const string = String(str);
+    const runes = [];
+    let i = 0;
+    while (i < string.length) {
+      const cp = string.codePointAt(i);
+      runes.push(cp);
+      // Surrogate pairs (Emojis, etc.) are > 0xFFFF
+      i += cp > Unicode.MAX_BMP ? 2 : 1;
+    }
+    return runes;
   }
 
-  // Returns the Java UTF-16 string containing the single rune |r|.
+  // Returns the JS UTF-16 string containing the single rune |r|.
   static runeToString(r) {
     return String.fromCodePoint(r);
   }
@@ -739,7 +777,7 @@ class Utils {
   // during the evaluation of the \b and \B zero-width assertions.
   // These assertions are ASCII-only: the word characters are [A-Za-z0-9_].
   static isWordRune(r) {
-    return Codepoint.CODES.get('a') <= r && r <= Codepoint.CODES.get('z') || Codepoint.CODES.get('A') <= r && r <= Codepoint.CODES.get('Z') || Codepoint.CODES.get('0') <= r && r <= Codepoint.CODES.get('9') || r === Codepoint.CODES.get('_');
+    return r < FAST_PATH_TABLE_SIZE ? WORD_RUNE_TABLE[r] === 1 : false;
   }
 
   // emptyOpContext returns the zero-width assertions satisfied at the position
@@ -752,21 +790,24 @@ class Utils {
   static emptyOpContext(r1, r2) {
     let op = 0;
     if (r1 < 0) {
-      op |= this.EMPTY_BEGIN_TEXT | this.EMPTY_BEGIN_LINE;
+      op |= Utils.EMPTY_BEGIN_TEXT | Utils.EMPTY_BEGIN_LINE;
     }
-    if (r1 === Codepoint.CODES.get('\n')) {
-      op |= this.EMPTY_BEGIN_LINE;
+    // Hardcode 10 for '\n'
+    if (r1 === 10) {
+      op |= Utils.EMPTY_BEGIN_LINE;
     }
     if (r2 < 0) {
-      op |= this.EMPTY_END_TEXT | this.EMPTY_END_LINE;
+      op |= Utils.EMPTY_END_TEXT | Utils.EMPTY_END_LINE;
     }
-    if (r2 === Codepoint.CODES.get('\n')) {
-      op |= this.EMPTY_END_LINE;
+
+    // Hardcode 10 for '\n'
+    if (r2 === 10) {
+      op |= Utils.EMPTY_END_LINE;
     }
-    if (this.isWordRune(r1) !== this.isWordRune(r2)) {
-      op |= this.EMPTY_WORD_BOUNDARY;
+    if (Utils.isWordRune(r1) !== Utils.isWordRune(r2)) {
+      op |= Utils.EMPTY_WORD_BOUNDARY;
     } else {
-      op |= this.EMPTY_NO_WORD_BOUNDARY;
+      op |= Utils.EMPTY_NO_WORD_BOUNDARY;
     }
     return op;
   }
@@ -781,7 +822,7 @@ class Utils {
   static quoteMeta(str) {
     return str.split('') // A char loop is correct because all metacharacters fit in one UTF-16 code.
     .map(s => {
-      if (this.METACHARACTERS.indexOf(s) >= 0) {
+      if (Utils.METACHARACTERS.indexOf(s) >= 0) {
         return `\\${s}`;
       }
       return s;
@@ -790,9 +831,23 @@ class Utils {
   static charCount(codePoint) {
     return codePoint > Unicode.MAX_BMP ? 2 : 1;
   }
+
+  /**
+   * High-speed conversion from TypedArrays to standard JS Arrays.
+   * Bypasses the expensive Symbol.iterator overhead of Array.from()
+   */
+  static toArray(typedArray) {
+    const len = typedArray.length;
+    const res = new Array(len);
+    for (let i = 0; i < len; i++) {
+      res[i] = typedArray[i];
+    }
+    return res;
+  }
   static stringToUtf8ByteArray(str) {
     if (globalThis.TextEncoder) {
-      return Array.from(new TextEncoder().encode(str));
+      if (!cachedNativeEncoder) cachedNativeEncoder = new TextEncoder();
+      return Utils.toArray(cachedNativeEncoder.encode(str));
     } else {
       // fallback, if no TextEncoder
       let out = [],
@@ -822,7 +877,9 @@ class Utils {
   }
   static utf8ByteArrayToString(bytes) {
     if (globalThis.TextDecoder) {
-      return new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+      if (!cachedNativeDecoder) cachedNativeDecoder = new TextDecoder('utf-8');
+      const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+      return cachedNativeDecoder.decode(view);
     } else {
       // fallback, if no TextDecoder
       let out = [],
@@ -1119,15 +1176,34 @@ class MachineUTF8Input extends MachineInputBase {
     if (targetLength === 0) {
       return fromIndex <= this.end ? fromIndex : -1;
     }
+    const firstByte = target[0];
     let limit = this.end - targetLength;
-    for (let i = fromIndex; i <= limit; i++) {
-      for (let j = 0; j < targetLength; j++) {
+    // Feature detection: Native TypedArray indexOf (ES2015)
+    const hasNativeIndexOf = typeof source.indexOf === 'function';
+    let i = fromIndex;
+    while (i <= limit) {
+      // Fast-forward to the first matching byte using C++ bindings if available
+      if (hasNativeIndexOf) {
+        i = source.indexOf(firstByte, i);
+        if (i === -1 || i > limit) return -1;
+      } else {
+        // Fallback: Manual loop
+        while (i <= limit && source[i] !== firstByte) i++;
+        if (i > limit) return -1;
+      }
+
+      // First byte matches, verify the rest of the target sequence
+      let match = true;
+      for (let j = 1; j < targetLength; j++) {
         if (source[i + j] !== target[j]) {
+          match = false;
           break;
-        } else if (j === targetLength - 1) {
-          return i;
         }
       }
+      if (match) {
+        return i;
+      }
+      i++;
     }
     return -1;
   }
@@ -1199,8 +1275,10 @@ class MachineUTF16Input extends MachineInputBase {
   // Returns a bitmask of EMPTY_* flags.
   context(pos) {
     pos += this.start;
-    const r1 = pos > this.start && pos <= this.end ? this.charSequence.codePointAt(pos - 1) : -1;
-    const r2 = pos < this.end ? this.charSequence.codePointAt(pos) : -1;
+
+    // We only care about ASCII word runes and newlines for context boundaries
+    const r1 = pos > this.start && pos <= this.end ? this.charSequence.charCodeAt(pos - 1) : -1;
+    const r2 = pos < this.end ? this.charSequence.charCodeAt(pos) : -1;
     return Utils.emptyOpContext(r1, r2);
   }
   prefixLength(re2) {
@@ -1329,6 +1407,7 @@ class RE2JSInternalException extends RE2JSException {
  *
  * @author rsc@google.com (Russ Cox)
  */
+
 class Matcher {
   /**
    * Quotes '\' and '$' in {@code s}, so that the returned string could be used in
@@ -1367,13 +1446,16 @@ class Matcher {
   /**
    *
    * @param {RE2JS} pattern
-   * @param {Utf8MatcherInput|Utf16MatcherInput|number[]|string} input
+   * @param {string|number[]|Uint8Array} input
    */
   constructor(pattern, input) {
     if (pattern === null) {
       throw new Error('pattern is null');
     }
-    // The pattern being matched.
+    /**
+     * The pattern being matched.
+     * @type {RE2JS}
+     */
     this.patternInput = pattern;
     const re2 = this.patternInput.re2();
     // The number of submatches (groups) in the pattern.
@@ -1427,7 +1509,7 @@ class Matcher {
 
   /**
    * Resets the {@code Matcher} and changes the input.
-   * @param {Utf8MatcherInput|Utf16MatcherInput} input
+   * @param {MatcherInputBase} input
    * @returns {Matcher} the {@code Matcher} itself, for chained method calls
    */
   resetMatcherInput(input) {
@@ -1492,7 +1574,7 @@ class Matcher {
   /**
    * Returns the named group of the most recent match, or {@code null} if the group was not matched.
    * @param {string|number} [group=0]
-   * @returns {?string}
+   * @returns {string|null}
    */
   group(group = 0) {
     if (typeof group === 'string') {
@@ -1584,7 +1666,7 @@ class Matcher {
    * Matches the input against the pattern (unanchored), starting at a specified position. If there
    * is a match, {@code find} sets the match state to describe it.
    *
-   * @param {number} [start=null] the input position where the search begins
+   * @param {number|null} [start=null] the input position where the search begins
    * @returns {boolean} if it finds a match
    * @throws IndexOutOfBoundsException if start is not a valid input position
    */
@@ -2203,7 +2285,7 @@ class Machine {
       return Utils.emptyInts();
     }
     // Use subarray() to create a zero-allocation view before converting
-    return Array.from(this.matchcap.subarray(0, this.ncap));
+    return Utils.toArray(this.matchcap.subarray(0, this.ncap));
   }
 
   // alloc() allocates a new thread with the given instruction.
@@ -3165,7 +3247,7 @@ class Backtracker {
     }
 
     // Must slice so we don't accidentally leak trailing arrays from previously recycled typed arrays
-    const result = ncap === 0 ? [] : Array.from(b.matchcap.subarray(0, ncap));
+    const result = ncap === 0 ? [] : Utils.toArray(b.matchcap.subarray(0, ncap));
     bitStatePool.push(b);
     return result;
   }
@@ -3541,7 +3623,7 @@ class OnePass {
               matchcap[0] = 0;
               matchcap[1] = pos;
             }
-            return ncap === 0 ? [] : Array.from(matchcap);
+            return ncap === 0 ? [] : Utils.toArray(matchcap);
           }
         case Inst.RUNE:
           if (!inst.matchRune(rune)) return null;
@@ -3590,7 +3672,7 @@ class OnePass {
       }
     }
     if (!matched) return null;
-    return ncap === 0 ? [] : Array.from(matchcap);
+    return ncap === 0 ? [] : Utils.toArray(matchcap);
   }
 }
 
@@ -5344,7 +5426,7 @@ class StringIterator {
     return r;
   }
   lookingAt(s) {
-    return this.rest().startsWith(s);
+    return this.str.startsWith(s, this.position);
   }
 
   // Returns the rest of the pattern as a Java UTF-16 string.
@@ -7935,9 +8017,18 @@ class RE2 {
 }
 
 class RE2Set {
+  /** @type {number} */
   static UNANCHORED = RE2Flags.UNANCHORED;
+  /** @type {number} */
   static ANCHOR_START = RE2Flags.ANCHOR_START;
+  /** @type {number} */
   static ANCHOR_BOTH = RE2Flags.ANCHOR_BOTH;
+
+  /**
+   * Constructs a new RE2Set with the specified anchor mode and flags.
+   * @param {number} [anchor=RE2Set.UNANCHORED] - The anchoring mode (e.g., RE2Set.UNANCHORED).
+   * @param {number} [flags=0] - The public flags to apply to all patterns in the set.
+   */
   constructor(anchor = RE2Set.UNANCHORED, flags = 0) {
     this.anchor = anchor;
     this.jsFlags = flags;
@@ -7954,6 +8045,14 @@ class RE2Set {
     this.dfa = null;
     this.dummyRe2 = null;
   }
+
+  /**
+   * Adds a new regular expression pattern to the set.
+   * Patterns cannot be added after the set has been compiled.
+   * @param {string} pattern - The regular expression pattern to add.
+   * @returns {number} The integer index assigned to the added pattern.
+   * @throws {RE2JSCompileException} If patterns are added after compilation.
+   */
   add(pattern) {
     if (this.prog) {
       throw new RE2JSCompileException('Cannot add patterns after compile');
@@ -7972,6 +8071,12 @@ class RE2Set {
     this.regexps.push(Simplify.simplify(re));
     return this.regexps.length - 1;
   }
+
+  /**
+   * Compiles the added patterns into a single state machine.
+   * This is automatically called on the first match if not called explicitly.
+   * @returns {void}
+   */
   compile() {
     if (this.prog) return;
     this.prog = Compiler.compileSet(this.regexps);
@@ -7984,6 +8089,12 @@ class RE2Set {
       longest: false
     };
   }
+
+  /**
+   * Matches the input against the compiled set of regular expressions.
+   * @param {string|number[]|Uint8Array} input - The input string or UTF-8 byte array to match against.
+   * @returns {number[]} An array of indices representing the patterns that successfully matched the input.
+   */
   match(input) {
     if (!this.prog) this.compile();
     const machineInput = Utils.isByteArray(input) ? MachineInput.fromUTF8(input) : MachineInput.fromUTF16(input);
@@ -8009,13 +8120,19 @@ class RE2Set {
  * Transform JS regex string to RE2 regex string
  */
 class TranslateRegExpString {
-  static isUpperCaseAlpha(ch) {
-    return 'A' <= ch && ch <= 'Z';
-  }
   static isHexadecimal(ch) {
     return '0' <= ch && ch <= '9' || 'A' <= ch && ch <= 'F' || 'a' <= ch && ch <= 'f';
   }
   static translate(data) {
+    let prefixFlags = '';
+    if (data instanceof RegExp) {
+      if (data.ignoreCase) prefixFlags += 'i';
+      if (data.multiline) prefixFlags += 'm';
+      if (data.dotAll) prefixFlags += 's';
+
+      // execution flags ('g', 'y') are safely ignored here.
+      data = data.source;
+    }
     if (typeof data !== 'string') {
       return data;
     }
@@ -8026,6 +8143,7 @@ class TranslateRegExpString {
       result = '(?:)';
       changed = true;
     }
+    let inCharClass = false;
     let i = 0;
     while (i < size) {
       let ch = data[i];
@@ -8064,10 +8182,28 @@ class TranslateRegExpString {
                 if (i + 2 < size) {
                   let nextCh = data[i + 2];
                   if (nextCh === '{') {
-                    result += '\\x';
-                    i += 2;
-                    changed = true;
-                    continue;
+                    // Must have a closing brace and at least one valid hex digit inside
+                    let j = i + 3;
+                    let hasHex = false;
+                    let closed = false;
+                    while (j < size) {
+                      const hexChar = data[j];
+                      if (hexChar === '}') {
+                        closed = true;
+                        break;
+                      }
+                      if (!TranslateRegExpString.isHexadecimal(hexChar)) {
+                        break;
+                      }
+                      hasHex = true;
+                      j++;
+                    }
+                    if (closed && hasHex) {
+                      result += '\\x';
+                      i += 2;
+                      changed = true;
+                      continue;
+                    }
                   } else if (i + 5 < size) {
                     let isHex4 = true;
                     for (let j = 0; j < 4; j++) {
@@ -8084,18 +8220,101 @@ class TranslateRegExpString {
                     }
                   }
                 }
+
+                // Graceful degradation for invalid/unclosed \u sequences
                 result += 'u';
                 i += 2;
                 changed = true;
                 continue;
               }
+            case 'x':
+              {
+                let isValidHex = false;
+                if (i + 2 < size && data[i + 2] === '{') {
+                  // Must have a closing brace and at least one valid hex digit inside
+                  let j = i + 3;
+                  let hasHex = false;
+                  let closed = false;
+                  while (j < size) {
+                    const hexChar = data[j];
+                    if (hexChar === '}') {
+                      closed = true;
+                      break;
+                    }
+                    if (!TranslateRegExpString.isHexadecimal(hexChar)) {
+                      break;
+                    }
+                    hasHex = true;
+                    j++;
+                  }
+                  if (closed && hasHex) {
+                    isValidHex = true;
+                  }
+                } else if (i + 3 < size && TranslateRegExpString.isHexadecimal(data[i + 2]) && TranslateRegExpString.isHexadecimal(data[i + 3])) {
+                  isValidHex = true;
+                }
+                if (isValidHex) {
+                  result += '\\x';
+                  i += 2;
+                } else {
+                  result += 'x';
+                  i += 2;
+                  changed = true;
+                }
+                continue;
+              }
+            // Whitelist of valid RE2/JS alphanumeric escapes
+            case 'n':
+            case 'r':
+            case 't':
+            case 'a':
+            case 'f':
+            case 'v':
+            case 'd':
+            case 'D':
+            case 's':
+            case 'S':
+            case 'w':
+            case 'W':
+            case 'b':
+            case 'B':
+            case 'p':
+            case 'P':
+            case 'A':
+            case 'z':
+            case 'Q':
+            case 'E':
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+              {
+                result += '\\' + ch;
+                i += 2;
+                continue;
+              }
             default:
               {
-                result += '\\';
                 let cp = data.codePointAt(i + 1);
-                let symSize = Utils.charCount(cp);
-                result += data.substring(i + 1, i + 1 + symSize);
-                i += symSize + 1;
+                let isAlphaNum = cp >= 48 && cp <= 57 || cp >= 65 && cp <= 90 || cp >= 97 && cp <= 122;
+                if (isAlphaNum) {
+                  // Invalid JS alphanumeric escape sequence (e.g. \8, \9, \e, \K)
+                  // Gracefully degrade to the literal character to prevent RE2 syntax crashes
+                  let symSize = Utils.charCount(cp);
+                  result += data.substring(i + 1, i + 1 + symSize);
+                  i += symSize + 1;
+                  changed = true;
+                } else {
+                  // Escaped symbol (e.g. \., \*, \])
+                  result += '\\';
+                  let symSize = Utils.charCount(cp);
+                  result += data.substring(i + 1, i + 1 + symSize);
+                  i += symSize + 1;
+                }
                 continue;
               }
           }
@@ -8105,7 +8324,13 @@ class TranslateRegExpString {
         i += 1;
         changed = true;
         continue;
-      } else if (ch === '(' && i + 2 < size && data[i + 1] === '?' && data[i + 2] === '<') {
+      } else if (ch === '[') {
+        // Track entry into a character class (protects syntax inside)
+        inCharClass = true;
+      } else if (ch === ']') {
+        // Track exit of a character class
+        inCharClass = false;
+      } else if (!inCharClass && ch === '(' && i + 2 < size && data[i + 1] === '?' && data[i + 2] === '<') {
         if (i + 3 < size && !'=!>)'.includes(data[i + 3])) {
           result += '(?P<';
           i += 3;
@@ -8118,7 +8343,13 @@ class TranslateRegExpString {
       result += data.substring(i, i + symSize);
       i += symSize;
     }
-    return changed ? result : data;
+    const finalResult = changed ? result : data;
+
+    // Append any extracted inline flags
+    if (prefixFlags.length > 0) {
+      return `(?${prefixFlags})${finalResult}`;
+    }
+    return finalResult;
   }
 }
 
@@ -8196,7 +8427,7 @@ class RE2JS {
    * RE2JS-compatible syntax, and handling Unicode sequences properly. It ensures that the
    * resulting regex is safe and properly formatted before compilation.
    *
-   * @param {string} expr - The regular expression string to be translated.
+   * @param {string|RegExp} expr - The regular expression string to be translated.
    * @returns {string} - The transformed regular expression string, ready for compilation.
    */
   static translateRegExp(expr) {
@@ -8240,7 +8471,7 @@ class RE2JS {
    * Matches a string against a regular expression.
    *
    * @param {string} regex the regular expression
-   * @param {string|number[]} input the input
+   * @param {string|number[]|Uint8Array} input the input
    * @returns {boolean} true if the regular expression matches the entire input
    * @throws RE2JSSyntaxException if the regular expression is malformed
    */
@@ -8307,7 +8538,7 @@ class RE2JS {
   /**
    * Matches a string against a regular expression.
    *
-   * @param {string|number[]} input the input
+   * @param {string|number[]|Uint8Array} input the input
    * @returns {boolean} true if the regular expression matches the entire input
    */
   matches(input) {
@@ -8317,7 +8548,7 @@ class RE2JS {
   /**
    * Creates a new {@code Matcher} matching the pattern against the input.
    *
-   * @param {string|number[]} input the input string
+   * @param {string|number[]|Uint8Array} input the input string
    * @returns {Matcher}
    */
   matcher(input) {
@@ -8333,7 +8564,7 @@ class RE2JS {
    * a boolean and does not extract capture groups, it bypasses the `Matcher` overhead
    * and guarantees execution on the high-speed DFA engine whenever possible.
    *
-   * @param {string|number[]} input - The input string or UTF-8 byte array to test against.
+   * @param {string|number[]|Uint8Array} input - The input string or UTF-8 byte array to test against.
    * @returns {boolean} `true` if the pattern is found anywhere in the input, `false` otherwise.
    */
   test(input) {
@@ -8352,7 +8583,7 @@ class RE2JS {
    * faster because it does not request capture group data. By requesting 0 capture groups,
    * it securely routes execution through the DFA fast-path.
    *
-   * @param {string|number[]} input - The input string or UTF-8 byte array to test against.
+   * @param {string|number[]|Uint8Array} input - The input string or UTF-8 byte array to test against.
    * @returns {boolean} `true` if the exact input string fully matches the pattern, `false` otherwise.
    */
   testExact(input) {
@@ -8477,6 +8708,17 @@ class RE2JS {
     return this.flagsInput === other.flagsInput && this.patternInput === other.patternInput;
   }
 }
+const re = (stringsOrFlags, ...values) => {
+  if (Array.isArray(stringsOrFlags) && stringsOrFlags.raw) {
+    const pattern = String.raw(stringsOrFlags, ...values);
+    return RE2JS.compile(pattern);
+  }
+  const flags = stringsOrFlags;
+  return (strings, ...tagValues) => {
+    const pattern = String.raw(strings, ...tagValues);
+    return RE2JS.compile(pattern, flags);
+  };
+};
 
-export { Matcher, RE2JS, RE2JSCompileException, RE2JSException, RE2JSFlagsException, RE2JSGroupException, RE2JSInternalException, RE2JSSyntaxException, RE2Set };
+export { Matcher, RE2JS, RE2JSCompileException, RE2JSException, RE2JSFlagsException, RE2JSGroupException, RE2JSInternalException, RE2JSSyntaxException, RE2Set, re };
 //# sourceMappingURL=index.esm.js.map
