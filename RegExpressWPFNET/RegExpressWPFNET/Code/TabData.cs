@@ -38,6 +38,8 @@ namespace RegExpressWPFNET.Code
     class AllTabData
     {
         public List<TabData> Tabs { get; set; } = new( );
+        public PilotAIAssistantControl.AIUserConfig AIConfig { get; set; } = new( );
+        public bool AITabOpen { get; set; } = false;
     }
 
 

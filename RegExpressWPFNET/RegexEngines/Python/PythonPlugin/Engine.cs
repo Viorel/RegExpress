@@ -95,10 +95,11 @@ namespace PythonPlugin
                 {
                     Options = JsonSerializer.Deserialize<Options>( json, JsonUtilities.JsonOptions )!;
                 }
-                catch
+                catch( Exception ex )
                 {
                     // ignore versioning errors, for example
-                    if( Debugger.IsAttached ) Debugger.Break( );
+                    if (InternalConfig.HandleException( ex ))
+                        throw;
 
                     Options = new Options( );
                 }
@@ -165,7 +166,8 @@ namespace PythonPlugin
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if (InternalConfig.HandleException( exc ))
+                    throw;
 
                 return null;
             }

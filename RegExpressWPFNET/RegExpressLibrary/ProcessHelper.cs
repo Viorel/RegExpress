@@ -129,7 +129,8 @@ namespace RegExpressLibrary
                     catch( Exception exc )
                     {
                         _ = exc;
-                        if( Debugger.IsAttached ) Debugger.Break( );
+                        if (InternalConfig.HandleException( exc ))
+                            throw;
                     }
                 } )
                 {
@@ -155,7 +156,8 @@ namespace RegExpressLibrary
                     catch( Exception exc )
                     {
                         _ = exc;
-                        if( Debugger.IsAttached ) Debugger.Break( );
+                        if (InternalConfig.HandleException( exc ))
+                            throw;
                     }
                 } )
                 {
@@ -174,7 +176,8 @@ namespace RegExpressLibrary
                 catch( Exception exc )
                 {
                     _ = exc;
-                    if( Debugger.IsAttached ) Debugger.Break( );
+                    if (InternalConfig.HandleException( exc ))
+                        throw;
                 }
             } )
             {
@@ -222,7 +225,8 @@ namespace RegExpressLibrary
                     if( unchecked((uint)exc.HResult) != 0x80004005 && // 'E_ACCESSDENIED'
                         unchecked((uint)exc.HResult) != 0x80131509 ) // -2146233079, "Cannot process request because the process (<PID>) has exited."
                     {
-                        if( Debugger.IsAttached ) Debugger.Break( );
+                        if (InternalConfig.HandleException( exc ))
+                            throw;
                     }
 
                     // ignore

@@ -3,6 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:pia="clr-namespace:PilotAIAssistantControl;assembly=PilotAIAssistantControlWPF"
+
         xmlns:local="clr-namespace:RegExpressWPFNET"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
@@ -33,8 +35,27 @@
         <KeyBinding Command="{x:Static local:MainWindow.MoveTabLeftCommand}" Modifiers="Ctrl+Shift+Alt" Key="Left" />
         <KeyBinding Command="{x:Static local:MainWindow.MoveTabRightCommand}" Modifiers="Ctrl+Shift+Alt" Key="Right" />
     </Window.InputBindings>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="AiColumn" MinWidth="40" Width="Auto"/>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-    <Grid Margin="0 1 0 0">
+        <pia:UCAIExpandable x:Name="ucAi" Foreground="{x:Static SystemColors.AccentColorBrush}"
+                        TargetColumn="{Binding ElementName=AiColumn}"
+                        DefaultSize="400"
+                        MinExpandedSize="200"
+                        CollapsedSize="40"/>
+
+        <!-- AI Expander (just the header/toggle) -->
+
+
+        <!-- Resizable Splitter (visible when expanded) -->
+        <GridSplitter x:Name="aiSplitter" Grid.Column="1" Visibility="{Binding IsExpanded, Mode=OneWay, ElementName=aiExpander, Converter={StaticResource boolNullVisibilityCollapsedConverter}}" IsTabStop="False" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#E0E0E0" ResizeBehavior="PreviousAndNext" />
+
+        <!-- Main Content -->
+        <Grid Margin="0 1 0 0" Grid.Column="2">
 
         <TextBlock x:Name="textBlockInfo" Text="Loading..." TextAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="2"/>
 
@@ -187,5 +208,5 @@
             </TabItem>
         </TabControl>
     </Grid>
-
+    </Grid>
 </Window>

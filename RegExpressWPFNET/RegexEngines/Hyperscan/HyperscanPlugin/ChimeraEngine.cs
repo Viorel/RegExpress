@@ -92,10 +92,11 @@ namespace HyperscanPlugin
                 {
                     Options = JsonSerializer.Deserialize<ChimeraOptions>( json, JsonUtilities.JsonOptions )!;
                 }
-                catch
+                catch( Exception ex )
                 {
                     // ignore versioning errors, for example
-                    if( Debugger.IsAttached ) Debugger.Break( );
+                    if (InternalConfig.HandleException( ex ))
+                        throw;
 
                     Options = new ChimeraOptions( );
                 }
@@ -153,7 +154,9 @@ namespace HyperscanPlugin
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if (InternalConfig.HandleException( exc ))
+                    throw;
+
 
                 return null;
             }
