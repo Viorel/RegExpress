@@ -119,8 +119,7 @@ namespace StdPlugin
                 cbxLocale.Visibility = is_MSVC || is_GCC ? Visibility.Visible : Visibility.Collapsed;
                 cbxLocaleDisabled.Visibility = !( is_MSVC || is_GCC ) ? Visibility.Visible : Visibility.Collapsed;
 
-                chkMultilineMSVC.Visibility = pnlMSVCConstants.Visibility = is_MSVC ? Visibility.Visible : Visibility.Collapsed;
-                chkMultiline.Visibility = is_GCC || is_SRELL ? Visibility.Visible : Visibility.Collapsed;
+                chkMultiline.Visibility = is_MSVC || is_GCC || is_SRELL ? Visibility.Visible : Visibility.Collapsed;
                 chkPolynomial.Visibility = is_GCC ? Visibility.Visible : Visibility.Collapsed;
                 chkDotall.Visibility = chkUnicodesets.Visibility = chkVMode.Visibility = pnlSRELLConstants.Visibility = is_SRELL ? Visibility.Visible : Visibility.Collapsed;
             }

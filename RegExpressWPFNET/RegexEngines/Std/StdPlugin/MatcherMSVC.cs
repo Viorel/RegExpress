@@ -23,32 +23,6 @@ namespace StdPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            Int32? REGEX_MAX_COMPLEXITY_COUNT = null;
-            if( !string.IsNullOrWhiteSpace( options.REGEX_MAX_COMPLEXITY_COUNT ) )
-            {
-                if( !Int32.TryParse( options.REGEX_MAX_COMPLEXITY_COUNT, out var REGEX_MAX_COMPLEXITY_COUNT0 ) )
-                {
-                    throw new Exception( "Invalid option: '_REGEX_MAX_COMPLEXITY_COUNT'." );
-                }
-                else
-                {
-                    REGEX_MAX_COMPLEXITY_COUNT = REGEX_MAX_COMPLEXITY_COUNT0;
-                }
-            }
-
-            Int32? REGEX_MAX_STACK_COUNT = null;
-            if( !string.IsNullOrWhiteSpace( options.REGEX_MAX_STACK_COUNT ) )
-            {
-                if( !Int32.TryParse( options.REGEX_MAX_STACK_COUNT, out var REGEX_MAX_STACK_COUNT0 ) )
-                {
-                    throw new Exception( "Invalid option: '_REGEX_MAX_STACK_COUNT'." );
-                }
-                else
-                {
-                    REGEX_MAX_STACK_COUNT = REGEX_MAX_STACK_COUNT0;
-                }
-            }
-
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.Unicode;
@@ -68,6 +42,7 @@ namespace StdPlugin
                 bw.Write( Convert.ToByte( options.nosubs ) );
                 bw.Write( Convert.ToByte( options.optimize ) );
                 bw.Write( Convert.ToByte( options.collate ) );
+                bw.Write( Convert.ToByte( options.multiline ) );
 
                 bw.Write( Convert.ToByte( options.match_not_bol ) );
                 bw.Write( Convert.ToByte( options.match_not_eol ) );
@@ -77,9 +52,6 @@ namespace StdPlugin
                 bw.Write( Convert.ToByte( options.match_not_null ) );
                 bw.Write( Convert.ToByte( options.match_continuous ) );
                 bw.Write( Convert.ToByte( options.match_prev_avail ) );
-
-                bw.WriteOptional( REGEX_MAX_COMPLEXITY_COUNT );
-                bw.WriteOptional( REGEX_MAX_STACK_COUNT );
 
                 bw.Write( (byte)'e' );
             };

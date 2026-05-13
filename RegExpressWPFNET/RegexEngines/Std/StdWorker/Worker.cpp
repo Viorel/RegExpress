@@ -15,12 +15,6 @@
 #define TO_STR(s) TO_STR2(s)
 
 
-long Variable_REGEX_MAX_STACK_COUNT;
-long Variable_REGEX_MAX_COMPLEXITY_COUNT;
-extern long Default_REGEX_MAX_STACK_COUNT;
-extern long Default_REGEX_MAX_COMPLEXITY_COUNT;
-
-
 static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, const std::wstring& localeName, std::wregex::flag_type regexFlags, std::regex_constants::match_flag_type matchFlags )
 {
     ULONG ss = 1024 * 10;
@@ -178,6 +172,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) ) regex_flags |= std::regex_constants::syntax_option_type::nosubs;
             if( inbr.ReadByte( ) ) regex_flags |= std::regex_constants::syntax_option_type::optimize;
             if( inbr.ReadByte( ) ) regex_flags |= std::regex_constants::syntax_option_type::collate;
+            if( inbr.ReadByte( ) ) regex_flags |= std::regex_constants::syntax_option_type::multiline;
 
             std::regex_constants::match_flag_type match_flags = std::regex_constants::match_flag_type::match_default;
 
@@ -189,12 +184,6 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             if( inbr.ReadByte( ) ) match_flags |= std::regex_constants::match_flag_type::match_not_null;
             if( inbr.ReadByte( ) ) match_flags |= std::regex_constants::match_flag_type::match_continuous;
             if( inbr.ReadByte( ) ) match_flags |= std::regex_constants::match_flag_type::match_prev_avail;
-
-            auto REGEX_MAX_COMPLEXITY_COUNT = inbr.ReadOptional<int32_t>( );
-            Variable_REGEX_MAX_COMPLEXITY_COUNT = REGEX_MAX_COMPLEXITY_COUNT.value_or( Default_REGEX_MAX_COMPLEXITY_COUNT );
-
-            auto REGEX_MAX_STACK_COUNT = inbr.ReadOptional<int32_t>( );
-            Variable_REGEX_MAX_STACK_COUNT = REGEX_MAX_STACK_COUNT.value_or( Default_REGEX_MAX_STACK_COUNT );
 
             if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 

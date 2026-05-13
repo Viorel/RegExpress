@@ -13,14 +13,9 @@
 #include <strsafe.h>
 #include <iostream>
 
-#include "RegExpressCppLibraryPCH.h"
-
-extern long Variable_REGEX_MAX_STACK_COUNT;
-extern long Variable_REGEX_MAX_COMPLEXITY_COUNT;
-
-#define _REGEX_MAX_STACK_COUNT          Variable_REGEX_MAX_STACK_COUNT
-#define _REGEX_MAX_COMPLEXITY_COUNT     Variable_REGEX_MAX_COMPLEXITY_COUNT
-
+#define _REGEX_LEGACY_MULTILINE_MODE 0 // enable 'multiline' flag for ECMAScript
 #include <regex>
+
+#include "RegExpressCppLibraryPCH.h"
 
 #endif //PCH_H

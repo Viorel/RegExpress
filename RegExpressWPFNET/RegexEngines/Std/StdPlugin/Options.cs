@@ -39,7 +39,7 @@ namespace StdPlugin
         public bool nosubs { get; set; }
         public bool optimize { get; set; }
         public bool collate { get; set; }
-        public bool multiline { get; set; } // not for MSVC, where it is true by default
+        public bool multiline { get; set; }
 
         public bool match_not_bol { get; set; }
         public bool match_not_eol { get; set; }
@@ -52,8 +52,6 @@ namespace StdPlugin
 
         // MSVC specific
 
-        public string? REGEX_MAX_STACK_COUNT { get; set; }
-        public string? REGEX_MAX_COMPLEXITY_COUNT { get; set; }
 
         // GCC specific
 
