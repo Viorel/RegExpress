@@ -228,6 +228,33 @@ matchString.group() // 'e'
 matchString.find(7) // false
 ```
 
+### Iterating Over Matches (`matchAll`)
+
+For a more modern, JavaScript-native developer experience, RE2JS provides a `.matchAll()` method. This returns an ES6 `IterableIterator`, allowing you to safely and cleanly iterate over matches using `for...of` loops or the array spread operator `[...]`.
+
+Unlike native `RegExp` objects with the `/g` flag, RE2JS is completely stateless. This means you don't have to worry about `.lastIndex` bugs—you can iterate over the same regex instance as many times as you want safely.
+
+The yielded match arrays perfectly mirror the shape of native JavaScript regex matches. They include `.index`, `.input`, and `.groups` properties, and properly map unmatched capture groups to `undefined`.
+
+```js
+import { RE2JS } from 're2js'
+
+const re2 = RE2JS.compile('(?P<year>\\d{4})-(?P<month>\\d{2})')
+const input = 'Dates: 2024-05 and 2025-11.'
+
+// Native ES6 Iteration
+for (const match of re2.matchAll(input)) {
+  console.log(match[0]); // "2024-05", then "2025-11"
+  console.log(match.index); // 7, then 19
+  console.log(match.groups); // { year: '2024', month: '05' } then { year: '2025', month: '11' }
+  console.log(match.groups.year); // "2024", then "2025"
+}
+
+// Or easily collect all matches into an array
+const allMatches = [...re2.matchAll(input)];
+console.log(allMatches.length); // 2
+```
+
 ### Multi-Pattern Matching (RE2Set)
 
 RE2JS includes a highly optimized `RE2Set` API that allows you to match multiple regular expressions against a single string simultaneously. Instead of running 100 different regexes in a loop ($O(100n)$ time), `RE2Set` compiles them into a single state machine and finds all matches in a single pass ($O(n)$ linear time).
@@ -486,7 +513,7 @@ RE2JS.compile('(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)')
 Note that the replacement string can include references to capturing groups from the pattern
 
 Parameters:
-- `replacement (String)`: The string that replaces the substrings found. Capture groups and special characters in the replacement string have special behavior. For example:
+- `replacement (String | Function)`: The string that replaces the substrings found, or a function invoked to create the new substring. When passing a string, capture groups and special characters have special behavior. For example:
   - `$&` refers to the entire matched substring
   - `$1, $2, ...` refer to the corresponding capture groups in the pattern
   - `$$` inserts a literal `$`
@@ -529,7 +556,42 @@ RE2JS.compile('(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)(.)')
   .replaceFirst('$10$20') // 'jb0nopqrstuvwxyz123'
 ```
 
-Function support second argument `javaMode`, which work in the same way, as for `replaceAll` function
+Function support second argument `javaMode`, which work in the same way, as for `replaceAll` function.
+
+#### Using a Replacer Function
+
+For a more modern JavaScript developer experience, RE2JS supports passing a **replacer function** to `replaceAll()` and `replaceFirst()`, perfectly mirroring native `String.prototype.replace(regex, replacer)` behavior while taking advantage of the high-speed linear-time engine.
+
+The replacer function is invoked for each match, and its return value is used as the replacement string. The function receives the following arguments:
+
+1. `match`: The matched substring.
+2. `p1, p2, ...`: The string found by a capture group (if any). Unmatched optional groups evaluate to `undefined`.
+3. `offset`: The offset of the matched substring within the whole string.
+4. `string`: The original input string (or byte array).
+5. `groups`: A dictionary object of named capture groups (if any exist in the pattern).
+
+```js
+import { RE2JS } from 're2js'
+
+// Example 1: Dynamic replacements
+const re1 = RE2JS.compile('\\d+');
+const m1 = re1.matcher('Numbers: 1, 2, 3');
+
+m1.replaceAll((match) => String(Number(match) * 10));
+// 'Numbers: 10, 20, 30'
+
+
+// Example 2: Using named capture groups and function signature
+const re2 = RE2JS.compile('(?P<first>\\w+) (?:(?P<middle>\\w+) )?(?P<last>\\w+)');
+const m2 = re2.matcher('Hello World');
+
+m2.replaceFirst((match, p1, p2, p3, offset, string, groups) => {
+  // 'middle' didn't match, so p2 and groups.middle will be undefined
+  return `${groups.last}, ${groups.first}`;
+});
+// 'World, Hello'
+
+```
 
 ### Safe Replacements
 
@@ -631,23 +693,23 @@ Should you require maximum absolute performance on the server side when using RE
 
 Because RE2JS's Lazy DFA, Prefilter, and OnePass engines operate efficiently within V8's Just-In-Time (JIT) compiler, they can outperform native C++ bindings (`re2-node`) for many operations by avoiding the cross-boundary serialization costs between JavaScript and C++.
 
-Here is a benchmark running 30,000 items through both engines using their respective `.test()` fast-paths (averages of multiple runs):
+Here is a [benchmark running 30,000 items](src/__tests__/re2.bench.js) through both engines using their respective `.test()` fast-paths (averages of multiple runs):
 
 | Benchmark Scenario        | Pattern Example            | RE2JS (Pure JS) | RE2-Node (C++) | Result                      |
 |:--------------------------|:---------------------------|:----------------|:---------------|:----------------------------|
-| **ReDoS Attempt**         | `/(a+)+!/`                 | **7.28 ms**     | 12.74 ms       | `re2js` is **1.75x** faster |
-| **Deep State Machine**    | `/([0-9]+(/[0-9]+)+)/`     | **8.78 ms**     | 12.56 ms       | `re2js` is **1.43x** faster |
-| **Simple Literal**        | `/damage/`                 | **7.04 ms**     | 9.59 ms        | `re2js` is **1.36x** faster |
-| **Lazy Wildcard**         | `/enters.*?battlefield/`   | **9.36 ms**     | 10.27 ms       | `re2js` is **1.10x** faster |
-| **Greedy Wildcard**       | `/enters.*battlefield/`    | **9.47 ms**     | 10.03 ms       | `re2js` is **1.06x** faster |
-| **Massive Alternation**   | `/White\|Blue\|Black.../`  | 11.69 ms        | **11.28 ms**   | `re2-node` is 1.04x faster  |
-| **Bounded Repetition**    | `/[A-Z][a-z]{5,15}/`       | 12.68 ms        | **10.64 ms**   | `re2-node` is 1.19x faster  |
-| **Case Insensitive**      | `/(?i)swamp/`              | 18.58 ms        | **12.64 ms**   | `re2-node` is 1.47x faster  |
-| **Word Boundaries (NFA)** | `/\b(Flying\|First...)\b/` | 30.45 ms        | **12.22 ms**   | `re2-node` is 2.49x faster  |
+| **ReDoS Attempt**         | `/(a+)+!/`                 | **2.16 ms**     | 15.94 ms       | `re2js` is **7.38x** faster |
+| **Simple Literal**        | `/damage/`                 | **2.58 ms**     | 12.39 ms       | `re2js` is **4.80x** faster |
+| **Deep State Machine**    | `/([0-9]+(/[0-9]+)+)/`     | **11.20 ms**    | 15.76 ms       | `re2js` is **1.41x** faster |
+| **Lazy Wildcard**         | `/enters.*?battlefield/`   | **9.78 ms**     | 12.99 ms       | `re2js` is **1.33x** faster |
+| **Greedy Wildcard**       | `/enters.*battlefield/`    | **9.90 ms**     | 12.99 ms       | `re2js` is **1.31x** faster |
+| **Massive Alternation**   | `/White\|Blue\|Black.../`  | **11.31 ms**    | 14.81 ms       | `re2js` is **1.31x** faster |
+| **Bounded Repetition**    | `/[A-Z][a-z]{5,15}/`       | 28.20 ms        | **13.60 ms**   | `re2-node` is 2.07x faster  |
+| **Case Insensitive**      | `/(?i)swamp/`              | 56.41 ms        | **16.13 ms**   | `re2-node` is 3.50x faster  |
+| **Word Boundaries (NFA)** | `/\b(Flying\|First...)\b/` | 107.12 ms       | **15.41 ms**   | `re2-node` is 6.95x faster  |
 
 **Takeaways:**
 * **Pure JS Strengths:** For complex state tracking (nested groups, wildcards) and literal string scanning, `re2js` actually beats the native C++ bindings. V8's Turbofan JIT compiler is able to heavily optimize the Pure JS DFA loop, bypassing the C++ boundary entirely.
-* **C++ Strengths:** For character class evaluations (Case Insensitivity, Bounded Repetitions, Alternations), `re2-node` has a slight edge thanks to highly optimized, hardware-level memory tables.
+* **C++ Strengths:** For character class evaluations (Case Insensitivity, Bounded Repetitions), `re2-node` has a slight edge thanks to highly optimized, hardware-level memory tables.
 * **The NFA Fallback:** Pure DFA engines mathematically cannot track look-behind context like Word Boundaries (`\b`). When RE2JS encounters these, it safely bails out to its NFA engine. As shown in the benchmarks, the pure JS NFA is significantly slower than the C++ NFA. **For maximum performance in RE2JS, avoid `\b` when doing bulk boolean `.test()` matching.**
 
 
@@ -706,7 +768,7 @@ negative.test('foobar'); // false
 
 1. **Performance Overhead:** If a regex contains a lookbehind, the engine is forced to safely bypass the ultra-fast Lazy DFA and OnePass engines. It evaluates the lookbehinds using parallel automata running on the NFA (Pike VM). While execution remains mathematically safe and linear $O(n)$, the NFA engine is generally slower than the DFA fast-paths. Use lookbehinds only when necessary.
 2. **Prefix Acceleration is Disabled:** To ensure the parallel tracking automata initialize correctly, high-speed string prefix skipping (e.g., using `indexOf` to jump to a starting literal) is disabled when lookbehinds are present.
-3. **Captureless Guarantee:** To prevent state-explosion vulnerabilities, lookbehinds are strictly evaluated as *captureless*. If you include a capturing group inside a lookbehind (e.g., `(?<=(foo))bar`), the engine will match successfully, but `group(1)` will safely return `null`.
+3. **Captureless Guarantee:** To prevent state-explosion vulnerabilities and maintain strict safety invariants, lookbehinds are strictly evaluated as *captureless*. If you attempt to include a capturing group inside a lookbehind (e.g., `(?<=(foo))bar`), the engine will proactively throw a `SyntaxError` at compile time. Use non-capturing groups `(?:...)` instead.
 
 
 ## Development

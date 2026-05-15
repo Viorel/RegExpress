@@ -22,6 +22,12 @@
  */
 export class Matcher {
     /**
+     * V8 and WebKit have historical hard limits on the number of arguments
+     * that can be passed to a function. We cap replacer arguments to prevent
+     * Call Stack Overflow (DoS) vulnerabilities on massive ASTs.
+     */
+    static MAX_REPLACER_ARGS: number;
+    /**
      * Quotes '\' and '$' in {@code s}, so that the returned string could be used in
      * {@link #appendReplacement} as a literal replacement of {@code s}.
      *
@@ -210,31 +216,51 @@ export class Matcher {
      * Returns the input with all matches replaced by {@code replacement}, interpreted as for
      * {@code appendReplacement}.
      *
-     * @param {string} replacement - the replacement string
+     * @param {string|Function} replacement - the replacement string or a replacer function
      * @param {boolean} [javaMode=false] - activate java mode (different behaviour for capture groups and special characters)
      * @returns {string} the input string with the matches replaced
      * @throws IndexOutOfBoundsException if replacement refers to an invalid group and javaMode is true
      */
-    replaceAll(replacement: string, javaMode?: boolean): string;
+    replaceAll(replacement: string | Function, javaMode?: boolean): string;
     /**
      * Returns the input with the first match replaced by {@code replacement}, interpreted as for
      * {@code appendReplacement}.
      *
-     * @param {string} replacement - the replacement string
+     * @param {string|Function} replacement - the replacement string or a replacer function
      * @param {boolean} [javaMode=false] - activate java mode (different behaviour for capture groups and special characters)
      * @returns {string} the input string with the first match replaced
      * @throws IndexOutOfBoundsException if replacement refers to an invalid group and javaMode is true
      */
-    replaceFirst(replacement: string, javaMode?: boolean): string;
+    replaceFirst(replacement: string | Function, javaMode?: boolean): string;
     /**
      * Helper: replaceAll/replaceFirst hybrid.
-     * @param {string} replacement - the replacement string
+     * @param {string|Function} replacement - the replacement string or a replacer function
      * @param {boolean} [all=true] - replace all matches
      * @param {boolean} [javaMode=false] - activate java mode (different behaviour for capture groups and special characters)
      * @returns {string}
      * @private
      */
     private replace;
+    /**
+     * Evaluates a replacer function for the current match and appends the result,
+     * along with any un-matched preceding text, advancing the append position.
+     * @param {Function} replacer - the replacer function
+     * @param {boolean} hasNamedGroups - cached flag if pattern has named groups
+     * @param {string|Uint8Array|number[]} originalInput - the cached original input reference
+     * @returns {string} the evaluated string to append
+     * @private
+     */
+    private appendReplacementFunc;
+    /**
+     * Builds the argument array for the replacer function matching the standard
+     * JS String.prototype.replace(regex, replacer) signature.
+     * @param {number} matchStart - the start index of the match
+     * @param {boolean} hasNamedGroups - cached flag if pattern has named groups
+     * @param {string|Uint8Array|number[]} originalInput - the cached original input reference
+     * @returns {Array} array of arguments
+     * @private
+     */
+    private buildReplacerArgs;
 }
 /**
  * A compiled representation of an RE2 regular expression
@@ -400,6 +426,14 @@ export class RE2JS {
      * @returns {string[]} the split strings
      */
     split(input: string, limit?: number): string[];
+    /**
+     * Returns an iterator of all results matching a string against the regular expression,
+     * including capturing groups.
+     *
+     * @param {string|number[]|Uint8Array} input the input string or byte array
+     * @returns {IterableIterator<Array>}
+     */
+    matchAll(input: string | number[] | Uint8Array): IterableIterator<any[]>;
     /**
      *
      * @returns {string}

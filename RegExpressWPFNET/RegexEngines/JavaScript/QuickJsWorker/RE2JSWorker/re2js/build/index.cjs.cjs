@@ -2,7 +2,7 @@
  * re2js
  * RE2JS is the JavaScript port of RE2, a regular expression engine that provides linear time matching
  *
- * @version v2.5.0
+ * @version v2.8.0
  * @author Oleksii Vasyliev
  * @homepage https://github.com/le0pard/re2js#readme
  * @repository github:le0pard/re2js
@@ -1412,6 +1412,13 @@ class RE2JSInternalException extends RE2JSException {
 
 class Matcher {
   /**
+   * V8 and WebKit have historical hard limits on the number of arguments
+   * that can be passed to a function. We cap replacer arguments to prevent
+   * Call Stack Overflow (DoS) vulnerabilities on massive ASTs.
+   */
+  static MAX_REPLACER_ARGS = 65535;
+
+  /**
    * Quotes '\' and '$' in {@code s}, so that the returned string could be used in
    * {@link #appendReplacement} as a literal replacement of {@code s}.
    *
@@ -1707,16 +1714,14 @@ class Matcher {
    * @private
    */
   genMatch(startByte, anchor) {
-    const hasLookbehinds = this.patternInput.re2().prog.numLb > 0;
-    const ngroup = hasLookbehinds ? 1 + this.patternGroupCount : 1;
-    const res = this.patternInput.re2().matchMachineInput(this.matcherInput, startByte, this.matcherInputLength, anchor, ngroup);
+    const res = this.patternInput.re2().matchMachineInput(this.matcherInput, startByte, this.matcherInputLength, anchor, 1);
     const ok = res[0];
     if (!ok) {
       return false;
     }
     this.groups = res[1];
     this.hasMatch = true;
-    this.hasGroups = hasLookbehinds || this.patternGroupCount === 0;
+    this.hasGroups = this.patternGroupCount === 0;
     this.anchorFlag = anchor;
     return true;
   }
@@ -1969,7 +1974,7 @@ class Matcher {
    * Returns the input with all matches replaced by {@code replacement}, interpreted as for
    * {@code appendReplacement}.
    *
-   * @param {string} replacement - the replacement string
+   * @param {string|Function} replacement - the replacement string or a replacer function
    * @param {boolean} [javaMode=false] - activate java mode (different behaviour for capture groups and special characters)
    * @returns {string} the input string with the matches replaced
    * @throws IndexOutOfBoundsException if replacement refers to an invalid group and javaMode is true
@@ -1982,7 +1987,7 @@ class Matcher {
    * Returns the input with the first match replaced by {@code replacement}, interpreted as for
    * {@code appendReplacement}.
    *
-   * @param {string} replacement - the replacement string
+   * @param {string|Function} replacement - the replacement string or a replacer function
    * @param {boolean} [javaMode=false] - activate java mode (different behaviour for capture groups and special characters)
    * @returns {string} the input string with the first match replaced
    * @throws IndexOutOfBoundsException if replacement refers to an invalid group and javaMode is true
@@ -1993,7 +1998,7 @@ class Matcher {
 
   /**
    * Helper: replaceAll/replaceFirst hybrid.
-   * @param {string} replacement - the replacement string
+   * @param {string|Function} replacement - the replacement string or a replacer function
    * @param {boolean} [all=true] - replace all matches
    * @param {boolean} [javaMode=false] - activate java mode (different behaviour for capture groups and special characters)
    * @returns {string}
@@ -2002,14 +2007,87 @@ class Matcher {
   replace(replacement, all = true, javaMode = false) {
     let res = '';
     this.reset();
+    const isFunc = typeof replacement === 'function';
+
+    // Cache named groups check to avoid GC thrashing on every match
+    const hasNamedGroups = Object.keys(this.namedGroups).length > 0;
+    let originalInput = null;
+    if (isFunc) {
+      // Prevent V8 Call Stack Overflow (DoS vector) on massive capture group counts
+      if (this.groupCount() >= Matcher.MAX_REPLACER_ARGS) {
+        throw new RE2JSGroupException('Too many capture groups to safely invoke replacer function');
+      }
+      // Resolve the original input reference exactly once outside the hot loop
+      originalInput = this.matcherInput.isUTF8Encoding() ? this.matcherInput.asBytes() : this.matcherInput.asCharSequence();
+    }
     while (this.find()) {
-      res += this.appendReplacement(replacement, javaMode);
+      res += isFunc ? this.appendReplacementFunc(replacement, hasNamedGroups, originalInput) : this.appendReplacement(replacement, javaMode);
       if (!all) {
         break;
       }
     }
     res += this.appendTail();
     return res;
+  }
+
+  /**
+   * Evaluates a replacer function for the current match and appends the result,
+   * along with any un-matched preceding text, advancing the append position.
+   * @param {Function} replacer - the replacer function
+   * @param {boolean} hasNamedGroups - cached flag if pattern has named groups
+   * @param {string|Uint8Array|number[]} originalInput - the cached original input reference
+   * @returns {string} the evaluated string to append
+   * @private
+   */
+  appendReplacementFunc(replacer, hasNamedGroups, originalInput) {
+    let res = '';
+    const s = this.start();
+    const e = this.end();
+    if (this.appendPos < s) {
+      res += this.substring(this.appendPos, s);
+    }
+    this.appendPos = e;
+    const args = this.buildReplacerArgs(s, hasNamedGroups, originalInput);
+    res += String(replacer(...args));
+    return res;
+  }
+
+  /**
+   * Builds the argument array for the replacer function matching the standard
+   * JS String.prototype.replace(regex, replacer) signature.
+   * @param {number} matchStart - the start index of the match
+   * @param {boolean} hasNamedGroups - cached flag if pattern has named groups
+   * @param {string|Uint8Array|number[]} originalInput - the cached original input reference
+   * @returns {Array} array of arguments
+   * @private
+   */
+  buildReplacerArgs(matchStart, hasNamedGroups, originalInput) {
+    const args = [this.group(0)]; // match
+
+    const numGroups = this.groupCount();
+    // Fast-path capture group extraction
+    for (let i = 1; i <= numGroups; i++) {
+      const start = this.start(i);
+      if (start < 0) {
+        args.push(void 0);
+      } else {
+        args.push(this.substring(start, this.end(i)));
+      }
+    }
+    args.push(matchStart); // offset
+    args.push(originalInput); // original string (cached)
+
+    // Append named groups object if pattern contains them
+    if (hasNamedGroups) {
+      const parsedGroups = this.getNamedGroups();
+      for (const key in parsedGroups) {
+        if (parsedGroups[key] === null) {
+          parsedGroups[key] = void 0;
+        }
+      }
+      args.push(parsedGroups);
+    }
+    return args;
   }
 }
 
@@ -2155,9 +2233,9 @@ class Inst {
       case Inst.NOP:
         return `nop -> ${this.out}`;
       case Inst.LB_WRITE:
-        return `lbwrite ${this.lb} -> ${this.out}`;
+        return `lbwrite ${this.arg} -> ${this.out}`;
       case Inst.LB_CHECK:
-        return `lbcheck ${this.lb} -> ${this.out}, ${this.arg}`;
+        return `lbcheck ${this.arg} -> ${this.out}`;
       case Inst.RUNE:
         if (this.runes === null) {
           return 'rune <null>';
@@ -2337,30 +2415,35 @@ class Machine {
     }
     this.matched = false;
     this.matchcap.fill(-1);
+
+    // Lookbehinds must scan from the beginning of the string to build their state table,
+    // even if the main pattern search is requested to start mid-string.
+    let currentPos = this.prog.numLb > 0 ? 0 : pos;
+    let matchStartPos = pos;
     let runq = this.q0;
     let nextq = this.q1;
-    let r = input.step(pos);
+    let r = input.step(currentPos);
     let rune = r >> 3;
     let width = r & 7;
     let rune1 = -1;
     let width1 = 0;
     if (r !== MachineInputBase.EOF()) {
-      r = input.step(pos + width);
+      r = input.step(currentPos + width);
       rune1 = r >> 3;
       width1 = r & 7;
     }
     let flag;
-    if (pos === 0) {
+    if (currentPos === 0) {
       flag = Utils.emptyOpContext(-1, rune);
     } else {
-      flag = input.context(pos);
+      flag = input.context(currentPos);
     }
     while (true) {
       if (runq.isEmpty()) {
-        if ((startCond & Utils.EMPTY_BEGIN_TEXT) !== 0 && pos !== 0) {
+        if ((startCond & Utils.EMPTY_BEGIN_TEXT) !== 0 && currentPos !== 0) {
           break;
         }
-        if ((anchor === RE2Flags.ANCHOR_START || anchor === RE2Flags.ANCHOR_BOTH) && pos !== 0) {
+        if ((anchor === RE2Flags.ANCHOR_START || anchor === RE2Flags.ANCHOR_BOTH) && currentPos !== 0) {
           break;
         }
         if (this.matched) {
@@ -2370,43 +2453,50 @@ class Machine {
         // Fast-forwarding the string pointer will skip over the positions where
         // the parallel lookbehind automata need to be spawned.
         if (this.prog.numLb === 0 && !(this.re2.prefix.length === 0) && rune1 !== this.re2.prefixRune && input.canCheckPrefix()) {
-          const advance = input.index(this.re2, pos);
+          const advance = input.index(this.re2, currentPos);
           if (advance < 0) {
             break;
           }
-          pos += advance;
-          r = input.step(pos);
+          currentPos += advance;
+          r = input.step(currentPos);
           rune = r >> 3;
           width = r & 7;
-          r = input.step(pos + width);
+          r = input.step(currentPos + width);
           rune1 = r >> 3;
           width1 = r & 7;
         }
       }
-      if (!this.matched && (pos === 0 || anchor === RE2Flags.UNANCHORED)) {
-        if (this.ncap > 0) {
-          this.matchcap[0] = pos;
-        }
-        // Spawn Lookbehind threads BEFORE the main pattern
+
+      // Optimize lookbehind spawning. Because lookbehinds are prefixed with `.*` by the compiler,
+      // they only need to be spawned exactly once at the beginning of the string (currentPos === 0).
+      if (currentPos === 0 && this.prog.numLb > 0) {
         for (let i = 0; i < this.prog.lbStarts.length; i++) {
-          this.add(runq, this.prog.lbStarts[i], pos, this.matchcap, flag, null);
+          this.add(runq, this.prog.lbStarts[i], currentPos, this.matchcap, flag, null);
         }
-        this.add(runq, this.prog.start, pos, this.matchcap, flag, null);
       }
-      const nextPos = pos + width;
+      if (!this.matched && (currentPos === 0 || anchor === RE2Flags.UNANCHORED)) {
+        // ONLY spawn the main pattern if we have reached the requested search start boundary
+        if (currentPos >= matchStartPos) {
+          if (this.ncap > 0) {
+            this.matchcap[0] = currentPos;
+          }
+          this.add(runq, this.prog.start, currentPos, this.matchcap, flag, null);
+        }
+      }
+      const nextPos = currentPos + width;
       flag = input.context(nextPos);
-      this.step(runq, nextq, pos, nextPos, rune, flag, anchor, pos === input.endPos());
+      this.step(runq, nextq, currentPos, nextPos, rune, flag, anchor, currentPos === input.endPos());
       if (width === 0) {
         break;
       }
       if (this.ncap === 0 && this.matched) {
         break;
       }
-      pos += width;
+      currentPos += width;
       rune = rune1;
       width = width1;
       if (rune !== -1) {
-        r = input.step(pos + width);
+        r = input.step(currentPos + width);
         rune1 = r >> 3;
         width1 = r & 7;
       }
@@ -2423,35 +2513,46 @@ class Machine {
     if ((anchor === RE2Flags.ANCHOR_START || anchor === RE2Flags.ANCHOR_BOTH) && pos !== 0) {
       return [];
     }
+
+    // Lookbehinds must scan from the beginning of the string to build their state table,
+    // even if the main pattern search is requested to start mid-string.
+    let currentPos = this.prog.numLb > 0 ? 0 : pos;
+    let matchStartPos = pos;
     let runq = this.q0;
     let nextq = this.q1;
-    let r = input.step(pos);
+    let r = input.step(currentPos);
     let rune = r >> 3;
     let width = r & 7;
     let rune1 = -1;
     let width1 = 0;
     if (r !== MachineInputBase.EOF()) {
-      r = input.step(pos + width);
+      r = input.step(currentPos + width);
       rune1 = r >> 3;
       width1 = r & 7;
     }
-    let flag = pos === 0 ? Utils.emptyOpContext(-1, rune) : input.context(pos);
+    let flag = currentPos === 0 ? Utils.emptyOpContext(-1, rune) : input.context(currentPos);
     const matches = new Set();
     while (true) {
       if (runq.isEmpty()) {
-        if ((startCond & Utils.EMPTY_BEGIN_TEXT) !== 0 && pos !== 0) break;
-        if ((anchor === RE2Flags.ANCHOR_START || anchor === RE2Flags.ANCHOR_BOTH) && pos !== 0) {
+        if ((startCond & Utils.EMPTY_BEGIN_TEXT) !== 0 && currentPos !== 0) break;
+        if ((anchor === RE2Flags.ANCHOR_START || anchor === RE2Flags.ANCHOR_BOTH) && currentPos !== 0) {
           break;
         }
       }
-      if (pos === 0 || anchor === RE2Flags.UNANCHORED) {
-        // Spawn Lookbehind threads BEFORE the main pattern
+
+      // Optimize lookbehind spawning to exactly once at BOF
+      if (currentPos === 0 && this.prog.numLb > 0) {
         for (let i = 0; i < this.prog.lbStarts.length; i++) {
-          this.add(runq, this.prog.lbStarts[i], pos, this.matchcap, flag, null);
+          this.add(runq, this.prog.lbStarts[i], currentPos, this.matchcap, flag, null);
         }
-        this.add(runq, this.prog.start, pos, this.matchcap, flag, null);
       }
-      const nextPos = pos + width;
+      if (currentPos === 0 || anchor === RE2Flags.UNANCHORED) {
+        // ONLY spawn the main pattern if we have reached the requested search start boundary
+        if (currentPos >= matchStartPos) {
+          this.add(runq, this.prog.start, currentPos, this.matchcap, flag, null);
+        }
+      }
+      const nextPos = currentPos + width;
       flag = input.context(nextPos);
       for (let j = 0; j < runq.size; j++) {
         let t = runq.denseThreads[j];
@@ -2460,7 +2561,7 @@ class Machine {
         let add = false;
         switch (i.op) {
           case Inst.MATCH:
-            if (anchor === RE2Flags.ANCHOR_BOTH && pos !== input.endPos()) break;
+            if (anchor === RE2Flags.ANCHOR_BOTH && currentPos !== input.endPos()) break;
             matches.add(i.arg); // Record the matched Set ID
             break;
           case Inst.RUNE:
@@ -2488,11 +2589,11 @@ class Machine {
       }
       runq.clear();
       if (width === 0) break;
-      pos += width;
+      currentPos += width;
       rune = rune1;
       width = width1;
       if (rune !== -1) {
-        r = input.step(pos + width);
+        r = input.step(currentPos + width);
         rune1 = r >> 3;
         width1 = r & 7;
       }
@@ -2596,17 +2697,17 @@ class Machine {
             continue;
           }
         case Inst.LB_WRITE:
-          this.lbTable[Math.abs(inst.lb)] = pos;
+          this.lbTable[Math.abs(inst.arg)] = pos;
           pc = inst.out;
           continue;
         case Inst.LB_CHECK:
-          if (inst.lb > 0) {
+          if (inst.arg > 0) {
             // Positive Lookbehind
-            if (this.lbTable[inst.lb] === pos) {
+            if (this.lbTable[inst.arg] === pos) {
               pc = inst.out; // Flattened tail recursion
               continue;
             }
-          } else if (this.lbTable[-inst.lb] !== pos) {
+          } else if (this.lbTable[-inst.arg] !== pos) {
             // Negative Lookbehind
             pc = inst.out; // Flattened tail recursion
             continue;
@@ -4686,7 +4787,7 @@ class Compiler {
   }
   lookBehind(a, lb) {
     const id = this.newInst(Inst.LB_WRITE);
-    this.prog.getInst(id.i).lb = lb;
+    this.prog.getInst(id.i).arg = lb;
 
     // Create the prefix wildcard `.*` for the lookbehind automaton
     const any = this.rune(Compiler.ANY_RUNE(), 0);
@@ -4694,7 +4795,7 @@ class Compiler {
     const lbAutomaton = this.cat(dotStar, a);
     this.prog.patch(lbAutomaton.out, id.i);
     const checkId = this.newInst(Inst.LB_CHECK);
-    this.prog.getInst(checkId.i).lb = lb;
+    this.prog.getInst(checkId.i).arg = lb;
 
     // Save the starting point of this lookbehind automaton
     this.prog.lbStarts.push(lbAutomaton.i);
@@ -5469,6 +5570,7 @@ class Parser {
   static ERR_UNEXPECTED_PAREN = 'unexpected )';
   static ERR_NESTING_DEPTH = 'expression nests too deeply';
   static ERR_LARGE = 'expression too large';
+  static ERR_INVALID_CAPTURE_IN_LOOKBEHIND = 'invalid capture in lookbehind';
 
   // maxHeight is the maximum height of a regexp parse tree.
   // It is somewhat arbitrarily chosen, but the idea is to be large enough
@@ -5871,6 +5973,18 @@ class Parser {
       x.push(y[i]);
     }
     return x;
+  }
+
+  // recursively check for captures
+  static hasCapture(re) {
+    if (re === null) return false;
+    if (re.op === Regexp.Op.CAPTURE) return true;
+    if (re.subs) {
+      for (let sub of re.subs) {
+        if (Parser.hasCapture(sub)) return true;
+      }
+    }
+    return false;
   }
   constructor(wholeRegexp, flags = 0) {
     this.wholeRegexp = wholeRegexp;
@@ -6555,7 +6669,7 @@ class Parser {
           case 1:
             // Impossible but handle.
             re.op = Regexp.Op.EMPTY_MATCH;
-            re.subs = null;
+            re.subs = Regexp.emptySubs();
             break;
           case 2:
             {
@@ -7006,6 +7120,9 @@ class Parser {
 
     // Handle lookbehinds
     if (re2.lb !== 0) {
+      if (Parser.hasCapture(re1)) {
+        throw new RE2JSSyntaxException(Parser.ERR_INVALID_CAPTURE_IN_LOOKBEHIND, this.wholeRegexp);
+      }
       if (re2.lb > 0) {
         re2.op = Regexp.Op.PLB;
       } else {
@@ -8655,6 +8772,46 @@ class RE2JS {
   }
 
   /**
+   * Returns an iterator of all results matching a string against the regular expression,
+   * including capturing groups.
+   *
+   * @param {string|number[]|Uint8Array} input the input string or byte array
+   * @returns {IterableIterator<Array>}
+   */
+  *matchAll(input) {
+    const m = this.matcher(input);
+    while (m.find()) {
+      // Build the match array starting with the full match
+      const result = [m.group(0)];
+
+      // Append all capture groups using void 0 instead of undefined
+      for (let i = 1; i <= m.groupCount(); i++) {
+        const groupVal = m.group(i);
+        result.push(groupVal === null ? void 0 : groupVal);
+      }
+
+      // Attach native RegExp match properties
+      result.index = m.start(0);
+      result.input = input; // Retains original String or Uint8Array so index aligns perfectly
+
+      // Attach named capture groups if they exist
+      const namedGroups = this.namedGroups();
+      if (Object.keys(namedGroups).length > 0) {
+        const parsedGroups = m.getNamedGroups();
+        for (const key in parsedGroups) {
+          if (parsedGroups[key] === null) {
+            parsedGroups[key] = void 0;
+          }
+        }
+        result.groups = parsedGroups;
+      } else {
+        result.groups = void 0;
+      }
+      yield result;
+    }
+  }
+
+  /**
    *
    * @returns {string}
    */
@@ -8710,6 +8867,8 @@ class RE2JS {
     return this.flagsInput === other.flagsInput && this.patternInput === other.patternInput;
   }
 }
+
+/* Small helper for Tagged Template Literals (No Double-Escaping) */
 const re = (stringsOrFlags, ...values) => {
   if (Array.isArray(stringsOrFlags) && stringsOrFlags.raw) {
     const pattern = String.raw(stringsOrFlags, ...values);
