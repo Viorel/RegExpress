@@ -30,6 +30,22 @@ namespace CompileTimeRegexPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Int64? template_depth = null;
+
+            if( !string.IsNullOrWhiteSpace( options.TemplateDepth ) )
+            {
+                if( !Int64.TryParse( options.TemplateDepth, out var template_depth0 ) )
+                {
+                    throw new ApplicationException( "Invalid template depth." );
+                }
+                else
+                {
+                    template_depth = template_depth0;
+                }
+            }
+
+            string? additional_CL_option_1 = template_depth == null ? "" : $"/templateDepth:{template_depth}";
+
             string[] possible_group_names =
                 PossibleNamesRegex( )
                     .Matches( pattern )
@@ -91,7 +107,8 @@ namespace CompileTimeRegexPlugin
                 {
                     ProcessHelper ph = new( build_cmd_full_path )
                     {
-                        AllEncoding = EncodingEnum.ASCII
+                        AllEncoding = EncodingEnum.ASCII,
+                        Arguments = [additional_CL_option_1],
                     };
 
                     if( !ph.Start( cnc ) ) return RegexMatches.Empty;
@@ -230,7 +247,7 @@ namespace CompileTimeRegexPlugin
 
         public static string? GetVersion( ICancellable cnc )
         {
-            return "3.10.0"; // TODO: get from sources
+            return "3.11.0"; // TODO: if available, get from sources
         }
 
         static string GetWorkerDirectory( )

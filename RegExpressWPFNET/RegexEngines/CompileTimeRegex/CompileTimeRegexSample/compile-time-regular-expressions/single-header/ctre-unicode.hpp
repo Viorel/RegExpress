@@ -1598,7 +1598,7 @@ template <auto V> struct character {
 				}
 			}	
 		}
-		return value == V;
+		return static_cast<std::make_unsigned_t<CharT>>(value) == V;
 	}
 };
 
@@ -1637,7 +1637,7 @@ template <auto A, auto B> struct char_range {
 				}
 			}	
 		}
-		return (value >= A) && (value <= B);
+		return (static_cast<std::make_unsigned_t<CharT>>(value) >= A) && (static_cast<std::make_unsigned_t<CharT>>(value) <= B);
 	}
 };
 using word_chars = set<char_range<'A','Z'>, char_range<'a','z'>, char_range<'0','9'>, character<'_'> >;
@@ -1899,7 +1899,7 @@ template <auto Type, auto Value> using make_property = property<std::remove_cons
 // unicode TS#18 level 1.2 general_category
 template <uni::detail::binary_prop Property> struct binary_property<uni::detail::binary_prop, Property> {
 	template <typename CharT> inline static constexpr bool match_char(CharT c, const flags &) noexcept {
-		return uni::detail::get_binary_prop<Property>(static_cast<char32_t>(c));
+		return uni::detail::get_binary_prop<Property>(static_cast<char32_t>(static_cast<std::make_unsigned_t<CharT>>(c)));
 	}
 };
 
@@ -3106,6 +3106,10 @@ constexpr bool starts_with_anchor(const flags & f, ctll::list<capture_with_name<
 #define CTRE_ENABLE_UTF8_RANGE
 #endif
 
+#if defined(__cpp_impl_three_way_comparison) && (__cpp_impl_three_way_comparison >= 201907L)
+#define CTRE_NO_NEED_FOR_ADDITIONAL_COMPARISONS
+#endif
+
 namespace ctre {
 
 struct utf8_iterator {
@@ -3136,7 +3140,7 @@ struct utf8_iterator {
 		friend constexpr auto operator==(self_type, const char8_t * other_ptr) noexcept {
 			return *other_ptr == char8_t{0};
 		}
-#if !defined(__cpp_impl_three_way_comparison) || __cpp_impl_three_way_comparison < 201907L		
+#ifndef CTRE_NO_NEED_FOR_ADDITIONAL_COMPARISONS		
 		friend constexpr auto operator!=(self_type, const char8_t * other_ptr) noexcept {
 			return *other_ptr != char8_t{0};
 		}
@@ -3153,7 +3157,7 @@ struct utf8_iterator {
 	
 	const char8_t * ptr{nullptr};
 	const char8_t * end{nullptr};
-#if !defined(__cpp_impl_three_way_comparison) || __cpp_impl_three_way_comparison < 201907L
+#ifndef CTRE_NO_NEED_FOR_ADDITIONAL_COMPARISONS
 	constexpr friend bool operator!=(const utf8_iterator & lhs, sentinel) {
 		return lhs.ptr < lhs.end;
 	}
@@ -3178,7 +3182,7 @@ struct utf8_iterator {
 		return lhs.ptr == rhs.ptr;
 	}
 	
-#if !defined(__cpp_impl_three_way_comparison) || __cpp_impl_three_way_comparison < 201907L
+#ifndef CTRE_NO_NEED_FOR_ADDITIONAL_COMPARISONS
 	constexpr friend bool operator!=(sentinel, const utf8_iterator & rhs) {
 		return rhs.ptr < rhs.end;
 	}

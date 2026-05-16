@@ -1,6 +1,5 @@
 ﻿#include <iostream>
 #include <exception>
-#include <type_traits>
 
 #include ".\\compile-time-regular-expressions\\single-header\\ctre-unicode.hpp"
 
