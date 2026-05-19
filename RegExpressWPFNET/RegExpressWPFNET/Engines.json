@@ -72,6 +72,9 @@
     },
     {
       "path": "Engines\\CompileTimeRegex\\CompileTimeRegexPlugin.dll"
+    },
+    {
+      "path": "Engines\\GRETA\\GretaPlugin.dll"
     }
   ]
 }
