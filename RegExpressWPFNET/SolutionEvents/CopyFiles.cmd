@@ -223,3 +223,10 @@ xcopy /D /R /Y /E "%BasePath%\CompileTimeRegexSample\compile-time-regular-expres
 xcopy /D /R /Y "%BasePath%\CompileTimeRegexSample\build.cmd" "%EnginesTargetPath%\CompileTimeRegex\*"
 xcopy /D /R /Y "%BasePath%\CompileTimeRegexSample\CompileTimeRegexSample.cpp" "%EnginesTargetPath%\CompileTimeRegex\*"
 
+
+rem -- GRETA --
+
+set BasePath=%SolutionDir%\RegexEngines\GRETA
+xcopy /D /R /Y "%BasePath%\GretaPlugin\bin\%Configuration%\%TargetDir%\GretaPlugin.dll" "%EnginesTargetPath%\GRETA\*"
+xcopy /D /R /Y "%BasePath%\GretaWorker\bin\%Configuration%\%Platform%\GretaWorker.exe" "%EnginesTargetPath%\GRETA\*.bin"
+

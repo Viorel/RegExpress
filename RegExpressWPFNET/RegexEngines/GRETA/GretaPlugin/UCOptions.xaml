@@ -1,0 +1,64 @@
+﻿<UserControl x:Class="GretaPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:GretaPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="154" d:DesignWidth="607.109" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+
+        <StackPanel Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="NOCASE" Note="do a case-insensitive search"/>
+            <ui:CheckboxWithNote Prop="MULTILINE" Note="‘^’ will also match the beginning of a line and ‘$’ will also match before the end of the line"/>
+            <ui:CheckboxWithNote Prop="SINGLELINE" Note="‘.’ will also match the newline character"/>
+            <ui:CheckboxWithNote Prop="EXTENDED" Note="any white space is pattern is ignored; any text following a # is considered a comment"/>
+            <ui:CheckboxWithNote Prop="RIGHTMOST" Note="find the rightmost, longest match"/>
+            <ui:CheckboxWithNote Prop="NORMALIZE" Note="turning ‘\\n’, ‘\\r’, ‘\\t’, ‘\\f’, ‘\\v’, ‘\\a’, ‘\\\\’ into ‘\n’, ‘\r’, ‘\t’, ‘\f’, ‘\v’, ‘\a’, ‘\\’"/>
+
+            <Grid Margin="0 4 0 0">
+                <Grid.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </Grid.LayoutTransform>
+                <Grid.Resources>
+                    <Style TargetType="Label">
+                        <Setter Property="Padding" Value="0 2 4 2"/>
+                    </Style>
+                    <Style TargetType="ComboBox">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="MinWidth" Value="150"/>
+                        <Setter Property="Margin" Value="3 0 0 2"/>
+                    </Style>
+                </Grid.Resources>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+
+                <Label Grid.Column="0" Grid.Row="0" Content="Mode:" Target="{Binding ElementName=cbxMode}" />
+                <ComboBox x:Name="cbxMode" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Mode, FallbackValue='Default'}" SelectionChanged="cbx_SelectionChanged">
+                    <ComboBoxItem Tag ="Default" Content="Default" IsSelected="True" />
+                    <ComboBoxItem Tag ="MODE_FAST" Content="MODE_FAST" />
+                    <ComboBoxItem Tag ="MODE_SAFE" Content="MODE_SAFE" />
+                    <ComboBoxItem Tag ="MODE_MIXED" Content="MODE_MIXED" />
+                </ComboBox>
+
+            </Grid>
+
+        </StackPanel>
+    </Grid>
+</UserControl>

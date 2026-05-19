@@ -1,6 +1,0 @@
-<Solution>
-  <Configurations>
-    <Platform Name="x64" />
-  </Configurations>
-  <Project Path="GretaWorker.vcxproj" />
-</Solution>
