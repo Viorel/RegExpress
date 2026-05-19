@@ -25,7 +25,7 @@
 namespace regex
 {
 
-REGEX_SELECTANY TOKEN const perl_syntax_base::s_rgreg[ UCHAR_MAX + 1 ] =
+/*REGEX_SELECTANY*/ TOKEN const perl_syntax_base::s_rgreg[ UCHAR_MAX + 1 ] =
 {
 /*  0*/    NO_TOKEN,  NO_TOKEN, NO_TOKEN,      NO_TOKEN,    NO_TOKEN,  NO_TOKEN,   NO_TOKEN, NO_TOKEN,
 /*  8*/    NO_TOKEN,  NO_TOKEN, NO_TOKEN,      NO_TOKEN,    NO_TOKEN,  NO_TOKEN,   NO_TOKEN, NO_TOKEN,
@@ -46,7 +46,7 @@ REGEX_SELECTANY TOKEN const perl_syntax_base::s_rgreg[ UCHAR_MAX + 1 ] =
 // and the rest are 0...
 };
 
-REGEX_SELECTANY TOKEN const perl_syntax_base::s_rgescape[ UCHAR_MAX + 1 ] =
+/*REGEX_SELECTANY*/ TOKEN const perl_syntax_base::s_rgescape[ UCHAR_MAX + 1 ] =
 {
 /*  0*/    NO_TOKEN,           NO_TOKEN,              NO_TOKEN,       NO_TOKEN,
            NO_TOKEN,           NO_TOKEN,              NO_TOKEN,       NO_TOKEN,
