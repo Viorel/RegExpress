@@ -7,11 +7,11 @@
 #include <iterator>
 #include <string>
 
-#include "./Greta/regexpr2.h"
+#include "./GRETA/regexpr2.h"
 
 namespace
 {
-	// Copied here and simplified for C++14.
+	// Copied from 'RegExpressCppLibrary' and simplified for C++14.
 
 	bool ParseString( std::string* destination, const char* source )
 	{
@@ -37,7 +37,7 @@ namespace
 				throw std::runtime_error( "Unterminated string" );
 			case '\\':
 			{
-				char c = *++source;
+				c = *++source;
 
 				switch( c )
 				{
@@ -186,8 +186,6 @@ int main( )
 #else
 		std::string patternS;
 		std::string textS;
-		std::string syntaxS;
-		std::string localeS;
 		std::string flagsS;
 
 		std::getline( std::cin, patternS );
@@ -260,8 +258,10 @@ int main( )
 			auto old_pos = pos;
 			pos += results.rstart( ) + results.rlength( );
 
-			if( pos == old_pos )
+			if( pos == old_pos ) 
 			{
+				// successful empty match; advance by one character
+
 				if( text[pos] >= 0xD800 && text[pos] <= 0xDBFF ) // surrogate pair
 				{
 					pos += 2;

@@ -334,7 +334,7 @@ namespace GretaPlugin
 
                 Recursive_Num = false,
                 Recursive_PlusMinusNum = false,
-                Recursive_R = false,
+                Recursive_R = true,
                 Recursive_Name = false,
                 Recursive_PGtName = false,
                 Recursive_ReturnGroups = false,

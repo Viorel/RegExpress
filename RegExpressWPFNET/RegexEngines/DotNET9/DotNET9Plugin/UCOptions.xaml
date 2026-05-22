@@ -40,6 +40,7 @@
                     <ComboBoxItem Tag="10000" Content="10 s" IsSelected="True"/>
                     <ComboBoxItem Tag="15000" Content="15 s"/>
                     <ComboBoxItem Tag="30000" Content="30 s"/>
+                    <ComboBoxItem Tag="-1" Content="None"/>
                 </ComboBox>
             </StackPanel>
         </StackPanel>

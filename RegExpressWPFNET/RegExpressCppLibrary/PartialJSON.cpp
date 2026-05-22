@@ -30,7 +30,7 @@ namespace PartialJSON
                 throw std::runtime_error( "Unterminated string" );
             case '\\':
             {
-                char c = *++source;
+                c = *++source;
 
                 switch( c )
                 {
@@ -103,7 +103,8 @@ namespace PartialJSON
         return true;
     }
 
-    std::wstring UTF8_to_wchar( const char* in )
+    /*
+    std::wstring UTF8_to_wchar( const char* in ) // (see also 'Utf8ToWString' from 'Convert.h')
     {
         // based on https://stackoverflow.com/questions/148403/utf8-to-from-wide-char-conversion-in-stl
 
@@ -155,4 +156,5 @@ namespace PartialJSON
 
         return out;
     }
+    */
 }

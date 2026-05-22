@@ -86,7 +86,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
 
                 std::map<int, std::wstring> names;
 
-                for( auto& name : possible_group_names )
+                for( const auto& name : possible_group_names )
                 {
                     int i = match.named_subexpression_index( name.c_str( ), name.c_str( ) + name.length( ) );
                     if( i >= 0 )

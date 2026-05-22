@@ -14,51 +14,10 @@ static void FindPossibleNames( std::set<UnicodeString>* set, UnicodeString patte
     }
 }
 
-static void DoWork( )
+static void DoWork( UnicodeString pattern, UnicodeString text, TRegExOptions options )
 {
     try
     {
-#if 1
-        THandleStream* stdin_stream = new THandleStream( THandle( GetStdHandle( STD_INPUT_HANDLE ) ) );
-        TStreamReader* stream_reader = new TStreamReader( stdin_stream );
-        UnicodeString input_string = stream_reader->ReadToEnd( );
-#else
-        UnicodeString input_string = LR"JSON({ "pattern" : ".", "text" : "abc", "flags": "g" })JSON";
-#endif
-
-        //std::wcout << input_string << std::endl;
-
-        TJSONObject* json_object = new TJSONObject( );
-
-        int e = json_object->Parse( input_string.BytesOf( ), 0 );
-        if( e < 0 ) throw Exception( "Invalid input: '" + input_string + "'" );
-
-        TJSONValue* value;
-
-        value = json_object->GetValue( "pattern" );
-        if( value == nullptr ) throw std::runtime_error( "No pattern" );
-        UnicodeString pattern = value->Value( );
-
-        value = json_object->GetValue( "text" );
-        if( value == nullptr ) throw std::runtime_error( "No text" );
-        UnicodeString text = value->Value( );
-
-        value = json_object->GetValue( "flags" );
-        UnicodeString flags = value == nullptr ? L"" : value->Value( );
-
-        //std::wcout << "pattern: " << pattern << std::endl;
-        //std::wcout << "text: " << text << std::endl;
-        //std::wcout << "flags: " << flags << std::endl;
-
-        TRegExOptions options;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'i' ) != flags.cend( ) ) options << TRegExOption::roIgnoreCase;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'm' ) != flags.cend( ) ) options << TRegExOption::roMultiLine;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'n' ) != flags.cend( ) ) options << TRegExOption::roExplicitCapture;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'C' ) != flags.cend( ) ) options << TRegExOption::roCompiled;
-        if( std::find( flags.cbegin( ), flags.cend( ), L's' ) != flags.cend( ) ) options << TRegExOption::roSingleLine;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'x' ) != flags.cend( ) ) options << TRegExOption::roIgnorePatternSpace;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'N' ) != flags.cend( ) ) options << TRegExOption::roNotEmpty;
-
         std::set<UnicodeString> possible_names;
         FindPossibleNames( &possible_names, pattern );
 
@@ -123,7 +82,48 @@ int WINAPI _tWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmd
 {
     __try
     {
-        DoWork( );
+#if 1
+        THandleStream* stdin_stream = new THandleStream( THandle( GetStdHandle( STD_INPUT_HANDLE ) ) );
+        TStreamReader* stream_reader = new TStreamReader( stdin_stream );
+        UnicodeString input_string = stream_reader->ReadToEnd( );
+#else
+        UnicodeString input_string = LR"JSON({ "pattern" : ".", "text" : "abc", "flags": "g" })JSON";
+#endif
+
+        //std::wcout << input_string << std::endl;
+
+        TJSONObject* json_object = new TJSONObject( );
+
+        int e = json_object->Parse( input_string.BytesOf( ), 0 );
+        if( e < 0 ) throw Exception( "Invalid input: '" + input_string + "'" );
+
+        TJSONValue* value;
+
+        value = json_object->GetValue( "pattern" );
+        if( value == nullptr ) throw std::runtime_error( "No pattern" );
+        UnicodeString pattern = value->Value( );
+
+        value = json_object->GetValue( "text" );
+        if( value == nullptr ) throw std::runtime_error( "No text" );
+        UnicodeString text = value->Value( );
+
+        value = json_object->GetValue( "flags" );
+        UnicodeString flags = value == nullptr ? L"" : value->Value( );
+
+        //std::wcout << "pattern: " << pattern << std::endl;
+        //std::wcout << "text: " << text << std::endl;
+        //std::wcout << "flags: " << flags << std::endl;
+
+        TRegExOptions options;
+        if( std::find( flags.cbegin( ), flags.cend( ), L'i' ) != flags.cend( ) ) options << TRegExOption::roIgnoreCase;
+        if( std::find( flags.cbegin( ), flags.cend( ), L'm' ) != flags.cend( ) ) options << TRegExOption::roMultiLine;
+        if( std::find( flags.cbegin( ), flags.cend( ), L'n' ) != flags.cend( ) ) options << TRegExOption::roExplicitCapture;
+        if( std::find( flags.cbegin( ), flags.cend( ), L'C' ) != flags.cend( ) ) options << TRegExOption::roCompiled;
+        if( std::find( flags.cbegin( ), flags.cend( ), L's' ) != flags.cend( ) ) options << TRegExOption::roSingleLine;
+        if( std::find( flags.cbegin( ), flags.cend( ), L'x' ) != flags.cend( ) ) options << TRegExOption::roIgnorePatternSpace;
+        if( std::find( flags.cbegin( ), flags.cend( ), L'N' ) != flags.cend( ) ) options << TRegExOption::roNotEmpty;
+
+        DoWork( pattern, text, options );
     }
     __except( EXCEPTION_EXECUTE_HANDLER )
     {

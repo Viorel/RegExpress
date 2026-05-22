@@ -506,14 +506,12 @@ struct Details
 #undef ALL_DATA_FLAGS
 
 
-void WriteDetails( BinaryWriterW& outbw, /*const*/ OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions )
+void WriteDetails( BinaryWriterW& outbw, const OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions )
 {
     Details details( adjustedSyntax, compileOptions );
 
     outbw.WriteT<char>( 'b' );
-
     outbw.WriteT( details );
-
     outbw.WriteT<char>( 'e' );
 }
 

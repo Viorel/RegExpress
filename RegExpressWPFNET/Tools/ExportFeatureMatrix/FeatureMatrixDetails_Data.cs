@@ -462,7 +462,8 @@ partial class FeatureMatrixDetails
                     .Test( @"(x(.))(?-1)", "xyz", null )
                     .Test( @"\(x\(.\)\)\(?-1\)", "xyz", null ),
                 new FeatureMatrixDetails( @"(?R)", @"Recursive whole pattern", fm => fm.Recursive_R)
-                    .Test( @"a(?R)*b", "aabb", "b"),
+                    .Test( @"a((?R))*b", "aabb", "b"),
+                    //.Test( @"\(((?>[^()]+)|(?R))*\)", "(a(b)c)", "b"),
                 new FeatureMatrixDetails( @"(?&name)", @"Recursive subpattern by name", fm => fm.Recursive_Name)
                     .Test( @"(?<n>a)(?&n)", "aa", null ),
                 new FeatureMatrixDetails( @"(?P>name)", @"Recursive subpattern by name", fm => fm.Recursive_PGtName)
@@ -547,7 +548,7 @@ partial class FeatureMatrixDetails
                     .Test( @"(test){+1}", "teXst", null )
                     .Test( @"\(test\)\{+1\}", "teXst", null )
                     .Test( (e, fm) => fm.FuzzyMatchingParams ),
-                new FeatureMatrixDetails( "No hang", "No catastrophic infinite matching, no timeout errors", fm => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Accept )
+                new FeatureMatrixDetails( "No hang, no ReDoS", "No catastrophic infinite matching, no timeout errors", fm => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Accept )
                     .Test( (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Passed ),
                 //new ( "No hang but error", "Give errors on possible catastrophic backtracking", fm => false ) { DirectCheck = (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Error },
                 new FeatureMatrixDetails( "Σσς", "Match letters that have multiple uppercase and lowercase variants", fm => fm.Σσς )

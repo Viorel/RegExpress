@@ -1,7 +1,6 @@
 #include "pch.h"
 
 #include "BinaryReader.h"
-#include "StreamWriter.h"
 
 
 uint8_t BinaryReader::ReadByte( ) const
