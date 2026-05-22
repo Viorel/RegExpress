@@ -146,7 +146,7 @@ namespace JavaScriptPlugin
             {
                 // example: " * @version v1.2.0"
 
-                string js_path = Path.Combine( GetRE2JSWorkerDirectory( ), "re2js", "build", "index.esm.js" );
+                string js_path = Path.Combine( GetRE2JSWorkerDirectory( ), "re2js", "build", "index.js" );
                 string? version = File
                     .ReadLines( js_path )
                     .Select( line => RegexGetVersion( ).Match( line ) )

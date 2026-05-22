@@ -1,6 +1,6 @@
 {
   "name": "re2js",
-  "version": "2.8.0",
+  "version": "2.8.3",
   "description": "RE2JS is the JavaScript port of RE2, a regular expression engine that provides linear time matching",
   "type": "module",
   "sideEffects": false,
@@ -23,21 +23,30 @@
     "README.md",
     "LICENSE"
   ],
-  "main": "build/index.cjs.cjs",
-  "module": "build/index.esm.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "main": "build/index.cjs",
+  "module": "build/index.js",
   "unpkg": "build/index.umd.js",
   "exports": {
     ".": {
-      "types": "./build/index.esm.d.ts",
-      "import": "./build/index.esm.js",
-      "require": "./build/index.cjs.cjs"
+      "import": {
+        "types": "./build/index.d.ts",
+        "default": "./build/index.js"
+      },
+      "require": {
+        "types": "./build/index.d.cts",
+        "default": "./build/index.cjs"
+      }
     }
   },
-  "types": "build/index.esm.d.ts",
+  "types": "build/index.d.ts",
   "scripts": {
-    "build": "rollup -c && tsc",
-    "dev": "rollup -c -w",
-    "lint": "pnpify run prettier --check src tools *.config.js && eslint src/**/*.js tools/**/*.js babel.config.js vitest.config.js",
+    "build": "rolldown -c && yarn build:types",
+    "dev": "rolldown -c -w",
+    "build:types": "tsc && dts-bundle-generator -o build/index.d.ts tmp/types/index.d.ts && cp build/index.d.ts build/index.d.cts && rm -rf tmp/types",
+    "lint": "pnpify run prettier --check src tools *.config.js && eslint src/**/*.js tools/**/*.js rolldown.config.js vitest.config.js",
     "format": "pnpify run prettier --write src tools *.config.js",
     "test": "vitest run --project=node",
     "test:watch": "vitest --project=node",
@@ -46,18 +55,13 @@
     "bench": "vitest bench --run --project=node"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
-    "@babel/eslint-parser": "^7.28.6",
-    "@babel/preset-env": "^7.29.5",
     "@eslint/js": "^9.39.4",
-    "@rollup/plugin-babel": "^7.0.0",
-    "@rollup/plugin-commonjs": "^29.0.2",
-    "@rollup/plugin-node-resolve": "^16.0.3",
     "@unicode/unicode-17.0.0": "^1.6.16",
     "@vitest/browser": "^4.1.6",
     "@vitest/browser-playwright": "^4.1.6",
     "@vitest/coverage-v8": "^4.1.6",
     "@yarnpkg/pnpify": "^4.1.6",
+    "dts-bundle-generator": "^9.5.1",
     "eslint": "9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-node": "^0.3.10",
@@ -66,7 +70,7 @@
     "lodash": "^4.18.1",
     "playwright": "^1.60.0",
     "prettier": "^3.8.3",
-    "rollup": "^4.60.3",
+    "rolldown": "^1.0.1",
     "typescript": "^6.0.3",
     "unicode-property-value-aliases": "^3.9.0",
     "vitest": "^4.1.6"

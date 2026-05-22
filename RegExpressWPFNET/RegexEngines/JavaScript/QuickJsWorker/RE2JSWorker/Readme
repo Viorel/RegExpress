@@ -5,4 +5,8 @@ Use NodeJs (see the standalone version used by sibling NodeJs worker). Install t
 
     > npm install -g re2js 
 
+To update the existing module: 
+
+    > npm update -g re2js
+
 Copy the installed module from NodeJs to this worker.

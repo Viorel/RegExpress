@@ -1,5 +1,5 @@
 import * as std from "std";
-import { RE2JS } from './re2js/build/index.esm.js'
+import { RE2JS } from './re2js/build/index.js'
 
 try
 {
