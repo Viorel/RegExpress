@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) version 2026.02
+**  SRELL (std::regex-like library) version 2026.03
 **
 **  Copyright (c) 2012-2026, Nozomu Katoo. All rights reserved.
 **
@@ -31,7 +31,7 @@
 */
 
 #ifndef SRELL_HPP_
-#define SRELL_HPP_ 202602
+#define SRELL_HPP_ 202603
 
 #include <climits>
 #include <cwchar>
@@ -561,7 +561,7 @@ public:
 
 private:
 
-	const char *what_(const regex_constants::error_type e) const
+	static const char *what_(const regex_constants::error_type e)
 	{
 		static const char *enames[] = {
 			"error_collate", "error_ctype", "error_escape", "error_backref", "error_brack"
@@ -17552,7 +17552,8 @@ private:
 	static T check_()
 	{
 #if defined(__GNUC__)
-		return __builtin_cpu_supports("sse4.2") ? 1 : 0;
+		return (__builtin_cpu_supports("sse4.2") ? 1 : 0)
+			| (__builtin_cpu_supports("avx2") ? 2 : 0);	//  Only for VPCMPEQB.
 #elif defined(_MSC_VER)
 		int cpuInfo[4];
 		T v = 0;
@@ -17564,6 +17565,11 @@ private:
 		{
 			__cpuid(cpuInfo, 1);
 			v |= (cpuInfo[2] & (1 << 20)) ? 1 : 0;	//  ecx. SSE4.2.
+			if (max >= 7)
+			{
+				__cpuidex(cpuInfo, 7, 0);
+				v |= (cpuInfo[1] & (1 << 5)) ? 2 : 0;	//  ebx. AVX2.
+			}
 		}
 		return v;
 #else
@@ -19669,7 +19675,7 @@ private:
 #if defined(SRELL_OMIT_CPUCHECK)
 		if (sizeof (charT) <= 2)
 #else
-		if (cpu_checker<int>::x86simd() && sizeof (charT) <= 2)
+		if ((cpu_checker<int>::x86simd() & 1) && sizeof (charT) <= 2)
 #endif
 		{
 			if (curnum > 0)
@@ -20451,6 +20457,10 @@ private:
 			{
 				if (s.quantifier.atleast == 0 && !this->NFA_states[pos + 3].is_character_or_class())
 					return 1;
+
+				if (s.next1 > s.next2)
+					delib = -1;
+
 				pos += 3;
 				continue;
 			}
@@ -20849,6 +20859,7 @@ private:
 		ui_l32 charcount = 0u;
 		int needs_rerun = 0;
 		int next_nr = 0;
+		ui_l32 bias = 0;
 		range_pairs nextcc;
 
 		for (; cur < NFAs.size();)
@@ -20893,13 +20904,18 @@ private:
 			if (canbe0length)
 				break;
 
-			const ui_l32 cunum = nextcc.num_codeunits<utf_traits>();
 			const int has_obstacle = has_obstacle_to_reverse(cur, boundary);
 
-			if (has_obstacle == -1 && bp_cunum <= 4)
-				break;
+			if (has_obstacle == -1)
+			{
+				if (bp_cunum <= 4)
+					break;
+				++bias;
+			}
 
-			if (bp_cunum >= cunum)
+			const ui_l32 cunum = nextcc.num_codeunits<utf_traits>();
+
+			if (bp_cunum >= (cunum + bias))
 			{
 				betterpos = cur;
 				bp_cunum = cunum;
@@ -21978,6 +21994,7 @@ public:
 
 		if (this->NFA_states.size())
 		{
+			typedef typename std::iterator_traits<BidirectionalIterator> bi_traits;
 			typedef typename contiguous_checker<BidirectionalIterator, 0>::itype ci_checker;
 #if defined(SRELL_HAS_SSE42)
 			typedef ci_checker simd_ac;
@@ -21991,7 +22008,7 @@ public:
 #if !defined(SRELLDBG_NO_BMH)
 			if (this->bmdata && !(sstate.flags & regex_constants::match_continuous))
 			{
-				typedef typename std::iterator_traits<BidirectionalIterator>::iterator_category ic;
+				typedef typename bi_traits::iterator_category ic;
 
 				if (this->NFA_states[0].flags == 0 ? this->bmdata->do_casesensitivesearch(sstate, ic()) : this->bmdata->do_icasesearch(sstate, ic()))
 					return results.set_match_results_bmh_();
@@ -22020,7 +22037,11 @@ public:
 
 #if !defined(SRELLDBG_NO_SCFINDER)
 SRELL_NO_VCWARNING(4127)
-					if (simd_ac::is_ci == 0 && (this->NFA_states[0].char_num & static_cast<ui_l32>(utf_traits::ecmask)))
+					if ((simd_ac::is_ci == 0
+#if defined(SRELL_HAS_SSE42)
+						|| (sizeof (typename bi_traits::value_type) == 1 && (cpu_checker<int>::x86simd() & 2))
+#endif
+						) && (this->NFA_states[0].char_num & static_cast<ui_l32>(utf_traits::ecmask)))
 SRELL_NO_VCWARNING_END
 					{
 						reason = do_search_sc(sstate, ci_checker());
@@ -22204,7 +22225,7 @@ SRELL_NO_VCWARNING_END
 
 		for (; sstate.nextpos < sstate.srchend;)
 		{
-			const char_type2 *const bgnpos = std::char_traits<char_type2>::find(&*sstate.nextpos, sstate.srchend - sstate.nextpos, ec);
+			const char_type2 *const bgnpos = find_(&*sstate.nextpos, sstate.srchend - sstate.nextpos, ec);
 
 			if (bgnpos)
 			{
@@ -22290,6 +22311,19 @@ SRELL_NO_VCWARNING_END
 		}
 		return 0;
 	}
+
+	template <typename charT2>
+	const charT2 *find_(const charT2 *const ptr, const std::size_t count, const charT2 &ch) const
+	{
+		return std::char_traits<charT2>::find(ptr, count, ch);
+	}
+
+#if defined(__cpp_char8_t)
+	const char8_t *find_(const char8_t *const ptr, const std::size_t count, const char8_t ch) const
+	{
+		return static_cast<const char8_t *>(std::memchr(ptr, static_cast<int>(ch), count));
+	}
+#endif
 
 #endif	//  !defined(SRELLDBG_NO_SCFINDER)
 
