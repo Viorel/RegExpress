@@ -78,6 +78,9 @@
     },
     {
       "path": "Engines\\Zig\\ZigPlugin.dll"
+    },
+    {
+      "path": "Engines\\RESharp\\RESharpPlugin.dll"
     }
   ]
 }
