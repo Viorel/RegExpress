@@ -39,6 +39,7 @@ It includes the following Regular Expression engines:
 * **[compile-time-regular-expressions (CTRE)](https://github.com/hanickadot/compile-time-regular-expressions)**[^2] 3.11.0  (in C++).
 * **GRETA** 2.6.4 (in C++).
 * **Zig** 0.16.0 libraries: [zig-regex](https://github.com/zig-utils/zig-regex) v0.2.0 and [mvzr](https://github.com/mnemnion/mvzr) v0.3.10.
+* **[RE#](https://github.com/ieviev/resharp-dotnet)** 1.0.3 (for F#, C#, VB).
 
 <br/>
 
@@ -143,6 +144,7 @@ Download and open the file:
     * **TRegEx**
     * **Qt**
     * **CTRE**
+    * **RE#**
 
 * Engines that support fuzzy or approximate matching:
     * **Hyperscan**
