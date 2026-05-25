@@ -105,6 +105,7 @@ partial class FeatureMatrixDetails
         Passed,
         Timeout,
         Error,
+        Unknown,
     }
 
     static CatastrophicBacktrackingResultEnum CheckCatastrophicPattern( IRegexEngine engine, FeatureMatrix fm )
@@ -129,12 +130,12 @@ partial class FeatureMatrixDetails
                     }
                     case FeatureMatrix.PunctuationEnum.Backslashed:
                     {
-                        var _ = engine.GetMatches( cnc, @"\(a*\)*b", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac" );
+                        var _ = engine.GetMatches( cnc, @"\(a*\)*b", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac" );
                         result = CatastrophicBacktrackingResultEnum.Passed;
                         break;
                     }
                     default:
-                        result = CatastrophicBacktrackingResultEnum.Error;
+                        result = CatastrophicBacktrackingResultEnum.Unknown;
                         break;
                     }
 
@@ -144,8 +145,9 @@ partial class FeatureMatrixDetails
                 {
                     return;
                 }
-                catch
+                catch( Exception exc )
                 {
+                    _ = exc;
                     // ...
 
                     result = CatastrophicBacktrackingResultEnum.Error;

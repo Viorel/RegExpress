@@ -367,10 +367,10 @@ namespace GretaPlugin
                 EmptySet = false,
 
                 AsciiOnly = false,
-                SplitSurrogatePairs = true, 
+                SplitSurrogatePairs = true,
                 AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
-                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,
             };
         }

@@ -77,11 +77,11 @@ namespace RegExpressLibrary.Matches.Simple
         }
 
 
-        public SimpleGroup AddGroup( int index, int length, bool success, string name, ISimpleTextGetter stg )
+        public SimpleGroup AddGroup( int index, int length, bool success, string name, ISimpleTextGetter textGetter )
         {
-            if( success ) TextGetter.ThrowIfInvalid( index, length );
+            if( success ) textGetter.ThrowIfInvalid( index, length );
 
-            var group = new SimpleGroup( index, length, stg, success, name );
+            var group = new SimpleGroup( index, length, textGetter, success, name );
             mGroups.Add( group );
 
             return group;
