@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:ZigPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="88.8" d:DesignWidth="402.442" 
+             d:DesignHeight="119.1" d:DesignWidth="402.442" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -17,11 +17,48 @@
 
     <Grid>
         <StackPanel>
-            <ui:CheckboxWithNote Prop="case_insensitive" Note="Matches both uppercase and lowercase letters"/>
-            <ui:CheckboxWithNote Prop="multiline" Note="Not yet implemented"/>
-            <ui:CheckboxWithNote Prop="dot_all" Note="Not yet implemented"/>
-            <ui:CheckboxWithNote Prop="extended" Note="Not yet implemented"/>
-            <ui:CheckboxWithNote Prop="unicode" Note="Not yet implemented"/>
+            <Grid Margin="0 0 0 4">
+                <Grid.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </Grid.LayoutTransform>
+                <Grid.Resources>
+                    <Style TargetType="Label">
+                        <Setter Property="Padding" Value="0 2 4 2"/>
+                    </Style>
+                    <Style TargetType="ComboBox">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="MinWidth" Value="120"/>
+                        <Setter Property="Margin" Value="3 0 0 2"/>
+                    </Style>
+                </Grid.Resources>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Content="Library:" Target="{Binding ElementName=cbxLibrary}" />
+                <ComboBox x:Name="cbxLibrary" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Library, FallbackValue='ZigRegex'}" SelectionChanged="cbxLibrary_SelectionChanged">
+                    <ComboBoxItem Tag="ZigRegex" Content="ZigRegex" IsSelected="True" />
+                    <ComboBoxItem Tag="Mvzr" Content="Mvzr" />
+                </ComboBox>
+
+            </Grid>
+
+            <StackPanel x:Name="pnlZigRegexOptions">
+                <ui:CheckboxWithNote Prop="case_insensitive" Note="Matches both uppercase and lowercase letters"/>
+                <ui:CheckboxWithNote Prop="multiline" Note="Not yet implemented"/>
+                <ui:CheckboxWithNote Prop="dot_all" Note="Not yet implemented"/>
+                <ui:CheckboxWithNote Prop="extended" Note="Not yet implemented"/>
+                <ui:CheckboxWithNote Prop="unicode" Note="Not yet implemented"/>
+            </StackPanel>
+
+            <StackPanel x:Name="pnlMvzrOptions">
+            </StackPanel>
+
         </StackPanel>
 
     </Grid>

@@ -38,7 +38,7 @@ It includes the following Regular Expression engines:
 * **[QRegularExpression](https://doc.qt.io/qt-6/qregularexpression.html)** class (based on PCRE2) from Qt 6.9.3 (in C++).
 * **[compile-time-regular-expressions (CTRE)](https://github.com/hanickadot/compile-time-regular-expressions)**[^2] 3.11.0  (in C++).
 * **GRETA** 2.6.4 (in C++).
-* **Zig** [zig-regex](https://github.com/zig-utils/zig-regex) library v0.2.0  (in Zig 0.16.0).
+* **Zig** 0.16.0 libraries: [zig-regex](https://github.com/zig-utils/zig-regex) v0.2.0 and [mvzr](https://github.com/mnemnion/mvzr) v0.3.10.
 
 <br/>
 

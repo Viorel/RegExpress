@@ -40,6 +40,8 @@ namespace ZigPlugin
             if( IsFullyLoaded ) return;
 
             IsFullyLoaded = true;
+
+            UpdateControls( );
         }
 
         void Notify( bool preferImmediateReaction )
@@ -66,9 +68,37 @@ namespace ZigPlugin
             }
         }
 
+        void UpdateControls( )
+        {
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
+
+            try
+            {
+                ++ChangeCounter;
+
+                bool is_ZigRegex = Options.Library == RegexLibraryEnum.ZigRegex;
+                bool is_Mvzr = Options.Library == RegexLibraryEnum.Mvzr;
+
+                pnlZigRegexOptions.Visibility = is_ZigRegex ? Visibility.Visible : Visibility.Collapsed;
+                pnlMvzrOptions.Visibility = is_Mvzr ? Visibility.Visible : Visibility.Collapsed;
+            }
+            finally
+            {
+                --ChangeCounter;
+            }
+        }
+
+        private void cbxLibrary_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateControls( );
+            Notify( preferImmediateReaction: true );
+        }
+
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
         }
+
     }
 }

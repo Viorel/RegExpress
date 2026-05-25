@@ -223,7 +223,7 @@ partial class FeatureMatrixDetails
             new (@"Classes inside […] sets",
             [
                 new FeatureMatrixDetails( @"[\d], [\D]", @"Digit", fm => fm.InsideSets_Class_dD)
-                    .Test( @"[\d]", "9", null ),
+                    .Test( @"a[\d]", "a9", null ),
                 new FeatureMatrixDetails( @"[\h], [\H]", @"Hexadecimal character", fm => fm.InsideSets_Class_hHhexa)
                     .Test( @"[\h][\H]", "Ax", null ),
                 new FeatureMatrixDetails( @"[\h], [\H]", @"Horizontal space", fm => fm.InsideSets_Class_hHhorspace)
@@ -241,7 +241,7 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"[\v], [\V]", @"Vertical space", fm => fm.InsideSets_Class_vV)
                     .Test( @"[\v][\v]", "\r\f", null ),
                 new FeatureMatrixDetails( @"[\w], [\W]", @"Word character", fm => fm.InsideSets_Class_wW)
-                    .Test( @"[\w][\w][\w]", "xyz", null ),
+                    .Test( @"a[\w][\w][\w]", "axyz", null ),
                 new FeatureMatrixDetails( @"[\X]", @"Extended grapheme cluster", fm => fm.InsideSets_Class_X)
                     .Test( @"[\X]", "a", null ),
                 new FeatureMatrixDetails( @"[\pX], [\PX]", @"Unicode property, X — short property name", fm => fm.InsideSets_Class_pP)
@@ -280,8 +280,8 @@ partial class FeatureMatrixDetails
                     .Test( @"[[ab]^[bc]]", "c", "^")
                     .Test( @"(?[[ab]^[bc]])", "c", "^"),
                 new FeatureMatrixDetails( @"![…]", @"Complement", fm => fm.InsideSets_Operator_Exclamation)
-                    .Test( @"[![abc]]", "d", null )
-                    .Test("(?[![abc]])", "d", null ),
+                    .Test( @"a[![abc]]", "ad", null )
+                    .Test("a(?[![abc]])", "ad", null ),
                 new FeatureMatrixDetails( @"[…] && […]", @"Intersection", fm => fm.InsideSets_Operator_DoubleAmpersand)
                     .Test( @"[[ab]&&[bc]]", "b", null ),
                 new FeatureMatrixDetails( @"[…] || […]", @"Union", fm => fm.InsideSets_Operator_DoubleVerticalLine)
@@ -413,8 +413,8 @@ partial class FeatureMatrixDetails
             new ( @"Grouping and Lookaround",
             [
                 new FeatureMatrixDetails( @"(?:…)", @"Non-capturing group", fm => fm.NoncapturingGroup)
-                    .Test( @"(?:x)", "x", null )
-                    .Test( @"\(?:x\)", "x", null ),
+                    .Test( @"a(?:x)y", "axy", null )
+                    .Test( @"a\(?:x\)y", "axy", null ),
                 new FeatureMatrixDetails( @"(?=…)", @"Positive lookahead ", fm => fm.PositiveLookahead)
                     .Test( @"a(?=x)x", "ax", null )
                     .Test( @"\(?=x\)x", "ax", null ),
@@ -440,8 +440,8 @@ partial class FeatureMatrixDetails
                     .Test( @"(?<!x.*)a", "ya", "xa" )
                     .Test( @"\(?<!x.*\)a", "ya", "xa" ),
                 new FeatureMatrixDetails( @"(?>…)", @"Atomic group", fm => fm.AtomicGroup)
-                    .Test( @"(?>x)", "x", null )
-                    .Test( @"\(?>x\)", "x", null ),
+                    .Test( @"a(?>x)b", "axb", null )
+                    .Test( @"a\(?>x\)b", "axb", null ),
                 new FeatureMatrixDetails( @"(?|…)", @"Branch reset", fm => fm.BranchReset)
                     .Test( @"(?|(a)|(b)\1)", "bb", null )
                     .Test( @"\(?|\(a\)\|\(b\)\1\)", "bb", "x" ),
