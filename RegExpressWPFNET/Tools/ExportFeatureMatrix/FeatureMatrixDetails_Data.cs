@@ -550,6 +550,8 @@ partial class FeatureMatrixDetails
                     .Test( (e, fm) => fm.FuzzyMatchingParams ),
                 new FeatureMatrixDetails( "No hang, no ReDoS", "No catastrophic infinite matching, no timeout errors", fm => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Accept )
                     .Test( (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Passed ),
+                new FeatureMatrixDetails( "Reject ReDoS", "Give error on possible ReDoS", fm => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Reject )
+                    .Test( (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Error ),
                 //new ( "No hang but error", "Give errors on possible catastrophic backtracking", fm => false ) { DirectCheck = (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Error },
                 new FeatureMatrixDetails( "Σσς", "Match letters that have multiple uppercase and lowercase variants", fm => fm.Σσς )
                     .IgnoreCase()

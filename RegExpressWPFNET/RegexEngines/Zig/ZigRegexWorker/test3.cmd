@@ -1,0 +1,1 @@
+echo { "pattern": "(BAD", "text": "abc", "flags": "" } | ZigRegexWorker.exe

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExportFeatureMatrix"
         mc:Ignorable="d"
-        Title="Export Feature Matrix" Height="333" Width="666" MinWidth="400" MinHeight="240" 
+        Title="Export Feature Matrix" Height="333" Width="888" MinWidth="400" MinHeight="240" 
         Loaded="Window_Loaded">
 
     <Window.TaskbarItemInfo>

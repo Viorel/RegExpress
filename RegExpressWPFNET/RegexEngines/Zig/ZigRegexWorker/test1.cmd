@@ -1,0 +1,1 @@
+@echo { "pattern": ".", "text": "abc", "flags": "" } | ZigRegexWorker.exe
