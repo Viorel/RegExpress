@@ -243,7 +243,6 @@ namespace RESharpPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = true,
                 Class_Name = false,
@@ -367,6 +366,10 @@ namespace RESharpPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+
+                Ext_UniversalWildcard = true,
+                Ext_Operator_Intersection = true,
+                Ext_Operator_Complement = true,
             };
         }
     }

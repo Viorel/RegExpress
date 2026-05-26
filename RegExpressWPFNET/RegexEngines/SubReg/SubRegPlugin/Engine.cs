@@ -248,7 +248,6 @@ namespace SubRegPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = true,
                 Class_pP = false,
                 Class_pPBrace = false,
                 Class_Name = false,
@@ -372,6 +371,8 @@ namespace SubRegPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = false,
+
+                Ext_Class_Not = true,
             };
         }
     }

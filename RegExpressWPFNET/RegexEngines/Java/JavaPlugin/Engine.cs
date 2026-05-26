@@ -272,7 +272,6 @@ namespace JavaPlugin
                 Class_vV = is_regex,
                 Class_wW = true,
                 Class_X = is_regex,
-                Class_Not = false,
                 Class_pP = true, // TODO: not documented? // TODO: in some engines it is case-sensitive or case-insensitive
                 Class_pPBrace = true,
                 Class_Name = false,

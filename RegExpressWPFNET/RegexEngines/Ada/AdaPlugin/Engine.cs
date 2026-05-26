@@ -244,7 +244,6 @@ namespace AdaPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
                 Class_Name = false,

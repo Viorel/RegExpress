@@ -264,7 +264,6 @@ namespace PythonPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = is_regex,
-                Class_Not = false,
                 Class_pP = is_regex,
                 Class_pPBrace = is_regex,
                 Class_Name = false,

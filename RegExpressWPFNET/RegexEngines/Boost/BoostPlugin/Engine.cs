@@ -291,7 +291,6 @@ namespace BoostPlugin
                 Class_vV = is_perl,
                 Class_wW = is_perl || is_POSIX_extended || is_emacs,
                 Class_X = is_perl || is_POSIX_extended,
-                Class_Not = false,
                 Class_pP = is_perl || is_POSIX_extended,
                 Class_pPBrace = is_perl || is_POSIX_extended,
                 Class_Name = false,

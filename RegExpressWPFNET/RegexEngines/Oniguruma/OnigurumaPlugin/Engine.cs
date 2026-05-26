@@ -365,7 +365,6 @@ namespace OnigurumaPlugin
                 Class_vV = false,
                 Class_wW = details.ONIG_SYN_OP_ESC_W_WORD,
                 Class_X = details.ONIG_SYN_OP2_ESC_X_Y_TEXT_SEGMENT,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = details.ONIG_SYN_OP2_ESC_P_BRACE_CHAR_PROPERTY || details.ONIG_SYN_OP2_ESC_P_BRACE_CIRCUMFLEX_NOT,
                 Class_Name = false,

@@ -47,7 +47,7 @@ Example of result:
     {
         public class RootObject
         {
-            public Match[] matches { get; set; }
+            public Match[]? matches { get; set; }
         }
 
         public class Match

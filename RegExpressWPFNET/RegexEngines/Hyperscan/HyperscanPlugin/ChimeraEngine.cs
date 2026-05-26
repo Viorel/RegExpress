@@ -249,7 +249,6 @@ namespace HyperscanPlugin
                 Class_vV = true,
                 Class_wW = true,
                 Class_X = true,
-                Class_Not = false,
                 Class_pP = true,
                 Class_pPBrace = true,
                 Class_Name = false,

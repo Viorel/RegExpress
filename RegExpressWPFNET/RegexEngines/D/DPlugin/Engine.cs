@@ -250,7 +250,6 @@ namespace DPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = true,
                 Class_pPBrace = true,
                 Class_Name = false,

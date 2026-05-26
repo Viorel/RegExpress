@@ -6,7 +6,6 @@ partial class FeatureMatrixDetails
 {
     internal static readonly FeatureMatrixGroup[] AllFeatureMatrixDetails =
         [
-
             new ( @"General",
             [
                 new FeatureMatrixDetails( @"(…)", @"Grouping constructs", fm => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal)
@@ -210,8 +209,6 @@ partial class FeatureMatrixDetails
                     .Test( @"\w\w\w", "xyz", null ),
                 new FeatureMatrixDetails( @"\X", @"Extended grapheme cluster", fm => fm.Class_X)
                     .Test( @"\X", "a", null ),
-                new FeatureMatrixDetails( @"\!c, \!\c", @"Not; 'c' — character, '\c' — escaped character", fm => fm.Class_Not)
-                    .Test( @"\!x", "a", null ),
                 new FeatureMatrixDetails( @"\pX, \PX", @"Unicode property, X — short property name", fm => fm.Class_pP)
                     .Test( @"\pL\PL", "x9", null ),
                 new FeatureMatrixDetails( @"\p{…}, \P{…}", @"Unicode property", fm => fm.Class_pPBrace)
@@ -522,7 +519,7 @@ partial class FeatureMatrixDetails
                     .Test( @"(?(VERSION>=1)xyz|abc)", "xyz", null ),
             ] ),
 
-        new ( @"Miscellaneous",
+            new ( @"Miscellaneous",
             [
                 new FeatureMatrixDetails( @"(*verb)", @"Control verbs: (*verb), (*verb:…), (*:name)", fm => fm.ControlVerbs)
                     .Test( @"x(*ACCEPT)|y(*FAIL)", "x", null )
@@ -557,6 +554,19 @@ partial class FeatureMatrixDetails
                     .IgnoreCase()
                     .Test( @"ΣΣΣ", "Σσς", null),
             ] ),
+            new ( @"Specific extensions",
+            [
+                new FeatureMatrixDetails( @"\!c, \!\c", @"Complement (“not ‘c’”); 'c' — character", fm => fm.Ext_Class_Not)
+                    .Test( @"\!x", "a", null ),
+                new FeatureMatrixDetails( @"![comment]", @"Inline comment", fm => fm.Ext_AnomalousInlineComments)
+                    .Test( @"a![comment]b", "ab", "a!cb" ),
+                new FeatureMatrixDetails( @"_", @"Universal wildcard (any character including newlines)", fm => fm.Ext_UniversalWildcard)
+                    .Test( @"a__b", "a\r\nb", null ),
+                new FeatureMatrixDetails( @"&", @"Intersection (both patterns must match)", fm => fm.Ext_Operator_Intersection)
+                    .Test( @"a.+&.+b", "axb", null ),
+                new FeatureMatrixDetails( @"~(…)", @"Complement (pattern must not match)", fm => fm.Ext_Operator_Complement)
+                    .Test( @"ab~(x)c", "abc", null ),
+            ]),
 
         ];
 }

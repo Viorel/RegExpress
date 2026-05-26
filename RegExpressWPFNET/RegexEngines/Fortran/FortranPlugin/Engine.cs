@@ -270,7 +270,6 @@ namespace FortranPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
                 Class_Name = false,
@@ -486,7 +485,6 @@ namespace FortranPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
                 Class_Name = false,
@@ -626,7 +624,6 @@ namespace FortranPlugin
                 AlternationOnSeparateLines = false,
 
                 InlineComments = false,
-                AnomalousInlineComments = true,
                 XModeComments = false,
                 InsideSets_XModeComments = false,
 
@@ -703,7 +700,6 @@ namespace FortranPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
                 Class_Name = false,
@@ -827,6 +823,8 @@ namespace FortranPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+
+                Ext_AnomalousInlineComments = true,
             };
         }
     }
