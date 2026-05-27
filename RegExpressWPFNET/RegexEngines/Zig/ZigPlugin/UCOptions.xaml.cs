@@ -41,6 +41,9 @@ namespace ZigPlugin
 
             IsFullyLoaded = true;
 
+            MatcherZigRegex.StartGetVersion( SetZigRegexVersion );
+            MatcherMvzr.StartGetVersion( SetMvzrVersion );
+
             UpdateControls( );
         }
 
@@ -87,6 +90,30 @@ namespace ZigPlugin
             {
                 --ChangeCounter;
             }
+        }
+
+        void SetZigRegexVersion( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxLibrary.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "ZigRegex" );
+
+                cbi.Content = $"ZigRegex {version}";
+            } );
+        }
+
+        void SetMvzrVersion( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxLibrary.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "Mvzr" );
+
+                cbi.Content = $"Mvzr {version}";
+            } );
         }
 
         private void cbxLibrary_SelectionChanged( object sender, SelectionChangedEventArgs e )

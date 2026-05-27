@@ -1,6 +1,7 @@
 ﻿# RegExpress
 
 A tester for researching Regular Expression engines. Made in Visual Studio 2026 using C#, C++, WPF, .NET 9.
+The comparison of the engines is shown in an Excel file.
 
 It includes the following Regular Expression engines:
 
@@ -22,7 +23,7 @@ It includes the following Regular Expression engines:
   and [RE2JS](https://github.com/le0pard/re2js) 2.8.3.
 * **VBScript [RegExp](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85))** object used in Publisher, Word, Excel, Access.
 * **[Hyperscan](https://github.com/intel/hyperscan)** 5.4.2 from Intel (in C).
-* **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan 5.4.2 and PCRE 8.41 (in C).
+* **[Chimera](http://intel.github.io/hyperscan/dev-reference/chimera.html)**, a hybrid of Hyperscan and PCRE 8.41 (in C).
 * **[ICU Regular Expressions](https://icu.unicode.org/)** 77.1 (in C++).
 * **Rust** 1.95.0 crates: **[regex](https://docs.rs/regex)** 1.12.3, **[regex\_lite](https://docs.rs/regex_lite)** 0.1.9, **[fancy\_regex](https://docs.rs/fancy-regex)** 0.18.0 
   and **[regress](https://docs.rs/regress)** 0.11.1.
@@ -33,7 +34,7 @@ It includes the following Regular Expression engines:
 * **Fortran [Forgex](https://github.com/ShinobuAmasaki/forgex)** v4.6 module (Intel® Fortran Compiler 2026.0.0).
 * **[TRE](https://github.com/laurikari/tre)** 0.9.0 (in C).
 * **[tiny-regex-c](https://github.com/rurban/tiny-regex-c)** 2022-06-21 (in C).
-* **Ada GNAT.Regpat** 15.2.0 (in Ada).
+* **Ada GNAT.Regpat** 15.2.0.
 * **[TRegEx](https://docwiki.embarcadero.com/Libraries/Florence/en/System.RegularExpressions)** 29.0 (C++Builder, Delphi).
 * **[QRegularExpression](https://doc.qt.io/qt-6/qregularexpression.html)** class (based on PCRE2) from Qt 6.9.3 (in C++).
 * **[compile-time-regular-expressions (CTRE)](https://github.com/hanickadot/compile-time-regular-expressions)**[^2] 3.11.0  (in C++).
@@ -47,19 +48,27 @@ Sample:
 
 ![Screenshot of RegExpress](Screenshot1.png)
 
+#### Usage
+
 Enter the pattern and text to textboxes. The results are updated automatically. The found matches are colourised.
 
-Use the **Options** area to select and configure the Regular Expression engine. Press the “➕” button to open more tabs. 
+Use the **Options** area to select and configure the Regular Expression engine.
 
-Currently the regular expressions are saved and loaded automatically, and a single instance can be started.
+Press the “➕” button to open more tabs. 
 
-The program can be built using Visual Studio 2026 or Visual Studio 2022 and .NET 9. The following Visual Studio workloads are required:
+Currently the regular expressions are saved and loaded automatically.
+
+The program can be built using Visual Studio 2026 (recommended) or Visual Studio 2022. The following Visual Studio workloads are required:
 
 * .NET desktop development.
 * Desktop development with C++.
 
 Open the **RegExpressWPFNET.slnx** solution. Right-click the **RegExpressWPFNET** project in Solution Explorer
 and select “Set as Startup Project”. Select “Rebuild Solution” from BUILD menu. Then the program can be started.
+
+> [!NOTE]
+> To build the solution in Visual Studio 2022, the Platform Toolset option for C++ projects can be changed 
+from **v145** to **v143**.
 
 The sources are written in C# and C++. The minimal sources of third-party regular expression libraries are included.
 
@@ -79,7 +88,8 @@ and included into **main** branch. (No additional installations required).
 > the **RegExpressWPFNET** project is set as Startup Project.
 
 > [!NOTE]
-> To avoid compilation errors after acquiring new releases, use the “Rebuild Solution” command.
+> To avoid compilation errors after acquiring new releases, use the “Rebuild Solution” command 
+instead of “Build Solution”.
 
 <br/>
 

@@ -94,6 +94,8 @@ Example of result:
 
     static class MatcherZigRegex
     {
+        static readonly Lazy<string?> LazyVersion = new( ( ) => GetVersion( ICancellable.NonCancellable ) );
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             var json_object = new
@@ -172,12 +174,30 @@ Example of result:
             return new RegexMatches( matches.Count, matches );
         }
 
-
         public static string? GetVersion( ICancellable cnc )
         {
-            return "0.16.0"; // TODO: get from worker
+            return "0.2.0"; // TODO: get from worker
         }
 
+        internal static void StartGetVersion( Action<string?> setVersion )
+        {
+            if( LazyVersion.IsValueCreated )
+            {
+                setVersion( LazyVersion.Value );
+
+                return;
+            }
+
+            Thread t = new( ( ) =>
+            {
+                setVersion( LazyVersion.Value );
+            } )
+            {
+                IsBackground = true
+            };
+
+            t.Start( );
+        }
 
         static string GetWorkerExePath( )
         {

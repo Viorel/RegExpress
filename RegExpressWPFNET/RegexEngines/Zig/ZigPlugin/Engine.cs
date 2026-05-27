@@ -157,17 +157,7 @@ namespace ZigPlugin
 
         static string? GetVersion( )
         {
-            try
-            {
-                return MatcherZigRegex.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
+            return "0.16.0"; // TODO: get from worker
         }
 
         private static FeatureMatrix BuildFeatureMatrix( RegexLibraryEnum library )
