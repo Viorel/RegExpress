@@ -43,6 +43,7 @@ namespace ZigPlugin
 
             MatcherZigRegex.StartGetVersion( SetZigRegexVersion );
             MatcherMvzr.StartGetVersion( SetMvzrVersion );
+            MatcherPzre.StartGetVersion( SetPzreVersion );
 
             UpdateControls( );
         }
@@ -82,9 +83,11 @@ namespace ZigPlugin
 
                 bool is_ZigRegex = Options.Library == RegexLibraryEnum.ZigRegex;
                 bool is_Mvzr = Options.Library == RegexLibraryEnum.Mvzr;
+                bool is_Pzre = Options.Library == RegexLibraryEnum.Pzre;
 
                 pnlZigRegexOptions.Visibility = is_ZigRegex ? Visibility.Visible : Visibility.Collapsed;
                 pnlMvzrOptions.Visibility = is_Mvzr ? Visibility.Visible : Visibility.Collapsed;
+                pnlPzreOptions.Visibility = is_Pzre ? Visibility.Visible : Visibility.Collapsed;
             }
             finally
             {
@@ -100,7 +103,7 @@ namespace ZigPlugin
             {
                 ComboBoxItem cbi = cbxLibrary.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "ZigRegex" );
 
-                cbi.Content = $"ZigRegex {version}";
+                cbi.Content = $"zig-regex {version}";
             } );
         }
 
@@ -112,7 +115,19 @@ namespace ZigPlugin
             {
                 ComboBoxItem cbi = cbxLibrary.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "Mvzr" );
 
-                cbi.Content = $"Mvzr {version}";
+                cbi.Content = $"mvzr {version}";
+            } );
+        }
+
+        void SetPzreVersion( string? version )
+        {
+            if( string.IsNullOrWhiteSpace( version ) ) return;
+
+            Dispatcher.BeginInvoke( ( ) =>
+            {
+                ComboBoxItem cbi = cbxLibrary.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "Pzre" );
+
+                cbi.Content = $"PZRE {version}";
             } );
         }
 

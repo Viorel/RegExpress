@@ -255,7 +255,6 @@ namespace ICUPlugin
                 Class_X = true,
                 Class_pP = false,
                 Class_pPBrace = true,
-                Class_Name = true,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -305,8 +304,6 @@ namespace ICUPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -376,6 +373,8 @@ namespace ICUPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+
+                Ext_Class_Name = true,
             };
         }
     }

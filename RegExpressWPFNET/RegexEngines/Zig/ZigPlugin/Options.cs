@@ -12,6 +12,7 @@ namespace ZigPlugin
         None,
         ZigRegex,
         Mvzr,
+        Pzre,
     }
 
     internal class Options

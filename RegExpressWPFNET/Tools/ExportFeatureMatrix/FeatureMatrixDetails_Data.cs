@@ -16,7 +16,7 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"[…]", @"Character group", fm => fm.Brackets)
                     .Test( @"[x]", "x", null ),
                 new FeatureMatrixDetails( @"(?[…])", @"Character group", fm => fm.ExtendedBrackets)
-                    .Test( @"(?[[x]])", "x", null ),
+                    .Test( @"a(?[[x]])b", "axb", null ),
 
                 new FeatureMatrixDetails( @"|", @"Alternation", fm => fm.VerticalLine == FeatureMatrix.PunctuationEnum.Normal)
                     .Test( @"x|y", "y", null ),
@@ -32,7 +32,7 @@ partial class FeatureMatrixDetails
                     .Test( "a#comment\nb", "ab", "b" ) // ('\n' is required by Hyperscan)
                     .Test( "(?x)a#comment\nb", "ab", "b" ), // ('\n' is required by Hyperscan)
                 new FeatureMatrixDetails( @"(?#comment)", @"Inline comment", fm => fm.InlineComments)
-                    .Test( @"a(?#comment)b", "ab", null )
+                    .Test( @"a(?#comment)b", "ab", "a#commentb" )
                     .Test( @"a\(?#comment\)b", "ab", "a" ),
                 new FeatureMatrixDetails( @"[#comment]", @"Comment inside […]", fm => fm.InsideSets_XModeComments)
                     .IgnorePatternWhitespace()
@@ -44,7 +44,7 @@ partial class FeatureMatrixDetails
                     .Test( @"(?i)x", "X", null ),
                 new FeatureMatrixDetails( @"(?flags:…)", @"Inline scoped options", fm => fm.ScopedFlags)
                     .IgnoreCase( false )
-                    .Test( @"(?i:x)", "X", null ),
+                    .Test( @"a(?i:x)b", "aXb", null ),
                 new FeatureMatrixDetails( @"(?^flags)", @"Inline fresh options", fm => fm.CircumflexFlags)
                     .IgnoreCase( false )
                     .Test( @"(?i)(?^)x", "x", "X" ),
@@ -213,8 +213,6 @@ partial class FeatureMatrixDetails
                     .Test( @"\pL\PL", "x9", null ),
                 new FeatureMatrixDetails( @"\p{…}, \P{…}", @"Unicode property", fm => fm.Class_pPBrace)
                     .Test( @"\p{L}\P{L}", "x9", null ),
-                new FeatureMatrixDetails( @"[:class:]", @"Character class outside sets", fm => fm.Class_Name)
-                    .Test( @"[:alpha:]", "X", null ),
             ] ),
 
             new (@"Classes inside […] sets",
@@ -277,8 +275,8 @@ partial class FeatureMatrixDetails
                     .Test( @"[[ab]^[bc]]", "c", "^")
                     .Test( @"(?[[ab]^[bc]])", "c", "^"),
                 new FeatureMatrixDetails( @"![…]", @"Complement", fm => fm.InsideSets_Operator_Exclamation)
-                    .Test( @"a[![abc]]", "ad", null )
-                    .Test("a(?[![abc]])", "ad", null ),
+                    .Test( @"a(?[![b]])y", "axy", null )
+                    .Test( @"a[![b]]y", "axy", null ),
                 new FeatureMatrixDetails( @"[…] && […]", @"Intersection", fm => fm.InsideSets_Operator_DoubleAmpersand)
                     .Test( @"[[ab]&&[bc]]", "b", null ),
                 new FeatureMatrixDetails( @"[…] || […]", @"Union", fm => fm.InsideSets_Operator_DoubleVerticalLine)
@@ -324,13 +322,13 @@ partial class FeatureMatrixDetails
             new ( @"Named groups, subroutines and backreferences",
             [
                 new FeatureMatrixDetails( @"(?'name'…)", @"Named group", fm => fm.NamedGroup_Apos)
-                    .Test( @"(?'n'x)", "x", null )
+                    .Test( @"a(?'n'x)b", "axb", null )
                     .Test( @"\(?'n'x\)", "x", null ),
                 new FeatureMatrixDetails( @"(?<name>…)", @"Named group", fm => fm.NamedGroup_LtGt)
-                    .Test( @"(?<n>x)", "x", null )
+                    .Test( @"a(?<n>x)b", "axb", null )
                     .Test( @"\(?<n>x\)", "x", null ),
                 new FeatureMatrixDetails( @"(?P<name>…)", @"Named group", fm => fm.NamedGroup_PLtGt)
-                    .Test( @"(?P<n>x)", "x", null )
+                    .Test( @"a(?P<n>x)b", "axb", null )
                     .Test( @"\(?P<n>x\)", "x", null ),
                 new FeatureMatrixDetails( @"(?<name2-name1>…)", @"Balancing group", fm => (fm.NamedGroup_Apos || fm.NamedGroup_LtGt || fm.NamedGroup_PLtGt) && fm.BalancingGroup)
                     .Test( (e,fm)=>
@@ -360,12 +358,10 @@ partial class FeatureMatrixDetails
                             return false;
                         }
                     }),
-                new FeatureMatrixDetails( @"(?@…)", @"Capturing group", fm => fm.NamedGroup_AtApos || fm.NamedGroup_AtLtGt || fm.CapturingGroup)
-                    .Test( @"(?@<n>x)", "x", null ),
                 new FeatureMatrixDetails( @"Duplicate names", @"Allow duplicate group names", fm => fm.AllowDuplicateGroupName)
-                    .Test( @"(?<a>x)|(?<a>y)", "y", null )
-                    .Test( @"\(?<a>x\)|\(?<a>y\)", "y", null )
-                    .Test( @"(?P<a>x)|(?P<a>y)", "y", null ),
+                    .Test( @"(?<a>x)|(?<a>y)", "y", "z" )
+                    .Test( @"\(?<a>x\)|\(?<a>y\)", "y", "z" )
+                    .Test( @"(?P<a>x)|(?P<a>y)", "y", "z" ),
                 new FeatureMatrixDetails( @"\1, \2, …, \9", @"Backreferences", fm => fm.Backref_Num == FeatureMatrix.BackrefEnum.OneDigit || fm.Backref_Num == FeatureMatrix.BackrefEnum.Any)
                     .Test( @"(x)\1", "xx", "x")
                     .Test( @"\(x\)\1", "xx", "x" ),
@@ -413,39 +409,39 @@ partial class FeatureMatrixDetails
                     .Test( @"a(?:x)y", "axy", null )
                     .Test( @"a\(?:x\)y", "axy", null ),
                 new FeatureMatrixDetails( @"(?=…)", @"Positive lookahead ", fm => fm.PositiveLookahead)
-                    .Test( @"a(?=x)x", "ax", null )
-                    .Test( @"\(?=x\)x", "ax", null ),
+                    .Test( @"a(?=xz).z", "axz", "atz" )
+                    .Test( @"a\(?=x\)x", "ax", "az" ),
                 new FeatureMatrixDetails( @"(?!…)", @"Negative lookahead ", fm => fm.NegativeLookahead)
-                    .Test( @"a(?!x)y", "ay", null )
-                    .Test( @"\(?!x\)y", "ay", null ),
+                    .Test( @"a(?!x).y", "azy", @"axy" )
+                    .Test( @"a\(?!x\)y", "ay", "ax" ),
                 new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind, fixed-length", fm => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @"(?<=x)a", "xa", null )
-                    .Test( @"\(?<=x\)a", "xa", null ),
+                    .Test( @"x.(?<=xy)a", "xya", "xta" )
+                    .Test( @"\(?<=x\)a", "xa", "za" ),
                 new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind, bounded-length", fm => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @"(?<=x|yz)a", "xa", null )
-                    .Test( @"\(?<=x|yz\)a", "xa", null ),
+                    .Test( @"x..(?<=x{2,3}y)a", "xxya", "xtta" )
+                    .Test( @"\(?<=x|yz\)a", "xa", "ta" ),
                 new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind, variable-length", fm => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @"(?<=x.+)a", "x123a", null )
-                    .Test( @"\(?<=x.+\)a", "x123a", null ),
+                    .Test( @"x.(?<=x+y)a", "xxxxya", "xta" )
+                    .Test( @"\(?<=x.+\)a", "x123a", "t123a" ),
                 new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, fixed-length", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @"(?<!x)a", "ya", "xa" )
+                    .Test( @".(?<!xy)a", "ya", "xya" )
                     .Test( @"\(?<!x\)a", "ya", "xa" ),
                 new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, bounded-length", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @"(?<!x|yz)a", "ya", "xa" )
+                    .Test( @".(?<!x|yz)a", "ya", "xa" )
                     .Test( @"\(?<!x|yz\)a", "ya", "xa" ),
                 new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, variable-length", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @"(?<!x.*)a", "ya", "xa" )
+                    .Test( @".(?<!x.*)a", "ya", "xa" )
                     .Test( @"\(?<!x.*\)a", "ya", "xa" ),
                 new FeatureMatrixDetails( @"(?>…)", @"Atomic group", fm => fm.AtomicGroup)
                     .Test( @"a(?>x)b", "axb", null )
                     .Test( @"a\(?>x\)b", "axb", null ),
                 new FeatureMatrixDetails( @"(?|…)", @"Branch reset", fm => fm.BranchReset)
-                    .Test( @"(?|(a)|(b)\1)", "bb", null )
-                    .Test( @"\(?|\(a\)\|\(b\)\1\)", "bb", "x" ),
+                    .Test( @"(?|(a)|(b))\1", "bb", "1" )
+                    .Test( @"\(?|\(a\)\|\(b\)\)\1", "bb", "1" ),
                 new FeatureMatrixDetails( @"(?*…)", @"Non-atomic positive lookahead", fm => fm.NonatomicPositiveLookahead)
                     .Test( @"a(?*x)x", "ax", null ),
-                new FeatureMatrixDetails( @"(?<*…)", @"Non-atomic positive lookbehind ", fm => fm.NonatomicPositiveLookbehind)
-                    .Test( @"(?<*x)a", "xa", "x"),
+                new FeatureMatrixDetails( @"(?<*…)", @"Non-atomic positive lookbehind", fm => fm.NonatomicPositiveLookbehind)
+                    .Test( @"(?<*x)a", "xa", "ta"),
                 new FeatureMatrixDetails( @"(?~…)", @"Absent operator", fm => fm.AbsentOperator)
                     .Test( @"/\*(?~\*\/)\*\/", "/* abc */", null ),
                 //new FeatureMatrixDetails( @"( ? … )", @"Allow spaces like '( ? < name >…)'", fm => fm.AllowSpacesInGroups ), // TODO
@@ -456,15 +452,15 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"(?n)", @"Recursive subpattern by number", fm => fm.Recursive_Num)
                     .Test( @"(x.)(?1)", "xyxz", "xyZ"),
                 new FeatureMatrixDetails( @"(?-n), (?+n)", @"Relative recursive subpattern by number", fm => fm.Recursive_PlusMinusNum)
-                    .Test( @"(x(.))(?-1)", "xyz", null )
+                    .Test( @"(x(.))(?-1)", "xyz", "xy" )
                     .Test( @"\(x\(.\)\)\(?-1\)", "xyz", null ),
                 new FeatureMatrixDetails( @"(?R)", @"Recursive whole pattern", fm => fm.Recursive_R)
                     .Test( @"a((?R))*b", "aabb", "b"),
                     //.Test( @"\(((?>[^()]+)|(?R))*\)", "(a(b)c)", "b"),
                 new FeatureMatrixDetails( @"(?&name)", @"Recursive subpattern by name", fm => fm.Recursive_Name)
-                    .Test( @"(?<n>a)(?&n)", "aa", null ),
+                    .Test( @"(?<n>a)(?&n)", "aa", "" ),
                 new FeatureMatrixDetails( @"(?P>name)", @"Recursive subpattern by name", fm => fm.Recursive_PGtName)
-                    .Test( @"(?P<n>a)(?P>n)", "aa", null ),
+                    .Test( @"(?P<n>a)(?P>n)", "aa", "" ),
                 new FeatureMatrixDetails( @"(?…(grouplist))", @"Additionally return capturing groups", fm => fm.Recursive_ReturnGroups)
                     .Test( @"(?<a>A(?<b>.))(?&a(<b>))\k<b>", "ABACC", "ABACB"),
             ] ),
@@ -497,37 +493,37 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"(?(number)…|…)", @"Conditionals by number, +number, -number", fm => fm.Conditional_BackrefByNumber)
                     .Test( @"(x)(?(1)y|z)", "xy", "bx"),
                 new FeatureMatrixDetails( @"(?(name)…|…)", @"Conditional by name", fm => fm.Conditional_BackrefByName)
-                    .Test( @"(?<n>x)(?(n)y|z)", "xy", null )
-                    .Test( @"(?P<n>x)(?(n)y|z)", "xy", null ),
+                    .Test( @"(?<n>x)(?(n)y|z)", "xy", "" )
+                    .Test( @"(?P<n>x)(?(n)y|z)", "xy", "" ),
                 new FeatureMatrixDetails( @"(?(pattern)…|…)", @"Conditional subpattern", fm => fm.Conditional_Pattern)
-                    .Test( @"x(?(?=.z)y|z)", "xyz", null )
-                    .Test( @"x(?((?=.z))y|z)", "xyz", null ),
+                    .Test( @"x(?(?=.z)y|z)", "xyz", "x" )
+                    .Test( @"x(?((?=.z))y|z)", "xyz", "x" ),
                 new FeatureMatrixDetails( @"(?(xxx)…|…)", @"Conditional by xxx name, or by xxx subpattern, if no such name", fm => fm.Conditional_PatternOrBackrefByName)
-                    .Test( @"x(?(y).|z)", "xy", null ),
+                    .Test( @"x(?(y).|z)", "xy", "x" ),
                 new FeatureMatrixDetails( @"(?('name')…|…)", @"Conditional by name", fm => fm.Conditional_BackrefByName_Apos)
-                    .Test( @"(?'n'x)(?('n')y|z)", "xy", null ),
+                    .Test( @"(?'n'x)(?('n')y|z)", "xy", "" ),
                 new FeatureMatrixDetails( @"(?(<name>)…|…)", @"Conditional by name", fm => fm.Conditional_BackrefByName_LtGt)
-                    .Test( @"(?<n>x)(?(<n>)y|z)", "xy", null )
-                    .Test( @"(?P<n>x)(?(<n>)y|z)", "xy", null ),
+                    .Test( @"(?<n>x)(?(<n>)y|z)", "xy", "" )
+                    .Test( @"(?P<n>x)(?(<n>)y|z)", "xy", "" ),
                 new FeatureMatrixDetails( @"(?(R)…|…)", @"Recursive conditional: R, R+number, R-number", fm => fm.Conditional_R)
-                    .Test( @"(?(R)a+|(?R)b)", "aaaab", null ),
+                    .Test( @"(?(R)a+|(?R)b)", "aaaab", "" ),
                 new FeatureMatrixDetails( @"(?(R&name)…|…)", @"Recursive conditional by name", fm => fm.Conditional_RName)
-                    .Test( @"(?<A>(?'B'abc(?(R)(?(R&A)1)(?(R&B)2)X|(?1)(?2)(?R))))", "abcabc1Xabc2XabcXabcabc", null ),
+                    .Test( @"(?<A>(?'B'abc(?(R)(?(R&A)1)(?(R&B)2)X|(?1)(?2)(?R))))", "abcabc1Xabc2XabcXabcabc", "" ),
                 new FeatureMatrixDetails( @"(?(DEFINE)…|…)", @"Defining subpatterns", fm => fm.Conditional_DEFINE)
-                    .Test( @"(?(DEFINE)(?<n>x.z))(?&n)", "xyz", null ),
+                    .Test( @"(?(DEFINE)(?<n>x.z))(?&n)", "xyz", "" ),
                 new FeatureMatrixDetails( @"(?(VERSION…)…|…)", @"Check version using 'VERSION=decimal' or 'VERSION>=decimal'", fm => fm.Conditional_VERSION)
-                    .Test( @"(?(VERSION>=1)xyz|abc)", "xyz", null ),
+                    .Test( @"(?(VERSION>=1)xyz|abc)", "xyz", "" ),
             ] ),
 
             new ( @"Miscellaneous",
             [
                 new FeatureMatrixDetails( @"(*verb)", @"Control verbs: (*verb), (*verb:…), (*:name)", fm => fm.ControlVerbs)
-                    .Test( @"x(*ACCEPT)|y(*FAIL)", "x", null )
-                    .Test( @"(*UCP)a", "a", null )
-                    .Test( @"x(*SKIP)y", "xy", null )
-                    .Test( @"a(*FAIL)|b", "b", null ),
+                    .Test( @"x(*ACCEPT)|y(*FAIL)", "x", "y" )
+                    .Test( @"(*UCP)^a", "a", "" )
+                    .Test( @"x(*SKIP)y", "xy", "xSKIPy" )
+                    .Test( @"a(*FAIL)|b", "b", "a" ),
                 new FeatureMatrixDetails( @"(*…:…)", @"Script runs, such as (*atomic:…)", fm => fm.ScriptRuns)
-                    .Test( @"(*atomic:x)", "x", null ),
+                    .Test( @"(*atomic:x)", "x", "" ),
                 new FeatureMatrixDetails( @"(?Cn), (*func)", @"Callouts (custom functions)", fm => fm.Callouts ),
 
                 new FeatureMatrixDetails( @"(?)", @"Empty construct", fm => fm.EmptyConstruct)
@@ -545,7 +541,7 @@ partial class FeatureMatrixDetails
                     .Test( @"(test){+1}", "teXst", null )
                     .Test( @"\(test\)\{+1\}", "teXst", null )
                     .Test( (e, fm) => fm.FuzzyMatchingParams ),
-                new FeatureMatrixDetails( "No hang, no ReDoS", "No catastrophic infinite matching, no timeout errors", fm => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Accept )
+                new FeatureMatrixDetails( "No hang, no ReDoS", "No catastrophic infinite matching, no timeout", fm => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Accept )
                     .Test( (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Passed ),
                 new FeatureMatrixDetails( "Reject ReDoS", "Give error on possible ReDoS", fm => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Reject )
                     .Test( (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Error ),
@@ -556,6 +552,10 @@ partial class FeatureMatrixDetails
             ] ),
             new ( @"Specific extensions",
             [
+                new FeatureMatrixDetails( @"[:class:]", @"Character class outside sets", fm => fm.Ext_Class_Name)
+                    .Test( @"[:alpha:]", "X", null ),
+                new FeatureMatrixDetails( @"(?@…)", @"Capturing group", fm => fm.Ext_NamedGroup_AtApos || fm.Ext_NamedGroup_AtLtGt || fm.CapturingGroup)
+                    .Test( @"(?@<n>x)", "x", "" ),
                 new FeatureMatrixDetails( @"\!c, \!\c", @"Complement (“not ‘c’”); 'c' — character", fm => fm.Ext_Class_Not)
                     .Test( @"\!x", "a", null ),
                 new FeatureMatrixDetails( @"![comment]", @"Inline comment", fm => fm.Ext_AnomalousInlineComments)

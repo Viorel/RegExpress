@@ -274,7 +274,6 @@ namespace JavaPlugin
                 Class_X = is_regex,
                 Class_pP = true, // TODO: not documented? // TODO: in some engines it is case-sensitive or case-insensitive
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -324,8 +323,6 @@ namespace JavaPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = is_re2j,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 

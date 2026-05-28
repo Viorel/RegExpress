@@ -1,0 +1,9 @@
+.zig-cache
+zig-pkg
+
+zig-out/*
+!zig-out/bin/
+zig-out/bin/*
+!zig-out/bin/ZigPzreWorker.exe
+
+zig.cmd

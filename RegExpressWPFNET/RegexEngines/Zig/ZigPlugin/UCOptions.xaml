@@ -42,8 +42,9 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Library:" Target="{Binding ElementName=cbxLibrary}" />
                 <ComboBox x:Name="cbxLibrary" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Library, FallbackValue='ZigRegex'}" SelectionChanged="cbxLibrary_SelectionChanged">
-                    <ComboBoxItem Tag="ZigRegex" Content="ZigRegex" IsSelected="True" />
-                    <ComboBoxItem Tag="Mvzr" Content="Mvzr" />
+                    <ComboBoxItem Tag="ZigRegex" Content="zig-regex" IsSelected="True" />
+                    <ComboBoxItem Tag="Mvzr" Content="mvzr" />
+                    <ComboBoxItem Tag="Pzre" Content="PZRE" />
                 </ComboBox>
 
             </Grid>
@@ -57,6 +58,9 @@
             </StackPanel>
 
             <StackPanel x:Name="pnlMvzrOptions">
+            </StackPanel>
+
+            <StackPanel x:Name="pnlPzreOptions">
             </StackPanel>
 
         </StackPanel>

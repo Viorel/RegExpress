@@ -245,7 +245,6 @@ namespace RESharpPlugin
                 Class_X = false,
                 Class_pP = false,
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -295,16 +294,14 @@ namespace RESharpPlugin
                 NamedGroup_Apos = true,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
                 NoncapturingGroup = true,
-                PositiveLookahead = true,
-                NegativeLookahead = false, // "a(?!b)" works, "a(?!b)c" does not work
-                PositiveLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
-                NegativeLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
+                PositiveLookahead = false, // some works, but "a(?=xz)xz" -- "this pattern contains unsupported anchors/lookarounds"
+                NegativeLookahead = false, // but "a(?!b)c"
+                PositiveLookbehind = FeatureMatrix.LookModeEnum.None, // but "x.(?<=xy)a", "x..(?<=x{2,3}y)a", "x.(?<=x+y)a"
+                NegativeLookbehind = FeatureMatrix.LookModeEnum.None, // but ".(?<!xy)a", ".(?<!x|yz)a", ".(?<!x.*)a"
                 AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

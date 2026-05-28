@@ -637,7 +637,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 pb.Add( @"(?<lbracket>\[\^?)(?<rbracket>\])" ); // [], [^]
             }
 
-            if( fm.Class_Name )
+            if( fm.Ext_Class_Name )
             {
                 pb.AddGroup( "class", @"\[: [^:\r\n]* (:\]?)?" );
             }
@@ -1098,11 +1098,11 @@ namespace RegExpressLibrary.SyntaxColouring
                         {
                             pb.Add( @"\(\? P < ((?<name>[^>]*) >?)?" );
                         }
-                        if( fm.NamedGroup_AtApos )
+                        if( fm.Ext_NamedGroup_AtApos )
                         {
                             pb.Add( @"\(\? @ ' ((?<name>[^']*) '?)?" );
                         }
-                        if( fm.NamedGroup_AtLtGt )
+                        if( fm.Ext_NamedGroup_AtLtGt )
                         {
                             pb.Add( @"\(\? @ < ((?<name>[^>]*) >?)?" );
                         }

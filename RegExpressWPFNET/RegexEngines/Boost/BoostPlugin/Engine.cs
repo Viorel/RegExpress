@@ -293,7 +293,6 @@ namespace BoostPlugin
                 Class_X = is_perl || is_POSIX_extended,
                 Class_pP = is_perl || is_POSIX_extended,
                 Class_pPBrace = is_perl || is_POSIX_extended,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -343,8 +342,6 @@ namespace BoostPlugin
                 NamedGroup_Apos = is_perl || is_emacs,
                 NamedGroup_LtGt = is_perl || is_emacs,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
