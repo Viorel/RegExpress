@@ -131,9 +131,6 @@
   <Folder Name="/RegexEngines/VBScript/">
     <Project Path="RegexEngines/VBScript/VBScriptPlugin/VBScriptPlugin.csproj" />
   </Folder>
-  <Folder Name="/RegexEngines/Zig/">
-    <Project Path="RegexEngines/Zig/ZigPlugin/ZigPlugin.csproj" />
-  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="../README.md" />
     <File Path="../RegexFeatureMatrix.xlsx" />
@@ -187,6 +184,5 @@
     <BuildDependency Project="RegexEngines/TRE/TREPlugin/TREPlugin.csproj" />
     <BuildDependency Project="RegexEngines/TRE/TREWorker/TREWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/VBScript/VBScriptPlugin/VBScriptPlugin.csproj" />
-    <BuildDependency Project="RegexEngines/Zig/ZigPlugin/ZigPlugin.csproj" />
   </Project>
 </Solution>

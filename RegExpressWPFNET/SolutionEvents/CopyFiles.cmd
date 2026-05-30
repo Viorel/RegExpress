@@ -231,15 +231,6 @@ xcopy /D /R /Y "%BasePath%\GretaPlugin\bin\%Configuration%\%TargetDir%\GretaPlug
 xcopy /D /R /Y "%BasePath%\GretaWorker\bin\%Configuration%\%Platform%\GretaWorker.exe" "%EnginesTargetPath%\GRETA\*.bin"
 
 
-rem -- Zig --
-
-set BasePath=%SolutionDir%\RegexEngines\Zig
-xcopy /D /R /Y "%BasePath%\ZigPlugin\bin\%Configuration%\%TargetDir%\ZigPlugin.dll" "%EnginesTargetPath%\Zig\*"
-xcopy /D /R /Y "%BasePath%\ZigRegexWorker\ZigRegexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
-xcopy /D /R /Y "%BasePath%\ZigMvzrWorker\ZigMvzrWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
-xcopy /D /R /Y "%BasePath%\ZigPzreWorker\zig-out\bin\ZigPzreWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
-
-
 rem -- RE# --
 
 set BasePath=%SolutionDir%\RegexEngines\RESharp

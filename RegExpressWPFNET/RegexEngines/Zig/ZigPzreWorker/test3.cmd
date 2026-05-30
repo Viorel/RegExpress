@@ -1,1 +1,0 @@
-echo { "pattern": "(BAD", "text": "abc", "flags": "" } | "zig-out\bin\ZigPzreWorker.exe"

@@ -1,1 +1,0 @@
-@echo { "pattern": "(?<=(?<a>a+))[^a]+", "text": "dsgasd aaaaaxxxx", "flags": "" } | ZigMvzrWorker.exe
