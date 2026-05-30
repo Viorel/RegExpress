@@ -66,6 +66,32 @@ partial class FeatureMatrixDetails
                     .Test( @"[\q{x}]", "x", "q"),
             ] ),
 
+            new ( @"Quantifiers",
+            [
+                new FeatureMatrixDetails( @"*", @"Zero or more times", fm => fm.Quantifier_Asterisk)
+                    .Test( @"xy*", "x", null ),
+                new FeatureMatrixDetails( @"+", @"One or more times", fm => fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Normal)
+                    .Test( @"xy+", "xyy", null ),
+                new FeatureMatrixDetails( @"\+", @"One or more times", fm => fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Backslashed)
+                    .Test( @"xy\+", "xyy", null ),
+                new FeatureMatrixDetails( @"?", @"Zero or one time", fm => fm.Quantifier_Question == FeatureMatrix.PunctuationEnum.Normal)
+                    .Test( @"xy?", "x", null ),
+                new FeatureMatrixDetails( @"\?", @"Zero or one time", fm => fm.Quantifier_Question == FeatureMatrix.PunctuationEnum.Backslashed)
+                    .Test( @"xy\?", "x", null ),
+                new FeatureMatrixDetails( @"{n,m}", @"Between n and m times: {n}, {n,}, {n,m}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Normal)
+                    .Test( @"x{2,3}", "xx", null ),
+                new FeatureMatrixDetails( @"\{n,m\}", @"Between n and m times: \{n\}, \{n,\}, \{n,m\}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Backslashed)
+                    .Test( @"x\{2,3\}", "xx", null ),
+                //new FeatureMatrixDetails( @"{ n, m } ", @"Allow spaces within {…} or \{…\}", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.Both ), // TODO
+                //new FeatureMatrixDetails( @"{ n, m } ", @"Allow spaces within {…} or \{…\}", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.XModeOnly ), // TODO
+                new FeatureMatrixDetails( @"{,m}, \{,m\}", @"Equivalent to {0,m} or \{0,m\}", fm => fm.Quantifier_LowAbbrev)
+                    .Test( @"x{,3}", "xxx", null )
+                    .Test( @"x\{,3\}", "xxx", null ),
+                new FeatureMatrixDetails( @"*??, +??, ??", @"Lazy (non-greedy) quantifiers — match as little as possible",
+                        fm => fm.Quantifier_Asterisk && fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Normal && fm.Quantifier_Plus== FeatureMatrix.PunctuationEnum.Normal && fm.Quantifier_Lazy )
+                    .Test( @".+?X.*?YZ?", "aXaYZaXaYZ", null, "aXaYZ" ),
+            ] ),
+
             new ( @"Escapes",
             [
                 new FeatureMatrixDetails( @"\a", @"Bell, \u0007", fm => fm.Esc_a)
@@ -463,29 +489,6 @@ partial class FeatureMatrixDetails
                     .Test( @"(?P<n>a)(?P>n)", "aa", "" ),
                 new FeatureMatrixDetails( @"(?…(grouplist))", @"Additionally return capturing groups", fm => fm.Recursive_ReturnGroups)
                     .Test( @"(?<a>A(?<b>.))(?&a(<b>))\k<b>", "ABACC", "ABACB"),
-            ] ),
-
-            new ( @"Quantifiers",
-            [
-                new FeatureMatrixDetails( @"*", @"Zero or more times", fm => fm.Quantifier_Asterisk)
-                    .Test( @"xy*", "x", null ),
-                new FeatureMatrixDetails( @"+", @"One or more times", fm => fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Normal)
-                    .Test( @"xy+", "xyy", null ),
-                new FeatureMatrixDetails( @"\+", @"One or more times", fm => fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Backslashed)
-                    .Test( @"xy\+", "xyy", null ),
-                new FeatureMatrixDetails( @"?", @"Zero or one time", fm => fm.Quantifier_Question == FeatureMatrix.PunctuationEnum.Normal)
-                    .Test( @"xy?", "x", null ),
-                new FeatureMatrixDetails( @"\?", @"Zero or one time", fm => fm.Quantifier_Question == FeatureMatrix.PunctuationEnum.Backslashed)
-                    .Test( @"xy\?", "x", null ),
-                new FeatureMatrixDetails( @"{n,m}", @"Between n and m times: {n}, {n,}, {n,m}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Normal)
-                    .Test( @"x{2,3}", "xx", null ),
-                new FeatureMatrixDetails( @"\{n,m\}", @"Between n and m times: \{n\}, \{n,\}, \{n,m\}", fm => fm.Quantifier_Braces == FeatureMatrix.PunctuationEnum.Backslashed)
-                    .Test( @"x\{2,3\}", "xx", null ),
-                //new FeatureMatrixDetails( @"{ n, m } ", @"Allow spaces within {…} or \{…\}", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.Both ), // TODO
-                //new FeatureMatrixDetails( @"{ n, m } ", @"Allow spaces within {…} or \{…\}", fm => fm.Quantifier_Braces_Spaces == FeatureMatrix.SpaceUsageEnum.XModeOnly ), // TODO
-                new FeatureMatrixDetails( @"{,m}, \{,m\}", @"Equivalent to {0,m} or \{0,m\}", fm => fm.Quantifier_LowAbbrev)
-                    .Test( @"x{,3}", "xxx", null )
-                    .Test( @"x\{,3\}", "xxx", null ),
             ] ),
 
             new ( @"Conditionals",

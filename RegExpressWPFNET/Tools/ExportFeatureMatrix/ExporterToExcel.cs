@@ -214,7 +214,16 @@ partial class ExporterToExcel
                                                 m.variant.RegexEngine.SetIgnorePatternWhitespace( rule.IgnorePatternWhitespace );
 
                                                 RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, rule.Pattern, rule.TextToMatch );
-                                                satisfied = matches.Count > 0;
+
+                                                if( rule.ExpectedResult == null )
+                                                {
+                                                    satisfied = matches.Count > 0;
+                                                }
+                                                else
+                                                {
+                                                    satisfied = matches.Count > 0 && matches.Matches.First( ).Value == rule.ExpectedResult;
+                                                }
+
                                             }
                                             catch( Exception )
                                             {

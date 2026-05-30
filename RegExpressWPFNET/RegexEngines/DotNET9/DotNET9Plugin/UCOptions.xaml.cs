@@ -15,7 +15,7 @@ using System.Windows.Shapes;
 using RegExpressLibrary;
 
 
-namespace DotNET8Plugin
+namespace DotNET9Plugin
 {
     /// <summary>
     /// Interaction logic for UCOptions.xaml

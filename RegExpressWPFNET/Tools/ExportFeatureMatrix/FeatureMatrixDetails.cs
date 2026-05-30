@@ -30,17 +30,19 @@ partial class FeatureMatrixDetails
         internal string? Pattern { get; }
         internal string? TextToMatch { get; }
         internal string? TextToNotMatch { get; }
+        internal string? ExpectedResult { get; }
         internal bool IgnoreCase { get; }
         internal bool IgnorePatternWhitespace { get; }
         internal Func<IRegexEngine, FeatureMatrix, bool>? DirectCheck { get; }
 
-        internal Rule( string pattern, string? textToMatch, string? textToNotMatch, bool ignoreCase, bool ignorePatternWhitespace )
+        internal Rule( string pattern, string? textToMatch, string? textToNotMatch, string? expectedResult, bool ignoreCase, bool ignorePatternWhitespace )
         {
             Debug.Assert( textToMatch != null || textToNotMatch != null );
 
             Pattern = pattern;
             TextToMatch = textToMatch;
             TextToNotMatch = textToNotMatch;
+            ExpectedResult = expectedResult;
             IgnoreCase = ignoreCase;
             IgnorePatternWhitespace = ignorePatternWhitespace;
             DirectCheck = null;
@@ -87,7 +89,14 @@ partial class FeatureMatrixDetails
 
     FeatureMatrixDetails Test( [StringSyntax( StringSyntaxAttribute.Regex )] string pattern, string? textMatch, string? textNoMatch )
     {
-        Rules.Add( new Rule( pattern, textMatch, textNoMatch, mIgnoreCase, mIgnorePatternWhitespace ) );
+        Rules.Add( new Rule( pattern, textMatch, textNoMatch, null, mIgnoreCase, mIgnorePatternWhitespace ) );
+
+        return this;
+    }
+
+    FeatureMatrixDetails Test( [StringSyntax( StringSyntaxAttribute.Regex )] string pattern, string? textMatch, string? textNoMatch, string? expected )
+    {
+        Rules.Add( new Rule( pattern, textMatch, textNoMatch, expected, mIgnoreCase, mIgnorePatternWhitespace ) );
 
         return this;
     }

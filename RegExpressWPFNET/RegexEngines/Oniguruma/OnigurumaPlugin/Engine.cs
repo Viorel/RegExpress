@@ -459,6 +459,7 @@ namespace OnigurumaPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = details.ONIG_SYN_ALLOW_INTERVAL_LOW_ABBREV,
+                Quantifier_Lazy = details.ONIG_SYN_OP_QMARK_NON_GREEDY,
 
                 Conditional_BackrefByNumber = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE,
                 Conditional_BackrefByName = false,
