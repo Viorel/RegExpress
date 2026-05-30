@@ -255,10 +255,8 @@ namespace TREPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
-                Class_Name = false,
 
                 InsideSets_Class_dD = false,
                 InsideSets_Class_hHhexa = false,
@@ -308,8 +306,6 @@ namespace TREPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -353,6 +349,7 @@ namespace TREPlugin
                 Quantifier_Braces_FreeForm = isExtended ? FeatureMatrix.PunctuationEnum.Normal : FeatureMatrix.PunctuationEnum.Backslashed,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
+                Quantifier_Lazy = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

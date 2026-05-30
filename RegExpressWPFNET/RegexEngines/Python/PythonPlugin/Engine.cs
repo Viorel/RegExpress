@@ -264,10 +264,8 @@ namespace PythonPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = is_regex,
-                Class_Not = false,
                 Class_pP = is_regex,
                 Class_pPBrace = is_regex,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -317,8 +315,6 @@ namespace PythonPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = is_regex,
                 NamedGroup_PLtGt = true,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -362,6 +358,7 @@ namespace PythonPlugin
                 Quantifier_Braces_FreeForm = is_regex ? FeatureMatrix.PunctuationEnum.Normal : FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = true,

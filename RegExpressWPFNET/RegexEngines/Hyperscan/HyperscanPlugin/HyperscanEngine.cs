@@ -252,10 +252,8 @@ namespace HyperscanPlugin
                 Class_vV = true,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = true,
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -305,8 +303,6 @@ namespace HyperscanPlugin
                 NamedGroup_Apos = true,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = true,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -350,6 +346,7 @@ namespace HyperscanPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

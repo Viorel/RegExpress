@@ -248,10 +248,8 @@ namespace SubRegPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = true,
                 Class_pP = false,
                 Class_pPBrace = false,
-                Class_Name = false,
 
                 InsideSets_Class_dD = false,
                 InsideSets_Class_hHhexa = false,
@@ -301,8 +299,6 @@ namespace SubRegPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -346,6 +342,7 @@ namespace SubRegPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -372,6 +369,8 @@ namespace SubRegPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = false,
+
+                Ext_Class_Not = true,
             };
         }
     }

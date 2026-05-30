@@ -278,10 +278,8 @@ namespace RustPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = true,
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -331,8 +329,6 @@ namespace RustPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = true,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -376,6 +372,7 @@ namespace RustPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -494,10 +491,8 @@ namespace RustPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -547,8 +542,6 @@ namespace RustPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = true,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -592,6 +585,7 @@ namespace RustPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -712,10 +706,8 @@ namespace RustPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = true,
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = true,
@@ -765,8 +757,6 @@ namespace RustPlugin
                 NamedGroup_Apos = true,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = true,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -810,6 +800,7 @@ namespace RustPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.XModeOnly,
                 Quantifier_LowAbbrev = true,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = false,
@@ -930,10 +921,8 @@ namespace RustPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -983,8 +972,6 @@ namespace RustPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -1028,6 +1015,7 @@ namespace RustPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

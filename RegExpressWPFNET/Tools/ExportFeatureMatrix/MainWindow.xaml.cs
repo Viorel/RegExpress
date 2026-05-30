@@ -51,6 +51,8 @@ namespace ExportFeatureMatrix
                 break;
             }
 
+            checkBoxVerify.IsChecked = Properties.Settings.Default.Validate;
+
             tblProgress.Text = "";
         }
 
@@ -207,6 +209,7 @@ namespace ExportFeatureMatrix
                 Properties.Settings.Default.OutputHtmlPath = tbOutputFile.Text;
                 break;
             }
+            Properties.Settings.Default.Validate = checkBoxVerify.IsChecked == true;
             Properties.Settings.Default.Save( );
 
             try

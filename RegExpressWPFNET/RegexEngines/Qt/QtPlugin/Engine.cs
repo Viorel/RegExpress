@@ -246,10 +246,8 @@ namespace QtPlugin
                 Class_vV = true,
                 Class_wW = true,
                 Class_X = true,
-                Class_Not = false,
                 Class_pP = true,
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -299,8 +297,6 @@ namespace QtPlugin
                 NamedGroup_Apos = true,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = true,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -344,6 +340,7 @@ namespace QtPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = true,

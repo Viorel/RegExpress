@@ -248,10 +248,8 @@ namespace GretaPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -301,8 +299,6 @@ namespace GretaPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -346,6 +342,7 @@ namespace GretaPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = false,

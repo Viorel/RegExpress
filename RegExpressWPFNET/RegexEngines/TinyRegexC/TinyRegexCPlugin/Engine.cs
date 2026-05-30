@@ -245,10 +245,8 @@ namespace TinyRegexCPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -298,8 +296,6 @@ namespace TinyRegexCPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -343,6 +339,7 @@ namespace TinyRegexCPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
+                Quantifier_Lazy = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

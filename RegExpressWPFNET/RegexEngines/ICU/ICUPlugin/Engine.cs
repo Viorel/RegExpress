@@ -253,10 +253,8 @@ namespace ICUPlugin
                 Class_vV = true,
                 Class_wW = true,
                 Class_X = true,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = true,
-                Class_Name = true,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -306,8 +304,6 @@ namespace ICUPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -351,6 +347,7 @@ namespace ICUPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.XModeOnly,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -377,6 +374,8 @@ namespace ICUPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+
+                Ext_Class_Name = true,
             };
         }
     }

@@ -10,6 +10,12 @@ const Regex = Regex0.Regex;
 
 // NOTE. 'defer' is not always used; memory will be freed automatically at the end.
 
+const INPUT_TYPE = struct { pattern: []u8, text: []u8, flags: []u8 };
+
+const GROUP = struct { value: ?[]const u8 };
+const MATCH = struct { start: usize, length: usize, groups: ?[]GROUP };
+const OUTPUT = struct { names: ?[]?[]const u8, matches: ?[]MATCH };
+
 pub fn main1(init: std.process.Init) !void {
     @setRuntimeSafety(true);
 
@@ -33,8 +39,6 @@ pub fn main1(init: std.process.Init) !void {
 
     //std.debug.print("input_string: '{s}'\n", .{input_string});
 
-    const INPUT_TYPE = struct { pattern: []u8, text: []u8, flags: []u8 };
-
     const input_parsed_object = try json.parseFromSlice(INPUT_TYPE, allocator, input_string, .{});
     //defer input_parsed_object.deinit();
 
@@ -53,10 +57,6 @@ pub fn main1(init: std.process.Init) !void {
 
     var regex = try Regex.compileWithFlags(allocator, input_object.pattern, flags);
     //defer regex.deinit();
-
-    const GROUP = struct { value: ?[]const u8 };
-    const MATCH = struct { start: usize, length: usize, groups: ?[]GROUP };
-    const OUTPUT = struct { names: ?[]?[]const u8, matches: ?[]MATCH };
 
     var output_object: OUTPUT = .{ .names = null, .matches = null };
 

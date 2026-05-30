@@ -290,10 +290,8 @@ namespace JavaScriptPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = uFlag || vFlag,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -383,6 +381,7 @@ namespace JavaScriptPlugin
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -501,10 +500,8 @@ namespace JavaScriptPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = uFlag,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -594,6 +591,7 @@ namespace JavaScriptPlugin
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -712,10 +710,8 @@ namespace JavaScriptPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = uFlag,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -805,6 +801,7 @@ namespace JavaScriptPlugin
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -923,10 +920,8 @@ namespace JavaScriptPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = uFlag,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -1016,6 +1011,7 @@ namespace JavaScriptPlugin
                 Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -1134,10 +1130,8 @@ namespace JavaScriptPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = true,
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -1187,8 +1181,6 @@ namespace JavaScriptPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = true,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -1232,6 +1224,7 @@ namespace JavaScriptPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

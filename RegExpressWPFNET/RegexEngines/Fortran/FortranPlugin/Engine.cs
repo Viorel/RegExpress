@@ -270,10 +270,8 @@ namespace FortranPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -323,8 +321,6 @@ namespace FortranPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -368,6 +364,7 @@ namespace FortranPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = true,
+                Quantifier_Lazy = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -486,10 +483,8 @@ namespace FortranPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -539,8 +534,6 @@ namespace FortranPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -584,6 +577,7 @@ namespace FortranPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -626,7 +620,6 @@ namespace FortranPlugin
                 AlternationOnSeparateLines = false,
 
                 InlineComments = false,
-                AnomalousInlineComments = true,
                 XModeComments = false,
                 InsideSets_XModeComments = false,
 
@@ -703,10 +696,8 @@ namespace FortranPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
-                Class_Name = false,
 
                 InsideSets_Class_dD = false,
                 InsideSets_Class_hHhexa = false,
@@ -756,8 +747,6 @@ namespace FortranPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -801,6 +790,7 @@ namespace FortranPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -827,6 +817,8 @@ namespace FortranPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+
+                Ext_AnomalousInlineComments = true,
             };
         }
     }

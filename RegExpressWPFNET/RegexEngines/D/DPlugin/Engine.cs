@@ -250,10 +250,8 @@ namespace DPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = true,
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -303,8 +301,6 @@ namespace DPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = true,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -348,6 +344,7 @@ namespace DPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.XModeOnly,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

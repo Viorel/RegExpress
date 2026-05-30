@@ -291,10 +291,8 @@ namespace BoostPlugin
                 Class_vV = is_perl,
                 Class_wW = is_perl || is_POSIX_extended || is_emacs,
                 Class_X = is_perl || is_POSIX_extended,
-                Class_Not = false,
                 Class_pP = is_perl || is_POSIX_extended,
                 Class_pPBrace = is_perl || is_POSIX_extended,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -344,8 +342,6 @@ namespace BoostPlugin
                 NamedGroup_Apos = is_perl || is_emacs,
                 NamedGroup_LtGt = is_perl || is_emacs,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -391,6 +387,7 @@ namespace BoostPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = is_perl || is_emacs,
 
                 Conditional_BackrefByNumber = is_perl,
                 Conditional_BackrefByName = false,

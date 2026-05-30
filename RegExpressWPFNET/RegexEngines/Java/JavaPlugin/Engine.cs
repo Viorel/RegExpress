@@ -272,10 +272,8 @@ namespace JavaPlugin
                 Class_vV = is_regex,
                 Class_wW = true,
                 Class_X = is_regex,
-                Class_Not = false,
                 Class_pP = true, // TODO: not documented? // TODO: in some engines it is case-sensitive or case-insensitive
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -325,8 +323,6 @@ namespace JavaPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = is_re2j,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -370,6 +366,7 @@ namespace JavaPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

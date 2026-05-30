@@ -74,26 +74,28 @@ Example of result:
     {
         public class RootObject
         {
-            public string[] names { get; set; }
-            public Match[] matches { get; set; }
+            public string[]? names { get; set; }
+            public Match[]? matches { get; set; }
         }
 
         public class Match
         {
             public int start { get; set; }
             public int length { get; set; }
-            public Group[] groups { get; set; }
+            public Group[]? groups { get; set; }
         }
 
         public class Group
         {
-            public string value { get; set; }
+            public string? value { get; set; }
         }
     }
 
 
     static class MatcherZigRegex
     {
+        static readonly Lazy<string?> LazyVersion = new( ( ) => GetVersion( ICancellable.NonCancellable ) );
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             var json_object = new
@@ -153,7 +155,7 @@ Example of result:
                     string? value = m.groups[group_index].value;
                     bool success = value != null;
 
-                    string? name = response.names[group_index];
+                    string? name = response.names?[group_index];
                     name ??= ( group_index + 1 ).ToString( CultureInfo.InvariantCulture );
 
                     if( !success )
@@ -172,12 +174,30 @@ Example of result:
             return new RegexMatches( matches.Count, matches );
         }
 
-
         public static string? GetVersion( ICancellable cnc )
         {
-            return "0.16.0"; // TODO: get from worker
+            return "0.2.0"; // TODO: get from worker
         }
 
+        internal static void StartGetVersion( Action<string?> setVersion )
+        {
+            if( LazyVersion.IsValueCreated )
+            {
+                setVersion( LazyVersion.Value );
+
+                return;
+            }
+
+            Thread t = new( ( ) =>
+            {
+                setVersion( LazyVersion.Value );
+            } )
+            {
+                IsBackground = true
+            };
+
+            t.Start( );
+        }
 
         static string GetWorkerExePath( )
         {

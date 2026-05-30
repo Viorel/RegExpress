@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Text;
 
 
-namespace DotNET8Worker
+namespace DotNET9Worker
 {
     internal class Program
     {

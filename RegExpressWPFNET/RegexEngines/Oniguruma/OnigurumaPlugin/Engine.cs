@@ -365,10 +365,8 @@ namespace OnigurumaPlugin
                 Class_vV = false,
                 Class_wW = details.ONIG_SYN_OP_ESC_W_WORD,
                 Class_X = details.ONIG_SYN_OP2_ESC_X_Y_TEXT_SEGMENT,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = details.ONIG_SYN_OP2_ESC_P_BRACE_CHAR_PROPERTY || details.ONIG_SYN_OP2_ESC_P_BRACE_CIRCUMFLEX_NOT,
-                Class_Name = false,
 
                 InsideSets_Class_dD = details.ONIG_SYN_OP_ESC_D_DIGIT && details.ONIG_SYN_BACKSLASH_ESCAPE_IN_CC,
                 InsideSets_Class_hHhexa = details.ONIG_SYN_OP2_ESC_H_XDIGIT && details.ONIG_SYN_BACKSLASH_ESCAPE_IN_CC,
@@ -418,8 +416,6 @@ namespace OnigurumaPlugin
                 NamedGroup_Apos = details.ONIG_SYN_OP2_QMARK_LT_NAMED_GROUP,
                 NamedGroup_LtGt = details.ONIG_SYN_OP2_QMARK_LT_NAMED_GROUP,
                 NamedGroup_PLtGt = details.ONIG_SYN_OP2_QMARK_CAPITAL_P_NAME,
-                NamedGroup_AtApos = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
-                NamedGroup_AtLtGt = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
                 BalancingGroup = false,
                 CapturingGroup = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
 
@@ -463,6 +459,7 @@ namespace OnigurumaPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = details.ONIG_SYN_ALLOW_INTERVAL_LOW_ABBREV,
+                Quantifier_Lazy = details.ONIG_SYN_OP_QMARK_NON_GREEDY,
 
                 Conditional_BackrefByNumber = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE,
                 Conditional_BackrefByName = false,
@@ -489,6 +486,9 @@ namespace OnigurumaPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,
+
+                Ext_NamedGroup_AtApos = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
+                Ext_NamedGroup_AtLtGt = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
             };
 
             // TODO: "\M-x"

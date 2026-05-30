@@ -309,10 +309,8 @@ namespace StdPlugin
                 Class_vV = false,
                 Class_wW = grammar == GrammarEnum.ECMAScript,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
-                Class_Name = false,
 
                 InsideSets_Class_dD = grammar == GrammarEnum.ECMAScript,
                 InsideSets_Class_hHhexa = false,
@@ -328,8 +326,8 @@ namespace StdPlugin
                 InsideSets_Class_pP = false,
                 InsideSets_Class_pPBrace = false,
                 InsideSets_Class_Name = true,
-                InsideSets_Equivalence = true,
-                InsideSets_Collating = false, // TODO: should be 'true'; it seems to be a defect of STL; it always matches the last (any) character
+                InsideSets_Equivalence = true, // with corresponding 'traits', system locales
+                InsideSets_Collating = true, // with corresponding 'traits'
 
                 InsideSets_Operators = false,
                 InsideSets_OperatorsExtended = false,
@@ -362,8 +360,6 @@ namespace StdPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -421,6 +417,7 @@ namespace StdPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = grammar == GrammarEnum.ECMAScript,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -551,10 +548,8 @@ namespace StdPlugin
                 Class_vV = false,
                 Class_wW = grammar == GrammarEnum.ECMAScript,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = false,
-                Class_Name = false,
 
                 InsideSets_Class_dD = grammar == GrammarEnum.ECMAScript,
                 InsideSets_Class_hHhexa = false,
@@ -604,8 +599,6 @@ namespace StdPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = false,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -663,6 +656,7 @@ namespace StdPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = grammar == GrammarEnum.ECMAScript,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -781,10 +775,8 @@ namespace StdPlugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -834,8 +826,6 @@ namespace StdPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
 
@@ -879,6 +869,7 @@ namespace StdPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = grammar == GrammarEnum.ECMAScript,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

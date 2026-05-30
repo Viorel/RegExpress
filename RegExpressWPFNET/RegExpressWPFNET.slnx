@@ -92,6 +92,12 @@
     <Project Path="RegexEngines/RE2/RE2StaticLib/RE2StaticLib.vcxproj" Id="2fc49c2b-368f-421e-a3f3-2dabf86fbcfb" />
     <Project Path="RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" Id="21e036e6-459b-497f-8365-ec795000d990" />
   </Folder>
+  <Folder Name="/RegexEngines/RESharp/">
+    <Project Path="RegexEngines/RESharp/RESharpPlugin/RESharpPlugin.csproj">
+      <BuildDependency Project="RegexEngines/RESharp/RESharpWorker/RESharpWorker.csproj" />
+    </Project>
+    <Project Path="RegexEngines/RESharp/RESharpWorker/RESharpWorker.csproj" />
+  </Folder>
   <Folder Name="/RegexEngines/Rust/">
     <Project Path="RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />
   </Folder>
@@ -167,13 +173,17 @@
     <BuildDependency Project="RegexEngines/Qt/QtPlugin/QtPlugin.csproj" />
     <BuildDependency Project="RegexEngines/RE2/RE2Plugin/RE2Plugin.csproj" />
     <BuildDependency Project="RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" />
+    <BuildDependency Project="RegexEngines/RESharp/RESharpPlugin/RESharpPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/RESharp/RESharpWorker/RESharpWorker.csproj" />
     <BuildDependency Project="RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/Std/SrellWorker/SrellWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/Std/StdPlugin/StdPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Std/StdWorker/StdWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/SubReg/SubRegPlugin/SubRegPlugin.csproj" />
     <BuildDependency Project="RegexEngines/SubReg/SubRegWorker/SubRegWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCPlugin/TinyRegexCPlugin.csproj" />
     <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker/TinyRegexCWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/TRE/TRE/TRE/win32/tre.vcxproj" />
     <BuildDependency Project="RegexEngines/TRE/TREPlugin/TREPlugin.csproj" />
     <BuildDependency Project="RegexEngines/TRE/TREWorker/TREWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/VBScript/VBScriptPlugin/VBScriptPlugin.csproj" />

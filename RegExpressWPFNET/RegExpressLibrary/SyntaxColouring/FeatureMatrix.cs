@@ -69,7 +69,6 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool AlternationOnSeparateLines { get; init; }               // put alternatives on separate lines (separated by '\n')
 
         public bool InlineComments { get; init; }                           // (?#comment) or \(?#comment\)
-        public bool AnomalousInlineComments { get; init; }                  // ![comment] //TODO: remove such engines
         public bool XModeComments { get; init; }                            // #comment; see also XFlag
         public bool InsideSets_XModeComments { get; init; }                 // #comment inside [...]; see also XFlag
 
@@ -146,10 +145,8 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Class_vV { get; init; }                                 // \v, \V -- vertical spaces; see also Esc_v
         public bool Class_wW { get; init; }                                 // \w, \W -- word characters
         public bool Class_X { get; init; }                                  // \X -- eXtended grapheme cluster, or a non-combining character followed by a sequence of zero or more combining characters
-        public bool Class_Not { get; init; }                                // \!c, where c -- any character, or \!\c, where \c -- an escape
         public bool Class_pP { get; init; }                                 // ex.: \pL, \PL
         public bool Class_pPBrace { get; init; }                            // \p{...}, \P{...}, \p{^...}, \P{^...}
-        public bool Class_Name { get; init; }                               // ex: [:digit:] 
 
         public bool InsideSets_Class_dD { get; init; }                      // \d, \D -- digits
         public bool InsideSets_Class_hHhexa { get; init; }                  // \h, \H -- hexadecimal
@@ -201,8 +198,6 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool NamedGroup_Apos { get; init; }                          // (?'name'...)
         public bool NamedGroup_LtGt { get; init; }                          // (?<name>...)
         public bool NamedGroup_PLtGt { get; init; }                         // (?P<name>...)
-        public bool NamedGroup_AtApos { get; init; }                        // (?@'name'...)
-        public bool NamedGroup_AtLtGt { get; init; }                        // (?@<name>...)
         public bool BalancingGroup { get; init; }                           // (?<name2-name1>...) etc., in addition to above 'NamedGroup_Apos', 'NamedGroup_LtGt', etc.
         public bool CapturingGroup { get; init; }                           // (?@...)
         public bool NoncapturingGroup { get; init; }                        // (?:...)
@@ -247,6 +242,7 @@ namespace RegExpressLibrary.SyntaxColouring
                                                                             // usually related to Approximate Matching (example: "abcd{+1#2})". (See also 'FuzzyMatchingParams')
         public SpaceUsageEnum Quantifier_Braces_Spaces { get; init; }       // enable spaces like { n }, { n , m }
         public bool Quantifier_LowAbbrev { get; init; }                     // also allow {,m} if Quantifier_Braces is set
+        public bool Quantifier_Lazy { get; init; }                          // also allow *?, +?, ??, {n,m}?
 
         public bool Conditional_BackrefByNumber { get; init; }              // (?(number)...|...), (?(+number)...|...), (?(-number)...|...)
         public bool Conditional_BackrefByName { get; init; }                // (?(name)...|...)
@@ -284,6 +280,19 @@ namespace RegExpressLibrary.SyntaxColouring
 
         public bool Σσς { get; init; }                                      // match letters that have multiple uppercase and lowercase variants,
                                                                             // such as uppercase “Σ” and lowercase “σ” (inside words) and “ς” (at end of words)
+
+
+        // Special features used only by specific engines.
+
+        public bool Ext_Class_Name { get; init; }                           // ex: [:digit:] 
+        public bool Ext_NamedGroup_AtApos { get; init; }                    // (?@'name'...)
+        public bool Ext_NamedGroup_AtLtGt { get; init; }                    // (?@<name>...)
+        public bool Ext_Class_Not { get; init; }                            // \!c (where c -- any character, or \!\c, where \c -- an escape) in SubReg
+        public bool Ext_AnomalousInlineComments { get; init; }              // ![comment] in one of Fortran engines
+        public bool Ext_UniversalWildcard { get; init; }                    // '_' in RE#
+        public bool Ext_Operator_Intersection { get; init; }                // '&' in RE#
+        public bool Ext_Operator_Complement { get; init; }                  // '~()' in RE#
+
     }
 }
 

@@ -12,7 +12,7 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
 
-namespace DotNET8Plugin
+namespace DotNET9Plugin
 {
     class Engine : IRegexEngine
     {
@@ -246,10 +246,8 @@ namespace DotNET8Plugin
                 Class_vV = false,
                 Class_wW = true,
                 Class_X = false,
-                Class_Not = false,
                 Class_pP = false,
                 Class_pPBrace = true,
-                Class_Name = false,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -299,8 +297,6 @@ namespace DotNET8Plugin
                 NamedGroup_Apos = true,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
-                NamedGroup_AtApos = false,
-                NamedGroup_AtLtGt = false,
                 BalancingGroup = true,
                 CapturingGroup = false,
 
@@ -344,6 +340,7 @@ namespace DotNET8Plugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = true,

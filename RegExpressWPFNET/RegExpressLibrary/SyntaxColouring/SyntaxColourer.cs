@@ -435,7 +435,7 @@ namespace RegExpressLibrary.SyntaxColouring
                     pb_character_class.Add( $@"\\[{chars}]" );
                 }
 
-                if( fm.Class_Not )
+                if( fm.Ext_Class_Not )
                 {
                     pb_character_class.Add( @"\\!(\\?.)?" );
                 }
@@ -637,7 +637,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 pb.Add( @"(?<lbracket>\[\^?)(?<rbracket>\])" ); // [], [^]
             }
 
-            if( fm.Class_Name )
+            if( fm.Ext_Class_Name )
             {
                 pb.AddGroup( "class", @"\[: [^:\r\n]* (:\]?)?" );
             }
@@ -730,7 +730,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 }
             }
 
-            if( fm.AnomalousInlineComments )
+            if( fm.Ext_AnomalousInlineComments )
             {
                 pb.Add( @"(?<comment>! \s* \[ [^\]]* \]?)" );
             }
@@ -1098,11 +1098,11 @@ namespace RegExpressLibrary.SyntaxColouring
                         {
                             pb.Add( @"\(\? P < ((?<name>[^>]*) >?)?" );
                         }
-                        if( fm.NamedGroup_AtApos )
+                        if( fm.Ext_NamedGroup_AtApos )
                         {
                             pb.Add( @"\(\? @ ' ((?<name>[^']*) '?)?" );
                         }
-                        if( fm.NamedGroup_AtLtGt )
+                        if( fm.Ext_NamedGroup_AtLtGt )
                         {
                             pb.Add( @"\(\? @ < ((?<name>[^>]*) >?)?" );
                         }
@@ -1479,6 +1479,11 @@ namespace RegExpressLibrary.SyntaxColouring
                 pb.Add( @"(?<class>\.)" );
             }
 
+            if( fm.Ext_UniversalWildcard )
+            {
+                pb.Add( @"(?<class>_)" );
+            }
+
             switch( fm.VerticalLine )
             {
             case FeatureMatrix.PunctuationEnum.Normal:
@@ -1487,6 +1492,16 @@ namespace RegExpressLibrary.SyntaxColouring
             case FeatureMatrix.PunctuationEnum.Backslashed:
                 pb.Add( @"(?<sym>\\\|)" );
                 break;
+            }
+
+            if( fm.Ext_Operator_Intersection )
+            {
+                pb.Add( @"(?<class>&)" );
+            }
+
+            if( fm.Ext_Operator_Complement )
+            {
+                pb.Add( @"(?<class>~(?=\())" );
             }
 
             if( fm.Literal_QE )
