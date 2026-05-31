@@ -64,9 +64,8 @@ public static class PluginLoader
         }
         catch( Exception exc )
         {
-            if( Debugger.IsAttached ) Debugger.Break( );
-
-            MessageBox.Show( ownerWindow, $"Failed to load plugins using '{enginesJsonPath}'.\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
+            if (InternalConfig.HandleException($"Failed to load plugins using '{enginesJsonPath}'", exc ))
+                throw;
 
             return (null, null);
         }
@@ -81,6 +80,11 @@ public static class PluginLoader
         {
             foreach( EngineData engine_data in engines_data.engines )
             {
+                if ( InternalConfig.limited_engine_dlls?.Length > 0 && !InternalConfig.limited_engine_dlls.Any( dll => engine_data.path.Contains(dll, StringComparison.CurrentCultureIgnoreCase) ) )
+                {
+                    Debug.WriteLine( $"Skipping plugin due to limited_engine_dlls \"{engine_data.path}\"..." );
+                    continue;
+                }
                 string plugin_absolute_path = Path.Combine( plugin_root_folder, engine_data.path! );
 
                 try
@@ -106,18 +110,17 @@ public static class PluginLoader
                             }
                             catch( Exception exc )
                             {
-                                if( Debugger.IsAttached ) Debugger.Break( );
+                                if (InternalConfig.HandleException( $"Failed to create plugin \"{engine_data.path}\"", exc ))
+                                    throw;
 
-                                MessageBox.Show( ownerWindow, $"Failed to create plugin \"{engine_data.path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
                             }
                         }
                     }
                 }
                 catch( Exception exc )
                 {
-                    if( Debugger.IsAttached ) Debugger.Break( );
-
-                    MessageBox.Show( $"Failed to load plugin \"{engine_data.path}\".\r\n\r\n{exc.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Exclamation );
+                    if (InternalConfig.HandleException( $"Failed to create plugin \"{engine_data.path}\"", exc ))
+                       throw;
                 }
             }
         }

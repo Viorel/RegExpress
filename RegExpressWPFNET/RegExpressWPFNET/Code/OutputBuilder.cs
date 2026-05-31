@@ -63,12 +63,13 @@ namespace RegExpressWPFNET.Code
             sb.Clear( );
             runs.Clear( );
             isPreviousSpecial = false;
+            int realLength = 0;
 
             for( int i = 0; i < text.Length; i++ )
             {
-                if( i >= maxLength )
+                if( realLength >= maxLength )
                 {
-                    AppendSpecial( @"…" );
+                    realLength += AppendSpecial( @"…" );
 
                     break;
                 }
@@ -78,13 +79,13 @@ namespace RegExpressWPFNET.Code
                 switch( c )
                 {
                 case '\r':
-                    AppendSpecial( @"\r" );
+                    realLength += AppendSpecial( @"\r" );
                     continue;
                 case '\n':
-                    AppendSpecial( @"\n" );
+                    realLength += AppendSpecial( @"\n" );
                     continue;
                 case '\t':
-                    AppendSpecial( @"\t" );
+                    realLength += AppendSpecial( @"\t" );
                     continue;
                 }
 
@@ -100,7 +101,7 @@ namespace RegExpressWPFNET.Code
                     ( c >= UnicodeRanges.Hebrew.FirstCodePoint && c < UnicodeRanges.Hebrew.FirstCodePoint + UnicodeRanges.Hebrew.Length && char.GetUnicodeCategory( c ) == UnicodeCategory.OtherLetter )
                   )
                 {
-                    AppendNormal( c );
+                    realLength += AppendNormal( c );
                     continue;
                 }
 
@@ -138,13 +139,13 @@ namespace RegExpressWPFNET.Code
                 case UnicodeCategory.OtherSymbol:
                 //case UnicodeCategory.OtherNotAssigned:
                       */
-                    AppendNormal( c );
+                    realLength += AppendNormal( c );
 
                     break;
 
                 default:
 
-                    AppendCode( c );
+                    realLength += AppendCode( c );
 
                     break;
                 }
@@ -209,7 +210,7 @@ namespace RegExpressWPFNET.Code
         }
 
 
-        private void AppendSpecial( string s )
+        private int AppendSpecial( string s )
         {
             if( isPreviousSpecial || specialStyleInfo == null )
             {
@@ -226,16 +227,17 @@ namespace RegExpressWPFNET.Code
                 sb.Clear( ).Append( s );
                 isPreviousSpecial = true;
             }
+            return s.Length;
         }
 
 
-        private void AppendCode( char c )
+        private int AppendCode( char c )
         {
-            AppendSpecial( $@"\u{(int)c:X4}" );
+            return AppendSpecial( $@"\u{(int)c:X4}" );
         }
 
 
-        private void AppendNormal( char c )
+        private int AppendNormal( char c )
         {
             if( !isPreviousSpecial )
             {
@@ -252,6 +254,7 @@ namespace RegExpressWPFNET.Code
                 sb.Clear( ).Append( c );
                 isPreviousSpecial = false;
             }
+            return 1;
         }
     }
 }

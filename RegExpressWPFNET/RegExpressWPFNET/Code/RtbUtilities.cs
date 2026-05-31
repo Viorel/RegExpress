@@ -477,7 +477,7 @@ namespace RegExpressWPFNET.Code
 
             if( rect_to_bring.IsEmpty )
             {
-                if( Debugger.IsAttached ) Debugger.Break( );
+                InternalConfig.HandleOtherCriticalError("Rect is empty");
 
                 return;
             }
@@ -490,7 +490,7 @@ namespace RegExpressWPFNET.Code
         {
             if( rect.IsEmpty )
             {
-                if( Debugger.IsAttached ) Debugger.Break( );
+                InternalConfig.HandleOtherCriticalError("Rect is empty");
 
                 return;
             }

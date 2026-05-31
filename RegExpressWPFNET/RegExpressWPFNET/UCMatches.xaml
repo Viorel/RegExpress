@@ -1,23 +1,24 @@
 ﻿<UserControl x:Class="RegExpressWPFNET.UCMatches"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:RegExpressWPFNET"
-             mc:Ignorable="d" 
+             mc:Ignorable="d"
              d:DesignHeight="200" d:DesignWidth="500" Loaded="UserControl_Loaded">
     <Grid>
         <ProgressBar x:Name="pbProgress" Panel.ZIndex="2" VerticalAlignment="Top" Visibility="Hidden" Style="{StaticResource ProgressBar1}" />
         <ProgressBar x:Name="pbProgressIndeterminate" Panel.ZIndex="10" VerticalAlignment="Top" Visibility="Hidden" Style="{StaticResource ProgressBar1}" IsIndeterminate="True" />
 
         <AdornerDecorator>
-            <RichTextBox x:Name="rtbMatches" Panel.ZIndex="1" Style="{StaticResource Matches}" 
-                         SelectionChanged="RtbMatches_SelectionChanged" 
-                         GotFocus="RtbMatches_GotFocus" 
-                         LostFocus="RtbMatches_LostFocus" 
-                         IsUndoEnabled="False" 
-                         IsReadOnly="True" 
-                         IsReadOnlyCaretVisible="True" 
+            <RichTextBox x:Name="rtbMatches" Panel.ZIndex="1" Style="{StaticResource Matches}"
+                         SelectionChanged="RtbMatches_SelectionChanged"
+                         GotFocus="RtbMatches_GotFocus"
+                         LostFocus="RtbMatches_LostFocus"
+                         IsUndoEnabled="False"
+                         IsReadOnly="True"
+                         IsReadOnlyCaretVisible="True"
+                         IsDocumentEnabled="True"
                          Visibility="Hidden"
                          d:Visibility="Visible" >
                 <FlowDocument>
@@ -37,8 +38,8 @@
             </RichTextBox>
         </AdornerDecorator>
 
-        <RichTextBox x:Name="rtbNoMatches" Style="{StaticResource Info}" IsReadOnly="True" IsReadOnlyCaretVisible="True" 
-                     Visibility="Hidden" 
+        <RichTextBox x:Name="rtbNoMatches" Style="{StaticResource Info}" IsReadOnly="True" IsReadOnlyCaretVisible="True"
+                     Visibility="Hidden"
                      d:Visibility="Hidden">
             <FlowDocument>
                 <Paragraph Padding="1 4 1 1">
@@ -55,7 +56,7 @@
             </FlowDocument>
         </RichTextBox>
 
-        <RichTextBox x:Name="rtbInfo" Panel.ZIndex="8" Style="{StaticResource Info}" IsReadOnly="True" IsReadOnlyCaretVisible="True" 
+        <RichTextBox x:Name="rtbInfo" Panel.ZIndex="8" Style="{StaticResource Info}" IsReadOnly="True" IsReadOnlyCaretVisible="True"
                      IsDocumentEnabled="True"
                      Visibility="Hidden"
                      d:Visibility="Hidden"
@@ -70,7 +71,7 @@
             </FlowDocument>
         </RichTextBox>
 
-        <RichTextBox x:Name="rtbError" Style="{StaticResource Error}" IsReadOnly="True" IsReadOnlyCaretVisible="True" 
+        <RichTextBox x:Name="rtbError" Style="{StaticResource Error}" IsReadOnly="True" IsReadOnlyCaretVisible="True"
                      Visibility="Hidden"
                      d:Visibility="Hidden">
             <FlowDocument>
@@ -86,8 +87,8 @@
             <Button x:Name="btnDbgLoad" Content="load" Click="BtnDbgLoad_Click" />
         </StackPanel>
 
-        <Grid x:Name="pnlHourglass" Panel.ZIndex="30" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0 0 0 1" Opacity="0.44" 
-              Visibility="Hidden" 
+        <Grid x:Name="pnlHourglass" Panel.ZIndex="30" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0 0 0 1" Opacity="0.44"
+              Visibility="Hidden"
               d:Visibility="Visible">
             <TextBlock Text="⏳"/>
         </Grid>
