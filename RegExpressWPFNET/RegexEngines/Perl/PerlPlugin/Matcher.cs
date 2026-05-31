@@ -145,7 +145,7 @@ namespace PerlPlugin
                     }
                     else
                     {
-                        if( Debugger.IsAttached ) Debugger.Break( );
+                        InternalConfig.HandleOtherCriticalError("No Match");
                         // ignore
                     }
                 }
