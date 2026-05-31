@@ -191,7 +191,7 @@ namespace JavaPlugin
                 if( !string.IsNullOrWhiteSpace( line ) )
                 {
                     // invalid line
-                    if( Debugger.IsAttached ) Debugger.Break( );
+                    InternalConfig.HandleOtherCriticalError("Invalid Line");
                 }
 #endif
             }
@@ -293,7 +293,8 @@ namespace JavaPlugin
                         catch( Exception exc )
                         {
                             _ = exc;
-                            if( Debugger.IsAttached ) Debugger.Break( );
+                            if (InternalConfig.HandleException( exc ))
+                                throw;
 
                             // ignore
                         }
@@ -304,7 +305,8 @@ namespace JavaPlugin
                 catch( Exception exc )
                 {
                     _ = exc;
-                    if( Debugger.IsAttached ) Debugger.Break( );
+                    if (InternalConfig.HandleException( exc ))
+                        throw;
 
                     JrePath = null;
                 }

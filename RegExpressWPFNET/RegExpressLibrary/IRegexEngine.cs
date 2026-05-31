@@ -14,8 +14,27 @@ namespace RegExpressLibrary
 
     public delegate void RegexEngineOptionsChanged( IRegexEngine sender, RegexEngineOptionsChangedArgs args );
 
+    public interface IBaseEngine
+    {
+        string Name { get; }
+        string? ExportOptions( ); // (JSON)
+    }
+    public interface IAIBase : IBaseEngine
+    {
+        string AIPatternType => "Regex";
+        string AIPatternCodeblockType => "regex";
+        string AIAdditionalSystemPrompt => "If the language supports named capture groups, use these by default. " +
+                   "If the user has ignoring patterned whitespace enabled in the options, use multi-lines and minimal in-regex comments for complex regexes with nice whitespace formatting to make it more readable. ";
 
-    public interface IRegexEngine
+        string ReferenceTextHeader => "Users current target text";
+        string GetSystemPrompt( ) => $"You are a {Name} {AIPatternType} expert assistant. The user has questions about their {AIPatternType} patterns and target text. " +
+                   $"Provide {AIPatternType} patterns inside Markdown code blocks (```{AIPatternCodeblockType} ... ```). " +
+                   "Explain how the pattern works briefly. " +
+                    AIAdditionalSystemPrompt +
+                   $"They currently have these engine options enabled:\n```json\n{ExportOptions( )}\n```";
+    }
+
+    public interface IRegexEngine : IAIBase
     {
         event RegexEngineOptionsChanged? OptionsChanged;
         event EventHandler? FeatureMatrixReady;
@@ -26,8 +45,6 @@ namespace RegExpressLibrary
 
         (string Kind, string? Version) CombinedId => (Kind, Version);
 
-        string Name { get; }
-
         string Subtitle { get; }
 
         RegexEngineCapabilityEnum Capabilities { get; }
@@ -35,8 +52,6 @@ namespace RegExpressLibrary
         string? NoteForCaptures { get; }
 
         Control GetOptionsControl( );
-
-        string? ExportOptions( ); // (JSON)
 
         void ImportOptions( string? json );
 

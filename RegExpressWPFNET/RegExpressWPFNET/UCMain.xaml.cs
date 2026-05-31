@@ -35,7 +35,7 @@ namespace RegExpressWPFNET
 
         readonly IReadOnlyList<IRegexEngine> RegexEngines;
         readonly IRegexEngine DefaultRegexEngine;
-        IRegexEngine? CurrentRegexEngine = null;
+        public IRegexEngine? CurrentRegexEngine = null;
         readonly HashSet<IRegexEngine> RegexEnginesUsed = new( );
 
         public bool IsFullyLoaded { get; private set; } = false;
@@ -256,6 +256,16 @@ namespace RegExpressWPFNET
 
                     StopAll( );
                     RestartAll( );
+                }
+                var loadFile = Utilities.GetCommandLineArgStr( "text-load-file" );
+                if( !String.IsNullOrWhiteSpace( loadFile ) )
+                {
+                    ucText.SetText( File.ReadAllText( loadFile ) );
+                }
+                loadFile = Utilities.GetCommandLineArgStr( "pattern-load-file" );
+                if( !String.IsNullOrWhiteSpace( loadFile ) )
+                {
+                    ucPattern.SetText( File.ReadAllText( loadFile ) );
                 }
             }
         }
@@ -879,7 +889,7 @@ namespace RegExpressWPFNET
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                if( Debugger.IsAttached ) InternalConfig.HandleException( exc );
 
                 // ignore
             }
@@ -899,7 +909,7 @@ namespace RegExpressWPFNET
             catch( Exception exc )
             {
                 _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
+                InternalConfig.HandleException( exc );
 
                 // ignore
             }
@@ -1154,5 +1164,26 @@ namespace RegExpressWPFNET
         [GeneratedRegex( @"\t|([ ](\r|\n|$))|((\r|\n)$)", RegexOptions.ExplicitCapture )]
         private static partial Regex HasWhitespaceRegex( );
 
+        private void LoadFile_Click( object sender, RoutedEventArgs e )
+        {
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "All files (*.*)|*.*|Text files (*.txt)|*.txt",
+                FilterIndex = 1
+            };
+
+            if( openFileDialog.ShowDialog( ) == true )
+            {
+                try
+                {
+                    string fileContent = File.ReadAllText( openFileDialog.FileName );
+                    ucText.SetText( fileContent );
+                }
+                catch( Exception ex )
+                {
+                    MessageBox.Show( $"Error reading file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error );
+                }
+            }
+        }
     }
 }

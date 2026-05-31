@@ -9,7 +9,7 @@
              x:Name="userControl" DataContextChanged="userControl_DataContextChanged"
              >
     <CheckBox IsChecked="{Binding IsChecked, ElementName=userControl}" HorizontalAlignment="Left">
-        <TextBlock x:Name="textBlock" HorizontalAlignment="Left" VerticalAlignment="Top" TextWrapping="Wrap">
+        <TextBlock x:Name="textBlock" HorizontalAlignment="Left" VerticalAlignment="Center" TextWrapping="Wrap">
                 <Run x:Name="run" Text="Sample text"/>
                 <Run>
                     <Run.Style>
