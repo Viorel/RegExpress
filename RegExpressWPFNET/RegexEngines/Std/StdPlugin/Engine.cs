@@ -810,9 +810,9 @@ namespace StdPlugin
 
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
-                Anchor_A = false,
-                Anchor_Z = false,
-                Anchor_z = false,
+                Anchor_A = true,
+                Anchor_Z = true,
+                Anchor_z = true,
                 Anchor_G = false,
                 Anchor_bB = true,
                 Anchor_bg = false,
