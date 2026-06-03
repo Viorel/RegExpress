@@ -40,6 +40,8 @@
 
         <TextBlock x:Name="tblProgress" d:Text="Ready" Margin="0,0,143,4" Height="16" VerticalAlignment="Bottom"/>
 
+        <CheckBox x:Name="checkBoxVerify" Content="Validate features" HorizontalAlignment="Left" Margin="0,134,0,0" VerticalAlignment="Top"/>
+        
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" >
             <StackPanel.Resources>
                 <Style TargetType="Button">
@@ -50,7 +52,6 @@
             <Button x:Name="buttonCreateFile" Content="Create file" Click="buttonCreateFile_Click"/>
             <Button x:Name="buttonClose" Content="Exit" Click="buttonClose_Click"/>
         </StackPanel>
-        <CheckBox x:Name="checkBoxVerify" Content="Validate features" HorizontalAlignment="Left" Margin="0,134,0,0" VerticalAlignment="Top"/>
 
         <TextBlock x:Name="textBlockFeature" HorizontalAlignment="Left" Margin="0,157,0,0" TextWrapping="Wrap" d:Text="Feature" VerticalAlignment="Top" Visibility="Hidden" d:Visibility="Visible" />
         <ProgressBar x:Name="progressOnFeatures" HorizontalAlignment="Left" Height="10" Margin="0,177,0,0" VerticalAlignment="Top" Width="392" Visibility="Hidden" d:Visibility="Visible" />

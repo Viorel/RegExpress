@@ -12,7 +12,7 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
 
-namespace RE2Plugin
+namespace GoPlugin
 {
     class Engine : IRegexEngine
     {
@@ -50,11 +50,11 @@ namespace RE2Plugin
 
         #region IRegexEngine
 
-        public string Kind => "RE2";
+        public string Kind => "Go";
 
         public string? Version => LazyVersion.Value;
 
-        public string Name => "RE2";
+        public string Name => "Go";
 
         public string Subtitle => $"{Name}";
 
@@ -128,8 +128,6 @@ namespace RE2Plugin
 
         public void SetIgnoreCase( bool yes )
         {
-            Options.case_sensitive = !yes;
-            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )
@@ -237,7 +235,7 @@ namespace RE2Plugin
                 InsideSets_GenericEscape = true,
 
                 Class_Dot = true,
-                Class_Cbyte = is_normal,
+                Class_Cbyte = false,
                 Class_Ccp = false,
                 Class_dD = is_normal,
                 Class_hHhexa = false,
@@ -372,7 +370,7 @@ namespace RE2Plugin
                 AllowDuplicateGroupName = is_normal,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
-                Σσς = true,
+                Σσς = false,
             };
         }
     }

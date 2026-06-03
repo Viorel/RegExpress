@@ -237,3 +237,9 @@ set BasePath=%SolutionDir%\RegexEngines\RESharp
 xcopy /D /R /Y "%BasePath%\RESharpPlugin\bin\%Configuration%\%TargetDir%\RESharpPlugin.dll" "%EnginesTargetPath%\RESharp\*"
 xcopy /D /E /R /Y "%BasePath%\RESharpWorker\bin\%Configuration%\net9.0-windows7.0\*" "%EnginesTargetPath%\RESharp\Worker\*"
 
+
+rem -- Go --
+
+set BasePath=%SolutionDir%\RegexEngines\Go
+xcopy /D /R /Y "%BasePath%\GoPlugin\bin\%Configuration%\%TargetDir%\GoPlugin.dll" "%EnginesTargetPath%\Go\*"
+xcopy /D /R /Y "%BasePath%\GoWorker\GoWorker.exe" "%EnginesTargetPath%\Go\*.bin"

@@ -1,0 +1,26 @@
+﻿<UserControl x:Class="GoPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:GoPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="86.429" d:DesignWidth="376.636" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel VerticalAlignment="Top">
+            <ui:CheckboxWithNote Prop="posix_syntax" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>
+            <ui:CheckboxWithNote Prop="longest_match" Text="longest" Note="prefer the leftmost-longest match"/>
+            <ui:CheckboxWithNote Prop="literal" Note="interpret pattern as literal, not regexp"/>
+
+        </StackPanel>
+    </Grid>
+</UserControl>
