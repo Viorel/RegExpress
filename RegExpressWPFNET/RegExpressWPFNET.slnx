@@ -37,6 +37,9 @@
   <Folder Name="/RegexEngines/Fortran/">
     <Project Path="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
   </Folder>
+  <Folder Name="/RegexEngines/Go/">
+    <Project Path="RegexEngines/Go/GoPlugin/GoPlugin.csproj" />
+  </Folder>
   <Folder Name="/RegexEngines/GRETA/">
     <Project Path="RegexEngines/GRETA/GretaPlugin/GretaPlugin.csproj" />
     <Project Path="RegexEngines/GRETA/GretaWorker/GretaWorker.vcxproj" Id="bc846dd1-bdad-46d1-b9dd-a6b87467b630" />
@@ -152,6 +155,7 @@
     <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkPlugin/DotNETFrameworkPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     <BuildDependency Project="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/Go/GoPlugin/GoPlugin.csproj" />
     <BuildDependency Project="RegexEngines/GRETA/GretaPlugin/GretaPlugin.csproj" />
     <BuildDependency Project="RegexEngines/GRETA/GretaWorker/GretaWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/Hyperscan/HyperscanPlugin/HyperscanPlugin.csproj" />

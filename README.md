@@ -40,6 +40,7 @@ It includes the following Regular Expression engines:
 * **[compile-time-regular-expressions (CTRE)](https://github.com/hanickadot/compile-time-regular-expressions)**[^2] 3.11.0  (in C++).
 * **GRETA** 2.6.4 (in C++).
 * **[RE#](https://github.com/ieviev/resharp-dotnet)** 1.0.3 (for F#, C#, VB).
+* **[Go](https://pkg.go.dev/regexp)** 1.26.4 (_regexp_ package).
 
 <br/>
 

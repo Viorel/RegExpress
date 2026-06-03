@@ -78,6 +78,9 @@
     },
     {
       "path": "Engines\\RESharp\\RESharpPlugin.dll"
+    },
+    {
+      "path": "Engines\\Go\\GoPlugin.dll"
     }
   ]
 }

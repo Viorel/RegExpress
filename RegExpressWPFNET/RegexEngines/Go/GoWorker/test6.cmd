@@ -1,0 +1,1 @@
+echo { "pattern" : "*", "Text" : "ab*c", "flags" : "Q" } | GoWorker.exe
