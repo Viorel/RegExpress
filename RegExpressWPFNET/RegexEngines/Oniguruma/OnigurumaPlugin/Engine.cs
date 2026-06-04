@@ -479,6 +479,7 @@ namespace OnigurumaPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,

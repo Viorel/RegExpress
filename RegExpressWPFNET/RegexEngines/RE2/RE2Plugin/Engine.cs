@@ -366,6 +366,7 @@ namespace RE2Plugin
                 EmptyConstruct = is_normal,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,

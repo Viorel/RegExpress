@@ -384,6 +384,7 @@ namespace FortranPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
@@ -597,6 +598,7 @@ namespace FortranPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = true,
+                EmptySetAny = true,
 
                 AsciiOnly = true, // (defective match: '..' matches the character  and an empty space between characters)
                 SplitSurrogatePairs = true,
@@ -810,6 +812,7 @@ namespace FortranPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = true, // (defective match: '.' matches the character and an empty space between characters)
                 SplitSurrogatePairs = true,

@@ -49,10 +49,22 @@ namespace PCRE2Plugin
 
         void UpdateUI( )
         {
-            pnlJIT.IsEnabled = Options.UseJIT;
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
 
-            // if disabled, show unchecked
-            //pnlJIT.DataContext = Options.UseJIT ? Options : new Options { PCRE2_JIT_COMPLETE = false, PCRE2_JIT_PARTIAL_SOFT = false, PCRE2_JIT_PARTIAL_HARD = false };
+            try
+            {
+                ++ChangeCounter;
+
+                pnlJIT.IsEnabled = Options.UseJIT;
+
+                // if disabled, show unchecked
+                //pnlJIT.DataContext = Options.UseJIT ? Options : new Options { PCRE2_JIT_COMPLETE = false, PCRE2_JIT_PARTIAL_SOFT = false, PCRE2_JIT_PARTIAL_HARD = false };
+            }
+            finally
+            {
+                --ChangeCounter;
+            }
         }
 
         void Notify( bool preferImmediateReaction )

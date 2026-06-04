@@ -36,7 +36,7 @@ namespace GoPlugin
         {
             string flags = $"{( options.posix_syntax ? "P" : "" )}{( options.longest_match ? "L" : "" )}{( options.literal ? "Q" : "" )}";
 
-            var data = new { pattern, text, flags };
+            var data = new { package = Enum.GetName<PackageEnum>( options.Package ), pattern, text, flags };
             string json = JsonSerializer.Serialize( data );
 
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
@@ -67,8 +67,15 @@ namespace GoPlugin
             if( root_object.Matches != null )
             {
                 SimpleTextGetter stg = new( text );
+                SurrogatePairsHelper sph = new( text, processSurrogatePairs: true );
 
                 byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
+                bool use_char_index = options.Package == PackageEnum.rexa; // ('rexa' seems to return codepoint index)
+
+                int to_char_index( int index )
+                {
+                    return use_char_index ? index : Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, index );
+                }
 
                 foreach( int[] m in root_object.Matches )
                 {
@@ -82,12 +89,22 @@ namespace GoPlugin
                         Debug.Assert( m[0] >= 0 );
                         Debug.Assert( m[1] >= m[0] );
 
-                        int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, m[0] );
-                        int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, m[1] );
+                        int char_start = to_char_index( m[0] );
+                        int char_end = to_char_index( m[1] );
                         Debug.Assert( char_end >= char_start );
                         int char_length = char_end - char_start;
 
-                        match = SimpleMatch.Create( char_start, char_length, stg );
+                        if( use_char_index )
+                        {
+                            var (text_index, text_length) = sph.ToTextIndexAndLength( char_start, char_length );
+
+                            match = SimpleMatch.Create( char_start, char_length, text_index, text_length, stg );
+                        }
+                        else
+                        {
+                            match = SimpleMatch.Create( char_start, char_length, stg );
+                        }
+
                         match.AddGroup( char_start, char_length, true, "0" );
                     }
 
@@ -98,18 +115,27 @@ namespace GoPlugin
                         {
                             int group_index = i / 2;
 
-                            string? name = root_object.Names?[group_index];
+                            string? name = root_object.Names?[group_index]; // (for unnamed groups, 'regexp2' returns numbers)
                             if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
 
                             bool success = m[i] >= 0;
 
                             if( success )
                             {
-                                int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, m[i] );
-                                int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, m[i + 1] );
+                                int char_start = to_char_index( m[i] );
+                                int char_end = to_char_index( m[i + 1] );
                                 int char_length = char_end - char_start;
 
-                                match.AddGroup( char_start, char_length, true, name );
+                                if( use_char_index )
+                                {
+                                    var (text_index, text_length) = sph.ToTextIndexAndLength( char_start, char_length );
+
+                                    match.AddGroup( char_start, char_length, text_index, text_length, true, name );
+                                }
+                                else
+                                {
+                                    match.AddGroup( char_start, char_length, true, name );
+                                }
                             }
                             else
                             {

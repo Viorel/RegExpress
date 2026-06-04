@@ -369,6 +369,7 @@ namespace TREPlugin
                 EmptyConstruct = isExtended,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,

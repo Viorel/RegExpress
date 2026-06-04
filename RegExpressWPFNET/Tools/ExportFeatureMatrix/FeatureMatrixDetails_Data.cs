@@ -532,8 +532,10 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"(?)", @"Empty construct", fm => fm.EmptyConstruct)
                     .Test( @"x(?)y", "xy", "x"),
                 //new ( @"(? )", @"Empty construct", fm => fm.EmptyConstructX).Test( @"(?x)a(? )b", "ab", null ),
-                new FeatureMatrixDetails( @"[]", @"Empty set", fm => fm.EmptySet)
+                new FeatureMatrixDetails( @"[]", @"Empty set (always fails)", fm => fm.EmptySet)
                     .Test( @"x[]?", "x", null ),
+                new FeatureMatrixDetails( @"[^]", @"Any character, even newline", fm => fm.EmptySetAny)
+                    .Test( @"a[^][^][^]b", "ax\r\nb", "ab" ),
                 new FeatureMatrixDetails( @"Unicode", @"Supports Unicode characters, not just ASCII", fm => ! fm.AsciiOnly)
                     .Test( @"X.....Y", "XăîșțâY", null ),
                 new FeatureMatrixDetails( @"Surrogates", @"“.” matches surrogate pairs as one entity (no split)", fm => ! fm.AsciiOnly && ! fm.SplitSurrogatePairs)

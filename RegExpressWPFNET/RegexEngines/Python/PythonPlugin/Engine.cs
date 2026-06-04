@@ -378,6 +378,7 @@ namespace PythonPlugin
                 EmptyConstruct = is_regex,
                 EmptyConstructX = is_regex,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,

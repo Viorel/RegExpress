@@ -41,15 +41,25 @@ namespace PythonPlugin
 
             IsFullyLoaded = true;
 
-            UpdateControls( );
+            UpdateUI( );
         }
 
 
-        void UpdateControls( )
+        void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
 
-            pnlAdditional.Visibility = Options.Module == ModuleEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+            try
+            {
+                ++ChangeCounter;
+
+                pnlAdditional.Visibility = Options.Module == ModuleEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+            }
+            finally
+            {
+                --ChangeCounter;
+            }
         }
 
 
@@ -74,7 +84,7 @@ namespace PythonPlugin
 
         private void cbxModule_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            UpdateControls( );
+            UpdateUI( );
             Notify( preferImmediateReaction: true );
         }
 
@@ -88,7 +98,7 @@ namespace PythonPlugin
                 Options = options;
                 DataContext = Options;
 
-                UpdateControls( );
+                UpdateUI( );
             }
             finally
             {

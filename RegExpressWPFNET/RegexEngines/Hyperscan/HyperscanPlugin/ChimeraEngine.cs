@@ -363,6 +363,7 @@ namespace HyperscanPlugin
                 EmptyConstruct = true,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,

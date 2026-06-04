@@ -1,0 +1,1 @@
+echo { "package": "rexa", "pattern" : "(?<=a)b", "Text" : "abc", "flags" : "" } | GoWorker.exe

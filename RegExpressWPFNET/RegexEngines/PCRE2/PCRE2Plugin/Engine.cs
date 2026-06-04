@@ -384,6 +384,7 @@ namespace PCRE2Plugin
                 EmptyConstruct = true,
                 EmptyConstructX = false,
                 EmptySet = true,
+                EmptySetAny = true,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,

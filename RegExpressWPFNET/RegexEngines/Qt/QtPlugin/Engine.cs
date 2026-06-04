@@ -360,6 +360,7 @@ namespace QtPlugin
                 EmptyConstruct = true,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,

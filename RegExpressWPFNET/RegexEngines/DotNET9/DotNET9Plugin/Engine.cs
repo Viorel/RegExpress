@@ -360,6 +360,7 @@ namespace DotNET9Plugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,

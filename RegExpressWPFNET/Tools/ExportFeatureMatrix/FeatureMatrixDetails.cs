@@ -129,17 +129,19 @@ partial class FeatureMatrixDetails
             {
                 try
                 {
+                    const string TEXT = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac";
+
                     switch( fm.Parentheses )
                     {
                     case FeatureMatrix.PunctuationEnum.Normal:
                     {
-                        var _ = engine.GetMatches( cnc, @"(a*)*b", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac" );
+                        var _ = engine.GetMatches( cnc, @"(a*)*b", TEXT );
                         result = CatastrophicBacktrackingResultEnum.Passed;
                         break;
                     }
                     case FeatureMatrix.PunctuationEnum.Backslashed:
                     {
-                        var _ = engine.GetMatches( cnc, @"\(a*\)*b", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac" );
+                        var _ = engine.GetMatches( cnc, @"\(a*\)*b", TEXT );
                         result = CatastrophicBacktrackingResultEnum.Passed;
                         break;
                     }

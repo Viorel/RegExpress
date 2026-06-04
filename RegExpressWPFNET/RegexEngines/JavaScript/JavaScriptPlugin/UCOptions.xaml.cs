@@ -48,7 +48,7 @@ namespace JavaScriptPlugin
             MatcherBun.StartGetVersion( SetBunVersion );
             MatcherRE2JS.StartGetVersion( SetRE2JSVersion );
 
-            UpdateControls( );
+            UpdateUI( );
         }
 
         void Notify( bool preferImmediateReaction )
@@ -61,7 +61,7 @@ namespace JavaScriptPlugin
 
         private void cbxRuntime_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            UpdateControls( );
+            UpdateUI( );
 
             Notify( preferImmediateReaction: true );
         }
@@ -76,13 +76,15 @@ namespace JavaScriptPlugin
             Notify( preferImmediateReaction: false );
         }
 
-        void UpdateControls( )
+        void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
             if( ChangeCounter != 0 ) return;
 
             try
             {
+                ++ChangeCounter;
+
                 bool is_V8 = Options.Runtime == RuntimeEnum.WebView2 || Options.Runtime == RuntimeEnum.NodeJs;
                 bool is_SM = Options.Runtime == RuntimeEnum.SpiderMonkey;
                 bool is_RE2JS = Options.Runtime == RuntimeEnum.RE2JS;
@@ -95,8 +97,6 @@ namespace JavaScriptPlugin
                 pnlSM.Visibility = is_SM ? Visibility.Visible : Visibility.Collapsed;
 
                 checkboxV.Visibility = is_V8 ? Visibility.Visible : Visibility.Collapsed;
-
-                ++ChangeCounter;
             }
             finally
             {
@@ -114,7 +114,7 @@ namespace JavaScriptPlugin
                 Options = options;
                 DataContext = Options;
 
-                UpdateControls( );
+                UpdateUI( );
             }
             finally
             {

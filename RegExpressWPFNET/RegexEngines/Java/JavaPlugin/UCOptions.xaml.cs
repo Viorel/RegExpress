@@ -41,7 +41,7 @@ namespace JavaPlugin
 
             IsFullyLoaded = true;
 
-            UpdateControls( );
+            UpdateUI( );
         }
 
 
@@ -55,7 +55,7 @@ namespace JavaPlugin
 
         private void cbxPackage_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            UpdateControls( );
+            UpdateUI( );
 
             Notify( preferImmediateReaction: true );
         }
@@ -70,7 +70,7 @@ namespace JavaPlugin
             Notify( preferImmediateReaction: false );
         }
 
-        void UpdateControls( )
+        void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
             if( ChangeCounter != 0 ) return;
@@ -118,7 +118,7 @@ namespace JavaPlugin
                 Options = options;
                 DataContext = Options;
 
-                UpdateControls( );
+                UpdateUI( );
             }
             finally
             {

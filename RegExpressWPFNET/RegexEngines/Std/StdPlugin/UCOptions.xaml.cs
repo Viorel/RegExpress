@@ -49,7 +49,7 @@ namespace StdPlugin
 
             cbiSystemLocale.Content = $"System ({CultureInfo.CurrentCulture.Name})"; // TODO: watch for system changes
 
-            UpdateControls( );
+            UpdateUI( );
         }
 
 
@@ -63,19 +63,19 @@ namespace StdPlugin
 
         private void cbxCompiler_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            UpdateControls( );
+            UpdateUI( );
             Notify( preferImmediateReaction: true );
         }
 
         private void cbxGrammar_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            UpdateControls( );
+            UpdateUI( );
             Notify( preferImmediateReaction: true );
         }
 
         private void cbxLocale_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            UpdateControls( );
+            UpdateUI( );
             Notify( preferImmediateReaction: true );
         }
 
@@ -103,7 +103,7 @@ namespace StdPlugin
             Notify( preferImmediateReaction: false );
         }
 
-        void UpdateControls( )
+        void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
             if( ChangeCounter != 0 ) return;
@@ -139,7 +139,7 @@ namespace StdPlugin
                 Options = options;
                 DataContext = Options;
 
-                UpdateControls( );
+                UpdateUI( );
             }
             finally
             {

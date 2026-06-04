@@ -1,0 +1,19 @@
+HOW IT'S MADE
+---------------
+
+- Install Go, or download and unarchive.
+
+- To add "rexa" and "regexp2" modules:
+
+    > go get github.com/himclix/rexa@v0.1.0
+    > go get github.com/dlclark/regexp2/v2@v2.1.1
+
+    (Adjust the versions)
+    
+- To build:
+
+    > build.cmd
+
+  (If required, set the path to 'go.exe', or set PATH variable and restart console)
+
+- Commit the changes (including the created "GoWorker.exe").

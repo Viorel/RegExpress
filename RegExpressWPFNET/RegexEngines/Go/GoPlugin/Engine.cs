@@ -17,7 +17,7 @@ namespace GoPlugin
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
-        static readonly LazyData<bool /*posix*/, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        static readonly LazyData<(PackageEnum package, bool isPoxis), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -56,7 +56,7 @@ namespace GoPlugin
 
         public string Name => "Go";
 
-        public string Subtitle => $"{Name}";
+        public string Subtitle => $"{Name} ({Enum.GetName<PackageEnum>( Options.Package )})";
 
         public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
 
@@ -109,11 +109,15 @@ namespace GoPlugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
+            FeatureMatrix fm = LazyFeatureMatrix.GetValue( (Options.Package, Options.posix_syntax) );
+            bool is_regexp2 = Options.Package == PackageEnum.regexp2;
+
             return new SyntaxOptions
             {
                 Literal = Options.literal,
-                XLevel = XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( Options.posix_syntax )
+                XLevel = is_regexp2 ? XLevelEnum.x : XLevelEnum.none,
+                AllowEmptySets = fm.EmptySet,
+                FeatureMatrix = fm,
             };
         }
 
@@ -121,8 +125,10 @@ namespace GoPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( "normal", LazyFeatureMatrix.GetValue( false ), new Engine() ),
-                    new FeatureMatrixVariant( "posix", LazyFeatureMatrix.GetValue( true ), new Engine { Options = new Options { posix_syntax = true }} )
+                    new FeatureMatrixVariant( "regexp", LazyFeatureMatrix.GetValue( (PackageEnum.regexp, false) ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix_syntax = false }} ),
+                    new FeatureMatrixVariant( "regexp (posix)", LazyFeatureMatrix.GetValue( (PackageEnum.regexp, true) ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix_syntax = true }} ),
+                    new FeatureMatrixVariant( "regexp2", LazyFeatureMatrix.GetValue( (PackageEnum.regexp2, false) ), new Engine { Options = new Options { Package = PackageEnum.regexp2, posix_syntax = false }} ),
+                    new FeatureMatrixVariant( "rexa", LazyFeatureMatrix.GetValue( (PackageEnum.rexa, false) ), new Engine { Options = new Options { Package = PackageEnum.rexa, posix_syntax = false }} )
                 ];
         }
 
@@ -159,9 +165,13 @@ namespace GoPlugin
         }
 
 
-        static FeatureMatrix BuildFeatureMatrix( bool is_posix )
+        static FeatureMatrix BuildFeatureMatrix( (PackageEnum package, bool isPoxis) data )
         {
-            bool is_normal = !is_posix;
+            bool is_regexp = data.package == PackageEnum.regexp;
+            bool is_normal_regexp = is_regexp && !data.isPoxis;
+            bool is_regexp2 = data.package == PackageEnum.regexp2;
+            bool is_rexa = data.package == PackageEnum.rexa;
+            bool is_normal = is_normal_regexp || is_regexp2 || is_rexa;
 
             return new FeatureMatrix
             {
@@ -173,62 +183,62 @@ namespace GoPlugin
                 VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
                 AlternationOnSeparateLines = false,
 
-                InlineComments = false,
-                XModeComments = false,
+                InlineComments = is_regexp2,
+                XModeComments = is_regexp2,
                 InsideSets_XModeComments = false,
 
                 Flags = is_normal,
                 ScopedFlags = is_normal,
                 CircumflexFlags = false,
                 ScopedCircumflexFlags = false,
-                XFlag = false,
+                XFlag = is_regexp2,
                 XXFlag = false,
 
-                Literal_QE = is_normal,
+                Literal_QE = is_normal_regexp,
                 InsideSets_Literal_QE = false,
                 InsideSets_Literal_qBrace = false,
 
                 Esc_a = true,
                 Esc_b = false,
-                Esc_e = false,
+                Esc_e = is_regexp2 || is_rexa,
                 Esc_f = true,
                 Esc_n = true,
                 Esc_r = true,
                 Esc_t = true,
-                Esc_v = true,
-                Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
+                Esc_v = is_regexp || is_regexp2,
+                Esc_Octal = is_regexp || is_regexp2 ? FeatureMatrix.OctalEnum.Octal_2_3 : FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
                 Esc_oBrace = false,
-                Esc_x2 = true,
-                Esc_xBrace = true,
-                Esc_u4 = false,
+                Esc_x2 = is_regexp || is_regexp2,
+                Esc_xBrace = is_regexp || is_regexp2,
+                Esc_u4 = is_regexp2,
                 Esc_U8 = false,
                 Esc_uBrace = false,
                 Esc_UBrace = false,
-                Esc_c1 = false,
+                Esc_c1 = is_regexp2,
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
                 GenericEscape = true,
 
                 InsideSets_Esc_a = true,
-                InsideSets_Esc_b = false,
-                InsideSets_Esc_e = false,
+                InsideSets_Esc_b = is_regexp2,
+                InsideSets_Esc_e = is_regexp2 || is_rexa,
                 InsideSets_Esc_f = true,
                 InsideSets_Esc_n = true,
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
-                InsideSets_Esc_v = true,
-                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
+                InsideSets_Esc_v = is_regexp || is_regexp2,
+                InsideSets_Esc_Octal = is_regexp ? FeatureMatrix.OctalEnum.Octal_2_3 : is_regexp2 ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
                 InsideSets_Esc_oBrace = false,
-                InsideSets_Esc_x2 = true,
-                InsideSets_Esc_xBrace = true,
-                InsideSets_Esc_u4 = false,
+                InsideSets_Esc_x2 = is_regexp || is_regexp2,
+                InsideSets_Esc_xBrace = is_regexp || is_regexp2,
+                InsideSets_Esc_u4 = is_regexp2,
                 InsideSets_Esc_U8 = false,
                 InsideSets_Esc_uBrace = false,
                 InsideSets_Esc_UBrace = false,
-                InsideSets_Esc_c1 = false,
+                InsideSets_Esc_c1 = is_regexp2,
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
@@ -258,15 +268,15 @@ namespace GoPlugin
                 InsideSets_Class_hHhorspace = false,
                 InsideSets_Class_lL = false,
                 InsideSets_Class_R = false,
-                InsideSets_Class_sS = is_normal,
+                InsideSets_Class_sS = is_normal_regexp || is_regexp2,
                 InsideSets_Class_sSx = false,
                 InsideSets_Class_uU = false,
                 InsideSets_Class_vV = false,
                 InsideSets_Class_wW = is_normal,
                 InsideSets_Class_X = false,
-                InsideSets_Class_pP = is_normal,
-                InsideSets_Class_pPBrace = is_normal,
-                InsideSets_Class_Name = true,
+                InsideSets_Class_pP = is_normal_regexp || is_regexp2,
+                InsideSets_Class_pPBrace = is_normal_regexp || is_regexp2,
+                InsideSets_Class_Name = is_regexp,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 
@@ -286,9 +296,9 @@ namespace GoPlugin
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = is_normal,
-                Anchor_Z = false,
+                Anchor_Z = is_regexp2,
                 Anchor_z = is_normal,
-                Anchor_G = false,
+                Anchor_G = is_regexp2,
                 Anchor_bB = is_normal,
                 Anchor_bg = false,
                 Anchor_bBBrace = false,
@@ -298,27 +308,27 @@ namespace GoPlugin
                 Anchor_GraveApos = false,
                 Anchor_yY = false,
 
-                NamedGroup_Apos = false,
+                NamedGroup_Apos = is_regexp2,
                 NamedGroup_LtGt = is_normal,
-                NamedGroup_PLtGt = is_normal,
-                BalancingGroup = false,
+                NamedGroup_PLtGt = is_normal_regexp || is_rexa,
+                BalancingGroup = is_regexp2,
                 CapturingGroup = false,
 
                 NoncapturingGroup = is_normal,
-                PositiveLookahead = false,
-                NegativeLookahead = false,
-                PositiveLookbehind = FeatureMatrix.LookModeEnum.None,
-                NegativeLookbehind = FeatureMatrix.LookModeEnum.None,
-                AtomicGroup = false,
+                PositiveLookahead = is_regexp2 || is_rexa,
+                NegativeLookahead = is_regexp2 || is_rexa,
+                PositiveLookbehind = is_regexp2 || is_rexa ? FeatureMatrix.LookModeEnum.AnyLength : FeatureMatrix.LookModeEnum.None,
+                NegativeLookbehind = is_regexp2 || is_rexa ? FeatureMatrix.LookModeEnum.AnyLength : FeatureMatrix.LookModeEnum.None,
+                AtomicGroup = is_regexp2 || is_rexa,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,
                 NonatomicPositiveLookbehind = false,
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_Num = FeatureMatrix.BackrefEnum.None,
-                Backref_kApos = false,
-                Backref_kLtGt = false,
+                Backref_Num = is_regexp2 ? FeatureMatrix.BackrefEnum.Any : is_rexa ? FeatureMatrix.BackrefEnum.OneDigit : FeatureMatrix.BackrefEnum.None,
+                Backref_kApos = is_regexp2,
+                Backref_kLtGt = is_regexp2,
                 Backref_kBrace = false,
                 Backref_kNum = false,
                 Backref_kNegNum = false,
@@ -346,10 +356,10 @@ namespace GoPlugin
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = is_normal,
 
-                Conditional_BackrefByNumber = false,
-                Conditional_BackrefByName = false,
-                Conditional_Pattern = false,
-                Conditional_PatternOrBackrefByName = false,
+                Conditional_BackrefByNumber = is_regexp2,
+                Conditional_BackrefByName = is_regexp2,
+                Conditional_Pattern = is_regexp2,
+                Conditional_PatternOrBackrefByName = is_regexp2,
                 Conditional_BackrefByName_Apos = false,
                 Conditional_BackrefByName_LtGt = false,
                 Conditional_R = false,
@@ -361,15 +371,16 @@ namespace GoPlugin
                 ScriptRuns = false,
                 Callouts = false,
 
-                EmptyConstruct = is_normal,
+                EmptyConstruct = is_normal_regexp,
                 EmptyConstructX = false,
-                EmptySet = false,
+                EmptySet = is_rexa,
+                EmptySetAny = is_rexa,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = is_normal,
                 FuzzyMatchingParams = false,
-                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                TreatmentOfCatastrophicPatterns = is_regexp || is_rexa ? FeatureMatrix.CatastrophicBacktrackingEnum.Accept : FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,
             };
         }

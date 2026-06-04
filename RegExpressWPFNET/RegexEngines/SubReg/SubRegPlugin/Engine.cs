@@ -362,6 +362,7 @@ namespace SubRegPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false, // TODO: "a(? )b": with "xabc" no error, with "ab" gives error
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = true,
                 SplitSurrogatePairs = false, // (not applicable)

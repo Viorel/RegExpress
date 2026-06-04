@@ -41,7 +41,7 @@ namespace FortranPlugin
 
             IsFullyLoaded = true;
 
-            UpdateControls( );
+            UpdateUI( );
         }
 
         void Notify( bool preferImmediateReaction )
@@ -54,7 +54,7 @@ namespace FortranPlugin
 
         private void cbxModule_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            UpdateControls( );
+            UpdateUI( );
 
             Notify( preferImmediateReaction: true );
         }
@@ -64,7 +64,7 @@ namespace FortranPlugin
             Notify( preferImmediateReaction: false );
         }
 
-        void UpdateControls( )
+        void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
             if( ChangeCounter != 0 ) return;
@@ -72,7 +72,6 @@ namespace FortranPlugin
             try
             {
                 ++ChangeCounter;
-
 
             }
             finally
@@ -91,7 +90,7 @@ namespace FortranPlugin
                 Options = options;
                 DataContext = Options;
 
-                UpdateControls( );
+                UpdateUI( );
             }
             finally
             {

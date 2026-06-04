@@ -357,6 +357,7 @@ namespace CompileTimeRegexPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = true,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,

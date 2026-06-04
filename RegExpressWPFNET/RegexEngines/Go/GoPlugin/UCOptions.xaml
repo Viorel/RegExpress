@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:GoPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="86.429" d:DesignWidth="376.636" 
+             d:DesignHeight="111.074" d:DesignWidth="376.636" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -17,8 +17,44 @@
 
     <Grid>
         <StackPanel VerticalAlignment="Top">
-            <ui:CheckboxWithNote Prop="posix_syntax" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>
-            <ui:CheckboxWithNote Prop="longest_match" Text="longest" Note="prefer the leftmost-longest match"/>
+
+            <Grid Margin="0 0 0 4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <Grid.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </Grid.LayoutTransform>
+
+                <Grid.Resources>
+                    <Style TargetType="Label">
+                        <Setter Property="VerticalAlignment" Value="Center" />
+                        <Setter Property="Padding" Value="0 1 4 1"/>
+                    </Style>
+                    <Style TargetType="ComboBox">
+                        <Setter Property="HorizontalAlignment" Value="Left" />
+                        <Setter Property="VerticalAlignment" Value="Center" />
+                        <Setter Property="Padding" Value="4 2"/>
+                        <Setter Property="Margin" Value="1"/>
+                    </Style>
+                </Grid.Resources>
+
+                <Label Grid.Column="0" Grid.Row="0" Content="Package:" Target="{Binding ElementName=cbxPackage}"/>
+                <ComboBox x:Name="cbxPackage" Grid.Column="1" Grid.Row="0" MinWidth="77" SelectedValuePath="Tag" SelectedValue="{Binding Package, FallbackValue='regexp'}" SelectionChanged="cbxPackage_SelectionChanged">
+                    <ComboBoxItem Tag ="regexp" Content="regexp"/>
+                    <ComboBoxItem Tag ="regexp2" Content="regexp2"/>
+                    <ComboBoxItem Tag ="rexa" Content="rexa"/>
+                </ComboBox>
+
+            </Grid>
+
+            <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix_syntax" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>
+            <ui:CheckboxWithNote x:Name="cbxLongest" Prop="longest_match" Text="longest" Note="prefer the leftmost-longest match"/>
             <ui:CheckboxWithNote Prop="literal" Note="interpret pattern as literal, not regexp"/>
 
         </StackPanel>

@@ -43,7 +43,7 @@ namespace CppBuilderPlugin
 
             IsFullyLoaded = true;
 
-            UpdateControls( );
+            UpdateUI( );
         }
 
 
@@ -60,7 +60,7 @@ namespace CppBuilderPlugin
             Notify( preferImmediateReaction: false );
         }
 
-        void UpdateControls( )
+        void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
             if( ChangeCounter != 0 ) return;
@@ -86,7 +86,7 @@ namespace CppBuilderPlugin
                 Options = options;
                 DataContext = Options;
 
-                UpdateControls( );
+                UpdateUI( );
             }
             finally
             {

@@ -362,6 +362,7 @@ namespace GretaPlugin
                 EmptyConstruct = true,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,

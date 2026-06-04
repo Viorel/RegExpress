@@ -401,6 +401,7 @@ namespace JavaScriptPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = true,
+                EmptySetAny = true,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag && !vFlag,
@@ -611,6 +612,7 @@ namespace JavaScriptPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = true,
+                EmptySetAny = true,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag,
@@ -821,6 +823,7 @@ namespace JavaScriptPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = true,
+                EmptySetAny = true,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag,
@@ -1031,6 +1034,7 @@ namespace JavaScriptPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = true,
+                EmptySetAny = true,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag,
@@ -1244,6 +1248,7 @@ namespace JavaScriptPlugin
                 EmptyConstruct = true,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,

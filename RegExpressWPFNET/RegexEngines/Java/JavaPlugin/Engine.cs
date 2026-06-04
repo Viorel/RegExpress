@@ -386,6 +386,7 @@ namespace JavaPlugin
                 EmptyConstruct = true,
                 EmptyConstructX = is_regex,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,

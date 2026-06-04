@@ -264,6 +264,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool EmptyConstruct { get; init; }                           // (?)
         public bool EmptyConstructX { get; init; }                          // (? ) when 'x' or 'xx' flags are enabled.
         public bool EmptySet { get; init; }                                 // [], see also 'SyntaxOptions.AllowEmptySets'
+        public bool EmptySetAny { get; init; }                              // [^] -- any, even newline
 
         //
 

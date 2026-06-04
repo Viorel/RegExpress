@@ -437,6 +437,7 @@ namespace StdPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = grammar == GrammarEnum.ECMAScript,
+                EmptySetAny = grammar == GrammarEnum.ECMAScript,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,
@@ -676,6 +677,7 @@ namespace StdPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = grammar == GrammarEnum.ECMAScript,
+                EmptySetAny = grammar == GrammarEnum.ECMAScript,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,
@@ -889,6 +891,7 @@ namespace StdPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = true,
+                EmptySetAny = true,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,

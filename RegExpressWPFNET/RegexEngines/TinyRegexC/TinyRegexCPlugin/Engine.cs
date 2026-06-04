@@ -359,6 +359,7 @@ namespace TinyRegexCPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = true,
+                EmptySetAny = true,
 
                 AsciiOnly = true,
                 SplitSurrogatePairs = false, // (not applicable)

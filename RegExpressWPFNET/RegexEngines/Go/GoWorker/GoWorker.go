@@ -1,92 +1,164 @@
 package main
 
 import (
-    "fmt"
-    "os"
-    "bufio"
-    "strings"
-    "encoding/json"
-    "regexp"
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"os"
+	"strings"
+
+	"regexp"
+
+	regexp2 "github.com/dlclark/regexp2/v2"
+	regexp2compat "github.com/dlclark/regexp2/v2/compat"
+	rexa "github.com/himclix/rexa"
 )
 
 type Input struct {
-    Pattern string
-    Text    string
-    Flags   string
+	Package string
+	Pattern string
+	Text    string
+	Flags   string
 }
 
-type Output struct
-{
-    Names   []string
-    Matches [][]int
+type Output struct {
+	Names   []string
+	Matches [][]int
 }
 
 func main() {
-    reader := bufio.NewReader( os.Stdin)
-    input_text, _ := reader.ReadString( 0)
+	reader := bufio.NewReader(os.Stdin)
+	input_text, _ := reader.ReadString(0)
 
-    //fmt.Println("Input: ", input_text)
+	//fmt.Println("Input: ", input_text)
 
-    var input Input
-    var err error
+	var input Input
+	var err error
 
-    err = json.Unmarshal( []byte( input_text), &input)
-    if err != nil {
-        fmt.Fprintln( os.Stderr, err)
+	err = json.Unmarshal([]byte(input_text), &input)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 
-        return
-    }
+		return
+	}
 
-    //fmt.Printf( "Pattern: '%s'\n", input.Pattern)
-    //fmt.Printf( "Text: '%s'\n", input.Text)
+	//fmt.Printf( "Pattern: '%s'\n", input.Pattern)
+	//fmt.Printf( "Text: '%s'\n", input.Text)
 
-    is_POSIX := strings.Contains( input.Flags, "P")
-    is_longest := strings.Contains( input.Flags, "L")
-    is_literal := strings.Contains( input.Flags, "Q")
+	package0 := input.Package
+	pattern := input.Pattern
+	text := input.Text
 
-    pattern := input.Pattern
+	is_POSIX := strings.Contains(input.Flags, "P")
+	is_longest := strings.Contains(input.Flags, "L")
+	is_literal := strings.Contains(input.Flags, "Q")
 
-    if is_literal {
-        pattern = regexp.QuoteMeta( pattern)
-    }
+	output := &Output{}
 
-    var re *regexp.Regexp
+	switch package0 {
+	case "regexp":
+		if is_literal {
+			pattern = regexp.QuoteMeta(pattern)
+		}
 
-    if is_POSIX {
-        re, err = regexp.CompilePOSIX( pattern)
-    } else {
-        re, err = regexp.Compile( pattern)
-    }
+		var re *regexp.Regexp
 
-    if err != nil {
-        fmt.Fprintln( os.Stderr, err)
+		if is_POSIX {
+			re, err = regexp.CompilePOSIX(pattern)
+		} else {
+			re, err = regexp.Compile(pattern)
+		}
 
-        return
-    }
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
 
-    if is_longest {
-        re.Longest()
-    }
+			return
+		}
 
-    names := re.SubexpNames() // []string
-    //fmt.Printf( "names: %q\n", names)
+		if is_longest {
+			re.Longest()
+		}
 
-    matches := re.FindAllStringSubmatchIndex( input.Text, -1) // [][]int
-    //fmt.Printf( "matches: %d\n", matches)
+		names := re.SubexpNames() // []string
+		//fmt.Printf( "names: %q\n", names)
 
-    output := &Output{ }
-    output.Names = names
-    output.Matches = matches
+		matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
+		//fmt.Printf( "matches: %d\n", matches)
 
-    //fmt.Printf( "output: %+v\n", output)
+		output.Names = names
+		output.Matches = matches
 
-    output_json, err := json.Marshal(output)
+		//fmt.Printf( "output: %+v\n", output)
 
-    if err != nil {
-        fmt.Fprintln( os.Stderr, "Error: ", err)
+	case "regexp2":
+		if is_literal {
+			pattern = regexp.QuoteMeta(pattern)
+		}
 
-        return
-    }
+		var re *regexp2compat.Regexp
 
-    fmt.Printf( "%s\n", output_json)
+		re, err = regexp2compat.Compile(pattern, regexp2.OptionMaintainCaptureOrder())
+
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+
+			return
+		}
+
+		names := re.Unwrap().GetGroupNames() // (it puts numbers instead of empty or null strings)
+		//fmt.Printf( "names: %q\n", names)
+
+		matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
+		//fmt.Printf( "matches: %d\n", matches)
+
+		output.Names = names
+		output.Matches = matches
+
+		//fmt.Printf( "output: %+v\n", output)
+
+	case "rexa":
+		if is_literal {
+			pattern = rexa.QuoteMeta(pattern)
+		}
+
+		var re *rexa.Regexp
+
+		re, err = rexa.Compile(pattern)
+
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+
+			return
+		}
+
+		if is_longest {
+			re.Longest()
+		}
+
+		names := re.SubexpNames() // []string
+		//fmt.Printf( "names: %q\n", names)
+
+		matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
+		//fmt.Printf( "matches: %d\n", matches)
+
+		output.Names = names
+		output.Matches = matches
+
+		//fmt.Printf( "output: %+v\n", output)
+
+	default:
+		fmt.Fprintf(os.Stderr, "Invalid package: '%s'\n", package0)
+
+		return
+	}
+
+	output_json, err := json.Marshal(output)
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error: ", err)
+
+		return
+	}
+
+	fmt.Printf("%s\n", output_json)
 }

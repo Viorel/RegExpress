@@ -40,6 +40,8 @@ namespace GoPlugin
             if( IsFullyLoaded ) return;
 
             IsFullyLoaded = true;
+
+            UpdateUI( );
         }
 
         void Notify( bool preferImmediateReaction )
@@ -70,5 +72,35 @@ namespace GoPlugin
                 --ChangeCounter;
             }
         }
+
+        private void UpdateUI( )
+        {
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
+
+            try
+            {
+                ++ChangeCounter;
+
+                bool is_regexp = Options.Package == PackageEnum.regexp;
+                bool is_regexp2 = Options.Package == PackageEnum.regexp2;
+                bool is_rexa = Options.Package == PackageEnum.rexa;
+
+                cbxPosix.Visibility = is_regexp ? Visibility.Visible : Visibility.Collapsed;
+                cbxLongest.Visibility = is_regexp || is_rexa ? Visibility.Visible : Visibility.Collapsed;
+            }
+            finally
+            {
+                --ChangeCounter;
+            }
+        }
+
+        private void cbxPackage_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+
+            UpdateUI( );
+        }
+
     }
 }

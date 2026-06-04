@@ -392,6 +392,7 @@ namespace RustPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
@@ -605,6 +606,7 @@ namespace RustPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
@@ -820,6 +822,7 @@ namespace RustPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = true,
                 EmptySet = false,
+                EmptySetAny = false,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
@@ -1035,6 +1038,7 @@ namespace RustPlugin
                 EmptyConstruct = false,
                 EmptyConstructX = false,
                 EmptySet = true,
+                EmptySetAny = true,
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,

@@ -41,7 +41,7 @@ namespace RustPlugin
 
             IsFullyLoaded = true;
 
-            UpdateControls( );
+            UpdateUI( );
         }
 
         void Notify( bool preferImmediateReaction )
@@ -59,14 +59,14 @@ namespace RustPlugin
 
         private void cbxCrate_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            UpdateControls( );
+            UpdateUI( );
 
             Notify( preferImmediateReaction: true );
         }
 
         private void cbxStruct_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            UpdateControls( );
+            UpdateUI( );
 
             Notify( preferImmediateReaction: true );
         }
@@ -76,7 +76,7 @@ namespace RustPlugin
             Notify( preferImmediateReaction: false );
         }
 
-        void UpdateControls( )
+        void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
             if( ChangeCounter != 0 ) return;
@@ -154,7 +154,7 @@ namespace RustPlugin
                 Options = options;
                 DataContext = Options;
 
-                UpdateControls( );
+                UpdateUI( );
             }
             finally
             {
