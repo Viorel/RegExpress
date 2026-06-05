@@ -20,11 +20,6 @@ namespace RustPlugin
 {
     static class MatcherRegexLite
     {
-        class VersionResponse
-        {
-            public string? version { get; set; }
-        }
-
         class MatchesResponse
         {
             public string[]? names { get; set; }

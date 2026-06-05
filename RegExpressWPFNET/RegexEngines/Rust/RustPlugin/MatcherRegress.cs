@@ -17,11 +17,6 @@ namespace RustPlugin
 {
     internal static class MatcherRegress
     {
-        sealed class VersionResponse
-        {
-            public string? version { get; set; }
-        }
-
         sealed class NamedGroupResponse
         {
             [JsonPropertyName( "n" )]

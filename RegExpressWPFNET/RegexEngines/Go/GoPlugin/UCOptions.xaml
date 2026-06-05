@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:GoPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="111.074" d:DesignWidth="376.636" 
+             d:DesignHeight="319.377" d:DesignWidth="376.636" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -46,12 +46,35 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Package:" Target="{Binding ElementName=cbxPackage}"/>
                 <ComboBox x:Name="cbxPackage" Grid.Column="1" Grid.Row="0" MinWidth="77" SelectedValuePath="Tag" SelectedValue="{Binding Package, FallbackValue='regexp'}" SelectionChanged="cbxPackage_SelectionChanged">
-                    <ComboBoxItem Tag ="regexp" Content="regexp"/>
-                    <ComboBoxItem Tag ="regexp2" Content="regexp2"/>
-                    <ComboBoxItem Tag ="rexa" Content="rexa"/>
+                    <!-- TODO: set version programmatically -->
+                    <ComboBoxItem Tag ="regexp" Content="regexp 1.26.4"/>
+                    <ComboBoxItem Tag ="regexp2" Content="regexp2 2.1.2"/>
+                    <ComboBoxItem Tag ="rexa" Content="rexa 0.1.0"/>
                 </ComboBox>
 
             </Grid>
+
+            <!-- regexp2 -->
+            <StackPanel x:Name="pnlRegexp2Flags" Orientation="Vertical">
+                <ui:CheckboxWithNote Prop="IgnoreCase" Note=""/>
+                <ui:CheckboxWithNote Prop="Multiline" Note=""/>
+                <ui:CheckboxWithNote Prop="ExplicitCapture" Note=""/>
+                <ui:CheckboxWithNote Prop="Singleline" Note=""/>
+                <ui:CheckboxWithNote Prop="IgnorePatternWhitespace" Note=""/>
+                <ui:CheckboxWithNote Prop="RightToLeft" Note=""/>
+                <ui:CheckboxWithNote Prop="ECMAScript" Note=""/>
+                <ui:CheckboxWithNote Prop="RE2" Note=""/>
+                <ui:CheckboxWithNote Prop="Unicode" Note=""/>
+            </StackPanel>
+
+            <!-- rexa -->
+            <StackPanel x:Name="pnlRexaFlags" Orientation="Vertical">
+                <ui:CheckboxWithNote Prop="IgnoreCase" Text="FlagCaseInsensitive" Note=""/>
+                <ui:CheckboxWithNote Prop="Multiline" Text="FlagMultiline" Note=""/>
+                <ui:CheckboxWithNote Prop="Singleline" Text="FlagDotAll" Note=""/>
+                <ui:CheckboxWithNote Prop="Ungreedy" Text="FlagUngreedy" Note=""/>
+                <ui:CheckboxWithNote Prop="Unicode" Text="FlagUnicode" Note=""/>
+            </StackPanel>
 
             <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix_syntax" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>
             <ui:CheckboxWithNote x:Name="cbxLongest" Prop="longest_match" Text="longest" Note="prefer the leftmost-longest match"/>

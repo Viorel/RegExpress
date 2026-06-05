@@ -17,7 +17,7 @@ namespace GoPlugin
     class Engine : IRegexEngine
     {
         static readonly Lazy<string?> LazyVersion = new( GetVersion );
-        static readonly LazyData<(PackageEnum package, bool isPoxis), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        static readonly LazyData<(PackageEnum package, bool isPoxis, bool isRE2), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -109,13 +109,13 @@ namespace GoPlugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            FeatureMatrix fm = LazyFeatureMatrix.GetValue( (Options.Package, Options.posix_syntax) );
+            FeatureMatrix fm = LazyFeatureMatrix.GetValue( (Options.Package, isPoxis: Options.posix_syntax, isRE2: Options.RE2) );
             bool is_regexp2 = Options.Package == PackageEnum.regexp2;
 
             return new SyntaxOptions
             {
                 Literal = Options.literal,
-                XLevel = is_regexp2 ? XLevelEnum.x : XLevelEnum.none,
+                XLevel = ( is_regexp2 && Options.IgnorePatternWhitespace ) ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = fm.EmptySet,
                 FeatureMatrix = fm,
             };
@@ -125,19 +125,23 @@ namespace GoPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( "regexp", LazyFeatureMatrix.GetValue( (PackageEnum.regexp, false) ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix_syntax = false }} ),
-                    new FeatureMatrixVariant( "regexp (posix)", LazyFeatureMatrix.GetValue( (PackageEnum.regexp, true) ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix_syntax = true }} ),
-                    new FeatureMatrixVariant( "regexp2", LazyFeatureMatrix.GetValue( (PackageEnum.regexp2, false) ), new Engine { Options = new Options { Package = PackageEnum.regexp2, posix_syntax = false }} ),
-                    new FeatureMatrixVariant( "rexa", LazyFeatureMatrix.GetValue( (PackageEnum.rexa, false) ), new Engine { Options = new Options { Package = PackageEnum.rexa, posix_syntax = false }} )
+                    new FeatureMatrixVariant( "regexp", LazyFeatureMatrix.GetValue( (PackageEnum.regexp, isPoxis: false, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix_syntax = false, RE2 = false }} ),
+                    new FeatureMatrixVariant( "regexp (posix)", LazyFeatureMatrix.GetValue( (PackageEnum.regexp, isPoxis: true, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix_syntax = true, RE2 = false }} ),
+                    new FeatureMatrixVariant( "regexp2", LazyFeatureMatrix.GetValue( (PackageEnum.regexp2, isPoxis: false, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.regexp2, posix_syntax = false, RE2 = false }} ),
+                    new FeatureMatrixVariant( "rexa", LazyFeatureMatrix.GetValue( (PackageEnum.rexa, isPoxis: false, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.rexa, posix_syntax = false, RE2 = false }} )
                 ];
         }
 
         public void SetIgnoreCase( bool yes )
         {
+            Options.IgnoreCase = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )
         {
+            Options.IgnorePatternWhitespace = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         #endregion
@@ -165,13 +169,14 @@ namespace GoPlugin
         }
 
 
-        static FeatureMatrix BuildFeatureMatrix( (PackageEnum package, bool isPoxis) data )
+        static FeatureMatrix BuildFeatureMatrix( (PackageEnum package, bool isPoxis, bool isRE2) data )
         {
             bool is_regexp = data.package == PackageEnum.regexp;
             bool is_normal_regexp = is_regexp && !data.isPoxis;
             bool is_regexp2 = data.package == PackageEnum.regexp2;
             bool is_rexa = data.package == PackageEnum.rexa;
             bool is_normal = is_normal_regexp || is_regexp2 || is_rexa;
+            bool is_RE2 = data.isRE2;
 
             return new FeatureMatrix
             {
@@ -310,7 +315,7 @@ namespace GoPlugin
 
                 NamedGroup_Apos = is_regexp2,
                 NamedGroup_LtGt = is_normal,
-                NamedGroup_PLtGt = is_normal_regexp || is_rexa,
+                NamedGroup_PLtGt = is_normal_regexp || is_rexa || ( is_regexp2 && is_RE2 ),
                 BalancingGroup = is_regexp2,
                 CapturingGroup = false,
 
@@ -337,7 +342,7 @@ namespace GoPlugin
                 Backref_gNum = FeatureMatrix.BackrefModeEnum.None,
                 Backref_gNegNum = FeatureMatrix.BackrefModeEnum.None,
                 Backref_gBrace = FeatureMatrix.BackrefModeEnum.None,
-                Backref_PEqName = false,
+                Backref_PEqName = is_regexp2 && is_RE2,
                 AllowSpacesInBackref = false,
 
                 Recursive_Num = false,

@@ -16,11 +16,6 @@ namespace RustPlugin
 {
     internal static class MatcherFancyRegex
     {
-        sealed class VersionResponse
-        {
-            public string? version { get; set; }
-        }
-
         sealed class MatchesResponse
         {
             public string[]? names { get; set; }
