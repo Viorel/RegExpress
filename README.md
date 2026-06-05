@@ -39,8 +39,11 @@ It includes the following Regular Expression engines:
 * **[QRegularExpression](https://doc.qt.io/qt-6/qregularexpression.html)** class (based on PCRE2) from Qt 6.9.3 (in C++).
 * **[compile-time-regular-expressions (CTRE)](https://github.com/hanickadot/compile-time-regular-expressions)**[^2] 3.11.0  (in C++).
 * **GRETA** 2.6.4 (in C++).
+* **Zig** 0.16.0 libraries: [zig-regex](https://github.com/zig-utils/zig-regex) v0.2.0, [mvzr](https://github.com/mnemnion/mvzr) v0.3.12
+  and **PZRE** v0.2.2.
 * **[RE#](https://github.com/ieviev/resharp-dotnet)** 1.0.3 (for F#, C#, VB).
-* **[Go](https://pkg.go.dev/regexp)** 1.26.4 (packages: _regexp_, _regexp2_ and _rexa_).
+* **Go** 1.26.4 packages: [_regexp_](https://pkg.go.dev/regexp) 1.26.4, [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.1.2
+  and [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0.
 
 <br/>
 

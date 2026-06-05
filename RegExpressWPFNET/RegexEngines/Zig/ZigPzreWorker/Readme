@@ -1,0 +1,22 @@
+HOW IT'S MADE
+-----------------------
+
+- Download Zig from official site. (No installation required). Use the last Release, not latest 'master'.
+
+- Get the Release of 'PZRE' from https://codeberg.org/jetill/pzre, 
+  place to "pzre" subfolder. (Remove old files).
+
+- If required, the "src\main.zig" file can be edited in Visual Studio Code or any editor.
+
+- To build, execute:
+
+    > build.cmd
+
+  (If "zig.exe" is not in PATH, "build.cmd" can be adjusted to include the path).
+
+  It will create the "zig-out\bin\ZigPzreWorker.exe" file.
+
+- Commit the changes (including "ZigPzreWorker.exe") to Git.
+
+- Build the main Visual Studio solution.
+

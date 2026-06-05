@@ -1,0 +1,1 @@
+echo { "pattern": "(?<first>\\d)(\\d*)(?<last>QQQ)?", "text": "a1b23c456", "flags": "" } | ZigMvzrWorker.exe

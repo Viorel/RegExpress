@@ -77,6 +77,9 @@
       "path": "Engines\\GRETA\\GretaPlugin.dll"
     },
     {
+      "path": "Engines\\Zig\\ZigPlugin.dll"
+    },
+    {
       "path": "Engines\\RESharp\\RESharpPlugin.dll"
     },
     {

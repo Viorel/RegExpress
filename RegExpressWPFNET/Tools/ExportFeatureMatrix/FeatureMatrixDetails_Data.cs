@@ -481,7 +481,7 @@ partial class FeatureMatrixDetails
                     .Test( @"(x(.))(?-1)", "xyz", "xy" )
                     .Test( @"\(x\(.\)\)\(?-1\)", "xyz", null ),
                 new FeatureMatrixDetails( @"(?R)", @"Recursive whole pattern", fm => fm.Recursive_R)
-                    .Test( @"a((?R))*b", "aabb", "b"),
+                    .Test( @"a((?R))*b", "aabb", "b", "aabb"),
                     //.Test( @"\(((?>[^()]+)|(?R))*\)", "(a(b)c)", "b"),
                 new FeatureMatrixDetails( @"(?&name)", @"Recursive subpattern by name", fm => fm.Recursive_Name)
                     .Test( @"(?<n>a)(?&n)", "aa", "" ),
