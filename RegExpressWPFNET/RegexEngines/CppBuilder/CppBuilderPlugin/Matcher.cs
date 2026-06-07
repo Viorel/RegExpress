@@ -118,11 +118,6 @@ namespace CppBuilderPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-        public static string? GetVersion( ICancellable cnc )
-        {
-            return "29.0"; // TODO: determine the RTL version programmatically
-        }
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;

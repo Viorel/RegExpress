@@ -16,7 +16,6 @@ namespace ICUPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace ICUPlugin
 
         public string Kind => "ICU";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.ICU;
 
         public string Name => "ICU";
 
@@ -146,23 +145,6 @@ namespace ICUPlugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         private static FeatureMatrix BuildFeatureMatrix( )
         {

@@ -42,11 +42,6 @@ namespace JavaScriptPlugin
             IsFullyLoaded = true;
 
             MatcherWebView2.StartGetVersion( SetWebView2Version );
-            MatcherNodeJs.StartGetVersion( SetNodeJsVersion );
-            MatcherQuickJs.StartGetVersion( SetQuickJsVersion );
-            MatcherSpiderMonkey.StartGetVersion( SetSpiderMonkeyVersion );
-            MatcherBun.StartGetVersion( SetBunVersion );
-            MatcherRE2JS.StartGetVersion( SetRE2JSVersion );
 
             UpdateUI( );
         }
@@ -131,67 +126,6 @@ namespace JavaScriptPlugin
                 ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "WebView2" );
 
                 cbi.Content = $"WebView2 {version}";
-            } );
-        }
-
-        void SetNodeJsVersion( string? version )
-        {
-            if( string.IsNullOrWhiteSpace( version ) ) return;
-
-            Dispatcher.BeginInvoke( ( ) =>
-            {
-                ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "NodeJs" );
-
-                cbi.Content = $"V8 (Node.js) {version}";
-            } );
-        }
-
-        void SetQuickJsVersion( string? version )
-        {
-            if( string.IsNullOrWhiteSpace( version ) ) return;
-
-            Dispatcher.BeginInvoke( ( ) =>
-            {
-                ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "QuickJs" );
-
-                cbi.Content = $"QuickJs {version}";
-            } );
-        }
-
-        void SetSpiderMonkeyVersion( string? version )
-        {
-            if( string.IsNullOrWhiteSpace( version ) ) return;
-
-            Dispatcher.BeginInvoke( ( ) =>
-            {
-                ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "SpiderMonkey" );
-
-                cbi.Content = $"SpiderMonkey {version}";
-            } );
-
-        }
-
-        void SetBunVersion( string? version )
-        {
-            if( string.IsNullOrWhiteSpace( version ) ) return;
-
-            Dispatcher.BeginInvoke( ( ) =>
-            {
-                ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "Bun" );
-
-                cbi.Content = $"JavaScriptCore (Bun) {version}";
-            } );
-        }
-
-        void SetRE2JSVersion( string? version )
-        {
-            if( string.IsNullOrWhiteSpace( version ) ) return;
-
-            Dispatcher.BeginInvoke( ( ) =>
-            {
-                ComboBoxItem cbi = cbxRuntime.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "RE2JS" );
-
-                cbi.Content = $"RE2JS {version}";
             } );
         }
     }

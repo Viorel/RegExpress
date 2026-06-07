@@ -118,11 +118,6 @@ namespace QtPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-        public static string? GetVersion( ICancellable cnc )
-        {
-            return "6.9.3"; // TODO: determine the version programmatically
-        }
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;

@@ -16,7 +16,6 @@ namespace ZigPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly LazyData<RegexLibraryEnum, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace ZigPlugin
 
         public string Kind => "Zig";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Zig;
 
         public string Name => "Zig";
 
@@ -157,11 +156,6 @@ namespace ZigPlugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        static string? GetVersion( )
-        {
-            return "0.16.0"; // TODO: get from worker
         }
 
         private static FeatureMatrix BuildFeatureMatrix( RegexLibraryEnum library )
@@ -322,7 +316,7 @@ namespace ZigPlugin
                 PositiveLookahead = true,
                 NegativeLookahead = true,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
-                NegativeLookbehind = FeatureMatrix.LookModeEnum.AnyLength, // (has defects)
+                NegativeLookbehind = FeatureMatrix.LookModeEnum.BoundedLength, // (has defects)
                 AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

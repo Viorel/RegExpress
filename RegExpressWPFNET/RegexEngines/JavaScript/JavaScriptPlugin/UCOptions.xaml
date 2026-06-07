@@ -10,6 +10,7 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
+        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -47,13 +48,15 @@
                     </Grid.Resources>
 
                     <Label Grid.Column="0" Grid.Row="0" Content="Runtime:" Target="{Binding ElementName=cbxRuntime}"/>
-                    <ComboBox x:Name="cbxRuntime" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Runtime, FallbackValue='WebView2'}" SelectionChanged="cbxRuntime_SelectionChanged">
-                        <ComboBoxItem Tag ="WebView2" Content="WebView2"/>
-                        <ComboBoxItem Tag ="NodeJs" Content="V8 (Node.js)"/>
-                        <ComboBoxItem Tag ="QuickJs" Content="QuickJs"/>
-                        <ComboBoxItem Tag ="SpiderMonkey" Content="SpiderMonkey"/>
-                        <ComboBoxItem Tag ="Bun" Content="JavaScriptCore (Bun)"/>
-                        <ComboBoxItem Tag ="RE2JS" Content="RE2JS"/>
+                    <ComboBox x:Name="cbxRuntime" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Runtime}" SelectionChanged="cbxRuntime_SelectionChanged">
+                        <!--<ui:ComboBoxItemWithVersion Tag ="WebView2"     Text="WebView2"             Version="{Binding WebView2, Source={StaticResource versions}}" />-->
+                        <!-- The version of WebView2 is determined programmatically -->
+                        <ComboBoxItem Tag ="WebView2" Content="WebView2" />
+                        <ui:ComboBoxItemWithVersion Tag ="NodeJs"       Text="V8 (Node.js)"         Version="{Binding NodeJs, Source={StaticResource versions}}" />
+                        <ui:ComboBoxItemWithVersion Tag ="QuickJs"      Text="QuickJs"              Version="{Binding QuickJs, Source={StaticResource versions}}" />
+                        <ui:ComboBoxItemWithVersion Tag ="SpiderMonkey" Text="SpiderMonkey"         Version="{Binding SpiderMonkey, Source={StaticResource versions}}" />
+                        <ui:ComboBoxItemWithVersion Tag ="Bun"          Text="JavaScriptCore (Bun)" Version="{Binding Bun, Source={StaticResource versions}}" />
+                        <ui:ComboBoxItemWithVersion Tag ="RE2JS"        Text="RE2JS"                Version="{Binding RE2JS, Source={StaticResource versions}}" />
                     </ComboBox>
 
                     <Label Grid.Column="0" Grid.Row="1" Content="Function:" Target="{Binding ElementName=cbxFunction}" />

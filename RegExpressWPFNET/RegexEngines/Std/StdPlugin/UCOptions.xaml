@@ -10,6 +10,7 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
+        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -28,7 +29,7 @@
                     </Style>
                     <Style TargetType="ComboBox">
                         <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="MinWidth" Value="120"/>
+                        <Setter Property="MinWidth" Value="128"/>
                         <Setter Property="Margin" Value="3 0 0 2"/>
                     </Style>
                 </Grid.Resources>
@@ -45,9 +46,9 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Implementation:" Target="{Binding ElementName=cbxCompiler}" />
                 <ComboBox x:Name="cbxCompiler" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Compiler, FallbackValue='MSVC'}" SelectionChanged="cbxCompiler_SelectionChanged">
-                    <ComboBoxItem Tag="MSVC" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
-                    <ComboBoxItem Tag="GCC" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
-                    <ComboBoxItem Tag="SRELL" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                    <ui:ComboBoxItemWithVersion Tag="MSVC"  Text="MSVC"  Version="{Binding MSVC, Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="GCC"   Text="GCC"   Version="{Binding GCC, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="SRELL" Text="SRELL" Version="{Binding SRELL, Source={StaticResource versions}}" />
                 </ComboBox>
 
                 <Label Grid.Column="0" Grid.Row="1" Content="Grammar:" Target="{Binding ElementName=cbxGrammar}" />

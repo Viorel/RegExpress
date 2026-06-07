@@ -245,11 +245,6 @@ namespace CompileTimeRegexPlugin
             }
         }
 
-        public static string? GetVersion( ICancellable cnc )
-        {
-            return "3.11.0"; // TODO: if available, get from sources
-        }
-
         static string GetWorkerDirectory( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;

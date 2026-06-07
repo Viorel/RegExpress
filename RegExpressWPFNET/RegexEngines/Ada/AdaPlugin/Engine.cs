@@ -16,7 +16,6 @@ namespace AdaPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace AdaPlugin
 
         public string Kind => "Ada GNAT";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Ada;
 
         public string Name => "Ada (GNAT)";
 
@@ -138,21 +137,6 @@ namespace AdaPlugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
         }
 
         private static FeatureMatrix BuildFeatureMatrix( )

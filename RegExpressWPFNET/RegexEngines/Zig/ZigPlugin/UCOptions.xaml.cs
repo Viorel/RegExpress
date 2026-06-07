@@ -41,10 +41,6 @@ namespace ZigPlugin
 
             IsFullyLoaded = true;
 
-            MatcherZigRegex.StartGetVersion( SetZigRegexVersion );
-            MatcherMvzr.StartGetVersion( SetMvzrVersion );
-            MatcherPzre.StartGetVersion( SetPzreVersion );
-
             UpdateControls( );
         }
 
@@ -93,42 +89,6 @@ namespace ZigPlugin
             {
                 --ChangeCounter;
             }
-        }
-
-        void SetZigRegexVersion( string? version )
-        {
-            if( string.IsNullOrWhiteSpace( version ) ) return;
-
-            Dispatcher.BeginInvoke( ( ) =>
-            {
-                ComboBoxItem cbi = cbxLibrary.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "ZigRegex" );
-
-                cbi.Content = $"zig-regex {version}";
-            } );
-        }
-
-        void SetMvzrVersion( string? version )
-        {
-            if( string.IsNullOrWhiteSpace( version ) ) return;
-
-            Dispatcher.BeginInvoke( ( ) =>
-            {
-                ComboBoxItem cbi = cbxLibrary.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "Mvzr" );
-
-                cbi.Content = $"mvzr {version}";
-            } );
-        }
-
-        void SetPzreVersion( string? version )
-        {
-            if( string.IsNullOrWhiteSpace( version ) ) return;
-
-            Dispatcher.BeginInvoke( ( ) =>
-            {
-                ComboBoxItem cbi = cbxLibrary.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "Pzre" );
-
-                cbi.Content = $"PZRE {version}";
-            } );
         }
 
         private void cbxLibrary_SelectionChanged( object sender, SelectionChangedEventArgs e )

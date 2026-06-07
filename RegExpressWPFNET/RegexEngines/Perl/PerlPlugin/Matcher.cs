@@ -154,29 +154,6 @@ namespace PerlPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-
-        public static string? GetVersion( ICancellable cnc )
-        {
-            using ProcessHelper ph = new ProcessHelper( GetPerlExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.UTF8;
-            ph.Arguments = new[] { "-e", "print 'V=', $^V" };
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            string? response_s = ph.StreamReader.ReadToEnd( )?.Trim( );
-
-            if( response_s?.StartsWith( "V=" ) != true ) throw new Exception( $"Invalid response: '{response_s}'" );
-
-            string version = response_s["V=".Length..];
-            if( version.StartsWith( "v" ) ) version = version[1..];
-
-            return version;
-        }
-
-
         static string GetPerlExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;

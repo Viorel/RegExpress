@@ -16,7 +16,6 @@ namespace TREPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly LazyData<bool /* isExtended */, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace TREPlugin
 
         public string Kind => "TRE";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.TRE;
 
         public string Name => "TRE";
 
@@ -148,23 +147,6 @@ namespace TREPlugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         static FeatureMatrix BuildFeatureMatrix( bool isExtended )
         {

@@ -19,8 +19,6 @@ namespace OnigurumaPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
-
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
 
@@ -54,7 +52,7 @@ namespace OnigurumaPlugin
 
         public string Kind => "Oniguruma";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Oniguruma;
 
         public string Name => "Oniguruma";
 
@@ -237,23 +235,6 @@ namespace OnigurumaPlugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         private static FeatureMatrix MakeFeatureMatrix( Options options )
         {

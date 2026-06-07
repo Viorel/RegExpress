@@ -44,8 +44,6 @@ namespace JavaScriptPlugin
             public string? Error { get; set; }
         }
 
-        static readonly Lazy<string?> LazyVersion = new( ( ) => GetVersion( ICancellable.NonCancellable ) );
-
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             string flags = string.Concat(
@@ -137,44 +135,6 @@ namespace JavaScriptPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-        public static string? GetVersion( ICancellable cnc )
-        {
-            try
-            {
-                var data = new { cmd = "version" };
-                string json = JsonSerializer.Serialize( data );
-
-                using ProcessHelper ph = new( GetWorkerExePath( ) );
-
-                ph.AllEncoding = EncodingEnum.ASCII;
-
-                ph.StreamWriter = sw =>
-                {
-                    sw.Write( json );
-                };
-
-                if( !ph.Start( cnc ) ) return null;
-
-                if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-                ResponseVersion? response = JsonSerializer.Deserialize<ResponseVersion>( ph.OutputStream );
-
-                string? version = response?.v8 ?? response?.node; //
-
-                // example: "13.6.233.10-node.24"
-                if( version != null ) version = Regex.Replace( version, @"-node\..+$", "" );
-
-                return version;
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
         static string GetPluginDirectory( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -247,26 +207,6 @@ namespace JavaScriptPlugin
 
                 IsExtractionDone = true;
             }
-        }
-
-        internal static void StartGetVersion( Action<string?> setVersion )
-        {
-            if( LazyVersion.IsValueCreated )
-            {
-                setVersion( LazyVersion.Value );
-
-                return;
-            }
-
-            Thread t = new( ( ) =>
-            {
-                setVersion( LazyVersion.Value );
-            } )
-            {
-                IsBackground = true
-            };
-
-            t.Start( );
         }
     }
 }

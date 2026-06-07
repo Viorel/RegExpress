@@ -60,11 +60,6 @@ namespace RESharpPlugin
             return new RegexMatches( matches.Length, matches );
         }
 
-        public static string? GetVersion( ICancellable cnc )
-        {
-            return "1.0.3"; // TODO: get from worker (from package)
-        }
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;

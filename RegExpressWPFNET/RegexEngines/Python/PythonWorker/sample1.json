@@ -1,5 +1,5 @@
-// (should not have BOM)
 {
+  "NOTE": "(should not have BOM)",
   "module": "re",
   "pattern": ".",
   "text": "a\uD83D\uDE0Ec",

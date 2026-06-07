@@ -1,3 +1,3 @@
-from .regex import *
-from . import regex
-__all__ = regex.__all__
+import regex._main
+from regex._main import *
+__all__ = regex._main.__all__

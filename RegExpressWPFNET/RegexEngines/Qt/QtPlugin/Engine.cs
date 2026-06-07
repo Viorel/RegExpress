@@ -16,7 +16,6 @@ namespace QtPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace QtPlugin
 
         public string Kind => "Qt";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Qt;
 
         public string Name => "Qt";
 
@@ -141,21 +140,6 @@ namespace QtPlugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
         }
 
         static FeatureMatrix BuildFeatureMatrix( )

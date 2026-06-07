@@ -20,11 +20,6 @@ namespace RustPlugin
 {
     static class MatcherRegex
     {
-        sealed class VersionResponse
-        {
-            public string? version { get; set; }
-        }
-
         sealed class MatchesResponse
         {
             public string[]? names { get; set; }
@@ -155,28 +150,6 @@ namespace RustPlugin
             }
 
             return new RegexMatches( matches.Count, matches );
-        }
-
-        public static string? GetVersion( ICancellable cnc )
-        {
-            using ProcessHelper ph = new( GetWorkerExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.UTF8;
-
-            ph.BinaryWriter = bw =>
-            {
-                bw.Write( "{\"c\":\"v\"}" );
-            };
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            VersionResponse? r = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream );
-
-            if( r == null ) throw new Exception( "Null response" );
-
-            return r!.version;
         }
 
         static string GetWorkerExePath( )

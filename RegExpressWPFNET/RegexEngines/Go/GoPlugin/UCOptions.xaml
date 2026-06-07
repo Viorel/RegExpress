@@ -10,6 +10,7 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
+        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -46,10 +47,9 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Package:" Target="{Binding ElementName=cbxPackage}"/>
                 <ComboBox x:Name="cbxPackage" Grid.Column="1" Grid.Row="0" MinWidth="77" SelectedValuePath="Tag" SelectedValue="{Binding Package, FallbackValue='regexp'}" SelectionChanged="cbxPackage_SelectionChanged">
-                    <!-- TODO: set version programmatically -->
-                    <ComboBoxItem Tag ="regexp" Content="regexp 1.26.4"/>
-                    <ComboBoxItem Tag ="regexp2" Content="regexp2 2.1.2"/>
-                    <ComboBoxItem Tag ="rexa" Content="rexa 0.1.0"/>
+                    <ui:ComboBoxItemWithVersion Tag ="regexp"  Text="regexp"  Version="{Binding Regexp, Source={StaticResource versions}}" IsSelected="True"/>
+                    <ui:ComboBoxItemWithVersion Tag ="regexp2" Text="regexp2" Version="{Binding Regexp2, Source={StaticResource versions}}"/>
+                    <ui:ComboBoxItemWithVersion Tag ="rexa"    Text="rexa"    Version="{Binding Rexa, Source={StaticResource versions}}"/>
                 </ComboBox>
 
             </Grid>

@@ -16,7 +16,6 @@ namespace GoPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly LazyData<(PackageEnum package, bool isPoxis, bool isRE2), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace GoPlugin
 
         public string Kind => "Go";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Go;
 
         public string Name => "Go";
 
@@ -151,23 +150,6 @@ namespace GoPlugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         static FeatureMatrix BuildFeatureMatrix( (PackageEnum package, bool isPoxis, bool isRE2) data )
         {
@@ -386,7 +368,7 @@ namespace GoPlugin
                 AllowDuplicateGroupName = is_normal,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = is_regexp || is_rexa ? FeatureMatrix.CatastrophicBacktrackingEnum.Accept : FeatureMatrix.CatastrophicBacktrackingEnum.None,
-                Σσς = false,
+                Σσς = is_normal_regexp || is_regexp2,
             };
         }
     }

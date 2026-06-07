@@ -16,7 +16,6 @@ namespace JavaPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly LazyData<(PackageEnum, bool isUnicodeCase), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace JavaPlugin
 
         public string Kind => "Java";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Java;
 
         public string Name => "Java";
 
@@ -160,23 +159,6 @@ namespace JavaPlugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         static FeatureMatrix BuildFeatureMatrix( (PackageEnum package, bool isUnicodeCase) data )
         {

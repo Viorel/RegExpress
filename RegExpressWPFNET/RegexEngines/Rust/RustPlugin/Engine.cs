@@ -16,7 +16,6 @@ namespace RustPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly LazyData<(CrateEnum crate, StructEnum @struct, bool isOctal, bool isUnicode, bool isUnicodeSets, bool isOniguruma), FeatureMatrix> LazyData = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace RustPlugin
 
         public string Kind => "Rust";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Rust;
 
         public string Name => "Rust";
 
@@ -158,21 +157,6 @@ namespace RustPlugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return MatcherRegex.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
         }
 
         private static FeatureMatrix BuildFeatureMatrix( (CrateEnum crate, StructEnum @struct, bool isOctal, bool isUnicode, bool isUnicodeSets, bool isOniguruma) data )

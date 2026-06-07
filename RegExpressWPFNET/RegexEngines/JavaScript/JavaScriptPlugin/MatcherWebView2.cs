@@ -218,6 +218,5 @@ namespace JavaScriptPlugin
 
         [GeneratedRegex( @"^(?<v>\d+([.]\d+([.]\d+)?)?)([.]\d+)*$", RegexOptions.ExplicitCapture )]
         private static partial Regex SimplifyVersionRegex( );
-
     }
 }

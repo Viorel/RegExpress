@@ -51,7 +51,7 @@ namespace StdPlugin
 
         public string Kind => "Std";
 
-        public string? Version => ""; // (versions are displayed for each compiler later)
+        public string? Version => ""; // (versions are displayed for each compiler)
 
         public string Name => "wregex";
 

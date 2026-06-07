@@ -107,13 +107,6 @@ namespace GretaPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-
-        public static string? GetVersion( ICancellable cnc )
-        {
-            return "2.6.4";
-        }
-
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;

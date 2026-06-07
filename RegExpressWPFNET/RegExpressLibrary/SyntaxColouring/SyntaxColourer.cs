@@ -940,7 +940,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 case FeatureMatrix.PunctuationEnum.Normal:
                     if( fm.Recursive_R )
                     {
-                        // (?R) is recursivity, not a flag
+                        // (?R) is recursion, not a flag
                         pb.Add( @"(?<flags>\(\? (?<on>(?!R\))[a-zA-Z01]+)? (?<dash>-)? (?<off>[a-zA-Z01]+)? (\) | $) (?(on)|(?(dash)(?(off)|(?!))|(?!))) )" );
                     }
                     else

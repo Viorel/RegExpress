@@ -16,8 +16,6 @@ namespace PCRE2Plugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
-
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
         readonly LazyData<(bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
@@ -52,7 +50,7 @@ namespace PCRE2Plugin
 
         public string Kind => "PCRE2";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.PCRE2;
 
         public string Name => "PCRE2";
 
@@ -161,22 +159,6 @@ namespace PCRE2Plugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
         }
 
         static FeatureMatrix BuildFeatureMatrix( (bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES) options )

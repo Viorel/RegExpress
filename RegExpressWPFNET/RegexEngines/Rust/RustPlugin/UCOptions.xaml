@@ -10,6 +10,7 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
+        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -23,11 +24,10 @@
                 </StackPanel.LayoutTransform>
                 <Label Content="Crate:" Target="{Binding ElementName=cbxCrate}" Padding="0 2 4 2" MinWidth="40"/>
                 <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
-                    <!--TODO: determine versions programmatically (when possible) -->
-                    <ComboBoxItem Tag ="regex" Content="regex 1.12.3" IsSelected="True" />
-                    <ComboBoxItem Tag ="regex_lite" Content="regex_lite 0.1.9" />
-                    <ComboBoxItem Tag ="fancy_regex" Content="fancy_regex 0.18.0" />
-                    <ComboBoxItem Tag ="regress" Content="regress 0.11.1" />
+                    <ui:ComboBoxItemWithVersion Tag ="regex"       Text="regex"       Version="{Binding Regex, Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag ="regex_lite"  Text="regex_lite"  Version="{Binding RegexLite, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="fancy_regex" Text="fancy_regex" Version="{Binding FancyRegex, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="regress"     Text="regress"     Version="{Binding Regress, Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 

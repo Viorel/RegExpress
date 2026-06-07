@@ -10,6 +10,7 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
+        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -26,9 +27,9 @@
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
                 <Label Content="Module:" Target="{Binding ElementName=cbxModule}" VerticalAlignment="Center" Padding="0 2 4 2"/>
-                <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxModule_SelectionChanged" Margin="3 0 0 0">
-                    <ComboBoxItem Tag ="re" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
-                    <ComboBoxItem Tag ="regex" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='re'}" VerticalAlignment="Center" SelectionChanged="cbxModule_SelectionChanged" Margin="3 0 0 0">
+                    <ui:ComboBoxItemWithVersion Tag="re"    Text="re"    Version="{Binding Re, Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="regex" Text="regex" Version="{Binding Regex, Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 

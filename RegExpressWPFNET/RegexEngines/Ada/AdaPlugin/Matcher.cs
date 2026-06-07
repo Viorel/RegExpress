@@ -116,11 +116,6 @@ namespace AdaPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-        public static string? GetVersion( ICancellable cnc )
-        {
-            return "15.2.0"; // TODO: determine programmatically
-        }
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;

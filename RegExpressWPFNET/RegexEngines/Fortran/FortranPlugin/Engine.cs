@@ -16,7 +16,6 @@ namespace FortranPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly LazyData<ModuleEnum, FeatureMatrix> LazyFeatureMatrices = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace FortranPlugin
 
         public string Kind => "Fortran";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.IFX;
 
         public string Name => "Fortran (IFX)";
 
@@ -152,23 +151,6 @@ namespace FortranPlugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return MatcherForgex.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         private static FeatureMatrix BuildFeatureMatrix( ModuleEnum module )
         {

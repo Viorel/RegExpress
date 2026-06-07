@@ -16,7 +16,6 @@ namespace DPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace DPlugin
 
         public string Kind => "D";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Dmd;
 
         public string Name => "D";
 
@@ -143,23 +142,6 @@ namespace DPlugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         static FeatureMatrix BuildFeatureMatrix( )
         {

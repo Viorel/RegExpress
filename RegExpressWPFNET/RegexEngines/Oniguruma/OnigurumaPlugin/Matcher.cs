@@ -99,27 +99,6 @@ namespace OnigurumaPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-
-        public static string? GetVersion( ICancellable cnc )
-        {
-            using ProcessHelper ph = new( GetWorkerExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.Unicode;
-            ph.BinaryWriter = bw =>
-            {
-                bw.Write( "v" );
-            };
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            string version_s = ph.BinaryReader.ReadString( );
-
-            return version_s;
-        }
-
-
         static void WriteOptions( BinaryWriter bw, Options options )
         {
             bw.Write( Enum.GetName( options.Syntax )! );

@@ -43,10 +43,6 @@ namespace StdPlugin
 
             IsFullyLoaded = true;
 
-            MatcherMSVC.StartGetVersion( SetMSVCVersion );
-            MatcherGCC.StartGetVersion( SetGCCVersion );
-            MatcherSRELL.StartGetVersion( SetSRELLVersion );
-
             cbiSystemLocale.Content = $"System ({CultureInfo.CurrentCulture.Name})"; // TODO: watch for system changes
 
             UpdateUI( );
@@ -145,42 +141,6 @@ namespace StdPlugin
             {
                 --ChangeCounter;
             }
-        }
-
-        void SetMSVCVersion( string? version )
-        {
-            if( string.IsNullOrWhiteSpace( version ) ) return;
-
-            Dispatcher.BeginInvoke( ( ) =>
-            {
-                ComboBoxItem cbi = cbxCompiler.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "MSVC" );
-
-                cbi.Content = $"MSVC {version}";
-            } );
-        }
-
-        void SetGCCVersion( string? version )
-        {
-            if( string.IsNullOrWhiteSpace( version ) ) return;
-
-            Dispatcher.BeginInvoke( ( ) =>
-            {
-                ComboBoxItem cbi = cbxCompiler.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "GCC" );
-
-                cbi.Content = $"GCC {version}";
-            } );
-        }
-
-        void SetSRELLVersion( string? version )
-        {
-            if( string.IsNullOrWhiteSpace( version ) ) return;
-
-            Dispatcher.BeginInvoke( ( ) =>
-            {
-                ComboBoxItem cbi = cbxCompiler.Items.OfType<ComboBoxItem>( ).Single( i => (string)i.Tag == "SRELL" );
-
-                cbi.Content = $"SRELL {version}";
-            } );
         }
     }
 }

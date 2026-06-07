@@ -453,8 +453,8 @@ partial class FeatureMatrixDetails
                     .Test( @".(?<!xy)a", "ya", "xya" )
                     .Test( @"\(?<!x\)a", "ya", "xa" ),
                 new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, bounded-length", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @".(?<!x|yz)a", "ya", "xa" )
-                    .Test( @"\(?<!x|yz\)a", "ya", "xa" ),
+                    .Test( @"(?<!x{2,7})a", "xa", "xxa" )
+                    .Test( @"\(?<!x{2,7}\)a", "xa", "xxa" ),
                 new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, variable-length", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @".(?<!x.*)a", "ya", "xa" )
                     .Test( @"\(?<!x.*\)a", "ya", "xa" ),
@@ -478,7 +478,7 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"(?n)", @"Recursive subpattern by number", fm => fm.Recursive_Num)
                     .Test( @"(x.)(?1)", "xyxz", "xyZ"),
                 new FeatureMatrixDetails( @"(?-n), (?+n)", @"Relative recursive subpattern by number", fm => fm.Recursive_PlusMinusNum)
-                    .Test( @"(x(.))(?-1)", "xyz", "xy" )
+                    .Test( @"(a|(b))(?-1)", "ab", "a" )
                     .Test( @"\(x\(.\)\)\(?-1\)", "xyz", null ),
                 new FeatureMatrixDetails( @"(?R)", @"Recursive whole pattern", fm => fm.Recursive_R)
                     .Test( @"a((?R))*b", "aabb", "b", "aabb"),
@@ -553,7 +553,8 @@ partial class FeatureMatrixDetails
                 //new ( "No hang but error", "Give errors on possible catastrophic backtracking", fm => false ) { DirectCheck = (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Error },
                 new FeatureMatrixDetails( "Σσς", "Match letters that have multiple uppercase and lowercase variants", fm => fm.Σσς )
                     .IgnoreCase()
-                    .Test( @"ΣΣΣ", "Σσς", null),
+                    .Test( @"ΣΣΣ", "Σσς", null)
+                    .Test( @"(?i)ΣΣΣ", "Σσς", null),
             ] ),
             new ( @"Specific extensions",
             [

@@ -199,33 +199,6 @@ namespace JavaPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-
-        public static string? GetVersion( ICancellable cnc )
-        {
-            (string? javaExePath, string? workerDir) = GetPaths( );
-
-            using ProcessHelper ph = new ProcessHelper( javaExePath! );
-
-            ph.AllEncoding = EncodingEnum.UTF8;
-            ph.Arguments = new[] { "-cp", workerDir!, "JavaWorker" };
-
-            ph.StreamWriter = sw =>
-            {
-                sw.Write( "get-version" );
-            };
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            string? response_s = ph.StreamReader.ReadToEnd( )?.Trim( );
-
-            if( response_s?.StartsWith( "Version=" ) != true ) throw new InvalidOperationException( );
-
-            return response_s["Version=".Length..];
-        }
-
-
         static (string? javaPath, string? workerDir) GetPaths( )
         {
             DecompressJre( );

@@ -175,15 +175,6 @@ int main( )
 		std::wstring text;
 		std::string flags;
 
-#if 0
-		// for experiments
-		//pattern = L"\\$(\\d+)(\\.(\\d\\d))?";
-		pattern = L".*";
-		//.......0123456789012345678901234567890123456789
-		//text = L"The book cost $12.34, $777";
-		text = L"a\r\nb\r\nc";
-		flags = "";
-#else
 		std::string patternS;
 		std::string textS;
 		std::string flagsS;
@@ -201,7 +192,6 @@ int main( )
 
 		pattern = UTF8_to_wchar( patternA.c_str( ) );
 		text = UTF8_to_wchar( textA.c_str( ) );
-#endif
 
 		REGEX_FLAGS patflags = ALLBACKREFS;
 		REGEX_MODE mode = REGEX_MODE::MODE_DEFAULT;

@@ -8,7 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"regexp"
+	regexp "regexp"
+	regexpSyntax "regexp/syntax"
 
 	regexp2 "github.com/dlclark/regexp2/v2"
 	regexp2compat "github.com/dlclark/regexp2/v2/compat"
@@ -74,7 +75,7 @@ func main() {
 		if is_POSIX {
 			re, err = regexp.CompilePOSIX(pattern)
 		} else {
-			re, err = regexp.Compile(pattern)
+			re, err = regexpSyntax.Parse(pattern, regexpSyntax.Flags(0)) // regexp.Compile(pattern)
 		}
 
 		if err != nil {

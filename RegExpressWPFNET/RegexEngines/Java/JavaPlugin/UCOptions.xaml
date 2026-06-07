@@ -10,6 +10,7 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
+        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -26,9 +27,8 @@
                 </StackPanel.LayoutTransform>
                 <Label Content="Package:" Target="{Binding ElementName=cbxPackage}" Padding="0 2 4 2" />
                 <ComboBox x:Name="cbxPackage" SelectedValuePath="Tag" SelectedValue="{Binding Package, FallbackValue='regex'}" VerticalAlignment="Center" MinWidth="90" SelectionChanged="cbxPackage_SelectionChanged">
-                    <!-- //TODO: put the version programmatically -->
-                    <ComboBoxItem Tag ="regex" Content="java.util.regex" IsSelected="True" />
-                    <ComboBoxItem Tag ="re2j" Content="com.google.re2j 1.8" IsSelected="false" />
+                    <ui:ComboBoxItemWithVersion Tag ="regex" Text="java.util.regex" Version="{Binding Regex, Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag ="re2j"  Text="com.google.re2j" Version="{Binding Re2j, Source={StaticResource versions}}"/>
                 </ComboBox>
             </StackPanel>
 

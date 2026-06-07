@@ -97,40 +97,6 @@ namespace FortranPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-        public static string? GetVersion( ICancellable cnc )
-        {
-            {
-                using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
-
-                ph.AllEncoding = EncodingEnum.UTF8;
-
-                ph.StreamWriter = sw =>
-                {
-                    sw.WriteLine( "v" );
-                };
-
-                if( !ph.Start( cnc ) ) return null;
-
-                if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-                string? response = ph.StreamReader.ReadToEnd( )?.Trim( );
-
-                if( response?.StartsWith( "Version=" ) != true ) throw new InvalidOperationException( );
-
-                // example: "Intel(R) Fortran Compiler for applications running on Intel(R) 64, Version 2025.0.4 Build 20241205"
-
-                string? version = null;
-
-                Match m = GetVersionRegex( ).Match( response );
-
-                if( m.Success ) version = m.Groups[1].Value;
-
-                if( string.IsNullOrWhiteSpace( version ) ) version = "0.0.0"; //
-
-                return version;
-            }
-        }
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -140,8 +106,6 @@ namespace FortranPlugin
             return worker_exe;
         }
 
-        [GeneratedRegex( @"(?i)Version\s+(\d+\.\d+(?:\.\d+)?)" )]
-        private static partial Regex GetVersionRegex( );
 
         [GeneratedRegex( @"(?x)^\s* m \s+ (\d+) \s+ (\d+)" )]
         private static partial Regex ParseMatchRegex( );

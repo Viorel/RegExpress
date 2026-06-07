@@ -38,8 +38,6 @@ namespace JavaScriptPlugin
             public string? Error { get; set; }
         }
 
-        static readonly Lazy<string?> LazyVersion = new( ( ) => GetVersion( ICancellable.NonCancellable ) );
-
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             string flags = string.Concat(
@@ -132,23 +130,6 @@ namespace JavaScriptPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-        public static string? GetVersion( ICancellable cnc )
-        {
-            try
-            {
-                string version_path = Path.Combine( GetWorkerDirectory( ), "VERSION" );
-
-                return File.ReadAllText( version_path ).Trim( );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
         static string GetPluginDirectory( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -170,26 +151,6 @@ namespace JavaScriptPlugin
         static string GetQuickJsWorkerPath( )
         {
             return Path.Combine( GetWorkerDirectory( ), "QuickJsWorker.js" );
-        }
-
-        internal static void StartGetVersion( Action<string?> setVersion )
-        {
-            if( LazyVersion.IsValueCreated )
-            {
-                setVersion( LazyVersion.Value );
-
-                return;
-            }
-
-            Thread t = new( ( ) =>
-            {
-                setVersion( LazyVersion.Value );
-            } )
-            {
-                IsBackground = true
-            };
-
-            t.Start( );
         }
     }
 }

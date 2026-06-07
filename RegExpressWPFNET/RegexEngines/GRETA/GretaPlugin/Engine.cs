@@ -16,7 +16,6 @@ namespace GretaPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace GretaPlugin
 
         public string Kind => "GRETA";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.GRETA;
 
         public string Name => "GRETA";
 
@@ -142,21 +141,6 @@ namespace GretaPlugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
         }
 
         private static FeatureMatrix BuildFeatureMatrix( )

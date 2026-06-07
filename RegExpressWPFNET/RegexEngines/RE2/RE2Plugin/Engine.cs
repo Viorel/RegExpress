@@ -16,7 +16,6 @@ namespace RE2Plugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly LazyData<bool /*posix*/, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace RE2Plugin
 
         public string Kind => "RE2";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.RE2;
 
         public string Name => "RE2";
 
@@ -143,23 +142,6 @@ namespace RE2Plugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         static FeatureMatrix BuildFeatureMatrix( bool is_posix )
         {

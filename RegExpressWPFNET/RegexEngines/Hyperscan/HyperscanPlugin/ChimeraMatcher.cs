@@ -173,28 +173,6 @@ namespace HyperscanPlugin
             }
         }
 
-
-        public static string? GetVersion( ICancellable cnc )
-        {
-            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.UTF8;
-
-            ph.BinaryWriter = bw =>
-            {
-                bw.Write( "chv" );
-            };
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            string version_s = ph.BinaryReader.ReadString( );
-
-            return version_s;
-        }
-
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;

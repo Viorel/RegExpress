@@ -16,7 +16,6 @@ namespace BoostPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly LazyData<GrammarEnum, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace BoostPlugin
 
         public string Kind => "Boost";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Boost;
 
         public string Name => "Boost.Regex";
 
@@ -158,23 +157,6 @@ namespace BoostPlugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         static FeatureMatrix BuildFeatureMatrix( GrammarEnum grammar )
         {

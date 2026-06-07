@@ -177,26 +177,6 @@ namespace PythonPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-
-        public static string? GetVersion( ICancellable cnc )
-        {
-            using ProcessHelper ph = new ProcessHelper( GetPythonExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.UTF8;
-            ph.Arguments = new[] { "-V" };
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            string? response_s = ph.StreamReader.ReadToEnd( )?.Trim( ) ?? "";
-
-            string version = GetVersionRegex( ).Match( response_s ).Groups[1].Value;
-
-            return version;
-        }
-
-
         static string GetPythonExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -223,9 +203,6 @@ namespace PythonPlugin
             return worker;
         }
 
-
-        [GeneratedRegex( @"^Python (\d+(\.\d+)*)" )]
-        private static partial Regex GetVersionRegex( );
 
         [GeneratedRegex( @"^(?'t'[MG]) (?'s'-?\d+), (?'e'-?\d+)|(?'t'N) (?'i'\d+) <(?'n'.*)>$", RegexOptions.ExplicitCapture )]
         private static partial Regex NMGRegex( );

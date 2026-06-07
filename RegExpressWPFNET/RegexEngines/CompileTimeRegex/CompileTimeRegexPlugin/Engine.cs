@@ -16,7 +16,6 @@ namespace CompileTimeRegexPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace CompileTimeRegexPlugin
 
         public string Kind => "CTRE";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Ctre;
 
         public string Name => "CTRE";
 
@@ -137,21 +136,6 @@ namespace CompileTimeRegexPlugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
         }
 
         private static FeatureMatrix BuildFeatureMatrix( )
@@ -300,8 +284,8 @@ namespace CompileTimeRegexPlugin
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
                 NegativeLookahead = true,
-                PositiveLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
-                NegativeLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
+                PositiveLookbehind = FeatureMatrix.LookModeEnum.FixedLength, // (compilation error in case of (?<=x{2,3})
+                NegativeLookbehind = FeatureMatrix.LookModeEnum.FixedLength, //  and (?<!x{2,3}); it is probably a defect
                 AtomicGroup = true,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

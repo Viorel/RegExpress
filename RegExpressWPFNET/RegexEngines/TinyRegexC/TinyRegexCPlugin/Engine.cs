@@ -16,7 +16,6 @@ namespace TinyRegexCPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace TinyRegexCPlugin
 
         public string Kind => "TinyRegexC";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.TinyRegexC;
 
         public string Name => "tiny-regex-c";
 
@@ -139,21 +138,6 @@ namespace TinyRegexCPlugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
         }
 
         private static FeatureMatrix BuildFeatureMatrix( )

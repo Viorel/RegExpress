@@ -16,7 +16,6 @@ namespace HyperscanPlugin
 {
     class ChimeraEngine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
         ChimeraOptions mOptions = new( );
@@ -52,7 +51,7 @@ namespace HyperscanPlugin
 
         public string Kind => "Chimera";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Chimera;
 
         public string Name => "Chimera";
 
@@ -142,23 +141,6 @@ namespace HyperscanPlugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return ChimeraMatcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         private static FeatureMatrix BuildFeatureMatrix( )
         {

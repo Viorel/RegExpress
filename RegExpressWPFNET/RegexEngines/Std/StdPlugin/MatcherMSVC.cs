@@ -19,8 +19,6 @@ namespace StdPlugin
 {
     static class MatcherMSVC
     {
-        static readonly Lazy<string?> LazyVersion = new( ( ) => GetVersion( ICancellable.NonCancellable ) );
-
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
@@ -102,26 +100,6 @@ namespace StdPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-
-        public static string? GetVersion( ICancellable cnc )
-        {
-            using ProcessHelper ph = new( GetWorkerExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.Unicode;
-            ph.BinaryWriter = bw =>
-            {
-                bw.Write( "v" );
-            };
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            string version_s = ph.BinaryReader.ReadString( );
-
-            return version_s;
-        }
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -129,26 +107,6 @@ namespace StdPlugin
             string worker_exe = Path.Combine( assembly_dir, @"StdWorker.bin" );
 
             return worker_exe;
-        }
-
-        internal static void StartGetVersion( Action<string?> setVersion )
-        {
-            if( LazyVersion.IsValueCreated )
-            {
-                setVersion( LazyVersion.Value );
-
-                return;
-            }
-
-            Thread t = new( ( ) =>
-            {
-                setVersion( LazyVersion.Value );
-            } )
-            {
-                IsBackground = true
-            };
-
-            t.Start( );
         }
     }
 }

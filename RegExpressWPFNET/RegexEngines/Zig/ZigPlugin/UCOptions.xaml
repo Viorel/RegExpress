@@ -10,6 +10,7 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
+        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -42,9 +43,9 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Library:" Target="{Binding ElementName=cbxLibrary}" />
                 <ComboBox x:Name="cbxLibrary" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Library, FallbackValue='ZigRegex'}" SelectionChanged="cbxLibrary_SelectionChanged">
-                    <ComboBoxItem Tag="ZigRegex" Content="zig-regex 0.2.0" IsSelected="True" />
-                    <ComboBoxItem Tag="Mvzr" Content="mvzr 0.3.12" />
-                    <ComboBoxItem Tag="Pzre" Content="PZRE 0.2.2" />
+                    <ui:ComboBoxItemWithVersion Tag="ZigRegex" Text="zig-regex" Version="{Binding ZigRegex, Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="Mvzr"     Text="mvzr"      Version="{Binding Mvzr, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="Pzre"     Text="PZRE"      Version="{Binding Pzre, Source={StaticResource versions}}" />
                 </ComboBox>
 
             </Grid>

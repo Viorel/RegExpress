@@ -19,7 +19,6 @@ namespace PythonPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly LazyData<(ModuleEnum, int), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -55,7 +54,7 @@ namespace PythonPlugin
 
         public string Kind => "Python";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Python;
 
         public string Name => "Python";
 
@@ -154,23 +153,6 @@ namespace PythonPlugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         static FeatureMatrix BuildFeatureMatrix( (ModuleEnum module, int version) key )
         {
@@ -301,7 +283,7 @@ namespace PythonPlugin
                 Anchor_Dollar = true,
                 Anchor_A = true,
                 Anchor_Z = true,
-                Anchor_z = false,
+                Anchor_z = true,
                 Anchor_G = is_regex,
                 Anchor_bB = true,
                 Anchor_bg = false,
@@ -345,7 +327,7 @@ namespace PythonPlugin
                 AllowSpacesInBackref = false,
 
                 Recursive_Num = is_regex,
-                Recursive_PlusMinusNum = false,
+                Recursive_PlusMinusNum = is_regex,
                 Recursive_R = is_regex,
                 Recursive_Name = is_regex,
                 Recursive_PGtName = is_regex,

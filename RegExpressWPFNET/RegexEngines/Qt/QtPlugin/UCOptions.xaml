@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:QtPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="164.938" d:DesignWidth="591.038" 
+             d:DesignHeight="285.992" d:DesignWidth="591.038" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>

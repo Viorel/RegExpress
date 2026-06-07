@@ -16,7 +16,6 @@ namespace CppBuilderPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
@@ -52,7 +51,7 @@ namespace CppBuilderPlugin
 
         public string Kind => "TRegEx";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.CppBuilder;
 
         public string Name => "TRegEx";
 
@@ -141,21 +140,6 @@ namespace CppBuilderPlugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return Matcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
         }
 
         static FeatureMatrix BuildFeatureMatrix( )
@@ -303,8 +287,8 @@ namespace CppBuilderPlugin
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
                 NegativeLookahead = true,
-                PositiveLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
-                NegativeLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
+                PositiveLookbehind = FeatureMatrix.LookModeEnum.FixedLength,
+                NegativeLookbehind = FeatureMatrix.LookModeEnum.FixedLength,
                 AtomicGroup = true,
                 BranchReset = true,
                 NonatomicPositiveLookahead = false,

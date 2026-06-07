@@ -16,7 +16,6 @@ namespace HyperscanPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<string?> LazyVersion = new( GetVersion );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
         HyperscanOptions mOptions = new( );
@@ -52,7 +51,7 @@ namespace HyperscanPlugin
 
         public string Kind => "Hyperscan";
 
-        public string? Version => LazyVersion.Value;
+        public string? Version => Versions.Hyperscan;
 
         public string Name => "Hyperscan";
 
@@ -145,23 +144,6 @@ namespace HyperscanPlugin
         {
             OptionsChanged?.Invoke( this, args );
         }
-
-
-        static string? GetVersion( )
-        {
-            try
-            {
-                return HyperscanMatcher.GetVersion( NonCancellable.Instance );
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
 
         private static FeatureMatrix BuildFeatureMatrix( )
         {

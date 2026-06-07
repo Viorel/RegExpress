@@ -54,11 +54,11 @@ namespace GoPlugin
 
             // 
 
-            if( options.posix_syntax ) flags.Append( 'P');
-            if( options.longest_match ) flags.Append( 'L');
-            if( options.literal ) flags.Append( 'Q');
+            if( options.posix_syntax ) flags.Append( 'P' );
+            if( options.longest_match ) flags.Append( 'L' );
+            if( options.literal ) flags.Append( 'Q' );
 
-            var data = new { package = Enum.GetName<PackageEnum>( options.Package ), pattern, text, flags = flags.ToString() };
+            var data = new { package = Enum.GetName<PackageEnum>( options.Package ), pattern, text, flags = flags.ToString( ) };
             string json = JsonSerializer.Serialize( data );
 
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
@@ -172,13 +172,7 @@ namespace GoPlugin
 
             return new RegexMatches( matches.Count, matches );
         }
-
-        public static string? GetVersion( ICancellable cnc )
-        {
-            return "1.26.4"; // TODO: get from worker
-        }
-
-
+        
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -187,6 +181,5 @@ namespace GoPlugin
 
             return worker_exe;
         }
-
     }
 }

@@ -19,8 +19,6 @@ namespace StdPlugin
 {
     static partial class MatcherGCC
     {
-        static readonly Lazy<string?> LazyVersion = new( ( ) => GetVersion( ICancellable.NonCancellable ) );
-
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             using ProcessHelper ph = new( GetWorkerExePath( ) );
@@ -115,28 +113,6 @@ namespace StdPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-
-        public static string? GetVersion( ICancellable cnc )
-        {
-            using ProcessHelper ph = new( GetWorkerExePath( ) );
-
-            ph.AllEncoding = EncodingEnum.UTF8;
-
-            ph.StreamWriter = sw =>
-            {
-                sw.WriteLine( "\"v\"" ); // (command)
-            };
-
-            if( !ph.Start( cnc ) ) return null;
-
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-            string version_s = ph.StreamReader.ReadToEnd( ).Trim( );
-
-            return version_s;
-        }
-
-
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -146,25 +122,6 @@ namespace StdPlugin
             return worker_exe;
         }
 
-        internal static void StartGetVersion( Action<string?> setVersion )
-        {
-            if( LazyVersion.IsValueCreated )
-            {
-                setVersion( LazyVersion.Value );
-
-                return;
-            }
-
-            Thread t = new( ( ) =>
-            {
-                setVersion( LazyVersion.Value );
-            } )
-            {
-                IsBackground = true
-            };
-
-            t.Start( );
-        }
 
         [GeneratedRegex( @"(?x)^\s* m \s+ (\d+) \s+ (\d+)" )]
         private static partial Regex ParseMatchRegex( );

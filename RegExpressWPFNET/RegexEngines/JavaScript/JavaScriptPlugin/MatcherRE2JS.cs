@@ -42,8 +42,6 @@ namespace JavaScriptPlugin
         }
 
 
-        static readonly Lazy<string?> LazyVersion = new( ( ) => GetVersion( ICancellable.NonCancellable ) );
-
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             string flags = string.Concat(
@@ -140,31 +138,6 @@ namespace JavaScriptPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
-        public static string? GetVersion( ICancellable cnc )
-        {
-            try
-            {
-                // example: " * @version v1.2.0"
-
-                string js_path = Path.Combine( GetRE2JSWorkerDirectory( ), "re2js", "build", "index.js" );
-                string? version = File
-                    .ReadLines( js_path )
-                    .Select( line => RegexGetVersion( ).Match( line ) )
-                    .Where( m => m.Success )
-                    .Select( m => m.Groups["version"].Value )
-                    .FirstOrDefault( );
-
-                return version;
-            }
-            catch( Exception exc )
-            {
-                _ = exc;
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                return null;
-            }
-        }
-
         static string GetPluginDirectory( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -192,30 +165,5 @@ namespace JavaScriptPlugin
         {
             return Path.Combine( GetRE2JSWorkerDirectory( ), "RE2JSWorker.js" );
         }
-
-        internal static void StartGetVersion( Action<string?> setVersion )
-        {
-            if( LazyVersion.IsValueCreated )
-            {
-                setVersion( LazyVersion.Value );
-
-                return;
-            }
-
-            Thread t = new( ( ) =>
-            {
-                setVersion( LazyVersion.Value );
-            } )
-            {
-                IsBackground = true
-            };
-
-            t.Start( );
-        }
-
-
-        // example: " * @version v1.2.0"
-        [GeneratedRegex( @"(?inx) .* @version (:\s*|\s+) v?(?<version>\d+([.]\d+)+)" )]
-        private static partial Regex RegexGetVersion( );
     }
 }
