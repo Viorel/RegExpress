@@ -82,53 +82,23 @@ fn main()
         reb.find_not_empty(options.find('E').is_some());
         reb.ignore_numbered_groups_when_named_groups_exist(options.find('n').is_some());
 
-        let s = parsed["bl"].as_str().unwrap_or("");
-
-        if s != ""
+        let n = parsed["bl"].as_usize();
+        if n.is_some()
         {
-            let n = s.parse::<usize>();
-
-            if n.is_err()
-            {
-                eprintln!("Invalid 'backtrack_limit': '{}'", s);
-
-                return;
-            }
-
             reb.backtrack_limit( n.unwrap());
-        }
+        } 
 
-        let s = parsed["dsl"].as_str().unwrap_or("");
-
-        if s != ""
+        let n = parsed["dsl"].as_usize();
+        if n.is_some()
         {
-            let n = s.parse::<usize>();
-
-            if n.is_err()
-            {
-                eprintln!("Invalid 'delegate_size_limit': '{}'", s);
-
-                return;
-            }
-
             reb.delegate_size_limit( n.unwrap());
-        }
+        } 
 
-        let s = parsed["ddsl"].as_str().unwrap_or("");
-
-        if s != ""
+        let n = parsed["ddsl"].as_usize();
+        if n.is_some()
         {
-            let n = s.parse::<usize>();
-
-            if n.is_err()
-            {
-                eprintln!("Invalid 'delegate_dfa_size_limit': '{}'", s);
-
-                return;
-            }
-
             reb.delegate_dfa_size_limit( n.unwrap());
-        }
+        } 
 
         re = reb.build();
     }

@@ -43,15 +43,11 @@ namespace SubRegPlugin
                 throw new Exception( string.Format( "SubReg only supports the ASCII character encoding.\r\nThe text contains an invalid character at position {0}.", exc.Index ) );
             }
 
-            if( string.IsNullOrWhiteSpace( options.max_captures ) || !Int32.TryParse( options.max_captures, out int max_captures ) || max_captures < 0 )
-            {
-                throw new Exception( string.Format( "Invalid “max_captures”. Enter a number between 0 and INT_MAX ({0})", Int32.MaxValue ) );
-            }
+            UInt32? max_captures = ValidationUtilities.ParseUInt32( "max_captures", options.max_captures );
+            if( max_captures == null ) throw new Exception( "Missing “max_captures”." );
 
-            if( string.IsNullOrWhiteSpace( options.max_depth ) || !Int32.TryParse( options.max_depth, out int max_depth ) || max_depth < 0 )
-            {
-                throw new Exception( string.Format( "Invalid “max_depth”. Enter a number between 0 and INT_MAX ({0})", Int32.MaxValue ) );
-            }
+            UInt32? max_depth = ValidationUtilities.ParseUInt32( "max_depth", options.max_depth );
+            if( max_depth == null ) throw new Exception( "Missing “max_depth”." );
 
             using ProcessHelper ph = new( GetWorkerExePath( ) );
 
@@ -65,8 +61,8 @@ namespace SubRegPlugin
 
                 bw.Write( pattern );
                 bw.Write( text );
-                bw.Write( max_captures );
-                bw.Write( max_depth );
+                bw.Write( max_captures.Value );
+                bw.Write( max_depth.Value );
 
                 bw.Write( (byte)'e' );
             };

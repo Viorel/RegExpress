@@ -25,30 +25,11 @@ namespace HyperscanPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, HyperscanOptions options )
         {
-            if( !string.IsNullOrWhiteSpace( options.LevenshteinDistance ) && !UInt32.TryParse( options.LevenshteinDistance, out var _ ) )
-            {
-                throw new ApplicationException( "Invalid Levenshtein Distance." );
-            }
-
-            if( !string.IsNullOrWhiteSpace( options.HammingDistance ) && !UInt32.TryParse( options.HammingDistance, out var _ ) )
-            {
-                throw new ApplicationException( "Invalid Hamming Distance." );
-            }
-
-            if( !string.IsNullOrWhiteSpace( options.MinOffset ) && !UInt32.TryParse( options.MinOffset, out var _ ) )
-            {
-                throw new ApplicationException( "Invalid Min Offset." );
-            }
-
-            if( !string.IsNullOrWhiteSpace( options.MaxOffset ) && !UInt32.TryParse( options.MaxOffset, out var _ ) )
-            {
-                throw new ApplicationException( "Invalid Max Offset." );
-            }
-
-            if( !string.IsNullOrWhiteSpace( options.MinLength ) && !UInt32.TryParse( options.MinLength, out var _ ) )
-            {
-                throw new ApplicationException( "Invalid Min Length." );
-            }
+            uint? LevenshteinDistance = ValidationUtilities.ParseUInt32( "LevenshteinDistance", options.LevenshteinDistance );
+            uint? HammingDistance = ValidationUtilities.ParseUInt32( "HammingDistance", options.HammingDistance );
+            uint? MinOffset = ValidationUtilities.ParseUInt32( "MinOffset", options.MinOffset );
+            uint? MaxOffset = ValidationUtilities.ParseUInt32( "MaxOffsetDistance", options.MaxOffset );
+            uint? MinLength = ValidationUtilities.ParseUInt32( "MinLength", options.MinLength );
 
             if( !options.HS_FLAG_UTF8 )
             {
@@ -108,11 +89,11 @@ namespace HyperscanPlugin
                 bw.Write( pattern );
                 bw.Write( text );
                 bw.Write( flags );
-                bw.Write( string.IsNullOrWhiteSpace( options.LevenshteinDistance ) ? UInt32.MaxValue : UInt32.Parse( options.LevenshteinDistance ) );
-                bw.Write( string.IsNullOrWhiteSpace( options.HammingDistance ) ? UInt32.MaxValue : UInt32.Parse( options.HammingDistance ) );
-                bw.Write( string.IsNullOrWhiteSpace( options.MinOffset ) ? UInt32.MaxValue : UInt32.Parse( options.MinOffset ) );
-                bw.Write( string.IsNullOrWhiteSpace( options.MaxOffset ) ? UInt32.MaxValue : UInt32.Parse( options.MaxOffset ) );
-                bw.Write( string.IsNullOrWhiteSpace( options.MinLength ) ? UInt32.MaxValue : UInt32.Parse( options.MinLength ) );
+                bw.Write( LevenshteinDistance ?? UInt32.MaxValue );
+                bw.Write( HammingDistance ?? UInt32.MaxValue );
+                bw.Write( MinOffset ?? UInt32.MaxValue );
+                bw.Write( MaxOffset ?? UInt32.MaxValue );
+                bw.Write( MinLength ?? UInt32.MaxValue );
                 bw.Write( checked((byte)options.Mode) );
                 bw.Write( checked((byte)options.ModeSom) );
                 bw.Write( (byte)'e' );

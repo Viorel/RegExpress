@@ -57,9 +57,9 @@ namespace RustPlugin
                 p = pattern,
                 t = text,
                 o = o.ToString( ),
-                bl = options.backtrack_limit?.Trim( ) ?? "",
-                dsl = options.delegate_size_limit?.Trim( ) ?? "",
-                ddsl = options.delegate_dfa_size_limit?.Trim( ) ?? "",
+                bl = ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ),
+                dsl = ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ),
+                ddsl = ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ),
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

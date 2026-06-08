@@ -25,8 +25,8 @@ namespace HyperscanPlugin
 
         public ChimeraModeEnum Mode { get; set; } = ChimeraModeEnum.CH_MODE_GROUPS;
 
-        public string MatchLimit { get; set; } = "";
-        public string MatchLimitRecursion { get; set; } = "";
+        public string? MatchLimit { get; set; }
+        public string? MatchLimitRecursion { get; set; }
 
         public ChimeraOptions Clone( )
         {

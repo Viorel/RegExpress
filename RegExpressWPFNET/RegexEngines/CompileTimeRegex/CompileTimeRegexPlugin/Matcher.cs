@@ -30,19 +30,7 @@ namespace CompileTimeRegexPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            Int64? template_depth = null;
-
-            if( !string.IsNullOrWhiteSpace( options.TemplateDepth ) )
-            {
-                if( !Int64.TryParse( options.TemplateDepth, out var template_depth0 ) )
-                {
-                    throw new ApplicationException( "Invalid template depth." );
-                }
-                else
-                {
-                    template_depth = template_depth0;
-                }
-            }
+            Int64? template_depth = ValidationUtilities.ParseInt64( "TemplateDepth", options.TemplateDepth );
 
             string? additional_CL_option_1 = template_depth == null ? "" : $"/templateDepth:{template_depth}";
 

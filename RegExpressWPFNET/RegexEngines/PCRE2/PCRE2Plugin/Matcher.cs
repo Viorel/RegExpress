@@ -22,103 +22,13 @@ namespace PCRE2Plugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            UInt32? depth_limit = null;
-
-            if( !string.IsNullOrWhiteSpace( options.DepthLimit ) )
-            {
-                if( !UInt32.TryParse( options.DepthLimit, out var depth_limit0 ) )
-                {
-                    throw new ApplicationException( "Invalid 'depth_limit'." );
-                }
-                else
-                {
-                    depth_limit = depth_limit0;
-                }
-            }
-
-            UInt32? heap_limit = null;
-
-            if( !string.IsNullOrWhiteSpace( options.HeapLimit ) )
-            {
-                if( !UInt32.TryParse( options.HeapLimit, out var heap_limit0 ) )
-                {
-                    throw new ApplicationException( "Invalid 'heap_limit'." );
-                }
-                else
-                {
-                    heap_limit = heap_limit0;
-                }
-            }
-
-            UInt32? match_limit = null;
-
-            if( !string.IsNullOrWhiteSpace( options.MatchLimit ) )
-            {
-                if( !UInt32.TryParse( options.MatchLimit, out var match_limit0 ) )
-                {
-                    throw new ApplicationException( "Invalid 'match_limit'." );
-                }
-                else
-                {
-                    match_limit = match_limit0;
-                }
-            }
-
-            UInt64? max_pattern_compiled_length = null;
-
-            if( !string.IsNullOrWhiteSpace( options.MaxPatternCompiledLength ) )
-            {
-                if( !UInt64.TryParse( options.MaxPatternCompiledLength, out var max_pattern_compiled_length0 ) )
-                {
-                    throw new ApplicationException( "Invalid 'max_pattern_compiled_length'." );
-                }
-                else
-                {
-                    max_pattern_compiled_length = max_pattern_compiled_length0;
-                }
-            }
-
-            UInt64? offset_limit = null;
-
-            if( !string.IsNullOrWhiteSpace( options.OffsetLimit ) )
-            {
-                if( !UInt64.TryParse( options.OffsetLimit, out var offset_limit0 ) )
-                {
-                    throw new ApplicationException( "Invalid 'offset_limit'." );
-                }
-                else
-                {
-                    offset_limit = offset_limit0;
-                }
-            }
-
-            UInt32? parens_nest_limit = null;
-
-            if( !string.IsNullOrWhiteSpace( options.ParensNestLimit ) )
-            {
-                if( !UInt32.TryParse( options.ParensNestLimit, out var parens_nest_limit0 ) )
-                {
-                    throw new ApplicationException( "Invalid 'parens_nest_limit'." );
-                }
-                else
-                {
-                    parens_nest_limit = parens_nest_limit0;
-                }
-            }
-
-            UInt32? max_varlookbehind = null;
-
-            if( !string.IsNullOrWhiteSpace( options.MaxVarLookbehind ) )
-            {
-                if( !UInt32.TryParse( options.MaxVarLookbehind, out var max_varlookbehind0 ) )
-                {
-                    throw new ApplicationException( "Invalid 'max_varlookbehind'." );
-                }
-                else
-                {
-                    max_varlookbehind = max_varlookbehind0;
-                }
-            }
+            UInt32? depth_limit = ValidationUtilities.ParseUInt32( "depth_limit", options.DepthLimit );
+            UInt32? heap_limit = ValidationUtilities.ParseUInt32( "heap_limit", options.HeapLimit );
+            UInt32? match_limit = ValidationUtilities.ParseUInt32( "match_limit", options.MatchLimit );
+            UInt64? max_pattern_compiled_length = ValidationUtilities.ParseUInt64( "max_pattern_compiled_length", options.MaxPatternCompiledLength );
+            UInt64? offset_limit = ValidationUtilities.ParseUInt64( "offset_limit", options.OffsetLimit );
+            UInt32? parens_nest_limit = ValidationUtilities.ParseUInt32( "parens_nest_limit", options.ParensNestLimit );
+            UInt32? max_varlookbehind = ValidationUtilities.ParseUInt32( "max_varlookbehind", options.MaxVarLookbehind );
 
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 

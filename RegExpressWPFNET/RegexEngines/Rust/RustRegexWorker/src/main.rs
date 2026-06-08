@@ -94,50 +94,23 @@ fn main()
         reb.unicode(options.find('u').is_some());
         reb.octal(options.find('O').is_some());
 
-        let s = parsed["sl"].as_str().unwrap_or("");
-
-        if s != ""
+        let n = parsed["sl"].as_usize();
+        if n.is_some()
         {
-            let n = s.parse::<usize>();
-            if n.is_err()
-            {
-                eprintln!("Invalid 'size_limit': '{}'", s);
-
-                return;
-            }
-
             reb.size_limit( n.unwrap());
-        }
+        } 
 
-        let s = parsed["dsl"].as_str().unwrap_or("");
-
-        if s != ""
+        let n = parsed["dsl"].as_usize();
+        if n.is_some()
         {
-            let n = s.parse::<usize>();
-            if n.is_err()
-            {
-                eprintln!("Invalid 'dfa_size_limit': '{}'", s);
-
-                return;
-            }
-
             reb.dfa_size_limit( n.unwrap());
-        }
+        } 
 
-        let s = parsed["nl"].as_str().unwrap_or("");
-
-        if s != ""
+        let n = parsed["nl"].as_u32();
+        if n.is_some()
         {
-            let n = s.parse::<u32>();
-            if n.is_err()
-            {
-                eprintln!("Invalid 'nest_limit': '{}'", s);
-
-                return;
-            }
-
             reb.nest_limit( n.unwrap());
-        }
+        } 
 
         re = reb.build();
     }

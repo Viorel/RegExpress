@@ -33,32 +33,8 @@ namespace RustPlugin
                 throw new ApplicationException( "Invalid struct." );
             }
 
-            UInt64? max_dfa_capacity = null;
-            UInt64? lookahead_context_max = null;
-
-            if( !string.IsNullOrWhiteSpace( options.max_dfa_capacity ) )
-            {
-                if( !UInt64.TryParse( options.max_dfa_capacity, out var u ) )
-                {
-                    throw new ApplicationException( "Invalid 'max_dfa_capacity'." );
-                }
-                else
-                {
-                    max_dfa_capacity = u;
-                }
-            }
-
-            if( !string.IsNullOrWhiteSpace( options.lookahead_context_max ) )
-            {
-                if( !UInt64.TryParse( options.lookahead_context_max, out var u ) )
-                {
-                    throw new ApplicationException( "Invalid 'lookahead_context_max'." );
-                }
-                else
-                {
-                    lookahead_context_max = u;
-                }
-            }
+            UInt64? max_dfa_capacity = ValidationUtilities.ParseUInt64( "max_dfa_capacity", options.max_dfa_capacity );
+            UInt64? lookahead_context_max = ValidationUtilities.ParseUInt64( "lookahead_context_max", options.lookahead_context_max );
 
             var o = new StringBuilder( );
 

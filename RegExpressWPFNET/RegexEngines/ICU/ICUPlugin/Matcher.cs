@@ -22,47 +22,9 @@ namespace ICUPlugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            Int32? limit = null;
-
-            if( !string.IsNullOrWhiteSpace( options.limit ) )
-            {
-                if( !Int32.TryParse( options.limit, out var limit0 ) )
-                {
-                    throw new ApplicationException( "Invalid limit." );
-                }
-                else
-                {
-                    limit = limit0;
-                }
-            }
-
-            Int64? region_start = null;
-
-            if( !string.IsNullOrWhiteSpace( options.regionStart ) )
-            {
-                if( !Int64.TryParse( options.regionStart, out var region_start0 ) )
-                {
-                    throw new ApplicationException( "Invalid region start." );
-                }
-                else
-                {
-                    region_start = region_start0;
-                }
-            }
-
-            Int64? region_end = null;
-
-            if( !string.IsNullOrWhiteSpace( options.regionEnd ) )
-            {
-                if( !Int64.TryParse( options.regionEnd, out var region_end0 ) )
-                {
-                    throw new ApplicationException( "Invalid region end." );
-                }
-                else
-                {
-                    region_end = region_end0;
-                }
-            }
+            Int32? limit = ValidationUtilities.ParseInt32( "limit", options.limit );
+            Int64? region_start = ValidationUtilities.ParseInt64( "start", options.regionStart );
+            Int64? region_end = ValidationUtilities.ParseInt64( "end", options.regionEnd );
 
             if( ( region_start == null ) != ( region_end == null ) )
             {

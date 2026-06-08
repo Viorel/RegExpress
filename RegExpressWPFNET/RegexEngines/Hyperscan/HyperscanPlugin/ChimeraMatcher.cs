@@ -25,15 +25,8 @@ namespace HyperscanPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, ChimeraOptions options )
         {
-            if( !string.IsNullOrWhiteSpace( options.MatchLimit ) && !UInt32.TryParse( options.MatchLimit, out var _ ) )
-            {
-                throw new ApplicationException( "Invalid Match Limit." );
-            }
-
-            if( !string.IsNullOrWhiteSpace( options.MatchLimitRecursion ) && !UInt32.TryParse( options.MatchLimitRecursion, out var _ ) )
-            {
-                throw new ApplicationException( "Invalid Recursion Limit." );
-            }
+            UInt32? match_limit = ValidationUtilities.ParseUInt32( "Match limit", options.MatchLimit );
+            UInt32? recursion_limit = ValidationUtilities.ParseUInt32( "Recursion limit", options.MatchLimitRecursion );
 
             if( !options.CH_FLAG_UTF8 )
             {
@@ -87,8 +80,8 @@ namespace HyperscanPlugin
                 bw.Write( pattern );
                 bw.Write( text );
                 bw.Write( flags );
-                bw.Write( string.IsNullOrWhiteSpace( options.MatchLimit ) ? UInt32.MaxValue : UInt32.Parse( options.MatchLimit ) );
-                bw.Write( string.IsNullOrWhiteSpace( options.MatchLimitRecursion ) ? UInt32.MaxValue : UInt32.Parse( options.MatchLimitRecursion ) );
+                bw.Write( match_limit ?? UInt32.MaxValue );
+                bw.Write( recursion_limit ?? UInt32.MaxValue );
                 bw.Write( checked((byte)options.Mode) );
                 bw.Write( (byte)'e' );
             };

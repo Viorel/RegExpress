@@ -51,9 +51,9 @@ namespace RustPlugin
                 p = pattern,
                 t = text,
                 o = o.ToString( ),
-                sl = options.size_limit?.Trim( ) ?? "",
-                //dsl = options.dfa_size_limit?.Trim( ) ?? "",
-                nl = options.nest_limit?.Trim( ) ?? "",
+                sl = ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ),
+                //dsl = ValidationUtilities.ParseUInt32( "dfa_size_limit", options.dfa_size_limit ),
+                nl = ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ),
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

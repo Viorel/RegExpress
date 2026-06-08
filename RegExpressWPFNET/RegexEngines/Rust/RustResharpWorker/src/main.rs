@@ -96,7 +96,18 @@ fn main() {
 
     let re = re.unwrap();
 
-    let matches = re.find_all(text.as_bytes()).unwrap();
+    let matches = re.find_all(text.as_bytes());
+
+    if matches.is_err()
+    {
+        let err = matches.err().unwrap();
+
+        eprintln!("{}", err);
+
+        return;
+    }
+
+    let matches = matches.unwrap();
 
     //println!("Matches: '{:?}'", matches);
     //println!("Matches: '{:#?}'", matches);

@@ -19,7 +19,6 @@ namespace GoPlugin
     {
         public PackageEnum Package { get; set; } = PackageEnum.regexp;
 
-
         public bool IgnoreCase { get; set; }
         public bool Multiline { get; set; }
         public bool ExplicitCapture { get; set; }

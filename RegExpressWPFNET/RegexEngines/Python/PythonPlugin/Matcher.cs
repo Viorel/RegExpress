@@ -30,17 +30,7 @@ namespace PythonPlugin
 
             if( options.Module == ModuleEnum.regex )
             {
-                if( !string.IsNullOrWhiteSpace( options.timeout ) )
-                {
-                    if( !double.TryParse( options.timeout, out var timeout0 ) )
-                    {
-                        throw new ApplicationException( "Invalid timeout. Enter a floating-point value." );
-                    }
-                    else
-                    {
-                        timeout = timeout0;
-                    }
-                }
+                timeout = ValidationUtilities.ParseDouble( "timeout", options.timeout );
             }
 
             using ProcessHelper ph = new( GetPythonExePath( ) );

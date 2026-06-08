@@ -21,19 +21,7 @@ namespace RE2Plugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            Int64? max_mem = null;
-
-            if( !string.IsNullOrWhiteSpace( options.max_mem ) )
-            {
-                if( !Int64.TryParse( options.max_mem, out var max_mem0 ) )
-                {
-                    throw new ApplicationException( "Invalid max_mem." );
-                }
-                else
-                {
-                    max_mem = max_mem0;
-                }
-            }
+            Int64? max_mem = ValidationUtilities.ParseInt64( "max_mem", options.max_mem );
 
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 

@@ -22,33 +22,8 @@ namespace JavaPlugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            Int32? region_start = null;
-
-            if( !string.IsNullOrWhiteSpace( options.regionStart ) )
-            {
-                if( !Int32.TryParse( options.regionStart, out var region_start0 ) )
-                {
-                    throw new ApplicationException( "Invalid region start." );
-                }
-                else
-                {
-                    region_start = region_start0;
-                }
-            }
-
-            Int32? region_end = null;
-
-            if( !string.IsNullOrWhiteSpace( options.regionEnd ) )
-            {
-                if( !Int32.TryParse( options.regionEnd, out var region_end0 ) )
-                {
-                    throw new ApplicationException( "Invalid region end." );
-                }
-                else
-                {
-                    region_end = region_end0;
-                }
-            }
+            Int32? region_start = ValidationUtilities.ParseInt32( "start", options.regionStart );
+            Int32? region_end = ValidationUtilities.ParseInt32( "end", options.regionEnd );
 
             if( ( region_start == null ) != ( region_end == null ) )
             {

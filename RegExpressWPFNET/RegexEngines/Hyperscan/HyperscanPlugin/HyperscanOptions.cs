@@ -42,11 +42,11 @@ namespace HyperscanPlugin
         public bool HS_FLAG_QUIET { get; set; }
 
 
-        public string LevenshteinDistance { get; set; } = "";
-        public string HammingDistance { get; set; } = "";
-        public string MinOffset { get; set; } = "";
-        public string MaxOffset { get; set; } = "";
-        public string MinLength { get; set; } = "";
+        public string? LevenshteinDistance { get; set; } = "";
+        public string? HammingDistance { get; set; } = "";
+        public string? MinOffset { get; set; } = "";
+        public string? MaxOffset { get; set; } = "";
+        public string? MinLength { get; set; } = "";
 
 
         public ModeEnum Mode { get; set; } = ModeEnum.HS_MODE_BLOCK;
