@@ -108,7 +108,12 @@ namespace PythonPlugin
 
         internal string? GetSelectedModuleTitle( )
         {
-            return ( (ComboBoxItem)cbxModule.SelectedItem ).Content.ToString( );
+            return Options.Module switch
+            {
+                ModuleEnum.re => "re",
+                ModuleEnum.regex => "regex",
+                _ => "unknown"
+            };
         }
     }
 }

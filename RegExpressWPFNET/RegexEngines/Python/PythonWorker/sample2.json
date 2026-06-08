@@ -1,0 +1,26 @@
+{
+  "NOTE": "(should not have BOM)",
+  "module": "regex",
+  "pattern": "(.)+",
+  "text": "abc",
+  "flags": {
+    "ASCII": false,
+    "DOTALL": false,
+    "IGNORECASE": false,
+    "LOCALE": false,
+    "MULTILINE": false,
+    "VERBOSE": true,
+    "BESTMATCH": false,
+    "ENHANCEMATCH": false,
+    "FULLCASE": false,
+    "POSIX": false,
+    "REVERSE": false,
+    "UNICODE": false,
+    "WORD": false,
+    "VERSION0": false,
+    "VERSION1": true,
+    "overlapped": false,
+    "partial": false
+  },
+  "timeout": null
+}

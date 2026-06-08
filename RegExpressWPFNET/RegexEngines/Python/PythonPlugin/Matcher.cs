@@ -88,7 +88,6 @@ namespace PythonPlugin
             List<IMatch> matches = new( );
             SimpleTextGetter? stg = null;
             SimpleMatch? match = null;
-            int group_i = 0;
             Dictionary<int, string> names = new( );
             SurrogatePairsHelper sph = new( text, processSurrogatePairs: true );
             string? line;
@@ -97,7 +96,7 @@ namespace PythonPlugin
             {
                 if( line.Length == 0 || line.StartsWith( "#" ) ) continue;
 
-                var m = NMGRegex( ).Match( line );
+                var m = NMgcRegex( ).Match( line );
 
                 if( !m.Success )
                 {
@@ -133,11 +132,9 @@ namespace PythonPlugin
 
                         match = SimpleMatch.Create( index, length, text_index, text_length, stg );
                         matches.Add( match );
-
-                        group_i = 0;
                     }
                     break;
-                    case "G":
+                    case "g":
                     {
                         int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
                         int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
@@ -148,12 +145,30 @@ namespace PythonPlugin
 
                         var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
 
+                        int group_i = match.Groups.Count( );
+
                         string? name;
                         if( !names.TryGetValue( group_i, out name ) ) name = group_i.ToString( CultureInfo.InvariantCulture );
 
                         match.AddGroup( index, length, text_index, text_length, success, name );
 
                         ++group_i;
+                    }
+                    break;
+                    case "c":
+                    {
+                        int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
+                        int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
+                        int length = end - index;
+                        bool success = index >= 0;
+                        Debug.Assert( success );
+                        Debug.Assert( match != null );
+
+                        var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
+
+                        SimpleGroup group = (SimpleGroup)match.Groups.Last( );
+
+                        group.AddCapture( index, length, text_index, text_length );
                     }
                     break;
                     default:
@@ -194,7 +209,7 @@ namespace PythonPlugin
         }
 
 
-        [GeneratedRegex( @"^(?'t'[MG]) (?'s'-?\d+), (?'e'-?\d+)|(?'t'N) (?'i'\d+) <(?'n'.*)>$", RegexOptions.ExplicitCapture )]
-        private static partial Regex NMGRegex( );
+        [GeneratedRegex( @"^(?'t'[Mgc]) (?'s'-?\d+), (?'e'-?\d+)|(?'t'N) (?'i'\d+) <(?'n'.*)>$", RegexOptions.ExplicitCapture )]
+        private static partial Regex NMgcRegex( );
     }
 }

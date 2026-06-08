@@ -9,11 +9,11 @@ input_json = sys.stdin.read()
 
 input_obj = json.loads(input_json)
 
-module = input_obj['module']
-pattern = input_obj['pattern']
-text = input_obj['text']
-flags_obj = input_obj['flags']
-timeout = input_obj['timeout']
+module      = input_obj['module']
+pattern     = input_obj['pattern']
+text        = input_obj['text']
+flags_obj   = input_obj['flags']
+timeout     = input_obj['timeout']
 
 flags = 0
 if flags_obj['ASCII']       : flags |= re.ASCII
@@ -57,8 +57,12 @@ try:
 
     for match in matches :
         print( f'M {match.start()}, {match.end()}')
-        for g in range(0, regex_obj.groups + 1):
-            print( f'G {match.start(g)}, {match.end(g)}' )
+        for g in range(0, regex_obj.groups + 1) :
+            print( f'g {match.start(g)}, {match.end(g)}' )
+            if g != 0 :
+                if module == 'regex' :
+                    for c in match.spans(g) :
+                        print( f'c {c[0]}, {c[1]}')
 
 except:
     ex_type, ex, tb = sys.exc_info()

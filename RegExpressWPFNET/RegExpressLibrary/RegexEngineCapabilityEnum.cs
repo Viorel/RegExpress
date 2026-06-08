@@ -10,7 +10,7 @@ namespace RegExpressLibrary
     [Flags]
     public enum RegexEngineCapabilityEnum
     {
-        Default = 0,
+        None = 0,
         NoGroupDetails = 1 << 1, // (no index, no success flag)
         NoCaptures = 1 << 2,
         ScrollErrorsToEnd = 1 << 3,

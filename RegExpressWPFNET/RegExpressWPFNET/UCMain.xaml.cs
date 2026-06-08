@@ -128,6 +128,7 @@ namespace RegExpressWPFNET
             }
 
             UpdateSubtitle( );
+            if( CurrentRegexEngine != null ) UpdateShowCapturesCheckbox( CurrentRegexEngine );
         }
 
 
@@ -248,6 +249,7 @@ namespace RegExpressWPFNET
 
                     StopAll( );
                     LoadTabData( tab_data );
+                    if( CurrentRegexEngine != null ) UpdateShowCapturesCheckbox( CurrentRegexEngine );
                     RestartAll( );
                 }
                 else
@@ -475,6 +477,7 @@ namespace RegExpressWPFNET
             if( IsInChange ) return;
 
             UpdateSubtitle( );
+            UpdateShowCapturesCheckbox( CurrentRegexEngine! );
             ucPattern.SetRegexOptions( CurrentRegexEngine!, GetEolOption( ) );
 
             if( preferImmediateReaction )
@@ -1080,12 +1083,21 @@ namespace RegExpressWPFNET
 
             RegexEngineCapabilityEnum caps = engine.Capabilities;
             bool group_details_supported = !caps.HasFlag( RegexEngineCapabilityEnum.NoGroupDetails );
-            bool captures_supported = !caps.HasFlag( RegexEngineCapabilityEnum.NoCaptures );
 
             // showing unchecked checkbox when disabled
             cbShowSucceededGroupsOnly.IsEnabled = group_details_supported; //?
             cbShowSucceededGroupsOnly.Visibility = group_details_supported ? Visibility.Visible : Visibility.Collapsed;
             cbShowSucceededGroupsOnlyDisabledUnchecked.Visibility = !group_details_supported ? Visibility.Visible : Visibility.Collapsed;
+
+            UpdateShowCapturesCheckbox( engine );
+
+            svOptions.ScrollToHome( );
+        }
+
+        void UpdateShowCapturesCheckbox( IRegexEngine engine )
+        {
+            RegexEngineCapabilityEnum caps = engine.Capabilities;
+            bool captures_supported = !caps.HasFlag( RegexEngineCapabilityEnum.NoCaptures );
 
             // showing unchecked checkbox when disabled
             cbShowCaptures.IsEnabled = captures_supported; //?
@@ -1096,8 +1108,6 @@ namespace RegExpressWPFNET
             string? capture_note = engine.NoteForCaptures;
 
             runShowCapturesNote.Text = !string.IsNullOrWhiteSpace( capture_note ) ? " (" + capture_note + ")" : string.Empty;
-
-            svOptions.ScrollToHome( );
         }
 
 

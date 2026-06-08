@@ -57,7 +57,7 @@ namespace BoostPlugin
 
         public string Subtitle => $"{Name}";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.Default;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.None;
 
         public string? NoteForCaptures => "requires ‘match_extra’";
 
