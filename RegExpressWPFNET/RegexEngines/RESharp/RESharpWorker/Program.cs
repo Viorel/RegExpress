@@ -25,6 +25,12 @@ namespace RESharpWorker
             public bool MinimizePattern { get; set; }
             public bool FindLookaroundPrefix { get; set; }
 
+            public int? InitialDfaCapacity { get; set; }
+            public int? MaxDfaCapacity { get; set; }
+            public int? MaxPrefixLength { get; set; }
+            public int? FindPotentialStartSizeLimit { get; set; }
+            public int? StartsetInferenceLimit { get; set; }
+            public int? DfaThreshold { get; set; }
         }
 
         sealed class WorkerMatch
@@ -91,6 +97,13 @@ namespace RESharpWorker
                 o.UseDotnetUnicode = options.UseDotnetUnicode;
                 o.MinimizePattern = options.MinimizePattern;
                 o.FindLookaroundPrefix = options.FindLookaroundPrefix;
+
+                if( options.InitialDfaCapacity != null ) o.InitialDfaCapacity = options.InitialDfaCapacity.Value;
+                if( options.MaxDfaCapacity != null ) o.MaxDfaCapacity = options.MaxDfaCapacity.Value;
+                if( options.MaxPrefixLength != null ) o.MaxPrefixLength = options.MaxPrefixLength.Value;
+                if( options.FindPotentialStartSizeLimit != null ) o.FindPotentialStartSizeLimit = options.FindPotentialStartSizeLimit.Value;
+                if( options.StartsetInferenceLimit != null ) o.StartsetInferenceLimit = options.StartsetInferenceLimit.Value;
+                if( options.DfaThreshold != null ) o.DfaThreshold = options.DfaThreshold.Value;
             }
 
             return o;

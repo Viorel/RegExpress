@@ -15,6 +15,14 @@ namespace RESharpPlugin
         public bool MinimizePattern { get; set; }
         public bool FindLookaroundPrefix { get; set; }
 
+        public string? InitialDfaCapacity { get; set; }
+        public string? MaxDfaCapacity { get; set; }
+        public string? MaxPrefixLength { get; set; }
+        public string? FindPotentialStartSizeLimit { get; set; }
+        public string? StartsetInferenceLimit { get; set; }
+        public string? DfaThreshold { get; set; }
+
+
         public Options Clone( )
         {
             return (Options)MemberwiseClone( );

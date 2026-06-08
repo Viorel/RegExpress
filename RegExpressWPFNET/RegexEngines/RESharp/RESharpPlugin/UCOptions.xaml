@@ -6,22 +6,86 @@
              xmlns:local="clr-namespace:RESharpPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             Loaded="UserControl_Loaded" d:DesignHeight="124.575" d:DesignWidth="484.47" >
+             Loaded="UserControl_Loaded" d:DesignHeight="366.975" d:DesignWidth="484.47" >
 
     <UserControl.Resources>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
+        <Style TargetType="Label">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="0 2 4 2"/>
+        </Style>
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="note">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
+            <Setter Property="Opacity" Value="0.70"/>
+            <Setter Property="Margin" Value="4 0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
-        <StackPanel>
-            <StackPanel>
-                <ui:CheckboxWithNote Prop="IgnoreCase" Note="Case-insensitive matching"/>
-                <ui:CheckboxWithNote Prop="UseDotnetUnicode" Note="Full .NET unicode (Kelvin K, Turkish I, etc.)"/>
-                <ui:CheckboxWithNote Prop="MinimizePattern" Note="Minimize alternations at the cost of build time"/>
-                <ui:CheckboxWithNote Prop="FindLookaroundPrefix" Note="Optimize lookaround prefixes (expensive with unbounded)"/>
-            </StackPanel>
+        <StackPanel Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="IgnoreCase" Note="Case-insensitive matching"/>
+            <ui:CheckboxWithNote Prop="UseDotnetUnicode" Note="Full .NET unicode (Kelvin K, Turkish I, etc.)"/>
+            <ui:CheckboxWithNote Prop="MinimizePattern" Note="Minimize alternations at the cost of build time"/>
+            <ui:CheckboxWithNote Prop="FindLookaroundPrefix" Note="Optimize lookaround prefixes (expensive with unbounded)"/>
+
+
+
+            <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 6 0 0" >
+                <Grid.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </Grid.LayoutTransform>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto" MinWidth="55"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=idfac}" Content="InitialDfaCapacity:"/>
+                <TextBox x:Name="idfac" Grid.Column="1" Grid.Row="0" Text="{Binding InitialDfaCapacity, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– Initial DFA state array size" Style="{StaticResource note}" />
+
+                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=mxdfac}" Content="MaxDfaCapacity:"/>
+                <TextBox x:Name="mxdfac" Grid.Column="1" Grid.Row="1" Text="{Binding MaxDfaCapacity, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="– Hard limit on DFA states" Style="{StaticResource note}" />
+
+                <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=mxpl}" Content="MaxPrefixLength:"/>
+                <TextBox x:Name="mxpl" Grid.Column="1" Grid.Row="2" Text="{Binding MaxPrefixLength, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="2" Text="– Max string literal prefix length for optimizations" Style="{StaticResource note}" />
+
+                <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=fpssl}" Content="FindPotentialStartSizeLimit:"/>
+                <TextBox x:Name="fpssl" Grid.Column="1" Grid.Row="3" Text="{Binding FindPotentialStartSizeLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="3" Text="– Start-set size limit" Style="{StaticResource note}" />
+
+                <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=ssil}" Content="StartsetInferenceLimit:"/>
+                <TextBox x:Name="ssil" Grid.Column="1" Grid.Row="4" Text="{Binding StartsetInferenceLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="4" Text="– Start-set inference limit" Style="{StaticResource note}" />
+
+                <Label Grid.Column="0" Grid.Row="5" Target="{Binding ElementName=dfat}" Content="DfaThreshold:"/>
+                <TextBox x:Name="dfat" Grid.Column="1" Grid.Row="5" Text="{Binding DfaThreshold, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="5" Text="– State count threshold for full DFA compilation" Style="{StaticResource note}" />
+            </Grid>
         </StackPanel>
     </Grid>
 </UserControl>

@@ -24,6 +24,25 @@ namespace RESharpPlugin
             public int length { get; init; }
         }
 
+        static Int64? ParseInt64( string name, string? input ) // TODO: make a helper function
+        {
+            Int64? result = null;
+
+            if( !string.IsNullOrWhiteSpace( input ) )
+            {
+                if( !Int64.TryParse( input, out var v ) )
+                {
+                    throw new ApplicationException( $"Invalid '{name}'." );
+                }
+                else
+                {
+                    result = v;
+                }
+            }
+
+            return result;
+        }
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             var data = new
@@ -37,6 +56,13 @@ namespace RESharpPlugin
                     UseDotnetUnicode = options.UseDotnetUnicode,
                     MinimizePattern = options.MinimizePattern,
                     FindLookaroundPrefix = options.FindLookaroundPrefix,
+
+                    InitialDfaCapacity = ParseInt64( "InitialDfaCapacity", options.InitialDfaCapacity ),
+                    MaxDfaCapacity = ParseInt64( "MaxDfaCapacity", options.MaxDfaCapacity ),
+                    MaxPrefixLength = ParseInt64( "MaxPrefixLength", options.MaxPrefixLength ),
+                    FindPotentialStartSizeLimit = ParseInt64( "FindPotentialStartSizeLimit", options.FindPotentialStartSizeLimit ),
+                    StartsetInferenceLimit = ParseInt64( "StartsetInferenceLimit", options.StartsetInferenceLimit ),
+                    DfaThreshold = ParseInt64( "DfaThreshold", options.DfaThreshold ),
                 }
             };
             string json = JsonSerializer.Serialize( data );

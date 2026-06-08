@@ -73,5 +73,18 @@ namespace RESharpPlugin
                 --ChangeCounter;
             }
         }
+
+        void Notify( bool preferImmediateReaction )
+        {
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
+
+            Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
+        }
+
+        private void tb_TextChanged( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
     }
 }
