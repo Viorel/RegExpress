@@ -29,8 +29,6 @@ namespace RustPlugin
                 throw new ApplicationException( "Invalid struct." );
             }
 
-            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
-
             var o = new StringBuilder( );
 
             if( options.case_insensitive ) o.Append( 'i' );
@@ -77,6 +75,8 @@ namespace RustPlugin
 
             if( response == null || response.matches == null || response.names == null ) throw new Exception( "Null response" );
 
+            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
+
             List<IMatch> matches = [];
             SimpleTextGetter? stg = null;
 
@@ -103,7 +103,7 @@ namespace RustPlugin
 
                         stg ??= new SimpleTextGetter( text );
 
-                        match = SimpleMatch.Create( char_start, char_end - char_start, stg );
+                        match = SimpleMatch.Create( char_start, char_length, stg );
                     }
 
                     Debug.Assert( match != null );

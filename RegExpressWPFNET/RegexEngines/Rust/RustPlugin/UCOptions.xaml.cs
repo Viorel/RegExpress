@@ -76,6 +76,11 @@ namespace RustPlugin
             Notify( preferImmediateReaction: false );
         }
 
+        private void cbxUnicodeMode_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
         void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
@@ -91,6 +96,7 @@ namespace RustPlugin
                     "regex_lite" => CrateEnum.regex_lite,
                     "fancy_regex" => CrateEnum.fancy_regex,
                     "regress" => CrateEnum.regress,
+                    "resharp" => CrateEnum.resharp,
                     _ => CrateEnum.None,
                 };
 
@@ -101,14 +107,16 @@ namespace RustPlugin
                     _ => StructEnum.None,
                 };
 
-                bool regex_or_regex_lite = crate == CrateEnum.regex || crate == CrateEnum.regex_lite;
-                bool fancy = crate == CrateEnum.fancy_regex;
+                bool is_regex_or_regex_lite = crate == CrateEnum.regex || crate == CrateEnum.regex_lite;
+                bool is_fancy = crate == CrateEnum.fancy_regex;
+                bool is_resharp = crate == CrateEnum.resharp;
 
                 pnlStruct.Visibility =
-                    pnlRegexBuilderOptions.Visibility = regex_or_regex_lite || fancy ? Visibility.Visible : Visibility.Collapsed;
+                    pnlRegexBuilderOptions.Visibility = is_regex_or_regex_lite || is_fancy ? Visibility.Visible : Visibility.Collapsed;
                 pnlRegressOptions.Visibility = crate == CrateEnum.regress ? Visibility.Visible : Visibility.Collapsed;
+                pnlResharpOptions.Visibility = is_resharp ? Visibility.Visible : Visibility.Collapsed;
 
-                if( regex_or_regex_lite || fancy )
+                if( is_regex_or_regex_lite || is_fancy )
                 {
                     bool is_builder = @struct == StructEnum.RegexBuilder;
 
@@ -125,18 +133,18 @@ namespace RustPlugin
                     }
                 }
 
-                pnlRegexCrateLimits.Visibility = regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
+                pnlRegexCrateLimits.Visibility = is_regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
                 dsl.IsEnabled = crate == CrateEnum.regex;
 
-                pnlFancyRegexCrateLimits.Visibility = fancy ? Visibility.Visible : Visibility.Collapsed;
+                pnlFancyRegexCrateLimits.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;
 
-                chbx_crlf.Visibility = regex_or_regex_lite || fancy ? Visibility.Visible : Visibility.Collapsed;
-                chbx_swap_greed.Visibility = regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
-                chbx_unicode.Visibility = crate == CrateEnum.regex || fancy ? Visibility.Visible : Visibility.Collapsed;
+                chbx_crlf.Visibility = is_regex_or_regex_lite || is_fancy ? Visibility.Visible : Visibility.Collapsed;
+                chbx_swap_greed.Visibility = is_regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
+                chbx_unicode.Visibility = crate == CrateEnum.regex || is_fancy ? Visibility.Visible : Visibility.Collapsed;
                 chbx_octal.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
-                chbx_oniguruma_mode.Visibility = fancy ? Visibility.Visible : Visibility.Collapsed;
-                chbx_find_not_empty.Visibility = fancy ? Visibility.Visible : Visibility.Collapsed;
-                chbx_ignore_numbered_groups_when_named_groups_exist.Visibility = fancy ? Visibility.Visible : Visibility.Collapsed;
+                chbx_oniguruma_mode.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;
+                chbx_find_not_empty.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;
+                chbx_ignore_numbered_groups_when_named_groups_exist.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;
             }
             finally
             {
@@ -170,8 +178,10 @@ namespace RustPlugin
                 CrateEnum.regex_lite => "regex_lite",
                 CrateEnum.fancy_regex => "fancy_regex",
                 CrateEnum.regress => "regress",
+                CrateEnum.resharp => "resharp",
                 _ => "unknown"
             };
         }
+
     }
 }

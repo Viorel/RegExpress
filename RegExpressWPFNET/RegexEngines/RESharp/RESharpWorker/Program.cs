@@ -12,7 +12,7 @@ namespace RESharpWorker
     {
         sealed class InputArgs
         {
-            public string? cmd { get; set; }
+            public string? command { get; set; }
             public string? pattern { get; set; }
             public string? text { get; set; }
             public Options? options { get; set; }
@@ -45,13 +45,13 @@ namespace RESharpWorker
 
                 InputArgs input_args = JsonSerializer.Deserialize<InputArgs>( input_string )!;
 
-                switch( input_args.cmd )
+                switch( input_args.command )
                 {
-                case "m":
+                case "match":
                     GetMatches( input_args );
                     break;
                 default:
-                    throw new ArgumentException( $"Command not supported: '{input_args.cmd}'" );
+                    throw new ArgumentException( $"Command not supported: '{input_args.command}'" );
                 }
             }
             catch( Exception exc )

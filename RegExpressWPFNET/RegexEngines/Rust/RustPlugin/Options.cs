@@ -14,6 +14,7 @@ namespace RustPlugin
         regex_lite,
         fancy_regex,
         regress,
+        resharp
     }
 
     enum StructEnum
@@ -21,6 +22,15 @@ namespace RustPlugin
         None,
         Regex,
         RegexBuilder,
+    }
+
+    enum UnicodeModeEnum // ('resharp'-specific)
+    {
+        None,
+        Default,
+        Ascii,
+        Full,
+        Javascript,
     }
 
     internal class Options
@@ -41,6 +51,9 @@ namespace RustPlugin
         public bool oniguruma_mode { get; set; } // ('fancy_regex' specific)
         public bool find_not_empty { get; set; } // ('fancy_regex' specific)
         public bool ignore_numbered_groups_when_named_groups_exist { get; set; } // ('fancy_regex' specific)
+        public bool hardened { get; set; } // ('resharp' specific)
+        public bool unbounded_size { get; set; } // ('resharp' specific)
+        public UnicodeModeEnum UnicodeMode { get; set; } = UnicodeModeEnum.Default; // ('resharp' specific)
 
         // Regex and Regex_lite crates
 
@@ -54,6 +67,9 @@ namespace RustPlugin
         public string? delegate_size_limit { get; set; }
         public string? delegate_dfa_size_limit { get; set; }
 
+        // Resharp crate
+        public string? max_dfa_capacity { get; set; }
+        public string? lookahead_context_max { get; set; } 
 
         public Options Clone( )
         {

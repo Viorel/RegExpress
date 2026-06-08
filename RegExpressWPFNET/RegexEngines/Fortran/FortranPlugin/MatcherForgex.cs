@@ -74,8 +74,9 @@ namespace FortranPlugin
 
                             int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_start );
                             int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_end ); // (exclusive)
+                            int char_length = char_end - char_start;
 
-                            match = SimpleMatch.Create( char_start, char_end - char_start, text_getter );
+                            match = SimpleMatch.Create( char_start, char_length, text_getter );
                             match.AddGroup( match.Index, match.Length, true, "" ); // default group
 
                             matches.Add( match );

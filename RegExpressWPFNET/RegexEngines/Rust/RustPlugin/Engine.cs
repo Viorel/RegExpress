@@ -16,7 +16,20 @@ namespace RustPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly LazyData<(CrateEnum crate, StructEnum @struct, bool isOctal, bool isUnicode, bool isUnicodeSets, bool isOniguruma), FeatureMatrix> LazyData = new( BuildFeatureMatrix );
+        static readonly LazyData<(StructEnum @struct, bool isOctal, bool isUnicode), FeatureMatrix> LazyFeatureMatrix_Regex =
+            new( d => BuildFeatureMatrix_Regex( d.@struct, d.isOctal, d.isUnicode ) );
+
+        static readonly LazyData<StructEnum, FeatureMatrix> LazyFeatureMatrix_RegexLite =
+            new( @struct => BuildFeatureMatrix_RegexLiteCrate( @struct ) );
+
+        static readonly LazyData<(StructEnum @struct, bool isUnicode, bool isOniguruma), FeatureMatrix> LazyFeatureMatrix_FancyRegex =
+            new( d => BuildFeatureMatrix_FancyRegex( d.@struct, d.isUnicode, d.isOniguruma ) );
+
+        static readonly LazyData<(StructEnum @struct, bool isUnicodeSets), FeatureMatrix> LazyFeatureMatrix_Regress =
+            new( d => BuildFeatureMatrix_Regress( d.@struct, d.isUnicodeSets ) );
+
+        static readonly LazyData<UnicodeModeEnum, FeatureMatrix> LazyFeatureMatrix_Resharp =
+            new( unicodeMode => BuildFeatureMatrix_Resharp( unicodeMode ) );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -108,6 +121,7 @@ namespace RustPlugin
                 CrateEnum.regex_lite => MatcherRegexLite.GetMatches( cnc, pattern, text, Options ),
                 CrateEnum.fancy_regex => MatcherFancyRegex.GetMatches( cnc, pattern, text, Options ),
                 CrateEnum.regress => MatcherRegress.GetMatches( cnc, pattern, text, Options ),
+                CrateEnum.resharp => MatcherResharp.GetMatches( cnc, pattern, text, Options ),
                 _ => throw new InvalidOperationException( )
             };
         }
@@ -116,9 +130,18 @@ namespace RustPlugin
         {
             return new SyntaxOptions
             {
-                XLevel = ( Options.crate == CrateEnum.regex || Options.crate == CrateEnum.fancy_regex || Options.crate == CrateEnum.regex_lite ) && Options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
+                XLevel = ( Options.crate == CrateEnum.regex || Options.crate == CrateEnum.fancy_regex || Options.crate == CrateEnum.regex_lite || Options.crate == CrateEnum.resharp ) && Options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = Options.crate == CrateEnum.regress,
-                FeatureMatrix = LazyData.GetValue( (crate: Options.crate, @struct: Options.@struct, isOctal: Options.octal, isUnicode: Options.unicode, isUnicodeSets: Options.unicode_sets, isOniguruma: Options.oniguruma_mode) )
+                FeatureMatrix =
+                    Options.crate switch
+                    {
+                        CrateEnum.regex => LazyFeatureMatrix_Regex.GetValue( (Options.@struct, Options.octal, Options.unicode) ),
+                        CrateEnum.regex_lite => LazyFeatureMatrix_RegexLite.GetValue( Options.@struct ),
+                        CrateEnum.fancy_regex => LazyFeatureMatrix_FancyRegex.GetValue( (Options.@struct, Options.unicode, Options.oniguruma_mode) ),
+                        CrateEnum.regress => LazyFeatureMatrix_Regress.GetValue( (Options.@struct, Options.unicode_sets) ),
+                        CrateEnum.resharp => LazyFeatureMatrix_Resharp.GetValue( Options.UnicodeMode ),
+                        _ => throw new InvalidOperationException( )
+                    }
             };
         }
 
@@ -127,16 +150,16 @@ namespace RustPlugin
             Engine engine_regex = new( ) { Options = new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, unicode = true, octal = true } };
             Engine engine_lite = new( ) { Options = new Options { crate = CrateEnum.regex_lite, @struct = StructEnum.RegexBuilder } };
             Engine engine_fancy = new( ) { Options = new Options { crate = CrateEnum.fancy_regex, @struct = StructEnum.RegexBuilder, unicode = true } };
-            Engine engine_regress = new( ) { Options = new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = false } }; // currently 'ignore_whitespace' not supported'
             Engine engine_regress_v = new( ) { Options = new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } }; // currently 'ignore_whitespace' not supported
+            Engine engine_resharp = new( ) { Options = new Options { crate = CrateEnum.resharp, UnicodeMode = UnicodeModeEnum.Full } };
 
             return
                 [
-                    new FeatureMatrixVariant("regex (“u” flag)", LazyData.GetValue( (CrateEnum.regex, StructEnum.RegexBuilder, isOctal:true, isUnicode:true, isUnicodeSets:false, isOniguruma:false) ), engine_regex),
-                    new FeatureMatrixVariant("regex_lite", LazyData.GetValue( (CrateEnum.regex_lite, StructEnum.RegexBuilder, isOctal:true, isUnicode:false, isUnicodeSets:false, isOniguruma:false) ), engine_lite),
-                    new FeatureMatrixVariant("fancy_regex (“u” flag)", LazyData.GetValue( (CrateEnum.fancy_regex, StructEnum.RegexBuilder, isOctal:true, isUnicode:true, isUnicodeSets:false, isOniguruma:false) ), engine_fancy),
-                    new FeatureMatrixVariant("regress (“u” flag)", LazyData.GetValue( (CrateEnum.regress, StructEnum.RegexBuilder, isOctal:true, isUnicode:true, isUnicodeSets:false, isOniguruma:false) ), engine_regress),
-                    new FeatureMatrixVariant("regress (“uv” flags)", LazyData.GetValue( (CrateEnum.regress, StructEnum.RegexBuilder, isOctal:true, isUnicode:true, isUnicodeSets:true, isOniguruma:false) ), engine_regress_v),
+                    new FeatureMatrixVariant("regex (“u” flag)", LazyFeatureMatrix_Regex.GetValue( (StructEnum.RegexBuilder, isOctal:true, isUnicode:true) ), engine_regex),
+                    new FeatureMatrixVariant("regex_lite", LazyFeatureMatrix_RegexLite.GetValue( (StructEnum.RegexBuilder) ), engine_lite),
+                    new FeatureMatrixVariant("fancy_regex (“u” flag)", LazyFeatureMatrix_FancyRegex.GetValue( (StructEnum.RegexBuilder, isUnicode:true, isOniguruma:false) ), engine_fancy),
+                    new FeatureMatrixVariant("regress (“uv” flags)", LazyFeatureMatrix_Regress.GetValue( (StructEnum.RegexBuilder, isUnicodeSets:true) ), engine_regress_v),
+                    new FeatureMatrixVariant("resharp (“Full” mode)", LazyFeatureMatrix_Resharp.GetValue( UnicodeModeEnum.Full ), engine_resharp),
                 ];
         }
 
@@ -159,19 +182,7 @@ namespace RustPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        private static FeatureMatrix BuildFeatureMatrix( (CrateEnum crate, StructEnum @struct, bool isOctal, bool isUnicode, bool isUnicodeSets, bool isOniguruma) data )
-        {
-            return data.crate switch
-            {
-                CrateEnum.regex => BuildFeatureMatrix_RegexCrate( data.@struct, data.isOctal, data.isUnicode ),
-                CrateEnum.regex_lite => BuildFeatureMatrix_RegexLiteCrate( data.@struct ),
-                CrateEnum.fancy_regex => BuildFeatureMatrix_FancyRegexCrate( data.@struct, data.isUnicode, data.isOniguruma ),
-                CrateEnum.regress => BuildFeatureMatrix_RegressCrate( data.@struct, data.isUnicodeSets ),
-                _ => throw new InvalidOperationException( ),
-            };
-        }
-
-        private static FeatureMatrix BuildFeatureMatrix_RegexCrate( StructEnum @struct, bool isOctal, bool isUnicode )
+        private static FeatureMatrix BuildFeatureMatrix_Regex( StructEnum @struct, bool isOctal, bool isUnicode )
         {
             isOctal &= @struct == StructEnum.RegexBuilder;
 
@@ -601,7 +612,7 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_FancyRegexCrate( StructEnum @struct, bool isUnicode, bool isOniguruma )
+        private static FeatureMatrix BuildFeatureMatrix_FancyRegex( StructEnum @struct, bool isUnicode, bool isOniguruma )
         {
             isOniguruma &= @struct == StructEnum.RegexBuilder;
 
@@ -817,7 +828,7 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_RegressCrate( StructEnum @struct, bool isUnicodeSets )
+        private static FeatureMatrix BuildFeatureMatrix_Regress( StructEnum @struct, bool isUnicodeSets )
         {
             isUnicodeSets &= @struct == StructEnum.RegexBuilder;
 
@@ -1030,6 +1041,226 @@ namespace RustPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+            };
+        }
+
+        static FeatureMatrix BuildFeatureMatrix_Resharp( UnicodeModeEnum unicodeMode )
+        {
+            bool is_unicode = unicodeMode == UnicodeModeEnum.Full || unicodeMode == UnicodeModeEnum.Javascript;
+
+            return new FeatureMatrix
+            {
+                Parentheses = FeatureMatrix.PunctuationEnum.Normal,
+
+                Brackets = true,
+                ExtendedBrackets = false,
+
+                VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
+
+                InlineComments = false,
+                XModeComments = true,
+                InsideSets_XModeComments = true,
+
+                Flags = true,
+                ScopedFlags = true,
+                CircumflexFlags = false,
+                ScopedCircumflexFlags = false,
+                XFlag = true,
+                XXFlag = false,
+
+                Literal_QE = false,
+                InsideSets_Literal_QE = false,
+                InsideSets_Literal_qBrace = false,
+
+                Esc_a = true,
+                Esc_b = false,
+                Esc_e = false,
+                Esc_f = true,
+                Esc_n = true,
+                Esc_r = true,
+                Esc_t = true,
+                Esc_v = true,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
+                Esc_Octal0_1_3 = false,
+                Esc_oBrace = false,
+                Esc_x2 = true,
+                Esc_xBrace = true,
+                Esc_u4 = true,
+                Esc_U8 = true,
+                Esc_uBrace = true,
+                Esc_UBrace = true,
+                Esc_c1 = false,
+                Esc_C1 = false,
+                Esc_CMinus = false,
+                Esc_NBrace = false,
+                GenericEscape = true,
+
+                InsideSets_Esc_a = true,
+                InsideSets_Esc_b = false,
+                InsideSets_Esc_e = false,
+                InsideSets_Esc_f = true,
+                InsideSets_Esc_n = true,
+                InsideSets_Esc_r = true,
+                InsideSets_Esc_t = true,
+                InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
+                InsideSets_Esc_Octal0_1_3 = false,
+                InsideSets_Esc_oBrace = false,
+                InsideSets_Esc_x2 = true,
+                InsideSets_Esc_xBrace = true,
+                InsideSets_Esc_u4 = true,
+                InsideSets_Esc_U8 = true,
+                InsideSets_Esc_uBrace = true,
+                InsideSets_Esc_UBrace = true,
+                InsideSets_Esc_c1 = false,
+                InsideSets_Esc_C1 = false,
+                InsideSets_Esc_CMinus = false,
+                InsideSets_Esc_NBrace = false,
+                InsideSets_GenericEscape = true,
+
+                Class_Dot = true,
+                Class_Cbyte = false,
+                Class_Ccp = false,
+                Class_dD = true,
+                Class_hHhexa = false,
+                Class_hHhorspace = false,
+                Class_lL = false,
+                Class_N = false,
+                Class_O = false,
+                Class_R = false,
+                Class_sS = true,
+                Class_sSx = false,
+                Class_uU = false,
+                Class_vV = false,
+                Class_wW = true,
+                Class_X = false,
+                Class_pP = true,
+                Class_pPBrace = true,
+
+                InsideSets_Class_dD = true,
+                InsideSets_Class_hHhexa = false,
+                InsideSets_Class_hHhorspace = false,
+                InsideSets_Class_lL = false,
+                InsideSets_Class_R = false,
+                InsideSets_Class_sS = true,
+                InsideSets_Class_sSx = false,
+                InsideSets_Class_uU = false,
+                InsideSets_Class_vV = false,
+                InsideSets_Class_wW = true,
+                InsideSets_Class_X = false,
+                InsideSets_Class_pP = true,
+                InsideSets_Class_pPBrace = true,
+                InsideSets_Class_Name = true,
+                InsideSets_Equivalence = false,
+                InsideSets_Collating = false,
+
+                InsideSets_Operators = false,
+                InsideSets_OperatorsExtended = false,
+                InsideSets_Operator_Ampersand = false,
+                InsideSets_Operator_Plus = false,
+                InsideSets_Operator_VerticalLine = false,
+                InsideSets_Operator_Minus = false,
+                InsideSets_Operator_Circumflex = false,
+                InsideSets_Operator_Exclamation = false,
+                InsideSets_Operator_DoubleAmpersand = false,
+                InsideSets_Operator_DoubleVerticalLine = false,
+                InsideSets_Operator_DoubleMinus = false,
+                InsideSets_Operator_DoubleTilde = false,
+
+                Anchor_Circumflex = true,
+                Anchor_Dollar = true,
+                Anchor_A = true,
+                Anchor_Z = false,
+                Anchor_z = true,
+                Anchor_G = false,
+                Anchor_bB = true,
+                Anchor_bg = false,
+                Anchor_bBBrace = false,
+                Anchor_K = false,
+                Anchor_mM = false,
+                Anchor_LtGt = false,
+                Anchor_GraveApos = false,
+                Anchor_yY = false,
+
+                NamedGroup_Apos = false,
+                NamedGroup_LtGt = true,
+                NamedGroup_PLtGt = true,
+                BalancingGroup = false,
+                CapturingGroup = false,
+
+                NoncapturingGroup = true,
+                PositiveLookahead = true,
+                NegativeLookahead = true,
+                PositiveLookbehind = FeatureMatrix.LookModeEnum.None,
+                NegativeLookbehind = FeatureMatrix.LookModeEnum.None,
+                AtomicGroup = false,
+                BranchReset = false,
+                NonatomicPositiveLookahead = false,
+                NonatomicPositiveLookbehind = false,
+                AbsentOperator = false,
+                AllowSpacesInGroups = false,
+
+                Backref_Num = FeatureMatrix.BackrefEnum.None,
+                Backref_kApos = false,
+                Backref_kLtGt = false,
+                Backref_kBrace = false,
+                Backref_kNum = false,
+                Backref_kNegNum = false,
+                Backref_gApos = FeatureMatrix.BackrefModeEnum.None,
+                Backref_gLtGt = FeatureMatrix.BackrefModeEnum.None,
+                Backref_gNum = FeatureMatrix.BackrefModeEnum.None,
+                Backref_gNegNum = FeatureMatrix.BackrefModeEnum.None,
+                Backref_gBrace = FeatureMatrix.BackrefModeEnum.None,
+                Backref_PEqName = false,
+                AllowSpacesInBackref = false,
+
+                Recursive_Num = false,
+                Recursive_PlusMinusNum = false,
+                Recursive_R = false,
+                Recursive_Name = false,
+                Recursive_PGtName = false,
+                Recursive_ReturnGroups = false,
+
+                Quantifier_Asterisk = true,
+                Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
+                Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
+                Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
+                Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+                Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = false,
+
+                Conditional_BackrefByNumber = false,
+                Conditional_BackrefByName = false,
+                Conditional_Pattern = false,
+                Conditional_PatternOrBackrefByName = false,
+                Conditional_BackrefByName_Apos = false,
+                Conditional_BackrefByName_LtGt = false,
+                Conditional_R = false,
+                Conditional_RName = false,
+                Conditional_DEFINE = false,
+                Conditional_VERSION = false,
+
+                ControlVerbs = false,
+                ScriptRuns = false,
+                Callouts = false,
+
+                EmptyConstruct = false,
+                EmptyConstructX = false,
+                EmptySet = false,
+                EmptySetAny = false,
+
+                AsciiOnly = false,
+                SplitSurrogatePairs = !is_unicode,
+                AllowDuplicateGroupName = false,
+                FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = true,
+
+                Ext_UniversalWildcard = true,
+                Ext_Operator_Intersection = true,
+                Ext_Operator_Complement = true,
             };
         }
     }

@@ -26,7 +26,19 @@ namespace RESharpPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            var data = new { cmd = "m", text, pattern, options };
+            var data = new
+            {
+                command = "match",
+                text,
+                pattern,
+                options = new
+                {
+                    IgnoreCase = options.IgnoreCase,
+                    UseDotnetUnicode = options.UseDotnetUnicode,
+                    MinimizePattern = options.MinimizePattern,
+                    FindLookaroundPrefix = options.FindLookaroundPrefix,
+                }
+            };
             string json = JsonSerializer.Serialize( data );
 
             using ProcessHelper ph = new( GetWorkerExePath( ) );

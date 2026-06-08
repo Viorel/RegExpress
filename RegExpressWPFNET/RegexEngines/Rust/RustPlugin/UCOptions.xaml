@@ -6,13 +6,29 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="437.732" d:DesignWidth="489.6" 
+             d:DesignHeight="629.355" d:DesignWidth="779.929" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
         <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="0 2 4 2"/>
+        </Style>
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="note">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
+            <Setter Property="Opacity" Value="0.70"/>
+            <Setter Property="Margin" Value="4 0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
     </UserControl.Resources>
 
@@ -28,6 +44,7 @@
                     <ui:ComboBoxItemWithVersion Tag ="regex_lite"  Text="regex_lite"  Version="{Binding RegexLite, Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="fancy_regex" Text="fancy_regex" Version="{Binding FancyRegex, Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="regress"     Text="regress"     Version="{Binding Regress, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="resharp"     Text="resharp"     Version="{Binding Resharp, Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 
@@ -57,24 +74,6 @@
                 <ui:CheckboxWithNote x:Name="chbx_ignore_numbered_groups_when_named_groups_exist" Prop="ignore_numbered_groups_when_named_groups_exist" Note="treat unnamed capture groups as non-capturing when named groups exist"/>
 
                 <StackPanel Orientation="Vertical">
-                    <StackPanel.Resources>
-                        <Style TargetType="Label">
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Setter Property="Padding" Value="0 2 4 2"/>
-                        </Style>
-                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                        </Style>
-                        <Style TargetType="TextBlock" x:Key="note">
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                            <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-                            <Setter Property="Opacity" Value="0.70"/>
-                            <Setter Property="Margin" Value="4 0"/>
-                            <Setter Property="TextWrapping" Value="Wrap"/>
-                        </Style>
-                    </StackPanel.Resources>
 
                     <Grid x:Name="pnlRegexCrateLimits" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 6 0 0" Visibility="Collapsed" d:Visibility="Visible">
                         <Grid.LayoutTransform>
@@ -154,9 +153,56 @@
                 <ui:CheckboxWithNote Prop="no_opt" Note="disable regex IR passes"/>
                 <ui:CheckboxWithNote Prop="unicode" Note="(u) Unicode regex"/>
                 <ui:CheckboxWithNote Prop="unicode_sets" Note="(v) UnicodeSets regex"/>
+            </StackPanel>
+
+            <StackPanel x:Name="pnlResharpOptions" Orientation="Vertical" Visibility="Collapsed" d:Visibility="Visible">
+                <ui:CheckboxWithNote Prop="case_insensitive" Text="icase" Note="(i) case-insensitive matching"/>
+                <ui:CheckboxWithNote Prop="dot_matches_new_line" Text="dot_matches_new_line" Note="(s) `.` matches `\n`; `_` always matches any byte"/>
+                <ui:CheckboxWithNote Prop="multi_line" Text="multiline" Note="(m) `^` and `$` match at line boundaries (`\n`) in addition to text boundaries"/>
+                <ui:CheckboxWithNote Prop="ignore_whitespace" Text="ignore_whitespace" Note="(x) allow whitespace and `#` comments in the pattern"/>
+                <ui:CheckboxWithNote Prop="hardened" Text="hardened" Note="slower, but prevents O(n^2) all-matches blowup on adversarial combinations"/>
+                <ui:CheckboxWithNote Prop="unbounded_size" Text="unbounded_size" Note="remove the default pattern size limit for very large regexes"/>
+
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 6 0 0" >
+                    <Grid.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Grid.LayoutTransform>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Content="Unicode mode:" Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=cbxUnicodeMode}" />
+                    <ComboBox x:Name="cbxUnicodeMode" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding UnicodeMode, FallbackValue='Default'}" VerticalAlignment="Center" SelectionChanged="cbxUnicodeMode_SelectionChanged" MinWidth="77" >
+                        <ComboBoxItem Tag ="Default" Content="Default" IsSelected="True" />
+                        <ComboBoxItem Tag ="Ascii" Content="Ascii" />
+                        <ComboBoxItem Tag ="Full" Content="Full" />
+                        <ComboBoxItem Tag ="Javascript" Content="Javascript" />
+                    </ComboBox>
+
+                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=mxdc}" Content="max__dfa__capacity:"/>
+                    <TextBox x:Name="mxdc" Grid.Column="1" Grid.Row="1" Text="{Binding max_dfa_capacity, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– max cached DFA states" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=lcmx}" Content="lookahead__context__max:"/>
+                    <TextBox x:Name="lcmx" Grid.Column="1" Grid.Row="2" Text="{Binding lookahead_context_max, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– max lookahead context distance" Style="{StaticResource note}" />
+
+                </Grid>
 
             </StackPanel>
-        </StackPanel>
 
+        </StackPanel>
     </Grid>
 </UserControl>

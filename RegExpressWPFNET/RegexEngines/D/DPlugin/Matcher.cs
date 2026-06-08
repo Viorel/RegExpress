@@ -49,8 +49,6 @@ namespace DPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
-
             StringBuilder flags = new( );
 
             //if( Options.g ) flags.Append( 'g' );
@@ -84,6 +82,8 @@ namespace DPlugin
             MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( ph.OutputStream );
 
             if( response == null ) throw new Exception( "Null response" );
+
+            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
 
             List<IMatch> matches = new( );
 
@@ -122,7 +122,7 @@ namespace DPlugin
 
                         stg ??= new SimpleTextGetter( text );
 
-                        match = SimpleMatch.Create( char_start, char_end - char_start, stg );
+                        match = SimpleMatch.Create( char_start, char_length, stg );
                     }
 
                     Debug.Assert( match != null );

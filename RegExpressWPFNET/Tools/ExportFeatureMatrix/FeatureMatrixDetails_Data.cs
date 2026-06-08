@@ -453,7 +453,7 @@ partial class FeatureMatrixDetails
                     .Test( @".(?<!xy)a", "ya", "xya" )
                     .Test( @"\(?<!x\)a", "ya", "xa" ),
                 new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, bounded-length", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @"(?<!x{2,7})a", "xa", "xxa" )
+                    .Test( @".(?<!x{2,7})a", "xa", "xxa" )
                     .Test( @"\(?<!x{2,7}\)a", "xa", "xxa" ),
                 new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, variable-length", fm => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @".(?<!x.*)a", "ya", "xa" )
