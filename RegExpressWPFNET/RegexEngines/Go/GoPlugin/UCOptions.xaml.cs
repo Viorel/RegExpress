@@ -85,12 +85,14 @@ namespace GoPlugin
                 bool is_regexp = Options.Package == PackageEnum.regexp;
                 bool is_regexp2 = Options.Package == PackageEnum.regexp2;
                 bool is_rexa = Options.Package == PackageEnum.rexa;
+                bool is_coregex = Options.Package == PackageEnum.coregex;
 
                 pnlRegexp2Flags.Visibility = is_regexp2 ? Visibility.Visible : Visibility.Collapsed;
                 pnlRexaFlags.Visibility = is_rexa ? Visibility.Visible : Visibility.Collapsed;
 
-                cbxPosix.Visibility = is_regexp ? Visibility.Visible : Visibility.Collapsed;
-                cbxLongest.Visibility = is_regexp || is_rexa ? Visibility.Visible : Visibility.Collapsed;
+                cbxPosix.Visibility = is_regexp || is_coregex ? Visibility.Visible : Visibility.Collapsed;
+                cbxLongest.Visibility = is_regexp || is_rexa || is_coregex ? Visibility.Visible : Visibility.Collapsed;
+                cbxLiteral.Visibility = is_regexp || is_rexa || is_coregex ? Visibility.Visible : Visibility.Collapsed;
             }
             finally
             {

@@ -127,7 +127,8 @@ namespace GoPlugin
                     new FeatureMatrixVariant( "regexp", LazyFeatureMatrix.GetValue( (PackageEnum.regexp, isPoxis: false, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix_syntax = false, RE2 = false }} ),
                     new FeatureMatrixVariant( "regexp (posix)", LazyFeatureMatrix.GetValue( (PackageEnum.regexp, isPoxis: true, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix_syntax = true, RE2 = false }} ),
                     new FeatureMatrixVariant( "regexp2", LazyFeatureMatrix.GetValue( (PackageEnum.regexp2, isPoxis: false, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.regexp2, posix_syntax = false, RE2 = false }} ),
-                    new FeatureMatrixVariant( "rexa", LazyFeatureMatrix.GetValue( (PackageEnum.rexa, isPoxis: false, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.rexa, posix_syntax = false, RE2 = false }} )
+                    new FeatureMatrixVariant( "rexa", LazyFeatureMatrix.GetValue( (PackageEnum.rexa, isPoxis: false, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.rexa, posix_syntax = false, RE2 = false }} ),
+                    new FeatureMatrixVariant( "coregex", LazyFeatureMatrix.GetValue( (PackageEnum.coregex, isPoxis: false, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.coregex, posix_syntax = false, RE2 = false }} ),
                 ];
         }
 
@@ -157,7 +158,9 @@ namespace GoPlugin
             bool is_normal_regexp = is_regexp && !data.isPoxis;
             bool is_regexp2 = data.package == PackageEnum.regexp2;
             bool is_rexa = data.package == PackageEnum.rexa;
-            bool is_normal = is_normal_regexp || is_regexp2 || is_rexa;
+            bool is_coregex = data.package == PackageEnum.coregex;
+            bool is_normal_coregex = is_coregex && !data.isPoxis;
+            bool is_normal = is_normal_regexp || is_regexp2 || is_rexa || is_normal_coregex;
             bool is_RE2 = data.isRE2;
 
             return new FeatureMatrix
@@ -181,7 +184,7 @@ namespace GoPlugin
                 XFlag = is_regexp2,
                 XXFlag = false,
 
-                Literal_QE = is_normal_regexp,
+                Literal_QE = is_normal_regexp || is_normal_coregex,
                 InsideSets_Literal_QE = false,
                 InsideSets_Literal_qBrace = false,
 
@@ -192,12 +195,12 @@ namespace GoPlugin
                 Esc_n = true,
                 Esc_r = true,
                 Esc_t = true,
-                Esc_v = is_regexp || is_regexp2,
-                Esc_Octal = is_regexp || is_regexp2 ? FeatureMatrix.OctalEnum.Octal_2_3 : FeatureMatrix.OctalEnum.None,
+                Esc_v = is_regexp || is_regexp2 || is_coregex,
+                Esc_Octal = is_regexp || is_regexp2 || is_coregex ? FeatureMatrix.OctalEnum.Octal_2_3 : FeatureMatrix.OctalEnum.None,
                 Esc_Octal0_1_3 = false,
                 Esc_oBrace = false,
-                Esc_x2 = is_regexp || is_regexp2,
-                Esc_xBrace = is_regexp || is_regexp2,
+                Esc_x2 = is_regexp || is_regexp2 || is_coregex,
+                Esc_xBrace = is_regexp || is_regexp2 || is_coregex,
                 Esc_u4 = is_regexp2,
                 Esc_U8 = false,
                 Esc_uBrace = false,
@@ -215,12 +218,12 @@ namespace GoPlugin
                 InsideSets_Esc_n = true,
                 InsideSets_Esc_r = true,
                 InsideSets_Esc_t = true,
-                InsideSets_Esc_v = is_regexp || is_regexp2,
-                InsideSets_Esc_Octal = is_regexp ? FeatureMatrix.OctalEnum.Octal_2_3 : is_regexp2 ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
+                InsideSets_Esc_v = is_regexp || is_regexp2 || is_coregex,
+                InsideSets_Esc_Octal = is_regexp || is_coregex ? FeatureMatrix.OctalEnum.Octal_2_3 : is_regexp2 ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
                 InsideSets_Esc_Octal0_1_3 = false,
                 InsideSets_Esc_oBrace = false,
-                InsideSets_Esc_x2 = is_regexp || is_regexp2,
-                InsideSets_Esc_xBrace = is_regexp || is_regexp2,
+                InsideSets_Esc_x2 = is_regexp || is_regexp2 || is_coregex,
+                InsideSets_Esc_xBrace = is_regexp || is_regexp2 || is_coregex,
                 InsideSets_Esc_u4 = is_regexp2,
                 InsideSets_Esc_U8 = false,
                 InsideSets_Esc_uBrace = false,
@@ -255,15 +258,15 @@ namespace GoPlugin
                 InsideSets_Class_hHhorspace = false,
                 InsideSets_Class_lL = false,
                 InsideSets_Class_R = false,
-                InsideSets_Class_sS = is_normal_regexp || is_regexp2,
+                InsideSets_Class_sS = is_normal_regexp || is_regexp2 || is_normal_coregex,
                 InsideSets_Class_sSx = false,
                 InsideSets_Class_uU = false,
                 InsideSets_Class_vV = false,
                 InsideSets_Class_wW = is_normal,
                 InsideSets_Class_X = false,
-                InsideSets_Class_pP = is_normal_regexp || is_regexp2,
-                InsideSets_Class_pPBrace = is_normal_regexp || is_regexp2,
-                InsideSets_Class_Name = is_regexp,
+                InsideSets_Class_pP = is_normal_regexp || is_regexp2 || is_normal_coregex,
+                InsideSets_Class_pPBrace = is_normal_regexp || is_regexp2 || is_normal_coregex,
+                InsideSets_Class_Name = is_regexp || is_coregex,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
 
@@ -297,7 +300,7 @@ namespace GoPlugin
 
                 NamedGroup_Apos = is_regexp2,
                 NamedGroup_LtGt = is_normal,
-                NamedGroup_PLtGt = is_normal_regexp || is_rexa || ( is_regexp2 && is_RE2 ),
+                NamedGroup_PLtGt = is_normal_regexp || is_rexa || ( is_regexp2 && is_RE2 ) || is_normal_coregex,
                 BalancingGroup = is_regexp2,
                 CapturingGroup = false,
 
@@ -358,7 +361,7 @@ namespace GoPlugin
                 ScriptRuns = false,
                 Callouts = false,
 
-                EmptyConstruct = is_normal_regexp,
+                EmptyConstruct = is_normal_regexp || is_normal_coregex,
                 EmptyConstructX = false,
                 EmptySet = is_rexa,
                 EmptySetAny = is_rexa,
@@ -367,8 +370,8 @@ namespace GoPlugin
                 SplitSurrogatePairs = false,
                 AllowDuplicateGroupName = is_normal,
                 FuzzyMatchingParams = false,
-                TreatmentOfCatastrophicPatterns = is_regexp || is_rexa ? FeatureMatrix.CatastrophicBacktrackingEnum.Accept : FeatureMatrix.CatastrophicBacktrackingEnum.None,
-                Σσς = is_normal_regexp || is_regexp2,
+                TreatmentOfCatastrophicPatterns = is_regexp || is_rexa || is_coregex ? FeatureMatrix.CatastrophicBacktrackingEnum.Accept : FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                Σσς = is_normal_regexp || is_regexp2 || is_normal_coregex,
             };
         }
     }

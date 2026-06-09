@@ -13,6 +13,7 @@ namespace GoPlugin
         regexp,
         regexp2,
         rexa,
+        coregex,
     }
 
     internal class Options

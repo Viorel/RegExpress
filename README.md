@@ -55,7 +55,8 @@ It includes the following Regular Expression engines:
 * **Go** 1.26.4 packages:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.4,
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.1.2,
-  * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0.
+  * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
+  * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.21.
 
 <br/>
 

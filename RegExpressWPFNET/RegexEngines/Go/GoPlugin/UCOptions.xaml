@@ -50,6 +50,7 @@
                     <ui:ComboBoxItemWithVersion Tag ="regexp"  Text="regexp"  Version="{Binding Regexp, Source={StaticResource versions}}" IsSelected="True"/>
                     <ui:ComboBoxItemWithVersion Tag ="regexp2" Text="regexp2" Version="{Binding Regexp2, Source={StaticResource versions}}"/>
                     <ui:ComboBoxItemWithVersion Tag ="rexa"    Text="rexa"    Version="{Binding Rexa, Source={StaticResource versions}}"/>
+                    <ui:ComboBoxItemWithVersion Tag ="coregex" Text="coregex" Version="{Binding Coregex, Source={StaticResource versions}}"/>
                 </ComboBox>
 
             </Grid>
@@ -78,7 +79,7 @@
 
             <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix_syntax" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>
             <ui:CheckboxWithNote x:Name="cbxLongest" Prop="longest_match" Text="longest" Note="prefer the leftmost-longest match"/>
-            <ui:CheckboxWithNote Prop="literal" Note="interpret pattern as literal, not regexp"/>
+            <ui:CheckboxWithNote x:Name="cbxLiteral" Prop="literal" Note="interpret pattern as literal, not regexp"/>
 
         </StackPanel>
     </Grid>
