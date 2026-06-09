@@ -34,24 +34,7 @@ namespace RustPlugin
                 throw new ApplicationException( "Invalid struct." );
             }
 
-            //UInt64 size_limit = 0;
-            //UInt64 dfa_size_limit = 0;
-            //UInt32 nest_limit = 0;
-
-            //if( !string.IsNullOrWhiteSpace( Options.size_limit ) && !UInt64.TryParse( Options.size_limit, out size_limit ) )
-            //{
-            //    throw new ApplicationException( "Invalid size_limit." );
-            //}
-
-            //if( !string.IsNullOrWhiteSpace( Options.dfa_size_limit ) && !UInt64.TryParse( Options.dfa_size_limit, out dfa_size_limit ) )
-            //{
-            //    throw new ApplicationException( "Invalid dfa_size_limit." );
-            //}
-
-            //if( !string.IsNullOrWhiteSpace( Options.nest_limit ) && !UInt32.TryParse( Options.nest_limit, out nest_limit ) )
-            //{
-            //    throw new ApplicationException( "Invalid nest_limit." );
-            //}
+            bool is_builder = options.@struct == StructEnum.RegexBuilder;
 
             var o = new StringBuilder( );
 
@@ -70,9 +53,9 @@ namespace RustPlugin
                 p = pattern,
                 t = text,
                 o = o.ToString( ),
-                sl = ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ),
-                dsl = ValidationUtilities.ParseUInt32( "dfa_size_limit", options.dfa_size_limit ),
-                nl = ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ),
+                sl = is_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null,
+                dsl = is_builder ? ValidationUtilities.ParseUInt32( "dfa_size_limit", options.dfa_size_limit ) : null,
+                nl = is_builder ? ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ) : null,
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	regexp "regexp"
 
@@ -22,7 +21,32 @@ type inputStruct struct {
 	Package string
 	Pattern string
 	Text    string
-	Flags   string
+
+	Posix_syntax  bool
+	Longest_match bool
+	Literal       bool
+
+	IgnoreCase              bool
+	Multiline               bool
+	ExplicitCapture         bool
+	Singleline              bool
+	IgnorePatternWhitespace bool
+	RightToLeft             bool
+	ECMAScript              bool
+	RE2                     bool
+	Unicode                 bool
+
+	Ungreedy bool
+
+	// coregex
+	EnableDFA               *bool
+	EnablePrefilter         *bool
+	MaxDFAStates            *uint32
+	DeterminizationLimit    *int
+	MinLiteralLen           *int
+	MaxLiterals             *int
+	MaxRecursionDepth       *int
+	EnableASCIIOptimization *bool
 }
 
 type outputStruct struct {
@@ -30,13 +54,16 @@ type outputStruct struct {
 	Matches [][]int
 }
 
-func matchRegexp(output *outputStruct, pattern string, text string, flags string) {
+func matchRegexp(output *outputStruct, input inputStruct) {
 
 	var err error
 
-	is_POSIX := strings.Contains(flags, "P")
-	is_longest := strings.Contains(flags, "L")
-	is_literal := strings.Contains(flags, "Q")
+	pattern := input.Pattern
+	text := input.Text
+
+	is_POSIX := input.Posix_syntax
+	is_longest := input.Longest_match
+	is_literal := input.Literal
 
 	if is_literal {
 		pattern = regexp.QuoteMeta(pattern)
@@ -72,37 +99,40 @@ func matchRegexp(output *outputStruct, pattern string, text string, flags string
 	//fmt.Printf( "output: %+v\n", output)
 }
 
-func matchRegexp2(output *outputStruct, pattern string, text string, flags string) {
+func matchRegexp2(output *outputStruct, input inputStruct) {
 
 	var err error
 
+	pattern := input.Pattern
+	text := input.Text
+
 	var options regexp2.RegexOptions = regexp2.None
 
-	if strings.Contains(flags, "i") {
+	if input.IgnoreCase {
 		options |= regexp2.IgnoreCase
 	}
-	if strings.Contains(flags, "m") {
+	if input.Multiline {
 		options |= regexp2.Multiline
 	}
-	if strings.Contains(flags, "n") {
+	if input.ExplicitCapture {
 		options |= regexp2.ExplicitCapture
 	}
-	if strings.Contains(flags, "s") {
+	if input.Singleline {
 		options |= regexp2.Singleline
 	}
-	if strings.Contains(flags, "x") {
+	if input.IgnorePatternWhitespace {
 		options |= regexp2.IgnorePatternWhitespace
 	}
-	if strings.Contains(flags, "r") {
+	if input.RightToLeft {
 		options |= regexp2.RightToLeft
 	}
-	if strings.Contains(flags, "e") {
+	if input.ECMAScript {
 		options |= regexp2.ECMAScript
 	}
-	if strings.Contains(flags, "2") {
+	if input.RE2 {
 		options |= regexp2.RE2
 	}
-	if strings.Contains(flags, "u") {
+	if input.Unicode {
 		options |= regexp2.Unicode
 	}
 
@@ -128,12 +158,15 @@ func matchRegexp2(output *outputStruct, pattern string, text string, flags strin
 	//fmt.Printf( "output: %+v\n", output)
 }
 
-func matchRexa(output *outputStruct, pattern string, text string, flags string) {
+func matchRexa(output *outputStruct, input inputStruct) {
 
 	var err error
 
-	is_literal := strings.Contains(flags, "Q")
-	is_longest := strings.Contains(flags, "L")
+	pattern := input.Pattern
+	text := input.Text
+
+	is_literal := input.Literal
+	is_longest := input.Longest_match
 
 	if is_literal {
 		pattern = rexa.QuoteMeta(pattern)
@@ -141,19 +174,19 @@ func matchRexa(output *outputStruct, pattern string, text string, flags string) 
 
 	options := rexa.CompileOptions{}
 
-	if strings.Contains(flags, "i") {
+	if input.IgnoreCase {
 		options.Flags |= rexaSyntax.FlagCaseInsensitive
 	}
-	if strings.Contains(flags, "m") {
+	if input.Multiline {
 		options.Flags |= rexaSyntax.FlagMultiline
 	}
-	if strings.Contains(flags, "s") {
+	if input.Singleline {
 		options.Flags |= rexaSyntax.FlagDotAll
 	}
-	if strings.Contains(flags, "U") {
+	if input.Ungreedy {
 		options.Flags |= rexaSyntax.FlagUngreedy
 	}
-	if strings.Contains(flags, "u") {
+	if input.Unicode {
 		options.Flags |= rexaSyntax.FlagUnicode
 	}
 
@@ -183,16 +216,46 @@ func matchRexa(output *outputStruct, pattern string, text string, flags string) 
 	//fmt.Printf( "output: %+v\n", output)
 }
 
-func matchCoregex(output *outputStruct, pattern string, text string, flags string) {
+func matchCoregex(output *outputStruct, input inputStruct) {
 
 	var err error
 
-	is_POSIX := strings.Contains(flags, "P")
-	is_longest := strings.Contains(flags, "L")
-	is_literal := strings.Contains(flags, "Q")
+	pattern := input.Pattern
+	text := input.Text
+
+	is_POSIX := input.Posix_syntax
+	is_longest := input.Longest_match
+	is_literal := input.Literal
 
 	if is_literal {
 		pattern = coregex.QuoteMeta(pattern)
+	}
+
+	config := coregex.DefaultConfig()
+
+	if input.EnableDFA != nil {
+		config.EnableDFA = *input.EnableDFA
+	}
+	if input.EnablePrefilter != nil {
+		config.EnablePrefilter = *input.EnablePrefilter
+	}
+	if input.EnableASCIIOptimization != nil {
+		config.EnableASCIIOptimization = *input.EnableASCIIOptimization
+	}
+	if input.MaxDFAStates != nil {
+		config.MaxDFAStates = *input.MaxDFAStates
+	}
+	if input.DeterminizationLimit != nil {
+		config.DeterminizationLimit = *input.DeterminizationLimit
+	}
+	if input.MinLiteralLen != nil {
+		config.MinLiteralLen = *input.MinLiteralLen
+	}
+	if input.MaxLiterals != nil {
+		config.MaxLiterals = *input.MaxLiterals
+	}
+	if input.MaxRecursionDepth != nil {
+		config.MaxRecursionDepth = *input.MaxRecursionDepth
 	}
 
 	var re *coregex.Regexp
@@ -200,7 +263,7 @@ func matchCoregex(output *outputStruct, pattern string, text string, flags strin
 	if is_POSIX {
 		re, err = coregex.CompilePOSIX(pattern)
 	} else {
-		re, err = coregex.Compile(pattern)
+		re, err = coregex.CompileWithConfig(pattern, config)
 	}
 
 	if err != nil {
@@ -236,7 +299,7 @@ func main() {
 		return
 	}
 
-	//fmt.Println("Input: ", input_text)
+	//fmt.Printf("Input text: {%s}\n", input_text)
 
 	var input inputStruct
 
@@ -247,32 +310,28 @@ func main() {
 		return
 	}
 
-	//fmt.Printf( "Pattern: '%s'\n", input.Pattern)
-	//fmt.Printf( "Text: '%s'\n", input.Text)
+	//fmt.Printf("Input struct: {%+v}\n", input)
 
 	package0 := input.Package
-	pattern := input.Pattern
-	text := input.Text
-	flags := input.Flags
 
 	output := &outputStruct{}
 
 	switch package0 {
 	case "regexp":
 
-		matchRegexp(output, pattern, text, flags)
+		matchRegexp(output, input)
 
 	case "regexp2":
 
-		matchRegexp2(output, pattern, text, flags)
+		matchRegexp2(output, input)
 
 	case "rexa":
 
-		matchRexa(output, pattern, text, flags)
+		matchRexa(output, input)
 
 	case "coregex":
 
-		matchCoregex(output, pattern, text, flags)
+		matchCoregex(output, input)
 
 	default:
 		fmt.Fprintf(os.Stderr, "Invalid package: '%s'\n", package0)

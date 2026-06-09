@@ -34,31 +34,39 @@ namespace GoPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            StringBuilder flags = new( );
+            bool is_coregex = options.Package == PackageEnum.coregex;
 
-            // 'regexp2' and other
+            var data = new
+            {
+                package = Enum.GetName<PackageEnum>( options.Package ),
+                pattern,
+                text,
 
-            if( options.IgnoreCase ) flags.Append( 'i' );
-            if( options.Multiline ) flags.Append( 'm' );
-            if( options.ExplicitCapture ) flags.Append( 'n' );
-            if( options.Singleline ) flags.Append( 's' );
-            if( options.IgnorePatternWhitespace ) flags.Append( 'x' );
-            if( options.RightToLeft ) flags.Append( 'r' );
-            if( options.ECMAScript ) flags.Append( 'e' );
-            if( options.RE2 ) flags.Append( '2' );
-            if( options.Unicode ) flags.Append( 'u' );
+                options.posix_syntax,
+                options.longest_match,
+                options.literal,      
 
-            // 'rexa'
+                options.IgnoreCase,
+                options.Multiline,
+                options.ExplicitCapture,
+                options.Singleline,
+                options.IgnorePatternWhitespace,
+                options.RightToLeft,
+                options.ECMAScript,
+                options.RE2,
+                options.Unicode,
 
-            if( options.Ungreedy ) flags.Append( 'U' );
+                options.Ungreedy,
 
-            // 
-
-            if( options.posix_syntax ) flags.Append( 'P' );
-            if( options.longest_match ) flags.Append( 'L' );
-            if( options.literal ) flags.Append( 'Q' );
-
-            var data = new { package = Enum.GetName<PackageEnum>( options.Package ), pattern, text, flags = flags.ToString( ) };
+                options.EnableDFA,
+                options.EnablePrefilter,
+                options.EnableASCIIOptimization,
+                MaxDFAStates = is_coregex ? ValidationUtilities.ParseUInt32( "MaxDFAStates", options.MaxDFAStates ) : null,
+                DeterminizationLimit = is_coregex ? ValidationUtilities.ParseInt32( "DeterminizationLimit", options.DeterminizationLimit ) : null,
+                MinLiteralLen = is_coregex ? ValidationUtilities.ParseInt32( "MinLiteralLen", options.MinLiteralLen ) : null,
+                MaxLiterals = is_coregex ? ValidationUtilities.ParseInt32( "MaxLiterals", options.MaxLiterals ) : null,
+                MaxRecursionDepth = is_coregex ? ValidationUtilities.ParseInt32( "MaxRecursionDepth", options.MaxRecursionDepth ) : null,
+            };
             string json = JsonSerializer.Serialize( data );
 
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
@@ -172,7 +180,7 @@ namespace GoPlugin
 
             return new RegexMatches( matches.Count, matches );
         }
-        
+
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;

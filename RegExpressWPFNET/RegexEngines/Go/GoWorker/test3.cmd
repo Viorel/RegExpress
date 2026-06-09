@@ -1,1 +1,1 @@
-echo { "package" : "regexp", "pattern" : "x", "Text" : "abc", "flags" : "" } | GoWorker.exe
+echo { "package" : "regexp", "pattern" : "x", "Text" : "abc" } | GoWorker.exe

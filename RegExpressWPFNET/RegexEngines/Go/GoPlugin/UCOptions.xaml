@@ -6,13 +6,29 @@
              xmlns:local="clr-namespace:GoPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="319.377" d:DesignWidth="376.636" 
+             d:DesignHeight="487.577" d:DesignWidth="705.436" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
         <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="0 2 4 2"/>
+        </Style>
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="note">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
+            <Setter Property="Opacity" Value="0.70"/>
+            <Setter Property="Margin" Value="4 0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
     </UserControl.Resources>
 
@@ -75,6 +91,57 @@
                 <ui:CheckboxWithNote Prop="Singleline" Text="FlagDotAll" Note=""/>
                 <ui:CheckboxWithNote Prop="Ungreedy" Text="FlagUngreedy" Note=""/>
                 <ui:CheckboxWithNote Prop="Unicode" Text="FlagUnicode" Note=""/>
+            </StackPanel>
+
+            <!-- coregex -->
+            <StackPanel x:Name="pnlCoregex" Orientation="Vertical">
+                <ui:CheckboxWithNote Prop="EnableDFA" Note="enables the Lazy DFA engine; when false, only NFA (PikeVM) is used" />
+                <ui:CheckboxWithNote Prop="EnablePrefilter" Note="enables literal-based prefiltering" />
+                <ui:CheckboxWithNote Prop="EnableASCIIOptimization" Note="enables ASCII runtime detection; choose between UTF-8 NFA and ASCII NFA"/>
+
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 4" >
+                    <Grid.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Grid.LayoutTransform>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto" MinWidth="55"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=MaxDFAStates}" Content="MaxDFAStates:"/>
+                    <TextBox x:Name="MaxDFAStates" Grid.Column="1" Grid.Row="0" Text="{Binding MaxDFAStates, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– maximum number of DFA states to cache; larger values use more memory but reduce NFA fallback frequency." Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=DeterminizationLimit}" Content="DeterminizationLimit:"/>
+                    <TextBox x:Name="DeterminizationLimit" Grid.Column="1" Grid.Row="1" Text="{Binding DeterminizationLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– the number of NFA states per DFA state; prevents exponential blowup in patterns like (a*)*b" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=MinLiteralLen}" Content="MinLiteralLen:"/>
+                    <TextBox x:Name="MinLiteralLen" Grid.Column="1" Grid.Row="2" Text="{Binding MinLiteralLen, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– minimum length for prefilter literals; shorter literals may have too many false positives." Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=MaxLiterals}" Content="MaxLiterals:"/>
+                    <TextBox x:Name="MaxLiterals" Grid.Column="1" Grid.Row="3" Text="{Binding MaxLiterals, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="3" Text="– the number of literals to extract for prefiltering" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=MaxRecursionDepth}" Content="MaxRecursionDepth:"/>
+                    <TextBox x:Name="MaxRecursionDepth" Grid.Column="1" Grid.Row="4" Text="{Binding MaxRecursionDepth, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="4" Text="– limits recursion during NFA compilation" Style="{StaticResource note}" />
+                </Grid>
+
             </StackPanel>
 
             <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix_syntax" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>

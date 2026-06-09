@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary
 {
+    // TODO: use generics and new interfaces (?)
+
     public class ValidationUtilities
     {
         public static Int128? ParseInt128( string name, string? input )
@@ -15,7 +17,7 @@ namespace RegExpressLibrary
 
             if( !Int128.TryParse( input, CultureInfo.InvariantCulture, out var result ) )
             {
-                throw new ApplicationException( $"Invalid field: “{name}”. Enter an integer value." );
+                throw new ApplicationException( $"Invalid parameter: “{name}”. Enter an integer value." );
             }
             else
             {
@@ -29,7 +31,7 @@ namespace RegExpressLibrary
 
             if( !UInt128.TryParse( input, CultureInfo.InvariantCulture, out var result ) )
             {
-                throw new ApplicationException( $"Invalid field: “{name}”. Enter an integer unsigned value." );
+                throw new ApplicationException( $"Invalid parameter: “{name}”. Enter an integer unsigned value." );
             }
             else
             {
@@ -89,7 +91,7 @@ namespace RegExpressLibrary
 
             if( !double.TryParse( input, CultureInfo.InvariantCulture, out var result ) )
             {
-                throw new ApplicationException( $"Invalid field: “{name}”. Enter a floating-point value." );
+                throw new ApplicationException( $"Invalid parameter: “{name}”. Enter a floating-point value." );
             }
             else
             {

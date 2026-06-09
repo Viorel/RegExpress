@@ -89,6 +89,7 @@ namespace GoPlugin
 
                 pnlRegexp2Flags.Visibility = is_regexp2 ? Visibility.Visible : Visibility.Collapsed;
                 pnlRexaFlags.Visibility = is_rexa ? Visibility.Visible : Visibility.Collapsed;
+                pnlCoregex.Visibility = is_coregex ? Visibility.Visible : Visibility.Collapsed;
 
                 cbxPosix.Visibility = is_regexp || is_coregex ? Visibility.Visible : Visibility.Collapsed;
                 cbxLongest.Visibility = is_regexp || is_rexa || is_coregex ? Visibility.Visible : Visibility.Collapsed;
@@ -107,5 +108,9 @@ namespace GoPlugin
             UpdateUI( );
         }
 
+        private void tb_TextChanged( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
     }
 }

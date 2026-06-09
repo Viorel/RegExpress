@@ -29,6 +29,8 @@ namespace RustPlugin
                 throw new ApplicationException( "Invalid struct." );
             }
 
+            bool is_builder = options.@struct == StructEnum.RegexBuilder;
+
             var o = new StringBuilder( );
 
             if( options.case_insensitive ) o.Append( 'i' );
@@ -47,9 +49,9 @@ namespace RustPlugin
                 p = pattern,
                 t = text,
                 o = o.ToString( ),
-                bl = ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ),
-                dsl = ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ),
-                ddsl = ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ),
+                bl = is_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
+                dsl = is_builder ? ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ) : null,
+                ddsl = is_builder ? ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ) : null,
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

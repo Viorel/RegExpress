@@ -36,6 +36,16 @@ namespace GoPlugin
         public bool longest_match { get; set; }
         public bool literal { get; set; }
 
+        //
+        public bool EnableDFA { get; set; } = true;
+        public bool EnablePrefilter { get; set; } = true;
+        public bool EnableASCIIOptimization { get; set; } = true;
+
+        public string? MaxDFAStates { get; set; }
+        public string? DeterminizationLimit { get; set; }
+        public string? MinLiteralLen { get; set; }
+        public string? MaxLiterals { get; set; }
+        public string? MaxRecursionDepth { get; set; }
 
         public Options Clone( )
         {
