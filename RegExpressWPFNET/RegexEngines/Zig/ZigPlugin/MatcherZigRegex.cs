@@ -22,7 +22,7 @@ namespace ZigPlugin
 
 Example of input:
 
-    { "pattern": "(?<first>\\d)(\\d*)(?<last>QQQ)?", "text": "a1b23c456", "flags": "" }
+    { "pattern": "(?<first>\\d)(\\d*)(?<last>QQQ)?", "text": "a1b23c456", "flags": { } }
 
 Example of result:
 
@@ -99,12 +99,14 @@ Example of result:
             {
                 pattern = pattern,
                 text = text,
-                flags =
-                    ( options.case_insensitive ? "i" : "" ) +
-                    ( options.multiline ? "m" : "" ) +
-                    ( options.dot_all ? "s" : "" ) +
-                    ( options.extended ? "x" : "" ) +
-                    ( options.unicode ? "U" : "" ),
+                flags = new
+                {
+                    options.case_insensitive,
+                    options.multiline,
+                    options.dot_all,
+                    options.extended,
+                    options.unicode,
+                }
             };
 
             string json = JsonSerializer.Serialize( json_object );

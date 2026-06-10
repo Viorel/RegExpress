@@ -8,9 +8,24 @@ const mvzr = @import("mvzr/src/mvzr.zig");
 
 // NOTE. 'defer' is not always used; memory will be freed automatically at the end.
 
-const INPUT_TYPE = struct { pattern: []u8, text: []u8, flags: []u8 };
-const MATCH = struct { start: usize, length: usize };
-const OUTPUT = struct { matches: ?[]MATCH };
+const FLAG_TYPE = struct {
+    is_debug: bool = false,
+};
+
+const INPUT_TYPE = struct {
+    pattern: []u8,
+    text: []u8,
+    flags: FLAG_TYPE = .{},
+};
+
+const MATCH = struct {
+    start: usize,
+    length: usize,
+};
+
+const OUTPUT = struct {
+    matches: ?[]MATCH,
+};
 
 pub fn main1(init: std.process.Init) !void {
     @setRuntimeSafety(true);
@@ -29,8 +44,6 @@ pub fn main1(init: std.process.Init) !void {
     try reader.appendRemaining(allocator, &input_al, std.Io.Limit.unlimited);
 
     const input_string = input_al.items;
-    //\\{ "pattern": "(a*)*b", "text": "aaac", "flags": "" }
-    //\\{ "pattern": "(?<first>\\d)(\\d*)(?<last>QQQ)?", "text": "a1b23c456", "flags": "" }
 
     //std.debug.print("input_string: '{s}'\n", .{input_string});
 
@@ -39,7 +52,7 @@ pub fn main1(init: std.process.Init) !void {
 
     const input_object = input_parsed_object.value;
     const input_flags = input_object.flags;
-    const is_debug = std.mem.indexOf(u8, input_flags, "D") != null;
+    const is_debug = input_flags.is_debug;
 
     // TODO: flags
 

@@ -31,27 +31,26 @@ namespace RustPlugin
 
             bool is_builder = options.@struct == StructEnum.RegexBuilder;
 
-            var o = new StringBuilder( );
-
-            if( options.case_insensitive ) o.Append( 'i' );
-            if( options.multi_line ) o.Append( 'm' );
-            if( options.ignore_whitespace ) o.Append( 'x' );
-            if( options.dot_matches_new_line ) o.Append( 's' );
-            if( options.crlf ) o.Append( "R" );
-            if( options.unicode ) o.Append( 'u' );
-            if( options.oniguruma_mode ) o.Append( 'O' );
-            if( options.find_not_empty ) o.Append( 'E' );
-            if( options.ignore_numbered_groups_when_named_groups_exist ) o.Append( 'n' );
-
             var obj = new
             {
-                s = options.@struct,
-                p = pattern,
-                t = text,
-                o = o.ToString( ),
-                bl = is_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
-                dsl = is_builder ? ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ) : null,
-                ddsl = is_builder ? ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ) : null,
+                @struct = options.@struct,
+                pattern = pattern,
+                text = text,
+                options = new
+                {
+                    options.case_insensitive,
+                    options.multi_line,
+                    options.ignore_whitespace,
+                    options.dot_matches_new_line,
+                    options.crlf,
+                    options.unicode,
+                    options.oniguruma_mode,
+                    options.find_not_empty,
+                    options.ignore_numbered_groups_when_named_groups_exist,
+                    bl = is_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
+                    dsl = is_builder ? ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ) : null,
+                    ddsl = is_builder ? ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ) : null,
+                }
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

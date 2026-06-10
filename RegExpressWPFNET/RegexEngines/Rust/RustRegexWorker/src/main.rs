@@ -26,11 +26,11 @@ fn main()
 
 //println!("D: Input '{}'", input);
 
-    let parsed = json::parse(&input);
+    let input_json = json::parse(&input);
 
-    if parsed.is_err()
+    if input_json.is_err()
     {
-        let err = parsed.unwrap_err();
+        let err = input_json.unwrap_err();
 
         eprintln!("Failed to parse input: {}", err);
         eprintln!("Input: '{}'", input);
@@ -38,18 +38,18 @@ fn main()
         return;
     }
 
-    let parsed = parsed.unwrap();
+    let input_json = input_json.unwrap();
 
-    if ! parsed.is_object()
+    if ! input_json.is_object()
     {
         eprintln!("Bad json: {}", input);
 
         return;
     }
 
-    let command = parsed["c"].as_str().unwrap_or("");
+    let command = input_json["command"].as_str().unwrap_or("");
 
-    if command == "v"
+    if command == "get-version"
     {
         let v = rustc_version_runtime::version();
         let output = json::object!
@@ -64,17 +64,17 @@ fn main()
         return;
     }
 
-    if ! (command == "" || command == "m")
+    if ! (command == "" || command == "get-matches")
     {
         eprintln!("Bad command: '{}'", command);
 
         return;
     }
 
-    let structure = parsed["s"].as_str().unwrap_or("");
-    let pattern = parsed["p"].as_str().unwrap_or("");
-    let text = parsed["t"].as_str().unwrap_or("");
-    let options = parsed["o"].as_str().unwrap_or("");
+    let structure = input_json["struct"].as_str().unwrap_or("");
+    let pattern = input_json["pattern"].as_str().unwrap_or("");
+    let text = input_json["text"].as_str().unwrap_or("");
+    let options = &input_json["options"];
 
     let re;
 
@@ -86,27 +86,27 @@ fn main()
     {
         let mut reb : regex::RegexBuilder = regex::RegexBuilder::new(pattern);
 
-        reb.case_insensitive(options.find('i').is_some());
-        reb.multi_line(options.find('m').is_some());
-        reb.dot_matches_new_line (options.find('s').is_some());
-        reb.swap_greed(options.find('U').is_some());
-        reb.ignore_whitespace (options.find('x').is_some());
-        reb.unicode(options.find('u').is_some());
-        reb.octal(options.find('O').is_some());
+        reb.case_insensitive(options["case_insensitive"].as_bool().unwrap_or(false));
+        reb.multi_line(options["multi_line"].as_bool().unwrap_or(false));
+        reb.dot_matches_new_line(options["dot_matches_new_line"].as_bool().unwrap_or(false));
+        reb.swap_greed(options["swap_greed"].as_bool().unwrap_or(false));
+        reb.ignore_whitespace(options["ignore_whitespace"].as_bool().unwrap_or(false));
+        reb.unicode(options["unicode"].as_bool().unwrap_or(false));
+        reb.octal(options["octal"].as_bool().unwrap_or(false));
 
-        let n = parsed["sl"].as_usize();
+        let n = options["sl"].as_usize();
         if n.is_some()
         {
             reb.size_limit( n.unwrap());
         } 
 
-        let n = parsed["dsl"].as_usize();
+        let n = options["dsl"].as_usize();
         if n.is_some()
         {
             reb.dfa_size_limit( n.unwrap());
         } 
 
-        let n = parsed["nl"].as_u32();
+        let n = options["nl"].as_u32();
         if n.is_some()
         {
             reb.nest_limit( n.unwrap());

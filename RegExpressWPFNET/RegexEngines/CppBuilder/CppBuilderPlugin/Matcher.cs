@@ -27,16 +27,22 @@ namespace CppBuilderPlugin
 
             ph.StreamWriter = sw =>
             {
-                string flags = "";
-                if( options.roIgnoreCase ) flags += 'i';
-                if( options.roMultiLine ) flags += 'm';
-                if( options.roExplicitCapture ) flags += 'n';
-                if( options.roCompiled ) flags += 'C';
-                if( options.roSingleLine ) flags += 's';
-                if( options.roIgnorePatternSpace ) flags += 'x';
-                if( options.roNotEmpty ) flags += 'N';
 
-                var obj = new { pattern = pattern, text = text, flags = flags };
+                var obj = new
+                {
+                    pattern = pattern,
+                    text = text,
+                    options = new
+                    {
+                        options.roIgnoreCase,
+                        options.roMultiLine,
+                        options.roExplicitCapture,
+                        options.roCompiled,
+                        options.roSingleLine,
+                        options.roIgnorePatternSpace,
+                        options.roNotEmpty,
+                    }
+                };
 
                 sw.WriteLine( JsonSerializer.Serialize( obj ) );
             };

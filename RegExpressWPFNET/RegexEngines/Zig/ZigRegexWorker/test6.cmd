@@ -1,1 +1,1 @@
-@echo { "pattern": "(?<=(?<a>a+))[^a]+", "text": "dsgasd aaaaaxxxx", "flags": "" } | ZigRegexWorker.exe
+@echo { "pattern": "(?<=(?<a>a+))[^a]+", "text": "dsgasd aaaaaxxxx", "flags": { } } | ZigRegexWorker.exe

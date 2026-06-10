@@ -10,11 +10,35 @@ const Regex = Regex0.Regex;
 
 // NOTE. 'defer' is not always used; memory will be freed automatically at the end.
 
-const INPUT_TYPE = struct { pattern: []u8, text: []u8, flags: []u8 };
+const FLAG_TYPE = struct {
+    case_insensitive: bool = false,
+    multiline: bool = false,
+    dot_all: bool = false,
+    extended: bool = false,
+    unicode: bool = false,
+    is_debug: bool = false,
+};
 
-const GROUP = struct { value: ?[]const u8 };
-const MATCH = struct { start: usize, length: usize, groups: ?[]GROUP };
-const OUTPUT = struct { names: ?[]?[]const u8, matches: ?[]MATCH };
+const INPUT_TYPE = struct {
+    pattern: []u8,
+    text: []u8,
+    flags: FLAG_TYPE = .{},
+};
+
+const GROUP = struct {
+    value: ?[]const u8,
+};
+
+const MATCH = struct {
+    start: usize,
+    length: usize,
+    groups: ?[]GROUP,
+};
+
+const OUTPUT = struct {
+    names: ?[]?[]const u8,
+    matches: ?[]MATCH,
+};
 
 pub fn main1(init: std.process.Init) !void {
     @setRuntimeSafety(true);
@@ -35,7 +59,6 @@ pub fn main1(init: std.process.Init) !void {
     try reader.appendRemaining(allocator, &input_al, std.Io.Limit.unlimited);
 
     const input_string = input_al.items;
-    //\\{ "pattern": "(?<first>\\d)(\\d*)(?<last>QQQ)?", "text": "a1b23c456", "flags": "" }
 
     //std.debug.print("input_string: '{s}'\n", .{input_string});
 
@@ -44,15 +67,15 @@ pub fn main1(init: std.process.Init) !void {
 
     const input_object = input_parsed_object.value;
     const input_flags = input_object.flags;
-    const is_debug = std.mem.indexOf(u8, input_flags, "D") != null;
+    const is_debug = input_flags.is_debug;
 
     const flags: RegexCommon.CompileFlags =
         .{
-            .case_insensitive = std.mem.indexOf(u8, input_flags, "i") != null,
-            .multiline = std.mem.indexOf(u8, input_flags, "m") != null,
-            .dot_all = std.mem.indexOf(u8, input_flags, "s") != null,
-            .extended = std.mem.indexOf(u8, input_flags, "x") != null,
-            .unicode = std.mem.indexOf(u8, input_flags, "U") != null,
+            .case_insensitive = input_flags.case_insensitive,
+            .multiline = input_flags.multiline,
+            .dot_all = input_flags.dot_all,
+            .extended = input_flags.extended,
+            .unicode = input_flags.unicode,
         };
 
     var regex = try Regex.compileWithFlags(allocator, input_object.pattern, flags);

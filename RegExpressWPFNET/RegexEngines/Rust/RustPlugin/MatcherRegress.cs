@@ -42,24 +42,22 @@ namespace RustPlugin
                 throw new ApplicationException( "Invalid struct." );
             }
 
-            var o = new StringBuilder( );
-
-            if( options.case_insensitive ) o.Append( "i" );
-            if( options.multi_line ) o.Append( "m" );
-            if( options.dot_matches_new_line ) o.Append( "s" );
-            if( options.unicode ) o.Append( "u" );
-            if( options.unicode_sets ) o.Append( "v" );
-            if( options.no_opt ) o.Append( "N" );
-
             var obj = new
             {
-                s = options.@struct,
-                p = pattern,
-                t = text,
-                o = o.ToString( ),
-                bl = ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ),
-                dsl = ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ),
-                ddsl = ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ),
+                pattern = pattern,
+                text = text,
+                options = new
+                {
+                    options.case_insensitive,
+                    options.multi_line,
+                    options.dot_matches_new_line,
+                    options.unicode,
+                    options.unicode_sets,
+                    options.no_opt,
+                    bl = ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ),
+                    dsl = ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ),
+                    ddsl = ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ),
+                }
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

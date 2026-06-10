@@ -1,1 +1,1 @@
-@echo {"pattern": "(a(x)?)|(y)", "text": "axbc", "flags": ""} | adaworker.exe
+@echo {"pattern": "(a(x)?)|(y)", "text": "axbc", "options" : { } } | adaworker.exe

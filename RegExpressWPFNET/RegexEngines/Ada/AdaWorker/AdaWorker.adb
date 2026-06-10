@@ -27,10 +27,11 @@ procedure AdaWorker is
    value             : GNATCOLL.JSON.JSON_Value;
    pattern           : GNATCOLL.JSON.UTF8_Unbounded_String;
    text              : GNATCOLL.JSON.UTF8_Unbounded_String;
-   flags             : GNATCOLL.JSON.UTF8_Unbounded_String;
+   options           : GNATCOLL.JSON.JSON_Value;
 
    reflags           : GNAT.Regpat.Regexp_Flags := GNAT.Regpat.No_Flags;
 
+   b : Boolean;
 begin
 
    -- read all lines
@@ -56,25 +57,37 @@ begin
    value := inputJson.Get( "text");
    text := value.Get;
 
-   value := inputJson.Get( "flags");
-   flags := value.Get;
-
    --Ada.Text_IO.Put_Line(jsonValue.Write);
    --Ada.Text_IO.Put_Line(pattern.To_String);
    --Ada.Text_IO.Put_Line(text.To_String);
 
-   if Ada.Strings.Unbounded.Index( flags, "i") > 0 then
-      reflags := reflags or GNAT.Regpat.Case_Insensitive;
-   end if;
+   options := inputJson.Get( "options");
 
-   if Ada.Strings.Unbounded.Index( flags, "s") > 0 then
-      reflags := reflags or GNAT.Regpat.Single_Line;
-   end if;
+   if not options.Is_Empty then 
+      value := options.Get( "Case_Insensitive");
+      if not value.Is_Empty then
+         b := value.Get;
+         if b then
+            reflags := reflags or GNAT.Regpat.Case_Insensitive;
+         end if;
+      end if;
 
-   if Ada.Strings.Unbounded.Index( flags, "m") > 0 then
-      reflags := reflags or GNAT.Regpat.Multiple_Lines;
-   end if;
+      value := options.Get( "Single_Line");
+      if not value.Is_Empty then
+         b := value.Get;
+         if b then
+            reflags := reflags or GNAT.Regpat.Single_Line;
+         end if;
+      end if;
 
+      value := options.Get( "Multiple_Lines");
+      if not value.Is_Empty then
+         b := value.Get;
+         if b then
+            reflags := reflags or GNAT.Regpat.Multiple_Lines;
+         end if;
+      end if;
+   end if;
 
    declare
 

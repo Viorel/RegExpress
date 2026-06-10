@@ -1,1 +1,1 @@
-@echo { "pattern": "(.)(.)", "text": "ab", "flags": "" } | ZigMvzrWorker.exe
+@echo { "pattern": "(.)(.)", "text": "ab", "flags": { "is_debug": true } } | ZigMvzrWorker.exe

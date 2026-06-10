@@ -27,16 +27,21 @@ namespace QtPlugin
 
             ph.StreamWriter = sw =>
             {
-                string flags = "";
-                if( options.CaseInsensitiveOption ) flags += 'i';
-                if( options.DotMatchesEverythingOption ) flags += 's';
-                if( options.MultilineOption ) flags += 'm';
-                if( options.ExtendedPatternSyntaxOption ) flags += 'x';
-                if( options.InvertedGreedinessOption ) flags += 'G';
-                if( options.DontCaptureOption ) flags += 'n';
-                if( options.UseUnicodePropertiesOption ) flags += 'u';
-
-                var obj = new { pattern = pattern, text = text, flags = flags };
+                var obj = new
+                {
+                    pattern = pattern,
+                    text = text,
+                    options = new
+                    {
+                        options.CaseInsensitiveOption,
+                        options.DotMatchesEverythingOption,
+                        options.MultilineOption,
+                        options.ExtendedPatternSyntaxOption,
+                        options.InvertedGreedinessOption,
+                        options.DontCaptureOption,
+                        options.UseUnicodePropertiesOption,
+                    }
+                };
 
                 sw.WriteLine( JsonSerializer.Serialize( obj ) );
             };

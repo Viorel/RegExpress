@@ -68,6 +68,7 @@
                 <ui:CheckboxWithNote x:Name="chbx_swap_greed" Prop="swap_greed" Note="(U) “a*” finds shortest match, “a*?” finds longest match"/>
                 <ui:CheckboxWithNote x:Name="chbx_ignore_whitespace" Prop="ignore_whitespace" Note="(x) ignore whitespaces, allow “#” to start line comments"/>
                 <ui:CheckboxWithNote x:Name="chbx_unicode" Prop="unicode" Note="(u) match Unicode characters"/>
+                <ui:CheckboxWithNote x:Name="chbx_unicode_mode" Text="unicode_mode" Prop="unicode" Note="(u) match Unicode characters"/>
                 <ui:CheckboxWithNote x:Name="chbx_octal" Prop="octal" Note="support octal syntax"/>
                 <ui:CheckboxWithNote x:Name="chbx_oniguruma_mode" Prop="oniguruma_mode" Note="do not treat “\&lt;” and “\&gt;” as left and right word-bounds"/>
                 <ui:CheckboxWithNote x:Name="chbx_find_not_empty" Prop="find_not_empty" Note="require that matches are non-empty"/>

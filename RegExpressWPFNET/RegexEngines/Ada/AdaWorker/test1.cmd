@@ -1,1 +1,1 @@
-@echo {"pattern": ".", "text": "abc", "flags": ""} | adaworker.exe
+@echo {"pattern": ".", "text": "abc", "options" : { } } | adaworker.exe

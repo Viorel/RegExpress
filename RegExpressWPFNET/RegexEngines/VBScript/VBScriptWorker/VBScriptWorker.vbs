@@ -54,13 +54,9 @@ If command = "m" Or command = "e" Or command = "x" Then
     Set re = New RegExp
 
     re.Pattern = pattern
-    re.IgnoreCase = False
-    re.Multiline = False
-    re.Global = False
-
-    If InStr(options, "i") > 0 Then re.IgnoreCase = True 
-    If InStr(options, "m") > 0 Then re.Multiline = True 
-    If InStr(options, "g") > 0 Then re.Global = True
+    re.IgnoreCase = InStr(options, "i") > 0
+    re.Multiline = InStr(options, "m") > 0
+    re.Global = InStr(options, "g") > 0
 
     Dim ms
     Set ms = re.Execute(text)

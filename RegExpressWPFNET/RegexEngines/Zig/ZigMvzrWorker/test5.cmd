@@ -1,1 +1,1 @@
-@echo { "pattern": ".", "text": "\u0176", "flags": "" } | ZigMvzrWorker.exe
+@echo { "pattern": ".", "text": "\u0176", "flags": { } } | ZigMvzrWorker.exe

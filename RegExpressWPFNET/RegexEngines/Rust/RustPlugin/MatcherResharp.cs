@@ -36,35 +36,22 @@ namespace RustPlugin
             UInt64? max_dfa_capacity = ValidationUtilities.ParseUInt64( "max_dfa_capacity", options.max_dfa_capacity );
             UInt64? lookahead_context_max = ValidationUtilities.ParseUInt64( "lookahead_context_max", options.lookahead_context_max );
 
-            var o = new StringBuilder( );
-
-            if( options.case_insensitive ) o.Append( " i " );
-            if( options.dot_matches_new_line ) o.Append( " s " );
-            if( options.multi_line ) o.Append( " m " );
-            if( options.ignore_whitespace ) o.Append( " x " );
-            if( options.hardened ) o.Append( " H " );
-            if( options.unbounded_size ) o.Append( " S " );
-
-            switch( options.UnicodeMode )
-            {
-            case UnicodeModeEnum.Ascii:
-                o.Append( " UA " );
-                break;
-            case UnicodeModeEnum.Full:
-                o.Append( " UF " );
-                break;
-            case UnicodeModeEnum.Javascript:
-                o.Append( " UJ " );
-                break;
-            }
-
             var obj = new
             {
                 pattern = pattern,
                 text = text,
-                options = o.ToString( ),
-                max_dfa_capacity = max_dfa_capacity,
-                lookahead_context_max = lookahead_context_max,
+                options = new
+                {
+                    options.case_insensitive,
+                    options.dot_matches_new_line,
+                    options.multi_line,
+                    options.ignore_whitespace,
+                    options.hardened,
+                    options.unbounded_size,
+                    unicode_mode = options.UnicodeMode switch { UnicodeModeEnum.Ascii => "Ascii", UnicodeModeEnum.Full => "Full", UnicodeModeEnum.Javascript => "Javascript", _ => null },
+                    max_dfa_capacity = max_dfa_capacity,
+                    lookahead_context_max = lookahead_context_max,
+                }
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

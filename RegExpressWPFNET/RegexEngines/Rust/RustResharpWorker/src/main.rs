@@ -20,11 +20,11 @@ fn main() {
 
     let input = input.trim();
 
-    let parsed = json::parse(&input);
+    let input_json = json::parse(&input);
 
-    if parsed.is_err()
+    if input_json.is_err()
     {
-        let err = parsed.unwrap_err();
+        let err = input_json.unwrap_err();
 
         eprintln!("Failed to parse input: {}", err);
         eprintln!("Input: '{}'", input);
@@ -32,20 +32,21 @@ fn main() {
         return;
     }
 
-    let parsed = parsed.unwrap();
+    let input_json = input_json.unwrap();
 
-    if ! parsed.is_object()
+    if ! input_json.is_object()
     {
         eprintln!("Bad json: {}", input);
 
         return;
     }
 
-    let pattern = parsed["pattern"].as_str().unwrap_or("");
-    let text = parsed["text"].as_str().unwrap_or("");
-    let options = parsed["options"].as_str().unwrap_or(""); 
-    let max_dfa_capacity = parsed["max_dfa_capacity"].as_usize();
-    let lookahead_context_max= parsed["lookahead_context_max"].as_u32();
+    let pattern = input_json["pattern"].as_str().unwrap_or("");
+    let text = input_json["text"].as_str().unwrap_or("");
+    let options = &input_json["options"];
+
+    let max_dfa_capacity = options["max_dfa_capacity"].as_usize();
+    let lookahead_context_max= options["lookahead_context_max"].as_u32();
 
     // println!("Input: '{}'", input);
     // println!(" Pattern: '{}'", pattern);
@@ -54,22 +55,26 @@ fn main() {
 
     let mut opts = resharp::RegexOptions::default();
 
-    opts.case_insensitive = options.contains(" i ");
-    opts.dot_matches_new_line = options.contains(" s ");
-    opts.multiline = options.contains(" m ");
-    opts.ignore_whitespace = options.contains(" x ");
-    opts.hardened = options.contains(" H ");
-    opts.unbounded_size = options.contains(" S ");
+    opts.case_insensitive = options["case_insensitive"].as_bool().unwrap_or(false);
+    opts.dot_matches_new_line = options["dot_matches_new_line"].as_bool().unwrap_or(false);
+    opts.multiline = options["multi_line"].as_bool().unwrap_or(false);
+    opts.ignore_whitespace = options["ignore_whitespace"].as_bool().unwrap_or(false);
+    opts.hardened = options["hardened"].as_bool().unwrap_or(false);
+    opts.unbounded_size = options["unbounded_size"].as_bool().unwrap_or(false);
 
-    if options.contains(" UA ")
+    let unicode_mode = options["unicode_mode"].as_str().unwrap_or("");
+
+    if unicode_mode == "Ascii"
     {
         opts.unicode = resharp::UnicodeMode::Ascii;
     }
-    else if options.contains(" UF ") {
+    else if unicode_mode == "Full"
+    {
         opts.unicode = resharp::UnicodeMode::Full;
         
     }
-    else if options.contains(" UJ ") {
+    else if unicode_mode == "Javascript"
+    {
         opts.unicode = resharp::UnicodeMode::Javascript;
     }
 

@@ -27,11 +27,11 @@ fn main()
 
 //println!("D: Input '{}'", input);
 
-    let parsed = json::parse(&input);
+    let input_json = json::parse(&input);
 
-    if parsed.is_err()
+    if input_json.is_err()
     {
-        let err = parsed.unwrap_err();
+        let err = input_json.unwrap_err();
 
         eprintln!("Failed to parse input: {}", err);
         eprintln!("Input: '{}'", input);
@@ -39,35 +39,26 @@ fn main()
         return;
     }
 
-    let parsed = parsed.unwrap();
+    let input_json = input_json.unwrap();
 
-    if ! parsed.is_object()
+    if ! input_json.is_object()
     {
         eprintln!("Bad json: {}", input);
 
         return;
     }
 
-    let command = parsed["c"].as_str().unwrap_or("");
-
-    if ! (command == "" || command == "m")
-    {
-        eprintln!("Bad command: '{}'", command);
-
-        return;
-    }
-
-    let pattern = parsed["p"].as_str().unwrap_or("");
-    let text = parsed["t"].as_str().unwrap_or("");
-    let options = parsed["o"].as_str().unwrap_or("");
+    let pattern = input_json["pattern"].as_str().unwrap_or("");
+    let text = input_json["text"].as_str().unwrap_or("");
+    let options = &input_json["options"];
 
     let mut flags = regress::Flags::new(std::iter::empty::<u32>());
-    flags.icase = options.find('i').is_some();
-    flags.multiline = options.find('m').is_some();
-    flags.dot_all = options.find('s').is_some();
-    flags.no_opt = options.find('N').is_some();
-    flags.unicode = options.find('u').is_some();
-    flags.unicode_sets = options.find('v').is_some();
+    flags.icase = options["case_insensitive"].as_bool().unwrap_or(false);
+    flags.multiline = options["multi_line"].as_bool().unwrap_or(false);
+    flags.dot_all = options["dot_matches_new_line"].as_bool().unwrap_or(false);
+    flags.no_opt = options["no_opt"].as_bool().unwrap_or(false);
+    flags.unicode = options["unicode"].as_bool().unwrap_or(false);
+    flags.unicode_sets = options["unicode_sets"].as_bool().unwrap_or(false);
 
     match regress::Regex::with_flags(pattern, flags)
     {

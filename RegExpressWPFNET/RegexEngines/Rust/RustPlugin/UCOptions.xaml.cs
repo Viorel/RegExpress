@@ -140,7 +140,8 @@ namespace RustPlugin
 
                 chbx_crlf.Visibility = is_regex_or_regex_lite || is_fancy ? Visibility.Visible : Visibility.Collapsed;
                 chbx_swap_greed.Visibility = is_regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
-                chbx_unicode.Visibility = crate == CrateEnum.regex || is_fancy ? Visibility.Visible : Visibility.Collapsed;
+                chbx_unicode.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                chbx_unicode_mode.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;
                 chbx_octal.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
                 chbx_oniguruma_mode.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;
                 chbx_find_not_empty.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;

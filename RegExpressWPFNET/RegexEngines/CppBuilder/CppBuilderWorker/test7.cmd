@@ -1,1 +1,1 @@
-echo { "pattern" : "(.)(.)?(.)", "text" : "ac", "flags": "iN" } | Win64\Release\CppBuilderWorker.exe 1>o 2>e & type o & type e
+echo { "pattern" : "(.)(.)?(.)", "text" : "ac", "options" : { "roNotEmpty" : true } } | Win64\Release\CppBuilderWorker.exe 1>o 2>e & type o & type e

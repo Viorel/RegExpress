@@ -1,1 +1,1 @@
-@echo {"pattern": "(a)|B", "text": "abc", "flags": "i"} | adaworker.exe
+@echo {"pattern": "(a)|B", "text": "abc", "options" : { "Case_Insensitive" : true } } | adaworker.exe

@@ -78,6 +78,15 @@ static void DoWork( UnicodeString pattern, UnicodeString text, TRegExOptions opt
     }
 }
 
+bool GetBool( TJSONObject* object, UnicodeString name, bool default_value = false)
+{
+    if( ! object) return default_value;
+
+    TJSONBool* b = dynamic_cast<TJSONBool*>( object->GetValue( name));
+
+    return b ? b->AsBoolean : default_value;
+}
+
 int WINAPI _tWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow )
 {
     __try
@@ -87,7 +96,7 @@ int WINAPI _tWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmd
         TStreamReader* stream_reader = new TStreamReader( stdin_stream );
         UnicodeString input_string = stream_reader->ReadToEnd( );
 #else
-        UnicodeString input_string = LR"JSON({ "pattern" : ".", "text" : "abc", "flags": "g" })JSON";
+        UnicodeString input_string = LR"JSON({ "pattern" : ".", "text" : "abc", "options": { "roIgnoreCase" : true } })JSON";
 #endif
 
         //std::wcout << input_string << std::endl;
@@ -107,21 +116,22 @@ int WINAPI _tWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmd
         if( value == nullptr ) throw std::runtime_error( "No text" );
         UnicodeString text = value->Value( );
 
-        value = json_object->GetValue( "flags" );
-        UnicodeString flags = value == nullptr ? L"" : value->Value( );
-
         //std::wcout << "pattern: " << pattern << std::endl;
         //std::wcout << "text: " << text << std::endl;
-        //std::wcout << "flags: " << flags << std::endl;
+
+        TJSONObject* input_options = dynamic_cast<TJSONObject*>( json_object->GetValue( "options"));
+
+        bool b;
 
         TRegExOptions options;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'i' ) != flags.cend( ) ) options << TRegExOption::roIgnoreCase;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'm' ) != flags.cend( ) ) options << TRegExOption::roMultiLine;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'n' ) != flags.cend( ) ) options << TRegExOption::roExplicitCapture;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'C' ) != flags.cend( ) ) options << TRegExOption::roCompiled;
-        if( std::find( flags.cbegin( ), flags.cend( ), L's' ) != flags.cend( ) ) options << TRegExOption::roSingleLine;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'x' ) != flags.cend( ) ) options << TRegExOption::roIgnorePatternSpace;
-        if( std::find( flags.cbegin( ), flags.cend( ), L'N' ) != flags.cend( ) ) options << TRegExOption::roNotEmpty;
+
+        if( GetBool( input_options , "roIgnoreCase")) 			options << TRegExOption::roIgnoreCase;
+        if( GetBool( input_options , "roMultiLine")) 			options << TRegExOption::roMultiLine;
+        if( GetBool( input_options , "roExplicitCapture")) 		options << TRegExOption::roExplicitCapture;
+        if( GetBool( input_options , "roCompiled")) 			options << TRegExOption::roCompiled;
+        if( GetBool( input_options , "roSingleLine")) 			options << TRegExOption::roSingleLine;
+        if( GetBool( input_options , "roIgnorePatternSpace")) 	options << TRegExOption::roIgnorePatternSpace;
+        if( GetBool( input_options , "roNotEmpty")) 			options << TRegExOption::roNotEmpty;
 
         DoWork( pattern, text, options );
     }

@@ -1,1 +1,1 @@
-echo { "pattern" : ".", "text" : "abc", "options" : "" } | "target\release\RustResharpWorker.exe"
+echo { "pattern" : ".", "text" : "abc", "options" : { } } | "target\release\RustResharpWorker.exe"

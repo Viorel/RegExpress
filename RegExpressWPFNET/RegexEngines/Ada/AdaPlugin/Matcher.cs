@@ -43,12 +43,17 @@ namespace AdaPlugin
                 throw new Exception( string.Format( "Ada engine only supports the ASCII character encoding.\r\nThe text contains an invalid character at position {0}.", exc.Index ) );
             }
 
-            string flags = "";
-            if( options.Case_Insensitive ) flags += 'i';
-            if( options.Single_Line ) flags += 's';
-            if( options.Multiple_Lines ) flags += 'm';
-
-            var obj = new { pattern = pattern, text = text, flags = flags };
+            var obj = new
+            {
+                pattern = pattern,
+                text = text,
+                options = new
+                {
+                    options.Case_Insensitive,
+                    options.Single_Line,
+                    options.Multiple_Lines,
+                }
+            };
 
             using ProcessHelper ph = new( GetWorkerExePath( ) );
 

@@ -66,14 +66,6 @@ Example of result:
             {
                 pattern = pattern,
                 text = text,
-                flags = "",
-                // flags not supported yet
-                //flags =
-                //    ( options.case_insensitive ? "i" : "" ) +
-                //    ( options.multiline ? "m" : "" ) +
-                //    ( options.dot_all ? "s" : "" ) +
-                //    ( options.extended ? "x" : "" ) +
-                //    ( options.unicode ? "U" : "" ),
             };
 
             string json = JsonSerializer.Serialize( json_object );

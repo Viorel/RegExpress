@@ -36,26 +36,23 @@ namespace RustPlugin
 
             bool is_builder = options.@struct == StructEnum.RegexBuilder;
 
-            var o = new StringBuilder( );
-
-            if( options.case_insensitive ) o.Append( "i" );
-            if( options.multi_line ) o.Append( "m" );
-            if( options.dot_matches_new_line ) o.Append( "s" );
-            if( options.crlf ) o.Append( "R" );
-            if( options.swap_greed ) o.Append( "U" );
-            if( options.ignore_whitespace ) o.Append( "x" );
-            //if( options.unicode ) o.Append( "u" );
-            //if( options.octal ) o.Append( "O" );
-
             var obj = new
             {
-                s = options.@struct,
-                p = pattern,
-                t = text,
-                o = o.ToString( ),
-                sl = is_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null,
-                //dsl = is_builder ? ValidationUtilities.ParseUInt32( "dfa_size_limit", options.dfa_size_limit ) : null,
-                nl = is_builder ? ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ) : null,
+                @struct = options.@struct,
+                pattern = pattern,
+                text = text,
+                options = new
+                {
+                    options.case_insensitive,
+                    options.multi_line,
+                    options.dot_matches_new_line,
+                    options.crlf,
+                    options.swap_greed,
+                    options.ignore_whitespace,
+                    sl = is_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null,
+                    //dsl = is_builder ? ValidationUtilities.ParseUInt32( "dfa_size_limit", options.dfa_size_limit ) : null,
+                    nl = is_builder ? ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ) : null,
+                },
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
