@@ -300,6 +300,7 @@ namespace VBScriptPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -364,7 +365,6 @@ namespace VBScriptPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,

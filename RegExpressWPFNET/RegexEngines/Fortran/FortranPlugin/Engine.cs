@@ -305,6 +305,7 @@ namespace FortranPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = false,
                 PositiveLookahead = false,
@@ -370,7 +371,6 @@ namespace FortranPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
@@ -519,6 +519,7 @@ namespace FortranPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = false,
                 PositiveLookahead = false,
@@ -584,7 +585,6 @@ namespace FortranPlugin
 
                 AsciiOnly = true, // (defective match: '..' matches the character  and an empty space between characters)
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,
@@ -733,6 +733,7 @@ namespace FortranPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = false,
                 PositiveLookahead = false,
@@ -798,7 +799,6 @@ namespace FortranPlugin
 
                 AsciiOnly = true, // (defective match: '.' matches the character and an empty space between characters)
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,

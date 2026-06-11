@@ -284,6 +284,7 @@ namespace HyperscanPlugin
                 NamedGroup_PLtGt = true,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -349,7 +350,6 @@ namespace HyperscanPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,

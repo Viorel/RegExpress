@@ -283,6 +283,7 @@ namespace SubRegPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -348,7 +349,6 @@ namespace SubRegPlugin
 
                 AsciiOnly = true,
                 SplitSurrogatePairs = false, // (not applicable)
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = false,

@@ -45,6 +45,7 @@
                     <ui:ComboBoxItemWithVersion Tag ="fancy_regex" Text="fancy_regex" Version="{Binding FancyRegex, Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="regress"     Text="regress"     Version="{Binding Regress, Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="resharp"     Text="resharp"     Version="{Binding Resharp, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="anre"        Text="anre"        Version="{Binding Anre, Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 

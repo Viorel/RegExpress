@@ -362,6 +362,7 @@ namespace StdPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = grammar == GrammarEnum.ECMAScript,
                 PositiveLookahead = grammar == GrammarEnum.ECMAScript,
@@ -441,7 +442,6 @@ namespace StdPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = false,
@@ -602,6 +602,7 @@ namespace StdPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = grammar == GrammarEnum.ECMAScript,
                 PositiveLookahead = grammar == GrammarEnum.ECMAScript,
@@ -681,7 +682,6 @@ namespace StdPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None, // 'Accept' when 'polynomial' option is set; otherwise it hangs; however, this option disables back-references
                 Σσς = false,
@@ -830,6 +830,7 @@ namespace StdPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = true,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -895,7 +896,6 @@ namespace StdPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = true,

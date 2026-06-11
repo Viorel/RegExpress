@@ -307,6 +307,7 @@ namespace JavaPlugin
                 NamedGroup_PLtGt = is_re2j,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = is_regex,
@@ -372,7 +373,6 @@ namespace JavaPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = ( package == PackageEnum.regex && isUnicodeCase ) || package == PackageEnum.re2j,

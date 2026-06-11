@@ -341,6 +341,9 @@ namespace JavaScriptPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
+                BalancingGroup = false,
+                CapturingGroup = false,
+                DuplicateGroupName = true,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -405,7 +408,6 @@ namespace JavaScriptPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag && !vFlag,
-                AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
@@ -552,6 +554,9 @@ namespace JavaScriptPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
+                BalancingGroup = false,
+                CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -616,7 +621,6 @@ namespace JavaScriptPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag,
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
@@ -763,6 +767,9 @@ namespace JavaScriptPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
+                BalancingGroup = false,
+                CapturingGroup = false,
+                DuplicateGroupName = true,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -827,7 +834,6 @@ namespace JavaScriptPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag,
-                AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
@@ -974,6 +980,9 @@ namespace JavaScriptPlugin
                 NamedGroup_Apos = false,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
+                BalancingGroup = false,
+                CapturingGroup = false,
+                DuplicateGroupName = true,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -1038,7 +1047,6 @@ namespace JavaScriptPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = !uFlag,
-                AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,
@@ -1187,6 +1195,7 @@ namespace JavaScriptPlugin
                 NamedGroup_PLtGt = true,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = false,
@@ -1252,7 +1261,6 @@ namespace JavaScriptPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,

@@ -200,6 +200,8 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool NamedGroup_PLtGt { get; init; }                         // (?P<name>...)
         public bool BalancingGroup { get; init; }                           // (?<name2-name1>...) etc., in addition to above 'NamedGroup_Apos', 'NamedGroup_LtGt', etc.
         public bool CapturingGroup { get; init; }                           // (?@...)
+        public bool DuplicateGroupName { get; init; }                       // allow duplicate names like "(?<n>abc)|(?<n>def)"
+
         public bool NoncapturingGroup { get; init; }                        // (?:...)
         public bool PositiveLookahead { get; init; }                        // (?=...)
         public bool NegativeLookahead { get; init; }                        // (?!...)
@@ -272,8 +274,6 @@ namespace RegExpressLibrary.SyntaxColouring
 
         public bool SplitSurrogatePairs { get; init; }                      // when the text contains a surrogate pair (e.g. “😎” U+1F60E), then “.” matches two components separately: D83D and DE0E‎
                                                                             // if it is 'false', then '.' returns a single result (32-bit surrogate pair)
-
-        public bool AllowDuplicateGroupName { get; init; }                  // allow duplicate names like "(?<n>abc)|(?<n>def)"
 
         public bool FuzzyMatchingParams { get; init; }                      // parameters for fuzzy matching (programmatically, not pattern syntax); (see also 'Quantifier_Braces_FreeForm')
 

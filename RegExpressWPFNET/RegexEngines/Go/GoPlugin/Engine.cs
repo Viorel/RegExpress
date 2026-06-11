@@ -304,6 +304,7 @@ namespace GoPlugin
                 NamedGroup_PLtGt = is_normal_regexp || is_rexa || ( is_regexp2 && is_RE2 ) || is_coregex,
                 BalancingGroup = is_regexp2,
                 CapturingGroup = false,
+                DuplicateGroupName = is_normal,
 
                 NoncapturingGroup = is_normal,
                 PositiveLookahead = is_regexp2 || is_rexa,
@@ -369,7 +370,6 @@ namespace GoPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
-                AllowDuplicateGroupName = is_normal,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = is_regexp || is_rexa || is_coregex ? FeatureMatrix.CatastrophicBacktrackingEnum.Accept : FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = is_normal_regexp || is_regexp2 || is_coregex,

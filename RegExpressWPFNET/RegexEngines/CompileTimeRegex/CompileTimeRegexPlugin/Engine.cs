@@ -280,6 +280,7 @@ namespace CompileTimeRegexPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = true,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -345,7 +346,6 @@ namespace CompileTimeRegexPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,

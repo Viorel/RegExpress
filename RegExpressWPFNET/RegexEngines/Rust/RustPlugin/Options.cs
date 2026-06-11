@@ -14,7 +14,8 @@ namespace RustPlugin
         regex_lite,
         fancy_regex,
         regress,
-        resharp
+        resharp,
+        anre,
     }
 
     enum StructEnum

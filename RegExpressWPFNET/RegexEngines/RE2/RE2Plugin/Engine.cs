@@ -287,6 +287,7 @@ namespace RE2Plugin
                 NamedGroup_PLtGt = is_normal,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = is_normal,
 
                 NoncapturingGroup = is_normal,
                 PositiveLookahead = false,
@@ -352,7 +353,6 @@ namespace RE2Plugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
-                AllowDuplicateGroupName = is_normal,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,

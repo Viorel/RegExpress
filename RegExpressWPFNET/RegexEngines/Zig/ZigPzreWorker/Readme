@@ -3,7 +3,7 @@ HOW IT'S MADE
 
 - Download Zig from official site. (No installation required). Use the last Release, not latest 'master'.
 
-- Get the Release of 'PZRE' from https://codeberg.org/jetill/pzre, 
+- Get the Release (or tag) of 'PZRE' from https://codeberg.org/jetill/pzre, 
   place to "pzre" subfolder. (Remove old files).
 
 - If required, the "src\main.zig" file can be edited in Visual Studio Code or any editor.

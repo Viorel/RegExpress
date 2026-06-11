@@ -305,6 +305,7 @@ namespace PCRE2Plugin
                 NamedGroup_PLtGt = true,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = PCRE2_DUPNAMES,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -370,7 +371,6 @@ namespace PCRE2Plugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = PCRE2_DUPNAMES,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,

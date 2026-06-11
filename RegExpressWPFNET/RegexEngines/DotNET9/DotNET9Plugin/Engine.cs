@@ -299,6 +299,7 @@ namespace DotNET9Plugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = true,
                 CapturingGroup = false,
+                DuplicateGroupName = true,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -364,7 +365,6 @@ namespace DotNET9Plugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,

@@ -311,6 +311,7 @@ namespace ZigPlugin
                 NamedGroup_PLtGt = true,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = true,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -376,7 +377,6 @@ namespace ZigPlugin
 
                 AsciiOnly = true, // ('unicode' flag not yet implemented)
                 SplitSurrogatePairs = true, // ('unicode' flag not yet implemented)
-                AllowDuplicateGroupName = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = false,
@@ -525,6 +525,7 @@ namespace ZigPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = false,
                 PositiveLookahead = false,
@@ -590,7 +591,6 @@ namespace ZigPlugin
 
                 AsciiOnly = true, // ('unicode' flag not yet implemented)
                 SplitSurrogatePairs = true, // ('unicode' flag not yet implemented)
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
@@ -739,6 +739,7 @@ namespace ZigPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = false,
                 PositiveLookahead = false,
@@ -804,7 +805,6 @@ namespace ZigPlugin
 
                 AsciiOnly = true, // ('unicode' flag not yet implemented)
                 SplitSurrogatePairs = true, // ('unicode' flag not yet implemented)
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,

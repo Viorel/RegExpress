@@ -399,6 +399,7 @@ namespace OnigurumaPlugin
                 NamedGroup_PLtGt = details.ONIG_SYN_OP2_QMARK_CAPITAL_P_NAME,
                 BalancingGroup = false,
                 CapturingGroup = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
+                DuplicateGroupName = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA || syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG || syntax == SyntaxEnum.ONIG_SYNTAX_RUBY,
 
                 NoncapturingGroup = details.ONIG_SYN_OP2_QMARK_GROUP_EFFECT,
                 PositiveLookahead = details.ONIG_SYN_OP2_QMARK_GROUP_EFFECT,
@@ -464,7 +465,6 @@ namespace OnigurumaPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
-                AllowDuplicateGroupName = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA || syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG || syntax == SyntaxEnum.ONIG_SYNTAX_RUBY,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,

@@ -8,58 +8,49 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Interop;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.Matches.Simple;
 
+
 namespace RustPlugin
 {
-    internal static class MatcherRegress
+    static class MatcherAnre
     {
-        sealed class NamedGroupResponse
+        sealed class GroupResponse
         {
-            [JsonPropertyName( "n" )]
-            public string? Name { get; set; }
+            [JsonPropertyName("n")]
+            public string? name { get; set; }
 
             [JsonPropertyName( "r" )]
-            public int[]? Range { get; set; }
+            public int[]? range { get; set; } // start, end
         }
 
-        sealed class MatchResponse
+        sealed class MatchesResponse
         {
-            [JsonPropertyName( "g" )]
-            public int[][]? Groups { get; set; }
-
-            [JsonPropertyName( "ng" )]
-            public NamedGroupResponse[]? NamedGroups { get; set; }
+            [JsonPropertyName( "matches" )]
+            public GroupResponse[][]? matches { get; set; }
         }
+
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            if( options.@struct == StructEnum.None )
-            {
-                throw new ApplicationException( "Invalid struct." );
-            }
-
             var obj = new
             {
                 pattern = pattern,
                 text = text,
-                options = new
-                {
-                    options.case_insensitive,
-                    options.multi_line,
-                    options.dot_matches_new_line,
-                    options.unicode,
-                    options.unicode_sets,
-                    options.no_opt,
-                }
+                //options = new
+                //{
+                //}
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
 
-            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.UTF8;
 
@@ -76,28 +67,27 @@ namespace RustPlugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            MatchResponse[]? response = JsonSerializer.Deserialize<MatchResponse[]>( ph.OutputStream );
+            MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( ph.OutputStream );
 
-            if( response == null ) throw new Exception( "Null response" );
+            if( response == null || response.matches == null ) throw new Exception( "Null response" );
 
             byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
 
             List<IMatch> matches = [];
-            SimpleTextGetter? stg = null;
+            SimpleTextGetter stg = new SimpleTextGetter( text );
 
-            foreach( var m in response )
+            foreach( var m in response.matches )
             {
                 SimpleMatch? match = null;
 
-                List<string> assigned_names = [];
-
-                for( int group_index = 0; group_index < m.Groups!.Length; group_index++ )
+                for( int group_index = 0; group_index < m.Length; group_index++ )
                 {
-                    int[] g = m.Groups[group_index];
-                    bool success = g.Length == 2;
+                    GroupResponse g = m[group_index];
 
-                    int byte_start = success ? g[0] : 0;
-                    int byte_end = success ? g[1] : 0;
+                    // (Currently there is no difference between failed match and succeeded empty group; failed groups are returned as [0, 0]).
+
+                    int byte_start = g.range![0];
+                    int byte_end = g.range![1];
 
                     int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_start );
                     int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_end );
@@ -106,25 +96,16 @@ namespace RustPlugin
                     if( group_index == 0 )
                     {
                         Debug.Assert( match == null );
-                        Debug.Assert( success );
-
-                        stg ??= new SimpleTextGetter( text );
+                        Debug.Assert( char_start >= 0 );
 
                         match = SimpleMatch.Create( char_start, char_length, stg );
                     }
 
                     Debug.Assert( match != null );
 
-                    string? name = null;
-                    if( success )
-                    {
-                        name = m.NamedGroups!
-                            .Where( ng => ng.Range?.Length == 2 && ng.Range[0] == g[0] && ng.Range[1] == g[1] )
-                            .Select( ng => ng.Name )
-                            .Where( n => !assigned_names.Contains( n! ) )
-                            .FirstOrDefault( );
-                        if( name != null ) assigned_names.Add( name );
-                    }
+                    bool success = char_length > 0;
+
+                    string? name = g.name;
                     if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
 
                     if( success )
@@ -149,7 +130,7 @@ namespace RustPlugin
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string worker_exe = Path.Combine( assembly_dir, @"RustRegressWorker.bin" );
+            string worker_exe = Path.Combine( assembly_dir, @"RustAnreWorker.bin" );
 
             return worker_exe;
         }

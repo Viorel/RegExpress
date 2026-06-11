@@ -281,6 +281,7 @@ namespace AdaPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = false,
@@ -346,7 +347,6 @@ namespace AdaPlugin
 
                 AsciiOnly = true,
                 SplitSurrogatePairs = false, // (not applicable)
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,

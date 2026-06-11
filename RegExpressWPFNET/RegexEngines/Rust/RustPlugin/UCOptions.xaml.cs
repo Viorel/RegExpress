@@ -97,6 +97,7 @@ namespace RustPlugin
                     "fancy_regex" => CrateEnum.fancy_regex,
                     "regress" => CrateEnum.regress,
                     "resharp" => CrateEnum.resharp,
+                    "anre" => CrateEnum.anre,
                     _ => CrateEnum.None,
                 };
 
@@ -180,6 +181,7 @@ namespace RustPlugin
                 CrateEnum.fancy_regex => "fancy_regex",
                 CrateEnum.regress => "regress",
                 CrateEnum.resharp => "resharp",
+                CrateEnum.anre => "anre",
                 _ => "unknown"
             };
         }

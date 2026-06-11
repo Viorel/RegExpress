@@ -299,6 +299,7 @@ namespace PythonPlugin
                 NamedGroup_PLtGt = true,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = is_regex,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -364,7 +365,6 @@ namespace PythonPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = false,
-                AllowDuplicateGroupName = is_regex,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = key.module == ModuleEnum.regex ? FeatureMatrix.CatastrophicBacktrackingEnum.Accept : FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,

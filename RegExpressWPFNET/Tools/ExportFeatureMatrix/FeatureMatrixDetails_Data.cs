@@ -384,7 +384,7 @@ partial class FeatureMatrixDetails
                             return false;
                         }
                     }),
-                new FeatureMatrixDetails( @"Duplicate names", @"Allow duplicate group names", fm => fm.AllowDuplicateGroupName)
+                new FeatureMatrixDetails( @"Duplicate names", @"Allow duplicate group names", fm => fm.DuplicateGroupName)
                     .Test( @"(?<a>x)|(?<a>y)", "y", "z" )
                     .Test( @"\(?<a>x\)|\(?<a>y\)", "y", "z" )
                     .Test( @"(?P<a>x)|(?P<a>y)", "y", "z" ),
@@ -567,7 +567,7 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"![comment]", @"Inline comment", fm => fm.Ext_AnomalousInlineComments)
                     .Test( @"a![comment]b", "ab", "a!cb" ),
                 new FeatureMatrixDetails( @"_", @"Universal wildcard (any character including newlines)", fm => fm.Ext_UniversalWildcard)
-                    .Test( @"a__b", "a\r\nb", null ),
+                    .Test( @"a__b_", "a\r\nbc", null ),
                 new FeatureMatrixDetails( @"&", @"Intersection (both patterns must match)", fm => fm.Ext_Operator_Intersection)
                     .Test( @"a.+&.+b", "axb", null ),
                 new FeatureMatrixDetails( @"~(…)", @"Complement (pattern must not match)", fm => fm.Ext_Operator_Complement)

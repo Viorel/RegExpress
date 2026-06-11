@@ -326,6 +326,7 @@ namespace BoostPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = is_perl,
 
                 NoncapturingGroup = is_perl || is_emacs,
                 PositiveLookahead = is_perl || is_emacs,
@@ -393,7 +394,6 @@ namespace BoostPlugin
 
                 AsciiOnly = false,
                 SplitSurrogatePairs = true,
-                AllowDuplicateGroupName = is_perl,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = false,

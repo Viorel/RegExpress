@@ -282,6 +282,7 @@ namespace TinyRegexCPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
+                DuplicateGroupName = false,
 
                 NoncapturingGroup = false,
                 PositiveLookahead = false,
@@ -347,7 +348,6 @@ namespace TinyRegexCPlugin
 
                 AsciiOnly = true,
                 SplitSurrogatePairs = false, // (not applicable)
-                AllowDuplicateGroupName = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
