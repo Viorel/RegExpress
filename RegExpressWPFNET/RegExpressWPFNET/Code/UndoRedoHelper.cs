@@ -58,6 +58,7 @@ namespace RegExpressWPFNET.Code
         SelectionInfo PreviousSelection = new( 0, 0 );
         bool IsUndoOrRedo = false;
         bool IsTrackingTextChange = false;
+        bool IsPasting = false;
 
 
         public UndoRedoHelper( MyRichTextBox rtb )
@@ -65,8 +66,9 @@ namespace RegExpressWPFNET.Code
             Rtb = rtb;
             Rtb.CommandBindings.Add( new CommandBinding( ApplicationCommands.Undo, HandleUndo ) );
             Rtb.CommandBindings.Add( new CommandBinding( ApplicationCommands.Redo, HandleRedo ) );
+            DataObject.AddPastingHandler( Rtb, HandlePaste );
 
-            Rtb.LostFocus += HandleLostFocus;
+            Rtb.LostKeyboardFocus += HandleLostKeyboardFocus;
 
             Init( );
         }
@@ -114,6 +116,12 @@ namespace RegExpressWPFNET.Code
             RedoList.Clear( );
 
             IsTrackingTextChange = true;
+
+            if( IsPasting )
+            {
+                IsPasting = false;
+                IsTrackingTextChange = false;
+            }
         }
 
         public void HandleSelectionChanged( )
@@ -125,7 +133,7 @@ namespace RegExpressWPFNET.Code
             PreviousSelection = td.Selection;
         }
 
-        void HandleLostFocus( object sender, RoutedEventArgs e )
+        private void HandleLostKeyboardFocus( object sender, KeyboardFocusChangedEventArgs e )
         {
             IsTrackingTextChange = false;
         }
@@ -138,6 +146,12 @@ namespace RegExpressWPFNET.Code
         void HandleRedo( object sender, ExecutedRoutedEventArgs e )
         {
             DoRedo( );
+        }
+
+        private void HandlePaste( object sender, DataObjectPastingEventArgs e )
+        {
+            IsTrackingTextChange = false;
+            IsPasting = true;
         }
 
         public bool DoUndo( )
