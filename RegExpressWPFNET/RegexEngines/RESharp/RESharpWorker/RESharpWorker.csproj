@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="10.1.300" />
+    <PackageReference Include="FSharp.Core" Version="10.1.301" />
     <PackageReference Include="Resharp" Version="1.0.3" />
   </ItemGroup>
 
