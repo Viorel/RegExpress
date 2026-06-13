@@ -23,7 +23,7 @@ namespace RustPlugin
     {
         sealed class GroupResponse
         {
-            [JsonPropertyName("n")]
+            [JsonPropertyName( "n" )]
             public string? name { get; set; }
 
             [JsonPropertyName( "r" )]
@@ -43,9 +43,10 @@ namespace RustPlugin
             {
                 pattern = pattern,
                 text = text,
-                //options = new
-                //{
-                //}
+                options = new
+                {
+                    anre = options.anre_syntax,
+                }
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

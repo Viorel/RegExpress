@@ -70,7 +70,10 @@ namespace RustPlugin
 
         // Resharp crate
         public string? max_dfa_capacity { get; set; }
-        public string? lookahead_context_max { get; set; } 
+        public string? lookahead_context_max { get; set; }
+
+        // Anre crate
+        public bool anre_syntax { get; set; }
 
         public Options Clone( )
         {

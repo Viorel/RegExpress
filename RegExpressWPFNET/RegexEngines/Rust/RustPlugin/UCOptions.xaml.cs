@@ -111,11 +111,13 @@ namespace RustPlugin
                 bool is_regex_or_regex_lite = crate == CrateEnum.regex || crate == CrateEnum.regex_lite;
                 bool is_fancy = crate == CrateEnum.fancy_regex;
                 bool is_resharp = crate == CrateEnum.resharp;
+                bool is_anre = crate == CrateEnum.anre;
 
                 pnlStruct.Visibility =
                     pnlRegexBuilderOptions.Visibility = is_regex_or_regex_lite || is_fancy ? Visibility.Visible : Visibility.Collapsed;
                 pnlRegressOptions.Visibility = crate == CrateEnum.regress ? Visibility.Visible : Visibility.Collapsed;
                 pnlResharpOptions.Visibility = is_resharp ? Visibility.Visible : Visibility.Collapsed;
+                pnlAnreOptions.Visibility = is_anre ? Visibility.Visible : Visibility.Collapsed;
 
                 if( is_regex_or_regex_lite || is_fancy )
                 {

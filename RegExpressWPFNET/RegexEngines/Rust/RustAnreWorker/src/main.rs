@@ -26,11 +26,11 @@ fn main()
 
     //println!("INPUT: '{}'", input);
 
-    let parsed = json::parse(&input);
+    let input_json = json::parse(&input);
 
-    if parsed.is_err()
+    if input_json.is_err()
     {
-        let err = parsed.unwrap_err();
+        let err = input_json.unwrap_err();
 
         eprintln!("Failed to parse input: {}", err);
         eprintln!("Input: '{}'", input);
@@ -38,22 +38,31 @@ fn main()
         return;
     }
 
-    let parsed = parsed.unwrap();
+    let input_json = input_json.unwrap();
 
-    if ! parsed.is_object()
+    if ! input_json.is_object()
     {
         eprintln!("Bad json: {}", input);
 
         return;
     }
 
-    let pattern = parsed["pattern"].as_str().unwrap_or("");
-    let text = parsed["text"].as_str().unwrap_or("");
-    //let options = &input_json["options"];
+    let pattern = input_json["pattern"].as_str().unwrap_or("");
+    let text = input_json["text"].as_str().unwrap_or("");
+    let options = &input_json["options"];
+
+    let is_anre = options["anre"].as_bool().unwrap_or(false);
 
     let re;
 
-    re = regex_anre::Regex::new(pattern);
+    if is_anre
+    {
+        re = regex_anre::Regex::from_anre(pattern);
+    }
+    else 
+    {
+        re = regex_anre::Regex::new(pattern);
+    }
 
     if re.is_err()
     {

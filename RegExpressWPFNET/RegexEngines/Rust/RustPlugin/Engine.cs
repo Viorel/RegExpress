@@ -134,6 +134,7 @@ namespace RustPlugin
         {
             return new SyntaxOptions
             {
+                Literal = Options.crate == CrateEnum.anre && Options.anre_syntax, //
                 XLevel = ( Options.crate == CrateEnum.regex || Options.crate == CrateEnum.fancy_regex || Options.crate == CrateEnum.regex_lite || Options.crate == CrateEnum.resharp ) && Options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = Options.crate == CrateEnum.regress,
                 FeatureMatrix =

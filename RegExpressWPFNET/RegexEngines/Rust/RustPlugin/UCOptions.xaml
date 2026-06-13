@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="629.355" d:DesignWidth="779.929" 
+             d:DesignHeight="709.355" d:DesignWidth="779.929" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -204,7 +204,10 @@
                 </Grid>
 
             </StackPanel>
-
+            
+            <StackPanel x:Name="pnlAnreOptions" Orientation="Vertical" Visibility="Collapsed" d:Visibility="Visible">
+                <ui:CheckboxWithNote Prop="anre_syntax" Text="ANRE" Note="use ANRE language"/>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </UserControl>
