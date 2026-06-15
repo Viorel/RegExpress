@@ -82,7 +82,9 @@ namespace JavaScriptPlugin
 
                 bool is_V8 = Options.Runtime == RuntimeEnum.WebView2 || Options.Runtime == RuntimeEnum.NodeJs;
                 bool is_SM = Options.Runtime == RuntimeEnum.SpiderMonkey;
+                bool is_QuickJs = Options.Runtime == RuntimeEnum.QuickJs;
                 bool is_RE2JS = Options.Runtime == RuntimeEnum.RE2JS;
+                bool is_RegexPlus = Options.Runtime == RuntimeEnum.RegexPlus;
 
                 cbxFunction.Visibility = !is_RE2JS ? Visibility.Visible : Visibility.Collapsed;
                 cbxFunctionRE2JS.Visibility = is_RE2JS ? Visibility.Visible : Visibility.Collapsed;
@@ -91,7 +93,10 @@ namespace JavaScriptPlugin
                 pnlRE2JS.Visibility = is_RE2JS ? Visibility.Visible : Visibility.Collapsed;
                 pnlSM.Visibility = is_SM ? Visibility.Visible : Visibility.Collapsed;
 
-                checkboxV.Visibility = is_V8 ? Visibility.Visible : Visibility.Collapsed;
+                checkboxU.Visibility = !is_RegexPlus ? Visibility.Visible : Visibility.Collapsed;
+                checkboxV.Visibility = is_V8 || is_QuickJs || is_RegexPlus ? Visibility.Visible : Visibility.Collapsed;
+                checkboxX.Visibility = is_RegexPlus ? Visibility.Visible : Visibility.Collapsed;
+                checkboxN.Visibility = is_RegexPlus ? Visibility.Visible : Visibility.Collapsed;
             }
             finally
             {

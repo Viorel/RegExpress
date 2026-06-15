@@ -104,7 +104,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Esc_C1 { get; init; }                                   // same as Esc_c1
         public bool Esc_CMinus { get; init; }                               // ex: \C-Z, which is 0x1A
         public bool Esc_NBrace { get; init; }                               // ex: \N{U+0041}, \N{LATIN CAPITAL LETTER A}, \N{COMMA} (some want \N{comma})
-        public bool GenericEscape { get; init; }                            // \c, where c -- any character
+        public bool GenericEscape { get; init; }                            // \c, where c -- any character that does not have another meaning
 
         public bool InsideSets_Esc_a { get; init; }                         // \a
         public bool InsideSets_Esc_b { get; init; }                         // \b -- backspace; see also Anchor_bB
@@ -127,7 +127,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool InsideSets_Esc_C1 { get; init; }                        // same as InsideSets_Esc_c1
         public bool InsideSets_Esc_CMinus { get; init; }                    // ex: \C-Z, which is 0x1A
         public bool InsideSets_Esc_NBrace { get; init; }                    // ex: \N{U+0041}, \N{LATIN CAPITAL LETTER A}, \N{COMMA} (some want \N{comma})
-        public bool InsideSets_GenericEscape { get; init; }                 // [\c], where c -- any character
+        public bool InsideSets_GenericEscape { get; init; }                 // [\c], where c -- any character that does not have another meaning
 
         public bool Class_Dot { get; init; }                                // . -- any, except newline (\n), or including newline in single-line mode
         public bool Class_Cbyte { get; init; }                              // \C -- a single byte

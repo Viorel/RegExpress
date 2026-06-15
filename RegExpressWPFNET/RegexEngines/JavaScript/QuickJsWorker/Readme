@@ -1,5 +1,5 @@
 The QuickJs runtime is got from https://bellard.org/quickjs/binary_releases/ and unarchived to "QuickJs" subfolder.
 
-The LICENSE and VERSION files are got from sources (https://bellard.org/quickjs/).
+The LICENSE and VERSION files are got from sources (https://bellard.org/quickjs/ or https://github.com/bellard/quickjs).
 
 To test it, execute "test1.cmd" and "version.cmd" from command line console.

@@ -18,7 +18,7 @@ namespace PCRE2Plugin
     {
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
-        readonly LazyData<(bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        readonly LazyData<(bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         public Engine( )
         {
@@ -111,13 +111,14 @@ namespace PCRE2Plugin
             bool is_extended = Options.PCRE2_EXTENDED;
             bool is_extended_more = Options.PCRE2_EXTENDED_MORE;
             bool allow_empty_set = Options.PCRE2_ALLOW_EMPTY_CLASS;
+            bool bad_escape_is_literal = Options.PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL;
 
             return new SyntaxOptions
             {
                 Literal = is_literal,
                 XLevel = is_extended_more ? XLevelEnum.xx : is_extended ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = allow_empty_set,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( (PCRE2_ALT_BSUX: Options.PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX: Options.PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS: Options.PCRE2_ALT_EXTENDED_CLASS, PCRE2_DUPNAMES: true) ),
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (PCRE2_ALT_BSUX: Options.PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX: Options.PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS: Options.PCRE2_ALT_EXTENDED_CLASS, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: bad_escape_is_literal) ),
             };
         }
 
@@ -132,12 +133,13 @@ namespace PCRE2Plugin
                     PCRE2_ALT_EXTENDED_CLASS = true,
                     PCRE2_ALLOW_EMPTY_CLASS = true,
                     PCRE2_DUPNAMES = true,
+                    PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL = true,
                 }
             };
 
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.GetValue((PCRE2_ALT_BSUX:true, PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true, PCRE2_DUPNAMES: true) ), engine)
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.GetValue((PCRE2_ALT_BSUX:true, PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: true) ), engine)
                 ];
         }
         public void SetIgnoreCase( bool yes )
@@ -161,9 +163,9 @@ namespace PCRE2Plugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        static FeatureMatrix BuildFeatureMatrix( (bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES) options )
+        static FeatureMatrix BuildFeatureMatrix( (bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL) options )
         {
-            (bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES) = options;
+            (bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL) = options;
 
             return new FeatureMatrix
             {
@@ -211,7 +213,7 @@ namespace PCRE2Plugin
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL,
 
                 InsideSets_Esc_a = true,
                 InsideSets_Esc_b = true,
@@ -234,7 +236,7 @@ namespace PCRE2Plugin
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL,
 
                 Class_Dot = true,
                 Class_Cbyte = false,

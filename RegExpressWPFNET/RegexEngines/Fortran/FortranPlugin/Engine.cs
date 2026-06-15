@@ -211,7 +211,7 @@ namespace FortranPlugin
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = false,
 
                 InsideSets_Esc_a = false,
                 InsideSets_Esc_b = false,
@@ -639,7 +639,7 @@ namespace FortranPlugin
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = false,
 
                 InsideSets_Esc_a = false,
                 InsideSets_Esc_b = false,

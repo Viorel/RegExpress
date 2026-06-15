@@ -57,6 +57,7 @@
                         <ui:ComboBoxItemWithVersion Tag ="SpiderMonkey" Text="SpiderMonkey"         Version="{Binding SpiderMonkey, Source={StaticResource versions}}" />
                         <ui:ComboBoxItemWithVersion Tag ="Bun"          Text="JavaScriptCore (Bun)" Version="{Binding Bun, Source={StaticResource versions}}" />
                         <ui:ComboBoxItemWithVersion Tag ="RE2JS"        Text="RE2JS"                Version="{Binding RE2JS, Source={StaticResource versions}}" />
+                        <ui:ComboBoxItemWithVersion Tag ="RegexPlus"    Text="Regex+"               Version="{Binding RegexPlus, Source={StaticResource versions}}" />
                     </ComboBox>
 
                     <Label Grid.Column="0" Grid.Row="1" Content="Function:" Target="{Binding ElementName=cbxFunction}" />
@@ -73,8 +74,10 @@
                     <ui:CheckboxWithNote Prop="i" Note="ignore case"/>
                     <ui:CheckboxWithNote Prop="m" Note="allows ‘^’ and ‘$’ to match newline characters"/>
                     <ui:CheckboxWithNote Prop="s" Note="allows ‘.’ to match newline characters"/>
-                    <ui:CheckboxWithNote Prop="u" Note="treats pattern as a sequence of Unicode code points"/>
+                    <ui:CheckboxWithNote x:Name="checkboxU" Prop="u" Note="treats pattern as a sequence of Unicode code points"/>
                     <ui:CheckboxWithNote x:Name="checkboxV" Prop="v" Note="more Unicode features"/>
+                    <ui:CheckboxWithNote x:Name="checkboxX" Prop="x" Note="makes whitespace insignificant and adds support for line comments starting with #"/>
+                    <ui:CheckboxWithNote x:Name="checkboxN" Prop="n" Note="named capture only"/>
                     <ui:CheckboxWithNote Prop="y" Note="“sticky” search"/>
                     <ui:CheckboxWithNote Prop="g" Note="global search"/>
                     <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True"/>

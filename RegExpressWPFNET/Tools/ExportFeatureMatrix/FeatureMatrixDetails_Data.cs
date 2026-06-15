@@ -63,7 +63,7 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"[\Q…\E]", @"Literal inside […]", fm => fm.InsideSets_Literal_QE)
                     .Test( @"[\Qx\E]", "x", "Q"),
                 new FeatureMatrixDetails( @"[\q{…}]", @"Literal inside […]", fm => fm.InsideSets_Literal_qBrace)
-                    .Test( @"[\q{x}]", "x", "q"),
+                    .Test( @"a[\q{xy}]b", "axyb", "axb"),
             ] ),
 
             new ( @"Quantifiers",
@@ -143,7 +143,7 @@ partial class FeatureMatrixDetails
                     .Test( @"\N{COMMA}", ",", null )
                     .Test( @"\N{comma}", ",", null ),
                 new FeatureMatrixDetails( @"\any", @"Generic escape", fm => fm.GenericEscape)
-                    .Test( @"\\", @"\", null ),
+                    .Test( @"a\j", @"aj", @"a\j" ),
             ] ),
 
             new ( @"Escapes inside […] sets",
@@ -198,7 +198,7 @@ partial class FeatureMatrixDetails
                     .Test( @"[\N{COMMA}]", ",", "M" ) // (see also '\N' -- any except '\n')
                     .Test( @"[\N{comma}]", ",", "m" ),
                 new FeatureMatrixDetails( @"[\any]", @"Generic escape", fm => fm.InsideSets_GenericEscape)
-                    .Test( @"[\-]", "-", @"\"),
+                    .Test( @"[\j]", "j", @"\"),
             ] ),
 
             new ( @"Classes",

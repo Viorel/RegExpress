@@ -16,7 +16,18 @@ namespace JavaScriptPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly LazyData<(RuntimeEnum runtime, bool uFlag, bool vFlag, bool enableLookbehind), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        static readonly LazyData<(bool uFlag, bool vFlag), FeatureMatrix> LazyFeatureMatrix_V8 =
+            new( d => BuildFeatureMatrix_V8( d.uFlag, d.vFlag ) );
+        static readonly LazyData<bool /*uFlag*/, FeatureMatrix> LazyFeatureMatrix_QuickJs =
+            new( BuildFeatureMatrix_QuickJs );
+        static readonly LazyData<bool /*uFlag*/, FeatureMatrix> LazyFeatureMatrix_SpiderMonkey =
+            new( BuildFeatureMatrix_SpiderMonkey );
+        static readonly LazyData<bool /*uFlag*/, FeatureMatrix> LazyFeatureMatrix_Bun =
+            new( BuildFeatureMatrix_Bun );
+        static readonly LazyData<(bool uFlag, bool enableLookbehind), FeatureMatrix> LazyFeatureMatrix_RE2JS =
+            new( d => BuildFeatureMatrix_RE2JS( d.uFlag, d.enableLookbehind ) );
+        static readonly LazyData<(bool vFlag, bool xFlag), FeatureMatrix> LazyFeatureMatrix_RegexPlus =
+            new( d => BuildFeatureMatrix_RegexPlus( d.vFlag, d.xFlag ) );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -67,12 +78,13 @@ namespace JavaScriptPlugin
                     RuntimeEnum.SpiderMonkey => "JavaScript (SpiderMonkey)",
                     RuntimeEnum.Bun => "JavaScriptCore (Bun)",
                     RuntimeEnum.RE2JS => "JavaScript (RE2JS)",
+                    RuntimeEnum.RegexPlus => "JavaScript (Regex+)",
                     _ => "Unknown"
                 };
             }
         }
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | ( Options.Runtime != RuntimeEnum.RegexPlus ? RegexEngineCapabilityEnum.ScrollErrorsToEnd : 0 );
 
         public string? NoteForCaptures => null;
 
@@ -125,24 +137,37 @@ namespace JavaScriptPlugin
                 RuntimeEnum.SpiderMonkey => MatcherSpiderMonkey.GetMatches( cnc, pattern, text, Options ),
                 RuntimeEnum.Bun => MatcherBun.GetMatches( cnc, pattern, text, Options ),
                 RuntimeEnum.RE2JS => MatcherRE2JS.GetMatches( cnc, pattern, text, Options ),
+                RuntimeEnum.RegexPlus => MatcherRegexPlus.GetMatches( cnc, pattern, text, Options ),
                 _ => throw new NotSupportedException( ),
             };
         }
 
         public SyntaxOptions GetSyntaxOptions( )
         {
+            var options = Options;
+
             return new SyntaxOptions
             {
-                XLevel = XLevelEnum.none,
+                XLevel = options.Runtime == RuntimeEnum.RegexPlus && options.x ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = true,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( (Options.Runtime, Options.u, Options.v, Options.LOOKBEHINDS) )
+                FeatureMatrix =
+                    options.Runtime switch
+                    {
+                        RuntimeEnum.WebView2 or RuntimeEnum.NodeJs => BuildFeatureMatrix_V8( options.u, options.v ),
+                        RuntimeEnum.QuickJs => BuildFeatureMatrix_QuickJs( options.u ),
+                        RuntimeEnum.SpiderMonkey => BuildFeatureMatrix_SpiderMonkey( options.u ),
+                        RuntimeEnum.Bun => BuildFeatureMatrix_Bun( options.u ),
+                        RuntimeEnum.RE2JS => BuildFeatureMatrix_RE2JS( options.u, options.LOOKBEHINDS ),
+                        RuntimeEnum.RegexPlus => BuildFeatureMatrix_RegexPlus( options.v, options.x ),
+                        _ => throw new NotSupportedException( ),
+                    }
             };
         }
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
             Engine njs_engine_no_uv = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = false } };
-            Engine njs_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } };
+            //Engine njs_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } };
             Engine njs_engine_v = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = true } };
             Engine qjs_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.QuickJs, u = false, v = false } };
             Engine qjs_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.QuickJs, u = true, v = false } };
@@ -151,23 +176,28 @@ namespace JavaScriptPlugin
             Engine bun_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.Bun, u = false, v = false } };
             Engine bun_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.Bun, u = true, v = false } };
             Engine re2js_engine = new( ) { Options = new Options { Runtime = RuntimeEnum.RE2JS, LOOKBEHINDS = true } };
+            //Engine regexPlus_engineNoV = new( ) { Options = new Options { Runtime = RuntimeEnum.RegexPlus, v = false, x = true, n = false } }; //...
+            Engine regexPlus_engine = new( ) { Options = new Options { Runtime = RuntimeEnum.RegexPlus, v = true, x = true, n = false } };
 
             return
                 [
-                    new ("V8", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, false, false, false)), njs_engine_no_uv),
-                    new ("V8, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, true, false, false)), njs_engine_u),
-                    new ("V8, “v” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.NodeJs, false, true, false)), njs_engine_v),
+                    new ("V8", LazyFeatureMatrix_V8.GetValue((false, false)), njs_engine_no_uv),
+                    //new ("V8, “u” flag", LazyFeatureMatrix_V8.GetValue((true, false)), njs_engine_u),
+                    new ("V8 (“v” flag)", LazyFeatureMatrix_V8.GetValue((false, true)), njs_engine_v),
 
-                    new ("Qjs", LazyFeatureMatrix.GetValue((RuntimeEnum.QuickJs, false, false, false)), qjs_engine_no_u),
-                    new ("Qjs, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.QuickJs, true, false, false)), qjs_engine_u),
+                    //new ("Qjs", LazyFeatureMatrix_QuickJs.GetValue(false), qjs_engine_no_u),
+                    new ("Qjs (“u” flag)", LazyFeatureMatrix_QuickJs.GetValue( true), qjs_engine_u),
 
-                    new ("SM", LazyFeatureMatrix.GetValue((RuntimeEnum.SpiderMonkey, false, false, false)), sm_engine_no_u),
-                    new ("SM, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.SpiderMonkey, true, false, false)), sm_engine_u),
+                    //new ("SM", LazyFeatureMatrix_SpiderMonkey.GetValue( false), sm_engine_no_u),
+                    new ("SM (“u” flag)", LazyFeatureMatrix_SpiderMonkey.GetValue( true), sm_engine_u),
 
-                    new ("Bun", LazyFeatureMatrix.GetValue((RuntimeEnum.Bun, false, false, false)), bun_engine_no_u),
-                    new ("Bun, “u” flag", LazyFeatureMatrix.GetValue((RuntimeEnum.Bun, true, false, false)), bun_engine_u),
+                    //new ("Bun", LazyFeatureMatrix_Bun.GetValue( false), bun_engine_no_u),
+                    new ("Bun (“u” flag)", LazyFeatureMatrix_Bun.GetValue( true), bun_engine_u),
 
-                    new ("RE2JS", LazyFeatureMatrix.GetValue((RuntimeEnum.RE2JS, false, false, true)), re2js_engine),
+                    new ("RE2JS", LazyFeatureMatrix_RE2JS.GetValue((true, true)), re2js_engine),
+
+                    //new ("Regex+ (“x” flag)", LazyFeatureMatrix_RegexPlus.GetValue((false, true)), regexPlus_engineNoV), //...
+                    new ("Regex+ (“vx” flags)", LazyFeatureMatrix_RegexPlus.GetValue((true, true)), regexPlus_engine),
                 ];
         }
 
@@ -186,19 +216,6 @@ namespace JavaScriptPlugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        static FeatureMatrix BuildFeatureMatrix( (RuntimeEnum runtime, bool uFlag, bool vFlag, bool enableLookbehind) options )
-        {
-            return options.runtime switch
-            {
-                RuntimeEnum.WebView2 or RuntimeEnum.NodeJs => BuildFeatureMatrix_V8( options.uFlag, options.vFlag ),
-                RuntimeEnum.QuickJs => BuildFeatureMatrix_QuickJs( options.uFlag ),
-                RuntimeEnum.SpiderMonkey => BuildFeatureMatrix_SpiderMonkey( options.uFlag ),
-                RuntimeEnum.Bun => BuildFeatureMatrix_Bun( options.uFlag ),
-                RuntimeEnum.RE2JS => BuildFeatureMatrix_RE2JS( options.uFlag, options.enableLookbehind ),
-                _ => throw new NotImplementedException( ),
-            };
         }
 
         static FeatureMatrix BuildFeatureMatrix_V8( bool uFlag, bool vFlag )
@@ -249,7 +266,7 @@ namespace JavaScriptPlugin
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = !uFlag && !vFlag,
 
                 InsideSets_Esc_a = false,
                 InsideSets_Esc_b = true,
@@ -272,7 +289,7 @@ namespace JavaScriptPlugin
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = !uFlag && !vFlag,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
@@ -453,16 +470,16 @@ namespace JavaScriptPlugin
                 Esc_Octal0_1_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
-                Esc_xBrace = uFlag,
+                Esc_xBrace = false,
                 Esc_u4 = true,
                 Esc_U8 = false,
-                Esc_uBrace = uFlag,
+                Esc_uBrace = true,
                 Esc_UBrace = false,
                 Esc_c1 = true,
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = !uFlag,
 
                 InsideSets_Esc_a = false,
                 InsideSets_Esc_b = true,
@@ -476,16 +493,16 @@ namespace JavaScriptPlugin
                 InsideSets_Esc_Octal0_1_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
-                InsideSets_Esc_xBrace = uFlag,
+                InsideSets_Esc_xBrace = false,
                 InsideSets_Esc_u4 = true,
                 InsideSets_Esc_U8 = false,
-                InsideSets_Esc_uBrace = uFlag,
+                InsideSets_Esc_uBrace = true,
                 InsideSets_Esc_UBrace = false,
                 InsideSets_Esc_c1 = true,
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = !uFlag,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
@@ -504,7 +521,7 @@ namespace JavaScriptPlugin
                 Class_wW = true,
                 Class_X = false,
                 Class_pP = false,
-                Class_pPBrace = uFlag,
+                Class_pPBrace = true,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -518,7 +535,7 @@ namespace JavaScriptPlugin
                 InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
-                InsideSets_Class_pPBrace = uFlag,
+                InsideSets_Class_pPBrace = true,
                 InsideSets_Class_Name = false,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
@@ -556,7 +573,7 @@ namespace JavaScriptPlugin
                 NamedGroup_PLtGt = false,
                 BalancingGroup = false,
                 CapturingGroup = false,
-                DuplicateGroupName = false,
+                DuplicateGroupName = true,
 
                 NoncapturingGroup = true,
                 PositiveLookahead = true,
@@ -669,13 +686,13 @@ namespace JavaScriptPlugin
                 Esc_xBrace = false,
                 Esc_u4 = true,
                 Esc_U8 = false,
-                Esc_uBrace = uFlag,
+                Esc_uBrace = true,
                 Esc_UBrace = false,
                 Esc_c1 = true,
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = !uFlag,
 
                 InsideSets_Esc_a = false,
                 InsideSets_Esc_b = true,
@@ -692,13 +709,13 @@ namespace JavaScriptPlugin
                 InsideSets_Esc_xBrace = false,
                 InsideSets_Esc_u4 = true,
                 InsideSets_Esc_U8 = false,
-                InsideSets_Esc_uBrace = uFlag,
+                InsideSets_Esc_uBrace = true,
                 InsideSets_Esc_UBrace = false,
                 InsideSets_Esc_c1 = true,
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = !uFlag,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
@@ -717,7 +734,7 @@ namespace JavaScriptPlugin
                 Class_wW = true,
                 Class_X = false,
                 Class_pP = false,
-                Class_pPBrace = uFlag,
+                Class_pPBrace = true,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -731,7 +748,7 @@ namespace JavaScriptPlugin
                 InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
-                InsideSets_Class_pPBrace = uFlag,
+                InsideSets_Class_pPBrace = true,
                 InsideSets_Class_Name = false,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
@@ -882,13 +899,13 @@ namespace JavaScriptPlugin
                 Esc_xBrace = false,
                 Esc_u4 = true,
                 Esc_U8 = false,
-                Esc_uBrace = uFlag,
+                Esc_uBrace = true,
                 Esc_UBrace = false,
                 Esc_c1 = true,
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = !uFlag,
 
                 InsideSets_Esc_a = false,
                 InsideSets_Esc_b = true,
@@ -905,13 +922,13 @@ namespace JavaScriptPlugin
                 InsideSets_Esc_xBrace = false,
                 InsideSets_Esc_u4 = true,
                 InsideSets_Esc_U8 = false,
-                InsideSets_Esc_uBrace = uFlag,
+                InsideSets_Esc_uBrace = true,
                 InsideSets_Esc_UBrace = false,
                 InsideSets_Esc_c1 = true,
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = !uFlag,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
@@ -930,7 +947,7 @@ namespace JavaScriptPlugin
                 Class_wW = true,
                 Class_X = false,
                 Class_pP = false,
-                Class_pPBrace = uFlag,
+                Class_pPBrace = true,
 
                 InsideSets_Class_dD = true,
                 InsideSets_Class_hHhexa = false,
@@ -944,7 +961,7 @@ namespace JavaScriptPlugin
                 InsideSets_Class_wW = true,
                 InsideSets_Class_X = false,
                 InsideSets_Class_pP = false,
-                InsideSets_Class_pPBrace = uFlag,
+                InsideSets_Class_pPBrace = true,
                 InsideSets_Class_Name = false,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
@@ -1101,7 +1118,7 @@ namespace JavaScriptPlugin
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = false,
 
                 InsideSets_Esc_a = true,
                 InsideSets_Esc_b = false,
@@ -1124,7 +1141,7 @@ namespace JavaScriptPlugin
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = false,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
@@ -1263,6 +1280,219 @@ namespace JavaScriptPlugin
                 SplitSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+                Σσς = true,
+            };
+        }
+
+        static FeatureMatrix BuildFeatureMatrix_RegexPlus( bool vFlag, bool xFlag )
+        {
+            return new FeatureMatrix
+            {
+                Parentheses = FeatureMatrix.PunctuationEnum.Normal,
+
+                Brackets = true,
+                ExtendedBrackets = false,
+
+                VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
+
+                InlineComments = false,
+                XModeComments = xFlag,
+                InsideSets_XModeComments = false,
+
+                Flags = false,
+                ScopedFlags = true,
+                CircumflexFlags = false,
+                ScopedCircumflexFlags = false,
+                XFlag = false,
+                XXFlag = false,
+
+                Literal_QE = false,
+                InsideSets_Literal_QE = false,
+                InsideSets_Literal_qBrace = vFlag,
+
+                Esc_a = false,
+                Esc_b = false,
+                Esc_e = false,
+                Esc_f = true,
+                Esc_n = true,
+                Esc_r = true,
+                Esc_t = true,
+                Esc_v = true,
+                Esc_Octal = FeatureMatrix.OctalEnum.None,
+                Esc_Octal0_1_3 = false,
+                Esc_oBrace = false,
+                Esc_x2 = true,
+                Esc_xBrace = false,
+                Esc_u4 = true,
+                Esc_U8 = false,
+                Esc_uBrace = true,
+                Esc_UBrace = false,
+                Esc_c1 = true,
+                Esc_C1 = false,
+                Esc_CMinus = false,
+                Esc_NBrace = false,
+                GenericEscape = false,
+
+                InsideSets_Esc_a = false,
+                InsideSets_Esc_b = true,
+                InsideSets_Esc_e = false,
+                InsideSets_Esc_f = true,
+                InsideSets_Esc_n = true,
+                InsideSets_Esc_r = true,
+                InsideSets_Esc_t = true,
+                InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
+                InsideSets_Esc_Octal0_1_3 = false,
+                InsideSets_Esc_oBrace = false,
+                InsideSets_Esc_x2 = true,
+                InsideSets_Esc_xBrace = false,
+                InsideSets_Esc_u4 = true,
+                InsideSets_Esc_U8 = false,
+                InsideSets_Esc_uBrace = true,
+                InsideSets_Esc_UBrace = false,
+                InsideSets_Esc_c1 = true,
+                InsideSets_Esc_C1 = false,
+                InsideSets_Esc_CMinus = false,
+                InsideSets_Esc_NBrace = false,
+                InsideSets_GenericEscape = false,
+
+                Class_Dot = true,
+                Class_Cbyte = false,
+                Class_Ccp = false,
+                Class_dD = true,
+                Class_hHhexa = false,
+                Class_hHhorspace = false,
+                Class_lL = false,
+                Class_N = false,
+                Class_O = false,
+                Class_R = false,
+                Class_sS = true,
+                Class_sSx = false,
+                Class_uU = false,
+                Class_vV = false,
+                Class_wW = true,
+                Class_X = false,
+                Class_pP = false,
+                Class_pPBrace = true,
+
+                InsideSets_Class_dD = true,
+                InsideSets_Class_hHhexa = false,
+                InsideSets_Class_hHhorspace = false,
+                InsideSets_Class_lL = false,
+                InsideSets_Class_R = false,
+                InsideSets_Class_sS = true,
+                InsideSets_Class_sSx = false,
+                InsideSets_Class_uU = false,
+                InsideSets_Class_vV = false,
+                InsideSets_Class_wW = true,
+                InsideSets_Class_X = false,
+                InsideSets_Class_pP = false,
+                InsideSets_Class_pPBrace = true,
+                InsideSets_Class_Name = false,
+                InsideSets_Equivalence = false,
+                InsideSets_Collating = false,
+
+                InsideSets_Operators = vFlag,
+                InsideSets_OperatorsExtended = false,
+                InsideSets_Operator_Ampersand = false,
+                InsideSets_Operator_Plus = false,
+                InsideSets_Operator_VerticalLine = false,
+                InsideSets_Operator_Minus = false,
+                InsideSets_Operator_Circumflex = false,
+                InsideSets_Operator_Exclamation = false,
+                InsideSets_Operator_DoubleAmpersand = vFlag,
+                InsideSets_Operator_DoubleVerticalLine = false,
+                InsideSets_Operator_DoubleMinus = vFlag,
+                InsideSets_Operator_DoubleTilde = false,
+
+                Anchor_Circumflex = true,
+                Anchor_Dollar = true,
+                Anchor_A = false,
+                Anchor_Z = false,
+                Anchor_z = false,
+                Anchor_G = false,
+                Anchor_bB = true,
+                Anchor_bg = false,
+                Anchor_bBBrace = false,
+                Anchor_K = false,
+                Anchor_mM = false,
+                Anchor_LtGt = false,
+                Anchor_GraveApos = false,
+                Anchor_yY = false,
+
+                NamedGroup_Apos = false,
+                NamedGroup_LtGt = true,
+                NamedGroup_PLtGt = false,
+                BalancingGroup = false,
+                CapturingGroup = false,
+                DuplicateGroupName = true,
+
+                NoncapturingGroup = true,
+                PositiveLookahead = true,
+                NegativeLookahead = true,
+                PositiveLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
+                NegativeLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
+                AtomicGroup = true,
+                BranchReset = false,
+                NonatomicPositiveLookahead = false,
+                NonatomicPositiveLookbehind = false,
+                AbsentOperator = false,
+                AllowSpacesInGroups = false,
+
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
+                Backref_kApos = false,
+                Backref_kLtGt = true,
+                Backref_kBrace = false,
+                Backref_kNum = false,
+                Backref_kNegNum = false,
+                Backref_gApos = FeatureMatrix.BackrefModeEnum.None,
+                Backref_gLtGt = FeatureMatrix.BackrefModeEnum.Pattern,
+                Backref_gNum = FeatureMatrix.BackrefModeEnum.None,
+                Backref_gNegNum = FeatureMatrix.BackrefModeEnum.None,
+                Backref_gBrace = FeatureMatrix.BackrefModeEnum.None,
+                Backref_PEqName = false,
+                AllowSpacesInBackref = false,
+
+                Recursive_Num = false,
+                Recursive_PlusMinusNum = false,
+                Recursive_R = false,
+                Recursive_Name = false,
+                Recursive_PGtName = false,
+                Recursive_ReturnGroups = false,
+
+                Quantifier_Asterisk = true,
+                Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
+                Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
+                Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+                Quantifier_LowAbbrev = false,
+                Quantifier_Lazy = true,
+
+                Conditional_BackrefByNumber = false,
+                Conditional_BackrefByName = false,
+                Conditional_Pattern = false,
+                Conditional_PatternOrBackrefByName = false,
+                Conditional_BackrefByName_Apos = false,
+                Conditional_BackrefByName_LtGt = false,
+                Conditional_R = false,
+                Conditional_RName = false,
+                Conditional_DEFINE = false,
+                Conditional_VERSION = false,
+
+                ControlVerbs = false,
+                ScriptRuns = false,
+                Callouts = false,
+
+                EmptyConstruct = false,
+                EmptyConstructX = false,
+                EmptySet = true,
+                EmptySetAny = true,
+
+                AsciiOnly = false,
+                SplitSurrogatePairs = false,
+                FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
             };
         }

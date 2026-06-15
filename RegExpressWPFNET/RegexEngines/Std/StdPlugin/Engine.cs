@@ -139,7 +139,7 @@ namespace StdPlugin
 
                 Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.GCC, Grammar = grammar } };
 
-                variants.Add( new FeatureMatrixVariant( $"GCC, {Enum.GetName( grammar )}", LazyFeatureMatrix.GetValue( (CompilerEnum.GCC, grammar, false, false) ), engine ) );
+                variants.Add( new FeatureMatrixVariant( $"GCC ({Enum.GetName( grammar )})", LazyFeatureMatrix.GetValue( (CompilerEnum.GCC, grammar, false, false) ), engine ) );
             }
 
             {
@@ -149,12 +149,12 @@ namespace StdPlugin
                 {
                     Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = false, vmode = false } };
 
-                    variants.Add( new FeatureMatrixVariant( $"SRELL, {Enum.GetName( grammar )}", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, false, false) ), engine ) );
+                    variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )})", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, false, false) ), engine ) );
                 }
                 {
                     Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = true, vmode = true } };
 
-                    variants.Add( new FeatureMatrixVariant( $"SRELL, {Enum.GetName( grammar )}, “uv” flags", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, true, true) ), engine ) );
+                    variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )}, “uv” flags)", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, true, true) ), engine ) );
                 }
 #else
                 // for investigations
@@ -166,12 +166,12 @@ namespace StdPlugin
                     {
                         Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = false, vmode = false } };
 
-                        variants.Add( new FeatureMatrixVariant( $"SRELL, {Enum.GetName( grammar )}", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, false, false) ), engine ) );
+                        variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )})", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, false, false) ), engine ) );
                     }
                     {
                         Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = true, vmode = true } };
 
-                        variants.Add( new FeatureMatrixVariant( $"SRELL, {Enum.GetName( grammar )}, “uv” flags", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, true, true) ), engine ) );
+                        variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )}, “uv” flags)", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, true, true) ), engine ) );
                     }
                 }
 #endif
@@ -268,7 +268,7 @@ namespace StdPlugin
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = grammar == GrammarEnum.ECMAScript,
 
                 InsideSets_Esc_a = grammar == GrammarEnum.awk,
                 InsideSets_Esc_b = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
@@ -508,7 +508,7 @@ namespace StdPlugin
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = grammar == GrammarEnum.ECMAScript,
 
                 InsideSets_Esc_a = grammar == GrammarEnum.awk,
                 InsideSets_Esc_b = grammar == GrammarEnum.ECMAScript || grammar == GrammarEnum.awk,
@@ -736,7 +736,7 @@ namespace StdPlugin
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = false,
 
                 InsideSets_Esc_a = false,
                 InsideSets_Esc_b = true,
@@ -759,7 +759,7 @@ namespace StdPlugin
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = false,
 
                 Class_Dot = true,
                 Class_Cbyte = false,

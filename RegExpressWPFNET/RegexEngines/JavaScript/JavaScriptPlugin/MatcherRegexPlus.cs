@@ -20,7 +20,7 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace JavaScriptPlugin
 {
-    static partial class MatcherQuickJs
+    static partial class MatcherRegexPlus
     {
         public class ResponseMatch
         {
@@ -36,6 +36,7 @@ namespace JavaScriptPlugin
             public List<ResponseMatch>? Matches { get; set; }
 
             public string? Error { get; set; }
+            public string? Stack { get; set; }
         }
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
@@ -44,21 +45,31 @@ namespace JavaScriptPlugin
                 options.i ? "i" : "",
                 options.m ? "m" : "",
                 options.s ? "s" : "",
-                options.u ? "u" : "",
+                //options.u ? "u" : "", // no use
                 options.v ? "v" : "",
+                options.x ? "x" : "",
+                options.n ? "n" : "",
                 options.y ? "y" : "",
                 options.g ? "g" : ""
                 );
 
             string func = options.Function switch { FunctionEnum.MatchAll => "matchAll", FunctionEnum.Exec => "exec", _ => throw new InvalidOperationException( ) };
 
-            var data = new { cmd = "match", pattern, text, flags, func };
+            var data = new
+            {
+                pattern,
+                text,
+                flags,
+                func
+            };
+
             string json = JsonSerializer.Serialize( data );
 
             using ProcessHelper ph = new( GetQuickJsExePath( ) );
 
             ph.AllEncoding = EncodingEnum.ASCII;
-            ph.Arguments = [GetQuickJsWorkerPath( )];
+            ph.Arguments = [GetRegexPlusWorkerPath( )];
+            ph.WorkingDirectory = GetRegexPlusWorkerDirectory( );
 
             ph.StreamWriter = sw =>
             {
@@ -72,7 +83,15 @@ namespace JavaScriptPlugin
             ResponseMatches? response = JsonSerializer.Deserialize<ResponseMatches>( ph.OutputStream );
 
             if( response == null ) throw new Exception( "JavaScript failed." );
-            if( !string.IsNullOrWhiteSpace( response.Error ) ) throw new Exception( response.Error );
+            if( !string.IsNullOrWhiteSpace( response.Error ) )
+            {
+#if DEBUG
+                throw new Exception( $"{response.Error}\n{response.Stack}" );
+#else
+                throw new Exception( response.Error );
+#endif
+            }
+
 
             List<IMatch> matches = [];
             SimpleTextGetter stg = new( text );
@@ -138,19 +157,24 @@ namespace JavaScriptPlugin
             return assembly_dir;
         }
 
-        static string GetWorkerDirectory( )
+        static string GetQuickJsWorkerDirectory( )
         {
             return Path.Combine( GetPluginDirectory( ), "QuickJsWorker" );
         }
 
-        static string GetQuickJsExePath( )
+        static string GetRegexPlusWorkerDirectory( )
         {
-            return Path.Combine( GetWorkerDirectory( ), "qjs.exe" );
+            return Path.Combine( GetPluginDirectory( ), "RegexPlusWorker" );
         }
 
-        static string GetQuickJsWorkerPath( )
+        static string GetQuickJsExePath( )
         {
-            return Path.Combine( GetWorkerDirectory( ), "QuickJsWorker.js" );
+            return Path.Combine( GetQuickJsWorkerDirectory( ), "qjs.exe" );
+        }
+
+        static string GetRegexPlusWorkerPath( )
+        {
+            return Path.Combine( GetRegexPlusWorkerDirectory( ), "RegexPlusWorker.js" );
         }
     }
 }

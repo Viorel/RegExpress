@@ -103,6 +103,8 @@ xcopy /D /R /Y "%BasePath%\SpiderMonkeyWorker\SpiderMonkeyWorker.js" "%EnginesTa
 xcopy /D /R /Y "%BasePath%\BunWorker\bun-windows-x64-baseline.zip" "%EnginesTargetPath%\JavaScript\BunWorker\*.zip"
 xcopy /D /R /Y "%BasePath%\BunWorker\BunWorker.js" "%EnginesTargetPath%\JavaScript\BunWorker\*"
 
+xcopy /D /R /Y /E "%BasePath%\RegexPlusWorker\regex-min\*.*" "%EnginesTargetPath%\JavaScript\RegexPlusWorker\regex-min\*"
+xcopy /D /R /Y "%BasePath%\RegexPlusWorker\RegexPlusWorker.js" "%EnginesTargetPath%\JavaScript\RegexPlusWorker\*"
 
 rem -- VBScript --
 

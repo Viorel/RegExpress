@@ -19,10 +19,11 @@ It includes the following Regular Expression engines:
 * **JavaScript** [**RegExp**](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)
   * Microsoft Edge [_WebView2_](https://docs.microsoft.com/en-us/microsoft-edge/webview2/), 
   * _V8_ \(via [Node.js](https://nodejs.org)\) 14.1.146,
-  * [_QuickJs_](https://bellard.org/quickjs/) 2025-09-13,
+  * [_QuickJs_](https://bellard.org/quickjs/) 2026-06-04,
   * [_SpiderMonkey_](https://spidermonkey.dev/) C145.0,
   * _JavaScriptCore_ (via [Bun 1.3.13](https://bun.sh/)[^1]),
-  * [_RE2JS_](https://github.com/le0pard/re2js) 2.8.3.
+  * [_RE2JS_](https://github.com/le0pard/re2js) 2.8.3,
+  * [_Regex+_](https://github.com/slevithan/regex) 6.1.0.
 * **VBScript** [**RegExp**](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85)) object used in Publisher, Word, Excel, Access.
 * [**Hyperscan**](https://github.com/intel/hyperscan) 5.4.2 from Intel (in C).
 * [**Chimera**](http://intel.github.io/hyperscan/dev-reference/chimera.html), a hybrid of Hyperscan and PCRE 8.41 (in C).

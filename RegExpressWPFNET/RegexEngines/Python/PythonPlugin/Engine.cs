@@ -205,7 +205,7 @@ namespace PythonPlugin
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = true,
-                GenericEscape = true,
+                GenericEscape = false,
 
                 InsideSets_Esc_a = true,
                 InsideSets_Esc_b = true,
@@ -228,7 +228,7 @@ namespace PythonPlugin
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = true,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = false,
 
                 Class_Dot = true,
                 Class_Cbyte = false,

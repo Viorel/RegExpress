@@ -216,7 +216,7 @@ namespace HyperscanPlugin
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = false,
 
                 Class_Dot = true,
                 Class_Cbyte = false,

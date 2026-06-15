@@ -20,6 +20,7 @@ namespace JavaScriptPlugin
         SpiderMonkey,
         Bun,
         RE2JS,
+        RegexPlus,
     }
 
     enum FunctionEnum
@@ -63,10 +64,7 @@ namespace JavaScriptPlugin
         public bool u { get; set; }
         public bool y { get; set; }
         public bool g { get; set; } = true;
-
-        // V8 (WebView2, NodeJs)
-
-        public bool v { get; set; }
+        public bool v { get; set; } = true; // V8 (WebView2, NodeJs), QuickJs
 
         // SpiderMonkey
 
@@ -79,6 +77,12 @@ namespace JavaScriptPlugin
         public bool DISABLE_UNICODE_GROUPS { get; set; }
         public bool LONGEST_MATCH { get; set; }
         public bool LOOKBEHINDS { get; set; }
+
+        // RegexpPlus
+
+        public bool x { get; set; } = true;
+        public bool n { get; set; } = true;
+
 
         [JsonIgnore]
         public bool d { get; set; } = true; // to avoid binding errors and to show the checkbox in checked state

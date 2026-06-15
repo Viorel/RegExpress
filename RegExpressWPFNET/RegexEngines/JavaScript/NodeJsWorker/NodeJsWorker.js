@@ -39,7 +39,7 @@ rl.once('close', () =>
       //console.log(`flags is "${flags}"`);
       //console.log(`func is "${func}"`);
 
-      if( ! flags.includes("d")) flags += "d";
+      if( ! flags.includes("d")) flags += "d"; // "d" -- generate indices
 
       if( func === "exec")
       {

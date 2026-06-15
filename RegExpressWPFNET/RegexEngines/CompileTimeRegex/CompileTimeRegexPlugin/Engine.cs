@@ -186,7 +186,7 @@ namespace CompileTimeRegexPlugin
                 Esc_C1 = false,
                 Esc_CMinus = false,
                 Esc_NBrace = false,
-                GenericEscape = true,
+                GenericEscape = false,
 
                 InsideSets_Esc_a = true,
                 InsideSets_Esc_b = false,
@@ -209,7 +209,7 @@ namespace CompileTimeRegexPlugin
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
                 InsideSets_Esc_NBrace = false,
-                InsideSets_GenericEscape = true,
+                InsideSets_GenericEscape = false,
 
                 Class_Dot = true,
                 Class_Cbyte = false,
