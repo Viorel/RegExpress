@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using RegExpressLibrary;
+using RegExpressLibrary.UI;
 
 
 namespace JavaPlugin
@@ -88,19 +89,17 @@ namespace JavaPlugin
 
                 bool is_regex = package == PackageEnum.regex;
                 bool is_re2j = package == PackageEnum.re2j;
-                Visibility regex_visibility = is_regex ? Visibility.Visible : Visibility.Collapsed;
-                Visibility re2j_visibility = is_re2j ? Visibility.Visible : Visibility.Collapsed;
 
-                CANON_EQ.Visibility = regex_visibility;
-                COMMENTS.Visibility = regex_visibility;
-                LITERAL.Visibility = regex_visibility;
-                UNICODE_CASE.Visibility = regex_visibility;
-                UNICODE_CHARACTER_CLASS.Visibility = regex_visibility;
-                UNIX_LINES.Visibility = regex_visibility;
-                DISABLE_UNICODE_GROUPS.Visibility = re2j_visibility;
-                LONGEST_MATCH.Visibility = re2j_visibility;
+                CANON_EQ.Display( is_regex );
+                COMMENTS.Display( is_regex );
+                LITERAL.Display( is_regex );
+                UNICODE_CASE.Display( is_regex );
+                UNICODE_CHARACTER_CLASS.Display( is_regex );
+                UNIX_LINES.Display( is_regex );
+                DISABLE_UNICODE_GROUPS.Display( is_re2j );
+                LONGEST_MATCH.Display( is_re2j );
 
-                panelRegion.Visibility = regex_visibility;
+                panelRegion.Display( is_regex );
             }
             finally
             {

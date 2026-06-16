@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using RegExpressLibrary;
+using RegExpressLibrary.UI;
 
 
 namespace PythonPlugin
@@ -54,7 +55,7 @@ namespace PythonPlugin
             {
                 ++ChangeCounter;
 
-                pnlAdditional.Visibility = Options.Module == ModuleEnum.regex ? Visibility.Visible : Visibility.Collapsed;
+                pnlAdditional.Display( Options.Module == ModuleEnum.regex );
             }
             finally
             {

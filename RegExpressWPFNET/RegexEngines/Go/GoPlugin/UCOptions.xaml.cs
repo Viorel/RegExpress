@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using RegExpressLibrary;
+using RegExpressLibrary.UI;
 
 
 namespace GoPlugin
@@ -87,13 +88,13 @@ namespace GoPlugin
                 bool is_rexa = Options.Package == PackageEnum.rexa;
                 bool is_coregex = Options.Package == PackageEnum.coregex;
 
-                pnlRegexp2Flags.Visibility = is_regexp2 ? Visibility.Visible : Visibility.Collapsed;
-                pnlRexaFlags.Visibility = is_rexa ? Visibility.Visible : Visibility.Collapsed;
-                pnlCoregex.Visibility = is_coregex ? Visibility.Visible : Visibility.Collapsed;
+                pnlRegexp2Flags.Display( is_regexp2 );
+                pnlRexaFlags.Display( is_rexa );
+                pnlCoregex.Display( is_coregex );
 
-                cbxPosix.Visibility = is_regexp || is_coregex ? Visibility.Visible : Visibility.Collapsed;
-                cbxLongest.Visibility = is_regexp || is_rexa || is_coregex ? Visibility.Visible : Visibility.Collapsed;
-                cbxLiteral.Visibility = is_regexp || is_rexa || is_coregex ? Visibility.Visible : Visibility.Collapsed;
+                cbxPosix.Display( is_regexp || is_coregex );
+                cbxLongest.Display( is_regexp || is_rexa || is_coregex );
+                cbxLiteral.Display( is_regexp || is_rexa || is_coregex );
             }
             finally
             {

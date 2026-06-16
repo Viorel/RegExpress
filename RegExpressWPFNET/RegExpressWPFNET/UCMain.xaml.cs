@@ -15,6 +15,7 @@ using System.Xml;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
+using RegExpressLibrary.UI;
 using RegExpressWPFNET.Code;
 
 
@@ -942,7 +943,8 @@ namespace RegExpressWPFNET
         {
             if( cnc.IsCancellationRequested ) return;
 
-            label.Visibility = label.Visibility == Visibility.Visible || td.Text.Length != 0 ? Visibility.Visible : Visibility.Collapsed;
+            label.Display( label.Visibility == Visibility.Visible || td.Text.Length != 0 );
+
             if( label.Visibility == Visibility.Visible )
             {
                 int text_elements = td.LengthInTextElements;
@@ -1086,8 +1088,8 @@ namespace RegExpressWPFNET
 
             // showing unchecked checkbox when disabled
             cbShowSucceededGroupsOnly.IsEnabled = group_details_supported; //?
-            cbShowSucceededGroupsOnly.Visibility = group_details_supported ? Visibility.Visible : Visibility.Collapsed;
-            cbShowSucceededGroupsOnlyDisabledUnchecked.Visibility = !group_details_supported ? Visibility.Visible : Visibility.Collapsed;
+            cbShowSucceededGroupsOnly.Display( group_details_supported );
+            cbShowSucceededGroupsOnlyDisabledUnchecked.Display( !group_details_supported );
 
             UpdateShowCapturesCheckbox( engine );
 
@@ -1101,8 +1103,8 @@ namespace RegExpressWPFNET
 
             // showing unchecked checkbox when disabled
             cbShowCaptures.IsEnabled = captures_supported; //?
-            cbShowCaptures.Visibility = captures_supported ? Visibility.Visible : Visibility.Collapsed;
-            cbShowCapturesDisabledUnchecked.Visibility = !captures_supported ? Visibility.Visible : Visibility.Collapsed;
+            cbShowCaptures.Display( captures_supported );
+            cbShowCapturesDisabledUnchecked.Display( !captures_supported );
 
             // inelegant, but works
             string? capture_note = engine.NoteForCaptures;
@@ -1113,7 +1115,7 @@ namespace RegExpressWPFNET
 
         public void ShowOverlappingMatchesWarning( bool yes )
         {
-            pnlOwerlappingMatches.Visibility = yes ? Visibility.Visible : Visibility.Collapsed;
+            pnlOwerlappingMatches.Display( yes );
         }
 
 

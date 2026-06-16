@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using RegExpressLibrary;
+using RegExpressLibrary.UI;
 
 
 namespace RustPlugin
@@ -108,16 +109,19 @@ namespace RustPlugin
                     _ => StructEnum.None,
                 };
 
-                bool is_regex_or_regex_lite = crate == CrateEnum.regex || crate == CrateEnum.regex_lite;
+                bool is_regex = crate == CrateEnum.regex;
+                bool is_regex_lite = crate == CrateEnum.regex_lite;
+                bool is_regex_or_regex_lite = is_regex || is_regex_lite;
                 bool is_fancy = crate == CrateEnum.fancy_regex;
+                bool is_regress = crate == CrateEnum.regress;
                 bool is_resharp = crate == CrateEnum.resharp;
                 bool is_anre = crate == CrateEnum.anre;
 
-                pnlStruct.Visibility =
-                    pnlRegexBuilderOptions.Visibility = is_regex_or_regex_lite || is_fancy ? Visibility.Visible : Visibility.Collapsed;
-                pnlRegressOptions.Visibility = crate == CrateEnum.regress ? Visibility.Visible : Visibility.Collapsed;
-                pnlResharpOptions.Visibility = is_resharp ? Visibility.Visible : Visibility.Collapsed;
-                pnlAnreOptions.Visibility = is_anre ? Visibility.Visible : Visibility.Collapsed;
+                pnlStruct.Display( is_regex_or_regex_lite || is_fancy );
+                pnlRegexBuilderOptions.Display( is_regex_or_regex_lite || is_fancy );
+                pnlRegressOptions.Display( is_regress );
+                pnlResharpOptions.Display( is_resharp );
+                pnlAnreOptions.Display( is_anre );
 
                 if( is_regex_or_regex_lite || is_fancy )
                 {
@@ -136,19 +140,19 @@ namespace RustPlugin
                     }
                 }
 
-                pnlRegexCrateLimits.Visibility = is_regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
-                dsl.IsEnabled = crate == CrateEnum.regex;
+                pnlRegexCrateLimits.Display( is_regex_or_regex_lite );
+                dsl.IsEnabled = is_regex;
 
-                pnlFancyRegexCrateLimits.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;
+                pnlFancyRegexCrateLimits.Display( is_fancy );
 
-                chbx_crlf.Visibility = is_regex_or_regex_lite || is_fancy ? Visibility.Visible : Visibility.Collapsed;
-                chbx_swap_greed.Visibility = is_regex_or_regex_lite ? Visibility.Visible : Visibility.Collapsed;
-                chbx_unicode.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
-                chbx_unicode_mode.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;
-                chbx_octal.Visibility = crate == CrateEnum.regex ? Visibility.Visible : Visibility.Collapsed;
-                chbx_oniguruma_mode.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;
-                chbx_find_not_empty.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;
-                chbx_ignore_numbered_groups_when_named_groups_exist.Visibility = is_fancy ? Visibility.Visible : Visibility.Collapsed;
+                chbx_crlf.Display( is_regex_or_regex_lite || is_fancy );
+                chbx_swap_greed.Display( is_regex_or_regex_lite );
+                chbx_unicode.Display( is_regex );
+                chbx_unicode_mode.Display( is_fancy );
+                chbx_octal.Display( is_regex );
+                chbx_oniguruma_mode.Display( is_fancy );
+                chbx_find_not_empty.Display( is_fancy );
+                chbx_ignore_numbered_groups_when_named_groups_exist.Display( is_fancy );
             }
             finally
             {

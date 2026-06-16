@@ -14,6 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using RegExpressLibrary;
+using RegExpressLibrary.UI;
 
 
 namespace StdPlugin
@@ -112,12 +113,12 @@ namespace StdPlugin
                 bool is_GCC = Options.Compiler == CompilerEnum.GCC;
                 bool is_SRELL = Options.Compiler == CompilerEnum.SRELL;
 
-                cbxLocale.Visibility = is_MSVC || is_GCC ? Visibility.Visible : Visibility.Collapsed;
-                cbxLocaleDisabled.Visibility = !( is_MSVC || is_GCC ) ? Visibility.Visible : Visibility.Collapsed;
+                cbxLocale.Display( is_MSVC || is_GCC );
+                cbxLocaleDisabled.Display( !( is_MSVC || is_GCC ) );
 
-                chkMultiline.Visibility = is_MSVC || is_GCC || is_SRELL ? Visibility.Visible : Visibility.Collapsed;
-                chkPolynomial.Visibility = is_GCC ? Visibility.Visible : Visibility.Collapsed;
-                chkDotall.Visibility = chkUnicodesets.Visibility = chkVMode.Visibility = pnlSRELLConstants.Visibility = is_SRELL ? Visibility.Visible : Visibility.Collapsed;
+                chkMultiline.Display( is_MSVC || is_GCC || is_SRELL );
+                chkPolynomial.Display( is_GCC );
+                new FrameworkElement[] { chkDotall, chkUnicodesets, chkVMode, pnlSRELLConstants }.Display( is_SRELL );
             }
             finally
             {

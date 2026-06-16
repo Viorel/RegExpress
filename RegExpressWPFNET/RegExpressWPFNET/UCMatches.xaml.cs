@@ -21,6 +21,7 @@ using System.Windows.Threading;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
+using RegExpressLibrary.UI;
 using RegExpressWPFNET.Adorners;
 using RegExpressWPFNET.Code;
 using RegExpressWPFNET.Code.OutputInfo;
@@ -134,7 +135,7 @@ namespace RegExpressWPFNET
             runInfo.Text = text;
             rtbInfo.ScrollToHome( );
             rtbInfo.Visibility = Visibility.Visible;
-            btnCancel.Visibility = showCancelButton ? Visibility.Visible : Visibility.Collapsed;
+            btnCancel.Display( showCancelButton );
         }
 
 

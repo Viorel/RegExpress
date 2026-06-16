@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using RegExpressLibrary;
+using RegExpressLibrary.UI;
 
 
 namespace ZigPlugin
@@ -81,9 +82,9 @@ namespace ZigPlugin
                 bool is_Mvzr = Options.Library == RegexLibraryEnum.Mvzr;
                 bool is_Pzre = Options.Library == RegexLibraryEnum.Pzre;
 
-                pnlZigRegexOptions.Visibility = is_ZigRegex ? Visibility.Visible : Visibility.Collapsed;
-                pnlMvzrOptions.Visibility = is_Mvzr ? Visibility.Visible : Visibility.Collapsed;
-                pnlPzreOptions.Visibility = is_Pzre ? Visibility.Visible : Visibility.Collapsed;
+                pnlZigRegexOptions.Display( is_ZigRegex );
+                pnlMvzrOptions.Display( is_Mvzr );
+                pnlPzreOptions.Display( is_Pzre );
             }
             finally
             {

@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using RegExpressLibrary;
+using RegExpressLibrary.UI;
 
 
 namespace JavaScriptPlugin
@@ -86,17 +87,17 @@ namespace JavaScriptPlugin
                 bool is_RE2JS = Options.Runtime == RuntimeEnum.RE2JS;
                 bool is_RegexPlus = Options.Runtime == RuntimeEnum.RegexPlus;
 
-                cbxFunction.Visibility = !is_RE2JS ? Visibility.Visible : Visibility.Collapsed;
-                cbxFunctionRE2JS.Visibility = is_RE2JS ? Visibility.Visible : Visibility.Collapsed;
+                cbxFunction.Display( !is_RE2JS );
+                cbxFunctionRE2JS.Display( is_RE2JS );
 
-                pnlCommon.Visibility = !is_RE2JS ? Visibility.Visible : Visibility.Collapsed;
-                pnlRE2JS.Visibility = is_RE2JS ? Visibility.Visible : Visibility.Collapsed;
-                pnlSM.Visibility = is_SM ? Visibility.Visible : Visibility.Collapsed;
+                pnlCommon.Display( !is_RE2JS );
+                pnlRE2JS.Display( is_RE2JS );
+                pnlSM.Display( is_SM );
 
-                checkboxU.Visibility = !is_RegexPlus ? Visibility.Visible : Visibility.Collapsed;
-                checkboxV.Visibility = is_V8 || is_QuickJs || is_RegexPlus ? Visibility.Visible : Visibility.Collapsed;
-                checkboxX.Visibility = is_RegexPlus ? Visibility.Visible : Visibility.Collapsed;
-                checkboxN.Visibility = is_RegexPlus ? Visibility.Visible : Visibility.Collapsed;
+                checkboxU.Display( !is_RegexPlus );
+                checkboxV.Display( is_V8 || is_QuickJs || is_RegexPlus );
+                checkboxX.Display( is_RegexPlus );
+                checkboxN.Display( is_RegexPlus );
             }
             finally
             {
