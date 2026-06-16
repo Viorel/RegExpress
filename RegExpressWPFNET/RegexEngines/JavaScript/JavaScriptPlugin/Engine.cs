@@ -144,23 +144,23 @@ namespace JavaScriptPlugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
-            var options = Options;
+            Options options = Options;
+            FeatureMatrix fm = options.Runtime switch
+            {
+                RuntimeEnum.WebView2 or RuntimeEnum.NodeJs => LazyFeatureMatrix_V8.GetValue( (options.u, options.v) ),
+                RuntimeEnum.QuickJs => LazyFeatureMatrix_QuickJs.GetValue( options.u ),
+                RuntimeEnum.SpiderMonkey => LazyFeatureMatrix_SpiderMonkey.GetValue( options.u ),
+                RuntimeEnum.Bun => LazyFeatureMatrix_Bun.GetValue( options.u ),
+                RuntimeEnum.RE2JS => LazyFeatureMatrix_RE2JS.GetValue( (options.u, options.LOOKBEHINDS) ),
+                RuntimeEnum.RegexPlus => LazyFeatureMatrix_RegexPlus.GetValue( (options.v, options.x) ),
+                _ => throw new NotSupportedException( ),
+            };
 
             return new SyntaxOptions
             {
                 XLevel = options.Runtime == RuntimeEnum.RegexPlus && options.x ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = true,
-                FeatureMatrix =
-                    options.Runtime switch
-                    {
-                        RuntimeEnum.WebView2 or RuntimeEnum.NodeJs => BuildFeatureMatrix_V8( options.u, options.v ),
-                        RuntimeEnum.QuickJs => BuildFeatureMatrix_QuickJs( options.u ),
-                        RuntimeEnum.SpiderMonkey => BuildFeatureMatrix_SpiderMonkey( options.u ),
-                        RuntimeEnum.Bun => BuildFeatureMatrix_Bun( options.u ),
-                        RuntimeEnum.RE2JS => BuildFeatureMatrix_RE2JS( options.u, options.LOOKBEHINDS ),
-                        RuntimeEnum.RegexPlus => BuildFeatureMatrix_RegexPlus( options.v, options.x ),
-                        _ => throw new NotSupportedException( ),
-                    }
+                FeatureMatrix = fm,
             };
         }
 

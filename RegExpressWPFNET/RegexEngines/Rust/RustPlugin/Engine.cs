@@ -132,22 +132,23 @@ namespace RustPlugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
+            FeatureMatrix fm = Options.crate switch
+            {
+                CrateEnum.regex => LazyFeatureMatrix_Regex.GetValue( (Options.@struct, Options.octal, Options.unicode) ),
+                CrateEnum.regex_lite => LazyFeatureMatrix_RegexLite.GetValue( Options.@struct ),
+                CrateEnum.fancy_regex => LazyFeatureMatrix_FancyRegex.GetValue( (Options.@struct, Options.unicode, Options.oniguruma_mode) ),
+                CrateEnum.regress => LazyFeatureMatrix_Regress.GetValue( (Options.@struct, Options.unicode, Options.unicode_sets) ),
+                CrateEnum.resharp => LazyFeatureMatrix_Resharp.GetValue( Options.UnicodeMode ),
+                CrateEnum.anre => LazyFeatureMatrix_Anre.GetValue( 0 ),
+                _ => throw new InvalidOperationException( )
+            };
+
             return new SyntaxOptions
             {
                 Literal = Options.crate == CrateEnum.anre && Options.anre_syntax, //
                 XLevel = ( Options.crate == CrateEnum.regex || Options.crate == CrateEnum.fancy_regex || Options.crate == CrateEnum.regex_lite || Options.crate == CrateEnum.resharp ) && Options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = Options.crate == CrateEnum.regress,
-                FeatureMatrix =
-                    Options.crate switch
-                    {
-                        CrateEnum.regex => LazyFeatureMatrix_Regex.GetValue( (Options.@struct, Options.octal, Options.unicode) ),
-                        CrateEnum.regex_lite => LazyFeatureMatrix_RegexLite.GetValue( Options.@struct ),
-                        CrateEnum.fancy_regex => LazyFeatureMatrix_FancyRegex.GetValue( (Options.@struct, Options.unicode, Options.oniguruma_mode) ),
-                        CrateEnum.regress => LazyFeatureMatrix_Regress.GetValue( (Options.@struct, Options.unicode, Options.unicode_sets) ),
-                        CrateEnum.resharp => LazyFeatureMatrix_Resharp.GetValue( Options.UnicodeMode ),
-                        CrateEnum.anre => LazyFeatureMatrix_Anre.GetValue( 0 ),
-                        _ => throw new InvalidOperationException( )
-                    }
+                FeatureMatrix = fm,
             };
         }
 

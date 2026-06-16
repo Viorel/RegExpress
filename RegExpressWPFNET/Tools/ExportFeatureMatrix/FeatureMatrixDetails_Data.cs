@@ -89,7 +89,7 @@ partial class FeatureMatrixDetails
                     .Test( @"x\{,3\}", "xxx", null ),
                 new FeatureMatrixDetails( @"*??, +??, ??", @"Lazy (non-greedy) quantifiers — match as little as possible",
                         fm => fm.Quantifier_Asterisk && fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Normal && fm.Quantifier_Plus== FeatureMatrix.PunctuationEnum.Normal && fm.Quantifier_Lazy )
-                    .Test( @".+?X.*?YZ?", "aXaYZaXaYZ", null, "aXaYZ" ),
+                    .Test( @".+?A.*?AA??", "AAAAAA", null, "AAA" ),
             ] ),
 
             new ( @"Escapes",

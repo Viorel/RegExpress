@@ -16,7 +16,9 @@ namespace FortranPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly LazyData<ModuleEnum, FeatureMatrix> LazyFeatureMatrices = new( BuildFeatureMatrix );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_Forgex = new( BuildFeatureMatrix_Forgex );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_RegexPerazz = new( BuildFeatureMatrix_RegexPerazz );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_RegexJeyemhex = new( BuildFeatureMatrix_RegexJeyemhex );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -114,11 +116,19 @@ namespace FortranPlugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
+            FeatureMatrix fm = Options.Module switch
+            {
+                ModuleEnum.Forgex => LazyFeatureMatrix_Forgex.Value,
+                ModuleEnum.RegexPerazz => LazyFeatureMatrix_RegexPerazz.Value,
+                ModuleEnum.RegexJeyemhex => LazyFeatureMatrix_RegexJeyemhex.Value,
+                _ => throw new InvalidOperationException( ),
+            };
+
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
                 AllowEmptySets = true,
-                FeatureMatrix = LazyFeatureMatrices.GetValue( Options.Module )
+                FeatureMatrix = fm,
             };
         }
 
@@ -130,9 +140,9 @@ namespace FortranPlugin
 
             return
                 [
-                    new FeatureMatrixVariant("Forgex", LazyFeatureMatrices.GetValue(ModuleEnum.Forgex), engine_forgex),
-                    new FeatureMatrixVariant("Regex (Perazz)", LazyFeatureMatrices.GetValue(ModuleEnum.RegexPerazz), engine_perazz),
-                    new FeatureMatrixVariant("Regex (Jeyemhex)", LazyFeatureMatrices.GetValue(ModuleEnum.RegexJeyemhex),engine_jayemhex),
+                    new FeatureMatrixVariant("Forgex", LazyFeatureMatrix_Forgex.Value, engine_forgex),
+                    new FeatureMatrixVariant("Regex (Perazz)", LazyFeatureMatrix_RegexPerazz.Value, engine_perazz),
+                    new FeatureMatrixVariant("Regex (Jeyemhex)", LazyFeatureMatrix_RegexJeyemhex.Value,engine_jayemhex),
                 ];
         }
 
@@ -150,17 +160,6 @@ namespace FortranPlugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        private static FeatureMatrix BuildFeatureMatrix( ModuleEnum module )
-        {
-            return module switch
-            {
-                ModuleEnum.Forgex => BuildFeatureMatrix_Forgex( ),
-                ModuleEnum.RegexPerazz => BuildFeatureMatrix_RegexPerazz( ),
-                ModuleEnum.RegexJeyemhex => BuildFeatureMatrix_RegexJeyemhex( ),
-                _ => throw new InvalidOperationException( ),
-            };
         }
 
         private static FeatureMatrix BuildFeatureMatrix_Forgex( )

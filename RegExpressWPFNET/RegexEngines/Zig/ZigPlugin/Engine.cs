@@ -16,7 +16,9 @@ namespace ZigPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly LazyData<RegexLibraryEnum, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_ZigRegex = new( BuildFeatureMatrix_ZigRegex );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_Mvzr = new( BuildFeatureMatrix_Mvzr );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_Pzre = new( BuildFeatureMatrix_Pzre );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -114,10 +116,18 @@ namespace ZigPlugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
+            FeatureMatrix fm = Options.Library switch
+            {
+                RegexLibraryEnum.ZigRegex => LazyFeatureMatrix_ZigRegex.Value,
+                RegexLibraryEnum.Mvzr => LazyFeatureMatrix_Mvzr.Value,
+                RegexLibraryEnum.Pzre => LazyFeatureMatrix_Pzre.Value,
+                _ => throw new InvalidOperationException( )
+            };
+
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( Options.Library ),
+                FeatureMatrix = fm,
             };
         }
 
@@ -129,13 +139,13 @@ namespace ZigPlugin
             Engine engine;
 
             engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex } };
-            variants.Add( new FeatureMatrixVariant( "zig-regex", LazyFeatureMatrix.GetValue( RegexLibraryEnum.ZigRegex ), engine ) );
+            variants.Add( new FeatureMatrixVariant( "zig-regex", LazyFeatureMatrix_ZigRegex.Value, engine ) );
 
             engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Mvzr } };
-            variants.Add( new FeatureMatrixVariant( "mvzr", LazyFeatureMatrix.GetValue( RegexLibraryEnum.Mvzr ), engine ) );
+            variants.Add( new FeatureMatrixVariant( "mvzr", LazyFeatureMatrix_Mvzr.Value, engine ) );
 
             engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Pzre } };
-            variants.Add( new FeatureMatrixVariant( "PZRE", LazyFeatureMatrix.GetValue( RegexLibraryEnum.Pzre ), engine ) );
+            variants.Add( new FeatureMatrixVariant( "PZRE", LazyFeatureMatrix_Pzre.Value, engine ) );
 
             return variants;
         }
@@ -156,17 +166,6 @@ namespace ZigPlugin
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
         {
             OptionsChanged?.Invoke( this, args );
-        }
-
-        private static FeatureMatrix BuildFeatureMatrix( RegexLibraryEnum library )
-        {
-            return library switch
-            {
-                RegexLibraryEnum.ZigRegex => BuildFeatureMatrix_ZigRegex( ),
-                RegexLibraryEnum.Mvzr => BuildFeatureMatrix_Mvzr( ),
-                RegexLibraryEnum.Pzre => BuildFeatureMatrix_Pzre( ),
-                _ => throw new InvalidOperationException( )
-            };
         }
 
         private static FeatureMatrix BuildFeatureMatrix_ZigRegex( )

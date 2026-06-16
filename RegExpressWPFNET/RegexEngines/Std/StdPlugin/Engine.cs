@@ -16,7 +16,9 @@ namespace StdPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly LazyData<(CompilerEnum, GrammarEnum, bool uflag, bool vflag), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        static readonly LazyData<GrammarEnum, FeatureMatrix> LazyFeatureMatrix_MSVC = new( BuildFeatureMatrix_MSVC );
+        static readonly LazyData<GrammarEnum, FeatureMatrix> LazyFeatureMatrix_GCC = new( BuildFeatureMatrix_GCC );
+        static readonly LazyData<(GrammarEnum grammar, bool uflag, bool vflag), FeatureMatrix> LazyFeatureMatrix_SRELL = new( d => BuildFeatureMatrix_SRELL( d.grammar, d.uflag, d.vflag ) );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -113,11 +115,19 @@ namespace StdPlugin
 
         public SyntaxOptions GetSyntaxOptions( )
         {
+            FeatureMatrix fm = Options.Compiler switch
+            {
+                CompilerEnum.MSVC => LazyFeatureMatrix_MSVC.GetValue( Options.Grammar ),
+                CompilerEnum.GCC => LazyFeatureMatrix_GCC.GetValue( Options.Grammar ),
+                CompilerEnum.SRELL => LazyFeatureMatrix_SRELL.GetValue( (Options.Grammar, Options.unicodesets, Options.vmode) ),
+                _ => throw new InvalidOperationException( )
+            };
+
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
                 AllowEmptySets = Options.Grammar == GrammarEnum.ECMAScript,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( (Options.Compiler, Options.Grammar, Options.Compiler == CompilerEnum.SRELL && Options.unicodesets, Options.Compiler == CompilerEnum.SRELL && Options.vmode) )
+                FeatureMatrix = fm,
             };
         }
 
@@ -131,7 +141,7 @@ namespace StdPlugin
 
                 Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.MSVC, Grammar = grammar } };
 
-                variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), LazyFeatureMatrix.GetValue( (CompilerEnum.MSVC, grammar, false, false) ), engine ) );
+                variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), LazyFeatureMatrix_MSVC.GetValue( grammar ), engine ) );
             }
 
             {
@@ -139,7 +149,7 @@ namespace StdPlugin
 
                 Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.GCC, Grammar = grammar } };
 
-                variants.Add( new FeatureMatrixVariant( $"GCC ({Enum.GetName( grammar )})", LazyFeatureMatrix.GetValue( (CompilerEnum.GCC, grammar, false, false) ), engine ) );
+                variants.Add( new FeatureMatrixVariant( $"GCC ({Enum.GetName( grammar )})", LazyFeatureMatrix_GCC.GetValue( grammar ), engine ) );
             }
 
             {
@@ -149,12 +159,12 @@ namespace StdPlugin
                 {
                     Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = false, vmode = false } };
 
-                    variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )})", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, false, false) ), engine ) );
+                    variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )})", LazyFeatureMatrix_SRELL.GetValue( (grammar, false, false) ), engine ) );
                 }
                 {
                     Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = true, vmode = true } };
 
-                    variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )}, “uv” flags)", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, true, true) ), engine ) );
+                    variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )}, “uv” flags)", LazyFeatureMatrix_SRELL.GetValue( (grammar, true, true) ), engine ) );
                 }
 #else
                 // for investigations
@@ -166,12 +176,12 @@ namespace StdPlugin
                     {
                         Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = false, vmode = false } };
 
-                        variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )})", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, false, false) ), engine ) );
+                        variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )})", LazyFeatureMatrix_SRELL.GetValue( (grammar, false, false) ), engine ) );
                     }
                     {
                         Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = true, vmode = true } };
 
-                        variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )}, “uv” flags)", LazyFeatureMatrix.GetValue( (CompilerEnum.SRELL, grammar, true, true) ), engine ) );
+                        variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )}, “uv” flags)", LazyFeatureMatrix_SRELL.GetValue( (grammar, true, true) ), engine ) );
                     }
                 }
 #endif
@@ -197,18 +207,7 @@ namespace StdPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        static FeatureMatrix BuildFeatureMatrix( (CompilerEnum compiler, GrammarEnum grammar, bool uflag, bool vflag) data )
-        {
-            return data.compiler switch
-            {
-                CompilerEnum.MSVC => BuildFeatureMatrixMSVC( data.grammar ),
-                CompilerEnum.GCC => BuildFeatureMatrixGCC( data.grammar ),
-                CompilerEnum.SRELL => BuildFeatureMatrixSRELL( data.grammar, data.uflag, data.vflag ),
-                _ => throw new InvalidOperationException( )
-            };
-        }
-
-        static FeatureMatrix BuildFeatureMatrixMSVC( GrammarEnum grammar )
+        static FeatureMatrix BuildFeatureMatrix_MSVC( GrammarEnum grammar )
         {
             return new FeatureMatrix
             {
@@ -448,7 +447,7 @@ namespace StdPlugin
             };
         }
 
-        static FeatureMatrix BuildFeatureMatrixGCC( GrammarEnum grammar )
+        static FeatureMatrix BuildFeatureMatrix_GCC( GrammarEnum grammar )
         {
             return new FeatureMatrix
             {
@@ -688,7 +687,7 @@ namespace StdPlugin
             };
         }
 
-        static FeatureMatrix BuildFeatureMatrixSRELL( GrammarEnum grammar, bool uflag, bool vflag )
+        static FeatureMatrix BuildFeatureMatrix_SRELL( GrammarEnum grammar, bool uflag, bool vflag )
         {
             return new FeatureMatrix
             {

@@ -112,13 +112,14 @@ namespace PCRE2Plugin
             bool is_extended_more = Options.PCRE2_EXTENDED_MORE;
             bool allow_empty_set = Options.PCRE2_ALLOW_EMPTY_CLASS;
             bool bad_escape_is_literal = Options.PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL;
+            FeatureMatrix fm = LazyFeatureMatrix.GetValue( (PCRE2_ALT_BSUX: Options.PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX: Options.PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS: Options.PCRE2_ALT_EXTENDED_CLASS, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: bad_escape_is_literal) );
 
             return new SyntaxOptions
             {
                 Literal = is_literal,
                 XLevel = is_extended_more ? XLevelEnum.xx : is_extended ? XLevelEnum.x : XLevelEnum.none,
                 AllowEmptySets = allow_empty_set,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( (PCRE2_ALT_BSUX: Options.PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX: Options.PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS: Options.PCRE2_ALT_EXTENDED_CLASS, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: bad_escape_is_literal) ),
+                FeatureMatrix = fm,
             };
         }
 
