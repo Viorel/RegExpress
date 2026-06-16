@@ -1430,7 +1430,7 @@ namespace RustPlugin
 
                 Backref_Num = FeatureMatrix.BackrefEnum.None,
                 Backref_kApos = false,
-                Backref_kLtGt = false,
+                Backref_kLtGt = true,
                 Backref_kBrace = false,
                 Backref_kNum = false,
                 Backref_kNegNum = false,
