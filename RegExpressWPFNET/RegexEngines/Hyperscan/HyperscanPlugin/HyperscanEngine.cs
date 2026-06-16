@@ -329,7 +329,7 @@ namespace HyperscanPlugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
-                Quantifier_Lazy = false,
+                Quantifier_Lazy = true, // (it seems to be always lazy)
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

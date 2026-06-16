@@ -332,7 +332,7 @@ namespace TREPlugin
                 Quantifier_Braces_FreeForm = isExtended ? FeatureMatrix.PunctuationEnum.Normal : FeatureMatrix.PunctuationEnum.Backslashed,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
-                Quantifier_Lazy = false,
+                Quantifier_Lazy = true, // (see also Options.REG_UNGREEDY)
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
