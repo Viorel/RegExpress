@@ -127,7 +127,6 @@ namespace FortranPlugin
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
-                AllowEmptySets = true,
                 FeatureMatrix = fm,
             };
         }

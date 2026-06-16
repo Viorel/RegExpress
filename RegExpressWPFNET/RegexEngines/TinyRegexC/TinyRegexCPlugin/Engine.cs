@@ -111,7 +111,6 @@ namespace TinyRegexCPlugin
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
-                AllowEmptySets = true,
                 FeatureMatrix = LazyFeatureMatrix.Value
             };
         }

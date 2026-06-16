@@ -16,7 +16,6 @@ namespace RegExpressLibrary.SyntaxColouring
         {
             internal FeatureMatrix fm; // ('struct', to simplify the calculation of hash code)
             internal XLevelEnum xlevel;
-            internal bool allow_empty_sets;
 
             static Key( )
             {
@@ -59,7 +58,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 if( cnc.IsCancellationRequested ) return;
 
                 var scope = scope_stack.Peek( );
-                var regex = GetCachedRegex( fm, scope.XLevel, syntaxOptions.AllowEmptySets );
+                var regex = GetCachedRegex( fm, scope.XLevel );
 
                 var m = regex.Match( pattern, index );
                 if( !m.Success ) break;
@@ -193,7 +192,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 if( cnc.IsCancellationRequested ) return;
 
                 var scope = scope_stack.Peek( );
-                var regex = GetCachedRegex( fm, scope.XLevel, syntaxOptions.AllowEmptySets );
+                var regex = GetCachedRegex( fm, scope.XLevel );
 
                 var m = regex.Match( pattern, index );
                 if( !m.Success ) break;
@@ -279,16 +278,16 @@ namespace RegExpressLibrary.SyntaxColouring
         }
 
 
-        static Regex GetCachedRegex( FeatureMatrix fm, XLevelEnum xlevel, bool allow_empty_set )
+        static Regex GetCachedRegex( FeatureMatrix fm, XLevelEnum xlevel )
         {
             Regex? re = null;
             lock( CachedRegexes )
             {
-                var key = new Key { fm = fm, xlevel = xlevel, allow_empty_sets = allow_empty_set };
+                var key = new Key { fm = fm, xlevel = xlevel };
 
                 if( !CachedRegexes.TryGetValue( key, out re ) )
                 {
-                    re = BuildRegex( fm, xlevel, allow_empty_set );
+                    re = BuildRegex( fm, xlevel );
                     CachedRegexes.Add( key, re );
                 }
             }
@@ -297,7 +296,7 @@ namespace RegExpressLibrary.SyntaxColouring
         }
 
 
-        static Regex BuildRegex( FeatureMatrix fm, XLevelEnum xlevel, bool allowEmptySet )
+        static Regex BuildRegex( FeatureMatrix fm, XLevelEnum xlevel )
         {
             bool is_xmode = xlevel == XLevelEnum.x || xlevel == XLevelEnum.xx;
 
@@ -632,7 +631,7 @@ namespace RegExpressLibrary.SyntaxColouring
             }
             pb_set_operators.EndGroup( );
 
-            if( fm.EmptySet && allowEmptySet )
+            if( fm.EmptySet )
             {
                 pb.Add( @"(?<lbracket>\[\^?)(?<rbracket>\])" ); // [], [^]
             }

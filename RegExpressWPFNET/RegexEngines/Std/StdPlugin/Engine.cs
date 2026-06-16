@@ -126,7 +126,6 @@ namespace StdPlugin
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
-                AllowEmptySets = Options.Grammar == GrammarEnum.ECMAScript,
                 FeatureMatrix = fm,
             };
         }

@@ -127,7 +127,6 @@ namespace GoPlugin
             {
                 Literal = supports_literal && options.literal,
                 XLevel = fm.XModeComments && options.IgnorePatternWhitespace ? XLevelEnum.x : XLevelEnum.none,
-                AllowEmptySets = fm.EmptySet,
                 FeatureMatrix = fm,
             };
         }

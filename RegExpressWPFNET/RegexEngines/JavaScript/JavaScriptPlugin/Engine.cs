@@ -159,7 +159,6 @@ namespace JavaScriptPlugin
             return new SyntaxOptions
             {
                 XLevel = options.Runtime == RuntimeEnum.RegexPlus && options.x ? XLevelEnum.x : XLevelEnum.none,
-                AllowEmptySets = true,
                 FeatureMatrix = fm,
             };
         }

@@ -11,8 +11,6 @@ namespace RegExpressLibrary.SyntaxColouring
     {
         public bool Literal { get; init; }
         public XLevelEnum XLevel { get; init; }
-        public bool AllowEmptySets { get; init; } // [], see also 'FeatureMatrix.EmptySets'
-
         public FeatureMatrix FeatureMatrix { get; init; } // (not used if 'Literal' is true)
     }
 }

@@ -18,7 +18,7 @@ namespace PCRE2Plugin
     {
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
-        readonly LazyData<(bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        readonly LazyData<(bool PCRE2_ALLOW_EMPTY_CLASS, bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         public Engine( )
         {
@@ -112,13 +112,12 @@ namespace PCRE2Plugin
             bool is_extended_more = Options.PCRE2_EXTENDED_MORE;
             bool allow_empty_set = Options.PCRE2_ALLOW_EMPTY_CLASS;
             bool bad_escape_is_literal = Options.PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL;
-            FeatureMatrix fm = LazyFeatureMatrix.GetValue( (PCRE2_ALT_BSUX: Options.PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX: Options.PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS: Options.PCRE2_ALT_EXTENDED_CLASS, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: bad_escape_is_literal) );
+            FeatureMatrix fm = LazyFeatureMatrix.GetValue( (PCRE2_ALLOW_EMPTY_CLASS: allow_empty_set, PCRE2_ALT_BSUX: Options.PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX: Options.PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS: Options.PCRE2_ALT_EXTENDED_CLASS, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: bad_escape_is_literal) );
 
             return new SyntaxOptions
             {
                 Literal = is_literal,
                 XLevel = is_extended_more ? XLevelEnum.xx : is_extended ? XLevelEnum.x : XLevelEnum.none,
-                AllowEmptySets = allow_empty_set,
                 FeatureMatrix = fm,
             };
         }
@@ -140,7 +139,7 @@ namespace PCRE2Plugin
 
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.GetValue((PCRE2_ALT_BSUX:true, PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: true) ), engine)
+                    new FeatureMatrixVariant( null, LazyFeatureMatrix.GetValue((PCRE2_ALLOW_EMPTY_CLASS:true, PCRE2_ALT_BSUX:true, PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: true) ), engine)
                 ];
         }
         public void SetIgnoreCase( bool yes )
@@ -164,9 +163,9 @@ namespace PCRE2Plugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        static FeatureMatrix BuildFeatureMatrix( (bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL) options )
+        static FeatureMatrix BuildFeatureMatrix( (bool PCRE2_ALLOW_EMPTY_CLASS, bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL) options )
         {
-            (bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL) = options;
+            (bool PCRE2_ALLOW_EMPTY_CLASS, bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL) = options;
 
             return new FeatureMatrix
             {
@@ -369,7 +368,7 @@ namespace PCRE2Plugin
 
                 EmptyConstruct = true,
                 EmptyConstructX = false,
-                EmptySet = true,
+                EmptySet = PCRE2_ALLOW_EMPTY_CLASS,
                 EmptySetAny = true,
 
                 AsciiOnly = false,

@@ -110,7 +110,6 @@ namespace CppBuilderPlugin
             return new SyntaxOptions
             {
                 XLevel = Options.roIgnorePatternSpace ? XLevelEnum.x : XLevelEnum.none,
-                AllowEmptySets = false,
                 FeatureMatrix = LazyFeatureMatrix.Value,
             };
         }

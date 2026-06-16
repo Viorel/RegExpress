@@ -76,8 +76,8 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool ScopedFlags { get; init; }                              // (?flags:...)
         public bool CircumflexFlags { get; init; }                          // (?^) or (?^flags), restore default flags like (?d-imnsx), set new flags
         public bool ScopedCircumflexFlags { get; init; }                    // (?^:...) or (?^flags:...), scoped variant
-        public bool XFlag { get; init; }                                    // 'x' flag (enable subsequent spaces and comments)
-        public bool XXFlag { get; init; }                                   // 'xx' flag (enable subsequent spaces and comments)
+        public bool XFlag { get; init; }                                    // (?x) flag (enable subsequent spaces and comments)
+        public bool XXFlag { get; init; }                                   // (?xx) flag (enable subsequent spaces and comments)
 
         public bool Literal_QE { get; init; }                               // \Q...\E
         public bool InsideSets_Literal_QE { get; init; }                    // [\Q...\E]

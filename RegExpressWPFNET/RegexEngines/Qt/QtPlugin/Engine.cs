@@ -110,7 +110,6 @@ namespace QtPlugin
             return new SyntaxOptions
             {
                 XLevel = Options.ExtendedPatternSyntaxOption ? XLevelEnum.x : XLevelEnum.none,
-                AllowEmptySets = false,
                 FeatureMatrix = LazyFeatureMatrix.Value,
             };
         }
