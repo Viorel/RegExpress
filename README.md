@@ -10,7 +10,7 @@ It includes the following Regular Expression engines:
 * [**wregex**](https://docs.microsoft.com/en-us/cpp/standard-library/regex) class in C++:
   * Standard Template Library, MSVC, 
   * Standard Template Library, GCC,
-  * [_SRELL_](https://www.akenotsuki.com/misc/srell/en/) 2026.04.
+  * [_SRELL_](https://www.akenotsuki.com/misc/srell/en/) 2026.05.
 * [**Boost.Regex**](https://www.boost.org/doc/libs/1_89_0/libs/regex/doc/html/index.html) from Boost C++ Libraries 1.89.0.
 * [**PCRE2**](https://github.com/PCRE2Project/pcre2) Open Source Regex Library 10.47 (in C).
 * [**RE2**](https://github.com/google/re2) Library 2025-08-12 from Google (in C++).
