@@ -816,7 +816,7 @@ namespace RustPlugin
                 Conditional_BackrefByName_LtGt = true,
                 Conditional_R = false,
                 Conditional_RName = false,
-                Conditional_DEFINE = false,
+                Conditional_DEFINE = true,
                 Conditional_VERSION = false,
 
                 ControlVerbs = true,
@@ -1484,9 +1484,7 @@ namespace RustPlugin
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,
 
-                Ext_UniversalWildcard = false,
-                Ext_Operator_Intersection = false,
-                Ext_Operator_Complement = false,
+                Ext_AlternativeLanguage = true,
             };
         }
     }

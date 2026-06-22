@@ -451,7 +451,7 @@ namespace OnigurumaPlugin
                 Conditional_BackrefByName_LtGt = details.ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE && syntax != SyntaxEnum.ONIG_SYNTAX_PERL,
                 Conditional_R = false,
                 Conditional_RName = false,
-                Conditional_DEFINE = syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG,
+                Conditional_DEFINE = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA || syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG || syntax == SyntaxEnum.ONIG_SYNTAX_RUBY,
                 Conditional_VERSION = false,
 
                 ControlVerbs = details.ONIG_SYN_OP2_ASTERISK_CALLOUT_NAME, // several built-in callouts: https://github.com/kkos/oniguruma/blob/master/doc/CALLOUTS.BUILTIN

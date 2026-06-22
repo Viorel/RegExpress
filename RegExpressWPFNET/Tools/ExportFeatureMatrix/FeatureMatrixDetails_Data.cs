@@ -513,7 +513,8 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"(?(R&name)…|…)", @"Recursive conditional by name", fm => fm.Conditional_RName)
                     .Test( @"(?<A>(?'B'abc(?(R)(?(R&A)1)(?(R&B)2)X|(?1)(?2)(?R))))", "abcabc1Xabc2XabcXabcabc", "" ),
                 new FeatureMatrixDetails( @"(?(DEFINE)…|…)", @"Defining subpatterns", fm => fm.Conditional_DEFINE)
-                    .Test( @"(?(DEFINE)(?<n>x.z))(?&n)", "xyz", "" ),
+                    .Test( @"(?(DEFINE)(?<n>x.z))(?&n)", "xyz", "" )
+                    .Test( @"\g<x>(?(DEFINE)(?<x>x))", "x", "" ),
                 new FeatureMatrixDetails( @"(?(VERSION…)…|…)", @"Check version using 'VERSION=decimal' or 'VERSION>=decimal'", fm => fm.Conditional_VERSION)
                     .Test( @"(?(VERSION>=1)xyz|abc)", "xyz", "" ),
             ] ),
@@ -572,6 +573,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a.+&.+b", "axb", null ),
                 new FeatureMatrixDetails( @"~(…)", @"Complement (pattern must not match)", fm => fm.Ext_Operator_Complement)
                     .Test( @"ab~(x)c", "abc", null ),
+                new FeatureMatrixDetails( @"", @"Also supports alternative syntax", fm => fm.Ext_AlternativeLanguage),
             ]),
 
         ];

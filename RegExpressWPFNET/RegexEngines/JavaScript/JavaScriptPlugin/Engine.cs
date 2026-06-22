@@ -1476,7 +1476,7 @@ namespace JavaScriptPlugin
                 Conditional_BackrefByName_LtGt = false,
                 Conditional_R = false,
                 Conditional_RName = false,
-                Conditional_DEFINE = false,
+                Conditional_DEFINE = true,
                 Conditional_VERSION = false,
 
                 ControlVerbs = false,

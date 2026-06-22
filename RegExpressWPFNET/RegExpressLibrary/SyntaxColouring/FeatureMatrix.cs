@@ -293,6 +293,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Ext_UniversalWildcard { get; init; }                    // '_' in RE#
         public bool Ext_Operator_Intersection { get; init; }                // '&' in RE#
         public bool Ext_Operator_Complement { get; init; }                  // '~()' in RE#
+        public bool Ext_AlternativeLanguage { get; init; }                  // also support alternative syntax
 
     }
 }
