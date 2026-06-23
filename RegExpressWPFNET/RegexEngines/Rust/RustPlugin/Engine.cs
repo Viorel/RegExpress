@@ -1428,7 +1428,7 @@ namespace RustPlugin
                 AbsentOperator = false,
                 AllowSpacesInGroups = false,
 
-                Backref_Num = FeatureMatrix.BackrefEnum.None,
+                Backref_Num = FeatureMatrix.BackrefEnum.Any,
                 Backref_kApos = false,
                 Backref_kLtGt = true,
                 Backref_kBrace = false,

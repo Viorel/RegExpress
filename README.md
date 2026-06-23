@@ -34,7 +34,7 @@ It includes the following Regular Expression engines:
   * [_fancy\_regex_](https://docs.rs/fancy-regex) 0.18.0, 
   * [_regress_](https://docs.rs/regress) 0.11.1,
   * [_resharp_](https://github.com/ieviev/resharp) 0.6.11.
-  * [_anre_](https://github.com/hemashushu/anre) 2.1.0.
+  * [_anre_](https://github.com/hemashushu/anre) 2.1.1.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.1 (*java.util.regex* and *com.google.re2j* packages).
 * [**Python**](https://www.python.org/) 3.13.6 modules:
   * _re_,
