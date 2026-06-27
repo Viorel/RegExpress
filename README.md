@@ -29,11 +29,11 @@ It includes the following Regular Expression engines:
 * [**Chimera**](http://intel.github.io/hyperscan/dev-reference/chimera.html), a hybrid of Hyperscan and PCRE 8.41 (in C).
 * [**ICU Regular Expressions**](https://icu.unicode.org/) 77.1 (in C++).
 * **Rust** 1.95.0 crates:
-  * [_regex_](https://docs.rs/regex) 1.12.3,
+  * [_regex_](https://docs.rs/regex) 1.12.4,
   * [_regex\_lite_](https://docs.rs/regex_lite) 0.1.9,
   * [_fancy\_regex_](https://docs.rs/fancy-regex) 0.18.0, 
   * [_regress_](https://docs.rs/regress) 0.11.1,
-  * [_resharp_](https://github.com/ieviev/resharp) 0.6.11.
+  * [_resharp_](https://github.com/ieviev/resharp) 0.6.13.
   * [_anre_](https://github.com/hemashushu/anre) 2.1.1.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.1 (*java.util.regex* and *com.google.re2j* packages).
 * [**Python**](https://www.python.org/) 3.13.6 modules:

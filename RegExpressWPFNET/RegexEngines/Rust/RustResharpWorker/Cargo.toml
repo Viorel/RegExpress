@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 json = "0.12.4"
-resharp = "0.6.11"
+resharp = "0.6.13"
+
