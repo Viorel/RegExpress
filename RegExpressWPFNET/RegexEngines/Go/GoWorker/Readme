@@ -3,12 +3,13 @@ HOW IT'S MADE
 
 - Install Go, or download and unarchive.
 
-- To add "rexa" and "regexp2" modules:
+- To add modules:
 
     > go get github.com/himclix/rexa@v0.1.0
     > go get github.com/dlclark/regexp2/v2@v2.1.1
+    > go get github.com/coregx/coregex@v0.12.21
 
-    (Adjust the versions)
+    (Adjust the versions, or remove "@..." to get the latest versions)
     
 - To build:
 
@@ -17,3 +18,5 @@ HOW IT'S MADE
   (If required, set the path to 'go.exe', or set PATH variable and restart console)
 
 - Commit the changes (including the created "GoWorker.exe").
+
+- Build the main Visual Studio solution.

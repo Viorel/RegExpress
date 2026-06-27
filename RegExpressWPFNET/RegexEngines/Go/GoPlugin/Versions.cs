@@ -10,8 +10,8 @@ namespace GoPlugin
     {
         public static string Go { get; } = "1.26.4";
         public static string Regexp { get; } = "1.26.4";
-        public static string Regexp2 { get; } = "2.1.2";
+        public static string Regexp2 { get; } = "2.2.2";
         public static string Rexa { get; } = "0.1.0";
-        public static string Coregex { get; } = "0.12.21";
+        public static string Coregex { get; } = "0.12.22";
     }
 }

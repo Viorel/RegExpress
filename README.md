@@ -56,9 +56,9 @@ It includes the following Regular Expression engines:
 * [**RE#**](https://github.com/ieviev/resharp-dotnet) 1.0.3 (for F#, C#, VB).
 * **Go** 1.26.4 packages:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.4,
-  * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.1.2,
+  * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.2.2,
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
-  * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.21.
+  * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.22.
 
 <br/>
 

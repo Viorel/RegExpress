@@ -2,10 +2,14 @@ github.com/coregx/ahocorasick v0.2.1 h1:JsZ5Rb32/SzGiGBl3vIwA8DAnY0+E6BLBhj+4HZs
 github.com/coregx/ahocorasick v0.2.1/go.mod h1:SDcS9KTiwLP8FHNpYSO3Q3mRqrK8SYJAYpygrhcIils=
 github.com/coregx/coregex v0.12.21 h1:U0xmOSVoW1d32qXEGfhtzMZs1YRUu2tCfD+93B6QAYo=
 github.com/coregx/coregex v0.12.21/go.mod h1:dsQgGpWvPcDeywbz/BK/YYyRcGhlMoXoCdlOWNqCR6Q=
+github.com/coregx/coregex v0.12.22 h1:+N4mZ95GP0FXRGYeImkWtpuP/qQUTSc2C77/t+qGz4E=
+github.com/coregx/coregex v0.12.22/go.mod h1:dsQgGpWvPcDeywbz/BK/YYyRcGhlMoXoCdlOWNqCR6Q=
 github.com/dlclark/regexp2/v2 v2.1.1 h1:LCUGyd9Wf+r+VVOl8Ny38JTpWJcAsdVnCIuhhtthmKw=
 github.com/dlclark/regexp2/v2 v2.1.1/go.mod h1:avUrQvPaLz2DrFNHJF0taWAFFX2C1GMSSoeiqFjcBmU=
 github.com/dlclark/regexp2/v2 v2.1.2 h1:RJjAeD/h91npDhTG4rMD4+gzGVnLT32qQy/q/ECbyUs=
 github.com/dlclark/regexp2/v2 v2.1.2/go.mod h1:avUrQvPaLz2DrFNHJF0taWAFFX2C1GMSSoeiqFjcBmU=
+github.com/dlclark/regexp2/v2 v2.2.2 h1:MYWvNYw8okuqNhwTYO587EZMiDruVa2vhV6fsGpfya0=
+github.com/dlclark/regexp2/v2 v2.2.2/go.mod h1:avUrQvPaLz2DrFNHJF0taWAFFX2C1GMSSoeiqFjcBmU=
 github.com/himclix/rexa v0.1.0 h1:ighapR7nD03IHI8mS85YrtTTBHxrAQ4FeQe3O7fNxoo=
 github.com/himclix/rexa v0.1.0/go.mod h1:1dmMQmTGRizQe3v+L32+x+kkLlk4+jD7vt69XOA2Fxk=
 golang.org/x/sys v0.40.0 h1:DBZZqJ2Rkml6QMQsZywtnjnnGvHza6BTfYFWY9kjEWQ=
