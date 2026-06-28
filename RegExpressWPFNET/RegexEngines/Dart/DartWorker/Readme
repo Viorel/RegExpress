@@ -1,0 +1,20 @@
+HOW IT'S MADE
+-------------
+
+- Install Dart, or download Dart SDK archive (it can be used without installation).
+
+- To check the version:
+
+    > dart info
+
+- If required, edit "DartWorker.dart".
+
+- Run
+
+    > build.cmd
+
+    It will create "dartworker.exe".
+
+- Run "testXXX.cmd" to perform simple tests.
+
+- Commit the changes (including "dartworker.exe").

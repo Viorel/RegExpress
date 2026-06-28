@@ -84,6 +84,9 @@
     },
     {
       "path": "Engines\\Go\\GoPlugin.dll"
+    },
+    {
+      "path": "Engines\\Dart\\DartPlugin.dll"
     }
   ]
 }
