@@ -1,0 +1,31 @@
+﻿<UserControl x:Class="DartPlugin.UCOptions"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:DartPlugin"
+             xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
+             mc:Ignorable="d" 
+             d:DesignHeight="85.522" d:DesignWidth="666.746" 
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <local:Versions x:Key="versions"/>
+        <Style TargetType="ui:CheckboxWithNote">
+            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <StackPanel VerticalAlignment="Top" Orientation="Vertical">
+
+            <StackPanel Orientation="Vertical">
+                <ui:CheckboxWithNote Prop="multiLine" Note="^ and $ will match the beginning and end of a line, as well as matching beginning and end of the input"/>
+                <ui:CheckboxWithNote Prop="caseSensitive" Note="do not ignore the case of letters when matching"/>
+                <ui:CheckboxWithNote Prop="unicode" Note="treat the pattern as a Unicode pattern per the ECMAScript standard"/>
+                <ui:CheckboxWithNote Prop="dotAll" Note="the . pattern will match all characters, including line terminators"/>
+            </StackPanel>
+
+        </StackPanel>
+    </Grid>
+</UserControl>

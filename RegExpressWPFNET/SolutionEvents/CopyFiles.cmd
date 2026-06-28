@@ -257,3 +257,9 @@ set BasePath=%SolutionDir%\RegexEngines\Go
 xcopy /D /R /Y "%BasePath%\GoPlugin\bin\%Configuration%\%TargetDir%\GoPlugin.dll" "%EnginesTargetPath%\Go\*"
 xcopy /D /R /Y "%BasePath%\GoWorker\GoWorker.exe" "%EnginesTargetPath%\Go\*.bin"
 
+
+rem -- Dart --
+
+set BasePath=%SolutionDir%\RegexEngines\Dart
+xcopy /D /R /Y "%BasePath%\DartPlugin\bin\%Configuration%\%TargetDir%\DartPlugin.dll" "%EnginesTargetPath%\Dart\*"
+xcopy /D /R /Y "%BasePath%\DartWorker\DartWorker.exe" "%EnginesTargetPath%\Dart\*.bin"
