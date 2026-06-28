@@ -2,7 +2,7 @@
 * re2js
 * RE2JS is the JavaScript port of RE2, a regular expression engine that provides linear time matching
 *
-* @version v2.8.3
+* @version v2.8.4
 * @author Oleksii Vasyliev
 * @homepage https://github.com/le0pard/re2js#readme
 * @repository github:le0pard/re2js
@@ -60,7 +60,7 @@
 		else ASCII_TO_LOWER[i] = i;
 	}
 	var Codepoint = class {
-		static CODES = new Map([
+		static CODES = /* @__PURE__ */ new Map([
 			["\x07", 7],
 			["\b", 8],
 			["	", 9],
@@ -171,7 +171,7 @@
 	};
 	//#endregion
 	//#region src/UnicodeTables.js
-	const B64_MAP = new Uint8Array(256);
+	const B64_MAP = /* @__PURE__ */ new Uint8Array(256);
 	for (let i = 0, b = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-"; i < 64; i++) B64_MAP[b.charCodeAt(i)] = i;
 	const decodeVLQ = (str) => {
 		const res = [];
@@ -1254,6 +1254,8 @@
 		*/
 		resetMatcherInput(input) {
 			if (input === null) throw new Error("input is null");
+			if (!(input instanceof MatcherInputBase)) if (Utils.isByteArray(input)) input = MatcherInput.utf8(input);
+			else input = MatcherInput.utf16(input);
 			this.matcherInput = input;
 			this.reset();
 			return this;
@@ -2429,14 +2431,14 @@
 	var BitState = class {
 		constructor() {
 			this.end = 0;
-			this.cap = new Int32Array(0);
-			this.matchcap = new Int32Array(0);
+			this.cap = /* @__PURE__ */ new Int32Array(0);
+			this.matchcap = /* @__PURE__ */ new Int32Array(0);
 			this.ncap = 0;
 			this.jobPc = new Int32Array(INITIAL_JOB_CAPACITY);
 			this.jobArg = new Uint8Array(INITIAL_JOB_CAPACITY);
 			this.jobPos = new Int32Array(INITIAL_JOB_CAPACITY);
 			this.jobLen = 0;
-			this.visited = new Uint32Array(0);
+			this.visited = /* @__PURE__ */ new Uint32Array(0);
 		}
 		reset(prog, end, ncap) {
 			this.end = end;
@@ -3946,7 +3948,7 @@
 		97,
 		122
 	];
-	const PERL_GROUPS = new Map([
+	const PERL_GROUPS = /* @__PURE__ */ new Map([
 		["\\d", new CharGroup(1, code1)],
 		["\\D", new CharGroup(-1, code1)],
 		["\\s", new CharGroup(1, code2)],
@@ -4020,7 +4022,7 @@
 		97,
 		102
 	];
-	const POSIX_GROUPS = new Map([
+	const POSIX_GROUPS = /* @__PURE__ */ new Map([
 		["[:alnum:]", new CharGroup(1, code4)],
 		["[:^alnum:]", new CharGroup(-1, code4)],
 		["[:alpha:]", new CharGroup(1, code5)],
