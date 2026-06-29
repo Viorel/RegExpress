@@ -1,0 +1,13 @@
+{
+  "NOTE": "(should not have BOM)",
+  "pattern": ".",
+  "text": "a\uD83D\uDE0Ec",
+  "flags": {
+    "ASCII": false,
+    "DOTALL": false,
+    "IGNORECASE": false,
+    "LOCALE": false,
+    "MULTILINE": false,
+    "VERBOSE": true
+  }
+}

@@ -18,20 +18,15 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace PythonPlugin
 {
-    static partial class Matcher
+    static partial class MatcherRe
     {
         static Lazy<string> LazyPythonWorker = new( LoadPythonWorker );
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.Module == ModuleEnum.re );
+
             string script = LazyPythonWorker.Value;
-
-            double? timeout = null;
-
-            if( options.Module == ModuleEnum.regex )
-            {
-                timeout = ValidationUtilities.ParseDouble( "timeout", options.timeout );
-            }
 
             using ProcessHelper ph = new( GetPythonExePath( ) );
 
@@ -50,7 +45,6 @@ namespace PythonPlugin
             {
                 var obj = new
                 {
-                    module = Enum.GetName( options.Module ),
                     pattern = pattern,
                     text,
                     flags = new
@@ -61,21 +55,7 @@ namespace PythonPlugin
                         options.LOCALE,
                         options.MULTILINE,
                         options.VERBOSE,
-                        //
-                        options.BESTMATCH,
-                        options.ENHANCEMATCH,
-                        options.FULLCASE,
-                        options.POSIX,
-                        options.REVERSE,
-                        options.UNICODE,
-                        options.WORD,
-                        options.VERSION0,
-                        options.VERSION1,
-                        //
-                        options.overlapped,
-                        options.partial,
                     },
-                    timeout = timeout
                 };
                 var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
                 sw.WriteLine( json );
@@ -85,10 +65,10 @@ namespace PythonPlugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            List<IMatch> matches = new( );
+            List<IMatch> matches = [];
             SimpleTextGetter? stg = null;
             SimpleMatch? match = null;
-            Dictionary<int, string> names = new( );
+            Dictionary<int, string> names = [];
             SurrogatePairsHelper sph = new( text, processSurrogatePairs: true );
             string? line;
 
@@ -96,7 +76,7 @@ namespace PythonPlugin
             {
                 if( line.Length == 0 || line.StartsWith( "#" ) ) continue;
 
-                var m = NMgcRegex( ).Match( line );
+                var m = NMgRegex( ).Match( line );
 
                 if( !m.Success )
                 {
@@ -155,22 +135,6 @@ namespace PythonPlugin
                         ++group_i;
                     }
                     break;
-                    case "c":
-                    {
-                        int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
-                        int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
-                        int length = end - index;
-                        bool success = index >= 0;
-                        Debug.Assert( success );
-                        Debug.Assert( match != null );
-
-                        var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
-
-                        SimpleGroup group = (SimpleGroup)match.Groups.Last( );
-
-                        group.AddCapture( index, length, text_index, text_length );
-                    }
-                    break;
                     default:
                         if( Debugger.IsAttached ) Debugger.Break( );
 
@@ -195,7 +159,7 @@ namespace PythonPlugin
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string worker_path = Path.Combine( assembly_dir, @"PythonWorker.py" );
+            string worker_path = Path.Combine( assembly_dir, @"PythonWorkerRe.py" );
 
             return worker_path;
         }
@@ -210,6 +174,6 @@ namespace PythonPlugin
 
 
         [GeneratedRegex( @"^(?'t'[Mgc]) (?'s'-?\d+), (?'e'-?\d+)|(?'t'N) (?'i'\d+) <(?'n'.*)>$", RegexOptions.ExplicitCapture )]
-        private static partial Regex NMgcRegex( );
+        private static partial Regex NMgRegex( );
     }
 }

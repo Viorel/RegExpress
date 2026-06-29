@@ -107,7 +107,12 @@ namespace PythonPlugin
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            return Matcher.GetMatches( cnc, pattern, text, Options );
+            return Options.Module switch
+            {
+                ModuleEnum.re => MatcherRe.GetMatches( cnc, pattern, text, Options ),
+                ModuleEnum.regex => MatcherRegex.GetMatches( cnc, pattern, text, Options ),
+                _ => throw new NotImplementedException( )
+            };
         }
 
 

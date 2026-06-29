@@ -1,8 +1,7 @@
 {
   "NOTE": "(should not have BOM)",
-  "module": "re",
-  "pattern": ".",
-  "text": "a\uD83D\uDE0Ec",
+  "pattern": "(.)+",
+  "text": "abc",
   "flags": {
     "ASCII": false,
     "DOTALL": false,
@@ -19,7 +18,7 @@
     "WORD": false,
     "VERSION0": false,
     "VERSION1": true,
-    "overlapped": true,
+    "overlapped": false,
     "partial": false
   },
   "timeout": null
