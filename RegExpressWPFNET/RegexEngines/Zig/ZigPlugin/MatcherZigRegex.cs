@@ -90,6 +90,54 @@ Example of result:
         }
     }
 
+    public class RelaxedJsonConverter : System.Text.Json.Serialization.JsonConverter<string>
+    {
+        public override string? Read( ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options )
+        {
+            switch( reader.TokenType )
+            {
+            case JsonTokenType.String:
+                try
+                {
+                    return reader.GetString( )!;
+                }
+                catch( InvalidOperationException )
+                {
+                    return Encoding.UTF8.GetString( reader.ValueSpan );
+
+                    // incomplete surrogate pairs are returned as lowercase hexadecimal codes preceded by "\\u"
+                }
+
+            case JsonTokenType.Null:
+                return null;
+
+            case JsonTokenType.StartArray:
+            {
+                StringBuilder sb = new( );
+
+                for( reader.Read( ); reader.TokenType != JsonTokenType.EndArray; reader.Read( ) )
+                {
+                    if( !reader.TryGetUInt16( out UInt16 value ) )
+                    {
+                        throw new JsonException( $"Unexpected token: {reader.TokenType}. Number expected." );
+                    }
+
+                    sb.Append( (char)value );
+                }
+
+                return sb.ToString( );
+            }
+
+            default:
+                throw new JsonException( $"Unexpected token: {reader.TokenType}." );
+            }
+        }
+
+        public override void Write( Utf8JsonWriter writer, string value, JsonSerializerOptions options )
+        {
+            writer.WriteStringValue( value );
+        }
+    }
 
     static class MatcherZigRegex
     {
@@ -124,7 +172,18 @@ Example of result:
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            ResponseClasses.RootObject? response = JsonSerializer.Deserialize<ResponseClasses.RootObject>( ph.OutputStream );
+            JsonSerializerOptions json_options = new( )
+            {
+                Converters = { new RelaxedJsonConverter( ) },
+            };
+
+#if DEBUG
+            using StreamReader sr = new( ph.OutputStream );
+            string output = sr.ReadToEnd( );
+            ResponseClasses.RootObject? response = JsonSerializer.Deserialize<ResponseClasses.RootObject>( output, json_options );
+#else
+            ResponseClasses.RootObject? response = JsonSerializer.Deserialize<ResponseClasses.RootObject>( ph.OutputStream, json_options );
+#endif
 
             if( response == null ) throw new Exception( "Null response" );
 

@@ -113,7 +113,7 @@ pub fn main1(init: std.process.Init) !void {
 
     output_object.matches = matches_arr.items;
 
-    const json_options: std.json.Stringify.Options = .{ .whitespace = if (is_debug) .indent_2 else .minified };
+    const json_options: std.json.Stringify.Options = .{ .whitespace = if (is_debug) .indent_2 else .minified, .escape_unicode = true };
 
     const output_json = try std.fmt.allocPrint(allocator, "{f}\n", .{std.json.fmt(output_object, json_options)});
 
