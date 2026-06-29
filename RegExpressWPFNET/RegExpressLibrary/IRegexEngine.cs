@@ -50,5 +50,6 @@ namespace RegExpressLibrary
         IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( );
         void SetIgnoreCase( bool yes ); // (if supported)
         void SetIgnorePatternWhitespace( bool yes ); // (if supported)
+        void SetCollectCaptures( bool yes ); // (if supported)
     }
 }

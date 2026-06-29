@@ -57,7 +57,7 @@ namespace SubRegPlugin
 
         public string Subtitle => $"{Name}";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupSuccessFlag | RegexEngineCapabilityEnum.NoCaptures;
 
         public string? NoteForCaptures => null;
 
@@ -130,6 +130,10 @@ namespace SubRegPlugin
         }
 
         public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
+        public void SetCollectCaptures( bool yes )
         {
         }
 

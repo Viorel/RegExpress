@@ -191,7 +191,7 @@ partial class ExporterToExcel
                         {
                             progressOnEngines?.Invoke( $"{engine_data.Engine.Name} {m.variant.Name}", engine_index, engines_data.Length );
 
-                            bool flag_is_true = details.ValueGetter( m.variant.FeatureMatrix );
+                            bool flag_is_true = details.ValueGetter( m.variant.RegexEngine!, m.variant.FeatureMatrix );
 
                             if( !verify || m.variant.RegexEngine == null || details.Rules.Count == 0 )
                             {

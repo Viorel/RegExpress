@@ -140,6 +140,12 @@ namespace TREPlugin
         {
         }
 
+        public void SetCollectCaptures( bool yes )
+        {
+            Options.REG_NOSUB = !yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+        }
+
         #endregion
 
 

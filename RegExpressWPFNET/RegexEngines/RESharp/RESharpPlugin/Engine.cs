@@ -56,7 +56,7 @@ namespace RESharpPlugin
 
         public string Subtitle => "RE#";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupDetails | RegexEngineCapabilityEnum.NoCaptures;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures;
 
         public string? NoteForCaptures => null;
 
@@ -128,6 +128,10 @@ namespace RESharpPlugin
         }
 
         public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
+        public void SetCollectCaptures( bool yes )
         {
         }
 

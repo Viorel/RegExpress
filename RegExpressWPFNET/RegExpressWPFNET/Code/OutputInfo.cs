@@ -39,16 +39,18 @@ namespace RegExpressWPFNET.Code.OutputInfo
         internal readonly Span Span;
         internal readonly Inline ValueInline;
         internal readonly List<CaptureInfo> CaptureInfos = new( );
-        internal readonly bool NoGroupDetails;
+        internal readonly bool NoGroupIndex;
+        internal readonly bool NoGroupSuccessFlag;
 
-        public GroupInfo( MatchInfo parent, bool isSuccess, Segment groupSegment, Span span, Inline valueInline, bool noGroupDetails )
+        public GroupInfo( MatchInfo parent, bool isSuccess, Segment groupSegment, Span span, Inline valueInline, bool noGroupIndex, bool noGroupSuccessFlag )
         {
             Parent = parent;
             IsSuccess = isSuccess;
             GroupSegment = groupSegment;
             Span = span;
             ValueInline = valueInline;
-            NoGroupDetails = noGroupDetails;
+            NoGroupIndex = noGroupIndex;
+            NoGroupSuccessFlag = noGroupSuccessFlag;
         }
 
         internal override MatchInfo GetMatchInfo( ) => Parent.GetMatchInfo( );

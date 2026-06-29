@@ -155,6 +155,12 @@ namespace PCRE2Plugin
             if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
+        public void SetCollectCaptures( bool yes )
+        {
+            Options.PCRE2_NO_AUTO_CAPTURE = !yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+        }
+
         #endregion
 
 

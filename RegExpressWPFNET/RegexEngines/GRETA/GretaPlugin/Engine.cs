@@ -135,6 +135,10 @@ namespace GretaPlugin
             if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
+        public void SetCollectCaptures( bool yes )
+        {
+        }
+
         #endregion
 
 

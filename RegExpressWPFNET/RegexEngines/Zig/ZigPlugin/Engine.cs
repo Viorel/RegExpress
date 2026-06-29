@@ -59,7 +59,14 @@ namespace ZigPlugin
 
         public string Subtitle => $"Zig ({Options.Library switch { RegexLibraryEnum.ZigRegex => "zig-regex", RegexLibraryEnum.Mvzr => "mvzr", RegexLibraryEnum.Pzre => "PZRE", _ => "Unknown" }})";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupDetails | RegexEngineCapabilityEnum.NoCaptures;
+        public RegexEngineCapabilityEnum Capabilities =>
+            Options.Library switch
+            {
+                RegexLibraryEnum.ZigRegex => RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoCaptures,
+                RegexLibraryEnum.Mvzr => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures,
+                RegexLibraryEnum.Pzre => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures,
+                _ => throw new NotImplementedException( )
+            };
 
         public string? NoteForCaptures => null;
 
@@ -157,6 +164,10 @@ namespace ZigPlugin
         }
 
         public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
+        public void SetCollectCaptures( bool yes )
         {
         }
 

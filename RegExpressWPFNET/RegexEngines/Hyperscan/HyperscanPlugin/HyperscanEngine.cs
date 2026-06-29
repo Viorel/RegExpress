@@ -57,7 +57,7 @@ namespace HyperscanPlugin
 
         public string Subtitle => $"{Name}";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupDetails | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.OverlappingMatches;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.OverlappingMatches;
 
         public string? NoteForCaptures => null;
 
@@ -134,6 +134,10 @@ namespace HyperscanPlugin
         }
 
         public void SetIgnorePatternWhitespace( bool yes )
+        {
+        }
+
+        public void SetCollectCaptures( bool yes )
         {
         }
 

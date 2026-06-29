@@ -58,7 +58,17 @@ namespace OnigurumaPlugin
 
         public string Subtitle => $"{Name}";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.None;
+        public RegexEngineCapabilityEnum Capabilities =>
+            Options.Syntax switch
+            {
+                SyntaxEnum.ONIG_SYNTAX_ONIGURUMA or
+                SyntaxEnum.ONIG_SYNTAX_JAVA or
+                SyntaxEnum.ONIG_SYNTAX_PERL or
+                SyntaxEnum.ONIG_SYNTAX_PERL_NG or
+                SyntaxEnum.ONIG_SYNTAX_RUBY or
+                SyntaxEnum.ONIG_SYNTAX_PYTHON => RegexEngineCapabilityEnum.None,
+                _ => RegexEngineCapabilityEnum.NoCaptures
+            };
 
         public string? NoteForCaptures => "requires ‘ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY’";
 
@@ -134,7 +144,7 @@ namespace OnigurumaPlugin
                 Options options = new( )
                 {
                     Syntax = syntax,
-                    ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA,
+                    ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = false,// syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA,
                 };
                 Engine engine = new( ) { Options = options };
 
@@ -153,6 +163,14 @@ namespace OnigurumaPlugin
         public void SetIgnorePatternWhitespace( bool yes )
         {
             Options.ONIG_OPTION_EXTEND = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+        }
+
+        public void SetCollectCaptures( bool yes )
+        {
+            Options.ONIG_OPTION_DONT_CAPTURE_GROUP = !yes;
+            Options.ONIG_OPTION_CAPTURE_GROUP = yes;
+            Options.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = yes;
             if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 

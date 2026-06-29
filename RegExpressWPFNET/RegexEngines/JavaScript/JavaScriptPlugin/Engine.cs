@@ -210,6 +210,12 @@ namespace JavaScriptPlugin
         {
         }
 
+        public void SetCollectCaptures( bool yes )
+        {
+            Options.n = !yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+        }
+
         #endregion
 
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )

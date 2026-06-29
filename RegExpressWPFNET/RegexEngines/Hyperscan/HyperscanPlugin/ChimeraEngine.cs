@@ -134,6 +134,10 @@ namespace HyperscanPlugin
         {
         }
 
+        public void SetCollectCaptures( bool yes )
+        {
+        }
+
         #endregion
 
 

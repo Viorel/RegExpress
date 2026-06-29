@@ -131,6 +131,10 @@ namespace CompileTimeRegexPlugin
         {
         }
 
+        public void SetCollectCaptures( bool yes )
+        {
+        }
+
         #endregion
 
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )

@@ -142,7 +142,7 @@ namespace DartPlugin
                             if( success )
                             {
                                 int char_start = match.Index; // no details
-                                int char_length = g.Length;
+                                int char_length = g!.Length;
 
                                 match.AddGroup( char_start, char_length, true, name, new SimpleTextGetterWithOffset( m.s, g ) );
                             }

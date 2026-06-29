@@ -134,6 +134,12 @@ namespace CppBuilderPlugin
             if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
+        public void SetCollectCaptures( bool yes )
+        {
+            Options.roExplicitCapture = !yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+        }
+
         #endregion
 
         private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )

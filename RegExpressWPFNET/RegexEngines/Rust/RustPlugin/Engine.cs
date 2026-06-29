@@ -73,7 +73,12 @@ namespace RustPlugin
 
         public string Subtitle => $"{Name} ({mOptionsControl.Value.GetSelectedCrateTitle( )})";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd;
+        public RegexEngineCapabilityEnum Capabilities =>
+            Options.crate switch
+            {
+                CrateEnum.resharp => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd,
+                _ => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd
+            };
 
         public string? NoteForCaptures => null;
 
@@ -181,6 +186,10 @@ namespace RustPlugin
         {
             Options.ignore_whitespace = yes;
             if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+        }
+
+        public void SetCollectCaptures( bool yes )
+        {
         }
 
         #endregion

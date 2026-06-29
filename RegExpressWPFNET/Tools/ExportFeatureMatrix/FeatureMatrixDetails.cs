@@ -61,12 +61,12 @@ partial class FeatureMatrixDetails
 
     internal readonly string ShortDesc;
     internal readonly string? Desc;
-    internal readonly Func<FeatureMatrix, bool> ValueGetter;
+    internal readonly Func<IRegexEngine, FeatureMatrix, bool> ValueGetter;
     internal readonly List<Rule> Rules = [];
     bool mIgnoreCase = false;
     bool mIgnorePatternWhitespace = false;
 
-    internal FeatureMatrixDetails( string shortDesc, string desc, Func<FeatureMatrix, bool> valueGetter )
+    internal FeatureMatrixDetails( string shortDesc, string desc, Func<IRegexEngine, FeatureMatrix, bool> valueGetter )
     {
         ShortDesc = shortDesc;
         Desc = desc;

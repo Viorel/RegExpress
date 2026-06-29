@@ -156,6 +156,12 @@ namespace GoPlugin
             if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
+        public void SetCollectCaptures( bool yes )
+        {
+            Options.ExplicitCapture = !yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+        }
+
         #endregion
 
 
