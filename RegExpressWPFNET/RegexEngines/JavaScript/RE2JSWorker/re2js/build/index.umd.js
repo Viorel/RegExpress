@@ -2,7 +2,7 @@
 * re2js
 * RE2JS is the JavaScript port of RE2, a regular expression engine that provides linear time matching
 *
-* @version v2.8.4
+* @version v2.8.5
 * @author Oleksii Vasyliev
 * @homepage https://github.com/le0pard/re2js#readme
 * @repository github:le0pard/re2js
@@ -1249,7 +1249,7 @@
 		}
 		/**
 		* Resets the {@code Matcher} and changes the input.
-		* @param {MatcherInputBase} input
+		* @param {string|number[]|Uint8Array|MatcherInputBase} input
 		* @returns {Matcher} the {@code Matcher} itself, for chained method calls
 		*/
 		resetMatcherInput(input) {
@@ -6369,6 +6369,33 @@
 			return this.re2Input.executeEngine(machineInput, 0, RE2Flags.ANCHOR_BOTH, 0) !== null;
 		}
 		/**
+		* Executes a search for a match in a specified string.
+		* Returns a result array, or null if no match is found.
+		* The returned array perfectly mirrors standard JavaScript `RegExpExecArray`,
+		* including `.index`, `.input`, and `.groups` properties.
+		*
+		* @param {string|number[]|Uint8Array} input the input string or byte array
+		* @returns {Array|null} the match array with index, input, and groups properties, or null
+		*/
+		exec(input) {
+			const m = this.matcher(input);
+			if (!m.find()) return null;
+			const result = [m.group(0)];
+			for (let i = 1; i <= m.groupCount(); i++) {
+				const val = m.group(i);
+				result.push(val === null ? void 0 : val);
+			}
+			result.index = m.start(0);
+			result.input = input;
+			const namedGroups = this.namedGroups();
+			if (Object.keys(namedGroups).length > 0) {
+				const parsedGroups = m.getNamedGroups();
+				for (const key in parsedGroups) if (parsedGroups[key] === null) parsedGroups[key] = void 0;
+				result.groups = parsedGroups;
+			} else result.groups = void 0;
+			return result;
+		}
+		/**
 		* Splits input around instances of the regular expression. It returns an array giving the strings
 		* that occur before, between, and after instances of the regular expression.
 		*
@@ -6420,7 +6447,7 @@
 		* including capturing groups.
 		*
 		* @param {string|number[]|Uint8Array} input the input string or byte array
-		* @returns {IterableIterator<Array>}
+		* @returns {IterableIterator<RegExpMatchArray>}
 		*/
 		*matchAll(input) {
 			const m = this.matcher(input);

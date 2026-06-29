@@ -221,10 +221,10 @@ export class Matcher {
 	anchorFlag: number;
 	/**
 	 * Resets the {@code Matcher} and changes the input.
-	 * @param {MatcherInputBase} input
+	 * @param {string|number[]|Uint8Array|MatcherInputBase} input
 	 * @returns {Matcher} the {@code Matcher} itself, for chained method calls
 	 */
-	resetMatcherInput(input: MatcherInputBase): Matcher;
+	resetMatcherInput(input: string | number[] | Uint8Array | MatcherInputBase): Matcher;
 	matcherInput: MatcherInputBase;
 	/**
 	 * Returns the start of the named group of the most recent match, or -1 if the group was not
@@ -874,6 +874,16 @@ export class RE2JS {
 	 */
 	testExact(input: string | number[] | Uint8Array): boolean;
 	/**
+	 * Executes a search for a match in a specified string.
+	 * Returns a result array, or null if no match is found.
+	 * The returned array perfectly mirrors standard JavaScript `RegExpExecArray`,
+	 * including `.index`, `.input`, and `.groups` properties.
+	 *
+	 * @param {string|number[]|Uint8Array} input the input string or byte array
+	 * @returns {Array|null} the match array with index, input, and groups properties, or null
+	 */
+	exec(input: string | number[] | Uint8Array): any[] | null;
+	/**
 	 * Splits input around instances of the regular expression. It returns an array giving the strings
 	 * that occur before, between, and after instances of the regular expression.
 	 *
@@ -892,9 +902,9 @@ export class RE2JS {
 	 * including capturing groups.
 	 *
 	 * @param {string|number[]|Uint8Array} input the input string or byte array
-	 * @returns {IterableIterator<Array>}
+	 * @returns {IterableIterator<RegExpMatchArray>}
 	 */
-	matchAll(input: string | number[] | Uint8Array): IterableIterator<any[]>;
+	matchAll(input: string | number[] | Uint8Array): IterableIterator<RegExpMatchArray>;
 	/**
 	 *
 	 * @returns {string}
