@@ -44,7 +44,9 @@
     <Project Path="RegexEngines/Go/GoPlugin/GoPlugin.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/GRETA/">
-    <Project Path="RegexEngines/GRETA/GretaPlugin/GretaPlugin.csproj" />
+    <Project Path="RegexEngines/GRETA/GretaPlugin/GretaPlugin.csproj">
+      <BuildDependency Project="RegexEngines/GRETA/GretaWorker/GretaWorker.vcxproj" />
+    </Project>
     <Project Path="RegexEngines/GRETA/GretaWorker/GretaWorker.vcxproj" Id="bc846dd1-bdad-46d1-b9dd-a6b87467b630" />
   </Folder>
   <Folder Name="/RegexEngines/Hyperscan/">
@@ -97,6 +99,12 @@
     </Project>
     <Project Path="RegexEngines/RE2/RE2StaticLib/RE2StaticLib.vcxproj" Id="2fc49c2b-368f-421e-a3f3-2dabf86fbcfb" />
     <Project Path="RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" Id="21e036e6-459b-497f-8365-ec795000d990" />
+  </Folder>
+  <Folder Name="/RegexEngines/REAL/">
+    <Project Path="RegexEngines/REAL/RealPlugin/RealPlugin.csproj">
+      <BuildDependency Project="RegexEngines/REAL/RealWorker/RealWorker.vcxproj" />
+    </Project>
+    <Project Path="RegexEngines/REAL/RealWorker/RealWorker.vcxproj" />
   </Folder>
   <Folder Name="/RegexEngines/RESharp/">
     <Project Path="RegexEngines/RESharp/RESharpPlugin/RESharpPlugin.csproj">
@@ -181,6 +189,8 @@
     <BuildDependency Project="RegexEngines/Qt/QtPlugin/QtPlugin.csproj" />
     <BuildDependency Project="RegexEngines/RE2/RE2Plugin/RE2Plugin.csproj" />
     <BuildDependency Project="RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" />
+    <BuildDependency Project="RegexEngines/REAL/RealPlugin/RealPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/REAL/RealWorker/RealWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/RESharp/RESharpPlugin/RESharpPlugin.csproj" />
     <BuildDependency Project="RegexEngines/RESharp/RESharpWorker/RESharpWorker.csproj" />
     <BuildDependency Project="RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />

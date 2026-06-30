@@ -87,6 +87,9 @@
     },
     {
       "path": "Engines\\Dart\\DartPlugin.dll"
+    },
+    {
+      "path": "Engines\\REAL\\RealPlugin.dll"
     }
   ]
 }
