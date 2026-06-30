@@ -1,9 +1,18 @@
 ﻿# RegExpress
 
-A tester for researching Regular Expression engines. Made in Visual Studio 2026 using C#, C++, WPF, .NET 9.
-The comparison of the engines is shown in an Excel file.
+It is a collection of Regular Expression engines, a playground, and a comparison chart.
 
-It includes the following Regular Expression engines:
+The Playground is a desktop application:
+
+![Screenshot of RegExpress](Screenshot1.png)
+
+The comparison chart is an Excel file:
+
+![Feature Matrix](FM.png)
+
+<br/>
+
+The following engines are included:
 
 * [**Regex**](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-9.0) class from .NET 9.
 * [**Regex**](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8) class from .NET Framework 4.8.
@@ -62,35 +71,24 @@ It includes the following Regular Expression engines:
 * **Dart** 3.12.2 [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html).
 * [**REAL**](https://github.com/RECHE23/real-regex) 2026.6.21 (in C++).
 
-<br/>
+## Running the playground
 
-Sample:
-
-![Screenshot of RegExpress](Screenshot1.png)
-
-#### Usage
-
-Enter the pattern and text to textboxes. The results are updated automatically. The found matches are colourised.
-
-Use the **Options** area to select and configure the Regular Expression engine.
-
-Press the “➕” button to open more tabs. 
-
-Currently the regular expressions are saved and loaded automatically.
-
-The program can be built using Visual Studio 2026 (recommended) or Visual Studio 2022. The following Visual Studio workloads are required:
+The program can be built using Visual Studio 2026 (recommended) or Visual Studio 2022. 
+The following Visual Studio workloads are required:
 
 * .NET desktop development.
 * Desktop development with C++.
 
-Open the **RegExpressWPFNET.slnx** solution. Right-click the **RegExpressWPFNET** project in Solution Explorer
-and select “Set as Startup Project”. Select “Rebuild Solution” from BUILD menu. Then the program can be started.
+Engines that requires other software are precompiled, therefore no additional 
+installations are required.
+
+To build the program, open the **RegExpressWPFNET.slnx** solution. Right-click 
+the **RegExpressWPFNET** project in Solution Explorer and select “Set as Startup Project”. 
+Select “Rebuild Solution” from BUILD menu. Then the program can be started.
 
 > [!NOTE]
-> To build the solution in Visual Studio 2022, the Platform Toolset option for C++ projects can be changed 
-from **v145** to **v143**.
-
-The sources are written in C# and C++. The minimal sources of third-party regular expression libraries are included.
+> To build the solution in Visual Studio 2022, the Platform Toolset option for C++ projects 
+can be changed from **v145** to **v143**.
 
 #### Details
 
@@ -99,9 +97,7 @@ The sources are written in C# and C++. The minimal sources of third-party regula
 * Startup project: **RegExpressWPFNET**.
 * Configurations: **“Debug, Any CPU”** or **“Release, Any CPU”**. The C++ projects use **“x64”**.
 * Operating Systems: **Windows 11**, **Windows 10**.
-
-Some of engines require certain third-party library files, which were downloaded or compiled separately 
-and included into **main** branch. (No additional installations required).
+* Main languages: C#, C++.
 
 > [!NOTE]
 > After loading the solution file in Visual Studio, make sure that 
@@ -111,18 +107,24 @@ and included into **main** branch. (No additional installations required).
 > To avoid compilation errors after acquiring new releases, use the “Rebuild Solution” command 
 instead of “Build Solution”.
 
+#### Usage
+
+Enter the pattern and text to textboxes. The results are updated automatically. 
+The found matches are colourised.
+
+Use the **Options** area to select and configure the Regular Expression engines.
+
+Press the “➕” button to open more tabs. 
+
+Currently the regular expressions are saved and loaded automatically.
+
 <br/>
 
-## Feature Matrix
+## Comparison chart
 
-The various functionalities of regular expression engines are presented in the Excel file.
-
-![Feature Matrix](FM.png)
-
-Download and open the file:
+The comparison chart (“Feature Matrix”) is an Excel file:
 
 * [RegexFeatureMatrix.xlsx](RegexFeatureMatrix.xlsx)
-
 
 #### Example of several essential indicators:
 
@@ -132,6 +134,9 @@ Download and open the file:
 * which engines support fuzzy or approximate matching?
 
 The answers are in the Excel file.
+
+<br/>
+
 
 ## Betterments
 
