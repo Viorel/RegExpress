@@ -79,7 +79,7 @@ The following Visual Studio workloads are required:
 * .NET desktop development.
 * Desktop development with C++.
 
-Engines that requires other software are precompiled, therefore no additional 
+Engines that require other software are precompiled, therefore no additional 
 installations are required.
 
 To build the program, open the **RegExpressWPFNET.slnx** solution. Right-click 

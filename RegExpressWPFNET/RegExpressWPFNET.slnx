@@ -104,7 +104,7 @@
     <Project Path="RegexEngines/REAL/RealPlugin/RealPlugin.csproj">
       <BuildDependency Project="RegexEngines/REAL/RealWorker/RealWorker.vcxproj" />
     </Project>
-    <Project Path="RegexEngines/REAL/RealWorker/RealWorker.vcxproj" />
+    <Project Path="RegexEngines/REAL/RealWorker/RealWorker.vcxproj" Id="b3b076f6-1ce8-4851-b44d-7e3a4321b308" />
   </Folder>
   <Folder Name="/RegexEngines/RESharp/">
     <Project Path="RegexEngines/RESharp/RESharpPlugin/RESharpPlugin.csproj">
