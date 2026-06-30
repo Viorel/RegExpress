@@ -579,7 +579,8 @@ namespace RegExpressLibrary.SyntaxColouring
                 pb_inside_sets.EndGroup( );
 
                 // -- identity escape
-                if( fm.InsideSets_GenericEscape )
+                //if( fm.InsideSets_GenericEscape )
+                // condition is not needed; unsupported sequences will be reported by engines
                 {
                     pb_inside_sets.Add( @"(?<escape>\\.?)" );
                 }
@@ -1512,7 +1513,8 @@ namespace RegExpressLibrary.SyntaxColouring
             pb.Add( pb_character_class );
 
             // -- identity escape
-            if( fm.GenericEscape )
+            //if( fm.GenericEscape )
+            // condition is not needed; unsupported sequences will be reported by engines
             {
                 pb.Add( @"(?<escape>\\.?)" ); // generic'\...'
             }
