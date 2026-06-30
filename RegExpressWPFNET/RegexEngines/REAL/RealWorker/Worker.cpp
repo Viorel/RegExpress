@@ -10,7 +10,7 @@
 #include "CheckedCast.h"
 #include "SEHFilter.h"
 
-#include "real/real.hpp"
+#include "real_regex-min/include/real/real.hpp"
 
 
 static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, real::flags flags )
