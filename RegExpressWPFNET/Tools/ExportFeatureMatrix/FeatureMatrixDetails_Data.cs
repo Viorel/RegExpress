@@ -6,6 +6,7 @@ partial class FeatureMatrixDetails
 {
     internal static readonly FeatureMatrixGroup[] AllFeatureMatrixDetails =
         [
+
             new ( @"General",
             [
                 new FeatureMatrixDetails( @"(…)", @"Grouping constructs", (e, fm) => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal)
@@ -519,7 +520,7 @@ partial class FeatureMatrixDetails
                     .Test( @"(?(VERSION>=1)xyz|abc)", "xyz", "" ),
             ] ),
 
-            new ( @"Miscellaneous",
+        new ( @"Miscellaneous",
             [
                 new FeatureMatrixDetails( @"(*verb)", @"Control verbs: (*verb), (*verb:…), (*:name)", (e, fm) => fm.ControlVerbs)
                     .Test( @"x(*ACCEPT)|y(*FAIL)", "x", "y" )
@@ -528,8 +529,8 @@ partial class FeatureMatrixDetails
                     .Test( @"a(*FAIL)|b", "b", "a" ),
                 new FeatureMatrixDetails( @"(*…:…)", @"Script runs, such as (*atomic:…)", (e, fm) => fm.ScriptRuns)
                     .Test( @"(*atomic:x)", "x", "" ),
-                new FeatureMatrixDetails( @"(?Cn), (*func)", @"Callouts (custom functions)", (e, fm) => fm.Callouts ),
 
+                new FeatureMatrixDetails( @"(?Cn), (*func)", @"Callouts (custom functions)", (e, fm) => fm.Callouts ),
                 new FeatureMatrixDetails( @"(?)", @"Empty construct", (e, fm) => fm.EmptyConstruct)
                     .Test( @"x(?)y", "xy", "x"),
                 //new ( @"(? )", @"Empty construct", (e, fm) => fm.EmptyConstructX).Test( @"(?x)a(? )b", "ab", null ),
@@ -537,9 +538,16 @@ partial class FeatureMatrixDetails
                     .Test( @"x[]?", "x", null ),
                 new FeatureMatrixDetails( @"[^]", @"Any character, even newline", (e, fm) => fm.EmptySetAny)
                     .Test( @"a[^][^][^]b", "ax\r\nb", "ab" ),
-                new FeatureMatrixDetails( @"Unicode", @"Supports Unicode characters, not just ASCII", (e, fm) => ! fm.AsciiOnly)
+                new FeatureMatrixDetails( @"Unicode", @"Supports Unicode characters, not just ASCII", (e, fm) => fm.SupportsUnicode )
                     .Test( @"X.....Y", "XăîșțâY", null ),
-                new FeatureMatrixDetails( @"Surrogates", @"“.” matches surrogate pairs as one entity (no split)", (e, fm) => ! fm.AsciiOnly && ! fm.SplitSurrogatePairs)
+                new FeatureMatrixDetails( @"[Unicode]", @"Supports Unicode characters inside sets", (e, fm) => fm.InsideSets_SupportsUnicode )
+                    .Test( @"X[é]Y", "XéY", null, "XéY" ),
+                new FeatureMatrixDetails( @"é=É", @"Supports Unicode case folding", (e, fm) => fm.SupportsUnicodeCaseFolding )
+                    .IgnoreCase()
+                    .Test( @"XéY", "XÉY", null, "XÉY" )
+                    .Test( @"(?i)XéY", "XÉY", null, "XÉY" )
+                    .Test( @"(?i:XéY)", "XÉY", null, "XÉY" ),
+                new FeatureMatrixDetails( @"Surrogates", @"“.” matches surrogate pairs as one entity (no split)", (e, fm) => fm.SupportsUnicode && fm.KeepSurrogatePairs )
                     .Test( @"X.Y", "X💕Y", null ),
 
                 new FeatureMatrixDetails( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", (e, fm) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams)

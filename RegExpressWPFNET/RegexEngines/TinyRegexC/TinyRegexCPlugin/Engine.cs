@@ -349,8 +349,10 @@ namespace TinyRegexCPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                AsciiOnly = true,
-                SplitSurrogatePairs = false, // (not applicable)
+                SupportsUnicode = false,
+                InsideSets_SupportsUnicode = false,
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = true, // (not applicable)
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,

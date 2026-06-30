@@ -127,6 +127,8 @@ namespace RealPlugin
 
         public void SetIgnoreCase( bool yes )
         {
+            Options.icase = yes;
+            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         public void SetIgnorePatternWhitespace( bool yes )
@@ -353,8 +355,10 @@ namespace RealPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                AsciiOnly = false,
-                SplitSurrogatePairs = false,
+                SupportsUnicode = true,
+                InsideSets_SupportsUnicode = false,
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,

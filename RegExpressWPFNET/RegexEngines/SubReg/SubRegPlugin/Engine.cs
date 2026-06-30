@@ -351,8 +351,10 @@ namespace SubRegPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                AsciiOnly = true,
-                SplitSurrogatePairs = false, // (not applicable)
+                SupportsUnicode = false,
+                InsideSets_SupportsUnicode = false,
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = false, // (not applicable)
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = false,

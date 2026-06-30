@@ -360,8 +360,10 @@ namespace TREPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                AsciiOnly = false,
-                SplitSurrogatePairs = true,
+                SupportsUnicode = true,
+                InsideSets_SupportsUnicode = true,
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,

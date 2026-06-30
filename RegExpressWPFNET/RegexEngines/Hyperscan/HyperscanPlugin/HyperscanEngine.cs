@@ -355,8 +355,10 @@ namespace HyperscanPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                AsciiOnly = false,
-                SplitSurrogatePairs = false,
+                SupportsUnicode = true,
+                InsideSets_SupportsUnicode = true,
+                SupportsUnicodeCaseFolding = true,
+                KeepSurrogatePairs = true,
                 FuzzyMatchingParams = true,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,

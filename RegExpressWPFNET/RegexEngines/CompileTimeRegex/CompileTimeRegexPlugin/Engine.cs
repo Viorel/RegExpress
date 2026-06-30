@@ -348,8 +348,10 @@ namespace CompileTimeRegexPlugin
                 EmptySet = false,
                 EmptySetAny = true,
 
-                AsciiOnly = false,
-                SplitSurrogatePairs = true,
+                SupportsUnicode = true,
+                InsideSets_SupportsUnicode = true,
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,

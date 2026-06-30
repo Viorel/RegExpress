@@ -356,8 +356,10 @@ namespace ICUPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                AsciiOnly = false,
-                SplitSurrogatePairs = false,
+                SupportsUnicode = true,
+                InsideSets_SupportsUnicode = true,
+                SupportsUnicodeCaseFolding = true,
+                KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,

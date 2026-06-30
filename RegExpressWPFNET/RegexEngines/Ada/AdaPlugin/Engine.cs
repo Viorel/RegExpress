@@ -349,8 +349,10 @@ namespace AdaPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                AsciiOnly = true,
-                SplitSurrogatePairs = false, // (not applicable)
+                SupportsUnicode = false,
+                InsideSets_SupportsUnicode = false,
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = true, // (not applicable)
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,

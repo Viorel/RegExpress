@@ -134,6 +134,14 @@ namespace PCRE2Plugin
                     PCRE2_ALLOW_EMPTY_CLASS = true,
                     PCRE2_DUPNAMES = true,
                     PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL = true,
+
+                    PCRE2_NEVER_UCP = false,
+                    PCRE2_UCP = true,
+                    PCRE2_EXTRA_ASCII_BSD = false,
+                    PCRE2_EXTRA_ASCII_BSS = false,
+                    PCRE2_EXTRA_ASCII_BSW = false,
+                    PCRE2_EXTRA_ASCII_DIGIT = false,
+                    PCRE2_EXTRA_ASCII_POSIX = false,
                 }
             };
 
@@ -142,6 +150,7 @@ namespace PCRE2Plugin
                     new FeatureMatrixVariant( null, LazyFeatureMatrix.GetValue((PCRE2_ALLOW_EMPTY_CLASS:true, PCRE2_ALT_BSUX:true, PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: true) ), engine)
                 ];
         }
+
         public void SetIgnoreCase( bool yes )
         {
             Options.PCRE2_CASELESS = yes;
@@ -377,11 +386,13 @@ namespace PCRE2Plugin
                 EmptySet = PCRE2_ALLOW_EMPTY_CLASS,
                 EmptySetAny = true,
 
-                AsciiOnly = false,
-                SplitSurrogatePairs = true,
+                SupportsUnicode = true,
+                InsideSets_SupportsUnicode = true,
+                SupportsUnicodeCaseFolding = true,
+                KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
-                Σσς = false,
+                Σσς = true,
             };
         }
     }

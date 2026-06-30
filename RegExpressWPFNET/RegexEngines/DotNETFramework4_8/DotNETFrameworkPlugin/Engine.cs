@@ -369,8 +369,10 @@ namespace DotNETFrameworkPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                AsciiOnly = false,
-                SplitSurrogatePairs = true,
+                SupportsUnicode = true,
+                InsideSets_SupportsUnicode = true,
+                SupportsUnicodeCaseFolding = true,
+                KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,

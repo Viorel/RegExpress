@@ -371,8 +371,10 @@ namespace FortranPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                AsciiOnly = false,
-                SplitSurrogatePairs = false,
+                SupportsUnicode = true,
+                InsideSets_SupportsUnicode = true,
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
@@ -585,8 +587,10 @@ namespace FortranPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                AsciiOnly = true, // (defective match: '..' matches the character  and an empty space between characters)
-                SplitSurrogatePairs = true,
+                SupportsUnicode = false, // (defective match: '..' matches the character  and an empty space between characters)
+                InsideSets_SupportsUnicode = false, // (defect?)
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,
@@ -799,8 +803,10 @@ namespace FortranPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                AsciiOnly = true, // (defective match: '.' matches the character and an empty space between characters)
-                SplitSurrogatePairs = true,
+                SupportsUnicode = false, // (defective match: '.' matches the character and an empty space between characters)
+                InsideSets_SupportsUnicode = false, // (defect?)
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,

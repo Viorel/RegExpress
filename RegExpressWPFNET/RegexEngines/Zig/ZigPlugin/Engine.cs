@@ -385,8 +385,10 @@ namespace ZigPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                AsciiOnly = true, // ('unicode' flag not yet implemented)
-                SplitSurrogatePairs = true, // ('unicode' flag not yet implemented)
+                SupportsUnicode = false, // ('unicode' flag not yet implemented)
+                InsideSets_SupportsUnicode = false,
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = false,
@@ -599,8 +601,10 @@ namespace ZigPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                AsciiOnly = true, // ('unicode' flag not yet implemented)
-                SplitSurrogatePairs = true, // ('unicode' flag not yet implemented)
+                SupportsUnicode = false, // ('unicode' flag not yet implemented)
+                InsideSets_SupportsUnicode = false,
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
@@ -813,8 +817,10 @@ namespace ZigPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                AsciiOnly = true, // ('unicode' flag not yet implemented)
-                SplitSurrogatePairs = true, // ('unicode' flag not yet implemented)
+                SupportsUnicode = false, // ('unicode' flag not yet implemented)
+                InsideSets_SupportsUnicode = false,
+                SupportsUnicodeCaseFolding = false,
+                KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
