@@ -60,6 +60,7 @@ It includes the following Regular Expression engines:
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
   * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.22.
 * **Dart** 3.12.2 [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html).
+* [**REAL**](https://github.com/RECHE23/real-regex) 2026.6.21 (in C++).
 
 <br/>
 

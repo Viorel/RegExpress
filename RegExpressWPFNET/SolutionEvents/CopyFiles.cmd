@@ -264,3 +264,11 @@ rem -- Dart --
 set BasePath=%SolutionDir%\RegexEngines\Dart
 xcopy /D /R /Y "%BasePath%\DartPlugin\bin\%Configuration%\%TargetDir%\DartPlugin.dll" "%EnginesTargetPath%\Dart\*"
 xcopy /D /R /Y "%BasePath%\DartWorker\DartWorker.exe" "%EnginesTargetPath%\Dart\*.bin"
+
+
+rem -- REAL --
+
+set BasePath=%SolutionDir%\RegexEngines\REAL
+xcopy /D /R /Y "%BasePath%\RealPlugin\bin\%Configuration%\%TargetDir%\RealPlugin.dll" "%EnginesTargetPath%\REAL\*"
+xcopy /D /R /Y "%BasePath%\RealWorker\bin\%Configuration%\%Platform%\RealWorker.exe" "%EnginesTargetPath%\REAL\*.bin"
+
