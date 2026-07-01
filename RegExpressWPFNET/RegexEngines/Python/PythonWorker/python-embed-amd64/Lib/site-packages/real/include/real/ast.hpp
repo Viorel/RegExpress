@@ -27,6 +27,7 @@
 #include "charclass.hpp"
 #include "config.hpp"
 #include "program.hpp"
+#include "unicode_fold.hpp"
 #include "utf8.hpp"
 
 namespace real::detail {
@@ -196,7 +197,8 @@ namespace real::detail {
       : pattern_(pattern),
         verbose_(has_flag(initial_flags, flags::verbose)),
         bytes_(has_flag(initial_flags, flags::bytes)),
-        ecma_(has_flag(initial_flags, flags::ecma))
+        ecma_(has_flag(initial_flags, flags::ecma)),
+        icase_(has_flag(initial_flags, flags::icase))
     {}
 
     /*!
@@ -224,6 +226,7 @@ namespace real::detail {
     bool             in_lookaround_ {}; //!< True while parsing a lookaround sub-pattern (rejects nesting).
     bool             bytes_         {}; //!< In \ref flags::bytes mode, rejects code-point escapes (`\u`/`\U`).
     bool             ecma_          {}; //!< ECMAScript grammar: `\A \Z \< \>` are identity-escape literals, not anchors.
+    bool             icase_         {}; //!< `re.I`: a cased literal is promoted to a foldable singleton class.
 
     /*!
      * \brief In verbose mode, consumes insignificant whitespace and `#` comments.
@@ -445,11 +448,11 @@ namespace real::detail {
                 fail("invalid UTF-8 byte in pattern");
               }
               pos_ += decoded.length;
-              return emit_codepoint_utf8(out, static_cast<std::int32_t>(decoded.cp));
+              return emit_literal_codepoint(out, static_cast<std::int32_t>(decoded.cp));
             }
             // Like Python: lone '{', ']' and '}' are ordinary characters.
             ++pos_;
-            return add_node(out, {.kind = node_kind::byte, .byte = static_cast<std::uint8_t>(ch)});
+            return emit_literal_codepoint(out, static_cast<std::uint8_t>(ch));
           }
       }
     }
@@ -651,6 +654,9 @@ namespace real::detail {
       out.inline_flags = out.inline_flags | found;
       if (has_flag(found, flags::verbose)) {
         verbose_ = true; // affects how the rest of the pattern is parsed
+      }
+      if (has_flag(found, flags::icase)) {
+        icase_ = true;   // a leading (?i) makes cased literals foldable, like the constructor flag
       }
       return true;
     }
@@ -1045,6 +1051,40 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Emits a code-point *literal* (code-point provenance: a raw character or `\\u`/`\\U`).
+     *
+     * Under `icase`, a CASED literal is promoted to a foldable singleton class so the compiler folds
+     * it to its whole case orbit (`k`↦`{k, K, Kelvin}`, `é`↦`{é, É}`). An ASCII letter folds in any
+     * mode; a non-ASCII code point folds only in text mode (a bytes class carries no ranges). A
+     * non-cased literal, or no `icase`, keeps the zero-overhead byte / UTF-8 path. `\\xHH` has byte
+     * provenance and never routes here, so it is never folded — the deliberate provenance split.
+     */
+    constexpr std::int32_t emit_literal_codepoint(ast&         out,
+                                                  std::int32_t cp)
+    {
+      if (icase_) {
+        const bool ascii_letter {(cp >= 'A' && cp <= 'Z') || (cp >= 'a' && cp <= 'z')};
+        if (ascii_letter) {
+          char_class bitmap;
+          bitmap.set(static_cast<std::uint8_t>(cp));
+          return add_class_node(out, bitmap, false);
+        }
+        if (!bytes_ && cp >= 0x80 &&
+            detail::find_fold_index(static_cast<std::uint32_t>(cp)) != detail::unicode_fold_table_size) {
+          const std::vector<code_range> single {
+            {.lo = static_cast<std::uint32_t>(cp), .hi = static_cast<std::uint32_t>(cp)}};
+          return add_class_node(out, char_class {}, false, single);
+        }
+      }
+      // Not promoted: a raw byte (ASCII, or any byte in bytes mode) is a byte node; a non-ASCII
+      // code point in text mode is emitted as its UTF-8 bytes.
+      if (bytes_ || cp < 0x80) {
+        return add_node(out, {.kind = node_kind::byte, .byte = static_cast<std::uint8_t>(cp)});
+      }
+      return emit_codepoint_utf8(out, cp);
+    }
+
+    /*!
      * \brief Parses an escape outside a character class.
      *
      * Handles the class escapes `\d` `\D` `\w` `\W` `\s` `\S`, the
@@ -1085,11 +1125,16 @@ namespace real::detail {
         // standard word boundaries in both and stay unchanged.
         case 'A':
           ++pos_;
-          if (ecma_) { return add_node(out, {.kind = node_kind::byte, .byte = 'A'}); }
+          // ecma: `\A` is the literal 'A' (Annex B identity escape); a cased letter, so it folds under icase.
+          if (ecma_) {
+            return emit_literal_codepoint(out, 'A');
+          }
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::text_start});
         case 'Z':
           ++pos_;
-          if (ecma_) { return add_node(out, {.kind = node_kind::byte, .byte = 'Z'}); }
+          if (ecma_) {
+            return emit_literal_codepoint(out, 'Z'); // ecma: literal 'Z', folds under icase
+          }
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::text_end});
         case 'b':
           ++pos_;
@@ -1099,18 +1144,22 @@ namespace real::detail {
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::not_word_boundary});
         case '<':
           ++pos_;
-          if (ecma_) { return add_node(out, {.kind = node_kind::byte, .byte = '<'}); }
+          if (ecma_) {
+            return emit_literal_codepoint(out, '<'); // ecma: literal '<' (non-cased -> a plain byte)
+          }
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::word_start});
         case '>':
           ++pos_;
-          if (ecma_) { return add_node(out, {.kind = node_kind::byte, .byte = '>'}); }
+          if (ecma_) {
+            return emit_literal_codepoint(out, '>'); // ecma: literal '>'
+          }
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::word_end});
         case 'u':
           ++pos_;
-          return emit_codepoint_utf8(out, parse_unicode_codepoint(false));
+          return emit_literal_codepoint(out, parse_unicode_codepoint(false));
         case 'U':
           ++pos_;
-          return emit_codepoint_utf8(out, parse_unicode_codepoint(true));
+          return emit_literal_codepoint(out, parse_unicode_codepoint(true));
         case 'N':
           fail("named Unicode escapes (\\N{...}) are not supported");
         default:
@@ -1118,6 +1167,12 @@ namespace real::detail {
             const std::int32_t byte_value {parse_byte_escape()};
             if (byte_value < 0) {
               fail("unsupported escape sequence");
+            }
+            // A `\xHH` / octal escape with value < 0x80 is an ASCII character (byte == code point): a
+            // cased one folds under icase like a raw ASCII literal (`\x4B` == `K`). A value >= 0x80
+            // keeps byte provenance and is never folded — the documented text-mode divergence.
+            if (byte_value < 0x80) {
+              return emit_literal_codepoint(out, byte_value);
             }
             return add_node(out, {.kind = node_kind::byte, .byte = static_cast<std::uint8_t>(byte_value)});
           }

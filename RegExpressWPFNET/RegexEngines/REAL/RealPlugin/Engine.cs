@@ -357,11 +357,11 @@ namespace RealPlugin
 
                 SupportsUnicode = true,
                 InsideSets_SupportsUnicode = true,
-                SupportsUnicodeCaseFolding = false,
+                SupportsUnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
-                Σσς = false,
+                Σσς = true,
             };
         }
     }

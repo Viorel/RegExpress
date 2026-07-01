@@ -28,6 +28,7 @@
 #include "config.hpp"
 #include "prefilter.hpp"
 #include "program.hpp"
+#include "unicode_fold.hpp"
 
 namespace real::detail {
 
@@ -139,23 +140,31 @@ namespace real::detail {
     return out;
   }
 
-  //! \brief Complements a set of code-point ranges within `[0x80, 0x10FFFF]` (used by negated classes).
-  //!        Input ranges may be unsorted/overlapping; the gaps are returned sorted.
-  constexpr std::vector<code_range> complement_code_ranges(std::vector<code_range> ranges)
+  //! \brief Sorts \p ranges and merges overlapping / adjacent ones into a minimal, sorted set (the
+  //!        same set of code points, the fewest ranges). Used to keep a folded class from fragmenting.
+  constexpr std::vector<code_range> coalesce_ranges(std::vector<code_range> ranges)
   {
     std::sort(ranges.begin(), ranges.end(),
               [](const code_range& a, const code_range& b) { return a.lo < b.lo; });
     std::vector<code_range> merged;
     for (const code_range& r : ranges) {
-      if (!merged.empty() && r.lo <= merged.back().hi + 1U) {
+      if (!merged.empty() && r.lo <= merged.back().hi + 1U) { // overlapping OR adjacent
         merged.back().hi = merged.back().hi > r.hi ? merged.back().hi : r.hi;
       }
       else {
         merged.push_back(r);
       }
     }
-    std::vector<code_range> gaps;
-    std::uint32_t           next {0x80U};
+    return merged;
+  }
+
+  //! \brief Complements a set of code-point ranges within `[0x80, 0x10FFFF]` (used by negated classes).
+  //!        Input ranges may be unsorted/overlapping; the gaps are returned sorted.
+  constexpr std::vector<code_range> complement_code_ranges(std::vector<code_range> ranges)
+  {
+    const std::vector<code_range> merged {coalesce_ranges(std::move(ranges))};
+    std::vector<code_range>       gaps;
+    std::uint32_t                 next   {0x80U};
     for (const code_range& r : merged) {
       if (r.lo > next) {
         gaps.push_back({.lo = next, .hi = r.lo - 1U});
@@ -173,6 +182,61 @@ namespace real::detail {
   constexpr bool is_any_non_ascii(const std::vector<code_range>& ranges)
   {
     return ranges.size() == 1 && ranges[0].lo == 0x80U && ranges[0].hi == 0x10FFFFU;
+  }
+
+  /*!
+   * \brief Expands a character class to its Unicode simple case-fold closure (text-mode `icase`).
+   *
+   * The M2 algorithm — the fold acts on the WHOLE class, cross-boundary in both directions, before
+   * negation:
+   *   - **Bitmap (iterate-members-lookup):** each ASCII member (< 0x80) contributes its fold partners
+   *     (ASCII partners re-enter the bitmap; non-ASCII partners like `k`↦Kelvin become code-point
+   *     ranges). This is also the path the ASCII-letter literal fold takes, so there is one route.
+   *   - **Ranges (intersect-entries):** every fold entry whose code point falls inside a class range
+   *     contributes its partners (so a range attracts its ASCII partners, e.g. `[K…]`↦`k`, and
+   *     `[U+0080-U+10FFFF]` attracts `k`/`K` back into the bitmap).
+   *
+   * Idempotent on ASCII-only orbits (`[a]`↦`{a, A}`, no non-ASCII contamination). Partners that are
+   * already present are harmlessly re-added (the compiler tolerates redundant ranges).
+   */
+  constexpr class_def unicode_casefold(const class_def& in)
+  {
+    class_def               out;
+    out.ascii = in.ascii;
+    std::vector<code_range> ranges {in.ranges}; // seed with the input's non-ASCII ranges
+    const auto              add_partner {[&out, &ranges](std::uint32_t p) {
+                                           if (p < 0x80U) {
+                                             out.ascii.set(static_cast<std::uint8_t>(p)); // ASCII partner -> bitmap
+                                           }
+                                           else {
+                                             ranges.push_back({.lo = p, .hi = p});        // non-ASCII partner (coalesced below)
+                                           }
+                                         }};
+    for (std::uint32_t cp = 0; cp < 0x80U; ++cp) {
+      if (in.ascii.test(static_cast<std::uint8_t>(cp))) {
+        const std::size_t idx {find_fold_index(cp)};
+        if (idx != unicode_fold_table_size) {
+          const fold_entry& entry {unicode_fold_table[idx]};
+          for (std::uint8_t i = 0; i < entry.count; ++i) {
+            add_partner(entry.partner[i]);
+          }
+        }
+      }
+    }
+    for (std::size_t i = 0; i < unicode_fold_table_size; ++i) {
+      const fold_entry& entry {unicode_fold_table[i]};
+      if (std::ranges::any_of(in.ranges,
+                              [&entry](const code_range& r) { return entry.cp >= r.lo && entry.cp <= r.hi; })) {
+        for (std::uint8_t k = 0; k < entry.count; ++k) {
+          add_partner(entry.partner[k]);
+        }
+      }
+    }
+    // Coalesce: the fold adds many degenerate {cp, cp} ranges (a class's own members' partners, and
+    // partners of members just outside the class); merging overlapping/adjacent ranges collapses that
+    // fragmentation without changing the accepted set — pure size optimisation.
+    out.ranges = coalesce_ranges(std::move(ranges));
+    return out;
   }
 
   /*!
@@ -460,21 +524,26 @@ namespace real::detail {
      */
     [[nodiscard]] constexpr class_def effective_class(const ast_node& node) const
     {
-      const class_def& def   {tree_.classes[static_cast<std::size_t>(node.klass)]};
-      char_class       ascii {def.ascii};
+      class_def folded {tree_.classes[static_cast<std::size_t>(node.klass)]};
       if (has_flag(flags_, flags::icase)) {
-        fold_ascii_case(ascii); // ASCII case fold, before negation, like Python (non-ASCII members
-                                // stay case-sensitive — see divergences.dox)
+        if (has_flag(flags_, flags::bytes)) {
+          fold_ascii_case(folded.ascii);     // bytes: ASCII-only fold (compat-safe; a bytes class has no ranges)
+        }
+        else {
+          folded = unicode_casefold(folded); // text: full Unicode fold of the whole class, both directions
+        }
       }
+      // The fold is applied BEFORE negation (Python order): [^k] under icase is the complement of
+      // {k, K, Kelvin}, so it rejects Kelvin.
       if (!node.negated) {
-        return {.ascii = ascii, .ranges = def.ranges};
+        return folded;
       }
       if (has_flag(flags_, flags::bytes)) {
-        ascii.invert(); // raw bytes: plain 256-bit complement, no code-point ranges
-        return {.ascii = ascii, .ranges = {}};
+        folded.ascii.invert(); // raw bytes: plain 256-bit complement, no code-point ranges
+        return {.ascii = folded.ascii, .ranges = {}};
       }
-      ascii.invert_ascii();
-      return {.ascii = ascii, .ranges = complement_code_ranges(def.ranges)};
+      folded.ascii.invert_ascii();
+      return {.ascii = folded.ascii, .ranges = complement_code_ranges(folded.ranges)};
     }
 
     // --- node emission ----------------------------------------------------
@@ -496,21 +565,12 @@ namespace real::detail {
         case node_kind::empty:
           break;
         case node_kind::byte:
-          {
-            const auto byte_value {node.byte};
-            const bool letter = (byte_value >= 'A' && byte_value <= 'Z') ||
-                                (byte_value >= 'a' && byte_value <= 'z');
-            if (has_flag(flags_, flags::icase) && letter) {
-              char_class both;
-              both.set(byte_value);
-              fold_ascii_case(both);
-              emit_klass(prog, both);
-            }
-            else {
-              emit(prog, {.op = opcode::byte, .arg8 = byte_value});
-            }
-            break;
-          }
+          // A `byte` node is a raw byte with byte provenance (a `\xHH` / octal escape, or a non-cased
+          // literal), never case-folded: under icase a cased literal was promoted to a foldable
+          // singleton class at the parser, so it never reaches here. This preserves the deliberate
+          // `\xHH` provenance split (see emit_literal_codepoint / divergences.dox).
+          emit(prog, {.op = opcode::byte, .arg8 = node.byte});
+          break;
         case node_kind::klass:
           {
             const class_def eff {effective_class(node)};
