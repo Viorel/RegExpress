@@ -1,19 +1,20 @@
-To install the "regex" module into embeddable Python:
+To install the "regex" and other modules into embeddable Python:
 
    - https://stackoverflow.com/questions/49737721/adding-packages-to-python-embedded-installation-for-windows.
-   (Use "regex" instead of "numpy")
+   (Use "regex" and other names instead of "numpy")
 
 Summary:
 
-- edit "pythonXXX._pth", uncomment "import site" (keep it incommented)
+- edit "pythonXXX._pth", uncomment "import site"
 
-- run "powershell" inside the folder with embeddable Python, 
+- run PowerShell or Windows Terminal inside the folder with embeddable Python, 
   enter "Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile get-pip.py", 
   enter "exit" to quit PowerShell
 
 - run "python get-pip.py" in console (not PowerShell)
 
 - run ".\Scripts\pip install regex"
+  repeat for other modules
 
 - the unneeded "pip", which includes a lot of files, can be uninstalled using "python -m pip uninstall pip setuptools";
   use "python get-pip.py" if it is needed again

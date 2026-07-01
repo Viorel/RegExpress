@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: regex
-Version: 2026.5.9
+Version: 2026.6.28
 Summary: Alternative regular expression module, to replace re.
 Author-email: Matthew Barnett <regex@mrabarnett.plus.com>
 License-Expression: Apache-2.0 AND CNRI-Python
@@ -13,6 +13,7 @@ Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
 Classifier: Programming Language :: Python :: 3.13
 Classifier: Programming Language :: Python :: 3.14
+Classifier: Programming Language :: Python :: 3.15
 Classifier: Topic :: Scientific/Engineering :: Information Analysis
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
 Classifier: Topic :: Text Processing

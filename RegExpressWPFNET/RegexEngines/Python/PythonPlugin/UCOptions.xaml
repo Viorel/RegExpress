@@ -22,21 +22,24 @@
     <Grid>
         <StackPanel VerticalAlignment="Top">
 
-            <StackPanel Orientation="Horizontal" Margin="0">
+            <StackPanel Orientation="Horizontal" Margin="0 0 0 6">
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
                 <Label Content="Module:" Target="{Binding ElementName=cbxModule}" VerticalAlignment="Center" Padding="0 2 4 2"/>
                 <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='re'}" VerticalAlignment="Center" SelectionChanged="cbxModule_SelectionChanged" Margin="3 0 0 0">
-                    <ui:ComboBoxItemWithVersion Tag="re"    Text="re"    Version="{Binding Re, Source={StaticResource versions}}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="regex" Text="regex" Version="{Binding Regex, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="re"         Text="re"         Version="{Binding Re, Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="regex"      Text="regex"      Version="{Binding Regex, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="real_regex" Text="real-regex" Version="{Binding RealRegex, Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 
-            <ui:CheckboxWithNote Prop="ASCII" Note="\w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching" Margin="0 6 0 0"/>
+            <ui:CheckboxWithNote x:Name="ASCII" Prop="ASCII" Note="\w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching" />
+            <ui:CheckboxWithNote x:Name="ASCII_disabled" Text="ASCII" Note="\w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching" IsChecked="True" IsEnabled="False" Visibility="Collapsed" d:Visibility="Visible" />
             <ui:CheckboxWithNote Prop="DOTALL" Note=". matches any character, including newline"/>
             <ui:CheckboxWithNote Prop="IGNORECASE" Note="case-insensitive matching"/>
-            <ui:CheckboxWithNote Prop="LOCALE" Note="\w, \W, \b, \B and case-insensitive matching dependent on current locale"/>
+            <ui:CheckboxWithNote x:Name="LOCALE" Prop="LOCALE" Note="\w, \W, \b, \B and case-insensitive matching dependent on current locale"/>
+            <ui:CheckboxWithNote x:Name="LOCALE_disabled" Text="LOCALE" Note="\w, \W, \b, \B and case-insensitive matching dependent on current locale" IsChecked="False" IsEnabled="False" Visibility="Collapsed" d:Visibility="Visible" />
             <ui:CheckboxWithNote Prop="MULTILINE" Note="^ matches at the beginning of the string and at the beginning of each line; $ matches at the end of the string and at the end of each line"/>
             <ui:CheckboxWithNote Prop="VERBOSE" Note="allow spaces and comments"/>
             <StackPanel x:Name="pnlAdditional" VerticalAlignment="Top" Margin="0 6 0 0">

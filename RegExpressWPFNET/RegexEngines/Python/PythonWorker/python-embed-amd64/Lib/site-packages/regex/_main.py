@@ -244,7 +244,7 @@ __all__ = ["cache_all", "compile", "DEFAULT_VERSION", "escape", "findall",
   "VERSION1", "X", "VERBOSE", "W", "WORD", "error", "Regex", "__version__",
   "__doc__", "RegexFlag"]
 
-__version__ = "2026.5.9"
+__version__ = "2026.6.28"
 
 # --------------------------------------------------------------------
 # Public interface.
@@ -473,7 +473,7 @@ def _compile(pattern, flags, ignore_unused, kwargs, cache_it):
     locale_key = (type(pattern), pattern)
     if _locale_sensitive.get(locale_key, True) or (flags & LOCALE) != 0:
         # This pattern is, or might be, locale-sensitive.
-        pattern_locale = _getpreferredencoding()
+        pattern_locale = _getpreferredencoding(False)
     else:
         # This pattern is definitely not locale-sensitive.
         pattern_locale = None

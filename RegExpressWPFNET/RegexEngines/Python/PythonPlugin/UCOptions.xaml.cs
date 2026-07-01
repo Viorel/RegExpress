@@ -55,6 +55,12 @@ namespace PythonPlugin
             {
                 ++ChangeCounter;
 
+                ASCII.Display( Options.Module != ModuleEnum.real_regex );
+                ASCII_disabled.Display( Options.Module == ModuleEnum.real_regex );
+
+                LOCALE.Display( Options.Module != ModuleEnum.real_regex );
+                LOCALE_disabled.Display( Options.Module == ModuleEnum.real_regex );
+
                 pnlAdditional.Display( Options.Module == ModuleEnum.regex );
             }
             finally
@@ -113,6 +119,7 @@ namespace PythonPlugin
             {
                 ModuleEnum.re => "re",
                 ModuleEnum.regex => "regex",
+                ModuleEnum.real_regex => "real-regex",
                 _ => "unknown"
             };
         }

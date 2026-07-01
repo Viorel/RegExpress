@@ -157,6 +157,7 @@ xcopy /D /R /Y "%BasePath%\PythonPlugin\bin\%Configuration%\%TargetDir%\PythonPl
 xcopy /D /R /Y /E "%BasePath%\PythonWorker\python-embed-amd64\*" "%EnginesTargetPath%\Python\python-embed-amd64\*"
 xcopy /D /R /Y "%BasePath%\PythonWorker\PythonWorkerRe.py" "%EnginesTargetPath%\Python\*"
 xcopy /D /R /Y "%BasePath%\PythonWorker\PythonWorkerRegex.py" "%EnginesTargetPath%\Python\*"
+xcopy /D /R /Y "%BasePath%\PythonWorker\PythonWorkerRealRegex.py" "%EnginesTargetPath%\Python\*"
 
 
 rem -- D --

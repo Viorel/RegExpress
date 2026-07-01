@@ -173,7 +173,7 @@ namespace PythonPlugin
         }
 
 
-        [GeneratedRegex( @"^(?'t'[Mgc]) (?'s'-?\d+), (?'e'-?\d+)|(?'t'N) (?'i'\d+) <(?'n'.*)>$", RegexOptions.ExplicitCapture )]
+        [GeneratedRegex( @"^(?'t'[Mg]) (?'s'-?\d+), (?'e'-?\d+)|(?'t'N) (?'i'\d+) <(?'n'.*)>$", RegexOptions.ExplicitCapture )]
         private static partial Regex NMgRegex( );
     }
 }

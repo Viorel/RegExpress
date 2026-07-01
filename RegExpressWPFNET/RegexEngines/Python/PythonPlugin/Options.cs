@@ -13,6 +13,7 @@ namespace PythonPlugin
         None,
         re,
         regex,
+        real_regex,
     }
 
 
@@ -20,8 +21,6 @@ namespace PythonPlugin
     {
         public ModuleEnum Module { get; set; } = ModuleEnum.re;
 
-
-        // For "re" and "regex":
 
         public bool ASCII { get; set; }
         public bool DOTALL { get; set; }

@@ -45,9 +45,10 @@ The following engines are included:
   * [_resharp_](https://github.com/ieviev/resharp) 0.6.13.
   * [_anre_](https://github.com/hemashushu/anre) 2.1.1.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.1 (*java.util.regex* and *com.google.re2j* packages).
-* [**Python**](https://www.python.org/) 3.13.6 modules:
+* [**Python**](https://www.python.org/) 3.14.6 modules:
   * _re_,
-  * [_regex_](https://pypi.org/project/regex) 2026.5.9.
+  * [_regex_](https://pypi.org/project/regex) 2026.6.28,
+  * [_real-regex_](https://pypi.org/project/real-regex/) 2026.6.21.
 * [**D**](https://dlang.org/phobos/std_regex.html) 2.112.0 (*std.regex* module).
 * [**Perl**](https://perldoc.perl.org/perlreref) 5.40.2 (Strawberry Perl).
 * **Fortran** [**Forgex**](https://github.com/ShinobuAmasaki/forgex) v4.6 module (Intel® Fortran Compiler 2026.0.0).

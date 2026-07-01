@@ -8,8 +8,9 @@ namespace PythonPlugin
 {
     internal class Versions
     {
-        public static string Python { get; } = "3.14.5";
-        public static string Re { get; } = "3.14.5";
-        public static string Regex { get; } = "2026.5.9";
+        public static string Python { get; } = "3.14.6";
+        public static string Re { get; } = "3.14.6";
+        public static string Regex { get; } = "2026.6.28";
+        public static string RealRegex { get; } = "2026.6.21";
     }
 }
