@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RealPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="80.8" d:DesignWidth="438.042" 
+             d:DesignHeight="95.576" d:DesignWidth="718.842" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -24,6 +24,7 @@
             <ui:CheckboxWithNote Prop="bytes" Note=". and [^…] match raw bytes, not codepoints"/>
             -->
             <ui:CheckboxWithNote Prop="verbose" Note="ignore unescaped whitespace and # comments outside classes"/>
+            <ui:CheckboxWithNote Prop="ecma" Note="$ (no multiline) matches only at the very end (not before a final \n, the Python default), and . (no dotall) also excludes \r"/>
         </StackPanel>
     </Grid>
 </UserControl>

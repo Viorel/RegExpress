@@ -122,6 +122,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::dotall;
 		//if( inbr.ReadByte( ) ) flags = flags | real::flags::bytes; // not supported here
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::verbose;
+		if( inbr.ReadByte( ) ) flags = flags | real::flags::ecma;
 
 		if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
@@ -129,7 +130,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
 		return 0;
 	}
-	// the byte offset is already mentioned in the 'exc.what( )' message
+	// the byte offset is already mentioned in the 'exc.what( )' message; example: "regex_error at 3: ..."
 	//catch( const real::regex_error& exc )
 	//{
 	//	errwr.WriteStringF( "{}\r\nat byte offset {}", exc.what( ), exc.position( ) );

@@ -19,6 +19,7 @@
 
 #include "version.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <vector>
 
@@ -29,6 +30,150 @@
 #include "program.hpp"
 
 namespace real::detail {
+
+  //! \brief One byte-range step `[lo, hi]` of a UTF-8 sequence produced by the code-point-range algorithm.
+  struct utf8_byte_range
+  {
+    std::uint8_t lo {}; //!< Low byte (inclusive).
+    std::uint8_t hi {}; //!< High byte (inclusive).
+  };
+
+  //! \brief A canonical UTF-8 byte-range sequence (1–4 steps) covering part of a code-point range.
+  struct utf8_byte_seq
+  {
+    utf8_byte_range parts[4] {}; //!< The per-byte ranges.
+    std::size_t     length   {}; //!< Number of active steps (1–4).
+  };
+
+  //! \brief Encodes \p cp to its UTF-8 bytes in \p out, returning the length (1–4).
+  constexpr std::size_t encode_utf8_bytes(std::uint32_t cp,
+                                          std::uint8_t (&out)[4])
+  {
+    if (cp < 0x80U) {
+      out[0] = static_cast<std::uint8_t>(cp);
+      return 1;
+    }
+    if (cp < 0x800U) {
+      out[0] = static_cast<std::uint8_t>(0xC0U | (cp >> 6U));
+      out[1] = static_cast<std::uint8_t>(0x80U | (cp & 0x3FU));
+      return 2;
+    }
+    if (cp < 0x10000U) {
+      out[0] = static_cast<std::uint8_t>(0xE0U | (cp >> 12U));
+      out[1] = static_cast<std::uint8_t>(0x80U | ((cp >> 6U) & 0x3FU));
+      out[2] = static_cast<std::uint8_t>(0x80U | (cp & 0x3FU));
+      return 3;
+    }
+    out[0] = static_cast<std::uint8_t>(0xF0U | (cp >> 18U));
+    out[1] = static_cast<std::uint8_t>(0x80U | ((cp >> 12U) & 0x3FU));
+    out[2] = static_cast<std::uint8_t>(0x80U | ((cp >> 6U) & 0x3FU));
+    out[3] = static_cast<std::uint8_t>(0x80U | (cp & 0x3FU));
+    return 4;
+  }
+
+  /*!
+   * \brief Splits `[start, end]` (same UTF-8 length after the length-boundary split) into contiguous
+   *        byte-range sequences (RE2 / rust regex-syntax `Utf8Sequences`). Every produced sequence is
+   *        canonical by construction — no overlong forms, no surrogates — which is exactly the
+   *        security property qE needs. Appends to \p out.
+   */
+  constexpr void utf8_push_range(std::uint32_t               start,
+                                 std::uint32_t               end,
+                                 std::vector<utf8_byte_seq>& out)
+  {
+    if (start > end) {
+      return;
+    }
+    constexpr std::uint32_t length_max[4] {0x7FU, 0x7FFU, 0xFFFFU, 0x10FFFFU};
+    for (const std::uint32_t max : length_max) {
+      if (start <= max && max < end) { // range spans a UTF-8 length boundary: split there
+        utf8_push_range(start, max, out);
+        utf8_push_range(max + 1, end, out);
+        return;
+      }
+    }
+    for (unsigned i = 1; i < 4; ++i) { // split so each continuation byte covers a contiguous sub-range
+      const std::uint32_t mask {(1U << (6U * i)) - 1U};
+      if ((start & ~mask) != (end & ~mask)) {
+        if ((start & mask) != 0U) {
+          utf8_push_range(start, start | mask, out);
+          utf8_push_range((start | mask) + 1U, end, out);
+          return;
+        }
+        if ((end & mask) != mask) {
+          utf8_push_range(start, (end & ~mask) - 1U, out);
+          utf8_push_range(end & ~mask, end, out);
+          return;
+        }
+      }
+    }
+    std::uint8_t      start_bytes[4] {};
+    std::uint8_t      end_bytes[4]   {};
+    const std::size_t n              {encode_utf8_bytes(start, start_bytes)};
+    encode_utf8_bytes(end, end_bytes);
+    utf8_byte_seq seq                {};
+    seq.length = n;
+    for (std::size_t j = 0; j < n; ++j) {
+      seq.parts[j] = {.lo = start_bytes[j], .hi = end_bytes[j]};
+    }
+    out.push_back(seq);
+  }
+
+  //! \brief Canonical UTF-8 byte-range sequences for the code-point range `[lo, hi]`, excluding the
+  //!        surrogate block `[U+D800, U+DFFF]` (so a negated class never matches a surrogate encoding).
+  constexpr std::vector<utf8_byte_seq> utf8_range_sequences(std::uint32_t lo,
+                                                            std::uint32_t hi)
+  {
+    std::vector<utf8_byte_seq> out;
+    if (hi < 0xD800U || lo > 0xDFFFU) {
+      utf8_push_range(lo, hi, out); // no surrogate overlap
+    }
+    else {
+      if (lo <= 0xD7FFU) {
+        utf8_push_range(lo, 0xD7FFU, out);
+      }
+      if (hi >= 0xE000U) {
+        utf8_push_range(0xE000U, hi, out);
+      }
+    }
+    return out;
+  }
+
+  //! \brief Complements a set of code-point ranges within `[0x80, 0x10FFFF]` (used by negated classes).
+  //!        Input ranges may be unsorted/overlapping; the gaps are returned sorted.
+  constexpr std::vector<code_range> complement_code_ranges(std::vector<code_range> ranges)
+  {
+    std::sort(ranges.begin(), ranges.end(),
+              [](const code_range& a, const code_range& b) { return a.lo < b.lo; });
+    std::vector<code_range> merged;
+    for (const code_range& r : ranges) {
+      if (!merged.empty() && r.lo <= merged.back().hi + 1U) {
+        merged.back().hi = merged.back().hi > r.hi ? merged.back().hi : r.hi;
+      }
+      else {
+        merged.push_back(r);
+      }
+    }
+    std::vector<code_range> gaps;
+    std::uint32_t           next {0x80U};
+    for (const code_range& r : merged) {
+      if (r.lo > next) {
+        gaps.push_back({.lo = next, .hi = r.lo - 1U});
+      }
+      next = r.hi + 1U;
+    }
+    if (next <= 0x10FFFFU) {
+      gaps.push_back({.lo = next, .hi = 0x10FFFFU});
+    }
+    return gaps;
+  }
+
+  //! \brief Whether \p ranges is exactly the whole non-ASCII space `[U+0080, U+10FFFF]` — the
+  //!        "any non-ASCII code point" shape emitted by the compact \ref compiler::emit_codepoint_class.
+  constexpr bool is_any_non_ascii(const std::vector<code_range>& ranges)
+  {
+    return ranges.size() == 1 && ranges[0].lo == 0x80U && ranges[0].hi == 0x10FFFFU;
+  }
 
   /*!
    * \brief Compiles an \ref ast into a \ref dynamic_program (NFA bytecode).
@@ -246,6 +391,92 @@ namespace real::detail {
       prog.codepoint_mark_ascii  = static_cast<std::int32_t>(prog.code[static_cast<std::size_t>(block_start) + 1].arg16);
     }
 
+    /*!
+     * \brief Emits an alternation of byte-range sequences (`branches`) as split/jump — the general
+     *        form of \ref emit_codepoint_class. Each branch is a chain of `klass` steps; the leftmost
+     *        matching branch wins. Used for a character class carrying specific code-point ranges.
+     */
+    constexpr void emit_byte_sequences(dynamic_program&                            prog,
+                                       const std::vector<std::vector<char_class>>& branches) const
+    {
+      std::vector<std::int32_t> jumps;
+      for (std::size_t b = 0; b + 1 < branches.size(); ++b) {
+        const std::int32_t split {emit_split(prog)};
+        patch_primary(prog, split, here(prog));
+        for (const char_class& step : branches[b]) {
+          emit_klass(prog, step);
+        }
+        jumps.push_back(emit_jump(prog));
+        patch_secondary(prog, split, here(prog));
+      }
+      for (const char_class& step : branches.back()) {
+        emit_klass(prog, step);
+      }
+      const std::int32_t end {here(prog)};
+      for (const std::int32_t jump : jumps) {
+        patch_primary(prog, jump, end);
+      }
+    }
+
+    /*!
+     * \brief Emits a code-point class: the ASCII bitmap (one byte, if any) OR the canonical UTF-8
+     *        byte sequences of each code-point range. This is the specific-code-point generalization
+     *        of \ref emit_codepoint_class (whose `[U+0080, U+10FFFF]` "any non-ASCII" is one case).
+     */
+    constexpr void emit_class_codepoints(dynamic_program&               prog,
+                                         const char_class&              ascii,
+                                         const std::vector<code_range>& ranges) const
+    {
+      std::vector<std::vector<char_class>> branches;
+      if (!ascii.empty()) {
+        branches.push_back({ascii});
+      }
+      for (const code_range& range : ranges) {
+        for (const utf8_byte_seq& seq : utf8_range_sequences(range.lo, range.hi)) {
+          std::vector<char_class> branch;
+          for (std::size_t i = 0; i < seq.length; ++i) {
+            char_class step;
+            step.set_range(seq.parts[i].lo, seq.parts[i].hi);
+            branch.push_back(step);
+          }
+          branches.push_back(branch);
+        }
+      }
+      if (branches.empty()) {
+        // An impossible class (e.g. the negation of the whole code-point space): match nothing. An
+        // empty bitmap rejects every byte, so the thread dies — a never-match, not a crash.
+        emit_klass(prog, char_class {});
+        return;
+      }
+      emit_byte_sequences(prog, branches);
+    }
+
+    /*!
+     * \brief The class a `node_kind::klass` node effectively accepts, after negation, icase folding
+     *        and the bytes/code-point split. This is the ONE source of truth consumed by both
+     *        \ref emit_node and \ref l_max_bytes, so what is emitted and its measured width can never
+     *        disagree. Positive: as written. Negated: the ASCII complement plus, in code-point mode,
+     *        the code-point complement over `[U+0080, U+10FFFF]` minus surrogates.
+     */
+    [[nodiscard]] constexpr class_def effective_class(const ast_node& node) const
+    {
+      const class_def& def   {tree_.classes[static_cast<std::size_t>(node.klass)]};
+      char_class       ascii {def.ascii};
+      if (has_flag(flags_, flags::icase)) {
+        fold_ascii_case(ascii); // ASCII case fold, before negation, like Python (non-ASCII members
+                                // stay case-sensitive — see divergences.dox)
+      }
+      if (!node.negated) {
+        return {.ascii = ascii, .ranges = def.ranges};
+      }
+      if (has_flag(flags_, flags::bytes)) {
+        ascii.invert(); // raw bytes: plain 256-bit complement, no code-point ranges
+        return {.ascii = ascii, .ranges = {}};
+      }
+      ascii.invert_ascii();
+      return {.ascii = ascii, .ranges = complement_code_ranges(def.ranges)};
+    }
+
     // --- node emission ----------------------------------------------------
 
     /*!
@@ -282,21 +513,20 @@ namespace real::detail {
           }
         case node_kind::klass:
           {
-            char_class written {tree_.classes[static_cast<std::size_t>(node.klass)]};
-            if (has_flag(flags_, flags::icase)) {
-              fold_ascii_case(written); // before negation, like Python
-            }
-            if (!node.negated) {
-              emit_klass(prog, written);
+            const class_def eff {effective_class(node)};
+            if (has_flag(flags_, flags::bytes) || eff.ranges.empty()) {
+              // Bytes mode is a single 256-bit bitmap; a code-point class with no non-ASCII members is
+              // just its ASCII bitmap. An empty bitmap here (impossible class) is a never-match.
+              emit_klass(prog, eff.ascii);
               break;
             }
-            if (has_flag(flags_, flags::bytes)) {
-              written.invert(); // raw bytes: plain 256-bit complement
-              emit_klass(prog, written);
+            if (is_any_non_ascii(eff.ranges)) {
+              // "ASCII bitmap OR any non-ASCII code point" (`.`-family, `[^x]`): the compact
+              // emit_codepoint_class shape the prefilter/DFA fast path recognizes.
+              emit_codepoint_class(prog, eff.ascii);
               break;
             }
-            written.invert_ascii();
-            emit_codepoint_class(prog, written);
+            emit_class_codepoints(prog, eff.ascii, eff.ranges);
             break;
           }
         case node_kind::any:
@@ -309,6 +539,9 @@ namespace real::detail {
             if (!has_flag(flags_, flags::dotall)) {
               char_class newline;
               newline.set('\n');
+              if (has_flag(flags_, flags::ecma)) {
+                newline.set('\r'); // ECMAScript `.` excludes \n AND \r (byte-level; U+2028/2029 are multi-byte)
+              }
               head.bits[0] &= ~newline.bits[0];
             }
             if (has_flag(flags_, flags::bytes)) {
@@ -369,7 +602,12 @@ namespace real::detail {
           result = multiline ? assert_kind::line_start : assert_kind::text_start;
           break;
         case anchor_kind::dollar:
-          result = multiline ? assert_kind::line_end : assert_kind::text_end_or_final_newline;
+          // Default (Python): `$` matches at end OR just before a final `\n`. With the
+          // ecma flag, `$` (no multiline) matches only at the very end (ECMAScript `$`).
+          result = multiline
+                   ? assert_kind::line_end
+                   : (has_flag(flags_, flags::ecma) ? assert_kind::text_end
+                                                    : assert_kind::text_end_or_final_newline);
           break;
         case anchor_kind::text_start:
           result = assert_kind::text_start;
@@ -551,7 +789,28 @@ namespace real::detail {
         case node_kind::byte:
           return 1;
         case node_kind::klass:
-          return (node.negated && !has_flag(flags_, flags::bytes)) ? 4 : 1;
+          {
+            // Widest UTF-8 encoding the class can match, from the SAME effective (post-negation) class
+            // that emit_node compiles — so width and emission never disagree. Bytes mode: one byte.
+            // Otherwise 1 for any ASCII member, plus the widest code-point range (2/3/4 by top code
+            // point); an impossible class matches nothing, reported as 1 (harmless — it never matches).
+            if (has_flag(flags_, flags::bytes)) {
+              return 1;
+            }
+            const class_def eff   {effective_class(node)};
+            std::int32_t    width {eff.ascii.empty() ? 0 : 1};
+            for (const code_range& r : eff.ranges) {
+              const std::int32_t w {r.hi < 0x800U ? 2 : (r.hi < 0x10000U ? 3 : 4)};
+              if (w > width) {
+                width = w;
+              }
+            }
+            // An impossible (never-match) class contributes 0: it consumes nothing, so a dead branch
+            // in a bounded lookaround (the negation of the whole code-point space, repeated) does not
+            // inflate the width -- the alternation `a | <impossible>{300}` stays width 1.
+            // Its emitted never-match still makes the branch fail — a width of 0 is not an empty match.
+            return width;
+          }
         case node_kind::any:
           return has_flag(flags_, flags::bytes) ? 1 : 4;
         case node_kind::concat:

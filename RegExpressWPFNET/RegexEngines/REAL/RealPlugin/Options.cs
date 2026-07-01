@@ -14,6 +14,7 @@ namespace RealPlugin
         public bool dotall { get; set; }
         //public bool bytes { get; set; } // not supported here
         public bool verbose { get; set; }
+        public bool ecma { get; set; }
 
         public Options Clone( )
         {

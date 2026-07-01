@@ -196,7 +196,8 @@ namespace real::detail {
           break;
       }
     }
-    hints.first_bytes_valid = !empty_match_possible && !hints.first_bytes.empty();
+    hints.first_bytes_valid    = !empty_match_possible && !hints.first_bytes.empty();
+    hints.empty_match_possible = empty_match_possible;
   }
 
   /*!

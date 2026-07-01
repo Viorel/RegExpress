@@ -6,10 +6,14 @@
  * constexpr-friendly). It accepts only the syntax the rest of the pipeline
  * implements; everything else is a \ref real::regex_error.
  *
- * Character classes are ASCII-only by design (non-ASCII members are
- * rejected): this guarantees every construct consumes whole codepoints, so
- * match boundaries never split a UTF-8 sequence. Negated classes and `.`
- * match any non-ASCII codepoint, like Python's `re` on ASCII classes.
+ * In code-point mode (the default), a character class carries specific non-ASCII
+ * code-point members and ranges (`[é]`, `[à-ÿ]`, `[^é]`) alongside its ASCII
+ * bitmap; they compile to the canonical UTF-8-ranges automaton, so a class matches
+ * exactly those code points (and never an overlong / surrogate encoding). `.` and
+ * an ASCII-only negated class (`[^x]`) still match any non-ASCII code point. In
+ * bytes mode a non-ASCII class member is rejected (raw byte semantics). Every
+ * construct consumes whole code points, so match boundaries never split a
+ * sequence.
  */
 #ifndef REAL_AST_HPP
 #define REAL_AST_HPP
@@ -23,6 +27,7 @@
 #include "charclass.hpp"
 #include "config.hpp"
 #include "program.hpp"
+#include "utf8.hpp"
 
 namespace real::detail {
 
@@ -33,7 +38,7 @@ namespace real::detail {
   {
     empty,       //!< Matches the empty string.
     byte,        //!< One exact byte.
-    klass,       //!< One codepoint constrained by classes[klass] (negated or not).
+    klass,       //!< One codepoint constrained by classes[klass] (a \ref class_def; negated or not).
     any,         //!< One codepoint, except newline (the `.` metacharacter).
     concat,      //!< Children matched in sequence.
     repeat,      //!< Child repeated `[min, max]` times (max -1 = unbounded).
@@ -77,6 +82,21 @@ namespace real::detail {
     std::int32_t next      {-1};                 //!< Next sibling in the parent's child list.
   };
 
+  //! \brief An inclusive code-point range `[lo, hi]` (a non-ASCII character class member, `lo >= 0x80`).
+  struct code_range
+  {
+    std::uint32_t lo {}; //!< First code point (inclusive).
+    std::uint32_t hi {}; //!< Last code point (inclusive).
+  };
+
+  //! \brief A parsed character class: its ASCII bitmap plus any non-ASCII code-point ranges. Bundling
+  //!        the two (rather than parallel side tables) makes them impossible to desynchronize.
+  struct class_def
+  {
+    char_class              ascii;  //!< ASCII members as a bitmap (all 256 bytes in bytes mode); pre-negation.
+    std::vector<code_range> ranges; //!< Non-ASCII code-point ranges (code-point mode only; empty otherwise).
+  };
+
   /*!
    * \brief A parsed pattern: the node pool plus side tables.
    *
@@ -87,7 +107,7 @@ namespace real::detail {
   struct ast
   {
     std::vector<ast_node>    nodes;                      //!< The node pool; \ref root indexes it.
-    std::vector<char_class>  classes;                    //!< Class bitmaps as written, before negation.
+    std::vector<class_def>   classes;                    //!< Character classes as written, before negation.
     std::vector<named_group> names;                      //!< Named capture groups.
     flags                    inline_flags {flags::none}; //!< Flags from a leading `(?ims)`.
     std::int32_t             group_count  {};            //!< Number of capturing groups.
@@ -175,7 +195,8 @@ namespace real::detail {
                               flags            initial_flags = flags::none)
       : pattern_(pattern),
         verbose_(has_flag(initial_flags, flags::verbose)),
-        bytes_(has_flag(initial_flags, flags::bytes))
+        bytes_(has_flag(initial_flags, flags::bytes)),
+        ecma_(has_flag(initial_flags, flags::ecma))
     {}
 
     /*!
@@ -202,6 +223,7 @@ namespace real::detail {
     bool             verbose_       {}; //!< `re.X`: skip unescaped whitespace and `#` comments outside classes.
     bool             in_lookaround_ {}; //!< True while parsing a lookaround sub-pattern (rejects nesting).
     bool             bytes_         {}; //!< In \ref flags::bytes mode, rejects code-point escapes (`\u`/`\U`).
+    bool             ecma_          {}; //!< ECMAScript grammar: `\A \Z \< \>` are identity-escape literals, not anchors.
 
     /*!
      * \brief In verbose mode, consumes insignificant whitespace and `#` comments.
@@ -306,13 +328,15 @@ namespace real::detail {
      * \param[in,out] out     The AST being built.
      * \param[in]     klass      The class bitmap as written (before negation).
      * \param[in]     negated Whether the class was written negated.
+     * \param[in]     ranges  Non-ASCII code-point ranges of the class (code-point mode; empty otherwise).
      * \return The index of the new node.
      */
-    static constexpr std::int32_t add_class_node(ast&              out,
-                                                 const char_class& klass,
-                                                 bool              negated)
+    static constexpr std::int32_t add_class_node(ast&                           out,
+                                                 const char_class&              klass,
+                                                 bool                           negated,
+                                                 const std::vector<code_range>& ranges = {})
     {
-      out.classes.push_back(klass);
+      out.classes.push_back({.ascii = klass, .ranges = ranges});
       const auto index {static_cast<std::int32_t>(out.classes.size()) - 1};
       return add_node(out, {.kind = node_kind::klass, .negated = negated, .klass = index});
     }
@@ -409,9 +433,24 @@ namespace real::detail {
         case '\\':
           return parse_escape(out);
         default:
-          // Like Python: lone '{', ']' and '}' are ordinary characters.
-          ++pos_;
-          return add_node(out, {.kind = node_kind::byte, .byte = static_cast<std::uint8_t>(ch)});
+          {
+            // In code-point mode a raw non-ASCII byte begins a UTF-8 sequence: decode the WHOLE
+            // code point and emit it as one atom (the same emission as `\uHHHH`), so a following
+            // quantifier applies to the code point, not just its last byte (the é+ bug). A malformed
+            // sequence is a pattern error, not a silent literal. In bytes mode, and for ASCII, a raw
+            // byte stays a single byte node (so the compat layer's bytes|ecma path is unchanged).
+            if (!bytes_ && static_cast<std::uint8_t>(ch) >= 0x80U) {
+              const detail::decoded_codepoint decoded {detail::decode_codepoint_strict(pattern_, pos_)};
+              if (!decoded.valid) {
+                fail("invalid UTF-8 byte in pattern");
+              }
+              pos_ += decoded.length;
+              return emit_codepoint_utf8(out, static_cast<std::int32_t>(decoded.cp));
+            }
+            // Like Python: lone '{', ']' and '}' are ordinary characters.
+            ++pos_;
+            return add_node(out, {.kind = node_kind::byte, .byte = static_cast<std::uint8_t>(ch)});
+          }
       }
     }
 
@@ -842,6 +881,10 @@ namespace real::detail {
           return '\v';
         case 'a':
           ++pos_;
+          // REAL/Python `\a` is the bell (0x07). ECMAScript has no `\a` escape — it is an identity
+          // escape (the literal 'a'). Gate under ecma; `\n \t \r \f \v` are ECMAScript ControlEscapes
+          // and stay unchanged. This covers both contexts (parse_byte_escape is shared with classes).
+          if (ecma_) { return 'a'; }
           return '\a';
         case 'x':
           {
@@ -1036,11 +1079,17 @@ namespace real::detail {
         case 'S':
           ++pos_;
           return add_class_node(out, space_set(), true);
+        // `\A \Z \< \>` are REAL extensions (text-start/end, word-start/end). ECMAScript has no
+        // such escapes — they are identity escapes (the literal character). Under the ecma flag
+        // (the std-compat layer), emit the literal; otherwise keep REAL's anchor. `\b`/`\B` are
+        // standard word boundaries in both and stay unchanged.
         case 'A':
           ++pos_;
+          if (ecma_) { return add_node(out, {.kind = node_kind::byte, .byte = 'A'}); }
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::text_start});
         case 'Z':
           ++pos_;
+          if (ecma_) { return add_node(out, {.kind = node_kind::byte, .byte = 'Z'}); }
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::text_end});
         case 'b':
           ++pos_;
@@ -1050,9 +1099,11 @@ namespace real::detail {
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::not_word_boundary});
         case '<':
           ++pos_;
+          if (ecma_) { return add_node(out, {.kind = node_kind::byte, .byte = '<'}); }
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::word_start});
         case '>':
           ++pos_;
+          if (ecma_) { return add_node(out, {.kind = node_kind::byte, .byte = '>'}); }
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::word_end});
         case 'u':
           ++pos_;
@@ -1085,7 +1136,17 @@ namespace real::detail {
     {
       const char ch {peek()};
       if (static_cast<std::uint8_t>(ch) >= 0x80) {
-        fail("non-ASCII character class member not supported");
+        // bytes mode keeps rejecting non-ASCII in a class (the compat layer relies on that rejection
+        // to fall back to std). Code-point mode decodes the whole code point as a class member.
+        if (bytes_) {
+          fail("non-ASCII character class member not supported");
+        }
+        const detail::decoded_codepoint decoded {detail::decode_codepoint_strict(pattern_, pos_)};
+        if (!decoded.valid) {
+          fail("invalid UTF-8 byte in character class");
+        }
+        pos_ += decoded.length;
+        return static_cast<std::int32_t>(decoded.cp); // a code point (may be >= 0x80)
       }
       if (ch != '\\') {
         ++pos_;
@@ -1118,14 +1179,11 @@ namespace real::detail {
         case 'u':
         case 'U':
           {
-            const bool capital    {peek() == 'U'};
+            const bool capital {peek() == 'U'};
             ++pos_;
-            const std::int32_t cp {parse_unicode_codepoint(capital)};
-            if (cp >= 0x80) {
-              // A non-ASCII code point is no more a valid class member than a literal `é`.
-              fail("non-ASCII character class member not supported");
-            }
-            return cp;
+            // A non-ASCII code point is now a valid class member (code-point mode); `parse_unicode_codepoint`
+            // already rejects `\u`/`\U` in bytes mode, so a class in bytes mode still has ASCII-only members.
+            return parse_unicode_codepoint(capital);
           }
         case 'N':
           fail("named Unicode escapes (\\N{...}) are not supported");
@@ -1152,21 +1210,53 @@ namespace real::detail {
      */
     constexpr std::int32_t parse_class(ast& out)
     {
-      const std::size_t open_pos {pos_};
-      ++pos_; // consume '['
-      const bool negated         {accept('^')};
-      char_class klass;
-      bool       first           {true};
+      const std::size_t open_pos      {pos_};
+      ++pos_;                         // consume '['
+      const bool              negated {accept('^')};
+      char_class              klass;
+      std::vector<code_range> ranges; // non-ASCII members (code-point mode); empty in bytes/ASCII-only classes
+      bool                    first   {true};
+      // Add one member. In bytes mode a member >= 0x80 (from `\xHH`) is a raw byte in the bitmap, NOT
+      // a code point — so class_ranges stays empty and a bytes-mode class is byte-for-byte a
+      // std::basic_regex<char> class (what the compat layer relies on). In code-point mode, >= 0x80 is
+      // a (degenerate) code-point range.
+      const auto add_cp {[&](std::int32_t cp) {
+                           if (bytes_ || cp < 0x80) {
+                             klass.set(static_cast<std::uint8_t>(cp));
+                           }
+                           else {
+                             ranges.push_back({static_cast<std::uint32_t>(cp), static_cast<std::uint32_t>(cp)});
+                           }
+                         }};
+      // Add an inclusive range [lo, hi]. Bytes mode: the whole range is bytes in the bitmap.
+      // Code-point mode: a range crossing 0x7F/0x80 splits (the ASCII part -> bitmap).
+      const auto add_range {[&](std::int32_t lo, std::int32_t hi) {
+                              if (bytes_) {
+                                klass.set_range(static_cast<std::uint8_t>(lo), static_cast<std::uint8_t>(hi));
+                              }
+                              else if (lo < 0x80) {
+                                klass.set_range(static_cast<std::uint8_t>(lo), static_cast<std::uint8_t>(hi < 0x80 ? hi : 0x7F));
+                                if (hi >= 0x80) {
+                                  ranges.push_back({0x80U, static_cast<std::uint32_t>(hi)});
+                                }
+                              }
+                              else {
+                                ranges.push_back({static_cast<std::uint32_t>(lo), static_cast<std::uint32_t>(hi)});
+                              }
+                            }};
       while (true) {
         if (eof()) {
           pos_ = open_pos;
           fail("unterminated character class");
         }
-        if (peek() == ']' && !first) {
+        // Python (default): a ']' right after '[' or '[^' is a literal member, so `[]`/`[^]`
+        // continue. ECMAScript (ecma): ']' always closes — `[]` is the empty class (matches
+        // nothing) and `[^]` is its negation (matches any character, the "any incl. newline" idiom).
+        if (peek() == ']' && (!first || ecma_)) {
           ++pos_;
           break;
         }
-        first = false; // a ']' right after '[' or '[^' is a literal
+        first = false;
         const std::size_t  item_pos     {pos_};
         const std::int32_t range_start  {parse_class_item(klass)};
         if (range_start < 0) {
@@ -1181,13 +1271,13 @@ namespace real::detail {
             pos_ = item_pos;
             fail("bad character range");
           }
-          klass.set_range(static_cast<std::uint8_t>(range_start), static_cast<std::uint8_t>(range_end));
+          add_range(range_start, range_end);
         }
         else {
-          klass.set(static_cast<std::uint8_t>(range_start));
+          add_cp(range_start);
         }
       }
-      return add_class_node(out, klass, negated);
+      return add_class_node(out, klass, negated, ranges);
     }
   };
 

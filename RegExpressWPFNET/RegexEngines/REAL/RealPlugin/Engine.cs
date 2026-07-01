@@ -356,7 +356,7 @@ namespace RealPlugin
                 EmptySetAny = false,
 
                 SupportsUnicode = true,
-                InsideSets_SupportsUnicode = false,
+                InsideSets_SupportsUnicode = true,
                 SupportsUnicodeCaseFolding = false,
                 KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,

@@ -39,6 +39,7 @@ namespace RealPlugin
                 bw.Write( options.dotall );
                 //bw.Write( options.bytes ); // not supported here
                 bw.Write( options.verbose );
+                bw.Write( options.ecma );
 
                 bw.Write( (byte)'e' );
             };

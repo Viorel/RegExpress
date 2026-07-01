@@ -43,6 +43,7 @@ namespace real {
     dotall    = 4,  //!< `.` also matches `\n`.
     bytes     = 8,  //!< Binary mode: `.` and `[^…]` match raw bytes, not codepoints.
     verbose   = 16, //!< Verbose mode (`re.X`): ignore unescaped whitespace and `#` comments outside classes.
+    ecma = 32,      //!< ECMAScript compatibility: `$` (no multiline) matches only at the very end (not before a final `\n`, the Python default), AND `.` (no dotall) also excludes `\r` (ECMAScript excludes `\n` and `\r`; the multi-byte U+2028/U+2029 have no byte-level effect).
   };
 
   /*!
@@ -213,6 +214,7 @@ namespace real {
       bool                 anchored_start        {};   //!< `\A` / `^` (no multiline): only position 0.
       bool                 line_anchored         {};   //!< `^` multiline: position 0 or after `\n`.
       bool                 first_bytes_valid     {};   //!< False when an empty match is possible.
+      bool                 empty_match_possible  {};   //!< The pattern can match the empty string (the nullable gate; conservative: assertions/lookarounds pass through, so e.g. `^$` is flagged nullable).
       std::int16_t         single_first          {-1}; //!< The unique possible first byte, or -1.
       char_class           first_bytes;                //!< All possible first bytes.
       std::int32_t         greedy_class_loop     {-1}; //!< Class index if the whole pattern is "class+", else -1.
