@@ -72,7 +72,7 @@ void main() async
   } 
   catch (e) 
   {
-    stderr.writeln( "Error: $e");
+    stderr.writeln( "$e");
 
     exit( 1);
   }

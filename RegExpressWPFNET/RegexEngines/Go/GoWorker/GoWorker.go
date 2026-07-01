@@ -1,351 +1,351 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
-	"fmt"
-	"io"
-	"os"
+    "bufio"
+    "encoding/json"
+    "fmt"
+    "io"
+    "os"
 
-	regexp "regexp"
+    regexp "regexp"
 
-	regexp2 "github.com/dlclark/regexp2/v2"
-	regexp2compat "github.com/dlclark/regexp2/v2/compat"
-	rexa "github.com/himclix/rexa"
-	rexaSyntax "github.com/himclix/rexa/syntax"
+    regexp2 "github.com/dlclark/regexp2/v2"
+    regexp2compat "github.com/dlclark/regexp2/v2/compat"
+    rexa "github.com/himclix/rexa"
+    rexaSyntax "github.com/himclix/rexa/syntax"
 
-	coregex "github.com/coregx/coregex"
+    coregex "github.com/coregx/coregex"
 )
 
 type inputStruct struct {
-	Package string
-	Pattern string
-	Text    string
+    Package string
+    Pattern string
+    Text    string
 
-	Posix_syntax  bool
-	Longest_match bool
-	Literal       bool
+    Posix_syntax  bool
+    Longest_match bool
+    Literal       bool
 
-	IgnoreCase              bool
-	Multiline               bool
-	ExplicitCapture         bool
-	Singleline              bool
-	IgnorePatternWhitespace bool
-	RightToLeft             bool
-	ECMAScript              bool
-	RE2                     bool
-	Unicode                 bool
+    IgnoreCase              bool
+    Multiline               bool
+    ExplicitCapture         bool
+    Singleline              bool
+    IgnorePatternWhitespace bool
+    RightToLeft             bool
+    ECMAScript              bool
+    RE2                     bool
+    Unicode                 bool
 
-	Ungreedy bool
+    Ungreedy bool
 
-	// coregex
-	EnableDFA               *bool
-	EnablePrefilter         *bool
-	MaxDFAStates            *uint32
-	DeterminizationLimit    *int
-	MinLiteralLen           *int
-	MaxLiterals             *int
-	MaxRecursionDepth       *int
-	EnableASCIIOptimization *bool
+    // coregex
+    EnableDFA               *bool
+    EnablePrefilter         *bool
+    MaxDFAStates            *uint32
+    DeterminizationLimit    *int
+    MinLiteralLen           *int
+    MaxLiterals             *int
+    MaxRecursionDepth       *int
+    EnableASCIIOptimization *bool
 }
 
 type outputStruct struct {
-	Names   []string
-	Matches [][]int
+    Names   []string
+    Matches [][]int
 }
 
 func matchRegexp(output *outputStruct, input inputStruct) {
 
-	var err error
+    var err error
 
-	pattern := input.Pattern
-	text := input.Text
+    pattern := input.Pattern
+    text := input.Text
 
-	is_POSIX := input.Posix_syntax
-	is_longest := input.Longest_match
-	is_literal := input.Literal
+    is_POSIX := input.Posix_syntax
+    is_longest := input.Longest_match
+    is_literal := input.Literal
 
-	if is_literal {
-		pattern = regexp.QuoteMeta(pattern)
-	}
+    if is_literal {
+        pattern = regexp.QuoteMeta(pattern)
+    }
 
-	var re *regexp.Regexp
+    var re *regexp.Regexp
 
-	if is_POSIX {
-		re, err = regexp.CompilePOSIX(pattern)
-	} else {
-		re, err = regexp.Compile(pattern)
-	}
+    if is_POSIX {
+        re, err = regexp.CompilePOSIX(pattern)
+    } else {
+        re, err = regexp.Compile(pattern)
+    }
 
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, err)
 
-		return
-	}
+        return
+    }
 
-	if is_longest {
-		re.Longest()
-	}
+    if is_longest {
+        re.Longest()
+    }
 
-	names := re.SubexpNames() // []string
-	//fmt.Printf( "names: %q\n", names)
+    names := re.SubexpNames() // []string
+    //fmt.Printf( "names: %q\n", names)
 
-	matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
-	//fmt.Printf( "matches: %d\n", matches)
+    matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
+    //fmt.Printf( "matches: %d\n", matches)
 
-	output.Names = names
-	output.Matches = matches
+    output.Names = names
+    output.Matches = matches
 
-	//fmt.Printf( "output: %+v\n", output)
+    //fmt.Printf( "output: %+v\n", output)
 }
 
 func matchRegexp2(output *outputStruct, input inputStruct) {
 
-	var err error
+    var err error
 
-	pattern := input.Pattern
-	text := input.Text
+    pattern := input.Pattern
+    text := input.Text
 
-	var options regexp2.RegexOptions = regexp2.None
+    var options regexp2.RegexOptions = regexp2.None
 
-	if input.IgnoreCase {
-		options |= regexp2.IgnoreCase
-	}
-	if input.Multiline {
-		options |= regexp2.Multiline
-	}
-	if input.ExplicitCapture {
-		options |= regexp2.ExplicitCapture
-	}
-	if input.Singleline {
-		options |= regexp2.Singleline
-	}
-	if input.IgnorePatternWhitespace {
-		options |= regexp2.IgnorePatternWhitespace
-	}
-	if input.RightToLeft {
-		options |= regexp2.RightToLeft
-	}
-	if input.ECMAScript {
-		options |= regexp2.ECMAScript
-	}
-	if input.RE2 {
-		options |= regexp2.RE2
-	}
-	if input.Unicode {
-		options |= regexp2.Unicode
-	}
+    if input.IgnoreCase {
+        options |= regexp2.IgnoreCase
+    }
+    if input.Multiline {
+        options |= regexp2.Multiline
+    }
+    if input.ExplicitCapture {
+        options |= regexp2.ExplicitCapture
+    }
+    if input.Singleline {
+        options |= regexp2.Singleline
+    }
+    if input.IgnorePatternWhitespace {
+        options |= regexp2.IgnorePatternWhitespace
+    }
+    if input.RightToLeft {
+        options |= regexp2.RightToLeft
+    }
+    if input.ECMAScript {
+        options |= regexp2.ECMAScript
+    }
+    if input.RE2 {
+        options |= regexp2.RE2
+    }
+    if input.Unicode {
+        options |= regexp2.Unicode
+    }
 
-	var re *regexp2compat.Regexp
+    var re *regexp2compat.Regexp
 
-	re, err = regexp2compat.Compile(pattern, regexp2.OptionMaintainCaptureOrder(), options)
+    re, err = regexp2compat.Compile(pattern, regexp2.OptionMaintainCaptureOrder(), options)
 
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, err)
 
-		return
-	}
+        return
+    }
 
-	names := re.Unwrap().GetGroupNames() // (it puts numbers instead of empty or null strings)
-	//fmt.Printf( "names: %q\n", names)
+    names := re.Unwrap().GetGroupNames() // (it puts numbers instead of empty or null strings)
+    //fmt.Printf( "names: %q\n", names)
 
-	matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
-	//fmt.Printf( "matches: %d\n", matches)
+    matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
+    //fmt.Printf( "matches: %d\n", matches)
 
-	output.Names = names
-	output.Matches = matches
+    output.Names = names
+    output.Matches = matches
 
-	//fmt.Printf( "output: %+v\n", output)
+    //fmt.Printf( "output: %+v\n", output)
 }
 
 func matchRexa(output *outputStruct, input inputStruct) {
 
-	var err error
+    var err error
 
-	pattern := input.Pattern
-	text := input.Text
+    pattern := input.Pattern
+    text := input.Text
 
-	is_literal := input.Literal
-	is_longest := input.Longest_match
+    is_literal := input.Literal
+    is_longest := input.Longest_match
 
-	if is_literal {
-		pattern = rexa.QuoteMeta(pattern)
-	}
+    if is_literal {
+        pattern = rexa.QuoteMeta(pattern)
+    }
 
-	options := rexa.CompileOptions{}
+    options := rexa.CompileOptions{}
 
-	if input.IgnoreCase {
-		options.Flags |= rexaSyntax.FlagCaseInsensitive
-	}
-	if input.Multiline {
-		options.Flags |= rexaSyntax.FlagMultiline
-	}
-	if input.Singleline {
-		options.Flags |= rexaSyntax.FlagDotAll
-	}
-	if input.Ungreedy {
-		options.Flags |= rexaSyntax.FlagUngreedy
-	}
-	if input.Unicode {
-		options.Flags |= rexaSyntax.FlagUnicode
-	}
+    if input.IgnoreCase {
+        options.Flags |= rexaSyntax.FlagCaseInsensitive
+    }
+    if input.Multiline {
+        options.Flags |= rexaSyntax.FlagMultiline
+    }
+    if input.Singleline {
+        options.Flags |= rexaSyntax.FlagDotAll
+    }
+    if input.Ungreedy {
+        options.Flags |= rexaSyntax.FlagUngreedy
+    }
+    if input.Unicode {
+        options.Flags |= rexaSyntax.FlagUnicode
+    }
 
-	var re *rexa.Regexp
+    var re *rexa.Regexp
 
-	re, err = rexa.CompileWithOptions(pattern, options)
+    re, err = rexa.CompileWithOptions(pattern, options)
 
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, err)
 
-		return
-	}
+        return
+    }
 
-	if is_longest {
-		re.Longest() // TODO: not supported?
-	}
+    if is_longest {
+        re.Longest() // TODO: not supported?
+    }
 
-	names := re.SubexpNames() // []string
-	//fmt.Printf( "names: %q\n", names)
+    names := re.SubexpNames() // []string
+    //fmt.Printf( "names: %q\n", names)
 
-	matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
-	//fmt.Printf( "matches: %d\n", matches)
+    matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
+    //fmt.Printf( "matches: %d\n", matches)
 
-	output.Names = names
-	output.Matches = matches
+    output.Names = names
+    output.Matches = matches
 
-	//fmt.Printf( "output: %+v\n", output)
+    //fmt.Printf( "output: %+v\n", output)
 }
 
 func matchCoregex(output *outputStruct, input inputStruct) {
 
-	var err error
+    var err error
 
-	pattern := input.Pattern
-	text := input.Text
+    pattern := input.Pattern
+    text := input.Text
 
-	is_POSIX := input.Posix_syntax
-	is_longest := input.Longest_match
-	is_literal := input.Literal
+    is_POSIX := input.Posix_syntax
+    is_longest := input.Longest_match
+    is_literal := input.Literal
 
-	if is_literal {
-		pattern = coregex.QuoteMeta(pattern)
-	}
+    if is_literal {
+        pattern = coregex.QuoteMeta(pattern)
+    }
 
-	config := coregex.DefaultConfig()
+    config := coregex.DefaultConfig()
 
-	if input.EnableDFA != nil {
-		config.EnableDFA = *input.EnableDFA
-	}
-	if input.EnablePrefilter != nil {
-		config.EnablePrefilter = *input.EnablePrefilter
-	}
-	if input.EnableASCIIOptimization != nil {
-		config.EnableASCIIOptimization = *input.EnableASCIIOptimization
-	}
-	if input.MaxDFAStates != nil {
-		config.MaxDFAStates = *input.MaxDFAStates
-	}
-	if input.DeterminizationLimit != nil {
-		config.DeterminizationLimit = *input.DeterminizationLimit
-	}
-	if input.MinLiteralLen != nil {
-		config.MinLiteralLen = *input.MinLiteralLen
-	}
-	if input.MaxLiterals != nil {
-		config.MaxLiterals = *input.MaxLiterals
-	}
-	if input.MaxRecursionDepth != nil {
-		config.MaxRecursionDepth = *input.MaxRecursionDepth
-	}
+    if input.EnableDFA != nil {
+        config.EnableDFA = *input.EnableDFA
+    }
+    if input.EnablePrefilter != nil {
+        config.EnablePrefilter = *input.EnablePrefilter
+    }
+    if input.EnableASCIIOptimization != nil {
+        config.EnableASCIIOptimization = *input.EnableASCIIOptimization
+    }
+    if input.MaxDFAStates != nil {
+        config.MaxDFAStates = *input.MaxDFAStates
+    }
+    if input.DeterminizationLimit != nil {
+        config.DeterminizationLimit = *input.DeterminizationLimit
+    }
+    if input.MinLiteralLen != nil {
+        config.MinLiteralLen = *input.MinLiteralLen
+    }
+    if input.MaxLiterals != nil {
+        config.MaxLiterals = *input.MaxLiterals
+    }
+    if input.MaxRecursionDepth != nil {
+        config.MaxRecursionDepth = *input.MaxRecursionDepth
+    }
 
-	var re *coregex.Regexp
+    var re *coregex.Regexp
 
-	if is_POSIX {
-		re, err = coregex.CompilePOSIX(pattern)
-	} else {
-		re, err = coregex.CompileWithConfig(pattern, config)
-	}
+    if is_POSIX {
+        re, err = coregex.CompilePOSIX(pattern)
+    } else {
+        re, err = coregex.CompileWithConfig(pattern, config)
+    }
 
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, err)
 
-		return
-	}
+        return
+    }
 
-	if is_longest {
-		re.Longest()
-	}
+    if is_longest {
+        re.Longest()
+    }
 
-	names := re.SubexpNames() // []string
-	//fmt.Printf( "names: %q\n", names)
+    names := re.SubexpNames() // []string
+    //fmt.Printf( "names: %q\n", names)
 
-	matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
-	//fmt.Printf( "matches: %d\n", matches)
+    matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
+    //fmt.Printf( "matches: %d\n", matches)
 
-	output.Names = names
-	output.Matches = matches
+    output.Names = names
+    output.Matches = matches
 
-	//fmt.Printf( "output: %+v\n", output)
+    //fmt.Printf( "output: %+v\n", output)
 }
 
 func main() {
-	var err error
+    var err error
 
-	reader := bufio.NewReader(os.Stdin)
-	input_text, err := reader.ReadString(0)
-	if err != nil && err != io.EOF {
-		fmt.Fprintln(os.Stderr, err)
+    reader := bufio.NewReader(os.Stdin)
+    input_text, err := reader.ReadString(0)
+    if err != nil && err != io.EOF {
+        fmt.Fprintln(os.Stderr, err)
 
-		return
-	}
+        return
+    }
 
-	//fmt.Printf("Input text: {%s}\n", input_text)
+    //fmt.Printf("Input text: {%s}\n", input_text)
 
-	var input inputStruct
+    var input inputStruct
 
-	err = json.Unmarshal([]byte(input_text), &input)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+    err = json.Unmarshal([]byte(input_text), &input)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, err)
 
-		return
-	}
+        return
+    }
 
-	//fmt.Printf("Input struct: {%+v}\n", input)
+    //fmt.Printf("Input struct: {%+v}\n", input)
 
-	package0 := input.Package
+    package0 := input.Package
 
-	output := &outputStruct{}
+    output := &outputStruct{}
 
-	switch package0 {
-	case "regexp":
+    switch package0 {
+    case "regexp":
 
-		matchRegexp(output, input)
+        matchRegexp(output, input)
 
-	case "regexp2":
+    case "regexp2":
 
-		matchRegexp2(output, input)
+        matchRegexp2(output, input)
 
-	case "rexa":
+    case "rexa":
 
-		matchRexa(output, input)
+        matchRexa(output, input)
 
-	case "coregex":
+    case "coregex":
 
-		matchCoregex(output, input)
+        matchCoregex(output, input)
 
-	default:
-		fmt.Fprintf(os.Stderr, "Invalid package: '%s'\n", package0)
+    default:
+        fmt.Fprintf(os.Stderr, "Invalid package: '%s'\n", package0)
 
-		return
-	}
+        return
+    }
 
-	output_json, err := json.Marshal(output)
+    output_json, err := json.Marshal(output)
 
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error: ", err)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, err)
 
-		return
-	}
+        return
+    }
 
-	fmt.Printf("%s\n", output_json)
+    fmt.Printf("%s\n", output_json)
 }

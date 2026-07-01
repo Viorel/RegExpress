@@ -138,7 +138,7 @@ pub fn main(init: std.process.Init) !void {
     const stderr = Io.File.stderr();
 
     main1(init) catch |err| {
-        const error_text = try std.fmt.allocPrint(allocator, "Error: {s}\n", .{@errorName(err)});
+        const error_text = try std.fmt.allocPrint(allocator, "{s}\n", .{@errorName(err)});
         try stderr.writeStreamingAll(init.io, error_text);
         std.process.exit(1);
     };
@@ -158,7 +158,7 @@ fn myPanic(msg: []const u8, first_trace_addr: ?usize) noreturn {
     //const stdout = Io.File.stdout();
     const stderr = Io.File.stderr();
 
-    const error_text = std.fmt.allocPrint(allocator, "Panic: {s}\n", .{msg}) catch "Catastrophic failure";
+    const error_text = std.fmt.allocPrint(allocator, "{s}\n", .{msg}) catch "Catastrophic failure";
     stderr.writeStreamingAll(init.io, error_text) catch {};
 
     std.process.exit(1);
