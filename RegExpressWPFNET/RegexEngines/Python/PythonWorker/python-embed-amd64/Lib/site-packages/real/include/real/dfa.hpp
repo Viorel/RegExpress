@@ -134,6 +134,12 @@ namespace real {
           else if (in.op == opcode::assert_lookaround) {
             throw dfa_error("pattern has a lookaround, which no DFA can represent");
           }
+          else if (in.op == opcode::klass_cp) {
+            // A code-point predicate matches whole code points via a decode + range search, not a
+            // byte transition, so it has no place in a byte-transition DFA.
+            throw dfa_error("pattern has a Unicode code-point class (\\w/\\d/\\s in text mode), "
+                            "which no DFA can represent");
+          }
           nfa.code.push_back(out);
           nfa.accept_rule.push_back(in.op == opcode::match ? static_cast<std::int64_t>(r) : -1);
         }
@@ -194,8 +200,9 @@ namespace real {
             break;
           case opcode::byte:
           case opcode::klass:
+          case opcode::klass_cp:
           case opcode::match:
-          case opcode::assert_lookaround: break; // terminal / unreachable (dfa_flatten rejects lookaround)
+          case opcode::assert_lookaround: break; // terminal / unreachable (dfa_flatten rejects lookaround & klass_cp)
         }
       }
       return present;

@@ -27,6 +27,8 @@
 #include "charclass.hpp"
 #include "prefilter.hpp"
 #include "program.hpp"
+#include "unicode_props.hpp"
+#include "utf8.hpp"
 
 namespace real::detail {
 
@@ -138,6 +140,17 @@ namespace real::detail {
      */
     std::int32_t                   table_class {-1};
     std::array<std::uint8_t, 256>  table       {}; //!< 1 where the byte is in \ref table_class.
+
+    /*!
+     * \brief Membership bitmap for a `cp_class` over the 2-byte UTF-8 range `[U+0080, U+07FF]`, and
+     *        the class it was built for. A `klass_cp` scan otherwise binary-searches ~771 ranges per
+     *        non-ASCII code point; European text lives almost entirely in this range (Latin, IPA,
+     *        Greek, Cyrillic, Hebrew, Arabic…), so a 240-byte bitmap answers it in one load. Built once
+     *        per class and reused across a `find_all`-style walk; code points beyond U+07FF (CJK,
+     *        astral) fall back to the range search.
+     */
+    std::int32_t                   cp_page_class {-1};
+    std::array<std::uint64_t, 30>  cp_page       {}; //!< 1 where the code point (U+0080..U+07FF) is a member.
   };
 
   /*!
@@ -216,6 +229,9 @@ namespace real::detail {
       // class+), which can never produce the empty match the flag guards.
       if (prog_.hints.greedy_class_loop >= 0) {
         return run_class_loop(text, start, mode, out_slots);
+      }
+      if (prog_.hints.greedy_cp_class >= 0) {
+        return run_cp_class_loop(text, start, mode, out_slots);
       }
       if (prog_.hints.exact_literal_len > 0) {
         return run_exact_literal(text, start, mode, out_slots);
@@ -329,6 +345,60 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Byte-indexed membership table for a `cp_class`'s ASCII bitmap — the same one-load trick
+     *        as \ref class_table, for the `klass_cp` scan-loop fast path. Keyed negatively so it never
+     *        collides with a `class_table` key (a whole-pattern shorthand has no byte-NFA classes, so
+     *        the two never interleave for one pattern anyway).
+     * \param[in] cp_index Index into the program's `cp_classes`.
+     * \return Pointer to a 256-entry table: 1 where the byte (< 0x80) is a member.
+     */
+    constexpr const std::uint8_t* cp_ascii_table(std::size_t cp_index)
+    {
+      const std::int32_t key {-2 - static_cast<std::int32_t>(cp_index)};
+      if (state_.table_class != key) {
+        const char_class& klass {prog_.cp_classes[cp_index].ascii};
+        for (std::size_t b {0}; b < 256; ++b) {
+          state_.table[b] = klass.test(static_cast<std::uint8_t>(b)) ? 1U : 0U;
+        }
+        state_.table_class = key;
+      }
+      return state_.table.data();
+    }
+
+    //! \brief Highest code point covered by the `cp_page` bitmap (the 2-byte UTF-8 range).
+    static constexpr std::uint32_t cp_page_max {0x7FFU};
+
+    /*!
+     * \brief Builds (once, cached) and returns the `cp_class`'s membership bitmap over
+     *        `[U+0080, U+07FF]` — a one-load replacement for the range search on the common
+     *        two-byte code points (see \ref basic_pike_state::cp_page).
+     * \param[in] cp_index Index into the program's `cp_classes`.
+     * \return Pointer to the 30-word bitmap (bit `cp - 0x80`).
+     */
+    constexpr const std::uint64_t* cp_page_table(std::size_t cp_index)
+    {
+      const std::int32_t key {-2 - static_cast<std::int32_t>(cp_index)};
+      if (state_.cp_page_class != key) {
+        state_.cp_page.fill(0);
+        const detail::cp_class& cc {prog_.cp_classes[cp_index]};
+        for (std::uint32_t k {0}; k < cc.range_count; ++k) {
+          const detail::code_range& r {prog_.cp_ranges[cc.range_begin + k]};
+          if (r.lo > cp_page_max) {
+            break; // ranges are sorted: nothing more falls in the page
+          }
+          const std::uint32_t lo {r.lo < 0x80U ? 0x80U : r.lo};
+          const std::uint32_t hi {r.hi > cp_page_max ? cp_page_max : r.hi};
+          for (std::uint32_t c {lo}; c <= hi; ++c) {
+            const std::uint32_t bit {c - 0x80U};
+            state_.cp_page[bit >> 6U] |= std::uint64_t {1} << (bit & 63U);
+          }
+        }
+        state_.cp_page_class = key;
+      }
+      return state_.cp_page.data();
+    }
+
+    /*!
      * \brief Fast path for a whole-pattern "class+".
      *
      * Matches a maximal run of class bytes with one scan loop — exactly the
@@ -371,6 +441,96 @@ namespace real::detail {
         return false;
       }
       out_slots.assign(2, npos);
+      out_slots[0] = match_start;
+      out_slots[1] = match_end;
+      return true;
+    }
+
+    /*!
+     * \brief Fast path for a whole-pattern code-point class `klass_cp`, optionally a greedy `+`.
+     *
+     * Scans code points directly against the class predicate (ASCII bitmap below 0x80, range binary
+     * search above), advancing by the code point's byte width, with no thread lists — the analog of
+     * \ref run_class_loop for a Unicode shorthand (`\w+`, `\d+`, `\s+`). A malformed sequence stops
+     * the run, exactly as the VM's `klass_cp` fails on it.
+     *
+     * \tparam OutSlots Output slot container.
+     * \param[in]  text      The subject text.
+     * \param[in]  start     Index to begin at.
+     * \param[in]  mode      Anchoring mode.
+     * \param[out] out_slots Receives the matched span on success.
+     * \return `true` if a non-empty run was found.
+     */
+    template <typename OutSlots>
+    constexpr bool run_cp_class_loop(std::string_view text,
+                                     std::size_t      start,
+                                     run_mode         mode,
+                                     OutSlots&        out_slots)
+    {
+      const std::size_t          cp_index {static_cast<std::size_t>(prog_.hints.greedy_cp_class)};
+      const detail::cp_class&    cc       {prog_.cp_classes[cp_index]};
+      const std::uint8_t* const  asc      {cp_ascii_table(cp_index)};
+      // Membership of a non-ASCII code point (>= 0x80): a one-load page-bitmap test over the two-byte
+      // range (OPT-4), the range search only for CJK / astral code points beyond it. The page is built
+      // lazily on the first non-ASCII code point, so a pure-ASCII scan never pays for it.
+      const auto member_hi = [&](char32_t cp) -> bool {
+                               if (cp <= cp_page_max) {
+                                 const std::uint64_t* const page {cp_page_table(cp_index)};
+                                 const std::uint32_t        bit  {static_cast<std::uint32_t>(cp) - 0x80U};
+                                 return ((page[bit >> 6U] >> (bit & 63U)) & std::uint64_t {1}) != 0U;
+                               }
+                               return cp_class_matches(cc, cp);
+                             };
+      // Byte width of a matching code point at i, or 0. Used for the leftmost-scan step and the first
+      // code point; the hot greedy run is scanned inline below.
+      const auto width = [&](std::size_t i) -> std::size_t {
+                           const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, i)};
+                           if (!dc.valid) {
+                             return 0;
+                           }
+                           const bool m {dc.cp < 0x80U ? asc[dc.cp] != 0U : member_hi(dc.cp)};
+                           return m ? dc.length : 0;
+                         };
+      out_slots.assign(2, npos);
+      std::size_t match_start {start};
+      if (mode == run_mode::search) {
+        while (match_start < text.size() && width(match_start) == 0) {
+          ++match_start;
+        }
+      }
+      if (match_start >= text.size()) {
+        return false;
+      }
+      // The first code point must match: this path is only chosen for `\w`/`\w+` (never nullable), so
+      // it reports a non-empty match or none — it can never produce the empty match `forbid_empty_until_`
+      // guards, which is why that state is not consulted here (see the fast-path dispatch in run()).
+      const std::size_t first {width(match_start)};
+      if (first == 0) {
+        return false;
+      }
+      std::size_t match_end {match_start + first};
+      if (prog_.hints.greedy_cp_class_plus) {
+        while (match_end < text.size()) {
+          // Tight ASCII inner loop (OPT-1): a byte-indexed table lookup with no decode and no call,
+          // the same one-load trick the byte-NFA scan loop uses; only a non-ASCII lead decodes.
+          const auto lead {static_cast<std::uint8_t>(text[match_end])};
+          if (lead < 0x80U) {
+            if (asc[lead] == 0U) {
+              break;
+            }
+            ++match_end;
+            continue;
+          }
+          const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, match_end)};
+          if (!dc.valid || !member_hi(dc.cp)) {
+            break;
+          }
+          match_end += dc.length;
+        }
+      }
+      if (mode == run_mode::full && match_end != text.size()) {
+        return false;
+      }
       out_slots[0] = match_start;
       out_slots[1] = match_end;
       return true;
@@ -816,6 +976,53 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Word-ness of the code point **ending exactly at** \p pos — the left side of a `\b`/`\B`/
+     *        `\<`/`\>` boundary. False at the text start. In text mode it back-decodes the code point
+     *        (up to three continuation bytes to the lead) and requires the sequence to end exactly at
+     *        \p pos, so a malformed or misaligned run reads as non-word; bytes / `re.A` stay byte-level.
+     *        This is the shared frontier notion (the same decode that codepoint alignment uses).
+     */
+    [[nodiscard]] constexpr bool word_before(std::size_t pos) const
+    {
+      if (pos == 0) {
+        return false;
+      }
+      const auto prev {static_cast<std::uint8_t>(text_[pos - 1])};
+      // ASCII fast path: an ASCII byte is a whole one-byte code point, and is_word_cp agrees with
+      // is_ascii_word_byte on it — so the common case skips the back-decode entirely (OPT-1). Bytes /
+      // re.A always take this path.
+      if (prev < 0x80U || !prog_.unicode_word) {
+        return is_ascii_word_byte(prev);
+      }
+      std::size_t i     {pos - 1};
+      std::size_t steps {0};
+      while (i > 0 && (static_cast<std::uint8_t>(text_[i]) & 0xC0U) == 0x80U && steps < 3) {
+        --i;
+        ++steps;
+      }
+      const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, i)};
+      if (!dc.valid || i + dc.length != pos) {
+        return false; // malformed, or the sequence does not end exactly at pos
+      }
+      return is_word_cp(dc.cp);
+    }
+
+    //! \brief Word-ness of the code point **starting at** \p pos — the right side of a boundary. False
+    //!        at the text end or on a malformed sequence; bytes / `re.A` stay byte-level.
+    [[nodiscard]] constexpr bool word_after(std::size_t pos) const
+    {
+      if (pos >= text_.size()) {
+        return false;
+      }
+      const auto here {static_cast<std::uint8_t>(text_[pos])};
+      if (here < 0x80U || !prog_.unicode_word) { // ASCII byte (or bytes / re.A): byte-level, no decode
+        return is_ascii_word_byte(here);
+      }
+      const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
+      return dc.valid && is_word_cp(dc.cp);
+    }
+
+    /*!
      * \brief Evaluates a zero-width assertion at \p pos in the current text.
      * \param[in] kind The assertion to evaluate.
      * \param[in] pos  The position at which to evaluate it.
@@ -846,16 +1053,16 @@ namespace real::detail {
         case assert_kind::word_boundary:
         case assert_kind::not_word_boundary:
           {
-            const bool before {pos > 0 && is_ascii_word_byte(byte_at(pos - 1))};
-            const bool after  {pos < len && is_ascii_word_byte(byte_at(pos))};
+            const bool before {word_before(pos)};
+            const bool after  {word_after(pos)};
             result = (before != after) == (kind == assert_kind::word_boundary);
           }
           break;
         case assert_kind::word_start:
         case assert_kind::word_end:
           {
-            const bool before {pos > 0 && is_ascii_word_byte(byte_at(pos - 1))};
-            const bool after  {pos < len && is_ascii_word_byte(byte_at(pos))};
+            const bool before {word_before(pos)};
+            const bool after  {word_after(pos)};
             result = kind == assert_kind::word_start ? (!before && after) : (before && !after);
           }
           break;
@@ -906,6 +1113,16 @@ namespace real::detail {
               add_thread(nlist, pc + 1, pos + 1);
             }
             break;
+          case opcode::klass_cp:
+            if (pos < text_.size()) {
+              const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
+              if (dc.valid &&
+                  cp_class_matches(prog_.cp_classes[instruction.arg16], dc.cp)) {
+                load_working(clist, base);
+                add_thread(nlist, pc + 1 + static_cast<std::int32_t>(4 - dc.length), pos + 1);
+              }
+            }
+            break;
           case opcode::match:
             if (mode == run_mode::full && pos != text_.size()) {
               break; // must consume the whole text: thread dies
@@ -941,6 +1158,39 @@ namespace real::detail {
       for (std::uint16_t s = 0; s < prog_.slot_count; ++s) {
         state_.working[s] = clist.slots[base + s];
       }
+    }
+
+    /*!
+     * \brief Tests a decoded code point against a `klass_cp` class: ASCII bitmap below 0x80, a binary
+     *        search of the class's range slice above. The class is already the effective set, so this
+     *        is a plain positive membership test.
+     * \param[in] cc The code-point class (from `prog_.cp_classes`).
+     * \param[in] cp The decoded code point.
+     * \return Whether \p cp is a member.
+     */
+    [[nodiscard]] constexpr bool cp_class_matches(const detail::cp_class& cc,
+                                                  char32_t                cp) const
+    {
+      bool member {};
+      if (cp < 0x80U) {
+        member = cc.ascii.test(static_cast<std::uint8_t>(cp));
+      }
+      else {
+        std::size_t lo {cc.range_begin};
+        std::size_t hi {static_cast<std::size_t>(cc.range_begin) + cc.range_count};
+        while (lo < hi) {
+          const std::size_t mid {lo + ((hi - lo) / 2)};
+          if (prog_.cp_ranges[mid].hi < cp) {
+            lo = mid + 1;
+          }
+          else {
+            hi = mid;
+          }
+        }
+        member = lo < static_cast<std::size_t>(cc.range_begin) + cc.range_count &&
+                 cp >= prog_.cp_ranges[lo].lo && cp <= prog_.cp_ranges[lo].hi;
+      }
+      return member;
     }
 
     /*!
@@ -1012,6 +1262,7 @@ namespace real::detail {
             break;
           case opcode::byte:
           case opcode::klass:
+          case opcode::klass_cp:
           case opcode::match:
             list.pcs.push_back(pc);
             for (std::uint16_t s = 0; s < prog_.slot_count; ++s) {
@@ -1067,8 +1318,16 @@ namespace real::detail {
         const auto byte_value {static_cast<std::uint8_t>(text_[p])};
         for (const std::int32_t pc : clist->pcs) {
           const instr& in      {prog_.code[static_cast<std::size_t>(pc)]};
-          // Parked pcs are only consuming ops; the ternary's else assumes klass (sub_add_thread
-          // parks nothing else). The assert makes that invariant explicit (no-op under NDEBUG).
+          if (in.op == opcode::klass_cp) {
+            // A code-point predicate inside the lookahead: decode once, then enter the continuation
+            // chain via the computed skip (same mechanism as the main VM's step).
+            const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, p)};
+            if (dc.valid && cp_class_matches(prog_.cp_classes[in.arg16], dc.cp)) {
+              sub_add_thread(*nlist, pc + 1 + static_cast<std::int32_t>(4 - dc.length), p + 1, matched);
+            }
+            continue;
+          }
+          // Otherwise the parked pc is a byte/klass; the ternary's else assumes klass.
           assert((in.op == opcode::byte || in.op == opcode::klass) && "lookaround parked a non-consuming op");
           const bool   consume {in.op == opcode::byte ? byte_value == in.arg8
                                                       : prog_.classes[in.arg16].test(byte_value)};
@@ -1144,8 +1403,15 @@ namespace real::detail {
         const auto byte_value {static_cast<std::uint8_t>(text_[p])};
         for (const std::int32_t pc : clist->pcs) {
           const instr& in      {prog_.code[static_cast<std::size_t>(pc)]};
-          // Parked pcs are only consuming ops; the ternary's else assumes klass (sub_add_thread
-          // parks nothing else). The assert makes that invariant explicit (no-op under NDEBUG).
+          if (in.op == opcode::klass_cp) {
+            const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, p)};
+            if (dc.valid && cp_class_matches(prog_.cp_classes[in.arg16], dc.cp)) {
+              sub_add_thread(*nlist, pc + 1 + static_cast<std::int32_t>(4 - dc.length), p + 1,
+                             last ? at_pos : sink);
+            }
+            continue;
+          }
+          // Otherwise the parked pc is a byte/klass; the ternary's else assumes klass.
           assert((in.op == opcode::byte || in.op == opcode::klass) && "lookaround parked a non-consuming op");
           const bool   consume {in.op == opcode::byte ? byte_value == in.arg8
                                                       : prog_.classes[in.arg16].test(byte_value)};
@@ -1219,6 +1485,7 @@ namespace real::detail {
             break;
           case opcode::byte:
           case opcode::klass:
+          case opcode::klass_cp:
             list.pcs.push_back(pc);
             break;
           case opcode::assert_lookaround:

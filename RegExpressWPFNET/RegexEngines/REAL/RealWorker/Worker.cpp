@@ -123,6 +123,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 		//if( inbr.ReadByte( ) ) flags = flags | real::flags::bytes; // not supported here
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::verbose;
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::ecma;
+		if( inbr.ReadByte( ) ) flags = flags | real::flags::ascii;
 
 		if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 

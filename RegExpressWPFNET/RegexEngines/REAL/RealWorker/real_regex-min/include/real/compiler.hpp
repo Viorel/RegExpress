@@ -140,43 +140,6 @@ namespace real::detail {
     return out;
   }
 
-  //! \brief Sorts \p ranges and merges overlapping / adjacent ones into a minimal, sorted set (the
-  //!        same set of code points, the fewest ranges). Used to keep a folded class from fragmenting.
-  constexpr std::vector<code_range> coalesce_ranges(std::vector<code_range> ranges)
-  {
-    std::sort(ranges.begin(), ranges.end(),
-              [](const code_range& a, const code_range& b) { return a.lo < b.lo; });
-    std::vector<code_range> merged;
-    for (const code_range& r : ranges) {
-      if (!merged.empty() && r.lo <= merged.back().hi + 1U) { // overlapping OR adjacent
-        merged.back().hi = merged.back().hi > r.hi ? merged.back().hi : r.hi;
-      }
-      else {
-        merged.push_back(r);
-      }
-    }
-    return merged;
-  }
-
-  //! \brief Complements a set of code-point ranges within `[0x80, 0x10FFFF]` (used by negated classes).
-  //!        Input ranges may be unsorted/overlapping; the gaps are returned sorted.
-  constexpr std::vector<code_range> complement_code_ranges(std::vector<code_range> ranges)
-  {
-    const std::vector<code_range> merged {coalesce_ranges(std::move(ranges))};
-    std::vector<code_range>       gaps;
-    std::uint32_t                 next   {0x80U};
-    for (const code_range& r : merged) {
-      if (r.lo > next) {
-        gaps.push_back({.lo = next, .hi = r.lo - 1U});
-      }
-      next = r.hi + 1U;
-    }
-    if (next <= 0x10FFFFU) {
-      gaps.push_back({.lo = next, .hi = 0x10FFFFU});
-    }
-    return gaps;
-  }
-
   //! \brief Whether \p ranges is exactly the whole non-ASCII space `[U+0080, U+10FFFF]` — the
   //!        "any non-ASCII code point" shape emitted by the compact \ref compiler::emit_codepoint_class.
   constexpr bool is_any_non_ascii(const std::vector<code_range>& ranges)
@@ -269,10 +232,11 @@ namespace real::detail {
       prog.names      = tree_.names;
       emit(prog, {.op = opcode::save, .arg16 = 0});
       emit_node(prog, tree_.root);
-      emit(prog, {.op = opcode::save, .arg16 = 1});
-      emit(prog, {.op = opcode::match});
-      prog.byte_mode  = has_flag(flags_, flags::bytes);
-      prog.hints      = analyze_program(prog.code, prog.classes, prog.codepoint_mark_ascii, prog.codepoint_mark_offset);
+      emit(prog, {.op   = opcode::save, .arg16 = 1});
+      emit(prog, {.op   = opcode::match});
+      prog.byte_mode    = has_flag(flags_, flags::bytes);
+      prog.unicode_word = !has_flag(flags_, flags::bytes) && !has_flag(flags_, flags::ascii);
+      prog.hints        = analyze_program(prog.code, prog.classes, prog.cp_classes, prog.codepoint_mark_ascii, prog.codepoint_mark_offset);
       if (prog.code.size() > max_program_size) {
         throw regex_error("program too large", 0);
       }
@@ -392,6 +356,62 @@ namespace real::detail {
         prog.classes.push_back(klass);
       }
       emit(prog, {.op = opcode::klass, .arg16 = static_cast<std::uint16_t>(index)});
+    }
+
+    /*!
+     * \brief Emits a match-time code-point predicate for a Unicode shorthand (`\w \d \s` and their
+     *        negations) in text mode: a `klass_cp` over the interned code-point class, followed by a
+     *        three-instruction continuation chain (`klass utf8_cont` ×3). At match time `klass_cp`
+     *        decodes one code point and, on membership, enters the chain at a computed skip so the
+     *        remaining continuation bytes are walked one per step — see pike.hpp. The class is the
+     *        already-effective set (the fold and any external negation were materialised by
+     *        \ref effective_class), so membership is a plain positive test.
+     *
+     * \param[in,out] prog The program being built.
+     * \param[in]     cd   The effective code-point class (ASCII bitmap + non-ASCII ranges).
+     */
+    static constexpr void emit_klass_cp(dynamic_program& prog,
+                                        const class_def& cd)
+    {
+      std::size_t index {prog.cp_classes.size()};
+      for (std::size_t i = 0; i < prog.cp_classes.size(); ++i) {
+        const cp_class& existing {prog.cp_classes[i]};
+        if (!(existing.ascii == cd.ascii) || existing.range_count != cd.ranges.size()) {
+          continue;
+        }
+        bool same {true};
+        for (std::uint32_t k = 0; k < existing.range_count; ++k) {
+          const code_range& a {prog.cp_ranges[existing.range_begin + k]};
+          if (a.lo != cd.ranges[k].lo || a.hi != cd.ranges[k].hi) {
+            // Two code-point classes with the SAME ASCII bitmap and range COUNT but different ranges:
+            // the interner must not merge them. In practice the shorthand classes (\w/\d/\s and their
+            // complements) have distinct bitmaps and counts, so this range mismatch is a defensive
+            // arm of the dedup, not hit by the current emitters (hence uncovered by the runtime report).
+            same = false;
+            break;
+          }
+        }
+        if (same) {
+          index = i;
+          break;
+        }
+      }
+      if (index == prog.cp_classes.size()) {
+        if (index > 0xFFFF) {
+          throw regex_error("too many code-point classes", 0);
+        }
+        const auto begin {static_cast<std::uint32_t>(prog.cp_ranges.size())};
+        for (const code_range& r : cd.ranges) {
+          prog.cp_ranges.push_back(r);
+        }
+        prog.cp_classes.push_back({.ascii       = cd.ascii,
+                                   .range_begin = begin,
+                                   .range_count = static_cast<std::uint32_t>(cd.ranges.size())});
+      }
+      emit(prog, {.op = opcode::klass_cp, .arg16 = static_cast<std::uint16_t>(index)});
+      emit_klass(prog, utf8_cont_set()); // three continuation slots; klass_cp's skip picks the entry
+      emit_klass(prog, utf8_cont_set());
+      emit_klass(prog, utf8_cont_set());
     }
 
     // --- UTF-8 byte expansion --------------------------------------------
@@ -526,8 +546,8 @@ namespace real::detail {
     {
       class_def folded {tree_.classes[static_cast<std::size_t>(node.klass)]};
       if (has_flag(flags_, flags::icase)) {
-        if (has_flag(flags_, flags::bytes)) {
-          fold_ascii_case(folded.ascii);     // bytes: ASCII-only fold (compat-safe; a bytes class has no ranges)
+        if (has_flag(flags_, flags::bytes) || has_flag(flags_, flags::ascii)) {
+          fold_ascii_case(folded.ascii);     // bytes / ASCII mode (re.A): ASCII-only fold, no Unicode partners
         }
         else {
           folded = unicode_casefold(folded); // text: full Unicode fold of the whole class, both directions
@@ -573,6 +593,14 @@ namespace real::detail {
           break;
         case node_kind::klass:
           {
+            // A text-mode class with a Unicode-shorthand contribution (\w/\d/\s, bare or in a class):
+            // a match-time code-point predicate, not the byte-NFA. effective_class materialises the
+            // fold and the external negation, so the stored cp_class needs no negation flag -- this is
+            // also what gives [^\W] == \w, [^\D] == \d, [^\S] == \s.
+            if (tree_.classes[static_cast<std::size_t>(node.klass)].codepoint_predicate) {
+              emit_klass_cp(prog, effective_class(node));
+              break;
+            }
             const class_def eff {effective_class(node)};
             if (has_flag(flags_, flags::bytes) || eff.ranges.empty()) {
               // Bytes mode is a single 256-bit bitmap; a code-point class with no non-ASCII members is

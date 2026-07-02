@@ -34,7 +34,7 @@ namespace RegExpressLibrary.Matches.Simple
 
         public static SimpleMatch Create( int index, int length, int textIndex, int textLength, ISimpleTextGetter textGetter )
         {
-            textGetter.ThrowIfInvalid( index, length );
+            textGetter.ThrowIfInvalid( textIndex, textLength );
 
             return new SimpleMatch( index, length, textIndex, textLength, textGetter );
         }
@@ -90,7 +90,7 @@ namespace RegExpressLibrary.Matches.Simple
 
         public SimpleGroup AddGroup( int index, int length, int textIndex, int textLength, bool success, string name )
         {
-            if( success ) TextGetter.ThrowIfInvalid( index, length );
+            if( success ) TextGetter.ThrowIfInvalid( textIndex, textLength );
 
             var group = new SimpleGroup( index, length, textIndex, textLength, TextGetter, success, name );
             mGroups.Add( group );

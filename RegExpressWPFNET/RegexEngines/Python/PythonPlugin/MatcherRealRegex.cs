@@ -49,7 +49,7 @@ namespace PythonPlugin
                     text,
                     flags = new
                     {
-                        //options.ASCII,
+                        options.ASCII,
                         options.DOTALL,
                         options.IGNORECASE,
                         //options.LOCALE,

@@ -53,7 +53,7 @@ namespace RegExpressLibrary.Matches.Simple
 
 		public SimpleCapture AddCapture( int index, int length, int textIndex, int textLength )
 		{
-            TextGetter.ThrowIfInvalid( index, length );
+            TextGetter.ThrowIfInvalid( textIndex, textLength );
 
             var capture = new SimpleCapture( index, length, textIndex, textLength, TextGetter );
 			mCaptures.Add( capture );

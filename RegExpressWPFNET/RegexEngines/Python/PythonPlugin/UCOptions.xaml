@@ -34,8 +34,7 @@
                 </ComboBox>
             </StackPanel>
 
-            <ui:CheckboxWithNote x:Name="ASCII" Prop="ASCII" Note="\w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching" />
-            <ui:CheckboxWithNote x:Name="ASCII_disabled" Text="ASCII" Note="\w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching" IsChecked="True" IsEnabled="False" Visibility="Collapsed" d:Visibility="Visible" />
+            <ui:CheckboxWithNote Prop="ASCII" Note="\w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching" />
             <ui:CheckboxWithNote Prop="DOTALL" Note=". matches any character, including newline"/>
             <ui:CheckboxWithNote Prop="IGNORECASE" Note="case-insensitive matching"/>
             <ui:CheckboxWithNote x:Name="LOCALE" Prop="LOCALE" Note="\w, \W, \b, \B and case-insensitive matching dependent on current locale"/>

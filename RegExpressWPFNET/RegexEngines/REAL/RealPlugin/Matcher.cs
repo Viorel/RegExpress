@@ -40,6 +40,7 @@ namespace RealPlugin
                 //bw.Write( options.bytes ); // not supported here
                 bw.Write( options.verbose );
                 bw.Write( options.ecma );
+                bw.Write( options.ascii );
 
                 bw.Write( (byte)'e' );
             };
@@ -91,10 +92,11 @@ namespace RealPlugin
                 {
                 case 'm':
                 {
-                    UInt64 start = br.ReadUInt64( ); // (UTF-8 index)
-                    UInt64 end = br.ReadUInt64( ); // (UTF-8 index)
-                    int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, checked((int)start) );
-                    int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, checked((int)end) );
+                    int start = checked((int)br.ReadUInt64( )); // (UTF-8 index)
+                    int end = checked((int)br.ReadUInt64( )); // (UTF-8 index)
+                    //int length = end - start;
+                    int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, start );
+                    int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, end );
                     int char_length = char_end - char_start;
 
                     current_match = SimpleMatch.Create( char_start, char_length, stg );
@@ -157,7 +159,7 @@ namespace RealPlugin
 
                     if( char_offset != byte_offset )
                     {
-                        string new_message = $"{error.TrimEnd()}{Environment.NewLine}{Environment.NewLine}(character offset: {char_offset})";
+                        string new_message = $"{error.TrimEnd( )}{Environment.NewLine}{Environment.NewLine}(character offset: {char_offset})";
 
                         return new_message;
                     }

@@ -158,6 +158,7 @@ namespace real::detail {
    */
   constexpr void compute_first_bytes(std::span<const instr>      code,
                                      std::span<const char_class> classes,
+                                     std::span<const cp_class>   cp_classes,
                                      pattern_hints&              hints)
   {
     std::vector<unsigned char> visited(code.size(), 0); // unsigned char, not vector<bool> (constexpr, faster)
@@ -191,6 +192,17 @@ namespace real::detail {
         case opcode::klass:
           hints.first_bytes.merge(classes[instruction.arg16]);
           break;
+        case opcode::klass_cp: {
+            // A code-point predicate: its effective ASCII members (a `\W`-style complement is already
+            // materialised into the bitmap) plus every UTF-8 lead byte a non-ASCII member could begin
+            // with -- a sound superset of the possible first bytes.
+            const cp_class& cc {cp_classes[static_cast<std::size_t>(instruction.arg16)]};
+            hints.first_bytes.merge(cc.ascii);
+            hints.first_bytes.merge(utf8_lead2_set());
+            hints.first_bytes.merge(utf8_lead3_set());
+            hints.first_bytes.merge(utf8_lead4_set());
+            break;
+          }
         case opcode::match:
           empty_match_possible = true;
           break;
@@ -218,6 +230,23 @@ namespace real::detail {
         code[2].op == opcode::split && code[2].primary_target == 1 && code[2].secondary_target == 3 &&
         code[3].op == opcode::save && code[4].op == opcode::match) {
       hints.greedy_class_loop = code[1].arg16;
+    }
+
+    // Code-point class, optional greedy `+`: save 0, klass_cp, cont, cont, cont, [split back], save 1,
+    // match -- a Unicode shorthand (\w/\d/\s) run, scanned code point by code point without threads.
+    // The three `klass` continuations are the klass_cp skip chain; a `+` adds a split looping to the
+    // klass_cp. Greedy only, no captures.
+    if (code.size() >= 7 && code[0].op == opcode::save && code[1].op == opcode::klass_cp &&
+        code[2].op == opcode::klass && code[3].op == opcode::klass && code[4].op == opcode::klass) {
+      if (code.size() == 7 && code[5].op == opcode::save && code[6].op == opcode::match) {
+        hints.greedy_cp_class      = code[1].arg16;
+        hints.greedy_cp_class_plus = false;
+      }
+      else if (code.size() == 8 && code[5].op == opcode::split && code[5].primary_target == 1 &&
+               code[5].secondary_target == 6 && code[6].op == opcode::save && code[7].op == opcode::match) {
+        hints.greedy_cp_class      = code[1].arg16;
+        hints.greedy_cp_class_plus = true;
+      }
     }
 
     // "fixed shape": a straight-line run of byte/klass with no branches or
@@ -301,6 +330,7 @@ namespace real::detail {
    * \brief Walks a compiled program once to derive its search hints.
    * \param[in] code           The instruction stream.
    * \param[in] classes        The interned character classes referenced by \p code.
+   * \param[in] cp_classes     The match-time code-point classes referenced by `klass_cp`.
    * \param[in] cp_mark_ascii  ASCII sub-class index of an emitted codepoint-class
    *                           block (-1 = none), as recorded by `emit_codepoint_class`.
    * \param[in] cp_mark_offset Program offset where that block starts (-1 = none); the
@@ -310,6 +340,7 @@ namespace real::detail {
    */
   constexpr pattern_hints analyze_program(std::span<const instr>      code,
                                           std::span<const char_class> classes,
+                                          std::span<const cp_class>   cp_classes,
                                           std::int32_t                cp_mark_ascii,
                                           std::int32_t                cp_mark_offset)
   {
@@ -328,7 +359,7 @@ namespace real::detail {
 
     extract_prefix(code, hints);
 
-    compute_first_bytes(code, classes, hints);
+    compute_first_bytes(code, classes, cp_classes, hints);
 
     detect_fast_shapes(code, classes, cp_mark_ascii, cp_mark_offset, hints);
 

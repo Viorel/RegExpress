@@ -710,7 +710,7 @@ namespace PythonPlugin
                 InsideSets_Class_hHhorspace = false,
                 InsideSets_Class_lL = false,
                 InsideSets_Class_R = false,
-                InsideSets_Class_sS = false,
+                InsideSets_Class_sS = true,
                 InsideSets_Class_sSx = false,
                 InsideSets_Class_uU = false,
                 InsideSets_Class_vV = false,

@@ -20,7 +20,9 @@
 
 #include "version.hpp"
 
+#include <algorithm>
 #include <cstdint>
+#include <span>
 #include <string_view>
 #include <vector>
 
@@ -28,6 +30,7 @@
 #include "config.hpp"
 #include "program.hpp"
 #include "unicode_fold.hpp"
+#include "unicode_props.hpp"
 #include "utf8.hpp"
 
 namespace real::detail {
@@ -83,20 +86,51 @@ namespace real::detail {
     std::int32_t next      {-1};                 //!< Next sibling in the parent's child list.
   };
 
-  //! \brief An inclusive code-point range `[lo, hi]` (a non-ASCII character class member, `lo >= 0x80`).
-  struct code_range
-  {
-    std::uint32_t lo {}; //!< First code point (inclusive).
-    std::uint32_t hi {}; //!< Last code point (inclusive).
-  };
-
   //! \brief A parsed character class: its ASCII bitmap plus any non-ASCII code-point ranges. Bundling
   //!        the two (rather than parallel side tables) makes them impossible to desynchronize.
   struct class_def
   {
-    char_class              ascii;  //!< ASCII members as a bitmap (all 256 bytes in bytes mode); pre-negation.
-    std::vector<code_range> ranges; //!< Non-ASCII code-point ranges (code-point mode only; empty otherwise).
+    char_class              ascii;                    //!< ASCII members as a bitmap (all 256 bytes in bytes mode); pre-negation.
+    std::vector<code_range> ranges;                   //!< Non-ASCII code-point ranges (code-point mode only; empty otherwise).
+    bool                    codepoint_predicate {};   //!< Emit as a match-time `klass_cp` (a Unicode shorthand `\w`/`\d`/`\s` in text mode), not the byte-NFA.
   };
+
+  //! \brief Sorts \p ranges and merges overlapping / adjacent ones into a minimal, sorted set (the
+  //!        same set of code points, the fewest ranges). Used to keep folded / property classes compact.
+  constexpr std::vector<code_range> coalesce_ranges(std::vector<code_range> ranges)
+  {
+    std::sort(ranges.begin(), ranges.end(),
+              [](const code_range& a, const code_range& b) { return a.lo < b.lo; });
+    std::vector<code_range> merged;
+    for (const code_range& r : ranges) {
+      if (!merged.empty() && r.lo <= merged.back().hi + 1U) { // overlapping OR adjacent
+        merged.back().hi = merged.back().hi > r.hi ? merged.back().hi : r.hi;
+      }
+      else {
+        merged.push_back(r);
+      }
+    }
+    return merged;
+  }
+
+  //! \brief Complements a set of code-point ranges within `[0x80, 0x10FFFF]` (used by negated classes
+  //!        and by an in-class `\W`/`\D`/`\S`). Input may be unsorted/overlapping; the gaps come sorted.
+  constexpr std::vector<code_range> complement_code_ranges(std::vector<code_range> ranges)
+  {
+    const std::vector<code_range> merged {coalesce_ranges(std::move(ranges))};
+    std::vector<code_range>       gaps;
+    std::uint32_t                 next   {0x80U};
+    for (const code_range& r : merged) {
+      if (r.lo > next) {
+        gaps.push_back({.lo = next, .hi = r.lo - 1U});
+      }
+      next = r.hi + 1U;
+    }
+    if (next <= 0x10FFFFU) {
+      gaps.push_back({.lo = next, .hi = 0x10FFFFU});
+    }
+    return gaps;
+  }
 
   /*!
    * \brief A parsed pattern: the node pool plus side tables.
@@ -198,7 +232,8 @@ namespace real::detail {
         verbose_(has_flag(initial_flags, flags::verbose)),
         bytes_(has_flag(initial_flags, flags::bytes)),
         ecma_(has_flag(initial_flags, flags::ecma)),
-        icase_(has_flag(initial_flags, flags::icase))
+        icase_(has_flag(initial_flags, flags::icase)),
+        ascii_(has_flag(initial_flags, flags::ascii))
     {}
 
     /*!
@@ -227,6 +262,7 @@ namespace real::detail {
     bool             bytes_         {}; //!< In \ref flags::bytes mode, rejects code-point escapes (`\u`/`\U`).
     bool             ecma_          {}; //!< ECMAScript grammar: `\A \Z \< \>` are identity-escape literals, not anchors.
     bool             icase_         {}; //!< `re.I`: a cased literal is promoted to a foldable singleton class.
+    bool             ascii_         {}; //!< `re.A`: `\d \w \s` stay ASCII (no Unicode property ranges).
 
     /*!
      * \brief In verbose mode, consumes insignificant whitespace and `#` comments.
@@ -332,16 +368,81 @@ namespace real::detail {
      * \param[in]     klass      The class bitmap as written (before negation).
      * \param[in]     negated Whether the class was written negated.
      * \param[in]     ranges  Non-ASCII code-point ranges of the class (code-point mode; empty otherwise).
+     * \param[in]     codepoint_predicate Emit as a match-time `klass_cp` (a text-mode Unicode shorthand),
+     *                   not the byte-NFA.
      * \return The index of the new node.
      */
     static constexpr std::int32_t add_class_node(ast&                           out,
                                                  const char_class&              klass,
                                                  bool                           negated,
-                                                 const std::vector<code_range>& ranges = {})
+                                                 const std::vector<code_range>& ranges              = {},
+                                                 bool                           codepoint_predicate = false)
     {
-      out.classes.push_back({.ascii = klass, .ranges = ranges});
+      out.classes.push_back({.ascii = klass, .ranges = ranges, .codepoint_predicate = codepoint_predicate});
       const auto index {static_cast<std::int32_t>(out.classes.size()) - 1};
       return add_node(out, {.kind = node_kind::klass, .negated = negated, .klass = index});
+    }
+
+    /*!
+     * \brief The non-ASCII (>= 0x80) code-point ranges of a Unicode property table (`\d`/`\s`/`\w`),
+     *        for a text-mode shorthand. In bytes or ASCII mode (`flags::ascii` == `re.A`) the shorthand
+     *        stays ASCII-only, so this returns nothing and the ASCII bitmap alone is used.
+     */
+    //! \brief Whether a shorthand (`\d \w \s`) should be a text-mode Unicode code-point predicate:
+    //!        true in the default text mode, false in bytes mode or under `flags::ascii` (`re.A`).
+    [[nodiscard]] constexpr bool text_shorthand() const
+    {
+      return !bytes_ && !ascii_;
+    }
+
+    /*!
+     * \brief Merges an in-class shorthand (`\w \d \s` or a negated `\W \D \S`) into the class being
+     *        built: its ASCII bitmap (or the complement, negated) plus, in text mode, its non-ASCII
+     *        ranges (or their complement). Sets \p property_derived so the class is emitted as a
+     *        match-time `klass_cp` (text mode only). In bytes / ASCII mode it stays a byte class.
+     */
+    constexpr void merge_property(char_class&                 klass,
+                                  std::vector<code_range>&    ranges,
+                                  const char_class&           prop_ascii,
+                                  std::span<const code_range> table,
+                                  bool                        negated,
+                                  bool&                       property_derived) const
+    {
+      if (negated) {
+        char_class inverted {prop_ascii};
+        if (bytes_) {
+          inverted.invert(); // raw bytes: plain 256-bit complement, no ranges
+          klass.merge(inverted);
+          return;
+        }
+        inverted.invert_ascii();
+        klass.merge(inverted);
+        // Text: the gaps between the property's ranges. ASCII: shorthand_ranges is empty, so the
+        // complement is the whole non-ASCII space (`\W` under re.A still matches é).
+        const std::vector<code_range> comp {complement_code_ranges(shorthand_ranges(table))};
+        ranges.insert(ranges.end(), comp.begin(), comp.end());
+      }
+      else {
+        klass.merge(prop_ascii);
+        const std::vector<code_range> high {shorthand_ranges(table)};
+        ranges.insert(ranges.end(), high.begin(), high.end());
+      }
+      property_derived = property_derived || text_shorthand();
+    }
+
+    [[nodiscard]] constexpr std::vector<code_range> shorthand_ranges(std::span<const code_range> table) const
+    {
+      std::vector<code_range> out;
+      if (bytes_ || ascii_) {
+        return out;
+      }
+      for (const code_range& r : table) {
+        if (r.hi < 0x80U) {
+          continue; // wholly ASCII: already covered by the bitmap
+        }
+        out.push_back({.lo = r.lo < 0x80U ? 0x80U : r.lo, .hi = r.hi});
+      }
+      return out;
     }
 
     /*!
@@ -603,11 +704,8 @@ namespace real::detail {
           return flags::dotall;
         case 'x':
           return flags::verbose;
-        // 'a' (ASCII) is a recognized flag, accepted as a no-op because ASCII
-        // is already this library's semantics — intent distinct from an
-        // unrecognized letter, hence kept separate from default.
-        case 'a': // NOLINT(bugprone-branch-clone)
-          return flags::none;
+        case 'a': // ASCII mode: `\d \w \s \b` stay ASCII, icase folds ASCII only.
+          return flags::ascii;
         default:
           return flags::none;
       }
@@ -657,6 +755,9 @@ namespace real::detail {
       }
       if (has_flag(found, flags::icase)) {
         icase_ = true;   // a leading (?i) makes cased literals foldable, like the constructor flag
+      }
+      if (has_flag(found, flags::ascii)) {
+        ascii_ = true;   // a leading (?a) keeps the shorthands ASCII, like the constructor flag
       }
       return true;
     }
@@ -1101,24 +1202,27 @@ namespace real::detail {
         fail("dangling backslash");
       }
       switch (peek()) {
+        // A bare shorthand in text mode (not bytes, not re.A) is emitted as a match-time code-point
+        // predicate (klass_cp): O(decode + range bsearch) per position, independent of the range count.
+        // In bytes / ASCII mode shorthand_ranges() is empty and the flag is off -> the ASCII byte-NFA.
         case 'd':
           ++pos_;
-          return add_class_node(out, digit_set(), false);
+          return add_class_node(out, digit_set(), false, shorthand_ranges(digit_ranges), text_shorthand());
         case 'D':
           ++pos_;
-          return add_class_node(out, digit_set(), true);
+          return add_class_node(out, digit_set(), true, shorthand_ranges(digit_ranges), text_shorthand());
         case 'w':
           ++pos_;
-          return add_class_node(out, word_set(), false);
+          return add_class_node(out, word_set(), false, shorthand_ranges(word_ranges), text_shorthand());
         case 'W':
           ++pos_;
-          return add_class_node(out, word_set(), true);
+          return add_class_node(out, word_set(), true, shorthand_ranges(word_ranges), text_shorthand());
         case 's':
           ++pos_;
-          return add_class_node(out, space_set(), false);
+          return add_class_node(out, space_set(), false, shorthand_ranges(space_ranges), text_shorthand());
         case 'S':
           ++pos_;
-          return add_class_node(out, space_set(), true);
+          return add_class_node(out, space_set(), true, shorthand_ranges(space_ranges), text_shorthand());
         // `\A \Z \< \>` are REAL extensions (text-start/end, word-start/end). ECMAScript has no
         // such escapes — they are identity escapes (the literal character). Under the ecma flag
         // (the std-compat layer), emit the literal; otherwise keep REAL's anchor. `\b`/`\B` are
@@ -1183,11 +1287,17 @@ namespace real::detail {
      * \brief Parses one member inside a character class.
      * \param[in,out] klass The class being built; a set member (`\d` etc.) is
      *                   merged directly into it.
+     * \param[in,out] ranges The class's non-ASCII code-point ranges; a Unicode
+     *                   shorthand (`\d` `\w` `\s`, or a negated one) appends its ranges here in text mode.
+     * \param[in,out] property_derived Set when a Unicode shorthand contributed, so the whole class is
+     *                   emitted as a match-time `klass_cp` (text mode only).
      * \return A single byte (usable as a range endpoint), or -1 when the member
      *         was a whole set merged into \p klass.
      * \throws real::regex_error on a non-ASCII member or an unsupported escape.
      */
-    constexpr std::int32_t parse_class_item(char_class& klass)
+    constexpr std::int32_t parse_class_item(char_class&               klass,
+                                            std::vector<code_range>&  ranges,
+                                            bool&                     property_derived)
     {
       const char ch {peek()};
       if (static_cast<std::uint8_t>(ch) >= 0x80) {
@@ -1214,20 +1324,28 @@ namespace real::detail {
       switch (peek()) {
         case 'd':
           ++pos_;
-          klass.merge(digit_set());
+          merge_property(klass, ranges, digit_set(), digit_ranges, false, property_derived);
           return -1;
         case 'w':
           ++pos_;
-          klass.merge(word_set());
+          merge_property(klass, ranges, word_set(), word_ranges, false, property_derived);
           return -1;
         case 's':
           ++pos_;
-          klass.merge(space_set());
+          merge_property(klass, ranges, space_set(), space_ranges, false, property_derived);
           return -1;
         case 'D':
+          ++pos_;
+          merge_property(klass, ranges, digit_set(), digit_ranges, true, property_derived);
+          return -1;
         case 'W':
+          ++pos_;
+          merge_property(klass, ranges, word_set(), word_ranges, true, property_derived);
+          return -1;
         case 'S':
-          fail("complemented set not supported inside a character class");
+          ++pos_;
+          merge_property(klass, ranges, space_set(), space_ranges, true, property_derived);
+          return -1;
         case 'b':
           ++pos_;
           return 0x08; // backspace, only inside classes
@@ -1266,11 +1384,12 @@ namespace real::detail {
     constexpr std::int32_t parse_class(ast& out)
     {
       const std::size_t open_pos      {pos_};
-      ++pos_;                         // consume '['
+      ++pos_;                                      // consume '['
       const bool              negated {accept('^')};
       char_class              klass;
-      std::vector<code_range> ranges; // non-ASCII members (code-point mode); empty in bytes/ASCII-only classes
-      bool                    first   {true};
+      std::vector<code_range> ranges;              // non-ASCII members (code-point mode); empty in bytes/ASCII-only classes
+      bool                    property_derived {}; // a \w/\d/\s (text mode) contributed -> emit as klass_cp
+      bool                    first            {true};
       // Add one member. In bytes mode a member >= 0x80 (from `\xHH`) is a raw byte in the bitmap, NOT
       // a code point — so class_ranges stays empty and a bytes-mode class is byte-for-byte a
       // std::basic_regex<char> class (what the compat layer relies on). In code-point mode, >= 0x80 is
@@ -1313,15 +1432,15 @@ namespace real::detail {
         }
         first = false;
         const std::size_t  item_pos     {pos_};
-        const std::int32_t range_start  {parse_class_item(klass)};
+        const std::int32_t range_start  {parse_class_item(klass, ranges, property_derived)};
         if (range_start < 0) {
-          continue; // set item: nothing more to do
+          continue; // set item (e.g. \d): its bitmap and any Unicode ranges are already merged
         }
         // Possible range: 'x-y', where a trailing '-]' is a literal '-'.
         if (!eof() && peek() == '-' && pos_ + 1 < pattern_.size() &&
             pattern_[pos_ + 1] != ']') {
           ++pos_; // consume '-'
-          const std::int32_t range_end {parse_class_item(klass)};
+          const std::int32_t range_end {parse_class_item(klass, ranges, property_derived)};
           if (range_end < 0 || range_end < range_start) {
             pos_ = item_pos;
             fail("bad character range");
@@ -1332,7 +1451,7 @@ namespace real::detail {
           add_cp(range_start);
         }
       }
-      return add_class_node(out, klass, negated, ranges);
+      return add_class_node(out, klass, negated, ranges, property_derived);
     }
   };
 

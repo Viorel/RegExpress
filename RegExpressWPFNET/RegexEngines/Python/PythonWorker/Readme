@@ -16,8 +16,11 @@ Summary:
 - run ".\Scripts\pip install regex"
   repeat for other modules
 
+  to update: ".\Scripts\pip install -U regex"
+
 - the unneeded "pip", which includes a lot of files, can be uninstalled using "python -m pip uninstall pip setuptools";
   use "python get-pip.py" if it is needed again
 
 - Note. To install packages to installed (not embeddable) Python: "python -m pip install SomePackage".
-  (Go to other folder to make sure that the installed Python is used, not embeddable).
+  To update: "python -m pip install -U SomePackage".
+  (To make sure that the installed Python is used, not embeddable, leave the folder with embeddable Python).

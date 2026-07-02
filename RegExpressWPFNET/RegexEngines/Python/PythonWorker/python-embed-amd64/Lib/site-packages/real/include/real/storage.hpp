@@ -823,6 +823,8 @@ namespace real {
       static constexpr std::size_t   code_size                  {build().code.size()};                           //!< Instruction count.
       static constexpr std::size_t   class_count                {build().classes.size()};                        //!< Distinct class count.
       static constexpr std::size_t   name_count                 {build().names.size()};                          //!< Named-group count.
+      static constexpr std::size_t   cp_class_count             {build().cp_classes.size()};                     //!< Code-point class count (klass_cp).
+      static constexpr std::size_t   cp_range_count             {build().cp_ranges.size()};                      //!< Total code-point ranges.
       static constexpr std::uint16_t slot_count                 {build().slot_count};                            //!< `2*(groups+1)`.
 
       static constexpr std::array<instr, code_size>        code {take<instr, code_size>(build().code)};          //!< The program.
@@ -830,6 +832,10 @@ namespace real {
         take<char_class, class_count>(build().classes);                                                          //!< Interned classes.
       static constexpr std::array<named_group, name_count> names =
         take<named_group, name_count>(build().names);                                                            //!< Named groups.
+      static constexpr std::array<cp_class, cp_class_count> cp_classes =
+        take<cp_class, cp_class_count>(build().cp_classes);                                                      //!< Code-point classes.
+      static constexpr std::array<code_range, cp_range_count> cp_ranges =
+        take<code_range, cp_range_count>(build().cp_ranges);                                                     //!< Flat range buffer.
 
       /*!
        * \brief Capture-slot container: fixed-capacity, no heap.
@@ -853,13 +859,16 @@ namespace real {
        */
       [[nodiscard]] constexpr program_view view() const
       {
-        return {.code        = code,
-                .classes     = classes,
-                .names       = names,
-                .lookarounds = {}, // static_regex rejects lookarounds at compile (always empty)
-                .slot_count  = slot_count,
-                .byte_mode   = has_flag(effective_flags, flags::bytes),
-                .hints       = hints};
+        return {.code         = code,
+                .classes      = classes,
+                .names        = names,
+                .lookarounds  = {}, // static_regex rejects lookarounds at compile (always empty)
+                .cp_classes   = cp_classes,
+                .cp_ranges    = cp_ranges,
+                .slot_count   = slot_count,
+                .byte_mode    = has_flag(effective_flags, flags::bytes),
+                .unicode_word = !has_flag(effective_flags, flags::bytes) && !has_flag(effective_flags, flags::ascii),
+                .hints        = hints};
       }
 
       /*!

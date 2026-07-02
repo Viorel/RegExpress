@@ -44,6 +44,7 @@ namespace real {
     bytes     = 8,  //!< Binary mode: `.` and `[^…]` match raw bytes, not codepoints.
     verbose   = 16, //!< Verbose mode (`re.X`): ignore unescaped whitespace and `#` comments outside classes.
     ecma = 32,      //!< ECMAScript compatibility: `$` (no multiline) matches only at the very end (not before a final `\n`, the Python default), AND `.` (no dotall) also excludes `\r` (ECMAScript excludes `\n` and `\r`; the multi-byte U+2028/U+2029 have no byte-level effect).
+    ascii = 64,     //!< ASCII mode (`re.A`): `\d \w \s \b` stay ASCII and icase folds ASCII only, even in text mode. `.`, explicit classes and UTF-8 literals stay code-point-aware.
   };
 
   /*!
@@ -127,6 +128,27 @@ namespace real {
 
   namespace detail {
 
+    //! \brief An inclusive code-point range `[lo, hi]`. Shared by character classes (ast.hpp) and the
+    //!        generated Unicode property / fold tables; lives here so those low-level headers need not
+    //!        pull in the parser.
+    struct code_range
+    {
+      std::uint32_t lo {}; //!< First code point (inclusive).
+      std::uint32_t hi {}; //!< Last code point (inclusive).
+    };
+
+    //! \brief A match-time code-point class for the `klass_cp` opcode: an ASCII bitmap for code points
+    //!        `< 0x80` plus a slice of sorted non-ASCII ranges (indexing the program's flat `cp_ranges`
+    //!        buffer). It is the already-effective set (any `\W`/`[^…]` negation is materialised at
+    //!        compile time). Unlike the byte-NFA `klass`, the ranges are kept and binary-searched at
+    //!        match time — O(log ranges) per position, independent of the range count.
+    struct cp_class
+    {
+      char_class    ascii;          //!< Members `< 0x80`.
+      std::uint32_t range_begin {}; //!< First range in the program's `cp_ranges` buffer.
+      std::uint32_t range_count {}; //!< Number of ranges belonging to this class.
+    };
+
     /*!
      * \brief NFA instruction opcodes executed by the Pike VM.
      */
@@ -134,6 +156,7 @@ namespace real {
     {
       byte,              //!< Consume one byte equal to arg8; fall through to pc+1.
       klass,             //!< Consume one byte in classes[arg16]; fall through to pc+1.
+      klass_cp,          //!< Consume one code point tested against cp_classes[arg16] (decode + range bsearch); enters a 3-instr continuation chain via a computed skip. See pike.hpp.
       split,             //!< Epsilon-branch to x (preferred) and y.
       jump,              //!< Epsilon-jump to x.
       save,              //!< Store current position in slot arg16; fall through (epsilon).
@@ -155,7 +178,7 @@ namespace real {
       text_end_or_final_newline, //!< `$` without multiline (Python semantics).
       line_start,                //!< `^` with multiline.
       line_end,                  //!< `$` with multiline.
-      word_boundary,             //!< `\b` (ASCII word characters).
+      word_boundary,             //!< `\b` (Unicode word-ness in text mode; ASCII in bytes / `re.A`).
       not_word_boundary,         //!< `\B`.
       word_start,                //!< `\<` (non-word/start on the left, word on the right).
       word_end,                  //!< `\>` (word on the left, non-word/end on the right).
@@ -218,6 +241,8 @@ namespace real {
       std::int16_t         single_first          {-1}; //!< The unique possible first byte, or -1.
       char_class           first_bytes;                //!< All possible first bytes.
       std::int32_t         greedy_class_loop     {-1}; //!< Class index if the whole pattern is "class+", else -1.
+      std::int32_t         greedy_cp_class       {-1}; //!< cp_class index if the whole pattern is a code-point class `klass_cp` (optionally `+`), else -1.
+      bool                 greedy_cp_class_plus  {};   //!< The \ref greedy_cp_class pattern is a greedy `+` loop (vs a single code point).
       bool                 fixed_shape           {};   //!< Whole pattern is a fixed-width byte/klass sequence (no branches/asserts/captures).
       std::int32_t         codepoint_class_ascii {-1}; //!< ASCII-class index when the whole pattern is `.`/negated-class (optionally `+`), else -1.
       bool                 codepoint_class_plus  {};   //!< The \ref codepoint_class_ascii pattern is a greedy `+` loop (vs a single codepoint).
@@ -258,13 +283,16 @@ namespace real {
      */
     struct program_view
     {
-      std::span<const instr>          code;           //!< The instruction stream (main + lookaround regions).
-      std::span<const char_class>     classes;        //!< Interned character classes.
-      std::span<const named_group>    names;          //!< Named capture groups.
-      std::span<const lookaround_sub> lookarounds;    //!< Bounded lookaround sub-programs (regions of \ref code).
-      std::uint16_t                   slot_count {2}; //!< `2 * (capture groups + 1)`.
-      bool                            byte_mode  {};  //!< \ref flags::bytes mode — positions are raw bytes.
-      pattern_hints                   hints;          //!< Search-acceleration hints.
+      std::span<const instr>          code;             //!< The instruction stream (main + lookaround regions).
+      std::span<const char_class>     classes;          //!< Interned character classes.
+      std::span<const named_group>    names;            //!< Named capture groups.
+      std::span<const lookaround_sub> lookarounds;      //!< Bounded lookaround sub-programs (regions of \ref code).
+      std::span<const cp_class>       cp_classes;       //!< Match-time code-point classes (for `klass_cp`).
+      std::span<const code_range>     cp_ranges;        //!< Flat range buffer the `cp_class` slices index into.
+      std::uint16_t                   slot_count   {2}; //!< `2 * (capture groups + 1)`.
+      bool                            byte_mode    {};  //!< \ref flags::bytes mode — positions are raw bytes.
+      bool                            unicode_word {};  //!< `\b \B \< \>` use Unicode word-ness (text mode, not bytes / `re.A`).
+      pattern_hints                   hints;            //!< Search-acceleration hints.
     };
 
     /*!
@@ -272,13 +300,16 @@ namespace real {
      */
     struct dynamic_program
     {
-      std::vector<instr>          code;           //!< The instruction stream (main program + lookaround sub-program regions).
-      std::vector<char_class>     classes;        //!< Interned character classes.
-      std::vector<named_group>    names;          //!< Named capture groups.
-      std::vector<lookaround_sub> lookarounds;    //!< Bounded lookaround sub-programs (regions of \ref code).
-      std::uint16_t               slot_count {2}; //!< `2 * (capture groups + 1)`.
-      bool                        byte_mode  {};  //!< \ref flags::bytes mode.
-      pattern_hints               hints;          //!< Search-acceleration hints.
+      std::vector<instr>          code;             //!< The instruction stream (main program + lookaround sub-program regions).
+      std::vector<char_class>     classes;          //!< Interned character classes.
+      std::vector<named_group>    names;            //!< Named capture groups.
+      std::vector<lookaround_sub> lookarounds;      //!< Bounded lookaround sub-programs (regions of \ref code).
+      std::vector<cp_class>       cp_classes;       //!< Match-time code-point classes (for `klass_cp`).
+      std::vector<code_range>     cp_ranges;        //!< Flat range buffer the `cp_class` slices index into.
+      std::uint16_t               slot_count   {2}; //!< `2 * (capture groups + 1)`.
+      bool                        byte_mode    {};  //!< \ref flags::bytes mode.
+      bool                        unicode_word {};  //!< `\b \B \< \>` use Unicode word-ness (text mode).
+      pattern_hints               hints;            //!< Search-acceleration hints.
 
       // Codepoint-class marker, set by `emit_codepoint_class` at emission so the
       // prefilter need not reverse-engineer the emitted block's bytecode shape.
@@ -290,13 +321,16 @@ namespace real {
        */
       [[nodiscard]] constexpr program_view view() const
       {
-        return {.code        = std::span<const instr>(code),
-                .classes     = std::span<const char_class>(classes),
-                .names       = std::span<const named_group>(names),
-                .lookarounds = std::span<const lookaround_sub>(lookarounds),
-                .slot_count  = slot_count,
-                .byte_mode   = byte_mode,
-                .hints       = hints};
+        return {.code         = std::span<const instr>(code),
+                .classes      = std::span<const char_class>(classes),
+                .names        = std::span<const named_group>(names),
+                .lookarounds  = std::span<const lookaround_sub>(lookarounds),
+                .cp_classes   = std::span<const cp_class>(cp_classes),
+                .cp_ranges    = std::span<const code_range>(cp_ranges),
+                .slot_count   = slot_count,
+                .byte_mode    = byte_mode,
+                .unicode_word = unicode_word,
+                .hints        = hints};
       }
     };
   } // namespace detail
