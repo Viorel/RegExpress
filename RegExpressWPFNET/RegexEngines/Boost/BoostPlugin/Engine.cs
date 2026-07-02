@@ -351,6 +351,7 @@ namespace BoostPlugin
                 NegativeLookahead = is_perl || is_emacs,
                 PositiveLookbehind = is_perl || is_emacs ? FeatureMatrix.LookModeEnum.FixedLength : FeatureMatrix.LookModeEnum.None,
                 NegativeLookbehind = is_perl || is_emacs ? FeatureMatrix.LookModeEnum.FixedLength : FeatureMatrix.LookModeEnum.None,
+                NestedLookaround = true,
                 AtomicGroup = is_perl || is_emacs,
                 BranchReset = is_perl || is_emacs,
                 NonatomicPositiveLookahead = false,

@@ -207,6 +207,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool NegativeLookahead { get; init; }                        // (?!...)
         public LookModeEnum PositiveLookbehind { get; init; }               // (?<=...)
         public LookModeEnum NegativeLookbehind { get; init; }               // (?<!...)
+        public bool NestedLookaround { get; init; }                         // ex.: "a(?=b(?<=ab)(?<!xy)(?!d))" against "abc"; used if other related flags are enabled
         public bool AtomicGroup { get; init; }                              // (?>...)
         public bool BranchReset { get; init; }                              // (?|...)
         public bool NonatomicPositiveLookahead { get; init; }               // (?*...)

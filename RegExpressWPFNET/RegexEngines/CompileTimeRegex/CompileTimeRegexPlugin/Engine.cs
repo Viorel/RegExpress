@@ -291,6 +291,7 @@ namespace CompileTimeRegexPlugin
                 NegativeLookahead = true,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.FixedLength, // (compilation error in case of (?<=x{2,3})
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.FixedLength, //  and (?<!x{2,3}); it is probably a defect
+                NestedLookaround = true,
                 AtomicGroup = true,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

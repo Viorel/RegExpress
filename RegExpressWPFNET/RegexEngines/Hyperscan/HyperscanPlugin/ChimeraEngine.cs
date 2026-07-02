@@ -295,6 +295,7 @@ namespace HyperscanPlugin
                 NegativeLookahead = true,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.FixedLength,
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.FixedLength,
+                NestedLookaround = true,
                 AtomicGroup = true,
                 BranchReset = true,
                 NonatomicPositiveLookahead = false,

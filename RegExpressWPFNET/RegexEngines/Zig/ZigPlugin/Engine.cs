@@ -328,6 +328,7 @@ namespace ZigPlugin
                 NegativeLookahead = true,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.BoundedLength, // (has defects)
+                NestedLookaround = true,
                 AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,
@@ -544,6 +545,7 @@ namespace ZigPlugin
                 NegativeLookahead = false,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.None,
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.None,
+                NestedLookaround = false,
                 AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,
@@ -760,6 +762,7 @@ namespace ZigPlugin
                 NegativeLookahead = false,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.None,
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.None,
+                NestedLookaround = false,
                 AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

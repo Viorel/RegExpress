@@ -297,6 +297,7 @@ namespace DPlugin
                 NegativeLookahead = true,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
+                NestedLookaround = true,
                 AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

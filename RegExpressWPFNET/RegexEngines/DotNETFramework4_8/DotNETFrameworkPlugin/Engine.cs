@@ -312,6 +312,7 @@ namespace DotNETFrameworkPlugin
                 NegativeLookahead = true,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
+                NestedLookaround = true,
                 AtomicGroup = true,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

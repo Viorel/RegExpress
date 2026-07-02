@@ -430,7 +430,7 @@ partial class FeatureMatrixDetails
                 //new FeatureMatrixDetails( @"\k< … >, \g< … >", @"Allow spaces like '\k < name >'", (e, fm) => fm.AllowSpacesInBackref ), // TODO
             ] ),
 
-            new ( @"Grouping and Lookaround",
+        new ( @"Grouping and Lookaround",
             [
                 new FeatureMatrixDetails( @"(?:…)", @"Non-capturing group", (e, fm) => fm.NoncapturingGroup)
                     .Test( @"a(?:x)y", "axy", null )
@@ -459,6 +459,11 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, variable-length", (e, fm) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @".(?<!x.*)a", "ya", "xa" )
                     .Test( @"\(?<!x.*\)a", "ya", "xa" ),
+                new FeatureMatrixDetails( @"(?=…(?=…))", @"Nested lookarounds", (e, fm) => ( fm.PositiveLookahead || fm.NegativeLookahead || fm.PositiveLookbehind != FeatureMatrix.LookModeEnum.None || fm.NegativeLookbehind != FeatureMatrix.LookModeEnum.None ) && fm.NestedLookaround )
+                    .Test( @"a(?=b(?=c))bc", "abc", null, "abc" )
+                    .Test( @"a\(?=b\(?=c\)\)bc", "abc", null, "abc" )
+                    .Test( @"a(?<=ya(?<=xya))", "xyabc", null, "abc" )
+                    .Test( @"a\(?<=ya\(?<=xya\)\)", "xyabc", null, "abc" ),
                 new FeatureMatrixDetails( @"(?>…)", @"Atomic group", (e, fm) => fm.AtomicGroup)
                     .Test( @"a(?>x)b", "axb", null )
                     .Test( @"a\(?>x\)b", "axb", null ),
@@ -474,7 +479,7 @@ partial class FeatureMatrixDetails
                 //new FeatureMatrixDetails( @"( ? … )", @"Allow spaces like '( ? < name >…)'", (e, fm) => fm.AllowSpacesInGroups ), // TODO
             ] ),
 
-            new ( @"Recursive patterns",
+        new ( @"Recursive patterns",
             [
                 new FeatureMatrixDetails( @"(?n)", @"Recursive subpattern by number", (e, fm) => fm.Recursive_Num)
                     .Test( @"(x.)(?1)", "xyxz", "xyZ"),

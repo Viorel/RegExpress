@@ -298,6 +298,7 @@ namespace RealPlugin
                 NegativeLookahead = true,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
+                NestedLookaround = false,
                 AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

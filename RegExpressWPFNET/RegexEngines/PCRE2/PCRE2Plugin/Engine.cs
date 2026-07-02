@@ -329,6 +329,7 @@ namespace PCRE2Plugin
                 NegativeLookahead = true,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
+                NestedLookaround = true,
                 AtomicGroup = true,
                 BranchReset = true,
                 NonatomicPositiveLookahead = true,

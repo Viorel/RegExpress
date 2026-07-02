@@ -424,6 +424,7 @@ namespace OnigurumaPlugin
                 NegativeLookahead = details.ONIG_SYN_OP2_QMARK_GROUP_EFFECT,
                 PositiveLookbehind = details.ONIG_SYN_OP2_QMARK_GROUP_EFFECT ? syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA || syntax == SyntaxEnum.ONIG_SYNTAX_JAVA ? FeatureMatrix.LookModeEnum.AnyLength : syntax == SyntaxEnum.ONIG_SYNTAX_RUBY ? FeatureMatrix.LookModeEnum.BoundedLength : FeatureMatrix.LookModeEnum.FixedLength : FeatureMatrix.LookModeEnum.None,
                 NegativeLookbehind = details.ONIG_SYN_OP2_QMARK_GROUP_EFFECT ? syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA || syntax == SyntaxEnum.ONIG_SYNTAX_JAVA ? FeatureMatrix.LookModeEnum.AnyLength : syntax == SyntaxEnum.ONIG_SYNTAX_RUBY ? FeatureMatrix.LookModeEnum.BoundedLength : FeatureMatrix.LookModeEnum.FixedLength : FeatureMatrix.LookModeEnum.None,
+                NestedLookaround = true,
                 AtomicGroup = details.ONIG_SYN_OP2_QMARK_GROUP_EFFECT,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

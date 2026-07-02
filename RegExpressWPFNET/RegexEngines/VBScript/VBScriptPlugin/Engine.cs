@@ -311,6 +311,7 @@ namespace VBScriptPlugin
                 NegativeLookahead = true,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.None,
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.None,
+                NestedLookaround = true,
                 AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

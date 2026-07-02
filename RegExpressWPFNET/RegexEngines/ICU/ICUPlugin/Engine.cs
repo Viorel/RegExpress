@@ -299,6 +299,7 @@ namespace ICUPlugin
                 NegativeLookahead = true,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
+                NestedLookaround = true,
                 AtomicGroup = true,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

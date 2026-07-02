@@ -291,6 +291,7 @@ namespace RESharpPlugin
                 NegativeLookahead = false, // but "a(?!b)c"
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.None, // but "x.(?<=xy)a", "x..(?<=x{2,3}y)a", "x.(?<=x+y)a"
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.None, // but ".(?<!xy)a", ".(?<!x|yz)a", ".(?<!x.*)a"
+                NestedLookaround = false,
                 AtomicGroup = false,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,

@@ -1,6 +1,6 @@
 ﻿# RegExpress
 
-It is a collection of Regular Expression engines, a playground, and a comparison chart.
+This is a collection of Regular Expression engines, a playground, and a comparison chart.
 
 The Playground is a desktop application:
 
