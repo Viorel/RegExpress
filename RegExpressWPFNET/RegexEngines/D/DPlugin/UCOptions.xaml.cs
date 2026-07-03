@@ -35,6 +35,10 @@ namespace DPlugin
             DataContext = Options;
         }
 
+        void UpdateUI( )
+        {
+        }
+
         private void UserControl_Loaded( object sender, RoutedEventArgs e )
         {
             if( IsFullyLoaded ) return;
@@ -73,6 +77,8 @@ namespace DPlugin
                 if( object.ReferenceEquals( options, Options ) ) DataContext = null;
                 Options = options;
                 DataContext = Options;
+
+                UpdateUI( );
             }
             finally
             {

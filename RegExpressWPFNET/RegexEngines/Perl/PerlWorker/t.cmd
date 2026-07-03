@@ -1,1 +1,0 @@
-@echo {"p":".", "t":"\u0EEE", "m":"g"} | p.cmd PerlWorker.pl 

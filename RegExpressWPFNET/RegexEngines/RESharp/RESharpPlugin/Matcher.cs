@@ -71,7 +71,7 @@ namespace RESharpPlugin
                 WorkerMatch m = worker_matches[i];
                 SimpleMatch sm = SimpleMatch.Create( m.index, m.length, text_getter );
 
-                var sg = sm.AddGroup( m.index, m.length, true, "" ); // default group
+                sm.AddDefaultGroup( );
 
                 matches[i] = sm;
             }

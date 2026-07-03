@@ -42,6 +42,10 @@ namespace GretaPlugin
             IsFullyLoaded = true;
         }
 
+        void UpdateUI( )
+        {
+        }
+
         void Notify( bool preferImmediateReaction )
         {
             if( !IsFullyLoaded ) return;
@@ -64,6 +68,8 @@ namespace GretaPlugin
                 if( object.ReferenceEquals( options, Options ) ) DataContext = null;
                 Options = options;
                 DataContext = Options;
+
+                UpdateUI( );
             }
             finally
             {

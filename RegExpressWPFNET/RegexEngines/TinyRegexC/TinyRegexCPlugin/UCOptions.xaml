@@ -17,7 +17,7 @@
 
     <Grid>
 
-        <ui:CheckboxWithNote Prop="MatchAll" Text="Match all" Note="continue the matching in the remaining substring"/>
+        <ui:CheckboxWithNote Prop="MatchAll" Text="Find all" Note="find all matches" />
 
     </Grid>
 </UserControl>

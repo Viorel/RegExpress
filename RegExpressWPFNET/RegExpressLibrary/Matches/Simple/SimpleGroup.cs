@@ -9,20 +9,10 @@ namespace RegExpressLibrary.Matches.Simple
 {
 	public sealed class SimpleGroup : SimpleBase, IGroup
 	{
-		readonly List<ICapture> mCaptures = new( );
+        readonly List<ICapture> mCaptures = [];
 
 
-		internal SimpleGroup( int index, int length, ISimpleTextGetter textGetter,
-			bool success, string name )
-			: base( index, length, textGetter )
-		{
-			Success = success;
-			Name = name;
-		}
-
-
-		internal SimpleGroup( int index, int length, int textIndex, int textLength, ISimpleTextGetter textGetter,
-			bool success, string name )
+		internal SimpleGroup( int index, int length, int textIndex, int textLength, bool success, string name, ISimpleTextGetter textGetter )
 			: base( index, length, textIndex, textLength, textGetter )
 		{
 			Success = success;
@@ -38,34 +28,26 @@ namespace RegExpressLibrary.Matches.Simple
 
 		public IEnumerable<ICapture> Captures => mCaptures;
 
-		#endregion IGroup
+        #endregion IGroup
 
-		public SimpleCapture AddCapture( int index, int length )
+        public SimpleCapture AddCapture( int index, int length)
 		{
-            TextGetter.ThrowIfInvalid( index, length );
+			return AddCapture( index, length, index, length );
+		}
 
-            var capture = new SimpleCapture( index, length, TextGetter );
+        public SimpleCapture AddCapture( int nativeIndex, int nativeLength, int charIndex, int charLength )
+		{
+            TextGetter.ThrowIfInvalid( charIndex, charLength );
+
+            var capture = new SimpleCapture( nativeIndex, nativeLength, charIndex, charLength, TextGetter );
 			mCaptures.Add( capture );
 
 			return capture;
 		}
-
-
-		public SimpleCapture AddCapture( int index, int length, int textIndex, int textLength )
-		{
-            TextGetter.ThrowIfInvalid( textIndex, textLength );
-
-            var capture = new SimpleCapture( index, length, textIndex, textLength, TextGetter );
-			mCaptures.Add( capture );
-
-			return capture;
-		}
-
 
 		public void SetName( string name )
 		{
 			Name = name;
 		}
-
 	}
 }

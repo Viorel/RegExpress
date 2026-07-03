@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Windows.Interop;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
 
@@ -107,29 +108,27 @@ namespace HyperscanPlugin
                 string error = br.ReadString( );
                 throw new Exception( error );
             case "m":
-                List<IMatch> matches = new( );
+                List<IMatch> matches = [];
                 SimpleTextGetter stg = new( text );
-
-                byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
+                Utf8IndexConverter index_converter = new( text );
 
                 int count = checked((int)br.ReadUInt64( ));
 
                 for( int i = 0; i < count; ++i )
                 {
-                    int byte_index = checked((int)br.ReadUInt64( ));
-                    int byte_length = checked((int)br.ReadUInt64( ));
+                    int native_index = checked((int)br.ReadUInt64( ));
+                    int native_length = checked((int)br.ReadUInt64( ));
+                    int native_end = native_index + native_length;
 
-                    int char_index = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index );
-                    int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index + byte_length );
-                    int char_length = char_end - char_index;
+                    (int char_index, int char_length) = index_converter.Convert( native_index, native_end );
 
-                    var m = SimpleMatch.Create( char_index, char_length, stg );
+                    SimpleMatch m = SimpleMatch.Create( char_index, char_length, stg );
 
                     int group_count = checked((int)br.ReadUInt64( ));
 
                     if( group_count == 0 )
                     {
-                        m.AddGroup( char_index, char_length, true, "0" ); // default group
+                        m.AddDefaultGroup( );
                     }
                     else
                     {
@@ -139,20 +138,22 @@ namespace HyperscanPlugin
 
                             Debug.Assert( !( k == 0 && !success ) ); // the default group must succeed
 
-                            byte_index = checked((int)br.ReadUInt64( ));
-                            byte_length = checked((int)br.ReadUInt64( ));
+                            native_index = checked((int)br.ReadUInt64( ));
+                            native_length = checked((int)br.ReadUInt64( ));
+                            native_end = native_index + native_length;
+
+                            string name = k.ToString( CultureInfo.InvariantCulture );
 
                             if( !success )
                             {
-                                byte_index = 0;
-                                byte_length = 0;
+                                m.AddFailedGroup( name );
                             }
+                            else
+                            {
+                                (char_index, char_length) = index_converter.Convert( native_index, native_end );
 
-                            char_index = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index );
-                            char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index + byte_length );
-                            char_length = char_end - char_index;
-
-                            m.AddGroup( char_index, char_length, success, k.ToString( CultureInfo.InvariantCulture ) );
+                                m.AddSucceededGroup( native_index, native_length, char_index, char_length, name );
+                            }
                         }
                     }
 

@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using System.Web;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -88,9 +89,9 @@ namespace PerlPlugin
                 numbered_names[number] = name;
             }
 
-            List<IMatch> matches = new( );
-            SimpleTextGetter? stg = null;
-            SurrogatePairsHelper? sph = null;
+            List<IMatch> matches = [];
+            SimpleTextGetter stg = new( text );
+            CodepointIndexConverter index_converter = new( text );
             SimpleMatch? match = null;
             string? line;
 
@@ -110,37 +111,35 @@ namespace PerlPlugin
 
                     if( m.Success )
                     {
-                        int index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
-                        int length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
+                        int native_index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
+                        int native_length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
+                        int native_end = native_index + native_length;
 
                         int group_index = match == null ? 0 : match.Groups.Count( );
                         string? group_name = group_index < numbered_names.Count ? numbered_names[group_index] : null;
                         group_name ??= group_index.ToString( CultureInfo.InvariantCulture );
 
-                        bool success = index >= 0;
+                        bool success = native_index >= 0;
 
-                        if( success )
-                        {
-                            stg ??= new SimpleTextGetter( text );
-                            sph ??= new( text, processSurrogatePairs: true );
-
-                            var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
-
-                            if( match == null )
-                            {
-                                match = SimpleMatch.Create( index, length, text_index, text_length, stg );
-                                matches.Add( match );
-                            }
-
-                            match.AddGroup( index, length, text_index, text_length, true, group_name );
-                        }
-                        else
+                        if( !success )
                         {
                             if( match == null ) throw new InvalidOperationException( );
 
                             Debug.Assert( group_index > 0 );
 
-                            match.AddGroup( 0, 0, false, group_name );
+                            match.AddFailedGroup( group_name );
+                        }
+                        else
+                        {
+                            (int char_index, int char_length) = index_converter.Convert( native_index, native_end );
+
+                            if( match == null )
+                            {
+                                match = SimpleMatch.Create( native_index, native_length, char_index, char_length, stg );
+                                matches.Add( match );
+                            }
+
+                            match.AddSucceededGroup( native_index, native_length, char_index, char_length, group_name );
                         }
                     }
                     else

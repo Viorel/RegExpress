@@ -42,6 +42,9 @@ namespace OnigurumaPlugin
             IsFullyLoaded = true;
         }
 
+        void UpdateUI( )
+        {
+        }
 
         void Notify( bool preferImmediateReaction )
         {
@@ -73,6 +76,8 @@ namespace OnigurumaPlugin
                 if( object.ReferenceEquals( options, Options ) ) DataContext = null;
                 Options = options;
                 DataContext = Options;
+
+                UpdateUI( );
             }
             finally
             {

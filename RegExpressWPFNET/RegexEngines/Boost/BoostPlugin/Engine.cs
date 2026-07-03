@@ -108,6 +108,8 @@ namespace BoostPlugin
 
                     Options = new Options( );
                 }
+
+                if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.UpdateUI( );
             }
         }
 

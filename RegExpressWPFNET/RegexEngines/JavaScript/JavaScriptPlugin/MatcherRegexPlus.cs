@@ -100,12 +100,13 @@ namespace JavaScriptPlugin
             {
                 if( cm.Indices!.Any( ) )
                 {
-                    var start = cm.Indices![0][0];
-                    var end = cm.Indices[0][1];
+                    int native_start = cm.Indices![0][0];
+                    int native_end = cm.Indices[0][1];
+                    int native_length = native_end - native_start;
 
-                    var sm = SimpleMatch.Create( start, end - start, stg );
+                    SimpleMatch sm = SimpleMatch.Create( native_start, native_length, stg );
 
-                    sm.AddGroup( sm.Index, sm.Length, true, "0" ); // (default group)
+                    sm.AddDefaultGroup( );
 
                     HashSet<string> used_names = [];
 
@@ -127,18 +128,19 @@ namespace JavaScriptPlugin
                             name = i.ToString( CultureInfo.InvariantCulture );
                         }
 
-                        var g = cm.Indices[i];
+                        int[] g = cm.Indices[i];
 
                         if( g == null )
                         {
-                            sm.AddGroup( -1, 0, false, name );
+                            sm.AddFailedGroup( name );
                         }
                         else
                         {
-                            start = cm.Indices[i][0];
-                            end = cm.Indices[i][1];
+                            native_start = g[0];
+                            native_end = g[1];
+                            native_length = native_end - native_start;
 
-                            sm.AddGroup( start, end - start, true, name );
+                            sm.AddSucceededGroup( native_start, native_length, name );
                         }
                     }
 

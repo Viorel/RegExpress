@@ -42,6 +42,9 @@ namespace RE2Plugin
             IsFullyLoaded = true;
         }
 
+        void UpdateUI( )
+        {
+        }
 
         void Notify( bool preferImmediateReaction )
         {
@@ -76,6 +79,8 @@ namespace RE2Plugin
                 if( object.ReferenceEquals( options, Options ) ) DataContext = null;
                 Options = options;
                 DataContext = Options;
+
+                UpdateUI( );
             }
             finally
             {

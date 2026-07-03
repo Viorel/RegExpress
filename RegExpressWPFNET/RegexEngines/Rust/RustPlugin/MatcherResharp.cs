@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Windows.Interop;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
 
@@ -77,23 +78,21 @@ namespace RustPlugin
 
             if( response == null || response.matches == null ) throw new Exception( "Null response" );
 
-            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
-
             List<IMatch> matches = [];
             SimpleTextGetter? stg = new( text );
+            Utf8IndexConverter index_converter = new( text );
 
             foreach( var m in response.matches )
             {
-                int byte_start = m[0];
-                int byte_end = m[1];
+                int native_start = m[0];
+                int native_end = m[1];
+                int native_length = native_end - native_start;
 
-                int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_start );
-                int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_end );
-                int char_length = char_end - char_start;
+                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
-                SimpleMatch? match = SimpleMatch.Create( char_start, char_length, stg );
+                SimpleMatch? match = SimpleMatch.Create( native_start, native_end, char_start, char_length, stg );
 
-                match.AddGroup( char_start, char_length, true, "0" ); // default group
+                match.AddDefaultGroup( );
 
                 matches.Add( match );
             }

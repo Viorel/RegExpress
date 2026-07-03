@@ -42,6 +42,9 @@ namespace ICUPlugin
             IsFullyLoaded = true;
         }
 
+        void UpdateUI( )
+        {
+        }
 
         void Notify( bool preferImmediateReaction )
         {
@@ -71,6 +74,8 @@ namespace ICUPlugin
                 if( object.ReferenceEquals( options, Options ) ) DataContext = null;
                 Options = options;
                 DataContext = Options;
+
+                UpdateUI( );
             }
             finally
             {

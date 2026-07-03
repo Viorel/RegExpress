@@ -82,7 +82,7 @@ namespace RustPlugin
             Notify( preferImmediateReaction: true );
         }
 
-        void UpdateUI( )
+        public void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
             if( ChangeCounter != 0 ) return;

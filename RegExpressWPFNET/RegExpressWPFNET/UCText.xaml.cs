@@ -138,8 +138,8 @@ namespace RegExpressWPFNET
 
             if( last_matches != null )
             {
-                var old_groups = last_matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Index, g.Length, g.Value) );
-                var new_groups = matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Index, g.Length, g.Value) );
+                var old_groups = last_matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.NativeIndex, g.NativeLength, g.Value) );
+                var new_groups = matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.NativeIndex, g.NativeLength, g.Value) );
 
                 if( string.Equals( text, last_text ) &&
                     showCaptures == last_show_captures &&
@@ -574,7 +574,7 @@ namespace RegExpressWPFNET
 
                         var highlight_index = unchecked(i % HighlightStyleInfos.Length);
 
-                        cm.Set( match.TextIndex, match.TextLength, unchecked((sbyte)( highlight_index + 1 )) );
+                        cm.Set( match.CharIndex, match.CharLength, unchecked((sbyte)( highlight_index + 1 )) );
                     }
                 }
 
@@ -780,17 +780,17 @@ namespace RegExpressWPFNET
                             {
                                 if( reh.IsCancellationRequested ) break;
 
-                                if( td.Selection.Start >= capture.TextIndex && td.Selection.Start <= capture.TextIndex + capture.TextLength )
+                                if( td.Selection.Start >= capture.CharIndex && td.Selection.Start <= capture.CharIndex + capture.CharLength )
                                 {
-                                    items.Add( new Segment( capture.TextIndex, capture.TextLength ) );
+                                    items.Add( new Segment( capture.CharIndex, capture.CharLength ) );
                                     found = true;
                                 }
                             }
                         }
 
-                        if( td.Selection.Start >= group.TextIndex && td.Selection.Start <= group.TextIndex + group.TextLength )
+                        if( td.Selection.Start >= group.CharIndex && td.Selection.Start <= group.CharIndex + group.CharLength )
                         {
-                            items.Add( new Segment( group.TextIndex, group.TextLength ) );
+                            items.Add( new Segment( group.CharIndex, group.CharLength ) );
                             found = true;
                         }
                     }
@@ -798,9 +798,9 @@ namespace RegExpressWPFNET
 
                 if( !found )
                 {
-                    if( td.Selection.Start >= match.TextIndex && td.Selection.Start <= match.TextIndex + match.TextLength )
+                    if( td.Selection.Start >= match.CharIndex && td.Selection.Start <= match.CharIndex + match.CharLength )
                     {
-                        items.Add( new Segment( match.TextIndex, match.TextLength ) );
+                        items.Add( new Segment( match.CharIndex, match.CharLength ) );
                     }
                 }
             }

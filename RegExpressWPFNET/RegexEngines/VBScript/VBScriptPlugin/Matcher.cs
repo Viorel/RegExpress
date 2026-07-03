@@ -63,7 +63,7 @@ namespace VBScriptPlugin
                 throw new Exception( ph.Error );
             }
 
-            List<SimpleMatch> matches = new( );
+            List<SimpleMatch> matches = [];
             SimpleTextGetter stg = new( text );
             SimpleMatch? current_match = null;
 
@@ -76,7 +76,7 @@ namespace VBScriptPlugin
                 {
                     current_match = SimpleMatch.Create( int.Parse( m.Groups[1].Value ), int.Parse( m.Groups[2].Value ), stg );
 
-                    current_match.AddGroup( current_match.Index, current_match.Length, true, "" ); // default group
+                    current_match.AddDefaultGroup( );
 
                     matches.Add( current_match );
                 }
@@ -87,15 +87,7 @@ namespace VBScriptPlugin
                     {
                         if( current_match == null ) throw new InvalidOperationException( );
 
-                        //int index = current_match.Index + int.Parse( sm.Groups[1].Value ) - 1;
-                        //int length = int.Parse( sm.Groups[2].Value );
-
-                        //current_match.AddGroup( index, length, true, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ) );
-
                         string value = sm.Groups[1].Value;
-
-                        //value = JsonNode.Parse( value )!.GetValue<string>( ); // does not work with incomplete surrogate pairs
-                        //value = CSharpScript.EvaluateAsync<string>( value ).Result; // too large dependencies
 
                         Debug.Assert( value.StartsWith( '"' ) );
                         Debug.Assert( value.EndsWith( '"' ) );
@@ -104,7 +96,7 @@ namespace VBScriptPlugin
 
                         value = UCodeRegex( ).Replace( value, m => ( (char)Convert.ToUInt16( m.Groups[1].Value, 16 ) ).ToString( ) );
 
-                        current_match.AddGroup( current_match.Index, value.Length, true, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ), new SimpleTextGetterWithOffset( current_match.Index, value ) );
+                        current_match.AddSucceededNoDetailsGroup( current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ), value );
                     }
                     else
                     {

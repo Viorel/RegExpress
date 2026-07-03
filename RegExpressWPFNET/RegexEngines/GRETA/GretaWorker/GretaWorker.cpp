@@ -248,7 +248,7 @@ int main( )
 			auto old_pos = pos;
 			pos += results.rstart( ) + results.rlength( );
 
-			if( pos == old_pos ) 
+			if( pos == old_pos )
 			{
 				// successful empty match; advance by one character
 

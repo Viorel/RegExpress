@@ -91,7 +91,7 @@ namespace JavaPlugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            List<SimpleMatch> matches = new( );
+            List<SimpleMatch> matches = [];
             SimpleTextGetter text_getter = new( text );
             SimpleMatch? match = null;
             string? line;
@@ -107,10 +107,11 @@ namespace JavaPlugin
                     var mM = MRegex( ).Match( line );
                     if( mM.Success )
                     {
-                        int start = int.Parse( mM.Groups[1].Value, CultureInfo.InvariantCulture );
-                        int end = int.Parse( mM.Groups[2].Value, CultureInfo.InvariantCulture );
+                        int native_start = int.Parse( mM.Groups[1].Value, CultureInfo.InvariantCulture );
+                        int native_end = int.Parse( mM.Groups[2].Value, CultureInfo.InvariantCulture );
+                        int native_length = native_end - native_start;
 
-                        match = SimpleMatch.Create( start, end - start, text_getter );
+                        match = SimpleMatch.Create( native_start, native_length, text_getter );
 
                         matches.Add( match );
 
@@ -122,14 +123,24 @@ namespace JavaPlugin
                     var mG = GRegex( ).Match( line );
                     if( mG.Success )
                     {
-                        int start = int.Parse( mG.Groups[1].Value, CultureInfo.InvariantCulture );
-                        int end = int.Parse( mG.Groups[2].Value, CultureInfo.InvariantCulture );
+                        int native_start = int.Parse( mG.Groups[1].Value, CultureInfo.InvariantCulture );
+                        int native_end = int.Parse( mG.Groups[2].Value, CultureInfo.InvariantCulture );
+                        int native_length = native_end - native_start;
 
-                        bool success = start >= 0;
+                        bool success = native_start >= 0;
 
                         if( match == null ) throw new InvalidOperationException( );
 
-                        SimpleGroup group = match.AddGroup( start, success ? end - start : 0, success, match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ) );
+                        string name = match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
+
+                        if( !success )
+                        {
+                            match.AddFailedGroup( name );
+                        }
+                        else
+                        {
+                            SimpleGroup group = match.AddSucceededGroup( native_start, native_length, name );
+                        }
 
                         continue;
                     }
@@ -139,11 +150,11 @@ namespace JavaPlugin
                     var mN = NRegex( ).Match( line );
                     if( mN.Success )
                     {
-                        int start = int.Parse( mN.Groups[1].Value, CultureInfo.InvariantCulture );
-                        int end = int.Parse( mN.Groups[2].Value, CultureInfo.InvariantCulture );
-                        string name = mN.Groups[3].Value;
+                        int native_start = int.Parse( mN.Groups[1].Value, CultureInfo.InvariantCulture );
+                        int native_end = int.Parse( mN.Groups[2].Value, CultureInfo.InvariantCulture );
+                        int native_length = native_end - native_start;
 
-                        int length = end - start;
+                        string name = mN.Groups[3].Value;
 
                         // try to identify the named group by index and length;
                         // cannot be done univocally in situations like "(?<name1>(?<name2>(.))", where index and length are the same
@@ -153,7 +164,7 @@ namespace JavaPlugin
                         var f = match.Groups
                             .Select( ( g, i ) => new { g, i } )
                             .Skip( 1 )
-                            .Where( p => p.g.Index == start && p.g.Length == length && IsNumberRegex( ).IsMatch( p.g.Name ) )
+                            .Where( p => p.g.NativeIndex == native_start && p.g.NativeLength == native_length && IsNumberRegex( ).IsMatch( p.g.Name ) )
                             .FirstOrDefault( );
 
                         if( f != null ) match.SetGroupName( f.i, name );

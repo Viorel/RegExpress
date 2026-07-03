@@ -10,62 +10,42 @@ namespace RegExpressLibrary
 {
     public sealed class SurrogatePairsHelper
     {
-        readonly bool ProcessSurrogatePairs;
         readonly List<int>? SurrogatePairs;
 
-        public SurrogatePairsHelper( string text, bool processSurrogatePairs )
+        public SurrogatePairsHelper( string text )
         {
-            ProcessSurrogatePairs = processSurrogatePairs;
-
-            if( processSurrogatePairs )
-            {
-                SurrogatePairs = new List<int>( );
-                CollectSurrogatePairs( text );
-            }
-            else
-            {
-                SurrogatePairs = null;
-            }
+            SurrogatePairs = new List<int>( );
+            CollectSurrogatePairs( text );
         }
 
-
-        public int ToTextIndex( int matchIndex )
+        public int ToCharIndex( int codepointIndex )
         {
-            if( !ProcessSurrogatePairs ) return matchIndex;
-
             int i = -1;
             while( ++i < SurrogatePairs!.Count )
             {
-                if( SurrogatePairs[i] >= matchIndex ) break;
+                if( SurrogatePairs[i] >= codepointIndex ) break;
             }
 
-            return matchIndex + i;
+            return codepointIndex + i;
         }
 
-
-        public (int textIndex, int textLength) ToTextIndexAndLength( int matchIndex, int matchLength )
+        public (int textIndex, int textLength) ToCharIndexAndLength( int codepointIndex, int codepointLength )
         {
-            if( !ProcessSurrogatePairs ) return (matchIndex, matchLength);
-
-            var text_index = ToTextIndex( matchIndex );
-            var text_length = ToTextIndex( matchIndex + matchLength ) - text_index;
+            var text_index = ToCharIndex( codepointIndex );
+            var text_length = ToCharIndex( codepointIndex + codepointLength ) - text_index;
 
             return (text_index, text_length);
         }
 
-
-        public int ToMatchIndex( int textIndex )
+        public int ToCodepointIndex( int charIndex )
         {
-            if( !ProcessSurrogatePairs ) return textIndex;
-
             int n = 0;
-            while( n < SurrogatePairs!.Count && SurrogatePairs[n] <= textIndex ) ++n;
+            while( n < SurrogatePairs!.Count && SurrogatePairs[n] <= charIndex ) ++n;
 
-            Debug.Assert( textIndex - n >= 0 );
+            Debug.Assert( charIndex - n >= 0 );
 
-            return textIndex - n;
+            return charIndex - n;
         }
-
 
         void CollectSurrogatePairs( string text )
         {

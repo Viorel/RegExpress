@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Windows.Interop;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
 
@@ -112,26 +113,22 @@ namespace HyperscanPlugin
                 throw new Exception( "Unknown result" );
             }
 
-            List<IMatch> matches = new( );
+            List<IMatch> matches = [];
             SimpleTextGetter stg = new( text );
-
-            //matches.Add( SimpleMatch.Create( 0, text.Length, stg ) );
-
-            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
+            Utf8IndexConverter index_converter = new( text );
 
             int count = checked((int)br.ReadUInt64( ));
 
             for( int i = 0; i < count; ++i )
             {
-                int byte_index = checked((int)br.ReadUInt64( ));
-                int byte_length = checked((int)br.ReadUInt64( ));
+                int native_index = checked((int)br.ReadUInt64( ));
+                int native_length = checked((int)br.ReadUInt64( ));
+                int native_end = native_index + native_length;
 
-                int char_index = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index );
-                int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_index + byte_length );
-                int char_length = char_end - char_index;
+                (int char_index, int char_length) = index_converter.Convert( native_index, native_end );
 
-                var m = SimpleMatch.Create( char_index, char_length, stg );
-                m.AddGroup( char_index, char_length, true, "0" );
+                SimpleMatch m = SimpleMatch.Create( native_index, native_length, char_index, char_length, stg );
+                m.AddDefaultGroup( );
 
                 matches.Add( m );
             }

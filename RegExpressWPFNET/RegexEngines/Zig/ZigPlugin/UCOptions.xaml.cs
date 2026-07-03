@@ -45,6 +45,10 @@ namespace ZigPlugin
             UpdateControls( );
         }
 
+        void UpdateUI( )
+        {
+        }
+
         void Notify( bool preferImmediateReaction )
         {
             if( !IsFullyLoaded ) return;
@@ -62,6 +66,8 @@ namespace ZigPlugin
                 if( object.ReferenceEquals( options, Options ) ) DataContext = null;
                 Options = options;
                 DataContext = Options;
+
+                UpdateUI( );
             }
             finally
             {

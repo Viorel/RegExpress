@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
 
@@ -44,7 +45,7 @@ namespace GoPlugin
 
                 options.posix_syntax,
                 options.longest_match,
-                options.literal,      
+                options.literal,
 
                 options.IgnoreCase,
                 options.Multiline,
@@ -97,15 +98,14 @@ namespace GoPlugin
             if( root_object.Matches != null )
             {
                 SimpleTextGetter stg = new( text );
-                SurrogatePairsHelper sph = new( text, processSurrogatePairs: true );
 
-                byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
-                bool use_char_index = options.Package == PackageEnum.rexa; // ('rexa' seems to return codepoint index)
-
-                int to_char_index( int index )
-                {
-                    return use_char_index ? index : Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, index );
-                }
+                IIndexConverter index_converter =
+                    options.Package switch
+                    {
+                        PackageEnum.regexp or PackageEnum.regexp2 or PackageEnum.coregex => new Utf8IndexConverter( text ),
+                        PackageEnum.rexa => new CodepointIndexConverter( text ),
+                        _ => throw new NotImplementedException( ),
+                    };
 
                 foreach( int[] m in root_object.Matches )
                 {
@@ -116,26 +116,18 @@ namespace GoPlugin
                     {
                         // main group
 
-                        Debug.Assert( m[0] >= 0 );
-                        Debug.Assert( m[1] >= m[0] );
+                        int native_start = m[0];
+                        int native_end = m[1];
+                        int native_length = native_end - native_start;
 
-                        int char_start = to_char_index( m[0] );
-                        int char_end = to_char_index( m[1] );
-                        Debug.Assert( char_end >= char_start );
-                        int char_length = char_end - char_start;
+                        Debug.Assert( native_start >= 0 );
+                        Debug.Assert( native_end >= native_start );
 
-                        if( use_char_index )
-                        {
-                            var (text_index, text_length) = sph.ToTextIndexAndLength( char_start, char_length );
+                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
-                            match = SimpleMatch.Create( char_start, char_length, text_index, text_length, stg );
-                        }
-                        else
-                        {
-                            match = SimpleMatch.Create( char_start, char_length, stg );
-                        }
+                        match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
 
-                        match.AddGroup( char_start, char_length, true, "0" );
+                        match.AddDefaultGroup( );
                     }
 
                     {
@@ -150,26 +142,22 @@ namespace GoPlugin
 
                             bool success = m[i] >= 0;
 
-                            if( success )
+                            if( !success )
                             {
-                                int char_start = to_char_index( m[i] );
-                                int char_end = to_char_index( m[i + 1] );
-                                int char_length = char_end - char_start;
-
-                                if( use_char_index )
-                                {
-                                    var (text_index, text_length) = sph.ToTextIndexAndLength( char_start, char_length );
-
-                                    match.AddGroup( char_start, char_length, text_index, text_length, true, name );
-                                }
-                                else
-                                {
-                                    match.AddGroup( char_start, char_length, true, name );
-                                }
+                                match.AddFailedGroup( name );
                             }
                             else
                             {
-                                match.AddGroup( 0, 0, false, name );
+                                int native_start = m[i];
+                                int native_end = m[i + 1];
+                                int native_length = native_end - native_start;
+
+                                Debug.Assert( native_start >= 0 );
+                                Debug.Assert( native_end >= native_start );
+
+                                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                                match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
                             }
                         }
                     }

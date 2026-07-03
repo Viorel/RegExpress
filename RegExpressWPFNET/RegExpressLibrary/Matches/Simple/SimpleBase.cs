@@ -12,37 +12,26 @@ namespace RegExpressLibrary.Matches.Simple
 	{
 		protected readonly ISimpleTextGetter TextGetter;
 
-
-		protected SimpleBase( int index, int length, ISimpleTextGetter textGetter )
+		protected SimpleBase( int nativeIndex, int nativeLength, int charIndex, int charLength, ISimpleTextGetter textGetter )
 		{
 			Debug.Assert( textGetter != null );
 
-			Index = TextIndex = index;
-			Length = TextLength = length;
+			NativeIndex = nativeIndex;
+			NativeLength = nativeLength;
+			CharIndex = charIndex;
+			CharLength = charLength;
 			TextGetter = textGetter;
 		}
 
 
-		protected SimpleBase( int index, int length, int textIndex, int textLength, ISimpleTextGetter textGetter )
-		{
-			Debug.Assert( textGetter != null );
+		public int NativeIndex { get; }
 
-			Index = index;
-			Length = length;
-			TextIndex = textIndex;
-			TextLength = textLength;
-			TextGetter = textGetter;
-		}
+		public int NativeLength { get; }
 
+		public int CharIndex { get; }
 
-		public int Index { get; }
+		public int CharLength { get; }
 
-		public int Length { get; }
-
-		public int TextIndex { get; }
-
-		public int TextLength { get; }
-
-		public string Value => Index < 0 ? String.Empty : TextGetter.GetText( TextIndex, TextLength );
+		public string Value => CharIndex < 0 ? String.Empty : TextGetter.GetText( CharIndex, CharLength );
 	}
 }

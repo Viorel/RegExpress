@@ -76,15 +76,15 @@ namespace StdPlugin
                     Match m = ParseMatchRegex( ).Match( line );
                     if( m.Success )
                     {
-                        int index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
-                        Debug.Assert( index >= 0 );
+                        int native_index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
+                        Debug.Assert( native_index >= 0 );
 
-                        if( index >= 0 )
+                        if( native_index >= 0 )
                         {
-                            int length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
+                            int native_length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
 
-                            current_match = SimpleMatch.Create( index, length, stg );
-                            current_match.AddGroup( current_match.Index, current_match.Length, true, "" ); // default group
+                            current_match = SimpleMatch.Create( native_index, native_length, stg );
+                            current_match.AddDefaultGroup( );
 
                             matches.Add( current_match );
                         }
@@ -98,12 +98,20 @@ namespace StdPlugin
                         {
                             if( current_match == null ) throw new Exception( "Invalid response." );
 
-                            int index = int.Parse( g.Groups[1].Value, CultureInfo.InvariantCulture );
-                            int length = int.Parse( g.Groups[2].Value, CultureInfo.InvariantCulture );
-                            bool success = index >= 0;
+                            int native_index = int.Parse( g.Groups[1].Value, CultureInfo.InvariantCulture );
+                            int native_length = int.Parse( g.Groups[2].Value, CultureInfo.InvariantCulture );
+                            bool success = native_index >= 0;
 
-                            current_match.AddGroup( success ? (int)index : 0, success ? (int)length : 0, success, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ) );
+                            string name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
 
+                            if( !success )
+                            {
+                                current_match.AddFailedGroup( name );
+                            }
+                            else
+                            {
+                                current_match.AddSucceededGroup( native_index, native_length, name );
+                            }
                             continue;
                         }
                     }

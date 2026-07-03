@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -76,11 +77,20 @@ namespace DotNET9Plugin
 
                 foreach( var g in m.groups )
                 {
-                    var sg = sm.AddGroup( g.index, g.length, g.success, g.name ?? string.Empty );
+                    string name = g.name ?? sm.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
 
-                    foreach( var c in g.captures )
+                    if( !g.success )
                     {
-                        sg.AddCapture( c.index, c.length );
+                        sm.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        SimpleGroup sg = sm.AddSucceededGroup( g.index, g.length, name );
+
+                        foreach( var c in g.captures )
+                        {
+                            sg.AddCapture( c.index, c.length );
+                        }
                     }
                 }
 

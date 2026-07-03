@@ -92,25 +92,32 @@ namespace StdPlugin
                 {
                 case (byte)'m':
                 {
-                    Int64 index = br.ReadInt64( );
-                    Int64 length = br.ReadInt64( );
-                    current_match = SimpleMatch.Create( (int)index, (int)length, stg );
+                    Int64 native_index = br.ReadInt64( );
+                    Int64 native_length = br.ReadInt64( );
+                    current_match = SimpleMatch.Create( (int)native_index, (int)native_length, stg );
                     matches.Add( current_match );
                 }
                 break;
                 case (byte)'g':
                 {
                     if( current_match == null ) throw new Exception( "Invalid response." );
-                    Int64 index = br.ReadInt64( );
-                    Int64 length = br.ReadInt64( );
-                    bool success = index >= 0;
+                    Int64 native_index = br.ReadInt64( );
+                    Int64 native_length = br.ReadInt64( );
+                    bool success = native_index >= 0;
 
                     string? name = null;
                     if( success ) name = br.ReadString( );
 
                     if( string.IsNullOrWhiteSpace( name ) ) name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
 
-                    current_match.AddGroup( success ? (int)index : 0, success ? (int)length : 0, success, name );
+                    if( !success )
+                    {
+                        current_match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        current_match.AddSucceededGroup( (int)native_index, (int)native_length, name );
+                    }
                 }
                 break;
                 case (byte)'e':

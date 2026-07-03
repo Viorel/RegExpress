@@ -49,6 +49,7 @@ namespace RegExpressWPFNET
         public static readonly RoutedUICommand GoToOptionsCommand = new( );
         public static readonly RoutedUICommand MoveTabLeftCommand = new( );
         public static readonly RoutedUICommand MoveTabRightCommand = new( );
+        public static readonly RoutedUICommand ExpandOptionsCommand = new( );
 
         readonly List<RegexPlugin> mRegexPlugins = [];
         readonly List<RegexPlugin> mNoFmRegexPlugins = [];
@@ -381,6 +382,63 @@ namespace RegExpressWPFNET
             RenumberTabs( );
 
             current_tab.IsSelected = true;
+        }
+
+        private void ExpandOptionsCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
+        {
+            e.CanExecute = true;
+        }
+
+        private void ExpandOptionsCommand_Execute( object sender, ExecutedRoutedEventArgs e )
+        {
+            // Set the same engines, keeping pattern and text
+
+            try
+            {
+                TabItem? current_tab = tabControl.SelectedItem as TabItem;
+
+                if( current_tab == null || current_tab.Content is not UCMain )
+                {
+                    SystemSounds.Beep.Play( );
+
+                    return;
+                }
+
+                UCMain current_UCMain = (UCMain)current_tab.Content;
+                TabData current_tab_data = new( );
+                current_UCMain.ExportTabData( current_tab_data );
+
+                foreach( TabItem other_tab in tabControl.Items )
+                {
+                    if( object.ReferenceEquals( other_tab, current_tab ) || other_tab.Content is not UCMain ) continue;
+
+                    UCMain other_UCMain = (UCMain)other_tab.Content;
+                    TabData other_tab_data = new( );
+                    other_UCMain.ExportTabData( other_tab_data );
+
+                    string json = JsonSerializer.Serialize( current_tab_data, JsonUtilities.JsonOptions );
+                    TabData? new_tab_data = JsonSerializer.Deserialize<TabData>( json, JsonUtilities.JsonOptions );
+                    if( new_tab_data == null ) throw new ApplicationException( );
+
+                    new_tab_data.Name = other_tab_data.Name;
+                    new_tab_data.Pattern = other_tab_data.Pattern;
+                    new_tab_data.Text = other_tab_data.Text;
+                    new_tab_data.Eol = other_tab_data.Eol;
+                    new_tab_data.Metrics = other_tab_data.Metrics;
+
+                    other_UCMain.ForgetMatches( );
+
+                    other_UCMain.ApplyTabData( new_tab_data );
+                }
+            }
+            catch
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                // ignore
+
+                SystemSounds.Beep.Play( );
+            }
         }
 
         #endregion

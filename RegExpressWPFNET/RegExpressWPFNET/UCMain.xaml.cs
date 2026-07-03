@@ -610,13 +610,13 @@ namespace RegExpressWPFNET
                     }
                 }
 
-                engine ??= DefaultRegexEngine; // use the default engine 
+                engine ??= DefaultRegexEngine; 
 
                 CurrentRegexEngine = engine;
-                SetEngineOption( engine );
+                SetEngineOption( engine ); //
 
                 // set options of active and inactive engines
-                foreach( var eng in RegexEngines )
+                foreach( IRegexEngine eng in RegexEngines )
                 {
                     string? options = null;
 
@@ -663,6 +663,7 @@ namespace RegExpressWPFNET
                 }
 
                 UpdateSubtitle( );
+                UpdateOptions( engine );
                 UpdateShowSucceededGroupsOnlyCheckbox( engine );
                 UpdateShowCapturesCheckbox( engine );
 
@@ -737,6 +738,14 @@ namespace RegExpressWPFNET
             ShowTextInfoLoop.SignalRewind( );
         }
 
+        internal void ForgetMatches( )
+        {
+            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ),
+                potentialOverlaps: false,
+                noGroupDetails: false );
+
+            ucMatches.SetMatches( "", RegexMatches.Empty, showFirstOnly: false, showSucceededGroupsOnly: false, showCaptures: false, noGroupIndex: false, noGroupSuccessFlag: false );
+        }
 
         void FindMatchesThreadProc( ICancellable cnc )
         {
@@ -844,7 +853,7 @@ namespace RegExpressWPFNET
 
                             if( cnc.IsCancellationRequested ) return;
 
-                            var new_seg = new Segment( m.Index, m.Length );
+                            var new_seg = new Segment( m.NativeIndex, m.NativeLength );
 
                             if( segments.Any( s => s.Intersects( new_seg ) ) ) // TODO: make cancellable?
                             {

@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
 
@@ -83,14 +84,13 @@ namespace DPlugin
 
             if( response == null ) throw new Exception( "Null response" );
 
-            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
-
-            List<IMatch> matches = new( );
+            List<IMatch> matches = [];
+            Utf8IndexConverter index_converter = new( text );
+            SimpleTextGetter stg = new( text );
 
             foreach( var m in response.matches! )
             {
                 SimpleMatch? match = null;
-                SimpleTextGetter? stg = null;
 
                 for( int group_index = 0; group_index < m.groups!.Length; group_index++ )
                 {
@@ -104,25 +104,21 @@ namespace DPlugin
                         // this is a workaround:
 
                         success = true;
-                        g = new[] { m.index, 0 };
+                        g = [m.index, 0];
                     }
 
-                    int byte_start = success ? g[0] : 0;
-                    int byte_end = byte_start + ( success ? g[1] : 0 );
-                    int byte_length = byte_end - byte_start;
+                    int native_start = success ? g[0] : 0; // utf-8
+                    int native_length = success ? g[1] : 0;
+                    int native_end = native_start + native_length;
 
-                    int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_start );
-                    int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_end );
-                    int char_length = char_end - char_start;
+                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
                     if( group_index == 0 )
                     {
                         Debug.Assert( match == null );
                         Debug.Assert( success );
 
-                        stg ??= new SimpleTextGetter( text );
-
-                        match = SimpleMatch.Create( char_start, char_length, stg );
+                        match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
                     }
 
                     Debug.Assert( match != null );
@@ -136,7 +132,7 @@ namespace DPlugin
                         .Where( _ => group_index != 0 )
                         .Select( ( ng, j ) => new { ng, j } )
                         .Where( p => p.ng[0] >= 0 )
-                        .FirstOrDefault( z => z.ng[0] == byte_start && z.ng[1] == byte_length && !match.Groups.Any( q => q.Name == response.names![z.j] ) );
+                        .FirstOrDefault( z => z.ng[0] == native_start && z.ng[1] == native_length && !match.Groups.Any( q => q.Name == response.names![z.j] ) );
 
                     if( np == null )
                     {
@@ -149,13 +145,13 @@ namespace DPlugin
 
                     if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
 
-                    if( success )
+                    if( !success )
                     {
-                        match.AddGroup( char_start, char_length, true, name );
+                        match.AddFailedGroup( name );
                     }
                     else
                     {
-                        match.AddGroup( 0, 0, false, name );
+                        match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
                     }
                 }
 

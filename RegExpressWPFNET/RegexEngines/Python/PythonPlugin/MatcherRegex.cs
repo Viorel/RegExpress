@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
 
@@ -82,10 +83,10 @@ namespace PythonPlugin
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
             List<IMatch> matches = [];
-            SimpleTextGetter? stg = null;
+            SimpleTextGetter stg = new( text );
+            CodepointIndexConverter index_converter = new( text );
             SimpleMatch? match = null;
             Dictionary<int, string> names = [];
-            SurrogatePairsHelper sph = new( text, processSurrogatePairs: true );
             string? line;
 
             while( ( line = ph.StreamReader.ReadLine( ) ) != null )
@@ -116,55 +117,59 @@ namespace PythonPlugin
                     break;
                     case "M":
                     {
-                        int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
-                        int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
-                        int length = end - index;
+                        int native_start = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
+                        int native_end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
+                        int native_length = native_end - native_start;
 
-                        Debug.Assert( index >= 0 && end >= 0 );
+                        Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                        var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
+                        (int char_index, int char_length) = index_converter.Convert( native_start, native_end );
 
-                        stg ??= new SimpleTextGetter( text );
-
-                        match = SimpleMatch.Create( index, length, text_index, text_length, stg );
+                        match = SimpleMatch.Create( native_start, native_length, char_index, char_length, stg );
                         matches.Add( match );
                     }
                     break;
                     case "g":
                     {
-                        int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
-                        int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
-                        int length = end - index;
-                        bool success = index >= 0;
+                        int native_start = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
+                        int native_end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
+                        int native_length = native_end - native_start;
+                        bool success = native_start >= 0;
 
                         Debug.Assert( match != null );
-
-                        var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
 
                         int group_i = match.Groups.Count( );
 
                         string? name;
                         if( !names.TryGetValue( group_i, out name ) ) name = group_i.ToString( CultureInfo.InvariantCulture );
 
-                        match.AddGroup( index, length, text_index, text_length, success, name );
+                        if( !success )
+                        {
+                            match.AddFailedGroup( name );
+                        }
+                        else
+                        {
+                            (int char_index, int char_length) = index_converter.Convert( native_start, native_end );
+
+                            match.AddSucceededGroup( native_start, native_length, char_index, char_length, name );
+                        }
 
                         ++group_i;
                     }
                     break;
                     case "c":
                     {
-                        int index = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
-                        int end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
-                        int length = end - index;
-                        bool success = index >= 0;
-                        Debug.Assert( success );
+                        int native_start = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
+                        int native_end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
+                        int native_length = native_end - native_start;
+
                         Debug.Assert( match != null );
 
-                        var (text_index, text_length) = sph.ToTextIndexAndLength( index, length );
+                        (int char_index, int char_length) = index_converter.Convert( native_start, native_end );
 
                         SimpleGroup group = (SimpleGroup)match.Groups.Last( );
 
-                        group.AddCapture( index, length, text_index, text_length );
+                        group.AddCapture( native_start, native_length, char_index, char_length );
                     }
                     break;
                     default:

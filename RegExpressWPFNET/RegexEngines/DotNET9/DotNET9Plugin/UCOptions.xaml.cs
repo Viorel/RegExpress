@@ -42,6 +42,10 @@ namespace DotNET9Plugin
             IsFullyLoaded = true;
         }
 
+        void UpdateUI( )
+        {
+        }
+
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
             if( !IsFullyLoaded ) return;
@@ -67,6 +71,8 @@ namespace DotNET9Plugin
                 if( object.ReferenceEquals( options, Options ) ) DataContext = null;
                 Options = options;
                 DataContext = Options;
+
+                UpdateUI( );
             }
             finally
             {

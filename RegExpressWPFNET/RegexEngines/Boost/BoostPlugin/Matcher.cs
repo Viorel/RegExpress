@@ -95,7 +95,7 @@ namespace BoostPlugin
 
             var br = ph.BinaryReader;
 
-            List<IMatch> matches = new( );
+            List<IMatch> matches = [];
             SimpleTextGetter stg = new( text );
             SimpleMatch? current_match = null;
             SimpleGroup? current_group = null;
@@ -110,9 +110,9 @@ namespace BoostPlugin
                 {
                 case (byte)'m':
                 {
-                    Int32 index = br.ReadInt32( );
-                    Int32 length = br.ReadInt32( );
-                    current_match = SimpleMatch.Create( index, length, stg );
+                    Int32 native_index = br.ReadInt32( );
+                    Int32 native_length = br.ReadInt32( );
+                    current_match = SimpleMatch.Create( native_index, native_length, stg );
                     matches.Add( current_match );
                     current_group = null;
                 }
@@ -121,18 +121,27 @@ namespace BoostPlugin
                 {
                     if( current_match == null ) throw new Exception( "Invalid response [2]." );
                     bool success = br.ReadByte( ) != 0;
-                    Int32 index = br.ReadInt32( );
-                    Int32 length = br.ReadInt32( );
+                    Int32 native_index = br.ReadInt32( );
+                    Int32 native_length = br.ReadInt32( );
                     string name = br.ReadString( );
-                    current_group = current_match.AddGroup( success ? index : 0, success ? length : 0, success, name );
+
+                    if( !success )
+                    {
+                        current_match.AddFailedGroup( name );
+                        current_group = null;
+                    }
+                    else
+                    {
+                        current_group = current_match.AddSucceededGroup( native_index, native_length, name );
+                    }
                 }
                 break;
                 case (byte)'c':
                 {
                     if( current_group == null ) throw new Exception( "Invalid response [3]." );
-                    Int32 index = br.ReadInt32( );
-                    Int32 length = br.ReadInt32( );
-                    current_group.AddCapture( index, length );
+                    Int32 native_index = br.ReadInt32( );
+                    Int32 native_length = br.ReadInt32( );
+                    current_group.AddCapture( native_index, native_length );
                 }
                 break;
                 case (byte)'e':

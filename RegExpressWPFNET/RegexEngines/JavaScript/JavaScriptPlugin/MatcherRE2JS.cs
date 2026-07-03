@@ -94,17 +94,18 @@ namespace JavaScriptPlugin
                 {
                     int[] g = response_match.ag[i];
 
-                    int start = g[0];
-                    int end = g[1];
+                    int native_start = g[0];
+                    int native_end = g[1];
+                    int native_length = native_end - native_start;
 
                     if( i == 0 )
                     {
-                        Debug.Assert( start >= 0 );
-                        Debug.Assert( start <= end );
+                        Debug.Assert( native_start >= 0 );
+                        Debug.Assert( native_start <= native_end );
 
-                        SimpleMatch sm = SimpleMatch.Create( start, end - start, stg );
+                        SimpleMatch sm = SimpleMatch.Create( native_start, native_length, stg );
 
-                        sm.AddGroup( sm.Index, sm.Length, true, "0" ); // (default group)
+                        sm.AddDefaultGroup( );
 
                         matches.Add( sm );
 
@@ -114,22 +115,22 @@ namespace JavaScriptPlugin
                     {
                         if( current_match == null ) throw new ApplicationException( );
 
-                        if( start < 0 )
+                        if( native_start < 0 )
                         {
                             string name = i.ToString( CultureInfo.InvariantCulture );
 
-                            current_match.AddGroup( -1, 0, false, name );
+                            current_match.AddFailedGroup( name );
                         }
                         else
                         {
                             // find name
                             string? name;
-                            name = response_match.ng!.FirstOrDefault( g => g.s >= 0 && g.s == start && g.e == end && !used_names.Contains( g.n! ) )?.n;
+                            name = response_match.ng!.FirstOrDefault( g => g.s >= 0 && g.s == native_start && g.e == native_end && !used_names.Contains( g.n! ) )?.n;
                             if( name != null ) used_names.Add( name );
-                            name ??= response_match.ng!.FirstOrDefault( g => g.s >= 0 && g.s == start && g.e == end )?.n;
+                            name ??= response_match.ng!.FirstOrDefault( g => g.s >= 0 && g.s == native_start && g.e == native_end )?.n;
                             name ??= i.ToString( CultureInfo.InvariantCulture );
 
-                            current_match.AddGroup( start, end - start, true, name );
+                            current_match.AddSucceededGroup( native_start, native_length, name );
                         }
                     }
                 }

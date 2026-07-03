@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Windows.Interop;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
 
@@ -70,6 +71,7 @@ namespace TinyRegexCPlugin
 
             List<IMatch> matches = [];
             SimpleTextGetter stg = new( text );
+            Utf8IndexConverter index_converter = new( text ); // (actually only ASCII is supported, therefore it works like an identity converter)
             SimpleMatch? current_match = null;
 
             if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response." );
@@ -82,13 +84,13 @@ namespace TinyRegexCPlugin
                 {
                 case (byte)'m':
                 {
-                    Int64 index = br.ReadInt64( );
-                    Int64 length = br.ReadInt64( );
-                    current_match = SimpleMatch.Create( (int)index, (int)length, stg );
+                    Int64 native_index = br.ReadInt64( );
+                    Int64 native_length = br.ReadInt64( );
+                    Int64 native_end = native_index + native_length;
+                    (int char_start, int char_length) = index_converter.Convert( (int)native_index, (int)native_end );
+                    current_match = SimpleMatch.Create( (int)native_index, (int)native_length, char_start, char_length, stg );
+                    current_match.AddDefaultGroup( );
                     matches.Add( current_match );
-                    // default group
-                    string name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
-                    current_match.AddGroup( (int)index, (int)length, true, name );
                 }
                 break;
                 case (byte)'e':

@@ -9,34 +9,23 @@ namespace RegExpressLibrary.Matches.Simple
 {
     public sealed class SimpleMatch : SimpleBase, IMatch
     {
-        readonly List<IGroup> mGroups = new( );
+        readonly List<IGroup> mGroups = [];
 
-
-        private SimpleMatch( int index, int length, ISimpleTextGetter textGetter )
-            : base( index, length, textGetter )
+        private SimpleMatch( int nativeIndex, int nativeLength, int charIndex, int charLength, ISimpleTextGetter textGetter )
+            : base( nativeIndex, nativeLength, charIndex, charLength, textGetter )
         {
         }
-
-
-        private SimpleMatch( int index, int length, int textIndex, int textLength, ISimpleTextGetter textGetter )
-            : base( index, length, textIndex, textLength, textGetter )
-        {
-        }
-
 
         public static SimpleMatch Create( int index, int length, ISimpleTextGetter textGetter )
         {
-            textGetter.ThrowIfInvalid( index, length );
-
-            return new SimpleMatch( index, length, textGetter );
+            return Create( index, length, index, length, textGetter );
         }
 
-
-        public static SimpleMatch Create( int index, int length, int textIndex, int textLength, ISimpleTextGetter textGetter )
+        public static SimpleMatch Create( int nativeIndex, int nativeLength, int charIndex, int charLength, ISimpleTextGetter textGetter )
         {
-            textGetter.ThrowIfInvalid( textIndex, textLength );
+            textGetter.ThrowIfInvalid( charIndex, charLength );
 
-            return new SimpleMatch( index, length, textIndex, textLength, textGetter );
+            return new SimpleMatch( nativeIndex, nativeLength, charIndex, charLength, textGetter );
         }
 
 
@@ -65,34 +54,35 @@ namespace RegExpressLibrary.Matches.Simple
 
         #endregion IGroup
 
-
-        public SimpleGroup AddGroup( int index, int length, bool success, string name )
+        public SimpleGroup AddDefaultGroup( )
         {
-            if( success ) TextGetter.ThrowIfInvalid( index, length );
+            return AddSucceededGroup( NativeIndex, NativeLength, CharIndex, CharLength, "" );
+        }
 
-            var group = new SimpleGroup( index, length, TextGetter, success, name );
+        public SimpleGroup AddFailedGroup( string name )
+        {
+            SimpleGroup group = new( 0, 0, 0, 0, false, name, TextGetter );
             mGroups.Add( group );
 
             return group;
         }
 
-
-        public SimpleGroup AddGroup( int index, int length, bool success, string name, ISimpleTextGetter textGetter )
+        public SimpleGroup AddSucceededGroup( int index, int length, string name )
         {
-            if( success ) textGetter.ThrowIfInvalid( index, length );
+            return AddSucceededGroup( index, length, index, length, name );
+        }
 
-            var group = new SimpleGroup( index, length, textGetter, success, name );
+        public SimpleGroup AddSucceededGroup( int nativeIndex, int nativeLength, int charIndex, int charLength, string name )
+        {
+            SimpleGroup group = new( nativeIndex, nativeLength, charIndex, charLength, true, name, TextGetter );
             mGroups.Add( group );
 
             return group;
         }
 
-
-        public SimpleGroup AddGroup( int index, int length, int textIndex, int textLength, bool success, string name )
+        public SimpleGroup AddSucceededNoDetailsGroup( string name, string value )
         {
-            if( success ) TextGetter.ThrowIfInvalid( textIndex, textLength );
-
-            var group = new SimpleGroup( index, length, textIndex, textLength, TextGetter, success, name );
+            SimpleGroup group = new( NativeIndex, NativeLength, CharIndex, value.Length, true, name, new TrivialTextGetter( value ) );
             mGroups.Add( group );
 
             return group;
@@ -103,6 +93,5 @@ namespace RegExpressLibrary.Matches.Simple
         {
             ( (SimpleGroup)mGroups[index] ).SetName( name );
         }
-
     }
 }

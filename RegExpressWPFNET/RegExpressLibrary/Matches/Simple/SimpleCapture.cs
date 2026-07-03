@@ -9,14 +9,8 @@ namespace RegExpressLibrary.Matches.Simple
 {
 	public sealed class SimpleCapture : SimpleBase, ICapture
 	{
-		internal SimpleCapture( int index, int length, ISimpleTextGetter textGetter )
-			: base( index, length, textGetter )
-		{
-		}
-
-
-		internal SimpleCapture( int index, int length, int textIndex, int textLength, ISimpleTextGetter textGetter )
-			: base( index, length, textIndex, textLength, textGetter )
+		internal SimpleCapture( int nativeIindex, int nativeLength, int charIndex, int charLength, ISimpleTextGetter textGetter )
+			: base( nativeIindex, nativeLength, charIndex, charLength, textGetter )
 		{
 		}
 	}

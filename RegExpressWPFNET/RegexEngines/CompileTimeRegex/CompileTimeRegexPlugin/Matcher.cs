@@ -90,7 +90,7 @@ namespace CompileTimeRegexPlugin
                     File.WriteAllText( Path.Combine( temp_dir, "CompileTimeRegexSample.cpp" ), cpp_contents );
                 }
 
-                // build
+                // build executable
                 string built_exe_full_path = Path.Combine( temp_dir, "CompileTimeRegexSample.exe" );
                 {
                     ProcessHelper ph = new( build_cmd_full_path )
@@ -144,15 +144,15 @@ namespace CompileTimeRegexPlugin
                             Match m = ParseMatchRegex( ).Match( line );
                             if( m.Success )
                             {
-                                int index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
-                                Debug.Assert( index >= 0 );
+                                int native_index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
+                                Debug.Assert( native_index >= 0 );
 
-                                if( index >= 0 )
+                                if( native_index >= 0 )
                                 {
-                                    int length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
+                                    int native_length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
 
-                                    current_match = SimpleMatch.Create( index, length, stg );
-                                    current_match.AddGroup( current_match.Index, current_match.Length, true, "" ); // default group
+                                    current_match = SimpleMatch.Create( native_index, native_length, stg );
+                                    current_match.AddDefaultGroup( );
 
                                     matches.Add( current_match );
                                 }
@@ -166,13 +166,20 @@ namespace CompileTimeRegexPlugin
                             {
                                 if( current_match == null ) throw new Exception( "Invalid response." );
 
-                                int index = int.Parse( g.Groups[1].Value, CultureInfo.InvariantCulture );
-                                int length = int.Parse( g.Groups[2].Value, CultureInfo.InvariantCulture );
-                                bool success = index >= 0;
+                                int native_index = int.Parse( g.Groups[1].Value, CultureInfo.InvariantCulture );
+                                int native_length = int.Parse( g.Groups[2].Value, CultureInfo.InvariantCulture );
+                                bool success = native_index >= 0;
 
                                 string name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
 
-                                current_match.AddGroup( success ? (int)index : 0, success ? (int)length : 0, success, name );
+                                if( !success )
+                                {
+                                    current_match.AddFailedGroup( name );
+                                }
+                                else
+                                {
+                                    current_match.AddSucceededGroup( native_index, native_length, name );
+                                }
 
                                 continue;
                             }
@@ -184,8 +191,8 @@ namespace CompileTimeRegexPlugin
                                 if( current_match == null ) throw new Exception( "Invalid response." );
 
                                 int i = int.Parse( n.Groups[1].Value, CultureInfo.InvariantCulture );
-                                int index = int.Parse( n.Groups[2].Value, CultureInfo.InvariantCulture );
-                                int length = int.Parse( n.Groups[3].Value, CultureInfo.InvariantCulture );
+                                int native_index = int.Parse( n.Groups[2].Value, CultureInfo.InvariantCulture );
+                                int native_length = int.Parse( n.Groups[3].Value, CultureInfo.InvariantCulture );
 
                                 if( i >= 0 && i < possible_group_names.Length )
                                 {
@@ -197,7 +204,7 @@ namespace CompileTimeRegexPlugin
                                         .Skip( 1 )
                                         .Cast<SimpleGroup>( )
                                         .Where( g => g.Success )
-                                        .Where( g => g.Index == index && g.Length == length )
+                                        .Where( g => g.NativeIndex == native_index && g.NativeLength == native_length )
                                         .Where( g => int.TryParse( g.Name, CultureInfo.InvariantCulture, out var _ ) )
                                         .FirstOrDefault( );
 

@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
 
@@ -45,10 +46,9 @@ namespace FortranPlugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
-
             List<SimpleMatch> matches = [];
             SimpleTextGetter text_getter = new( text );
+            Utf8IndexConverter index_converter = new( text );
             SimpleMatch? match = null;
             string? line;
 
@@ -63,22 +63,21 @@ namespace FortranPlugin
                     Match m = ParseMatchRegex( ).Match( line );
                     if( m.Success )
                     {
-                        int byte_start = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..)
+                        int native_start = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..), UTF-8
 
-                        if( byte_start > 0 )
+                        if( native_start > 0 )
                         {
-                            int byte_length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
-                            int byte_end = byte_start + byte_length - 1; // (inclusive, 1..)
-                            if( byte_end < byte_start ) byte_end = byte_start - 1; // empty match
+                            --native_start; // to 0...
 
-                            --byte_start; // (keep 'byte_end')
+                            int native_length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
+                            if( native_length < 0 ) native_length = 0; //
+                            int native_end = native_start + native_length;
 
-                            int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_start );
-                            int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_end ); // (exclusive)
-                            int char_length = char_end - char_start;
+                            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
-                            match = SimpleMatch.Create( char_start, char_length, text_getter );
-                            match.AddGroup( match.Index, match.Length, true, "" ); // default group
+
+                            match = SimpleMatch.Create( native_start, native_length, char_start, char_length, text_getter );
+                            match.AddDefaultGroup( );
 
                             matches.Add( match );
                         }

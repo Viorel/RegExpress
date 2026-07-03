@@ -141,7 +141,7 @@ namespace PCRE2Plugin
 
             var br = ph.BinaryReader;
 
-            List<IMatch> matches = new( );
+            List<IMatch> matches = [];
             SimpleTextGetter stg = new( text );
             SimpleMatch? current_match = null;
 
@@ -155,9 +155,9 @@ namespace PCRE2Plugin
                 {
                 case (byte)'m':
                 {
-                    Int32 index = br.ReadInt32( );
-                    Int32 length = br.ReadInt32( );
-                    current_match = SimpleMatch.Create( index, length, stg );
+                    Int32 native_index = br.ReadInt32( );
+                    Int32 native_length = br.ReadInt32( );
+                    current_match = SimpleMatch.Create( native_index, native_length, stg );
                     matches.Add( current_match );
                 }
                 break;
@@ -165,10 +165,18 @@ namespace PCRE2Plugin
                 {
                     if( current_match == null ) throw new Exception( "Invalid response [2]." );
                     bool success = br.ReadByte( ) != 0;
-                    Int32 index = br.ReadInt32( );
-                    Int32 length = br.ReadInt32( );
+                    Int32 native_index = br.ReadInt32( );
+                    Int32 native_length = br.ReadInt32( );
                     string name = br.ReadString( );
-                    current_match.AddGroup( success ? index : 0, success ? length : 0, success, name );
+
+                    if( !success )
+                    {
+                        current_match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        current_match.AddSucceededGroup( native_index, native_length, name );
+                    }
                 }
                 break;
                 case (byte)'e':

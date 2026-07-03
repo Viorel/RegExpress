@@ -1,0 +1,1 @@
+@echo { "p" : ".", "t" : "abc", "m" : "g" } | perl PerlWorker.pl 

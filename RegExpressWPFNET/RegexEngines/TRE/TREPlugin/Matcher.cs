@@ -55,7 +55,7 @@ namespace TREPlugin
 
             var br = ph.BinaryReader;
 
-            List<IMatch> matches = new( );
+            List<IMatch> matches = [];
             SimpleTextGetter stg = new( text );
             SimpleMatch? current_match = null;
 
@@ -69,24 +69,30 @@ namespace TREPlugin
                 {
                 case (byte)'m':
                 {
-                    Int32 start = br.ReadInt32( );
-                    Int32 end = br.ReadInt32( );
-                    var length = end - start;
-                    current_match = SimpleMatch.Create( (int)start, (int)length, stg );
+                    Int32 native_start = br.ReadInt32( );
+                    Int32 native_end = br.ReadInt32( );
+                    int native_length = native_end - native_start;
+                    current_match = SimpleMatch.Create( (int)native_start, (int)native_length, stg );
+                    current_match.AddDefaultGroup( );
                     matches.Add( current_match );
-                    // default group
-                    current_match.AddGroup( (int)start, length, true, "0" );
                 }
                 break;
                 case (byte)'g':
                 {
                     if( current_match == null ) throw new Exception( "Invalid response." );
-                    Int32 start = br.ReadInt32( );
-                    Int32 end = br.ReadInt32( );
-                    var length = end - start;
-                    bool success = start >= 0;
+                    Int32 native_start = br.ReadInt32( );
+                    Int32 native_end = br.ReadInt32( );
+                    int native_length = native_end - native_start;
+                    bool success = native_start >= 0;
                     string name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
-                    current_match.AddGroup( success ? (int)start : 0, success ? (int)length : 0, success, name );
+                    if( !success )
+                    {
+                        current_match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        current_match.AddSucceededGroup( native_start, native_length, name );
+                    }
                 }
                 break;
                 case (byte)'e':

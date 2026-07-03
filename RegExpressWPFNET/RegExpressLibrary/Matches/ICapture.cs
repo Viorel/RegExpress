@@ -9,14 +9,14 @@ namespace RegExpressLibrary.Matches
 {
 	public interface ICapture
 	{
-		int Index { get; }
+		int NativeIndex { get; }
 
-		int Length { get; }
+		int NativeLength { get; }
 
 
-		int TextIndex { get; }
+		int CharIndex { get; }
 
-		int TextLength { get; }
+		int CharLength { get; }
 
 
 		string Value { get; }

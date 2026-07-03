@@ -87,8 +87,8 @@ namespace ICUPlugin
 
             // read matches
 
-            List<IMatch> matches = new( );
-            SimpleTextGetter? stg = null;
+            List<IMatch> matches = [];
+            SimpleTextGetter? stg = new( text );
 
             for(; ; )
             {
@@ -99,19 +99,20 @@ namespace ICUPlugin
 
                 for( int i = 0; i <= group_count; ++i )
                 {
-                    int start = br.ReadInt32( );
-                    bool success = start >= 0;
-                    int end;
-                    int length;
-                    if( success )
+                    int native_start = br.ReadInt32( );
+                    bool success = native_start >= 0;
+                    int native_end;
+                    int native_length;
+
+                    if( !success )
                     {
-                        end = br.ReadInt32( );
-                        length = end - start;
+                        native_end = 0;
+                        native_length = 0;
                     }
                     else
                     {
-                        end = 0;
-                        length = 0;
+                        native_end = br.ReadInt32( );
+                        native_length = native_end - native_start;
                     }
 
                     if( i == 0 )
@@ -119,23 +120,26 @@ namespace ICUPlugin
                         Debug.Assert( success );
                         Debug.Assert( match == null );
 
-                        stg ??= new SimpleTextGetter( text );
-
-                        match = SimpleMatch.Create( start, length, stg );
-                        match.AddGroup( start, length, success, "0" );
+                        match = SimpleMatch.Create( native_start, native_length, stg );
+                        match.AddDefaultGroup( );
                     }
                     else
                     {
-                        string? name;
-
-                        if( !group_names.TryGetValue( i, out name ) )
+                        if( !group_names.TryGetValue( i, out string? name ) )
                         {
                             name = i.ToString( CultureInfo.InvariantCulture );
                         }
 
                         Debug.Assert( match != null );
 
-                        match!.AddGroup( start, length, success, name );
+                        if( !success )
+                        {
+                            match.AddFailedGroup( name );
+                        }
+                        else
+                        {
+                            match.AddSucceededGroup( native_start, native_length, name );
+                        }
                     }
                 }
 

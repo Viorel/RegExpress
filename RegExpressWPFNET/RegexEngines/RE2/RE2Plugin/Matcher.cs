@@ -59,7 +59,7 @@ namespace RE2Plugin
 
             var br = ph.BinaryReader;
 
-            List<IMatch> matches = new( );
+            List<IMatch> matches = [];
             SimpleTextGetter stg = new( text );
             SimpleMatch? current_match = null;
 
@@ -73,9 +73,9 @@ namespace RE2Plugin
                 {
                 case (byte)'m':
                 {
-                    Int64 index = br.ReadInt64( );
-                    Int64 length = br.ReadInt64( );
-                    current_match = SimpleMatch.Create( (int)index, (int)length, stg );
+                    Int64 native_index = br.ReadInt64( );
+                    Int64 native_length = br.ReadInt64( );
+                    current_match = SimpleMatch.Create( (int)native_index, (int)native_length, stg );
                     matches.Add( current_match );
                 }
                 break;
@@ -83,10 +83,18 @@ namespace RE2Plugin
                 {
                     if( current_match == null ) throw new Exception( "Invalid response." );
                     bool success = br.ReadByte( ) != 0;
-                    Int64 index = br.ReadInt64( );
-                    Int64 length = br.ReadInt64( );
+                    Int64 native_index = br.ReadInt64( );
+                    Int64 native_length = br.ReadInt64( );
                     string name = br.ReadString( );
-                    current_match.AddGroup( success ? (int)index : 0, success ? (int)length : 0, success, name );
+
+                    if( !success )
+                    {
+                        current_match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        current_match.AddSucceededGroup( (int)native_index, (int)native_length, name );
+                    }
                 }
                 break;
                 case (byte)'e':

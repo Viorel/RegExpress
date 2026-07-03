@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Windows.Interop;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
 
@@ -70,6 +71,7 @@ namespace AdaPlugin
 
             List<SimpleMatch> matches = [];
             SimpleTextGetter text_getter = new( text );
+            Utf8IndexConverter index_converter = new( text ); // (actually only ASCII is supported, therefore it works like an identity converter)
             SimpleMatch? current_match = null;
             string? line;
 
@@ -84,16 +86,24 @@ namespace AdaPlugin
                     Match m = ParseMatchRegex( ).Match( line );
                     if( m.Success )
                     {
-                        int start = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..)
-                        int end = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture ); // (inclusive, 1..)
+                        int native_start = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..)
+                        int native_end = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture ); // (inclusive, 1..)
 
-                        if( start <= 0 )
+                        if( native_start <= 0 )
                         {
                             throw new Exception( $"Invalid output: {line}" );
                         }
 
-                        current_match = SimpleMatch.Create( start - 1, end >= start ? end - start + 1 : 0, text_getter ); // 'end < start' in case of empty matches
-                        current_match.AddGroup( current_match.Index, current_match.Length, true, "" ); // default group
+                        // to 0... and exclusive end
+                        --native_start;
+                        --native_end;
+                        if( native_end < native_start ) native_end = native_start + 1; else ++native_end; // 'end < start' in case of empty matches
+                        int native_length = native_end - native_start;
+
+                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                        current_match = SimpleMatch.Create( native_start, native_length, char_start, char_length, text_getter );
+                        current_match.AddDefaultGroup( );
                         matches.Add( current_match );
 
                         continue;
@@ -104,14 +114,31 @@ namespace AdaPlugin
                     Match g = ParseGroupRegex( ).Match( line );
                     if( g.Success )
                     {
-                        int start = int.Parse( g.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..)
-                        int end = int.Parse( g.Groups[2].Value, CultureInfo.InvariantCulture ); // (inclusive, 1..)
+                        if( current_match == null ) throw new ApplicationException( );
 
-                        bool success = start > 0;
+                        int native_start = int.Parse( g.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..)
+                        int native_end = int.Parse( g.Groups[2].Value, CultureInfo.InvariantCulture ); // (inclusive, 1..)
 
-                        if( current_match == null ) throw new InvalidOperationException( );
+                        bool success = native_start > 0;
 
-                        SimpleGroup group = current_match.AddGroup( success ? start - 1 : 0, success && end >= start ? end - start + 1 : 0, success, current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ) );
+                        string name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
+
+                        if( !success )
+                        {
+                            current_match.AddFailedGroup( name );
+                        }
+                        else
+                        {
+                            // to 0... and exclusive end
+                            --native_start;
+                            --native_end;
+                            if( native_end < native_start ) native_end = native_start + 1; else ++native_end; // 'end < start' in case of empty matches
+                            int native_length = native_end - native_start;
+
+                            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                            SimpleGroup group = current_match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                        }
 
                         continue;
                     }

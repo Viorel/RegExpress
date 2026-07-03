@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using System.Windows.Interop;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
 
@@ -72,10 +73,9 @@ namespace RustPlugin
 
             if( response == null || response.matches == null ) throw new Exception( "Null response" );
 
-            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
-
             List<IMatch> matches = [];
-            SimpleTextGetter stg = new SimpleTextGetter( text );
+            SimpleTextGetter stg = new( text );
+            Utf8IndexConverter index_converter = new( text );
 
             foreach( var m in response.matches )
             {
@@ -87,19 +87,18 @@ namespace RustPlugin
 
                     // (Currently there is no difference between failed match and succeeded empty group; failed groups are returned as [0, 0]).
 
-                    int byte_start = g.range![0];
-                    int byte_end = g.range![1];
+                    int native_start = g.range![0];
+                    int native_end = g.range![1];
+                    int native_length = native_end - native_start;
 
-                    int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_start );
-                    int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, byte_end );
-                    int char_length = char_end - char_start;
+                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
                     if( group_index == 0 )
                     {
                         Debug.Assert( match == null );
                         Debug.Assert( char_start >= 0 );
 
-                        match = SimpleMatch.Create( char_start, char_length, stg );
+                        match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
                     }
 
                     Debug.Assert( match != null );
@@ -109,13 +108,13 @@ namespace RustPlugin
                     string? name = g.name;
                     if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
 
-                    if( success )
+                    if( !success )
                     {
-                        match.AddGroup( char_start, char_length, true, name );
+                        match.AddFailedGroup( name );
                     }
                     else
                     {
-                        match.AddGroup( 0, 0, false, name );
+                        match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
                     }
                 }
 

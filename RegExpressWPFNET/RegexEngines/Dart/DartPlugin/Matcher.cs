@@ -19,8 +19,6 @@ namespace DartPlugin
 {
     class Matcher
     {
-
-
         public class RootObject
         {
             public Match[]? Matches { get; set; }
@@ -117,14 +115,14 @@ namespace DartPlugin
                     SimpleMatch match;
 
                     {
-                        int char_start = m.s;
-                        int char_end = m.e;
-                        Debug.Assert( char_end >= char_start );
-                        int char_length = char_end - char_start;
+                        int native_start = m.s;
+                        int native_end = m.e;
+                        Debug.Assert( native_end >= native_start );
+                        int native_length = native_end - native_start;
 
-                        match = SimpleMatch.Create( char_start, char_length, stg );
+                        match = SimpleMatch.Create( native_start, native_length, stg );
 
-                        match.AddGroup( char_start, char_length, true, "0" ); // default group
+                        match.AddDefaultGroup( );
                     }
 
                     {
@@ -139,16 +137,15 @@ namespace DartPlugin
                             var g = m.g[i];
                             bool success = g != null;
 
-                            if( success )
+                            if( !success )
                             {
-                                int char_start = match.Index; // no details
-                                int char_length = g!.Length;
-
-                                match.AddGroup( char_start, char_length, true, name, new SimpleTextGetterWithOffset( m.s, g ) );
+                                match.AddFailedGroup( name );
                             }
                             else
                             {
-                                match.AddGroup( 0, 0, false, name );
+                                // no details
+
+                                match.AddSucceededNoDetailsGroup( name, g! );
                             }
                         }
                     }
@@ -165,16 +162,16 @@ namespace DartPlugin
 
                             bool success = ng.v != null;
 
-                            if( success )
+                            if( !success )
                             {
-                                int char_start = match.Index; // no details
-                                int char_length = ng.v!.Length;
-
-                                match.AddGroup( char_start, char_length, true, name, new SimpleTextGetterWithOffset( m.s, ng.v ) );
+                                match.AddFailedGroup( name );
                             }
                             else
                             {
-                                match.AddGroup( 0, 0, false, name );
+                                // no details
+
+                                match.AddSucceededNoDetailsGroup( name, ng.v! );
+
                             }
                         }
                     }

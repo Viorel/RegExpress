@@ -1,7 +1,7 @@
 {
   "NOTE": "(should not have BOM)",
   "pattern": ".",
-  "text": "a\uD83D\uDE0Ec",
+  "text": "a\uD83D\uDE0Eb",
   "flags": {
     "ASCII": false,
     "DOTALL": false,

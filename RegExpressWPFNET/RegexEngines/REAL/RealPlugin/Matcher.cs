@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Windows.Interop;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
 
@@ -80,8 +81,8 @@ namespace RealPlugin
 
             List<IMatch> matches = [];
             SimpleTextGetter stg = new( text );
+            Utf8IndexConverter index_converter = new( text );
             SimpleMatch? current_match = null;
-            byte[] text_utf8_bytes = Encoding.UTF8.GetBytes( text );
 
             for(; ; )
             {
@@ -92,17 +93,15 @@ namespace RealPlugin
                 {
                 case 'm':
                 {
-                    int start = checked((int)br.ReadUInt64( )); // (UTF-8 index)
-                    int end = checked((int)br.ReadUInt64( )); // (UTF-8 index)
-                    //int length = end - start;
-                    int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, start );
-                    int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, end );
-                    int char_length = char_end - char_start;
+                    int native_start = checked((int)br.ReadUInt64( )); // (UTF-8 index)
+                    int native_end = checked((int)br.ReadUInt64( )); // (UTF-8 index)
+                    int native_length = native_end - native_start;
 
-                    current_match = SimpleMatch.Create( char_start, char_length, stg );
+                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
-                    // default group
-                    current_match.AddGroup( char_start, char_length, true, "0" );
+                    current_match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+
+                    current_match.AddDefaultGroup( );
 
                     matches.Add( current_match );
                 }
@@ -113,25 +112,24 @@ namespace RealPlugin
 
                     int group_index = current_match.Groups.Count( );
 
-                    UInt64 start = br.ReadUInt64( ); // (UTF-8 index)
-                    UInt64 end = br.ReadUInt64( ); // (UTF-8 index)
+                    UInt64 native_start = br.ReadUInt64( ); // (UTF-8 index)
+                    UInt64 native_end = br.ReadUInt64( ); // (UTF-8 index)
+                    UInt64 native_length = native_end - native_start;
 
-                    bool success = start < UInt64.MaxValue;
+                    bool success = native_start < UInt64.MaxValue;
 
                     string? name = names.Where( p => p.Value == group_index ).Select( p => p.Key ).FirstOrDefault( );
                     name ??= group_index.ToString( CultureInfo.InvariantCulture );
 
                     if( !success )
                     {
-                        current_match.AddGroup( 0, 0, false, name );
+                        current_match.AddFailedGroup( name );
                     }
                     else
                     {
-                        int char_start = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, checked((int)start) );
-                        int char_end = Encoding.UTF8.GetCharCount( text_utf8_bytes, 0, checked((int)end) );
-                        int char_length = char_end - char_start;
+                        (int char_start, int char_length) = index_converter.Convert( (int)native_start, (int)native_end );
 
-                        current_match.AddGroup( char_start, char_length, true, name );
+                        current_match.AddSucceededGroup( (int)native_start, (int)native_length, char_start, char_length, name );
                     }
                 }
                 break;

@@ -217,8 +217,8 @@ namespace RegExpressWPFNET
             {
                 if( LastMatches != null )
                 {
-                    var old_groups = LastMatches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Index, g.Length, g.Value, g.Name) );
-                    var new_groups = matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Index, g.Length, g.Value, g.Name) );
+                    var old_groups = LastMatches.Matches.SelectMany( m => m.Groups ).Select( g => (g.NativeIndex, g.NativeLength, g.Value, g.Name) );
+                    var new_groups = matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.NativeIndex, g.NativeLength, g.Value, g.Name) );
 
                     var old_captures = LastMatches.Matches.SelectMany( m => m.Groups ).SelectMany( g => g.Captures ).Select( c => c.Value );
                     var new_captures = matches.Matches.SelectMany( m => m.Groups ).SelectMany( g => g.Captures ).Select( c => c.Value );
@@ -524,12 +524,12 @@ namespace RegExpressWPFNET
                 if( cnc.IsCancellationRequested ) break;
 
 
-                int min_text_index = ordered_groups.Select( g => g.Success ? g.TextIndex : match.TextIndex ).Append( match.TextIndex ).Min( );
-                int max_text_index = ordered_groups.Select( g => g.Success ? g.TextIndex + g.TextLength : match.TextIndex + match.TextLength ).Append( match.TextIndex + match.TextLength ).Max( );
+                int min_text_index = ordered_groups.Select( g => g.Success ? g.CharIndex : match.CharIndex ).Append( match.CharIndex ).Min( );
+                int max_text_index = ordered_groups.Select( g => g.Success ? g.CharIndex + g.CharLength : match.CharIndex + match.CharLength ).Append( match.CharIndex + match.CharLength ).Max( );
                 if( show_captures )
                 {
-                    min_text_index = ordered_groups.SelectMany( g => g.Captures ).Select( c => c.TextIndex ).Append( min_text_index ).Min( );
-                    max_text_index = ordered_groups.SelectMany( g => g.Captures ).Select( c => c.TextIndex + c.TextLength ).Append( max_text_index ).Max( );
+                    min_text_index = ordered_groups.SelectMany( g => g.Captures ).Select( c => c.CharIndex ).Append( min_text_index ).Min( );
+                    max_text_index = ordered_groups.SelectMany( g => g.Captures ).Select( c => c.CharIndex + c.CharLength ).Append( max_text_index ).Max( );
                 }
 
                 if( cnc.IsCancellationRequested ) break;
@@ -538,8 +538,8 @@ namespace RegExpressWPFNET
                 int MaxMatchLeftOutdent = Properties.Settings.Default.MaxMatchLeftOutdent <= 0 ? 50 : Properties.Settings.Default.MaxMatchLeftOutdent;
                 int MaxMatchRightOutdent = Properties.Settings.Default.MaxMatchRightOutdent <= 0 ? 50 : Properties.Settings.Default.MaxMatchRightOutdent;
 
-                int left_space_for_match = Math.Min( match.TextIndex - min_text_index, MaxMatchLeftOutdent );
-                int right_space_for_match = Math.Min( max_text_index - ( match.TextIndex + Math.Min( match.TextLength, MaxMatchLength ) ), MaxMatchRightOutdent );
+                int left_space_for_match = Math.Min( match.CharIndex - min_text_index, MaxMatchLeftOutdent );
+                int right_space_for_match = Math.Min( max_text_index - ( match.CharIndex + Math.Min( match.CharLength, MaxMatchLength ) ), MaxMatchRightOutdent );
 
                 Debug.Assert( left_space_for_match >= 0 );
                 Debug.Assert( right_space_for_match >= 0 );
@@ -584,7 +584,7 @@ namespace RegExpressWPFNET
 
                         Inline value_inline;
 
-                        if( match.Length == 0 )
+                        if( match.CharLength == 0 )
                         {
                             value_inline = new Run( "(empty)", span.ContentEnd ); //
                             value_inline.Style( MatchNormalStyleInfo, LocationStyleInfo );
@@ -596,14 +596,14 @@ namespace RegExpressWPFNET
                             plain_text += value_plain_text;
                         }
 
-                        string index_and_length = $"\x200E  （{match.Index}, {match.Length}）";
+                        string index_and_length = $"\x200E  （{match.NativeIndex}, {match.NativeLength} [{match.CharIndex}, {match.CharLength}]）";
                         run = new Run( index_and_length, span.ContentEnd );
                         run.Style( MatchNormalStyleInfo, LocationStyleInfo );
                         plain_text += index_and_length;
 
                         _ = new LineBreak( span.ElementEnd ); // (after span)
 
-                        match_info = new MatchInfo( matchSegment: new Segment( match.TextIndex, match.TextLength ), span: span, valueInline: value_inline );
+                        match_info = new MatchInfo( matchSegment: new Segment( match.CharIndex, match.CharLength ), span: span, valueInline: value_inline );
 
                         span.Tag = match_info;
 
@@ -661,11 +661,11 @@ namespace RegExpressWPFNET
                     }
                     else
                     {
-                        if( group.TextIndex > match.TextIndex && group.TextIndex < match.TextIndex + match.TextLength )
+                        if( group.CharIndex > match.CharIndex && group.CharIndex < match.CharIndex + match.CharLength )
                         {
-                            left_space_for_group = left_space_for_match + ( group.TextIndex - match.TextIndex );
+                            left_space_for_group = left_space_for_match + ( group.CharIndex - match.CharIndex );
 
-                            int right_excess = ( left_space_for_group + group.TextLength ) - ( left_space_for_match + MaxMatchLength + MaxMatchRightOutdent );
+                            int right_excess = ( left_space_for_group + group.CharLength ) - ( left_space_for_match + MaxMatchLength + MaxMatchRightOutdent );
 
                             if( right_excess > 0 )
                             {
@@ -680,7 +680,7 @@ namespace RegExpressWPFNET
                         }
                         else
                         {
-                            left_space_for_group = left_space_for_match + ( group.TextIndex - match.TextIndex );
+                            left_space_for_group = left_space_for_match + ( group.CharIndex - match.CharIndex );
 
                             if( left_space_for_group < 0 )
                             {
@@ -689,7 +689,7 @@ namespace RegExpressWPFNET
                             }
                             else
                             {
-                                int right_excess = ( left_space_for_group + group.TextLength ) - ( left_space_for_match + MaxMatchLength + MaxMatchRightOutdent );
+                                int right_excess = ( left_space_for_group + group.CharLength ) - ( left_space_for_match + MaxMatchLength + MaxMatchRightOutdent );
 
                                 if( right_excess > 0 )
                                 {
@@ -726,7 +726,7 @@ namespace RegExpressWPFNET
                             value_inline = new Run( "(fail)", span.ContentEnd );
                             value_inline.Style( GroupFailedStyleInfo );
                         }
-                        else if( group.Length == 0 )
+                        else if( group.CharLength == 0 )
                         {
                             value_inline = new Run( no_group_success_flag ? "(empty or failed)" : "(empty)", span.ContentEnd );
                             value_inline.Style( LocationStyleInfo );
@@ -753,9 +753,9 @@ namespace RegExpressWPFNET
                                 }
                                 else
                                 {
-                                    left = Utilities.SubstringFromTo( text, match.TextIndex, group.TextIndex );
+                                    left = Utilities.SubstringFromTo( text, match.CharIndex, group.CharIndex );
                                     middle = group.Value;
-                                    right = Utilities.SubstringFromTo( text, group.TextIndex + group.TextLength, Math.Max( match.TextIndex + match.TextLength, group.TextIndex + group.TextLength ) );
+                                    right = Utilities.SubstringFromTo( text, group.CharIndex + group.CharLength, Math.Max( match.CharIndex + match.CharLength, group.CharIndex + group.CharLength ) );
 
                                     left = left.PadLeft( left_space_for_group );
                                 }
@@ -783,7 +783,7 @@ namespace RegExpressWPFNET
                         {
                             if( !no_group_index )
                             {
-                                run = new Run( $"\x200E  （{group.Index}, {group.Length}）", span.ContentEnd );
+                                run = new Run( $"\x200E  （{group.NativeIndex}, {group.NativeLength} [{match.CharIndex}, {match.CharLength}]）", span.ContentEnd );
                                 run.Style( MatchNormalStyleInfo, LocationStyleInfo );
                             }
                         }
@@ -791,7 +791,7 @@ namespace RegExpressWPFNET
                         para!.Inlines.Add( span );
                         _ = new LineBreak( span.ElementEnd ); // (after span)
 
-                        var group_info = new GroupInfo( parent: match_info!, isSuccess: group.Success, groupSegment: new Segment( group.TextIndex, group.TextLength ), span: span, valueInline: value_inline,
+                        var group_info = new GroupInfo( parent: match_info!, isSuccess: group.Success, groupSegment: new Segment( group.CharIndex, group.CharLength ), span: span, valueInline: value_inline,
                             noGroupIndex: no_group_index, noGroupSuccessFlag: no_group_success_flag );
 
                         span.Tag = group_info;
@@ -912,11 +912,11 @@ namespace RegExpressWPFNET
                 bool too_far_to_left = false;
                 bool too_far_to_right = false;
 
-                if( capture.TextIndex > match.TextIndex && capture.TextIndex < match.TextIndex + match.TextLength )
+                if( capture.CharIndex > match.CharIndex && capture.CharIndex < match.CharIndex + match.CharLength )
                 {
-                    left_space_for_capture = leftSpaceForMatch + ( capture.TextIndex - match.TextIndex );
+                    left_space_for_capture = leftSpaceForMatch + ( capture.CharIndex - match.CharIndex );
 
-                    int right_excess = ( left_space_for_capture + capture.TextLength ) - ( leftSpaceForMatch + MaxMatchLength + MaxMatchRightOutdent );
+                    int right_excess = ( left_space_for_capture + capture.CharLength ) - ( leftSpaceForMatch + MaxMatchLength + MaxMatchRightOutdent );
 
                     if( right_excess > 0 )
                     {
@@ -931,7 +931,7 @@ namespace RegExpressWPFNET
                 }
                 else
                 {
-                    left_space_for_capture = leftSpaceForMatch + ( capture.TextIndex - match.TextIndex );
+                    left_space_for_capture = leftSpaceForMatch + ( capture.CharIndex - match.CharIndex );
 
                     if( left_space_for_capture < 0 )
                     {
@@ -940,7 +940,7 @@ namespace RegExpressWPFNET
                     }
                     else
                     {
-                        int right_excess = ( left_space_for_capture + capture.TextLength ) - ( leftSpaceForMatch + MaxMatchLength + MaxMatchRightOutdent );
+                        int right_excess = ( left_space_for_capture + capture.CharLength ) - ( leftSpaceForMatch + MaxMatchLength + MaxMatchRightOutdent );
 
                         if( right_excess > 0 )
                         {
@@ -967,7 +967,7 @@ namespace RegExpressWPFNET
                 Inline value_inline;
                 Inline inline;
 
-                if( capture.Length == 0 )
+                if( capture.CharLength == 0 )
                 {
                     value_inline = new Run( "(empty)", span.ContentEnd );
                     value_inline.Style( MatchNormalStyleInfo, LocationStyleInfo );
@@ -986,9 +986,9 @@ namespace RegExpressWPFNET
                     }
                     else
                     {
-                        left = Utilities.SubstringFromTo( text, match.TextIndex, capture.TextIndex );
+                        left = Utilities.SubstringFromTo( text, match.CharIndex, capture.CharIndex );
                         middle = capture.Value;
-                        right = Utilities.SubstringFromTo( text, capture.TextIndex + capture.TextLength, Math.Max( match.TextIndex + match.TextLength, capture.TextIndex + capture.TextLength ) );
+                        right = Utilities.SubstringFromTo( text, capture.CharIndex + capture.CharLength, Math.Max( match.CharIndex + match.CharLength, capture.CharIndex + capture.CharLength ) );
 
                         left = left.PadLeft( left_space_for_capture );
                     }
@@ -1009,13 +1009,13 @@ namespace RegExpressWPFNET
                     }
                 }
 
-                inline = new Run( $"\x200E  （{capture.Index}, {capture.Length}）", span.ContentEnd );
+                inline = new Run( $"\x200E  （{capture.NativeIndex}, {capture.NativeLength} [{match.CharIndex}, {match.CharLength}]）", span.ContentEnd );
                 inline.Style( MatchNormalStyleInfo, LocationStyleInfo );
 
                 para.Inlines.Add( span );
                 _ = new LineBreak( span.ElementEnd ); // (after span)
 
-                var capture_info = new CaptureInfo( groupInfo, new Segment( capture.TextIndex, capture.TextLength ), span, value_inline );
+                var capture_info = new CaptureInfo( groupInfo, new Segment( capture.CharIndex, capture.CharLength ), span, value_inline );
 
                 span.Tag = capture_info;
 
