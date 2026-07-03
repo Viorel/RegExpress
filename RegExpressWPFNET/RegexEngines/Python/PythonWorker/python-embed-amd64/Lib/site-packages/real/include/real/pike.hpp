@@ -368,6 +368,10 @@ namespace real::detail {
     //! \brief Highest code point covered by the `cp_page` bitmap (the 2-byte UTF-8 range).
     static constexpr std::uint32_t cp_page_max {0x7FFU};
 
+    //! \brief Cap on how far a jump chain is followed to a loop head (empty-iteration exit routing);
+    //!        a loop join reaches its split in one hop, so this is a generous bound, never a hot cost.
+    static constexpr int max_loop_hops {8};
+
     /*!
      * \brief Builds (once, cached) and returns the `cp_class`'s membership bitmap over
      *        `[U+0080, U+07FF]` — a one-load replacement for the range search on the common
@@ -396,6 +400,25 @@ namespace real::detail {
         state_.cp_page_class = key;
       }
       return state_.cp_page.data();
+    }
+
+    /*!
+     * \brief Writes a class-loop fast-path result into \p out_slots: the whole-match span in slots
+     *        0/1, and — for a pattern wrapped in one capturing group (`(\w+)`, `([a-z]+)`) —
+     *        the same span mirrored into the group's slots (its span equals the whole match by
+     *        construction, so no re-match is needed). Sizes the slots to the program's slot count.
+     */
+    template <typename OutSlots>
+    constexpr void fill_span_slots(OutSlots&   out_slots,
+                                   std::size_t match_start,
+                                   std::size_t match_end) const
+    {
+      out_slots[0] = match_start;
+      out_slots[1] = match_end;
+      if (prog_.hints.greedy_group_start >= 0) {
+        out_slots[static_cast<std::size_t>(prog_.hints.greedy_group_start)] = match_start;
+        out_slots[static_cast<std::size_t>(prog_.hints.greedy_group_end)]   = match_end;
+      }
     }
 
     /*!
@@ -429,7 +452,7 @@ namespace real::detail {
         }
       }
       if (match_start >= text.size() || !in_class(match_start)) {
-        out_slots.assign(2, npos);
+        out_slots.assign(prog_.slot_count, npos);
         return false;
       }
       std::size_t match_end {match_start + 1};
@@ -437,12 +460,11 @@ namespace real::detail {
         ++match_end;
       }
       if (mode == run_mode::full && match_end != text.size()) {
-        out_slots.assign(2, npos);
+        out_slots.assign(prog_.slot_count, npos);
         return false;
       }
-      out_slots.assign(2, npos);
-      out_slots[0] = match_start;
-      out_slots[1] = match_end;
+      out_slots.assign(prog_.slot_count, npos);
+      fill_span_slots(out_slots, match_start, match_end);
       return true;
     }
 
@@ -471,7 +493,7 @@ namespace real::detail {
       const detail::cp_class&    cc       {prog_.cp_classes[cp_index]};
       const std::uint8_t* const  asc      {cp_ascii_table(cp_index)};
       // Membership of a non-ASCII code point (>= 0x80): a one-load page-bitmap test over the two-byte
-      // range (OPT-4), the range search only for CJK / astral code points beyond it. The page is built
+      // range, the range search only for CJK / astral code points beyond it. The page is built
       // lazily on the first non-ASCII code point, so a pure-ASCII scan never pays for it.
       const auto member_hi = [&](char32_t cp) -> bool {
                                if (cp <= cp_page_max) {
@@ -491,7 +513,7 @@ namespace real::detail {
                            const bool m {dc.cp < 0x80U ? asc[dc.cp] != 0U : member_hi(dc.cp)};
                            return m ? dc.length : 0;
                          };
-      out_slots.assign(2, npos);
+      out_slots.assign(prog_.slot_count, npos);
       std::size_t match_start {start};
       if (mode == run_mode::search) {
         while (match_start < text.size() && width(match_start) == 0) {
@@ -511,7 +533,7 @@ namespace real::detail {
       std::size_t match_end {match_start + first};
       if (prog_.hints.greedy_cp_class_plus) {
         while (match_end < text.size()) {
-          // Tight ASCII inner loop (OPT-1): a byte-indexed table lookup with no decode and no call,
+          // Tight ASCII inner loop: a byte-indexed table lookup with no decode and no call,
           // the same one-load trick the byte-NFA scan loop uses; only a non-ASCII lead decodes.
           const auto lead {static_cast<std::uint8_t>(text[match_end])};
           if (lead < 0x80U) {
@@ -531,8 +553,7 @@ namespace real::detail {
       if (mode == run_mode::full && match_end != text.size()) {
         return false;
       }
-      out_slots[0] = match_start;
-      out_slots[1] = match_end;
+      fill_span_slots(out_slots, match_start, match_end);
       return true;
     }
 
@@ -548,6 +569,7 @@ namespace real::detail {
      * \param[in] s    Text offset to match from.
      * \return The end offset on a full match, or \ref npos on a mismatch.
      */
+    template <bool SkipSaves = false>
     [[nodiscard]] constexpr std::size_t match_byte_klass_run(std::string_view text,
                                                              std::size_t      pc,
                                                              std::size_t      s) const
@@ -555,6 +577,14 @@ namespace real::detail {
       std::size_t consumed {};
       while (pc < prog_.code.size()) {
         const instr& instruction {prog_.code[pc]};
+        if constexpr (SkipSaves) {
+          // Grouped fixed shape: interleaved capturing saves are epsilon here (slots filled
+          // separately). if constexpr keeps this branch out of the no-group tight loop entirely.
+          if (instruction.op == opcode::save) {
+            ++pc;
+            continue;
+          }
+        }
         if (instruction.op != opcode::byte && instruction.op != opcode::klass) {
           break;
         }
@@ -633,11 +663,27 @@ namespace real::detail {
                                    run_mode         mode,
                                    OutSlots&        out_slots)
     {
-      out_slots.assign(2, npos);
-      // The sequence starts after the single leading save (the detection in
-      // analyze_program requires exactly one) and runs to save 1.
-      const auto at = [&](std::size_t s) { return match_byte_klass_run(text, 1, s); };
+      // No inner groups (slot_count 2): a contiguous byte/klass run, the original tight path unchanged.
+      if (prog_.slot_count <= 2) {
+        out_slots.assign(2, npos);
+        const auto at {[&](std::size_t s) { return match_byte_klass_run<false>(text, 1, s); }};
+        if (mode != run_mode::search) {
+          const std::size_t match_end {at(start)};
+          if (match_end == npos || (mode == run_mode::full && match_end != text.size())) {
+            return false;
+          }
+          out_slots[0] = start;
+          out_slots[1] = match_end;
+          return true;
+        }
+        return fast_search(text, start, at, out_slots);
+      }
 
+      // Inner capturing groups: the run has interleaved saves, so the verify walk skips them
+      // (SkipSaves) and the group slots are filled from their constant offsets on success only (not per
+      // failed candidate). A separate body keeps the no-group loop above free of any grouping branch.
+      out_slots.assign(prog_.slot_count, npos);
+      const auto at {[&](std::size_t s) { return match_byte_klass_run<true>(text, 1, s); }};
       if (mode != run_mode::search) {
         const std::size_t match_end {at(start)};
         if (match_end == npos || (mode == run_mode::full && match_end != text.size())) {
@@ -645,9 +691,44 @@ namespace real::detail {
         }
         out_slots[0] = start;
         out_slots[1] = match_end;
+        fill_fixed_saves(start, out_slots);
         return true;
       }
-      return fast_search(text, start, at, out_slots);
+      if (!fast_search(text, start, at, out_slots)) {
+        return false;
+      }
+      fill_fixed_saves(out_slots[0], out_slots); // out_slots[0] is the winning match start
+      return true;
+    }
+
+    /*!
+     * \brief Fills the capturing-group slots of a fixed-shape match. Every consuming op is one
+     *        byte wide, so each save sits at a constant offset from the match start; a single linear
+     *        pass writes `slot = match_start + offset`. No-op when the pattern has no inner groups
+     *        (slot_count 2). Not a re-match: the bytes were already verified.
+     * \param[in]  match_start Byte offset where the match begins.
+     * \param[out] out_slots   Receives the group slots.
+     */
+    template <typename OutSlots>
+    constexpr void fill_fixed_saves(std::size_t match_start,
+                                    OutSlots&   out_slots) const
+    {
+      if (prog_.slot_count <= 2) {
+        return;
+      }
+      std::size_t offset {};
+      for (std::size_t pc {1}; pc < prog_.code.size(); ++pc) {
+        const instr& instruction {prog_.code[pc]};
+        if (instruction.op == opcode::byte || instruction.op == opcode::klass) {
+          ++offset;
+        }
+        else if (instruction.op == opcode::save) {
+          out_slots[static_cast<std::size_t>(instruction.arg16)] = match_start + offset;
+        }
+        else {
+          break; // reached match
+        }
+      }
     }
 
     /*!
@@ -831,7 +912,7 @@ namespace real::detail {
           out_slots[instruction.arg16] = cand + consumed;
         }
         else if (instruction.op == opcode::assert_position) {
-          if (!assertion_holds(static_cast<assert_kind>(instruction.arg8), cand + consumed)) {
+          if (!assertion_holds(static_cast<assert_kind>(instruction.arg8), cand + consumed, instruction.arg16 != 0U)) {
             out_slots.assign(prog_.slot_count, npos);
             return false;
           }
@@ -982,16 +1063,17 @@ namespace real::detail {
      *        \p pos, so a malformed or misaligned run reads as non-word; bytes / `re.A` stay byte-level.
      *        This is the shared frontier notion (the same decode that codepoint alignment uses).
      */
-    [[nodiscard]] constexpr bool word_before(std::size_t pos) const
+    [[nodiscard]] constexpr bool word_before(std::size_t pos,
+                                             bool        ascii_word) const
     {
       if (pos == 0) {
         return false;
       }
       const auto prev {static_cast<std::uint8_t>(text_[pos - 1])};
       // ASCII fast path: an ASCII byte is a whole one-byte code point, and is_word_cp agrees with
-      // is_ascii_word_byte on it — so the common case skips the back-decode entirely (OPT-1). Bytes /
-      // re.A always take this path.
-      if (prev < 0x80U || !prog_.unicode_word) {
+      // is_ascii_word_byte on it — so the common case skips the back-decode entirely. Bytes / re.A —
+      // and a scoped (?a:...) — carry ascii_word from the assert instruction and always take this path.
+      if (prev < 0x80U || ascii_word) {
         return is_ascii_word_byte(prev);
       }
       std::size_t i     {pos - 1};
@@ -1009,13 +1091,14 @@ namespace real::detail {
 
     //! \brief Word-ness of the code point **starting at** \p pos — the right side of a boundary. False
     //!        at the text end or on a malformed sequence; bytes / `re.A` stay byte-level.
-    [[nodiscard]] constexpr bool word_after(std::size_t pos) const
+    [[nodiscard]] constexpr bool word_after(std::size_t pos,
+                                            bool        ascii_word) const
     {
       if (pos >= text_.size()) {
         return false;
       }
       const auto here {static_cast<std::uint8_t>(text_[pos])};
-      if (here < 0x80U || !prog_.unicode_word) { // ASCII byte (or bytes / re.A): byte-level, no decode
+      if (here < 0x80U || ascii_word) { // ASCII byte (or bytes / re.A / scoped (?a:)): byte-level, no decode
         return is_ascii_word_byte(here);
       }
       const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
@@ -1026,11 +1109,18 @@ namespace real::detail {
      * \brief Evaluates a zero-width assertion at \p pos in the current text.
      * \param[in] kind The assertion to evaluate.
      * \param[in] pos  The position at which to evaluate it.
+     * \param[in] word_ness_flipped For a word assert (`\b \B \< \>`), whether this instruction flips
+     *            the program's default word-ness — set for a scoped `(?a:...)` / `(?-a:...)` island.
      * \return `true` if the assertion holds there.
      */
     [[nodiscard]] constexpr bool assertion_holds(assert_kind kind,
-                                                 std::size_t pos) const
+                                                 std::size_t pos,
+                                                 bool        word_ness_flipped) const
     {
+      // A word assert's word-ness is the program default (\ref program_view::unicode_word), flipped by
+      // the instruction's flip bit for a scoped (?a:...) / (?-a:...) island — so non-scoped programs
+      // keep flip == 0 and are byte-identical. ascii_word == unicode default matches iff not flipped.
+      const bool        ascii_word {prog_.unicode_word == word_ness_flipped};
       const std::size_t len {text_.size()};
       const auto        byte_at = [&](std::size_t i) { return static_cast<std::uint8_t>(text_[i]); };
       bool              result {};
@@ -1053,16 +1143,16 @@ namespace real::detail {
         case assert_kind::word_boundary:
         case assert_kind::not_word_boundary:
           {
-            const bool before {word_before(pos)};
-            const bool after  {word_after(pos)};
+            const bool before {word_before(pos, ascii_word)};
+            const bool after  {word_after(pos, ascii_word)};
             result = (before != after) == (kind == assert_kind::word_boundary);
           }
           break;
         case assert_kind::word_start:
         case assert_kind::word_end:
           {
-            const bool before {word_before(pos)};
-            const bool after  {word_after(pos)};
+            const bool before {word_before(pos, ascii_word)};
+            const bool after  {word_after(pos, ascii_word)};
             result = kind == assert_kind::word_start ? (!before && after) : (before && !after);
           }
           break;
@@ -1226,7 +1316,29 @@ namespace real::detail {
         const instr& instruction {prog_.code[static_cast<std::size_t>(pc)]};
         switch (instruction.op) {
           case opcode::jump:
-            stack.push_back({.pc = instruction.primary_target, .slot = 0, .restore_value = 0});
+            {
+              // A jump back to an already-entered loop split — directly, or through the loop's own
+              // already-seen join jump — is a `*` iteration that matched EMPTY (the body made no
+              // progress). A greedy loop must EXIT there, keeping the empty iteration's priority, rather
+              // than re-loop: the seen-guard would otherwise drop the empty thread, letting a
+              // lower-priority consuming branch win. Follow the chain of already-seen jumps to the loop
+              // head and, when it is a split, route to that split's exit (secondary). This makes `*`
+              // behave like `+` (whose end-split already sends an empty iteration to its exit), both at
+              // a seed and mid-run — one site, not two. (A lazy loop's exit is its primary, explored
+              // first, so the loop branch reached here is already seen and dedups — a no-op.)
+              std::int32_t head {instruction.primary_target};
+              for (int hops = 0; hops < max_loop_hops && list.seen(head)
+                   && prog_.code[static_cast<std::size_t>(head)].op == opcode::jump; ++hops) {
+                head = prog_.code[static_cast<std::size_t>(head)].primary_target;
+              }
+              const instr& head_instruction {prog_.code[static_cast<std::size_t>(head)]};
+              if (list.seen(head) && head_instruction.op == opcode::split) {
+                stack.push_back({.pc = head_instruction.secondary_target, .slot = 0, .restore_value = 0});
+              }
+              else {
+                stack.push_back({.pc = instruction.primary_target, .slot = 0, .restore_value = 0});
+              }
+            }
             break;
           case opcode::split:
             // primary_target is preferred: push secondary first so primary pops (explores) first.
@@ -1241,7 +1353,7 @@ namespace real::detail {
             stack.push_back({.pc              = pc + 1, .slot = 0, .restore_value = 0});
             break;
           case opcode::assert_position:
-            if (assertion_holds(static_cast<assert_kind>(instruction.arg8), pos)) {
+            if (assertion_holds(static_cast<assert_kind>(instruction.arg8), pos, instruction.arg16 != 0U)) {
               stack.push_back({.pc = pc + 1, .slot = 0, .restore_value = 0});
             }
             break;
@@ -1476,7 +1588,7 @@ namespace real::detail {
             stack.push_back({.pc = pc + 1, .slot = 0, .restore_value = 0});
             break;
           case opcode::assert_position:
-            if (assertion_holds(static_cast<assert_kind>(in.arg8), pos)) {
+            if (assertion_holds(static_cast<assert_kind>(in.arg8), pos, in.arg16 != 0U)) {
               stack.push_back({.pc = pc + 1, .slot = 0, .restore_value = 0});
             }
             break;

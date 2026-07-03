@@ -72,18 +72,19 @@ namespace real::detail {
    */
   struct ast_node
   {
-    node_kind    kind      {node_kind::empty};   //!< Which fields below are meaningful.
-    std::uint8_t byte      {};                   //!< byte: the exact byte value.
-    anchor_kind  anchor    {anchor_kind::caret}; //!< anchor: the assertion kind.
-    bool         negated   {};                   //!< klass: written as `[^...]` / `\D` `\W` `\S`.
-    bool         lazy      {};                   //!< repeat: prefer the shortest expansion.
-    look_dir     direction {look_dir::ahead};    //!< lookaround: ahead `(?=`/`(?!` or behind `(?<=`/`(?<!`.
-    std::int32_t klass     {-1};                 //!< klass: index into \ref ast::classes.
-    std::int32_t min       {};                   //!< repeat: minimum count.
-    std::int32_t max       {-1};                 //!< repeat: maximum count (-1 = unbounded).
-    std::int32_t group     {-1};                 //!< group: capture number, -1 for `(?:...)`.
-    std::int32_t child     {-1};                 //!< First child (concat, repeat, alternation, group).
-    std::int32_t next      {-1};                 //!< Next sibling in the parent's child list.
+    node_kind    kind            {node_kind::empty};   //!< Which fields below are meaningful.
+    std::uint8_t byte            {};                   //!< byte: the exact byte value.
+    anchor_kind  anchor          {anchor_kind::caret}; //!< anchor: the assertion kind.
+    bool         negated         {};                   //!< klass: written as `[^...]` / `\D` `\W` `\S`.
+    bool         lazy            {};                   //!< repeat: prefer the shortest expansion.
+    look_dir     direction       {look_dir::ahead};    //!< lookaround: ahead `(?=`/`(?!` or behind `(?<=`/`(?<!`.
+    std::int32_t klass           {-1};                 //!< klass: index into \ref ast::classes.
+    std::int32_t min             {};                   //!< repeat: minimum count.
+    std::int32_t max             {-1};                 //!< repeat: maximum count (-1 = unbounded).
+    std::int32_t group           {-1};                 //!< group: capture number, -1 for `(?:...)`.
+    std::int32_t child           {-1};                 //!< First child (concat, repeat, alternation, group).
+    std::int32_t next            {-1};                 //!< Next sibling in the parent's child list.
+    std::uint8_t effective_flags {};                   //!< Flag set in force where this node was parsed (see \ref flags). Stamped from the scope stack; carried for scoped-flag semantics.
   };
 
   //! \brief A parsed character class: its ASCII bitmap plus any non-ASCII code-point ranges. Bundling
@@ -229,12 +230,13 @@ namespace real::detail {
     constexpr explicit parser(std::string_view pattern,
                               flags            initial_flags = flags::none)
       : pattern_(pattern),
-        verbose_(has_flag(initial_flags, flags::verbose)),
         bytes_(has_flag(initial_flags, flags::bytes)),
-        ecma_(has_flag(initial_flags, flags::ecma)),
-        icase_(has_flag(initial_flags, flags::icase)),
-        ascii_(has_flag(initial_flags, flags::ascii))
-    {}
+        ecma_(has_flag(initial_flags, flags::ecma))
+    {
+      // The scope stack holds the flag set in force at each nesting level; the base is the
+      // constructor's flags. A scoped group (?flags:...) pushes a modified copy for its body.
+      flag_scopes_.push_back(initial_flags);
+    }
 
     /*!
      * \brief Parses the whole pattern.
@@ -254,26 +256,49 @@ namespace real::detail {
 
   private:
 
-    std::string_view pattern_;          //!< The pattern being parsed.
-    std::size_t      pos_           {}; //!< Current read offset into \ref pattern_.
-    std::int32_t     depth_         {}; //!< Current group nesting (see \ref max_nesting_depth).
-    bool             verbose_       {}; //!< `re.X`: skip unescaped whitespace and `#` comments outside classes.
-    bool             in_lookaround_ {}; //!< True while parsing a lookaround sub-pattern (rejects nesting).
-    bool             bytes_         {}; //!< In \ref flags::bytes mode, rejects code-point escapes (`\u`/`\U`).
-    bool             ecma_          {}; //!< ECMAScript grammar: `\A \Z \< \>` are identity-escape literals, not anchors.
-    bool             icase_         {}; //!< `re.I`: a cased literal is promoted to a foldable singleton class.
-    bool             ascii_         {}; //!< `re.A`: `\d \w \s` stay ASCII (no Unicode property ranges).
+    std::string_view   pattern_;          //!< The pattern being parsed.
+    std::size_t        pos_           {}; //!< Current read offset into \ref pattern_.
+    std::int32_t       depth_         {}; //!< Current group nesting (see \ref max_nesting_depth).
+    std::vector<flags> flag_scopes_;      //!< Stack of the flag set in force per nesting level; the top is current. Replaces a global `verbose_` read so a scoped `(?x:...)` is honoured (see \ref current_flags).
+    bool               in_lookaround_ {}; //!< True while parsing a lookaround sub-pattern (rejects nesting).
+    bool               bytes_         {}; //!< In \ref flags::bytes mode, rejects code-point escapes (`\u`/`\U`).
+    bool               ecma_          {}; //!< ECMAScript grammar: `\A \Z \< \>` are identity-escape literals, not anchors.
+
+    //! \brief The flag set in force at the current nesting level (the scope-stack top).
+    [[nodiscard]] constexpr flags current_flags() const
+    {
+      return flag_scopes_.back();
+    }
+
+    //! \brief True when verbose mode (`re.X`) is in force here — read from the scope stack, so a
+    //!        scoped `(?x:...)` is honoured without a global flag read.
+    [[nodiscard]] constexpr bool is_verbose() const
+    {
+      return has_flag(current_flags(), flags::verbose);
+    }
+
+    //! \brief True when icase (`re.I`) is in force at the current scope (a scoped `(?i:...)` honoured).
+    [[nodiscard]] constexpr bool is_icase() const
+    {
+      return has_flag(current_flags(), flags::icase);
+    }
+
+    //! \brief True when ascii (`re.A`) is in force at the current scope (a scoped `(?a:...)` honoured).
+    [[nodiscard]] constexpr bool is_ascii_mode() const
+    {
+      return has_flag(current_flags(), flags::ascii);
+    }
 
     /*!
      * \brief In verbose mode, consumes insignificant whitespace and `#` comments.
      *
-     * No-op unless \ref verbose_. Called only between tokens outside character
+     * No-op unless \ref is_verbose. Called only between tokens outside character
      * classes; escaped whitespace (`\ `) is read as a literal by the escape
      * parser, never reaching here.
      */
     constexpr void skip_insignificant()
     {
-      if (!verbose_) {
+      if (!is_verbose()) {
         return;
       }
       while (!eof()) {
@@ -355,9 +380,12 @@ namespace real::detail {
      * \param[in]     node The node to append.
      * \return The index of the appended node.
      */
-    static constexpr std::int32_t add_node(ast&     out,
-                                           ast_node node)
+    constexpr std::int32_t add_node(ast&     out,
+                                    ast_node node)
     {
+      // Stamp the flag set in force where this node was parsed (from the scope stack). Carried for
+      // scoped-flag semantics; the compiler does not read it yet, so it does not change any program.
+      node.effective_flags = static_cast<std::uint8_t>(current_flags());
       out.nodes.push_back(node);
       return static_cast<std::int32_t>(out.nodes.size()) - 1;
     }
@@ -372,11 +400,11 @@ namespace real::detail {
      *                   not the byte-NFA.
      * \return The index of the new node.
      */
-    static constexpr std::int32_t add_class_node(ast&                           out,
-                                                 const char_class&              klass,
-                                                 bool                           negated,
-                                                 const std::vector<code_range>& ranges              = {},
-                                                 bool                           codepoint_predicate = false)
+    constexpr std::int32_t add_class_node(ast&                           out,
+                                          const char_class&              klass,
+                                          bool                           negated,
+                                          const std::vector<code_range>& ranges              = {},
+                                          bool                           codepoint_predicate = false)
     {
       out.classes.push_back({.ascii = klass, .ranges = ranges, .codepoint_predicate = codepoint_predicate});
       const auto index {static_cast<std::int32_t>(out.classes.size()) - 1};
@@ -392,7 +420,7 @@ namespace real::detail {
     //!        true in the default text mode, false in bytes mode or under `flags::ascii` (`re.A`).
     [[nodiscard]] constexpr bool text_shorthand() const
     {
-      return !bytes_ && !ascii_;
+      return !bytes_ && !is_ascii_mode();
     }
 
     /*!
@@ -433,7 +461,7 @@ namespace real::detail {
     [[nodiscard]] constexpr std::vector<code_range> shorthand_ranges(std::span<const code_range> table) const
     {
       std::vector<code_range> out;
-      if (bytes_ || ascii_) {
+      if (bytes_ || is_ascii_mode()) {
         return out;
       }
       for (const code_range& r : table) {
@@ -443,6 +471,36 @@ namespace real::detail {
         out.push_back({.lo = r.lo < 0x80U ? 0x80U : r.lo, .hi = r.hi});
       }
       return out;
+    }
+
+    //! \brief The classification of a `\d \D \w \W \s \S` shorthand: its ASCII bitmap, its Unicode range
+    //!        table, and whether it is the negated (uppercase) form.
+    struct shorthand_spec
+    {
+      char_class                  set;     //!< The ASCII bitmap (digit / word / space set).
+      std::span<const code_range> ranges;  //!< The full Unicode range table (used in text mode).
+      bool                        negated; //!< True for the uppercase form (`\D \W \S`).
+    };
+
+    //! \brief Maps a shorthand letter to its \ref shorthand_spec. The single place the
+    //!        letter -> (set, range table, negation) fact lives; the atom ladder (parse_escape) and the
+    //!        class ladder (parse_class_item) share it, then each consumes the spec its own way (emit a
+    //!        class node vs merge into a class) -- the same shared-decode / divergent-use split as
+    //!        \ref decode_digit_escape.
+    [[nodiscard]] static constexpr shorthand_spec shorthand_class(char letter)
+    {
+      switch (letter) {
+        case 'd': return {.set = digit_set(), .ranges = digit_ranges, .negated = false};
+        case 'D': return {.set = digit_set(), .ranges = digit_ranges, .negated = true};
+        case 'w': return {.set = word_set(), .ranges = word_ranges, .negated = false};
+        case 'W': return {.set = word_set(), .ranges = word_ranges, .negated = true};
+        case 's': return {.set = space_set(), .ranges = space_ranges, .negated = false};
+        case 'S': return {.set = space_set(), .ranges = space_ranges, .negated = true};
+        default: break;
+      }
+      // Unreachable: both call sites dispatch only on the six shorthand letters (see parse_escape /
+      // parse_class_item). Kept as a structural fallback; never hit at run time (coverage-honest).
+      return {.set = space_set(), .ranges = space_ranges, .negated = true};
     }
 
     /*!
@@ -721,6 +779,14 @@ namespace real::detail {
       return letter == 'i' || letter == 'm' || letter == 's' || letter == 'a' || letter == 'x';
     }
 
+    //! \brief \p value with \p bit cleared.
+    static constexpr flags without(flags value,
+                                   flags bit)
+    {
+      return static_cast<flags>(
+        static_cast<std::uint8_t>(static_cast<unsigned>(value) & ~static_cast<unsigned>(bit)));
+    }
+
     /*!
      * \brief Consumes a leading `(?ims)` global-flags group, if present.
      *
@@ -750,15 +816,10 @@ namespace real::detail {
         return false;
       }
       out.inline_flags = out.inline_flags | found;
-      if (has_flag(found, flags::verbose)) {
-        verbose_ = true; // affects how the rest of the pattern is parsed
-      }
-      if (has_flag(found, flags::icase)) {
-        icase_ = true;   // a leading (?i) makes cased literals foldable, like the constructor flag
-      }
-      if (has_flag(found, flags::ascii)) {
-        ascii_ = true;   // a leading (?a) keeps the shorthands ASCII, like the constructor flag
-      }
+      // A leading (?flags) group sets the base scope, so the rest of the pattern is parsed under it —
+      // verbose affects tokenization, icase/ascii affect literal folding and the \w\d\s tables. This
+      // mirrors the constructor flags, which seed the same base scope.
+      flag_scopes_.back() = flag_scopes_.back() | found;
       return true;
     }
 
@@ -786,8 +847,9 @@ namespace real::detail {
       if (++depth_ > max_nesting_depth) {
         fail("pattern nesting too deep");
       }
-      ++pos_; // consume '('
-      std::int32_t group {-1};
+      ++pos_;                            // consume '('
+      std::int32_t group        {-1};
+      bool         scoped_flags {false}; //!< A (?flags:...) group pushed a scope to pop after the body.
       if (accept('?')) {
         if (accept('#')) {
           // (?#...) comment: skip to the first ')' (a backslash is not special here, like re);
@@ -833,14 +895,36 @@ namespace real::detail {
         else if (!eof() && peek() == '(') {
           fail("conditional groups are not supported");
         }
-        else if (!eof() && is_flag_letter(peek())) {
+        else if (!eof() && (is_flag_letter(peek()) || peek() == '-')) {
+          // (?flags:...) / (?-flags:...) / (?flags-flags:...) — a scoped-flags group. Parse the
+          // added flags, an optional '-' and the removed flags.
+          flags added   {flags::none};
+          flags removed {flags::none};
           while (!eof() && is_flag_letter(peek())) {
+            added = added | flag_for_letter(peek());
             ++pos_;
           }
-          if (!eof() && peek() == ':') {
-            fail("scoped inline flags are not supported");
+          if (accept('-')) {
+            bool saw_negative {false};
+            while (!eof() && is_flag_letter(peek())) {
+              removed      = removed | flag_for_letter(peek());
+              saw_negative = true;
+              ++pos_;
+            }
+            if (!saw_negative) {
+              fail("missing flag after '-'");
+            }
           }
-          fail("global flags not at the start of the expression");
+          if (!accept(':')) {
+            // An unscoped (?flags) is only legal at the very start of the pattern (consumed by
+            // parse_global_flags_prefix); anything else here is a misplaced global-flags group.
+            fail("global flags not at the start of the expression");
+          }
+          // Every inline flag (i m s x a) is honoured per scope: verbose changes tokenization, icase/
+          // ascii govern folding and the \w\d\s tables, dotall the dot, multiline the ^/$ anchors — all
+          // read from the scope stack. The added set is applied and the removed set cleared for the body.
+          flag_scopes_.push_back(without(current_flags() | added, removed));
+          scoped_flags = true; // group stays non-capturing (-1)
         }
         else {
           fail("unknown extension");
@@ -850,6 +934,9 @@ namespace real::detail {
         group = new_group(out, open_pos);
       }
       const std::int32_t body {parse_alternation(out)};
+      if (scoped_flags) {
+        flag_scopes_.pop_back(); // the scoped flags apply only to the body just parsed
+      }
       if (!accept(')')) {
         pos_ = open_pos;
         fail("missing ), unterminated subpattern");
@@ -1106,6 +1193,71 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Decodes a `\N{U+XXXX}` named-code-point escape (1–6 hex digits) — the same code-point path
+     *        as `\u`/`\U`, spelled by its U+ scalar value. `re` writes `\N{NAME}` for the *name*; the
+     *        Python binding rewrites a name to this `U+XXXX` form before parsing, so the engine only ever
+     *        sees the scalar. A C++ caller writes `\N{U+XXXX}` directly.
+     *
+     * Rejected with clear messages: byte mode (no code-point meaning ≡ `re`'s `bad escape \N`), a missing
+     * or malformed `{U+…}`, a surrogate, or a value beyond U+10FFFF. The backslash and `N` are already
+     * consumed.
+     * \return The code point in `[0, 0x10FFFF]` (never a surrogate).
+     */
+    constexpr std::int32_t parse_named_codepoint()
+    {
+      if (bytes_) {
+        fail("\\N escapes are not allowed in bytes patterns");
+      }
+      if (eof() || peek() != '{') {
+        fail("expected '{' after \\N (\\N{U+XXXX})");
+      }
+      ++pos_; // consume '{'
+      if (eof() || peek() != 'U') {
+        fail("\\N{...} takes a U+XXXX code point; a character name is resolved by the Python binding");
+      }
+      ++pos_; // consume 'U'
+      if (eof() || peek() != '+') {
+        fail("expected '+' in \\N{U+XXXX}");
+      }
+      ++pos_; // consume '+'
+      std::int32_t value {};
+      int          count {};
+      while (!eof() && count < 6) {
+        const char   ch    {peek()};
+        std::int32_t digit {-1};
+        if (ch >= '0' && ch <= '9') {
+          digit = ch - '0';
+        }
+        else if (ch >= 'a' && ch <= 'f') {
+          digit = (ch - 'a') + 10;
+        }
+        else if (ch >= 'A' && ch <= 'F') {
+          digit = (ch - 'A') + 10;
+        }
+        if (digit < 0) {
+          break;
+        }
+        value = (value * 16) + digit;
+        ++pos_;
+        ++count;
+      }
+      if (count == 0) {
+        fail("expected 1 to 6 hex digits in \\N{U+XXXX}");
+      }
+      if (eof() || peek() != '}') {
+        fail("unterminated \\N{U+XXXX} (expected '}')");
+      }
+      ++pos_; // consume '}'
+      if (value >= 0xD800 && value <= 0xDFFF) {
+        fail("invalid \\N escape: surrogate code point");
+      }
+      if (value > 0x10FFFF) {
+        fail("invalid \\N escape: code point out of range");
+      }
+      return value;
+    }
+
+    /*!
      * \brief Emits a code point as its 1–4 UTF-8 bytes — the same byte-level form a literal
      *        multi-byte character produces — as a single atom (a byte node, or a concat).
      * \param[in,out] out The AST being built.
@@ -1163,7 +1315,7 @@ namespace real::detail {
     constexpr std::int32_t emit_literal_codepoint(ast&         out,
                                                   std::int32_t cp)
     {
-      if (icase_) {
+      if (is_icase()) {
         const bool ascii_letter {(cp >= 'A' && cp <= 'Z') || (cp >= 'a' && cp <= 'z')};
         if (ascii_letter) {
           char_class bitmap;
@@ -1206,23 +1358,15 @@ namespace real::detail {
         // predicate (klass_cp): O(decode + range bsearch) per position, independent of the range count.
         // In bytes / ASCII mode shorthand_ranges() is empty and the flag is off -> the ASCII byte-NFA.
         case 'd':
-          ++pos_;
-          return add_class_node(out, digit_set(), false, shorthand_ranges(digit_ranges), text_shorthand());
         case 'D':
-          ++pos_;
-          return add_class_node(out, digit_set(), true, shorthand_ranges(digit_ranges), text_shorthand());
         case 'w':
-          ++pos_;
-          return add_class_node(out, word_set(), false, shorthand_ranges(word_ranges), text_shorthand());
         case 'W':
-          ++pos_;
-          return add_class_node(out, word_set(), true, shorthand_ranges(word_ranges), text_shorthand());
         case 's':
-          ++pos_;
-          return add_class_node(out, space_set(), false, shorthand_ranges(space_ranges), text_shorthand());
-        case 'S':
-          ++pos_;
-          return add_class_node(out, space_set(), true, shorthand_ranges(space_ranges), text_shorthand());
+        case 'S': {
+            const shorthand_spec sc {shorthand_class(peek())};
+            ++pos_;
+            return add_class_node(out, sc.set, sc.negated, shorthand_ranges(sc.ranges), text_shorthand());
+          }
         // `\A \Z \< \>` are REAL extensions (text-start/end, word-start/end). ECMAScript has no
         // such escapes — they are identity escapes (the literal character). Under the ecma flag
         // (the std-compat layer), emit the literal; otherwise keep REAL's anchor. `\b`/`\B` are
@@ -1238,6 +1382,14 @@ namespace real::detail {
           ++pos_;
           if (ecma_) {
             return emit_literal_codepoint(out, 'Z'); // ecma: literal 'Z', folds under icase
+          }
+          return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::text_end});
+        case 'z':
+          // `\z` is an exact alias of `\Z` (end of the text, no MULTILINE interaction) — Python 3.14
+          // added it with that meaning. Same anchor, so it is byte-identical to `\Z`.
+          ++pos_;
+          if (ecma_) {
+            return emit_literal_codepoint(out, 'z'); // ecma: literal 'z' (identity escape), folds under icase
           }
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::text_end});
         case 'b':
@@ -1265,7 +1417,8 @@ namespace real::detail {
           ++pos_;
           return emit_literal_codepoint(out, parse_unicode_codepoint(true));
         case 'N':
-          fail("named Unicode escapes (\\N{...}) are not supported");
+          ++pos_;
+          return emit_literal_codepoint(out, parse_named_codepoint());
         default:
           {
             const std::int32_t byte_value {parse_byte_escape()};
@@ -1323,29 +1476,16 @@ namespace real::detail {
       }
       switch (peek()) {
         case 'd':
-          ++pos_;
-          merge_property(klass, ranges, digit_set(), digit_ranges, false, property_derived);
-          return -1;
-        case 'w':
-          ++pos_;
-          merge_property(klass, ranges, word_set(), word_ranges, false, property_derived);
-          return -1;
-        case 's':
-          ++pos_;
-          merge_property(klass, ranges, space_set(), space_ranges, false, property_derived);
-          return -1;
         case 'D':
-          ++pos_;
-          merge_property(klass, ranges, digit_set(), digit_ranges, true, property_derived);
-          return -1;
+        case 'w':
         case 'W':
-          ++pos_;
-          merge_property(klass, ranges, word_set(), word_ranges, true, property_derived);
-          return -1;
-        case 'S':
-          ++pos_;
-          merge_property(klass, ranges, space_set(), space_ranges, true, property_derived);
-          return -1;
+        case 's':
+        case 'S': {
+            const shorthand_spec sc {shorthand_class(peek())};
+            ++pos_;
+            merge_property(klass, ranges, sc.set, sc.ranges, sc.negated, property_derived);
+            return -1;
+          }
         case 'b':
           ++pos_;
           return 0x08; // backspace, only inside classes
@@ -1359,7 +1499,35 @@ namespace real::detail {
             return parse_unicode_codepoint(capital);
           }
         case 'N':
-          fail("named Unicode escapes (\\N{...}) are not supported");
+          ++pos_;
+          return parse_named_codepoint(); // \N{U+XXXX} is a valid class member (a code point)
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+          {
+            // Inside a class every `\digit` is octal — there are no back-references in a class (re's
+            // rule). Up to 3 octal digits; a value above 0o377 (255) is out of range, as in re. The
+            // first non-octal digit ends the escape, so `[\18]` is `\x01` then a literal '8'.
+            unsigned    value {};
+            std::size_t taken {};
+            while (taken < 3 && !eof() && peek() >= '0' && peek() <= '7') {
+              value = (value * 8U) + static_cast<unsigned>(peek() - '0');
+              ++pos_;
+              ++taken;
+            }
+            if (value > 0xFFU) {
+              fail("octal escape value out of range (\\0 to \\377)");
+            }
+            return static_cast<std::int32_t>(value);
+          }
+        case '8':
+        case '9':
+          fail("invalid escape (\\8 and \\9 are not octal and there are no back-references in a class)");
         default:
           {
             const std::int32_t byte_value {parse_byte_escape()};

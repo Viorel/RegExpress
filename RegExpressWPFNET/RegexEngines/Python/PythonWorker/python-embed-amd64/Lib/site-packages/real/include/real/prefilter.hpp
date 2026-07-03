@@ -226,55 +226,128 @@ namespace real::detail {
     // "class+" shape: save 0, klass, split(back to the klass, exit),
     // save 1, match -- greedy only (the lazy variant has different
     // semantics) and no capture groups.
-    if (code.size() == 5 && code[0].op == opcode::save && code[1].op == opcode::klass &&
-        code[2].op == opcode::split && code[2].primary_target == 1 && code[2].secondary_target == 3 &&
-        code[3].op == opcode::save && code[4].op == opcode::match) {
-      hints.greedy_class_loop = code[1].arg16;
-    }
-
-    // Code-point class, optional greedy `+`: save 0, klass_cp, cont, cont, cont, [split back], save 1,
-    // match -- a Unicode shorthand (\w/\d/\s) run, scanned code point by code point without threads.
-    // The three `klass` continuations are the klass_cp skip chain; a `+` adds a split looping to the
-    // klass_cp. Greedy only, no captures.
-    if (code.size() >= 7 && code[0].op == opcode::save && code[1].op == opcode::klass_cp &&
-        code[2].op == opcode::klass && code[3].op == opcode::klass && code[4].op == opcode::klass) {
-      if (code.size() == 7 && code[5].op == opcode::save && code[6].op == opcode::match) {
-        hints.greedy_cp_class      = code[1].arg16;
-        hints.greedy_cp_class_plus = false;
-      }
-      else if (code.size() == 8 && code[5].op == opcode::split && code[5].primary_target == 1 &&
-               code[5].secondary_target == 6 && code[6].op == opcode::save && code[7].op == opcode::match) {
-        hints.greedy_cp_class      = code[1].arg16;
-        hints.greedy_cp_class_plus = true;
-      }
-    }
-
-    // "fixed shape": a straight-line run of byte/klass with no branches or
-    // assertions and no captures (exactly one leading and one trailing save).
-    // The whole match is fixed width, so one walk verifies it. Covers class{n}
-    // and mixed sequences such as \d{4}-\d{2}-\d{2}; pure literals are caught by
-    // the exact-literal path first. Negated classes and `.` expand to byte-level
-    // branches, so they never form this shape.
+    // "class+", optionally wrapped in exactly ONE capturing group: save 0, [group-start save,] klass,
+    // split(back to the klass, exit), [group-end save,] save 1, match. Greedy only (the lazy variant
+    // differs). An enveloping group ((\w+), ([a-z]+)) has span == the whole match by
+    // construction, so the fast path mirrors the bounds into the group's slots -- no re-match.
     {
-      std::size_t  i          {};
-      std::int32_t lead_saves {};
-      while (i < code.size() && code[i].op == opcode::save) {
-        ++lead_saves;
-        ++i;
+      std::size_t  p  {0};
+      std::int16_t gs {-1};
+      if (p < code.size() && code[p].op == opcode::save) {
+        ++p;
+        if (p < code.size() && code[p].op == opcode::save) {
+          gs = static_cast<std::int16_t>(code[p].arg16);
+          ++p;
+        }
+        if (p + 1 < code.size() && code[p].op == opcode::klass && code[p + 1].op == opcode::split &&
+            code[p + 1].primary_target == static_cast<std::int32_t>(p) &&
+            code[p + 1].secondary_target == static_cast<std::int32_t>(p + 2)) {
+          const std::int32_t cls {code[p].arg16};
+          std::size_t        q   {p + 2};
+          std::int16_t       ge  {-1};
+          bool               ok  {gs < 0};
+          if (gs >= 0 && q < code.size() && code[q].op == opcode::save) {
+            ge = static_cast<std::int16_t>(code[q].arg16);
+            ++q;
+            ok = true;
+          }
+          if (ok && q + 1 < code.size() && code[q].op == opcode::save && code[q + 1].op == opcode::match &&
+              q + 2 == code.size()) {
+            hints.greedy_class_loop  = cls;
+            hints.greedy_group_start = gs;
+            hints.greedy_group_end   = ge;
+          }
+        }
       }
-      std::int32_t width {};
-      while (i < code.size() && (code[i].op == opcode::byte || code[i].op == opcode::klass)) {
-        ++width;
-        ++i;
+    }
+
+    // Code-point class (klass_cp + its three `klass` continuations), optional greedy `+`, optionally
+    // wrapped in one capturing group: save 0, [group-start save,] klass_cp, klass, klass, klass,
+    // [split back,] [group-end save,] save 1, match. A \w/\d/\s run scanned code point by code point.
+    {
+      std::size_t  p  {0};
+      std::int16_t gs {-1};
+      if (p < code.size() && code[p].op == opcode::save) {
+        ++p;
+        if (p < code.size() && code[p].op == opcode::save) {
+          gs = static_cast<std::int16_t>(code[p].arg16);
+          ++p;
+        }
+        if (p + 3 < code.size() && code[p].op == opcode::klass_cp && code[p + 1].op == opcode::klass &&
+            code[p + 2].op == opcode::klass && code[p + 3].op == opcode::klass) {
+          const std::int32_t cp_idx  {code[p].arg16};
+          const std::size_t  loop_pc {p};
+          std::size_t        q       {p + 4};
+          bool               plus    {false};
+          if (q < code.size() && code[q].op == opcode::split &&
+              code[q].primary_target == static_cast<std::int32_t>(loop_pc) &&
+              code[q].secondary_target == static_cast<std::int32_t>(q + 1)) {
+            plus = true;
+            ++q;
+          }
+          std::int16_t ge {-1};
+          bool         ok {gs < 0};
+          if (gs >= 0 && q < code.size() && code[q].op == opcode::save) {
+            ge = static_cast<std::int16_t>(code[q].arg16);
+            ++q;
+            ok = true;
+          }
+          if (ok && q + 1 < code.size() && code[q].op == opcode::save && code[q + 1].op == opcode::match &&
+              q + 2 == code.size()) {
+            hints.greedy_cp_class      = cp_idx;
+            hints.greedy_cp_class_plus = plus;
+            hints.greedy_group_start   = gs;
+            hints.greedy_group_end     = ge;
+          }
+        }
       }
-      std::int32_t trail_saves {};
-      while (i < code.size() && code[i].op == opcode::save) {
-        ++trail_saves;
-        ++i;
-      }
-      if (lead_saves == 1 && trail_saves == 1 && width >= 1 && i + 1 == code.size() &&
-          code[i].op == opcode::match) {
-        hints.fixed_shape = true;
+    }
+
+    // "fixed shape": a straight-line run of fixed-width byte/klass consuming ops, possibly interleaved
+    // with capturing saves ((\d{4})-(\d{2})-(\d{2}), (a)(b)), with no branches or assertions. The
+    // whole match is fixed width, so one walk verifies it; because every width is fixed, each save sits
+    // at a compile-time-constant offset from the match start, so the fast path fills each group slot by
+    // that offset (no re-match). Covers class{n} and mixed sequences; pure literals hit the exact-literal
+    // path first. A klass_cp (Unicode shorthand, variable width), split/jump (alternation, {n,m}/+/*/?),
+    // `.` or a negated class (byte-level branches), and lookarounds all break the run, so they never form
+    // this shape -- ASCII / explicit-class fixed widths are what qualify.
+    {
+      std::size_t  i           {};
+      std::int32_t width       {};
+      std::int32_t open_groups {};  // capturing groups (slots >= 2) currently open, for the nesting guard
+      bool         closed      {};  // saw the closing save (slot 1)
+      bool         nested      {};  // a group opened inside another -- kept on the general VM (flat only)
+      if (i < code.size() && code[i].op == opcode::save && code[i].arg16 == 0) {
+        ++i; // opening save (slot 0)
+        while (i < code.size()) {
+          const opcode op {code[i].op};
+          if (op == opcode::byte || op == opcode::klass) {
+            ++width;
+            ++i;
+          }
+          else if (op == opcode::save) {
+            const std::int32_t slot {code[i].arg16};
+            if (slot == 1) {
+              closed = true;
+            }
+            else if (slot >= 2 && (slot % 2) == 0) { // an inner group's opening save
+              if (open_groups > 0) {
+                nested = true;
+              }
+              ++open_groups;
+            }
+            else if (slot >= 3) { // an inner group's closing save
+              --open_groups;
+            }
+            ++i;
+          }
+          else {
+            break; // any other op (split/jump/klass_cp/assert/lookaround) disqualifies the shape
+          }
+        }
+        if (width >= 1 && closed && !nested && i + 1 == code.size() && code[i].op == opcode::match) {
+          hints.fixed_shape = true;
+        }
       }
     }
 
@@ -347,10 +420,13 @@ namespace real::detail {
     pattern_hints hints;
 
     // A lookaround forces the general Pike VM: no DFA, no fast path. Detected up front;
-    // the fast-path hints are cleared at the end so none can fire even partially.
+    // the fast-path hints are cleared at the end so none can fire even partially. This is a local,
+    // not a persisted hint: nothing past analyze_program ever reads it (the fast paths and the DFA
+    // gate on the individual hints this clears / on the program itself).
+    bool has_lookaround {false};
     for (const instr& in : code) {
       if (in.op == opcode::assert_lookaround) {
-        hints.has_lookaround = true;
+        has_lookaround = true;
         break;
       }
     }
@@ -367,7 +443,7 @@ namespace real::detail {
     // the sub-VM can evaluate the assertion. Clear every fast-path hint (belt-and-suspenders
     // — the structural detectors above already miss these shapes). The literal prefix /
     // first-byte set below stay valid (and sound) filters.
-    if (hints.has_lookaround) {
+    if (has_lookaround) {
       hints.greedy_class_loop     = -1;
       hints.exact_literal_len     = 0;
       hints.fixed_shape           = false;

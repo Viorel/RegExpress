@@ -243,6 +243,8 @@ namespace real {
       std::int32_t         greedy_class_loop     {-1}; //!< Class index if the whole pattern is "class+", else -1.
       std::int32_t         greedy_cp_class       {-1}; //!< cp_class index if the whole pattern is a code-point class `klass_cp` (optionally `+`), else -1.
       bool                 greedy_cp_class_plus  {};   //!< The \ref greedy_cp_class pattern is a greedy `+` loop (vs a single code point).
+      std::int16_t         greedy_group_start    {-1}; //!< For a class-loop wrapped in one capturing group (`(\w+)`, `([a-z]+)`): the group's start slot to mirror the whole-match start into (-1 = no enveloping group).
+      std::int16_t         greedy_group_end      {-1}; //!< The enveloping group's end slot (mirrors the whole-match end).
       bool                 fixed_shape           {};   //!< Whole pattern is a fixed-width byte/klass sequence (no branches/asserts/captures).
       std::int32_t         codepoint_class_ascii {-1}; //!< ASCII-class index when the whole pattern is `.`/negated-class (optionally `+`), else -1.
       bool                 codepoint_class_plus  {};   //!< The \ref codepoint_class_ascii pattern is a greedy `+` loop (vs a single codepoint).
@@ -257,9 +259,6 @@ namespace real {
        * of the full Pike VM — the major win for "search for a fixed string".
        */
       std::uint8_t exact_literal_len {};
-
-      //! \brief True if the program contains a lookaround; forces the general VM (no DFA, no fast path).
-      bool has_lookaround {};
     };
 
     /*!

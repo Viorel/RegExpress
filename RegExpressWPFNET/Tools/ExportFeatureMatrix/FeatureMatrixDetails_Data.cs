@@ -142,7 +142,8 @@ partial class FeatureMatrixDetails
                     .Test( @"\C-M", "\r", null ),
                 new FeatureMatrixDetails( @"\N{…}", @"Unicode name or 'U+code'", (e, fm) => fm.Esc_NBrace)
                     .Test( @"\N{COMMA}", ",", null )
-                    .Test( @"\N{comma}", ",", null ),
+                    .Test( @"\N{comma}", ",", null )
+                    .Test( @"\N{U+0061}", "a", null ),
                 new FeatureMatrixDetails( @"\any", @"Generic escape", (e, fm) => fm.GenericEscape)
                     .Test( @"a\j", @"aj", @"a\j" ),
             ] ),
@@ -197,7 +198,8 @@ partial class FeatureMatrixDetails
                     .Test( @"[\C-M]", "\r", null ),
                 new FeatureMatrixDetails( @"[\N{…}]", @"Unicode name or 'U+code'", (e, fm) => fm.InsideSets_Esc_NBrace)
                     .Test( @"[\N{COMMA}]", ",", "M" ) // (see also '\N' -- any except '\n')
-                    .Test( @"[\N{comma}]", ",", "m" ),
+                    .Test( @"[\N{comma}]", ",", "m" )
+                    .Test( @"[\N{U+0061}]", "a", "U" ),
                 new FeatureMatrixDetails( @"[\any]", @"Generic escape", (e, fm) => fm.InsideSets_GenericEscape)
                     .Test( @"[\j]", "j", @"\"),
             ] ),

@@ -596,7 +596,7 @@ namespace RegExpressWPFNET
                             plain_text += value_plain_text;
                         }
 
-                        string index_and_length = $"\x200E  （{match.NativeIndex}, {match.NativeLength} [{match.CharIndex}, {match.CharLength}]）";
+                        string index_and_length = $"\x200E  （{match.CharIndex}, {match.CharLength}）";
                         run = new Run( index_and_length, span.ContentEnd );
                         run.Style( MatchNormalStyleInfo, LocationStyleInfo );
                         plain_text += index_and_length;
@@ -783,7 +783,7 @@ namespace RegExpressWPFNET
                         {
                             if( !no_group_index )
                             {
-                                run = new Run( $"\x200E  （{group.NativeIndex}, {group.NativeLength} [{match.CharIndex}, {match.CharLength}]）", span.ContentEnd );
+                                run = new Run( $"\x200E  （{group.CharIndex}, {group.CharLength}）", span.ContentEnd );
                                 run.Style( MatchNormalStyleInfo, LocationStyleInfo );
                             }
                         }
@@ -1009,7 +1009,7 @@ namespace RegExpressWPFNET
                     }
                 }
 
-                inline = new Run( $"\x200E  （{capture.NativeIndex}, {capture.NativeLength} [{match.CharIndex}, {match.CharLength}]）", span.ContentEnd );
+                inline = new Run( $"\x200E  （{capture.CharIndex}, {capture.CharLength}]）", span.ContentEnd );
                 inline.Style( MatchNormalStyleInfo, LocationStyleInfo );
 
                 para.Inlines.Add( span );
