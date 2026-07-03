@@ -42,7 +42,7 @@ The following engines are included:
   * [_regex\_lite_](https://docs.rs/regex_lite) 0.1.9,
   * [_fancy\_regex_](https://docs.rs/fancy-regex) 0.18.0, 
   * [_regress_](https://docs.rs/regress) 0.11.1,
-  * [_resharp_](https://github.com/ieviev/resharp) 0.6.13.
+  * [_resharp_](https://github.com/ieviev/resharp) 0.6.16.
   * [_anre_](https://github.com/hemashushu/anre) 2.1.1.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.1 (*java.util.regex* and *com.google.re2j* packages).
 * [**Python**](https://www.python.org/) 3.14.6 modules:
@@ -63,7 +63,7 @@ The following engines are included:
   * [_zig-regex_](https://github.com/zig-utils/zig-regex) v0.2.0, 
   * [_mvzr_](https://github.com/mnemnion/mvzr) v0.3.12
   * _PZRE_ v0.2.2.
-* [**RE#**](https://github.com/ieviev/resharp-dotnet) 1.0.3 (for F#, C#, VB).
+* [**RE#**](https://github.com/ieviev/resharp-dotnet) 1.0.4 (for F#, C#, VB).
 * **Go** 1.26.4 packages:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.4,
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.2.2,

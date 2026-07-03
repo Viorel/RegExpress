@@ -8,6 +8,6 @@ namespace RESharpPlugin
 {
     internal class Versions
     {
-        public static string RESharp { get; } = "1.0.3";
+        public static string RESharp { get; } = "1.0.4";
     }
 }
