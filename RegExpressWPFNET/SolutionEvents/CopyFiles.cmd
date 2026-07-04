@@ -132,12 +132,12 @@ rem -- Rust --
 
 set BasePath=%SolutionDir%\RegexEngines\Rust
 xcopy /D /R /Y "%BasePath%\RustPlugin\bin\%Configuration%\%TargetDir%\RustPlugin.dll" "%EnginesTargetPath%\Rust\*"
-xcopy /D /R /Y "%BasePath%\RustRegexWorker\target\release\RustRegexWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
-xcopy /D /R /Y "%BasePath%\RustFancyWorker\target\release\RustFancyWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
-xcopy /D /R /Y "%BasePath%\RustRegressWorker\target\release\RustRegressWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
-xcopy /D /R /Y "%BasePath%\RustRegexLiteWorker\target\release\RustRegexLiteWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
-xcopy /D /R /Y "%BasePath%\RustResharpWorker\target\release\RustResharpWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
-xcopy /D /R /Y "%BasePath%\RustAnreWorker\target\release\RustAnreWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
+xcopy /D /R /Y "%BasePath%\RegexWorker\target\release\RustRegexWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
+xcopy /D /R /Y "%BasePath%\FancyWorker\target\release\RustFancyWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
+xcopy /D /R /Y "%BasePath%\RegressWorker\target\release\RustRegressWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
+xcopy /D /R /Y "%BasePath%\RegexLiteWorker\target\release\RustRegexLiteWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
+xcopy /D /R /Y "%BasePath%\ResharpWorker\target\release\RustResharpWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
+xcopy /D /R /Y "%BasePath%\AnreWorker\target\release\RustAnreWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
 
 
 rem -- Java --
@@ -179,9 +179,9 @@ rem -- Fortran --
 
 set BasePath=%SolutionDir%\RegexEngines\Fortran
 xcopy /D /R /Y "%BasePath%\FortranPlugin\bin\%Configuration%\%TargetDir%\FortranPlugin.dll" "%EnginesTargetPath%\Fortran\*"
-xcopy /D /R /Y "%BasePath%\FortranForgexWorker\x64\Release\FortranForgexWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
-xcopy /D /R /Y "%BasePath%\FortranRegexJeyemhexWorker\x64\Release\FortranRegexJeyemhexWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
-xcopy /D /R /Y "%BasePath%\FortranRegexPerazzWorker\x64\Release\FortranRegexPerazzWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
+xcopy /D /R /Y "%BasePath%\ForgexWorker\x64\Release\FortranForgexWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
+xcopy /D /R /Y "%BasePath%\RegexJeyemhexWorker\x64\Release\FortranRegexJeyemhexWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
+xcopy /D /R /Y "%BasePath%\RegexPerazzWorker\x64\Release\FortranRegexPerazzWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
 
 
 rem -- TRE --
@@ -241,9 +241,9 @@ rem -- Zig --
 
 set BasePath=%SolutionDir%\RegexEngines\Zig
 xcopy /D /R /Y "%BasePath%\ZigPlugin\bin\%Configuration%\%TargetDir%\ZigPlugin.dll" "%EnginesTargetPath%\Zig\*"
-xcopy /D /R /Y "%BasePath%\ZigRegexWorker\ZigRegexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
-xcopy /D /R /Y "%BasePath%\ZigMvzrWorker\ZigMvzrWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
-xcopy /D /R /Y "%BasePath%\ZigPzreWorker\zig-out\bin\ZigPzreWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
+xcopy /D /R /Y "%BasePath%\RegexWorker\ZigRegexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
+xcopy /D /R /Y "%BasePath%\MvzrWorker\ZigMvzrWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
+xcopy /D /R /Y "%BasePath%\PzreWorker\zig-out\bin\ZigPzreWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 
 
 rem -- RE# --
