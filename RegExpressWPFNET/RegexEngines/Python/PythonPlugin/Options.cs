@@ -44,6 +44,10 @@ namespace PythonPlugin
         public bool partial { get; set; }
         public string? timeout { get; set; } // seconds, double
 
+        // real
+        public bool fallback { get; set; }
+
+
         public Options Clone( )
         {
             return (Options)MemberwiseClone( );

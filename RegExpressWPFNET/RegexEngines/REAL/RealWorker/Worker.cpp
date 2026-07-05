@@ -1,4 +1,4 @@
-// SubRegWorker.cpp : This file contains the 'main' function. Program execution begins and ends there.
+// Worker.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
 #include "pch.h"
@@ -10,7 +10,7 @@
 #include "CheckedCast.h"
 #include "SEHFilter.h"
 
-#include "real_regex-min/include/real/real.hpp"
+#include "real/real.hpp"
 
 
 static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, real::flags flags )

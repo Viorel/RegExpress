@@ -56,6 +56,7 @@ namespace PythonPlugin
                         //options.LOCALE,
                         options.MULTILINE,
                         options.VERBOSE,
+                        options.fallback,
                     },
                 };
                 var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

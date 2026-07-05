@@ -59,6 +59,7 @@ namespace PythonPlugin
                 LOCALE_disabled.Display( Options.Module == ModuleEnum.real_regex );
 
                 pnlAdditional.Display( Options.Module == ModuleEnum.regex );
+                FALLBACK.Display( Options.Module == ModuleEnum.real_regex );
             }
             finally
             {

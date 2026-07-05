@@ -20,8 +20,11 @@ if flags_obj['IGNORECASE']  : flags |= re.IGNORECASE
 if flags_obj['MULTILINE']   : flags |= re.MULTILINE
 if flags_obj['VERBOSE']     : flags |= re.VERBOSE
 
+fallback = False
+if flags_obj['fallback']    : fallback = True
+
 try:
-    regex_obj = re.compile( pattern, flags)
+    regex_obj = re.compile( pattern, flags, fallback)
 
     #print( f'# {regex_obj.groups}')
     #print( f'# {regex_obj.groupindex}')
