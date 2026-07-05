@@ -16,6 +16,7 @@ namespace RustPlugin
         regress,
         resharp,
         anre,
+        real_regex,
     }
 
     enum StructEnum
@@ -46,23 +47,23 @@ namespace RustPlugin
         public bool ignore_whitespace { get; set; }
         public bool unicode { get; set; } = true;
         public bool octal { get; set; }
-        public bool crlf { get; set; } // ('regex', 'regex_lite', 'fancy_regex' specific, the (?R) flag)
+        public bool crlf { get; set; } // ('regex', 'regex-lite', 'fancy-regex' specific, the (?R) flag)
         public bool no_opt { get; set; } // ('regress' specific)
         public bool unicode_sets { get; set; } // ('regress' specific)
-        public bool oniguruma_mode { get; set; } // ('fancy_regex' specific)
-        public bool find_not_empty { get; set; } // ('fancy_regex' specific)
-        public bool ignore_numbered_groups_when_named_groups_exist { get; set; } // ('fancy_regex' specific)
+        public bool oniguruma_mode { get; set; } // ('fancy-regex' specific)
+        public bool find_not_empty { get; set; } // ('fancy-regex' specific)
+        public bool ignore_numbered_groups_when_named_groups_exist { get; set; } // ('fancy-regex' specific)
         public bool hardened { get; set; } // ('resharp' specific)
         public bool unbounded_size { get; set; } // ('resharp' specific)
         public UnicodeModeEnum UnicodeMode { get; set; } = UnicodeModeEnum.Default; // ('resharp' specific)
 
-        // Regex and Regex_lite crates
+        // Regex and Regex-lite crates
 
         public string? size_limit { get; set; }
         public string? dfa_size_limit { get; set; } // (not in 'regex_lite')
         public string? nest_limit { get; set; }
 
-        // Fancy_regex crate
+        // Fancy-regex crate
 
         public string? backtrack_limit { get; set; }
         public string? delegate_size_limit { get; set; }
@@ -72,8 +73,11 @@ namespace RustPlugin
         public string? max_dfa_capacity { get; set; }
         public string? lookahead_context_max { get; set; }
 
-        // Anre crate
+        // Regex-anre crate
         public bool anre_syntax { get; set; }
+
+        // Real-regex crate
+        public bool fallback { get; set; }
 
         public Options Clone( )
         {

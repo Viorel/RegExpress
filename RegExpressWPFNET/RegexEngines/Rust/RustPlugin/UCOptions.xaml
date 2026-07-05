@@ -41,11 +41,12 @@
                 <Label Content="Crate:" Target="{Binding ElementName=cbxCrate}" Padding="0 2 4 2" MinWidth="40"/>
                 <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
                     <ui:ComboBoxItemWithVersion Tag ="regex"       Text="regex"       Version="{Binding Regex, Source={StaticResource versions}}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag ="regex_lite"  Text="regex_lite"  Version="{Binding RegexLite, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="fancy_regex" Text="fancy_regex" Version="{Binding FancyRegex, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="regex_lite"  Text="regex-lite"  Version="{Binding RegexLite, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="fancy_regex" Text="fancy-regex" Version="{Binding FancyRegex, Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="regress"     Text="regress"     Version="{Binding Regress, Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="resharp"     Text="resharp"     Version="{Binding Resharp, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="anre"        Text="anre"        Version="{Binding Anre, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="anre"        Text="regex-anre"  Version="{Binding Anre, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="real_regex"  Text="real-regex"  Version="{Binding RealRegex, Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 
@@ -74,6 +75,7 @@
                 <ui:CheckboxWithNote x:Name="chbx_oniguruma_mode" Prop="oniguruma_mode" Note="do not treat “\&lt;” and “\&gt;” as left and right word-bounds"/>
                 <ui:CheckboxWithNote x:Name="chbx_find_not_empty" Prop="find_not_empty" Note="require that matches are non-empty"/>
                 <ui:CheckboxWithNote x:Name="chbx_ignore_numbered_groups_when_named_groups_exist" Prop="ignore_numbered_groups_when_named_groups_exist" Note="treat unnamed capture groups as non-capturing when named groups exist"/>
+                <ui:CheckboxWithNote x:Name="chbx_fallback" Prop="fallback" Note="delegate pattern to regex crate if REAL cannot run it linearly; forfeits the linear-time guarantee"/>
 
                 <StackPanel Orientation="Vertical">
 

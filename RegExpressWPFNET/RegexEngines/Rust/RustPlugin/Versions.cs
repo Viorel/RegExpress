@@ -15,5 +15,6 @@ namespace RustPlugin
         public static string Regress { get; } = "0.11.1";
         public static string Resharp { get; } = "0.6.16";
         public static string Anre { get; } = "2.1.1";
+        public static string RealRegex { get; } = "2026.7.20";
     }
 }

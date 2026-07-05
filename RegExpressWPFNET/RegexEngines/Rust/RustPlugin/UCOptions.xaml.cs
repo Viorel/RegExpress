@@ -99,6 +99,7 @@ namespace RustPlugin
                     "regress" => CrateEnum.regress,
                     "resharp" => CrateEnum.resharp,
                     "anre" => CrateEnum.anre,
+                    "real_regex" => CrateEnum.real_regex,
                     _ => CrateEnum.None,
                 };
 
@@ -116,14 +117,15 @@ namespace RustPlugin
                 bool is_regress = crate == CrateEnum.regress;
                 bool is_resharp = crate == CrateEnum.resharp;
                 bool is_anre = crate == CrateEnum.anre;
+                bool is_real = crate == CrateEnum.real_regex;
 
-                pnlStruct.Display( is_regex_or_regex_lite || is_fancy );
-                pnlRegexBuilderOptions.Display( is_regex_or_regex_lite || is_fancy );
+                pnlStruct.Display( is_regex_or_regex_lite || is_fancy || is_real );
+                pnlRegexBuilderOptions.Display( is_regex_or_regex_lite || is_fancy || is_real );
                 pnlRegressOptions.Display( is_regress );
                 pnlResharpOptions.Display( is_resharp );
                 pnlAnreOptions.Display( is_anre );
 
-                if( is_regex_or_regex_lite || is_fancy )
+                if( pnlStruct.IsVisible )
                 {
                     bool is_builder = @struct == StructEnum.RegexBuilder;
 
@@ -153,6 +155,7 @@ namespace RustPlugin
                 chbx_oniguruma_mode.Display( is_fancy );
                 chbx_find_not_empty.Display( is_fancy );
                 chbx_ignore_numbered_groups_when_named_groups_exist.Display( is_fancy );
+                chbx_fallback.Display( is_real );
             }
             finally
             {
@@ -183,11 +186,12 @@ namespace RustPlugin
             return Options.crate switch
             {
                 CrateEnum.regex => "regex",
-                CrateEnum.regex_lite => "regex_lite",
-                CrateEnum.fancy_regex => "fancy_regex",
+                CrateEnum.regex_lite => "regex-lite",
+                CrateEnum.fancy_regex => "fancy",
                 CrateEnum.regress => "regress",
                 CrateEnum.resharp => "resharp",
                 CrateEnum.anre => "anre",
+                CrateEnum.real_regex => "real",
                 _ => "unknown"
             };
         }

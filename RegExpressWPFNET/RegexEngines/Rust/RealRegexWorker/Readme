@@ -1,0 +1,28 @@
+In order to rebuild the RustRealRegexWorker ("src\main.rs"):
+
+- Download and install "Rust" from https://www.rust-lang.org/tools/install. 
+  Use the recommended "rustup". Select the 64-bit installer.
+
+  It will include the Rust compiler and Cargo package manager. 
+  To check, run from command line:
+
+        > rustc --version
+        > cargo --version
+
+- If required, adjust the versions in "Cargo.toml" file, "[dependencies]" section.
+
+- Run this command:
+
+        > build.cmd
+
+  It will generate the "target\release\RustRealRegexWorker.exe".
+
+- To test, execute, for example:
+
+        > test1.cmd
+
+- Rebuild ("Rebuild All") the Visual Studio solution. A Custom build step 
+  will copy 'RustRealRegexWorker.exe' to output folder as 'RustRealRegexWorker.bin'.
+
+- Commit and push the changes to Git (including 'RustRealRegexWorker.exe'). 
+

@@ -89,6 +89,7 @@ fn main()
         reb.case_insensitive(options["case_insensitive"].as_bool().unwrap_or(false));
         reb.multi_line(options["multi_line"].as_bool().unwrap_or(false));
         reb.dot_matches_new_line(options["dot_matches_new_line"].as_bool().unwrap_or(false));
+        reb.crlf(options["crlf"].as_bool().unwrap_or(false));
         reb.swap_greed(options["swap_greed"].as_bool().unwrap_or(false));
         reb.ignore_whitespace(options["ignore_whitespace"].as_bool().unwrap_or(false));
         reb.unicode(options["unicode"].as_bool().unwrap_or(false));
