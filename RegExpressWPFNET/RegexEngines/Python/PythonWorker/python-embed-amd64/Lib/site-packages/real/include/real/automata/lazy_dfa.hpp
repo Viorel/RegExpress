@@ -583,7 +583,7 @@ namespace real::detail {
     //! \brief Whether \p state accepts here (its ordered set contains a `match` PC).
     [[nodiscard]] bool is_match(std::uint32_t state) const
     {
-      return state_match_[state] != 0;
+      return state_match_idx_[state] != no_match_idx;
     }
 
     /*!
@@ -783,7 +783,6 @@ namespace real::detail {
         }
       }
       state_match_idx_.push_back(match_idx);
-      state_match_.push_back(match_idx != no_match_idx ? 1 : 0);
       state_cut_.push_back(no_transition); // the priority-cut result, memoized lazily on first use
       cache_.insert(pcs, id);
       return id;
@@ -796,7 +795,6 @@ namespace real::detail {
       if (!first) {
         ++stats_.flushes;
         ++stats_.scan_flushes;
-        ++evictions_;
         if (stats_.scan_flushes >= thrash_flushes) {
           thrashing_ = true;
         }
@@ -804,7 +802,6 @@ namespace real::detail {
       state_pcs_.clear();
       trans_.clear();
       trans_seeded_.clear();
-      state_match_.clear();
       state_match_idx_.clear();
       state_cut_.clear();
       cache_.clear();
@@ -812,7 +809,6 @@ namespace real::detail {
       state_pcs_.emplace_back();
       trans_.insert(trans_.end(), alpha_.count, dead_state);
       trans_seeded_.insert(trans_seeded_.end(), alpha_.count, dead_state);
-      state_match_.push_back(0);
       state_match_idx_.push_back(no_match_idx);
       state_cut_.push_back(no_transition);
       std::vector<std::int32_t> start;
@@ -830,14 +826,12 @@ namespace real::detail {
     std::vector<std::vector<std::int32_t>>                                    state_pcs_;          //!< state id -> ordered pc-set.
     std::vector<std::uint32_t>                                                trans_;              //!< flat [state*stride + class] -> next, unseeded (post-match); stride = alpha_.count.
     std::vector<std::uint32_t>                                                trans_seeded_;       //!< flat [state*stride + class] -> next, re-seeding (pre-match).
-    std::vector<char>                                                         state_match_;        //!< state id -> accepts here.
     std::vector<std::uint32_t>                                                state_match_idx_;    //!< state id -> index of its first accept, or no_match_idx.
     std::vector<std::uint32_t>                                                state_cut_;          //!< state id -> memoized priority-cut result (no_transition = not yet computed).
     pc_set_cache                                                              cache_;
 
     std::size_t budget_    {state_budget};
     counters    stats_     {};
-    std::size_t evictions_ {0};
     bool        thrashing_ {false};
   };
 

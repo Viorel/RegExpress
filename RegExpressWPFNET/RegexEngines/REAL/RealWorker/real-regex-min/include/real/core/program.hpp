@@ -92,6 +92,15 @@ namespace real {
    * In a constexpr context (`static_regex`), reaching the throw is a
    * compile-time error, with the message appearing in the diagnostic trace.
    */
+  //! \brief Whether a rejected pattern is malformed (`syntax`) or well-formed but beyond REAL's linear engine
+  //!        (`unsupported`: a backreference, `\p{…}`, a nested/unbounded lookaround). The distinction is a
+  //!        stable, machine-readable classification the C ABI exposes so a binding never has to grep `what()`.
+  enum class error_kind : std::uint8_t
+  {
+    syntax,
+    unsupported,
+  };
+
   class regex_error : public std::exception
   {
   public:
@@ -100,12 +109,23 @@ namespace real {
      * \brief Builds the error.
      * \param[in] message  Human-readable cause.
      * \param[in] position Byte offset in the pattern where the error was found.
+     * \param[in] kind     Whether the pattern is malformed or merely unsupported (default `syntax`).
      */
     regex_error(const std::string& message,
-                std::size_t        position)
+                std::size_t        position,
+                error_kind         kind = error_kind::syntax)
       : message_("regex_error at " + std::to_string(position) + ": " + message),
-        position_(position)
+        position_(position),
+        kind_(kind)
     {}
+
+    /*!
+     * \brief Whether the pattern is malformed (`syntax`) or well-formed but unsupported by REAL.
+     */
+    [[nodiscard]] error_kind kind() const noexcept
+    {
+      return kind_;
+    }
 
     /*!
      * \brief Returns the formatted error message (with position).
@@ -127,6 +147,7 @@ namespace real {
 
     std::string message_;  //!< Formatted message returned by what().
     std::size_t position_; //!< Offset in the pattern text.
+    error_kind  kind_;     //!< Malformed (syntax) vs unsupported-by-REAL.
   };
 
   namespace detail {

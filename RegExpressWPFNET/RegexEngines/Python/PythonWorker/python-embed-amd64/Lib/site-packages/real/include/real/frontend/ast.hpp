@@ -337,6 +337,15 @@ namespace real::detail {
       throw Error(message, pos_);
     }
 
+    //! \brief Like \ref fail, but tags the error as `unsupported` (well-formed but beyond REAL's linear
+    //!        engine — a backreference, `\p{…}`, a nested lookaround) so a binding can classify it without
+    //!        matching on the message text. Templated like \ref fail so it stays a valid `constexpr`.
+    template <typename = void>
+    [[noreturn]] constexpr void fail_unsupported(const char* message) const
+    {
+      throw regex_error(message, pos_, error_kind::unsupported);
+    }
+
     /*!
      * \brief Returns `true` if the read offset is at or past the end of the pattern.
      */
@@ -876,7 +885,7 @@ namespace real::detail {
             parse_group_name(out, group);
           }
           else if (!eof() && peek() == '=') {
-            fail("named backreferences are not supported");
+            fail_unsupported("named backreferences are not supported");
           }
           else {
             fail("unknown extension");
@@ -968,7 +977,7 @@ namespace real::detail {
                                             std::size_t open_pos)
     {
       if (in_lookaround_) {
-        fail("nested lookaround is not supported");
+        fail_unsupported("nested lookaround is not supported");
       }
       const bool negative {peek() == '!'};
       ++pos_; // consume '=' or '!'
@@ -1120,7 +1129,7 @@ namespace real::detail {
       if (decoded.kind == digit_escape_kind::octal_overflow) {
         fail("octal escape value outside of range 0-0o377");
       }
-      fail("backreferences are not supported"); // a decimal group number = a back-reference
+      fail_unsupported("backreferences are not supported"); // a decimal group number = a back-reference
     }
 
     /*!
@@ -1426,7 +1435,7 @@ namespace real::detail {
           {
             const std::int32_t byte_value {parse_byte_escape()};
             if (byte_value < 0) {
-              fail("unsupported escape sequence");
+              fail_unsupported("unsupported escape sequence");
             }
             // A `\xHH` / octal escape with value < 0x80 is an ASCII character (byte == code point): a
             // cased one folds under icase like a raw ASCII literal (`\x4B` == `K`). A value >= 0x80
@@ -1535,7 +1544,7 @@ namespace real::detail {
           {
             const std::int32_t byte_value {parse_byte_escape()};
             if (byte_value < 0) {
-              fail("unsupported escape sequence");
+              fail_unsupported("unsupported escape sequence");
             }
             return byte_value;
           }

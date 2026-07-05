@@ -539,6 +539,11 @@ namespace real::detail {
                      });
     }
 
+    //! \brief Ensure this iterator's lazy DFA caches are warm for the current program. Builds the shared
+    //!        immutables first (\ref ensure_immutables), then — only when the state is now bound to a
+    //!        different program — (re)creates the per-iterator forward and reverse lazy-DFA transition caches
+    //!        over the shared byte-program. The caches are mutable (they fill during a scan) and per-iterator,
+    //!        so this runs once per iterator, not per match, off the hot path.
     void ensure_lazy_dfa()
     {
       detail::regex_immutables* const immut {prog_.immut};
