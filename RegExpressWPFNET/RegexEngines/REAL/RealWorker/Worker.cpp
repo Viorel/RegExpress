@@ -11,6 +11,7 @@
 #include "SEHFilter.h"
 
 #include "real/real.hpp"
+//#include "real/std/regex.hpp" // for 'real::compat::regex', to support fallback; not considered here
 
 
 static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, real::flags flags )

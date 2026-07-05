@@ -157,7 +157,7 @@ namespace RealPlugin
 
                     if( char_offset != byte_offset )
                     {
-                        string new_message = $"{error.TrimEnd( )}{Environment.NewLine}{Environment.NewLine}(character offset: {char_offset})";
+                        string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character offset {char_offset}";
 
                         return new_message;
                     }
