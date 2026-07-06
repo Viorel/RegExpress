@@ -193,7 +193,7 @@ namespace QtPlugin
                 Esc_UBrace = false,
                 Esc_c1 = true,
                 Esc_CMinus = false,
-                Esc_NBrace = false,
+                Esc_NBrace = true,
                 GenericEscape = false,
 
                 InsideSets_Esc_a = true,
@@ -216,7 +216,7 @@ namespace QtPlugin
                 InsideSets_Esc_c1 = true,
                 InsideSets_Esc_C1 = false,
                 InsideSets_Esc_CMinus = false,
-                InsideSets_Esc_NBrace = false,
+                InsideSets_Esc_NBrace = true,
                 InsideSets_GenericEscape = false,
 
                 Class_Dot = true,

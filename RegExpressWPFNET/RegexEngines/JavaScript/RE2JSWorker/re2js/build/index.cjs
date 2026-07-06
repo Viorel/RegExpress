@@ -2,7 +2,7 @@
 * re2js
 * RE2JS is the JavaScript port of RE2, a regular expression engine that provides linear time matching
 *
-* @version v2.8.5
+* @version v2.8.6
 * @author Oleksii Vasyliev
 * @homepage https://github.com/le0pard/re2js#readme
 * @repository github:le0pard/re2js
@@ -708,7 +708,7 @@ var Utils = class Utils {
 	static stringToUtf8ByteArray(str) {
 		if (globalThis.TextEncoder) {
 			if (!cachedNativeEncoder) cachedNativeEncoder = new TextEncoder();
-			return Utils.toArray(cachedNativeEncoder.encode(str));
+			return cachedNativeEncoder.encode(str);
 		} else {
 			let out = [], p = 0;
 			for (let i = 0; i < str.length; i++) {
@@ -1402,7 +1402,10 @@ var Matcher = class Matcher {
 	*/
 	genMatch(startByte, anchor) {
 		const res = this.patternInput.re2().matchMachineInput(this.matcherInput, startByte, this.matcherInputLength, anchor, 1);
-		if (!res[0]) return false;
+		if (!res[0]) {
+			this.hasMatch = false;
+			return false;
+		}
 		this.groups = res[1];
 		this.hasMatch = true;
 		this.hasGroups = this.patternGroupCount === 0;
@@ -1465,43 +1468,47 @@ var Matcher = class Matcher {
 		let res = "";
 		let last = 0;
 		const m = replacement.length;
-		for (let i = 0; i < m - 1; i++) {
-			if (replacement.codePointAt(i) === Codepoint.CODES.get("\\")) {
+		let i = 0;
+		while (i < m) {
+			const cCode = replacement.codePointAt(i);
+			if (cCode === Codepoint.CODES.get("\\")) {
 				if (last < i) res += replacement.substring(last, i);
 				i++;
+				if (i >= m) throw new RE2JSGroupException("character to be escaped is missing");
 				last = i;
+				i++;
 				continue;
 			}
-			if (replacement.codePointAt(i) === Codepoint.CODES.get("$")) {
-				let c = replacement.codePointAt(i + 1);
-				if (Codepoint.CODES.get("0") <= c && c <= Codepoint.CODES.get("9")) {
-					let n = c - Codepoint.CODES.get("0");
-					if (last < i) res += replacement.substring(last, i);
-					for (i += 2; i < m; i++) {
-						c = replacement.codePointAt(i);
-						if (c < Codepoint.CODES.get("0") || c > Codepoint.CODES.get("9") || n * 10 + c - Codepoint.CODES.get("0") > this.patternGroupCount) break;
-						n = n * 10 + c - Codepoint.CODES.get("0");
+			if (cCode === Codepoint.CODES.get("$")) {
+				if (last < i) res += replacement.substring(last, i);
+				if (i + 1 >= m) throw new RE2JSGroupException("Illegal group reference: group index is missing");
+				const nextCode = replacement.codePointAt(i + 1);
+				if (Codepoint.CODES.get("0") <= nextCode && nextCode <= Codepoint.CODES.get("9")) {
+					let n = nextCode - Codepoint.CODES.get("0");
+					let j = i + 2;
+					for (; j < m; j++) {
+						const digit = replacement.codePointAt(j);
+						if (digit < Codepoint.CODES.get("0") || digit > Codepoint.CODES.get("9") || n * 10 + digit - Codepoint.CODES.get("0") > this.patternGroupCount) break;
+						n = n * 10 + digit - Codepoint.CODES.get("0");
 					}
 					if (n > this.patternGroupCount) throw new RE2JSGroupException(`n > number of groups: ${n}`);
 					const group = this.group(n);
 					if (group !== null) res += group;
+					i = j;
 					last = i;
-					i--;
-					continue;
-				} else if (c === Codepoint.CODES.get("{")) {
-					if (last < i) res += replacement.substring(last, i);
-					i++;
-					let j = i + 1;
-					while (j < replacement.length && replacement.codePointAt(j) !== Codepoint.CODES.get("}") && replacement.codePointAt(j) !== Codepoint.CODES.get(" ")) j++;
-					if (j === replacement.length || replacement.codePointAt(j) !== Codepoint.CODES.get("}")) throw new RE2JSGroupException("named capture group is missing trailing '}'");
-					const groupName = replacement.substring(i + 1, j);
+				} else if (nextCode === Codepoint.CODES.get("{")) {
+					let j = i + 2;
+					while (j < m && replacement.codePointAt(j) !== Codepoint.CODES.get("}")) j++;
+					if (j >= m) throw new RE2JSGroupException("named capture group is missing trailing '}'");
+					const groupName = replacement.substring(i + 2, j);
 					const groupVal = this.group(groupName);
 					if (groupVal !== null) res += groupVal;
-					last = j + 1;
-					i = j;
-					continue;
-				}
+					i = j + 1;
+					last = i;
+				} else throw new RE2JSGroupException("Illegal group reference");
+				continue;
 			}
+			i++;
 		}
 		if (last < m) res += replacement.substring(last, m);
 		return res;
@@ -1812,18 +1819,18 @@ var Inst = class Inst {
 };
 //#endregion
 //#region src/Machine.js
-var Thread = class {
-	constructor() {
-		this.inst = null;
-		this.cap = null;
-	}
-};
 var Queue = class {
 	constructor(numInst) {
 		this.sparse = new Int32Array(numInst);
 		this.densePcs = new Int32Array(numInst);
-		this.denseThreads = new Array(numInst);
+		this.denseCaps = null;
 		this.size = 0;
+		this.ncap = 0;
+	}
+	init(ncap) {
+		this.ncap = ncap;
+		const needed = this.densePcs.length * ncap;
+		if (!this.denseCaps || this.denseCaps.length < needed) this.denseCaps = new Int32Array(needed);
 	}
 	contains(pc) {
 		const j = this.sparse[pc];
@@ -1835,12 +1842,10 @@ var Queue = class {
 	add(pc) {
 		const j = this.size++;
 		this.sparse[pc] = j;
-		this.denseThreads[j] = null;
 		this.densePcs[j] = pc;
 		return j;
 	}
 	clear() {
-		for (let i = 0; i < this.size; i++) this.denseThreads[i] = null;
 		this.size = 0;
 	}
 	toString() {
@@ -1854,15 +1859,12 @@ var Queue = class {
 	}
 };
 var Machine = class Machine {
-	static THREADS_CHUNK_SIZE = 128;
 	static fromRE2(re2) {
 		const m = new Machine();
 		m.prog = re2.prog;
 		m.re2 = re2;
 		m.q0 = new Queue(m.prog.numInst());
 		m.q1 = new Queue(m.prog.numInst());
-		m.pool = [];
-		m.poolSize = 0;
 		m.matched = false;
 		m.matchcap = new Int32Array(m.prog.numCap < 2 ? 2 : m.prog.numCap);
 		m.ncap = 0;
@@ -1876,8 +1878,6 @@ var Machine = class Machine {
 		this.re2 = null;
 		this.q0 = null;
 		this.q1 = null;
-		this.pool = [];
-		this.poolSize = 0;
 		this.matched = false;
 		this.matchcap = null;
 		this.ncap = 0;
@@ -1885,50 +1885,18 @@ var Machine = class Machine {
 	}
 	init(ncap) {
 		this.ncap = ncap;
-		if (ncap > this.matchcap.length) this.initNewCap(ncap);
-		else this.resetCap();
+		if (ncap > this.matchcap.length) this.matchcap = new Int32Array(ncap).fill(-1);
+		else this.matchcap.fill(-1);
+		this.q0.init(ncap);
+		this.q1.init(ncap);
 		if (this.prog.numLb > 0) {
 			if (!this.lbTable || this.lbTable.length < this.prog.numLb + 1) this.lbTable = new Int32Array(this.prog.numLb + 1);
 			this.lbTable.fill(-1);
 		}
 	}
-	resetCap() {
-		for (let i = 0; i < this.poolSize; i++) this.pool[i].cap.fill(-1);
-	}
-	initNewCap(ncap) {
-		for (let i = 0; i < this.poolSize; i++) {
-			const t = this.pool[i];
-			t.cap = new Int32Array(ncap).fill(-1);
-		}
-		this.matchcap = new Int32Array(ncap).fill(-1);
-	}
 	submatches() {
 		if (this.ncap === 0) return Utils.emptyInts();
 		return Utils.toArray(this.matchcap.subarray(0, this.ncap));
-	}
-	alloc(inst) {
-		if (this.poolSize === 0) {
-			const capLen = this.matchcap.length;
-			for (let i = 0; i < Machine.THREADS_CHUNK_SIZE; i++) {
-				const t = new Thread();
-				t.cap = new Int32Array(capLen);
-				this.pool[this.poolSize++] = t;
-			}
-		}
-		this.poolSize--;
-		const t = this.pool[this.poolSize];
-		t.inst = inst;
-		return t;
-	}
-	freeQueue(queue, from = 0) {
-		for (let i = from; i < queue.size; i++) {
-			const t = queue.denseThreads[i];
-			if (t !== null) this.pool[this.poolSize++] = t;
-		}
-		queue.clear();
-	}
-	freeThread(t) {
-		this.pool[this.poolSize++] = t;
 	}
 	match(input, pos, anchor) {
 		const startCond = this.re2.cond;
@@ -1968,13 +1936,14 @@ var Machine = class Machine {
 					r = input.step(currentPos + width);
 					rune1 = r >> 3;
 					width1 = r & 7;
+					flag = input.context(currentPos);
 				}
 			}
-			if (currentPos === 0 && this.prog.numLb > 0) for (let i = 0; i < this.prog.lbStarts.length; i++) this.add(runq, this.prog.lbStarts[i], currentPos, this.matchcap, flag, null);
+			if (currentPos === 0 && this.prog.numLb > 0) for (let i = 0; i < this.prog.lbStarts.length; i++) this.add(runq, this.prog.lbStarts[i], currentPos, this.matchcap, 0, flag);
 			if (!this.matched && (currentPos === 0 || anchor === RE2Flags.UNANCHORED)) {
 				if (currentPos >= matchStartPos) {
 					if (this.ncap > 0) this.matchcap[0] = currentPos;
-					this.add(runq, this.prog.start, currentPos, this.matchcap, flag, null);
+					this.add(runq, this.prog.start, currentPos, this.matchcap, 0, flag);
 				}
 			}
 			const nextPos = currentPos + width;
@@ -1994,7 +1963,7 @@ var Machine = class Machine {
 			runq = nextq;
 			nextq = tmpq;
 		}
-		this.freeQueue(nextq);
+		nextq.clear();
 		return this.matched;
 	}
 	matchSet(input, pos, anchor) {
@@ -2022,16 +1991,16 @@ var Machine = class Machine {
 				if ((startCond & Utils.EMPTY_BEGIN_TEXT) !== 0 && currentPos !== 0) break;
 				if ((anchor === RE2Flags.ANCHOR_START || anchor === RE2Flags.ANCHOR_BOTH) && currentPos !== 0) break;
 			}
-			if (currentPos === 0 && this.prog.numLb > 0) for (let i = 0; i < this.prog.lbStarts.length; i++) this.add(runq, this.prog.lbStarts[i], currentPos, this.matchcap, flag, null);
+			if (currentPos === 0 && this.prog.numLb > 0) for (let i = 0; i < this.prog.lbStarts.length; i++) this.add(runq, this.prog.lbStarts[i], currentPos, this.matchcap, 0, flag);
 			if (currentPos === 0 || anchor === RE2Flags.UNANCHORED) {
-				if (currentPos >= matchStartPos) this.add(runq, this.prog.start, currentPos, this.matchcap, flag, null);
+				if (currentPos >= matchStartPos) this.add(runq, this.prog.start, currentPos, this.matchcap, 0, flag);
 			}
 			const nextPos = currentPos + width;
 			flag = input.context(nextPos);
 			for (let j = 0; j < runq.size; j++) {
-				let t = runq.denseThreads[j];
-				if (t === null) continue;
-				const i = t.inst;
+				const pc = runq.densePcs[j];
+				const i = this.prog.inst[pc];
+				const capOffset = j * this.ncap;
 				let add = false;
 				switch (i.op) {
 					case Inst.MATCH:
@@ -2048,15 +2017,11 @@ var Machine = class Machine {
 						add = true;
 						break;
 					case Inst.RUNE_ANY_NOT_NL:
-						add = rune !== Codepoint.CODES.get("\n");
+						add = rune !== 10;
 						break;
-					default: throw new RE2JSInternalException("bad inst");
+					default: continue;
 				}
-				if (add) t = this.add(nextq, i.out, nextPos, t.cap, flag, t);
-				if (t !== null) {
-					this.freeThread(t);
-					runq.denseThreads[j] = null;
-				}
+				if (add) this.add(nextq, i.out, nextPos, runq.denseCaps, capOffset, flag);
 			}
 			runq.clear();
 			if (width === 0) break;
@@ -2072,28 +2037,25 @@ var Machine = class Machine {
 			runq = nextq;
 			nextq = tmpq;
 		}
-		this.freeQueue(nextq);
+		nextq.clear();
 		return Array.from(matches).sort((a, b) => a - b);
 	}
 	step(runq, nextq, pos, nextPos, c, nextCond, anchor, atEnd) {
 		const longest = this.re2.longest;
 		for (let j = 0; j < runq.size; j++) {
-			let t = runq.denseThreads[j];
-			if (t === null) continue;
-			if (longest && this.matched && this.ncap > 0 && this.matchcap[0] < t.cap[0]) {
-				this.freeThread(t);
-				continue;
-			}
-			const i = t.inst;
+			const pc = runq.densePcs[j];
+			const capOffset = j * this.ncap;
+			if (longest && this.matched && this.ncap > 0 && this.matchcap[0] < runq.denseCaps[capOffset]) continue;
+			const i = this.prog.inst[pc];
 			let add = false;
 			switch (i.op) {
 				case Inst.MATCH:
 					if (anchor === RE2Flags.ANCHOR_BOTH && !atEnd) break;
 					if (this.ncap > 0 && (!longest || !this.matched || this.matchcap[1] < pos)) {
-						t.cap[1] = pos;
-						this.matchcap.set(t.cap.subarray(0, this.ncap));
+						runq.denseCaps[capOffset + 1] = pos;
+						for (let k = 0; k < this.ncap; k++) this.matchcap[k] = runq.denseCaps[capOffset + k];
 					}
-					if (!longest) this.freeQueue(runq, j + 1);
+					if (!longest) runq.size = 0;
 					this.matched = true;
 					break;
 				case Inst.RUNE:
@@ -2106,29 +2068,25 @@ var Machine = class Machine {
 					add = true;
 					break;
 				case Inst.RUNE_ANY_NOT_NL:
-					add = c !== Codepoint.CODES.get("\n");
+					add = c !== 10;
 					break;
-				default: throw new RE2JSInternalException("bad inst");
+				default: continue;
 			}
-			if (add) t = this.add(nextq, i.out, nextPos, t.cap, nextCond, t);
-			if (t !== null) {
-				this.freeThread(t);
-				runq.denseThreads[j] = null;
-			}
+			if (add) this.add(nextq, i.out, nextPos, runq.denseCaps, capOffset, nextCond);
 		}
 		runq.clear();
 	}
-	add(q, pc, pos, cap, cond, t) {
+	add(q, pc, pos, capArray, capOffset, cond) {
 		while (true) {
-			if (pc === 0) return t;
-			if (q.contains(pc)) return t;
+			if (pc === 0) return;
+			if (q.contains(pc)) return;
 			const d = q.add(pc);
 			const inst = this.prog.inst[pc];
 			switch (inst.op) {
-				case Inst.FAIL: return t;
+				case Inst.FAIL: return;
 				case Inst.ALT:
 				case Inst.ALT_MATCH:
-					t = this.add(q, inst.out, pos, cap, cond, t);
+					this.add(q, inst.out, pos, capArray, capOffset, cond);
 					pc = inst.arg;
 					continue;
 				case Inst.EMPTY_WIDTH:
@@ -2136,16 +2094,16 @@ var Machine = class Machine {
 						pc = inst.out;
 						continue;
 					}
-					return t;
+					return;
 				case Inst.NOP:
 					pc = inst.out;
 					continue;
 				case Inst.CAPTURE: if (inst.arg < this.ncap) {
-					const opos = cap[inst.arg];
-					cap[inst.arg] = pos;
-					this.add(q, inst.out, pos, cap, cond, null);
-					cap[inst.arg] = opos;
-					return t;
+					const opos = capArray[capOffset + inst.arg];
+					capArray[capOffset + inst.arg] = pos;
+					this.add(q, inst.out, pos, capArray, capOffset, cond);
+					capArray[capOffset + inst.arg] = opos;
+					return;
 				} else {
 					pc = inst.out;
 					continue;
@@ -2164,19 +2122,18 @@ var Machine = class Machine {
 						pc = inst.out;
 						continue;
 					}
-					return t;
+					return;
 				case Inst.MATCH:
 				case Inst.RUNE:
 				case Inst.RUNE1:
 				case Inst.RUNE_ANY:
 				case Inst.RUNE_ANY_NOT_NL:
-					if (t === null) t = this.alloc(inst);
-					else t.inst = inst;
-					if (this.ncap > 0 && t.cap !== cap) for (let c = 0; c < this.ncap; c++) t.cap[c] = cap[c];
-					q.denseThreads[d] = t;
-					t = null;
-					return t;
-				default: throw new Error("unhandled");
+					if (this.ncap > 0) {
+						const destOffset = d * this.ncap;
+						for (let c = 0; c < this.ncap; c++) q.denseCaps[destOffset + c] = capArray[capOffset + c];
+					}
+					return;
+				default: throw new RE2JSInternalException("unhandled");
 			}
 		}
 	}
@@ -2773,7 +2730,9 @@ const makeOnePass = (p) => {
 					m[pc] = true;
 					inst.op = Inst.ALT_MATCH;
 				}
-				const mergeRes = mergeRuneSets(onePassRunes[inst.out] || [], onePassRunes[inst.arg] || [], inst.out, inst.arg);
+				const leftRunes = onePassRunes[inst.out] || [];
+				const rightRunes = onePassRunes[inst.arg] || [];
+				const mergeRes = mergeRuneSets(leftRunes, rightRunes, inst.out, inst.arg);
 				if (!mergeRes) return false;
 				onePassRunes[pc] = mergeRes.merged;
 				inst.next = new Uint32Array(mergeRes.next);
@@ -5365,24 +5324,6 @@ var Parser = class Parser {
 };
 //#endregion
 //#region src/RE2.js
-var AtomicReference = class {
-	constructor(initialValue) {
-		this.value = initialValue;
-	}
-	get() {
-		return this.value;
-	}
-	set(newValue) {
-		this.value = newValue;
-	}
-	compareAndSet(expect, update) {
-		if (this.value === expect) {
-			this.value = update;
-			return true;
-		}
-		return false;
-	}
-};
 /**
 * An RE2 class instance is a compiled representation of an RE2 regular expression, independent of
 * the public Java-like Pattern/Matcher API.
@@ -5471,7 +5412,7 @@ var RE2 = class RE2 {
 		this.prefixUTF8 = null;
 		this.prefixComplete = false;
 		this.prefixRune = 0;
-		this.pooled = new AtomicReference();
+		this.machinePool = [];
 		this.dfa = new DFA(this.prog);
 		this.onepass = OnePass.compile(this.prog);
 		this.prefilter = null;
@@ -5535,42 +5476,23 @@ var RE2 = class RE2 {
 		return this.prog.numInst();
 	}
 	get() {
-		let head;
-		do
-			head = this.pooled.get();
-		while (head && !this.pooled.compareAndSet(head, head.next));
-		return head;
+		return this.machinePool.length > 0 ? this.machinePool.pop() : null;
 	}
 	reset() {
-		this.pooled.set(null);
+		this.machinePool.length = 0;
 	}
-	put(m, isNew) {
-		let head = this.pooled.get();
-		do {
-			head = this.pooled.get();
-			if (!isNew && head) {
-				m = Machine.fromMachine(m);
-				isNew = true;
-			}
-			if (m.next !== head) m.next = head;
-		} while (!this.pooled.compareAndSet(head, m));
+	put(m) {
+		this.machinePool.push(m);
 	}
 	toString() {
 		return this.expr;
 	}
 	doExecuteNFA(input, pos, anchor, ncap) {
 		let m = this.get();
-		let isNew = false;
-		if (!m) {
-			m = Machine.fromRE2(this);
-			isNew = true;
-		} else if (m.next !== null) {
-			m = Machine.fromMachine(m);
-			isNew = true;
-		}
+		if (!m) m = Machine.fromRE2(this);
 		m.init(ncap);
 		const cap = m.match(input, pos, anchor) ? m.submatches() : null;
-		this.put(m, isNew);
+		this.put(m);
 		return cap;
 	}
 	match(s) {
@@ -6436,7 +6358,7 @@ var RE2JS = class RE2JS {
 			}
 			result.push(m.substring(last, m.inputLength()));
 		}
-		if (limit !== 0 || result.length === 0) result.push(m.substring(last, m.inputLength()));
+		if (limit !== 0 || result.length === 0 && !(last === m.inputLength() && last > 0)) result.push(m.substring(last, m.inputLength()));
 		return result;
 	}
 	/**

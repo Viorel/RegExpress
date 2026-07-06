@@ -31,7 +31,7 @@ The following engines are included:
   * [_QuickJs_](https://bellard.org/quickjs/) 2026-06-04,
   * [_SpiderMonkey_](https://spidermonkey.dev/) C145.0,
   * _JavaScriptCore_ (via [Bun 1.3.13](https://bun.sh/)[^1]),
-  * [_RE2JS_](https://github.com/le0pard/re2js) 2.8.5,
+  * [_RE2JS_](https://github.com/le0pard/re2js) 2.8.6,
   * [_Regex+_](https://github.com/slevithan/regex) 6.1.0.
 * **VBScript** [**RegExp**](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85)) object used in Publisher, Word, Excel, Access.
 * [**Hyperscan**](https://github.com/intel/hyperscan) 5.4.2 from Intel (in C).

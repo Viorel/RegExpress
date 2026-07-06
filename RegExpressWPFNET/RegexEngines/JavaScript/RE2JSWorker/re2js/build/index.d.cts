@@ -503,7 +503,7 @@ declare class RE2 {
 	prefixUTF8: any;
 	prefixComplete: boolean;
 	prefixRune: number;
-	pooled: AtomicReference;
+	machinePool: any[];
 	dfa: DFA;
 	onepass: {
 		start: any;
@@ -523,7 +523,7 @@ declare class RE2 {
 	numberOfInstructions(): any;
 	get(): any;
 	reset(): void;
-	put(m: any, isNew: any): void;
+	put(m: any): void;
 	toString(): any;
 	doExecuteNFA(input: any, pos: any, anchor: any, ncap: any): any;
 	match(s: any): boolean;
@@ -698,13 +698,6 @@ declare class RE2 {
 	 * A return value of null indicates no match.
 	 */
 	findAllSubmatchIndex(s: any, n: any): any[];
-}
-declare class AtomicReference {
-	constructor(initialValue: any);
-	value: any;
-	get(): any;
-	set(newValue: any): void;
-	compareAndSet(expect: any, update: any): boolean;
 }
 /**
  * Creates an RE2JS regex directly from a template literal.
