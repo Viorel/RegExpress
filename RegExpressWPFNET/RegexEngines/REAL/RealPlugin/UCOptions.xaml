@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RealPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="116.376" d:DesignWidth="767.909" 
+             d:DesignHeight="195.576" d:DesignWidth="927.909" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -18,13 +18,14 @@
     <Grid>
         <StackPanel Orientation="Vertical" VerticalAlignment="Top">
             <ui:CheckboxWithNote Prop="icase" Note="case-insensitive"/>
-            <ui:CheckboxWithNote Prop="multiline" Note="^ and $ also match at line boundaries"/>
-            <ui:CheckboxWithNote Prop="dotall" Note=". also matches \n"/>
+            <ui:CheckboxWithNote Prop="multiline" Note="`^` and `$` also match at line boundaries"/>
+            <ui:CheckboxWithNote Prop="dotall" Note="`.` also matches `\n`"/>
             <!-- not supported here -->
-            <!--<ui:CheckboxWithNote Prop="bytes" Note=". and [^…] match raw bytes, not codepoints"/>-->
-            <ui:CheckboxWithNote Prop="verbose" Note="ignore unescaped whitespace and # comments outside classes"/>
-            <ui:CheckboxWithNote Prop="ecma" Note="$ (no multiline) matches only at the very end (not before a final \n, the Python default), and . (no dotall) also excludes \r"/>
-            <ui:CheckboxWithNote Prop="ascii" Note="\d \w \s \b stay ASCII and icase folds ASCII only, even in text mode. ., explicit classes and UTF-8 literals stay code-point-aware"/>
+            <!--<ui:CheckboxWithNote Prop="bytes" Note="binary mode: `.` and `[^…]` match raw bytes, not codepoints"/>-->
+            <ui:CheckboxWithNote Prop="verbose" Note="ignore unescaped whitespace and `#` comments outside classes"/>
+            <ui:CheckboxWithNote Prop="ascii" Note="`\d \w \s \b` stay ASCII and icase folds ASCII only, even in text mode. `.`, explicit classes and UTF-8 literals stay code-point-aware"/>
+            <ui:CheckboxWithNote Prop="ecma" Note="`$` (no multiline) matches only at the very end (not before a final `\n`, the Python default), AND `.` (no dotall) also excludes `\r` (ECMAScript excludes `\n` and `\r`; the multi-byte U+2028/U+2029 have no byte-level effect"/>
+            <ui:CheckboxWithNote Prop="dollar_endonly" Note="`$` (no multiline) matches only at the very end of the text, never before a final `\n` — the Rust/`\z` semantics. Unlike flags::ecma this touches `$` ONLY, leaving `.` at the Python default. Used by the Rust binding for drop-in parity"/>
         </StackPanel>
     </Grid>
 </UserControl>

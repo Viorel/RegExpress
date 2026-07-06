@@ -16,6 +16,7 @@ namespace RealPlugin
         public bool verbose { get; set; }
         public bool ecma { get; set; }
         public bool ascii { get; set; }
+        public bool dollar_endonly { get; set; }
 
         public Options Clone( )
         {

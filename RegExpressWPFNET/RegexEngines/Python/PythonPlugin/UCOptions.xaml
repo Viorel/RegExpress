@@ -38,7 +38,6 @@
             <ui:CheckboxWithNote Prop="DOTALL" Note=". matches any character, including newline"/>
             <ui:CheckboxWithNote Prop="IGNORECASE" Note="case-insensitive matching"/>
             <ui:CheckboxWithNote x:Name="LOCALE" Prop="LOCALE" Note="\w, \W, \b, \B and case-insensitive matching dependent on current locale"/>
-            <ui:CheckboxWithNote x:Name="LOCALE_disabled" Text="LOCALE" Note="\w, \W, \b, \B and case-insensitive matching dependent on current locale" IsChecked="False" IsEnabled="False" Visibility="Collapsed" d:Visibility="Visible" />
             <ui:CheckboxWithNote Prop="MULTILINE" Note="^ matches at the beginning of the string and at the beginning of each line; $ matches at the end of the string and at the end of each line"/>
             <ui:CheckboxWithNote Prop="VERBOSE" Note="allow spaces and comments"/>
             <ui:CheckboxWithNote x:Name="FALLBACK" Prop="fallback" Note="delegates unsupported patterns to the standard library “re” (forfeiting the linear-time guarantee)"/>

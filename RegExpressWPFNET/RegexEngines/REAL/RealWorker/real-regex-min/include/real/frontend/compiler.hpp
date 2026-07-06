@@ -30,6 +30,7 @@
 #include "real/core/charclass.hpp"
 #include "real/core/config.hpp"
 #include "real/engine/prefilter.hpp"
+#include "real/frontend/inner_literal.hpp"
 #include "real/core/program.hpp"
 #include "real/unicode/unicode_fold.hpp"
 #include "real/automata/utf8_ranges.hpp"
@@ -136,6 +137,12 @@ namespace real::detail {
       prog.byte_mode    = has_flag(flags_, flags::bytes);
       prog.unicode_word = !has_flag(flags_, flags::bytes) && !has_flag(flags_, flags::ascii);
       prog.hints        = analyze_program(prog.code, prog.classes, prog.cp_classes, prog.codepoint_mark_ascii, prog.codepoint_mark_offset);
+      // The required inner literal + its prefix boundary (a single AST walk). Recorded for the inner-literal
+      // search path; not yet routed on. Kept off the program code, so byte-identity is untouched.
+      const inner_literal il {extract_inner_literal(tree_)};
+      prog.hints.inner_literal        = il.bytes;
+      prog.hints.inner_literal_len    = il.len;
+      prog.hints.inner_literal_prefix = il.prefix_child_count;
       if (prog.code.size() > max_program_size) {
         throw regex_error("program too large", 0);
       }
@@ -614,12 +621,13 @@ namespace real::detail {
           result = multiline ? assert_kind::line_start : assert_kind::text_start;
           break;
         case anchor_kind::dollar:
-          // Default (Python): `$` matches at end OR just before a final `\n`. With the
-          // ecma flag, `$` (no multiline) matches only at the very end (ECMAScript `$`).
+          // Default (Python): `$` matches at end OR just before a final `\n`. With the ecma OR dollar_endonly
+          // flag, `$` (no multiline) matches only at the very end — ECMAScript / Rust (`\z`) semantics.
           result = multiline
                    ? assert_kind::line_end
-                   : (has_flag(flags_, flags::ecma) ? assert_kind::text_end
-                                                    : assert_kind::text_end_or_final_newline);
+                   : (has_flag(flags_, flags::ecma) || has_flag(flags_, flags::dollar_endonly)
+                        ? assert_kind::text_end
+                        : assert_kind::text_end_or_final_newline);
           break;
         case anchor_kind::text_start:
           result = assert_kind::text_start;
@@ -888,7 +896,20 @@ namespace real::detail {
   constexpr dynamic_program compile(const ast& tree,
                                     flags      compile_flags)
   {
-    return compiler(tree, compile_flags).compile();
+    dynamic_program prog {compiler(tree, compile_flags).compile()};
+    // IL: compile the inner-literal prefix sub-program (the part before the literal) for the reverse
+    // start-finder. Dynamic-only — a static_regex compiles in a constant-evaluated context and keeps the core
+    // search, sidestepping the constexpr budget of a second compile (the "dynamic-only if it would blow the
+    // budget" choice, taken up front). The prefix program is a subset, so this does not recurse into itself.
+    if (!std::is_constant_evaluated() && prog.hints.inner_literal_prefix >= 1) {
+      const dynamic_program pp {
+        compiler(build_prefix_ast(tree, prog.hints.inner_literal_prefix), compile_flags).compile()};
+      prog.prefix_code       = pp.code;
+      prog.prefix_classes    = pp.classes;
+      prog.prefix_cp_classes = pp.cp_classes;
+      prog.prefix_cp_ranges  = pp.cp_ranges;
+    }
+    return prog;
   }
 } // namespace real::detail
 

@@ -13,12 +13,12 @@ text        = input_obj['text']
 flags_obj   = input_obj['flags']
 
 flags = 0
-if flags_obj['ASCII']       : flags |= re.ASCII
-if flags_obj['DOTALL']      : flags |= re.DOTALL
 if flags_obj['IGNORECASE']  : flags |= re.IGNORECASE
-#if flags_obj['LOCALE']      : flags |= re.LOCALE
 if flags_obj['MULTILINE']   : flags |= re.MULTILINE
+if flags_obj['DOTALL']      : flags |= re.DOTALL
+if flags_obj['UNICODE']     : flags |= re.UNICODE # no-op
 if flags_obj['VERBOSE']     : flags |= re.VERBOSE
+if flags_obj['ASCII']       : flags |= re.ASCII
 
 fallback = False
 if flags_obj['fallback']    : fallback = True

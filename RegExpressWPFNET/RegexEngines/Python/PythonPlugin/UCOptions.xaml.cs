@@ -55,9 +55,7 @@ namespace PythonPlugin
             {
                 ++ChangeCounter;
 
-                LOCALE.Display( Options.Module != ModuleEnum.real_regex );
-                LOCALE_disabled.Display( Options.Module == ModuleEnum.real_regex );
-
+                LOCALE.Display( Options.Module == ModuleEnum.re || Options.Module == ModuleEnum.regex );
                 pnlAdditional.Display( Options.Module == ModuleEnum.regex );
                 FALLBACK.Display( Options.Module == ModuleEnum.real_regex );
             }

@@ -8,6 +8,8 @@
     "IGNORECASE": false,
     "LOCALE": false,
     "MULTILINE": false,
-    "VERBOSE": true
+    "VERBOSE": true,
+    "UNICODE": true,
+    "fallback": false
   }
 }

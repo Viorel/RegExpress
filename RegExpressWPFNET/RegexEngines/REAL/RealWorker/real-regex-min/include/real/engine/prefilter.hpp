@@ -684,6 +684,42 @@ namespace real::detail {
   }
 
   /*!
+   * \brief Index of the first occurrence of \p literal in `text[pos..)`, or \ref real::npos.
+   *
+   * The substring search behind the inner-literal prefilter. A single byte delegates to \ref find_byte (one
+   * `memchr`). For a multi-byte literal it scans for the lead byte with `memchr` (SIMD at run time) and
+   * verifies the tail — a portable substring search that needs no `memmem` (absent on MSVC), and stays a
+   * plain loop during constant evaluation.
+   */
+  constexpr std::size_t find_literal(std::string_view text,
+                                     std::size_t      pos,
+                                     std::string_view literal)
+  {
+    if (literal.empty()) {
+      return pos <= text.size() ? pos : npos;
+    }
+    if (literal.size() == 1U) {
+      return find_byte(text, pos, literal.front());
+    }
+    if (text.size() < literal.size()) {
+      return npos;
+    }
+    const std::size_t last_start {text.size() - literal.size()};
+    std::size_t       i          {pos};
+    while (i <= last_start) {
+      const std::size_t hit {find_byte(text, i, literal.front())};
+      if (hit == npos || hit > last_start) {
+        return npos;
+      }
+      if (text.compare(hit, literal.size(), literal) == 0) {
+        return hit;
+      }
+      i = hit + 1U;
+    }
+    return npos;
+  }
+
+  /*!
    * \brief First position >= \p pos where \p prefix occurs in \p text, or npos.
    *
    * A thin wrapper over the platform's substring search, which is correct and

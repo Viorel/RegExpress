@@ -715,11 +715,15 @@ namespace real {
                                               std::vector<std::uint64_t>>,
                             small_vec<eps_entry, 32>>
       {
-        lookaround_scratch         lookaround;            //!< Isolated sub-scratch for bounded lookaround evaluation.
-        capture_pool               pool;                  //!< OPT D1: copy-on-write capture blocks (heap-backed).
-        std::optional<lazy_dfa>    fwd_dfa;               //!< OPT lazy-DFA: forward pass (cache persists across a find_iter).
-        std::optional<reverse_dfa> rev_dfa;               //!< OPT lazy-DFA: the reverse start-finder.
-        const void*                dfa_program {nullptr}; //!< The program the DFAs were built for.
+        lookaround_scratch         lookaround;              //!< Isolated sub-scratch for bounded lookaround evaluation.
+        capture_pool               pool;                    //!< OPT D1: copy-on-write capture blocks (heap-backed).
+        std::optional<lazy_dfa>    fwd_dfa;                 //!< OPT lazy-DFA: forward pass (cache persists across a find_iter).
+        std::optional<reverse_dfa> rev_dfa;                 //!< OPT lazy-DFA: the reverse start-finder.
+        const void*                dfa_program   {nullptr}; //!< The program the DFAs were built for.
+        std::optional<reverse_dfa> il_prefix_rev;           //!< IL: the inner-literal prefix reverse DFA (built once per program).
+        const void*                il_prefix_for {nullptr}; //!< IL: the prefix program \ref il_prefix_rev was built for.
+        const void*                il_text       {nullptr}; //!< IL: the haystack \ref il_abandoned refers to.
+        bool                       il_abandoned  {false};   //!< IL: a linearity guard tripped on this haystack — stay on the core.
       };
 
       std::string     pattern_text;                  //!< The original pattern text.
@@ -883,16 +887,20 @@ namespace real {
        */
       [[nodiscard]] constexpr program_view view() const
       {
-        return {.code         = code,
-                .classes      = classes,
-                .names        = names,
-                .lookarounds  = {}, // static_regex rejects lookarounds at compile (always empty)
-                .cp_classes   = cp_classes,
-                .cp_ranges    = cp_ranges,
-                .slot_count   = slot_count,
-                .byte_mode    = has_flag(effective_flags, flags::bytes),
-                .unicode_word = !has_flag(effective_flags, flags::bytes) && !has_flag(effective_flags, flags::ascii),
-                .hints        = hints};
+        return {.code              = code,
+                .classes           = classes,
+                .names             = names,
+                .lookarounds       = {}, // static_regex rejects lookarounds at compile (always empty)
+                .cp_classes        = cp_classes,
+                .cp_ranges         = cp_ranges,
+                .prefix_code       = {}, // IL: static storage builds no prefix program (the route is dynamic-only)
+                .prefix_classes    = {},
+                .prefix_cp_classes = {},
+                .prefix_cp_ranges  = {},
+                .slot_count        = slot_count,
+                .byte_mode         = has_flag(effective_flags, flags::bytes),
+                .unicode_word      = !has_flag(effective_flags, flags::bytes) && !has_flag(effective_flags, flags::ascii),
+                .hints             = hints};
       }
 
       /*!

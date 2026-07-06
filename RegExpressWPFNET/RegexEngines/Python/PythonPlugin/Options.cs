@@ -21,11 +21,11 @@ namespace PythonPlugin
     {
         public ModuleEnum Module { get; set; } = ModuleEnum.re;
 
-
+        // "re" and "real"
         public bool ASCII { get; set; }
         public bool DOTALL { get; set; }
         public bool IGNORECASE { get; set; }
-        public bool LOCALE { get; set; }
+        public bool LOCALE { get; set; } // not for "real"
         public bool MULTILINE { get; set; }
         public bool VERBOSE { get; set; }
 
@@ -36,7 +36,7 @@ namespace PythonPlugin
         public bool FULLCASE { get; set; }
         public bool POSIX { get; set; }
         public bool REVERSE { get; set; }
-        public bool UNICODE { get; set; }
+        public bool UNICODE { get; set; } // also for "real"
         public bool WORD { get; set; }
         public bool VERSION0 { get; set; }
         public bool VERSION1 { get; set; } = true;
@@ -44,7 +44,7 @@ namespace PythonPlugin
         public bool partial { get; set; }
         public string? timeout { get; set; } // seconds, double
 
-        // real
+        // "real"
         public bool fallback { get; set; }
 
 

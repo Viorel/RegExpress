@@ -56,6 +56,7 @@ namespace PythonPlugin
                         options.LOCALE,
                         options.MULTILINE,
                         options.VERBOSE,
+                        UNICODE = false, // "For compatibility only. Ignored for string patterns (it is the default)"
                     },
                 };
                 var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

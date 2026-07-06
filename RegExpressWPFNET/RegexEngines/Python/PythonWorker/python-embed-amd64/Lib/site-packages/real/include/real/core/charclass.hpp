@@ -182,7 +182,12 @@ namespace real::detail {
 
   /*!
    * \brief The ASCII whitespace set behind `\s`.
-   * \return The set `[ \t\n\r\f\v]`.
+   * \return The set `[ \t\n\r\f\v]` plus `U+001C`–`U+001F`.
+   *
+   * \note Python `re`'s `\s` (REAL's contract) includes the four separators `U+001C`–`U+001F` (FS/GS/RS/US)
+   *       beyond the usual ASCII whitespace — `str.isspace()` does. This ASCII set is hand-written (tier-1 core
+   *       cannot reach the tier-2 generated `space_ranges`, which is oracle-built and does list them), so a
+   *       test pins it to that oracle table over `[0,128)` — see `ascii_shorthands_match_generated_ranges`.
    */
   constexpr char_class space_set()
   {
@@ -193,6 +198,10 @@ namespace real::detail {
     result.set('\r');
     result.set('\f');
     result.set('\v');
+    result.set(char {0x1C}); // FS  \ Python re \s also matches these four (str.isspace); the generated
+    result.set(char {0x1D}); // GS  |  space_ranges lists U+001C-U+001F, the ASCII set must agree — the
+    result.set(char {0x1E}); // RS  |  drift-guard test asserts it.
+    result.set(char {0x1F}); // US /
     return result;
   }
 

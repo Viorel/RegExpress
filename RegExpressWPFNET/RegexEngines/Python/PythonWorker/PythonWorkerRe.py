@@ -14,6 +14,7 @@ flags_obj   = input_obj['flags']
 
 flags = 0
 if flags_obj['ASCII']       : flags |= re.ASCII
+if flags_obj['UNICODE']     : flags |= re.UNICODE # "For compatibility only. Ignored for string patterns (it is the default)"
 if flags_obj['DOTALL']      : flags |= re.DOTALL
 if flags_obj['IGNORECASE']  : flags |= re.IGNORECASE
 if flags_obj['LOCALE']      : flags |= re.LOCALE

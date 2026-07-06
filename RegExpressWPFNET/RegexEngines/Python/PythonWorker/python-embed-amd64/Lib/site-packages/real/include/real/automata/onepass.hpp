@@ -500,10 +500,12 @@ namespace real::detail {
   //!        mutable DFA transition caches stay per-iterator — they warm per scan and would need a lock here.
   struct regex_immutables
   {
-    byte_program           byte_prog; //!< klass_cp-expanded byte program (empty until built).
-    lazy_byte_alphabet     alphabet;  //!< byte-class alphabet of byte_prog (shared by both DFAs, else recomputed per scan).
-    std::optional<onepass> op_table;  //!< one-pass extractor, present iff the pattern is one-pass.
-    std::once_flag         once;      //!< guards the one-time build.
+    byte_program           byte_prog;          //!< klass_cp-expanded byte program (empty until built).
+    lazy_byte_alphabet     alphabet;           //!< byte-class alphabet of byte_prog (shared by both DFAs, else recomputed per scan).
+    std::optional<onepass> op_table;           //!< one-pass extractor, present iff the pattern is one-pass.
+    byte_program           il_prefix_prog;     //!< IL: the inner-literal prefix's byte program (ineligible until built). Per-regex so the reverse DFA that spans it is a cheap per-iterator wrapper, not a per-find_iter rebuild.
+    std::size_t            il_min_haystack {}; //!< IL: on a haystack that HAS a candidate, the route only fires at or above this size (0 = always). The prefix reverse DFA's cache is per-iterator and re-warms per find_iter; below N that cost does not amortize and the core is faster. Checked ONLY after the first memmem hit, so a no-match haystack (memmem-only) is never gated. Scaled by the prefix byte-program size (its cache size); see \ref pike_vm::run_inner_literal.
+    std::once_flag         once;               //!< guards the one-time build.
 
     // A copied regex is an independent regex: it gets its own fresh, unbuilt cache rather than sharing
     // (std::once_flag is not copyable anyway). Copy/move reset rather than transfer — the built state is a

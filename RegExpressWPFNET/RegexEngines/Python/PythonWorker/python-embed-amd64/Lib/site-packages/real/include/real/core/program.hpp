@@ -40,14 +40,15 @@ namespace real {
    */
   enum class flags : std::uint8_t
   {
-    none      = 0,  //!< No flags.
-    icase     = 1,  //!< Case-insensitive (ASCII).
-    multiline = 2,  //!< `^` and `$` also match at line boundaries.
-    dotall    = 4,  //!< `.` also matches `\n`.
-    bytes     = 8,  //!< Binary mode: `.` and `[^…]` match raw bytes, not codepoints.
-    verbose   = 16, //!< Verbose mode (`re.X`): ignore unescaped whitespace and `#` comments outside classes.
-    ecma = 32,      //!< ECMAScript compatibility: `$` (no multiline) matches only at the very end (not before a final `\n`, the Python default), AND `.` (no dotall) also excludes `\r` (ECMAScript excludes `\n` and `\r`; the multi-byte U+2028/U+2029 have no byte-level effect).
-    ascii = 64,     //!< ASCII mode (`re.A`): `\d \w \s \b` stay ASCII and icase folds ASCII only, even in text mode. `.`, explicit classes and UTF-8 literals stay code-point-aware.
+    none      = 0,        //!< No flags.
+    icase     = 1,        //!< Case-insensitive (ASCII).
+    multiline = 2,        //!< `^` and `$` also match at line boundaries.
+    dotall    = 4,        //!< `.` also matches `\n`.
+    bytes     = 8,        //!< Binary mode: `.` and `[^…]` match raw bytes, not codepoints.
+    verbose   = 16,       //!< Verbose mode (`re.X`): ignore unescaped whitespace and `#` comments outside classes.
+    ecma = 32,            //!< ECMAScript compatibility: `$` (no multiline) matches only at the very end (not before a final `\n`, the Python default), AND `.` (no dotall) also excludes `\r` (ECMAScript excludes `\n` and `\r`; the multi-byte U+2028/U+2029 have no byte-level effect).
+    ascii = 64,           //!< ASCII mode (`re.A`): `\d \w \s \b` stay ASCII and icase folds ASCII only, even in text mode. `.`, explicit classes and UTF-8 literals stay code-point-aware.
+    dollar_endonly = 128, //!< `$` (no multiline) matches only at the very end of the text, never before a final `\n` — the Rust/`\z` semantics. Unlike \ref flags::ecma this touches `$` ONLY, leaving `.` at the Python default. Used by the Rust binding for drop-in parity.
   };
 
   /*!
@@ -298,6 +299,16 @@ namespace real {
       //!        the per-byte first-byte bitmap loop on a common class. -1 when no such byte was found.
       std::int16_t rare_byte   {-1};
       std::uint8_t rare_offset {}; //!< The fixed byte offset of \ref rare_byte from the match start.
+
+      //! \brief A *required inner literal* every match must contain (the memmem candidate the inner-literal
+      //!        prefilter scans for), and how many top-level children precede it — the prefix the prefilter
+      //!        reverse-matches from a candidate back to the match start. `inner_literal_len == 0` = none;
+      //!        `inner_literal_prefix == 0` = the literal is at the head (reverse is the identity), `-1` = it
+      //!        is nested with no clean prefix boundary. Filled at compile from the AST (raw bytes, so \ref
+      //!        pattern_hints — a core type — need not know the frontend literal type). Not yet routed on.
+      std::array<std::uint8_t, 16> inner_literal        {};
+      std::uint8_t                 inner_literal_len    {};
+      std::int32_t                 inner_literal_prefix {-1};
     };
 
     /*!
@@ -331,6 +342,10 @@ namespace real {
       std::span<const lookaround_sub> lookarounds;            //!< Bounded lookaround sub-programs (regions of \ref code).
       std::span<const cp_class>       cp_classes;             //!< Match-time code-point classes (for `klass_cp`).
       std::span<const code_range>     cp_ranges;              //!< Flat range buffer the `cp_class` slices index into.
+      std::span<const instr>          prefix_code;            //!< IL: inner-literal prefix sub-program (the reverse start-finder). Empty unless there is a required literal with a top-level prefix. Dynamic-only.
+      std::span<const char_class>     prefix_classes;         //!< IL: classes for \ref prefix_code.
+      std::span<const cp_class>       prefix_cp_classes;      //!< IL: code-point classes for \ref prefix_code.
+      std::span<const code_range>     prefix_cp_ranges;       //!< IL: flat range buffer for \ref prefix_cp_classes.
       std::uint16_t                   slot_count   {2};       //!< `2 * (capture groups + 1)`.
       bool                            byte_mode    {};        //!< \ref flags::bytes mode — positions are raw bytes.
       bool                            unicode_word {};        //!< `\b \B \< \>` use Unicode word-ness (text mode, not bytes / `re.A`).
@@ -343,16 +358,20 @@ namespace real {
      */
     struct dynamic_program
     {
-      std::vector<instr>          code;             //!< The instruction stream (main program + lookaround sub-program regions).
-      std::vector<char_class>     classes;          //!< Interned character classes.
-      std::vector<named_group>    names;            //!< Named capture groups.
-      std::vector<lookaround_sub> lookarounds;      //!< Bounded lookaround sub-programs (regions of \ref code).
-      std::vector<cp_class>       cp_classes;       //!< Match-time code-point classes (for `klass_cp`).
-      std::vector<code_range>     cp_ranges;        //!< Flat range buffer the `cp_class` slices index into.
-      std::uint16_t               slot_count   {2}; //!< `2 * (capture groups + 1)`.
-      bool                        byte_mode    {};  //!< \ref flags::bytes mode.
-      bool                        unicode_word {};  //!< `\b \B \< \>` use Unicode word-ness (text mode).
-      pattern_hints               hints;            //!< Search-acceleration hints.
+      std::vector<instr>          code;              //!< The instruction stream (main program + lookaround sub-program regions).
+      std::vector<char_class>     classes;           //!< Interned character classes.
+      std::vector<named_group>    names;             //!< Named capture groups.
+      std::vector<lookaround_sub> lookarounds;       //!< Bounded lookaround sub-programs (regions of \ref code).
+      std::vector<cp_class>       cp_classes;        //!< Match-time code-point classes (for `klass_cp`).
+      std::vector<code_range>     cp_ranges;         //!< Flat range buffer the `cp_class` slices index into.
+      std::vector<instr>          prefix_code;       //!< IL: the inner-literal prefix sub-program (the part before the literal), for the reverse start-finder. Empty unless there is a required literal with a top-level prefix. Dynamic-only (not built during constant evaluation).
+      std::vector<char_class>     prefix_classes;    //!< IL: classes for \ref prefix_code.
+      std::vector<cp_class>       prefix_cp_classes; //!< IL: code-point classes (klass_cp) for \ref prefix_code.
+      std::vector<code_range>     prefix_cp_ranges;  //!< IL: flat range buffer for \ref prefix_cp_classes.
+      std::uint16_t               slot_count   {2};  //!< `2 * (capture groups + 1)`.
+      bool                        byte_mode    {};   //!< \ref flags::bytes mode.
+      bool                        unicode_word {};   //!< `\b \B \< \>` use Unicode word-ness (text mode).
+      pattern_hints               hints;             //!< Search-acceleration hints.
 
       // Codepoint-class marker, set by `emit_codepoint_class` at emission so the
       // prefilter need not reverse-engineer the emitted block's bytecode shape.
@@ -364,16 +383,20 @@ namespace real {
        */
       [[nodiscard]] constexpr program_view view() const
       {
-        return {.code         = std::span<const instr>(code),
-                .classes      = std::span<const char_class>(classes),
-                .names        = std::span<const named_group>(names),
-                .lookarounds  = std::span<const lookaround_sub>(lookarounds),
-                .cp_classes   = std::span<const cp_class>(cp_classes),
-                .cp_ranges    = std::span<const code_range>(cp_ranges),
-                .slot_count   = slot_count,
-                .byte_mode    = byte_mode,
-                .unicode_word = unicode_word,
-                .hints        = hints};
+        return {.code              = std::span<const instr>(code),
+                .classes           = std::span<const char_class>(classes),
+                .names             = std::span<const named_group>(names),
+                .lookarounds       = std::span<const lookaround_sub>(lookarounds),
+                .cp_classes        = std::span<const cp_class>(cp_classes),
+                .cp_ranges         = std::span<const code_range>(cp_ranges),
+                .prefix_code       = std::span<const instr>(prefix_code),
+                .prefix_classes    = std::span<const char_class>(prefix_classes),
+                .prefix_cp_classes = std::span<const cp_class>(prefix_cp_classes),
+                .prefix_cp_ranges  = std::span<const code_range>(prefix_cp_ranges),
+                .slot_count        = slot_count,
+                .byte_mode         = byte_mode,
+                .unicode_word      = unicode_word,
+                .hints             = hints};
       }
     };
   } // namespace detail

@@ -53,9 +53,9 @@ namespace PythonPlugin
                         options.ASCII,
                         options.DOTALL,
                         options.IGNORECASE,
-                        //options.LOCALE,
                         options.MULTILINE,
                         options.VERBOSE,
+                        UNICODE = false, // currently it is 'no-op'
                         options.fallback,
                     },
                 };
