@@ -258,7 +258,10 @@ rem -- Go --
 
 set BasePath=%SolutionDir%\RegexEngines\Go
 xcopy /D /R /Y "%BasePath%\GoPlugin\bin\%Configuration%\%TargetDir%\GoPlugin.dll" "%EnginesTargetPath%\Go\*"
-xcopy /D /R /Y "%BasePath%\GoWorker\GoWorker.exe" "%EnginesTargetPath%\Go\*.bin"
+xcopy /D /R /Y "%BasePath%\RegexpWorker\RegexpWorker.exe" "%EnginesTargetPath%\Go\*.bin"
+xcopy /D /R /Y "%BasePath%\Regexp2Worker\Regexp2Worker.exe" "%EnginesTargetPath%\Go\*.bin"
+xcopy /D /R /Y "%BasePath%\RexaWorker\RexaWorker.exe" "%EnginesTargetPath%\Go\*.bin"
+xcopy /D /R /Y "%BasePath%\CoregexWorker\CoregexWorker.exe" "%EnginesTargetPath%\Go\*.bin"
 
 
 rem -- Dart --

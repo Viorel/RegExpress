@@ -1,0 +1,18 @@
+HOW IT'S MADE
+---------------
+
+- Install Go, or download and unarchive.
+
+- To build:
+
+    > build.cmd
+
+  (If required, set the path to 'go.exe', or set PATH variable and restart console)
+
+- To test, for example:
+
+    > test1.cmd
+
+- Commit the changes (including the created "RegexpWorker.exe").
+
+- Build the main Visual Studio solution.

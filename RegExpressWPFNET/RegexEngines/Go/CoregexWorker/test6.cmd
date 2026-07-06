@@ -1,0 +1,1 @@
+echo { "pattern" : "(?i)b", "text" : "aBc" } | CoregexWorker.exe

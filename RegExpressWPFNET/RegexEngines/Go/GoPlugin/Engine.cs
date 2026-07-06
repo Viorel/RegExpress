@@ -107,7 +107,14 @@ namespace GoPlugin
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            return Matcher.GetMatches( cnc, pattern, text, Options );
+            return Options.Package switch
+            {
+                PackageEnum.regexp => MatcherRegexp.GetMatches( cnc, pattern, text, Options ),
+                PackageEnum.regexp2 => MatcherRegexp2.GetMatches( cnc, pattern, text, Options ),
+                PackageEnum.rexa => MatcherRexa.GetMatches( cnc, pattern, text, Options ),
+                PackageEnum.coregex => MatcherCoregex.GetMatches( cnc, pattern, text, Options ),
+                _ => throw new NotImplementedException( ),
+            };
         }
 
         public SyntaxOptions GetSyntaxOptions( )
@@ -115,10 +122,10 @@ namespace GoPlugin
             Options options = Options;
             FeatureMatrix fm = options.Package switch
             {
-                PackageEnum.regexp => LazyFeatureMatrix_Regexp.GetValue( options.posix_syntax ),
+                PackageEnum.regexp => LazyFeatureMatrix_Regexp.GetValue( options.posix ),
                 PackageEnum.regexp2 => LazyFeatureMatrix_Regexp2.GetValue( (options.ECMAScript, options.RE2) ),
                 PackageEnum.rexa => LazyFeatureMatrix_Rexa.Value,
-                PackageEnum.coregex => LazyFeatureMatrix_Coregex.GetValue( options.posix_syntax ),
+                PackageEnum.coregex => LazyFeatureMatrix_Coregex.GetValue( options.posix ),
                 _ => throw new InvalidOperationException( )
             };
             bool supports_literal = options.Package == PackageEnum.regexp || options.Package == PackageEnum.rexa || options.Package == PackageEnum.coregex;
@@ -135,12 +142,12 @@ namespace GoPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( "regexp", LazyFeatureMatrix_Regexp.GetValue( false ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix_syntax = false }} ),
-                    new FeatureMatrixVariant( "regexp (posix)", LazyFeatureMatrix_Regexp.GetValue( true ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix_syntax = true}} ),
+                    new FeatureMatrixVariant( "regexp", LazyFeatureMatrix_Regexp.GetValue( false ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix = false }} ),
+                    new FeatureMatrixVariant( "regexp (posix)", LazyFeatureMatrix_Regexp.GetValue( true ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix = true}} ),
                     new FeatureMatrixVariant( "regexp2", LazyFeatureMatrix_Regexp2.GetValue( (isECMAScript: false, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.regexp2, ECMAScript= false, RE2 = false }} ),
                     new FeatureMatrixVariant( "rexa", LazyFeatureMatrix_Rexa.Value, new Engine { Options = new Options { Package = PackageEnum.rexa }} ),
-                    new FeatureMatrixVariant( "coregex", LazyFeatureMatrix_Coregex.GetValue( false ), new Engine { Options = new Options { Package = PackageEnum.coregex, posix_syntax = false }} ),
-                    new FeatureMatrixVariant( "coregex (posix)", LazyFeatureMatrix_Coregex.GetValue( true ), new Engine { Options = new Options { Package = PackageEnum.coregex, posix_syntax = true }} ),
+                    new FeatureMatrixVariant( "coregex", LazyFeatureMatrix_Coregex.GetValue( false ), new Engine { Options = new Options { Package = PackageEnum.coregex, posix = false }} ),
+                    new FeatureMatrixVariant( "coregex (posix)", LazyFeatureMatrix_Coregex.GetValue( true ), new Engine { Options = new Options { Package = PackageEnum.coregex, posix = true }} ),
                 ];
         }
 

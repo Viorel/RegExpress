@@ -1,0 +1,1 @@
+echo { "pattern" : "*", "text" : "ab*c", "literal" : true } | RegexpWorker.exe

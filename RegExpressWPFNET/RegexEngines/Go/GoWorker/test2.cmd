@@ -1,1 +1,0 @@
-echo { "package" : "regexp", "pattern" : "a(?<nameA>.)(?<nameB>Z)?(.)", "Text" : "xx abc ade" } | GoWorker.exe

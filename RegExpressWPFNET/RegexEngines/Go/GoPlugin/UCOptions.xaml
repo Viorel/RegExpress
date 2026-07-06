@@ -144,8 +144,8 @@
 
             </StackPanel>
 
-            <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix_syntax" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>
-            <ui:CheckboxWithNote x:Name="cbxLongest" Prop="longest_match" Text="longest" Note="prefer the leftmost-longest match"/>
+            <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>
+            <ui:CheckboxWithNote x:Name="cbxLongest" Prop="longest" Text="longest" Note="prefer the leftmost-longest match"/>
             <ui:CheckboxWithNote x:Name="cbxLiteral" Prop="literal" Note="interpret pattern as literal, not regexp"/>
 
         </StackPanel>

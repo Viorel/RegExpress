@@ -32,8 +32,8 @@ namespace GoPlugin
 
         public bool Ungreedy { get; set; }
 
-        public bool posix_syntax { get; set; }
-        public bool longest_match { get; set; }
+        public bool posix { get; set; }
+        public bool longest { get; set; }
         public bool literal { get; set; }
 
         //

@@ -1,0 +1,24 @@
+HOW IT'S MADE
+---------------
+
+- Install Go, or download and unarchive.
+
+- To add modules:
+
+    > go get github.com/dlclark/regexp2/v2@v2.2.2
+
+    (Adjust the versions, or remove "@..." to get the latest versions)
+    
+- To build:
+
+    > build.cmd
+
+  (If required, set the path to 'go.exe', or set PATH variable and restart console)
+
+- To test, for example:
+
+    > test1.cmd
+
+- Commit the changes (including the created "Regexp2Worker.exe").
+
+- Build the main Visual Studio solution.

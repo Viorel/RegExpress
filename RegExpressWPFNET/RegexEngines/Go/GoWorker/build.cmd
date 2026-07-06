@@ -1,1 +1,0 @@
-go build -v -buildmode=exe -ldflags "-w -s" GoWorker.go

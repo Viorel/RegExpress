@@ -1,0 +1,1 @@
+echo { "pattern" : "b", "text" : "aBc", "IgnoreCase" : true } | Regexp2Worker.exe

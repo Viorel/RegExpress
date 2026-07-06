@@ -1,1 +1,0 @@
-echo { "package" : "regexp", "pattern" : "x", "Text" : "abc" } | GoWorker.exe

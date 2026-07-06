@@ -1,0 +1,1 @@
+echo { "pattern" : ".", "Text" : "a\u00EEb" } | Regexp2Worker.exe

@@ -1,0 +1,1 @@
+echo { "pattern" : "(?<=a)b", "Text" : "abc" } | RexaWorker.exe
