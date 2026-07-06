@@ -73,11 +73,12 @@ fn main()
 
         reb.fallback( options["fallback"].as_bool().unwrap_or( false));
 
-        let n = options["sl"].as_usize();
-        if n.is_some()
-        {
-            reb.size_limit( n.unwrap()); // (no-op)
-        } 
+        // (no-op)
+        // let n = options["sl"].as_usize();
+        // if n.is_some()
+        // {
+        //     reb.size_limit( n.unwrap());
+        // } 
 
         //?
         // let n = options["dsl"].as_usize();

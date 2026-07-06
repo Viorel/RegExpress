@@ -149,7 +149,7 @@ namespace RustPlugin
 
                 chbx_crlf.Display( is_regex_or_regex_lite || is_fancy );
                 chbx_swap_greed.Display( is_regex_or_regex_lite );
-                chbx_unicode.Display( is_regex );
+                chbx_unicode.Display( is_regex || is_real );
                 chbx_unicode_mode.Display( is_fancy );
                 chbx_octal.Display( is_regex );
                 chbx_oniguruma_mode.Display( is_fancy );

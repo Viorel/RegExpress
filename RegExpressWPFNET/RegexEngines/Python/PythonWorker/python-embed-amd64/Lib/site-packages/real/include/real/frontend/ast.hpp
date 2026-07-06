@@ -33,7 +33,9 @@
 #include "real/core/config.hpp"
 #include "real/core/program.hpp"
 #include "real/unicode/unicode_fold.hpp"
+#include "real/unicode/unicode_property.hpp"
 #include "real/unicode/unicode_props.hpp"
+#include "real/unicode/unicode_script.hpp"
 #include "real/unicode/utf8.hpp"
 
 namespace real::detail {
@@ -513,6 +515,185 @@ namespace real::detail {
       // Unreachable: both call sites dispatch only on the six shorthand letters (see parse_escape /
       // parse_class_item). Kept as a structural fallback; never hit at run time (coverage-honest).
       return {.set = space_set(), .ranges = space_ranges, .negated = true};
+    }
+
+    //! \brief A loose-match key (lowercase, no `_`/`-`/space; UAX44-LM3-ish) built into a fixed buffer, so no
+    //!        heap or `<string>` is needed at parse time. A name longer than the buffer simply fails to match.
+    struct loose_buf
+    {
+      std::array<char, 64> data {};
+      std::size_t          len  {};
+      [[nodiscard]] constexpr std::string_view view() const
+      {
+        return {data.data(), len};
+      }
+    };
+
+    [[nodiscard]] static constexpr loose_buf loose_key(std::string_view s)
+    {
+      loose_buf b;
+      for (const char c : s) {
+        if (c == '_' || c == '-' || c == ' ') {
+          continue;
+        }
+        if (b.len < b.data.size()) {
+          b.data[b.len++] = (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
+        }
+      }
+      return b;
+    }
+
+    /*!
+     * \brief Resolves a `\p{...}` property name to its code-point ranges, or fails with a clear error. An
+     *        optional `gc=` / `sc=` (or `general_category=` / `script=`) prefix picks the namespace; a bare name
+     *        tries General_Category then Script. GC ranges come straight from the table; a Script's ranges are
+     *        collected from the partition. The alias resolvers are the generated, loose-keyed `resolve_gc` /
+     *        `resolve_script`.
+     */
+    [[nodiscard]] constexpr std::vector<code_range> resolve_property(std::string_view name) const
+    {
+      std::string_view ns;
+      std::string_view value {name};
+      for (std::size_t i = 0; i < name.size(); ++i) {
+        if (name[i] == '=') {
+          ns    = name.substr(0, i);
+          value = name.substr(i + 1);
+          break;
+        }
+      }
+      const loose_buf        ns_key      {loose_key(ns)};
+      const std::string_view nk          {ns_key.view()};
+      const bool             want_gc     {nk.empty() || nk == "gc" || nk == "generalcategory"};
+      const bool             want_script {nk.empty() || nk == "sc" || nk == "script"};
+      if (!want_gc && !want_script) {
+        // well-formed `\p{ns=...}` but a namespace REAL does not offer (a binding may delegate it).
+        fail_unsupported("unknown Unicode property namespace in \\p{...} (use gc= or sc=)");
+      }
+      const loose_buf value_key {loose_key(value)};
+      if (want_gc) {
+        const gc_property prop {resolve_gc(value_key.view())};
+        if (prop != gc_property::count) {
+          const std::span<const code_range> t {gc_property_ranges[static_cast<std::size_t>(prop)]};
+          return {t.begin(), t.end()};
+        }
+      }
+      if (want_script) {
+        const script sc {resolve_script(value_key.view())};
+        if (sc != script::count) {
+          std::vector<code_range> out;
+          for (const script_range& r : script_ranges) {
+            if (r.sc == sc) {
+              out.push_back({.lo = r.lo, .hi = r.hi});
+            }
+          }
+          return out;
+        }
+      }
+      // well-formed `\p{Name}` but a property REAL does not yet tabulate (e.g. a binary property like
+      // `\p{Alphabetic}`, or a script/category REAL lacks): unsupported, so a binding can delegate it.
+      fail_unsupported("unsupported Unicode property in \\p{...} (only General_Category and Script are built in)");
+    }
+
+    //! \brief Rejects bytes mode, consumes the `p`/`P` and the `{Name}` (or single letter), and resolves it to
+    //!        the property's code-point ranges. Shared by the out-of-class atom and the in-class merge. On entry
+    //!        `pos_` is on the `p`/`P`; on return it is just past the name.
+    constexpr std::vector<code_range> parse_property_table()
+    {
+      // Read bytes-mode from the scope stack, not the global `bytes_` member (the flag-scope ratchet): bytes is
+      // never scoped, so this equals `bytes_` while keeping the parser's global-read count flat.
+      if (has_flag(current_flags(), flags::bytes)) {
+        fail_unsupported("\\p{...} Unicode property classes are not available in bytes mode");
+      }
+      ++pos_; // consume the 'p' / 'P'
+      std::string_view name;
+      if (!eof() && peek() == '{') {
+        ++pos_;
+        const std::size_t start {pos_};
+        while (!eof() && peek() != '}') {
+          ++pos_;
+        }
+        if (eof()) {
+          fail("unterminated \\p{...} property");
+        }
+        name = pattern_.substr(start, pos_ - start);
+        ++pos_; // consume '}'
+      }
+      else {
+        if (eof()) {
+          fail("\\p must be followed by a property name or {name}");
+        }
+        name = pattern_.substr(pos_, 1);
+        ++pos_;
+      }
+      if (name.empty()) {
+        fail("empty Unicode property name in \\p{}");
+      }
+      return resolve_property(name);
+    }
+
+    //! \brief Splits a property's ranges into its ASCII bitmap (< 0x80) and its non-ASCII ranges. Unconditional:
+    //!        unlike `\w`, `flags::ascii` (`re.A`) does not restrict a Unicode property, so both parts are always
+    //!        used (bytes mode having already been rejected).
+    constexpr void property_ascii_high(const std::vector<code_range>& table,
+                                       char_class&                    ascii,
+                                       std::vector<code_range>&       high) const
+    {
+      for (char32_t c = 0; c < 0x80U; ++c) {
+        if (cp_in_ranges(table, c)) {
+          ascii.set(static_cast<std::uint8_t>(c));
+        }
+      }
+      for (const code_range& r : table) {
+        if (r.hi < 0x80U) {
+          continue; // wholly ASCII: already in the bitmap
+        }
+        high.push_back({.lo = r.lo < 0x80U ? 0x80U : r.lo, .hi = r.hi});
+      }
+    }
+
+    /*!
+     * \brief Parses `\p{Name}` / `\P{Name}` / `\pX` (outside a class) into a negatable Unicode code-point class
+     *        (`klass_cp`), reusing the same match-time mechanism as `\w`. Negation is the class-node flag, as for
+     *        `\W`. `pos_` is on the letter after `\`; `negated` distinguishes `\P` from `\p`.
+     */
+    constexpr std::int32_t parse_unicode_property(ast& out,
+                                                  bool negated)
+    {
+      const std::vector<code_range> table {parse_property_table()};
+      char_class                    ascii;
+      std::vector<code_range>       high;
+      property_ascii_high(table, ascii, high);
+      return add_class_node(out, ascii, negated, high, /*codepoint_predicate=*/ true);
+    }
+
+    /*!
+     * \brief Merges a `\p{Name}` / `\P{Name}` property into the character class being built (the in-class form) —
+     *        the un-gated twin of \ref merge_property — `flags::ascii` never restricts it, so it always uses the
+     *        property's own non-ASCII ranges. A negated `\P{...}` merges the complement (the inverted ASCII bitmap
+     *        plus the gaps between the non-ASCII ranges), exactly as `\W` negates in a class; an enclosing
+     *        `[^...]` then negates the whole class on top (so `[^\P{L}]` == `[\p{L}]`). bytes mode is already
+     *        rejected by \ref parse_property_table.
+     */
+    constexpr void merge_unicode_property(char_class&                    klass,
+                                          std::vector<code_range>&       ranges,
+                                          const std::vector<code_range>& table,
+                                          bool                           negated,
+                                          bool&                          property_derived) const
+    {
+      char_class              ascii;
+      std::vector<code_range> high;
+      property_ascii_high(table, ascii, high);
+      if (negated) {
+        ascii.invert_ascii();
+        klass.merge(ascii);
+        const std::vector<code_range> comp {complement_code_ranges(high)};
+        ranges.insert(ranges.end(), comp.begin(), comp.end());
+      }
+      else {
+        klass.merge(ascii);
+        ranges.insert(ranges.end(), high.begin(), high.end());
+      }
+      property_derived = true;
     }
 
     /*!
@@ -1379,6 +1560,10 @@ namespace real::detail {
             ++pos_;
             return add_class_node(out, sc.set, sc.negated, shorthand_ranges(sc.ranges), text_shorthand());
           }
+        // `\p{Name}` / `\P{Name}` / `\pX` — Unicode General_Category and Script property classes (text mode).
+        case 'p':
+        case 'P':
+          return parse_unicode_property(out, peek() == 'P');
         // `\A \Z \< \>` are REAL extensions (text-start/end, word-start/end). ECMAScript has no
         // such escapes — they are identity escapes (the literal character). Under the ecma flag
         // (the std-compat layer), emit the literal; otherwise keep REAL's anchor. `\b`/`\B` are
@@ -1496,6 +1681,14 @@ namespace real::detail {
             const shorthand_spec sc {shorthand_class(peek())};
             ++pos_;
             merge_property(klass, ranges, sc.set, sc.ranges, sc.negated, property_derived);
+            return -1;
+          }
+        // `\p{Name}` / `\P{Name}` / `\pX` inside a class — a Unicode General_Category / Script property member.
+        case 'p':
+        case 'P': {
+            const bool                    negated {peek() == 'P'};
+            const std::vector<code_range> table   {parse_property_table()};
+            merge_unicode_property(klass, ranges, table, negated, property_derived);
             return -1;
           }
         case 'b':

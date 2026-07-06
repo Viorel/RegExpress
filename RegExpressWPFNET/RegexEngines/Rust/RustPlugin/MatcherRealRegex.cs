@@ -53,6 +53,7 @@ namespace RustPlugin
                     options.unicode,
                     options.fallback,
                     //options.octal,
+
                     //sl = is_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null, // (no-op)
                     //dsl = is_builder ? ValidationUtilities.ParseUInt32( "dfa_size_limit", options.dfa_size_limit ) : null,
                     //nl = is_builder ? ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ) : null,
@@ -61,7 +62,7 @@ namespace RustPlugin
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
 
-            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.UTF8;
 
