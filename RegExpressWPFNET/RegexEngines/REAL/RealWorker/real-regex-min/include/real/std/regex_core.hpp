@@ -140,8 +140,10 @@ namespace real::compat {
 
   //! \brief The drop-in policy for a pattern the linear engine cannot represent (backreferences, an
   //!        unbounded lookaround, a POSIX class, …). `strict` (the default) rejects it, so every accepted
-  //!        pattern is a linear-time, ReDoS-safe guarantee; `fallback` delegates it to `std::regex`, which
-  //!        may accept it but **forfeits the linear-time guarantee** for that pattern.
+  //!        pattern executes each `regex_search`/`regex_match` in time linear in the input — the ReDoS-safety
+  //!        guarantee (replace/iterate compose O(n) such operations: quadratic worst-case on any linear
+  //!        engine, never exponential); `fallback` delegates it to `std::regex`, which may accept it but
+  //!        **forfeits the guarantee** for that pattern.
   enum class policy : std::uint8_t
   {
     strict,   //!< Reject an ineligible pattern (throws `regex_error` with `error_complexity`). The default.
@@ -218,6 +220,323 @@ namespace real::compat {
         }
       }
       return false;
+    }
+
+    //! \brief A POSIX bracket-class name to its ASCII (C-locale) range content, appended inside a `[...]` during
+    //!        ERE translation. Empty for an unknown name (the caller then falls back to std).
+    inline std::string posix_class_ranges(std::string_view name)
+    {
+      if (name == "alpha") { return "A-Za-z"; }
+      if (name == "digit") { return "0-9"; }
+      if (name == "alnum") { return "0-9A-Za-z"; }
+      if (name == "upper") { return "A-Z"; }
+      if (name == "lower") { return "a-z"; }
+      if (name == "xdigit") { return "0-9A-Fa-f"; }
+      if (name == "space") { return "\\t\\n\\x0b\\f\\r "; }
+      if (name == "blank") { return "\\t "; }
+      if (name == "cntrl") { return "\\x00-\\x1f\\x7f"; }
+      if (name == "print") { return "\\x20-\\x7e"; }
+      if (name == "graph") { return "\\x21-\\x7e"; }
+      if (name == "punct") { return "!-/:-@\\[-`{-~"; }
+      return {};
+    }
+
+    //! \brief Translates a POSIX bracket expression `[...]` — identical syntax in BRE and ERE, so shared by both
+    //!        translators. POSIX classes (`[[:alpha:]]`) become ASCII ranges; other members pass through. \p i
+    //!        must point at the opening `[`; on success it advances past the `]` and appends the class to \p out.
+    //!        Returns false (the caller then declines to std) on an unterminated class or an unknown / collating
+    //!        `[[:foo:]]` / `[.x.]` / `[=x=]`.
+    [[nodiscard]] inline bool translate_bracket(std::string_view p,
+                                                std::size_t&     i,
+                                                std::string&     out)
+    {
+      const std::size_t n   {p.size()};
+      std::string       cls {'['};
+      i += 1;
+      if (i < n && p[i] == '^') { cls += '^'; i += 1; }
+      if (i < n && p[i] == ']') { cls += "\\]"; i += 1; } // a leading `]` is a literal member in POSIX — escape
+                                                          // it for REAL, where a bare `[]` opens an empty class
+      while (i < n && p[i] != ']') {
+        if (p[i] == '[' && i + 1 < n && p[i + 1] == ':') {
+          const std::size_t close  {p.find(":]", i + 2)};
+          if (close == std::string_view::npos) { return false; }
+          const std::string ranges {posix_class_ranges(p.substr(i + 2, close - (i + 2)))};
+          if (ranges.empty()) { return false; }
+          cls += ranges;
+          i    = close + 2;
+        }
+        else if (p[i] == '[' && i + 1 < n && (p[i + 1] == '.' || p[i + 1] == '=')) {
+          return false; // collating [.x.] / equivalence [=x=]
+        }
+        else {
+          cls += p[i];
+          i   += 1;
+        }
+      }
+      if (i >= n) { return false; } // unterminated class
+      cls += ']';
+      i   += 1;
+      out += cls;
+      return true;
+    }
+
+    //! \brief Appends the REAL translation of an awk C-escape at \p i (which points at the backslash),
+    //!        advancing \p i; returns false to decline (→ std). awk's escapes beyond ERE: `\b` is BACKSPACE
+    //!        (0x08) — **not** a word boundary, the inverse of the ERE decline — `\a`=BEL, `\n\t\r\f\v` the usual
+    //!        controls, `\/` and `\"` literals, and a 1-to-3-digit octal `\ddd` (both std libraries agree; an
+    //!        overflow > 0377 declines). Emitted as `\xHH` so REAL matches the exact byte.
+    [[nodiscard]] inline bool append_awk_escape(std::string_view p,
+                                                std::size_t&     i,
+                                                std::string&     out)
+    {
+      const std::size_t n {p.size()};
+      const char        d {p[i + 1]};
+      const auto        emit_hex {[&out](unsigned v) {
+                                    constexpr std::string_view hex {"0123456789abcdef"};
+                                    out += "\\x";
+                                    out += hex[(v >> 4U) & 0xFU];
+                                    out += hex[v & 0xFU];
+                                  }};
+      switch (d) {
+        case 'b': emit_hex(0x08U); i += 2; return true; // BACKSPACE, not a word boundary
+        case 'a': emit_hex(0x07U); i += 2; return true;
+        case 'n': emit_hex(0x0AU); i += 2; return true;
+        case 't': emit_hex(0x09U); i += 2; return true;
+        case 'r': emit_hex(0x0DU); i += 2; return true;
+        case 'f': emit_hex(0x0CU); i += 2; return true;
+        case 'v': emit_hex(0x0BU); i += 2; return true;
+        case '/': out                += '/'; i += 2; return true; // an escaped delimiter -> a literal slash
+        case '"': out                += '"'; i += 2; return true; // a literal quote
+        default: break;
+      }
+      if (d >= '0' && d <= '7') {
+        unsigned    val    {0};
+        std::size_t k      {i + 1};
+        std::size_t digits {0};
+        while (k < n && digits < 3 && p[k] >= '0' && p[k] <= '7') {
+          val = (val * 8U) + static_cast<unsigned>(p[k] - '0');
+          ++k;
+          ++digits;
+        }
+        if (val > 0xFFU) { return false; } // an octal overflow (> 0377) -> std
+        emit_hex(val);
+        i = k;
+        return true;
+      }
+      return false; // `\d` `\w` `\s` … — no awk meaning; decline
+    }
+
+    //! \brief Whether \p p has an **empty alternation branch** — a `|` with nothing on one side: `(|`, `|)`,
+    //!        `||`, or a `|` at the pattern start or end. Two reasons this matters: (a) `std::regex` **rejects**
+    //!        these in the POSIX grammars, so translating one would make compat over-accept vs std; (b) REAL's
+    //!        leftmost-first star semantics over an empty-first branch (`(|a)*`) diverge from re / std on
+    //!        repetition. Conservative — a `|` merely adjacent to a group boundary or the pattern edge counts,
+    //!        an escaped `\|` or a `|` inside a class does not — because a false positive only costs linear
+    //!        coverage (safe) while a false negative is a silent divergence (forbidden).
+    [[nodiscard]] inline bool has_empty_alternation_branch(std::string_view p)
+    {
+      bool in_class {false};
+      for (std::size_t i = 0; i < p.size(); ++i) {
+        const char c {p[i]};
+        if (c == '\\') { ++i; continue; } // skip the escaped character
+        if (in_class) {
+          if (c == ']') { in_class = false; }
+          continue;
+        }
+        if (c == '[') { in_class = true; continue; }
+        if (c == '|') {
+          const bool left_empty  {i == 0 || p[i - 1] == '(' || p[i - 1] == '|'};
+          const bool right_empty {i + 1 >= p.size() || p[i + 1] == ')' || p[i + 1] == '|'};
+          if (left_empty || right_empty) { return true; }
+        }
+      }
+      return false;
+    }
+
+    //! \brief Translates a POSIX **extended** (ERE) — or, with \p awk, an **awk** — pattern to an equivalent REAL
+    //!        pattern, or `nullopt` when it uses a construct the two grammars read differently (an ECMAScript
+    //!        shorthand `\d\w\s` — undefined/literal in ERE; an ambiguous `{`; an unknown/collating `[[:…:]]`;
+    //!        an empty alternation branch, which std rejects — see \ref has_empty_alternation_branch).
+    //!        awk adds the C-escapes (see \ref append_awk_escape). POSIX classes become ASCII ranges (C locale);
+    //!        the common productions pass through, since REAL reads them like ERE. Validated by a bounds differential.
+    [[nodiscard]] inline std::optional<std::string> translate_ere(std::string_view p,
+                                                                  bool             awk = false)
+    {
+      if (has_empty_alternation_branch(p)) { return std::nullopt; } // std rejects these in POSIX -> keep ≡ std
+      std::string       out;
+      std::size_t       i {0};
+      const std::size_t n {p.size()};
+      while (i < n) {
+        const char c {p[i]};
+        if (c == '\\') {
+          if (i + 1 >= n) { return std::nullopt; } // trailing backslash
+          const char d {p[i + 1]};
+          // `\]` / `\}` OUTSIDE a class are undefined in POSIX and the std libraries disagree — libc++ rejects
+          // `\]` but accepts `\}`, libstdc++ rejects both, AT&T matches — so decline (≡ its own std per platform,
+          // the same rule as the medial `^`/`$`). Ironically REAL was AT&T-conformant here, but the drop-in
+          // contract is ≡-std, not ≡-AT&T. (Inside a class, `\]` is handled by translate_bracket, unaffected.)
+          if (d == ']' || d == '}') { return std::nullopt; }
+          if (std::string_view {".[]{}()*+?|^$\\"}.find(d) != std::string_view::npos) {
+            out += '\\';
+            out += d;
+            i   += 2;
+            continue; // an escaped metacharacter is a literal in both grammars
+          }
+          if (awk && append_awk_escape(p, i, out)) { continue; } // awk C-escapes (\b=BS, \n, octal, …)
+          return std::nullopt; // \d, \w, \b, … — no ERE meaning; fall back to std
+        }
+        if (c == '[') {
+          if (!translate_bracket(p, i, out)) { return std::nullopt; }
+          continue;
+        }
+        if (c == '{') {
+          // keep only a strict interval {n}/{n,}/{n,m}; an ambiguous `{` is literal in POSIX (it diverges).
+          std::size_t       j  {i + 1};
+          const std::size_t ds {j};
+          while (j < n && p[j] >= '0' && p[j] <= '9') { ++j; }
+          bool ok              {j > ds};
+          if (ok && j < n && p[j] == ',') {
+            ++j;
+            while (j < n && p[j] >= '0' && p[j] <= '9') { ++j; }
+          }
+          ok = ok && j < n && p[j] == '}';
+          if (!ok) { return std::nullopt; }
+          out += p.substr(i, (j + 1) - i);
+          i    = j + 1;
+          continue;
+        }
+        out += c; // common production (. * + ? | ( ) ^ $ literal) — read alike
+        i   += 1;
+      }
+      return out;
+    }
+
+    //! \brief Translates a POSIX **basic** (BRE) pattern to an equivalent REAL pattern, or `nullopt`. BRE differs
+    //!        from ERE: `\(` `\)` group and `\{n\}` quantify, while bare `( ) { } | + ?` are LITERALS (escaped for
+    //!        REAL); `*` at an expression start and `^`/`$` off the ends are literals too. Declines (→ std) on a
+    //!        backreference `\1`-`\9` (std's residual value), an ECMAScript-ism, a non-strict `\{`, an unknown /
+    //!        collating class, or a POSIX-undefined corner (`^`/`$`/`*` at a subexpression boundary).
+    [[nodiscard]] inline std::optional<std::string> translate_bre(std::string_view p)
+    {
+      std::string       out;
+      std::size_t       i        {0};
+      const std::size_t n        {p.size()};
+      bool              at_start {true}; // pattern start or just after `\(` — where `*` is literal and `^` anchors
+      while (i < n) {
+        const char c {p[i]};
+        if (c == '\\') {
+          if (i + 1 >= n) { return std::nullopt; }                          // trailing backslash
+          const char d {p[i + 1]};
+          if (d == '(') { out += '('; i += 2; at_start = true;  continue; } // \( -> group open
+          if (d == ')') { out += ')'; i += 2; at_start = false; continue; } // \) -> group close
+          if (d == '{') {                                                   // \{n\} / \{n,\} / \{n,m\} interval
+            std::size_t       j  {i + 2};
+            const std::size_t ds {j};
+            while (j < n && p[j] >= '0' && p[j] <= '9') { ++j; }
+            bool ok              {j > ds};
+            if (ok && j < n && p[j] == ',') {
+              ++j;
+              while (j < n && p[j] >= '0' && p[j] <= '9') { ++j; }
+            }
+            if (!ok || j + 1 >= n || p[j] != '\\' || p[j + 1] != '}') { return std::nullopt; } // not a strict \{...\}
+            out     += '{';
+            out     += p.substr(i + 2, j - (i + 2));
+            out     += '}';
+            i        = j + 2;
+            at_start = false;
+            continue;
+          }
+          if (d == ']' || d == '}') { return std::nullopt; } // `\]` / `\}` outside a class: undefined, std-divergent
+          if (std::string_view {".[]*\\^$"}.find(d) != std::string_view::npos) {
+            out      += '\\'; // an escaped metacharacter is a literal in both grammars
+            out      += d;
+            i        += 2;
+            at_start  = false;
+            continue;
+          }
+          return std::nullopt; // \1-\9 backref, \d\w\s\b, \+ \? \| (not BRE), stray \} -> decline
+        }
+        if (c == '(' || c == ')' || c == '{' || c == '}' || c == '|' || c == '+' || c == '?') {
+          out      += '\\';    // bare, these are literals in BRE -> escape for REAL
+          out      += c;
+          i        += 1;
+          at_start  = false;
+          continue;
+        }
+        if (c == '^') {
+          if (i == 0) { out += '^'; i += 1; at_start = false; continue; } // anchor at the pattern head (libs agree)
+          return std::nullopt; // a medial `^` is a POSIX literal, but libstdc++ reads it as an anchor while
+                               // libc++ reads it as a literal — decline so compat stays ≡ its own std
+        }
+        if (c == '$') {
+          if (i + 1 == n) { out += '$'; i += 1; at_start = false; continue; } // anchor at the tail (libs agree)
+          return std::nullopt; // a medial `$` — the same libstdc++/libc++ disagreement; decline to std
+        }
+        if (c == '*') {
+          if (at_start) { return std::nullopt; } // a leading `*` is a literal in POSIX BRE -> decline (rare)
+          out += '*';                            // quantifier
+          i   += 1;
+          continue;
+        }
+        if (c == '[') {
+          if (!translate_bracket(p, i, out)) { return std::nullopt; }
+          at_start = false;
+          continue;
+        }
+        out      += c; // `.` and ordinary literals — read alike
+        i        += 1;
+        at_start  = false;
+      }
+      return out;
+    }
+
+    //! \brief grep / egrep: a newline in the pattern is a top-level alternation of the lines (grep = BRE lines,
+    //!        egrep = ERE lines). Each line is translated by \p translate_line and the results are joined with
+    //!        `|` — correct precedence by construction, since `|` is the lowest, and each line's `^`/`$` stay
+    //!        branch-relative. A line that declines, or an empty line (a blank branch — a std edge best left to
+    //!        std), declines the whole pattern.
+    template <typename LineFn>
+    [[nodiscard]] inline std::optional<std::string> translate_newline_alt(std::string_view p,
+                                                                          LineFn           translate_line)
+    {
+      std::string out;
+      std::size_t start {0};
+      bool        first {true};
+      while (true) {
+        const std::size_t      nl          {p.find('\n', start)};
+        const std::string_view line        {p.substr(start, (nl == std::string_view::npos ? p.size() : nl) - start)};
+        if (line.empty()) { return std::nullopt; } // a blank branch -> std
+        const std::optional<std::string> t {translate_line(line)};
+        if (!t) { return std::nullopt; }
+        if (!first) { out += '|'; }
+        out  += *t;
+        first = false;
+        if (nl == std::string_view::npos) { break; }
+        start = nl + 1;
+      }
+      return out;
+    }
+
+    //! \brief Dispatches a single POSIX grammar to its translator, or `nullopt` (→ std). Exactly one grammar bit
+    //!        must be set, and neither `collate` nor `nosubs` (which force std). `extended` → ERE, `basic` → BRE,
+    //!        `awk` → ERE + C-escapes, `grep` → BRE lines joined by `|`, `egrep` → ERE lines joined by `|`.
+    [[nodiscard]] inline std::optional<std::string> translate_posix(std::string_view                    p,
+                                                                    regex_constants::syntax_option_type f)
+    {
+      using namespace regex_constants;
+      if ((f & (collate | nosubs)) != ECMAScript) { return std::nullopt; }
+      int grammars {0};
+      if ((f & basic) != ECMAScript) { ++grammars; }
+      if ((f & extended) != ECMAScript) { ++grammars; }
+      if ((f & awk) != ECMAScript) { ++grammars; }
+      if ((f & grep) != ECMAScript) { ++grammars; }
+      if ((f & egrep) != ECMAScript) { ++grammars; }
+      if (grammars != 1) { return std::nullopt; } // ECMAScript (0), or a mix — not a single POSIX grammar
+      if ((f & extended) != ECMAScript) { return translate_ere(p); }
+      if ((f & basic) != ECMAScript) { return translate_bre(p); }
+      if ((f & awk) != ECMAScript) { return translate_ere(p, /*awk=*/ true); }
+      if ((f & grep) != ECMAScript) { return translate_newline_alt(p, [](std::string_view l) { return translate_bre(l); }); }
+      return translate_newline_alt(p, [](std::string_view l) { return translate_ere(l); }); // egrep
     }
 
     //! \brief Maps compat options to real::flags (always with bytes|ecma for std-char alignment).
@@ -322,6 +641,7 @@ namespace real::compat {
       std::swap(flags_, other.flags_);
       std::swap(mark_count_, other.mark_count_);
       std::swap(nullable_, other.nullable_);
+      std::swap(posix_longest_, other.posix_longest_);
       std::swap(lazy_std_, other.lazy_std_);
       std::swap(policy_, other.policy_);
     }
@@ -362,7 +682,17 @@ namespace real::compat {
       return nullable_;
     }
 
-    //! \brief Whether replace/iterate run on the `real` traversal (real-backed AND non-nullable).
+    //! \brief Whether this is a POSIX-ERE pattern routed to REAL: `search`/`match` must use leftmost-**longest**
+    //!        bounds (the POSIX semantics), not the default leftmost-first. Set only for a translated `extended`.
+    [[nodiscard]] bool posix_longest() const noexcept
+    {
+      return posix_longest_;
+    }
+
+    //! \brief Whether replace/iterate run on the `real` traversal (real-backed AND non-nullable). A nullable
+    //!        pattern delegates replace/iterate to std (the empty-match traversal differs; and iterating a
+    //!        nullable pattern whose per-position match cost is O(n) is O(n²) on any linear engine, so routing
+    //!        it buys correctness but not a linear guarantee — see the nullable note in COMPATIBILITY.md).
     [[nodiscard]] bool uses_real_traversal() const noexcept
     {
       return uses_real() && !nullable_;
@@ -402,12 +732,13 @@ namespace real::compat {
 
     // std backend first so the variant is default-constructible (real::regex has no default ctor).
     std::variant<std::basic_regex<CharT, Traits>, real::regex>           engine_;
-    string_type                                                          pattern_;                     //!< Original pattern (for the lazy std build).
-    flag_type                                                            flags_      {regex_constants::ECMAScript};
-    std::size_t                                                          mark_count_ {};
-    bool                                                                 nullable_   {};               //!< empty_match_possible (real-backed).
-    mutable std::optional<std::basic_regex<CharT, Traits>>               lazy_std_;                    //!< Lazy std for nullable replace/iterate.
-    compat::policy                                                       policy_     {policy::strict}; //!< strict rejects ineligible, fallback delegates to std.
+    string_type                                                          pattern_;                        //!< Original pattern (for the lazy std build).
+    flag_type                                                            flags_         {regex_constants::ECMAScript};
+    std::size_t                                                          mark_count_    {};
+    bool                                                                 nullable_      {};               //!< empty_match_possible (real-backed).
+    bool                                                                 posix_longest_ {};               //!< POSIX ERE on REAL: search uses leftmost-longest bounds.
+    mutable std::optional<std::basic_regex<CharT, Traits>>               lazy_std_;                       //!< Lazy std for nullable replace/iterate.
+    compat::policy                                                       policy_        {policy::strict}; //!< strict rejects ineligible, fallback delegates to std.
 
     void assign(std::basic_string_view<CharT> pattern,
                 flag_type                     f)
@@ -415,9 +746,30 @@ namespace real::compat {
       flags_   = f;
       pattern_ = string_type(pattern);
       lazy_std_.reset();
-      nullable_ = false;
+      nullable_      = false;
+      posix_longest_ = false;
       if constexpr (detail::real_eligible<CharT, Traits>) {
         const std::string_view sv {pattern.data(), pattern.size()};
+        // PX1a/PX1b: a single POSIX grammar (extended -> ERE, basic -> BRE; awk/grep/egrep next) on the linear
+        // engine when the pattern translates — run it on REAL with leftmost-LONGEST bounds (the POSIX semantics,
+        // via search_longest / find_iter_longest) instead of delegating to std's backtracker. A `nullopt` (a
+        // wrong grammar mix, or an untranslatable construct) or a real reject falls through to the std path below;
+        // the fallback lives, and nothing that used to reach std stops reaching it.
+        if (!detail::pattern_forces_std(sv)) {
+          if (const std::optional<std::string> translated {detail::translate_posix(sv, f)}) {
+            try {
+              real::regex compiled(*translated, detail::to_real(f));
+              mark_count_    = compiled.group_count();
+              nullable_      = compiled.raw_program().hints.empty_match_possible;
+              posix_longest_ = true;
+              engine_.template emplace<real::regex>(std::move(compiled));
+              return;
+            }
+            catch (const real::regex_error&) {
+              // translated but real cannot represent it -> fall through to the std path
+            }
+          }
+        }
         if (detail::grammar_forces_std(f) || detail::pattern_forces_std(sv)) {
           reject_or_fallback(sv, f, "the pattern uses a construct the linear engine does not represent "
                              "(a backreference, an unbounded lookaround, a POSIX class, or a "

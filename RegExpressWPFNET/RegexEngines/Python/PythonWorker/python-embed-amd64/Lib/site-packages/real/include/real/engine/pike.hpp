@@ -334,6 +334,8 @@ namespace real::detail {
      *             this offset (the iterator sets it to the next codepoint
      *             boundary so a non-empty match may follow an empty one without
      *             re-yielding it — CPython 3.7+ rule). 0 means no restriction.
+     * \param[in]  sem   Match semantics: \ref match_semantics::first (default, leftmost-first) or the
+     *             experimental \ref match_semantics::longest (which forces the general loop, off every fast path).
      * \return `true` if a match was found.
      */
     template <bool Cascade = false, typename OutSlots>
@@ -341,23 +343,25 @@ namespace real::detail {
                        std::size_t      start,
                        run_mode         mode,
                        OutSlots&        out_slots,
-                       std::size_t      forbid_empty_until = 0)
+                       std::size_t      forbid_empty_until = 0,
+                       match_semantics  sem                = match_semantics::first)
     {
       text_               = text;
       forbid_empty_until_ = forbid_empty_until;
+      sem_                = sem;
       // Fast paths only fire for patterns that always consume (literal /
       // class+), which can never produce the empty match the flag guards.
-      if (prog_.hints.greedy_class_loop >= 0) {
+      if (sem_ == match_semantics::first && prog_.hints.greedy_class_loop >= 0) {
         // OPT-C: the memchr-cascade instantiation (Cascade) is selected ONCE by the caller (a whole
         // find_iter/search) from stop_set_size, never per match — so when it is off this run is byte-for-
         // byte the pre-OPT-C per-byte loop and the hot path pays nothing. The caller only sets Cascade
         // when stop_set_size >= 1, so the cascade tail always has real stop bytes.
         return run_class_loop<Cascade>(text, start, mode, out_slots);
       }
-      if (prog_.hints.greedy_cp_class >= 0) {
+      if (sem_ == match_semantics::first && prog_.hints.greedy_cp_class >= 0) {
         return run_cp_class_loop(text, start, mode, out_slots);
       }
-      if (prog_.hints.exact_literal_len > 0) {
+      if (sem_ == match_semantics::first && prog_.hints.exact_literal_len > 0) {
         return run_exact_literal(text, start, mode, out_slots);
       }
       // OPT inner-literal: memmem a required inner literal and reverse/confirm the match around it — the
@@ -369,6 +373,7 @@ namespace real::detail {
         s.il_prefix_rev;
       }) {
         if (!std::is_constant_evaluated() && !inner_literal_route_disabled() && mode == run_mode::search
+            && sem_ == match_semantics::first // longest semantics need the general loop (these routes are kFirstMatch)
             && prog_.hints.inner_literal_len > 0 && prog_.hints.inner_literal_prefix >= 0
             && (prog_.hints.inner_literal_prefix == 0 || !prog_.prefix_code.empty())) {
           // No size guard: on a no-match haystack the route is memmem-only (the reverse setup is lazy, built on
@@ -388,14 +393,14 @@ namespace real::detail {
           }
         }
       }
-      if (prog_.hints.fixed_shape) {
+      if (sem_ == match_semantics::first && prog_.hints.fixed_shape) {
         return run_fixed_shape(text, start, mode, out_slots);
       }
-      if (prog_.hints.codepoint_class_ascii >= 0) {
+      if (sem_ == match_semantics::first && prog_.hints.codepoint_class_ascii >= 0) {
         // OPT-C-1b: the SWAR variant (Cascade) is chosen once per walk, like the class-loop cascade.
         return run_codepoint_class<Cascade>(text, start, mode, out_slots);
       }
-      if (prog_.hints.fixed_alternation) {
+      if (sem_ == match_semantics::first && prog_.hints.fixed_alternation) {
         return run_alternation(text, start, mode, out_slots);
       }
       // OPT inner-literal: memmem a required literal and reverse/confirm the match around it — for patterns
@@ -425,6 +430,7 @@ namespace real::detail {
         // empty at the same spot; forward_end does not model that rule, so those searches stay on the Pike
         // VM (which does). Empty-matching patterns thus alternate DFA/VM across a find_iter; all others route.
         if (!std::is_constant_evaluated() && !lazy_dfa_route_disabled() && mode == run_mode::search
+            && sem_ == match_semantics::first // kFirstMatch forward pass; longest uses the general loop below
             && forbid_empty_until_ == 0 && text.size() - start >= lazy_dfa_min_input) {
           if (state_.dfa_program != static_cast<const void*>(prog_.code.data())) {
             ensure_lazy_dfa(); // once per iterator, not per match — skips the call_once atomic load on the hot path
@@ -448,6 +454,11 @@ namespace real::detail {
             return run_general<Cascade>(text.substr(0, abs_end), abs_start, mode, out_slots);
           }
         }
+      }
+      if (sem_ == match_semantics::longest) {
+        // The longest path uses the plain general loop (the memchr-cascade OPT-C variant is a first-match
+        // acceleration; correctness, not throughput, is what the experimental mode needs).
+        return run_general<false>(text, start, mode, out_slots);
       }
       return run_general<Cascade>(text, start, mode, out_slots);
     }
@@ -676,6 +687,10 @@ namespace real::detail {
      * never restrict).
      */
     std::size_t forbid_empty_until_ {};
+
+    //! \brief Match semantics for the current run (\ref match_semantics::first by default; \ref
+    //!        match_semantics::longest is the experimental opt-in). Read by \ref step and the fast-path routing.
+    match_semantics sem_ {match_semantics::first};
 
     /*!
      * \brief The concrete thread-list type taken from the bound `State`.
@@ -1714,6 +1729,22 @@ namespace real::detail {
               // thread may still consume a byte and win a non-empty match here.
               if (pos == won[0] && won[0] < forbid_empty_until_) {
                 break;
+              }
+              if (sem_ == match_semantics::longest) {
+                // Leftmost-longest (POSIX / RE2 set_longest_match): keep the leftmost start, then the longest end
+                // at that start. Record only a strictly-better match and do NOT cut — a lower-priority or later
+                // thread may still extend it. Seeding has already stopped (matched), so no start past the
+                // leftmost survives. A lazy quantifier therefore behaves greedily here (the longest end wins).
+                const bool better {!matched
+                                   || won[0] < out_slots[0]
+                                   || (won[0] == out_slots[0] && won[1] > out_slots[1])};
+                if (better) {
+                  for (std::uint16_t s = 0; s < slot_count; ++s) {
+                    out_slots[s] = won[s];
+                  }
+                }
+                matched = true;
+                break; // the match thread dies; the rest of the list and later positions may lengthen it
               }
               for (std::uint16_t s = 0; s < slot_count; ++s) {
                 out_slots[s] = won[s];

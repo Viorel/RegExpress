@@ -121,9 +121,10 @@ namespace real {
                                      std::string_view text,
                                      std::size_t      pos,
                                      detail::run_mode mode,
-                                     std::size_t      forbid)
+                                     std::size_t      forbid,
+                                     match_semantics  sem = match_semantics::first)
     {
-      matched_ = vm.template run<Cascade>(text, pos, mode, slots_, forbid);
+      matched_ = vm.template run<Cascade>(text, pos, mode, slots_, forbid, sem);
       return matched_;
     }
 
@@ -276,17 +277,23 @@ namespace real {
      * \param[in] pattern The pattern text (for named-group resolution).
      * \param[in] text    The text to iterate over (borrowed).
      * \param[in] start   Byte offset to begin iterating from (0 = the whole text).
+     * \param[in] sem     Match semantics: leftmost-first (default) or the experimental leftmost-longest.
      */
     constexpr basic_match_iterator(detail::program_view prog,
                                    std::string_view     pattern,
                                    std::string_view     text,
-                                   std::size_t          start = 0)
+                                   std::size_t          start = 0,
+                                   match_semantics      sem   = match_semantics::first)
       : prog_(prog),
         pattern_(pattern),
         text_(text),
         pos_(start),
         done_(false),
-        cascade_(prog.hints.stop_set_size >= 1) // decided ONCE per walk, never per match
+        // decided ONCE per walk, never per match. Longest forces the non-cascade variant: like every other
+        // fast path, the memchr-cascade class-run is guarded to first mode (the PROTO-kLongest lesson), so a
+        // longest walk must run the general loop.
+        cascade_(sem == match_semantics::first && prog.hints.stop_set_size >= 1),
+        sem_(sem)
     {
       current_.bind_context(text_, pattern_, prog_.names); // invariant across the walk — set once, not per match
       advance();
@@ -341,15 +348,16 @@ namespace real {
 
   private:
 
-    detail::program_view         prog_;                      //!< The program being run.
-    std::string_view             pattern_;                   //!< Pattern text (named lookups).
-    std::string_view             text_;                      //!< The text being scanned.
-    std::size_t                  pos_                {};     //!< Current scan offset.
-    std::size_t                  forbid_empty_until_ {};     //!< Empty-match guard (see pike.hpp).
-    bool                         done_               {true}; //!< True once exhausted.
-    bool                         cascade_            {};     //!< OPT-C: chosen once — run the memchr-cascade class-run variant for this whole walk.
-    value_type                   current_;                   //!< The current match.
-    typename Storage::state_type state_;                     //!< VM scratch, reused across the walk.
+    detail::program_view         prog_;                                        //!< The program being run.
+    std::string_view             pattern_;                                     //!< Pattern text (named lookups).
+    std::string_view             text_;                                        //!< The text being scanned.
+    std::size_t                  pos_                {};                       //!< Current scan offset.
+    std::size_t                  forbid_empty_until_ {};                       //!< Empty-match guard (see pike.hpp).
+    bool                         done_               {true};                   //!< True once exhausted.
+    bool                         cascade_            {};                       //!< OPT-C: chosen once — run the memchr-cascade class-run variant for this whole walk.
+    match_semantics              sem_                {match_semantics::first}; //!< leftmost-first (default) or longest (find_iter_longest).
+    value_type                   current_;                                     //!< The current match.
+    typename Storage::state_type state_;                                       //!< VM scratch, reused across the walk.
 
     /*!
      * \brief Finds the next match, applying the empty-match advance rules.
@@ -366,9 +374,9 @@ namespace real {
       // the common (non-cascade) walk runs the pre-OPT-C hot path unchanged.
       const bool ok {cascade_
                      ? current_.template engine_refill_hot<true>(vm, text_, pos_, detail::run_mode::search,
-                                                                 forbid_empty_until_)
+                                                                 forbid_empty_until_, sem_)
                      : current_.template engine_refill_hot<false>(vm, text_, pos_, detail::run_mode::search,
-                                                                  forbid_empty_until_)};
+                                                                  forbid_empty_until_, sem_)};
       if (!ok) {
         done_ = true;
         return;
@@ -406,15 +414,18 @@ namespace real {
      * \param[in] pattern The pattern text (for named-group resolution).
      * \param[in] text    The text to iterate over (borrowed).
      * \param[in] start   Byte offset to begin iterating from (0 = the whole text).
+     * \param[in] sem     Match semantics: leftmost-first (default) or the experimental leftmost-longest.
      */
     constexpr basic_match_range(detail::program_view prog,
                                 std::string_view     pattern,
                                 std::string_view     text,
-                                std::size_t          start = 0)
+                                std::size_t          start = 0,
+                                match_semantics      sem   = match_semantics::first)
       : prog_(prog),
         pattern_(pattern),
         text_(text),
-        start_(start)
+        start_(start),
+        sem_(sem)
     {}
 
     /*!
@@ -422,7 +433,7 @@ namespace real {
      */
     [[nodiscard]] constexpr basic_match_iterator<Storage> begin() const
     {
-      return {prog_, pattern_, text_, start_};
+      return {prog_, pattern_, text_, start_, sem_};
     }
 
     /*!
@@ -435,10 +446,11 @@ namespace real {
 
   private:
 
-    detail::program_view prog_;     //!< The program being run.
-    std::string_view     pattern_;  //!< Pattern text (named lookups).
-    std::string_view     text_;     //!< The text to iterate.
-    std::size_t          start_ {}; //!< Byte offset to begin iterating from (region support).
+    detail::program_view prog_;                           //!< The program being run.
+    std::string_view     pattern_;                        //!< Pattern text (named lookups).
+    std::string_view     text_;                           //!< The text to iterate.
+    std::size_t          start_ {};                       //!< Byte offset to begin iterating from (region support).
+    match_semantics      sem_   {match_semantics::first}; //!< leftmost-first (default) or longest.
   };
 
   /*!
@@ -607,6 +619,27 @@ namespace real {
       const std::size_t end {endpos < text.size() ? endpos : text.size()};
       return {program_.view(), pattern(), text.substr(0, end), pos};
     }
+
+    /*!
+     * \brief Experimental leftmost-**longest** `find_iter`: iterate matches with POSIX (leftmost-longest)
+     *        bounds rather than the default leftmost-first — the iterator twin of \ref search_longest, sharing
+     *        its prototype status (the `match_semantics` arc is not yet stable). Region semantics match \ref
+     *        find_iter — \p endpos truncates the subject to a view, \p pos is the start (not a slice). Byte
+     *        offsets; captures are the winning thread's, not POSIX submatch. Every fast path is bypassed.
+     */
+    [[nodiscard]] constexpr basic_match_range<Storage> find_iter_longest(std::string_view text,
+                                                                         std::size_t      pos    = 0,
+                                                                         std::size_t      endpos = npos) const&
+    {
+      const std::size_t end {endpos < text.size() ? endpos : text.size()};
+      return {program_.view(), pattern(), text.substr(0, end), pos, match_semantics::longest};
+    }
+
+    /*!
+     * \brief Deleted: `find_iter_longest` on a temporary regex would dangle.
+     */
+    [[nodiscard]] basic_match_range<Storage> find_iter_longest(std::string_view, std::size_t,
+                                                               std::size_t) const&& = delete;
 
     /*!
      * \brief Deleted: `find_iter` on a temporary regex would dangle.
@@ -971,12 +1004,14 @@ namespace real {
      * \param[in] pos    Byte offset to start matching at.
      * \param[in] endpos Byte offset of the exclusive region end; \ref npos = end of text.
      * \param[in] mode   The anchoring mode.
+     * \param[in] sem    Match semantics: leftmost-first (default) or the experimental leftmost-longest.
      * \return The match result, with offsets absolute in \p text.
      */
-    [[nodiscard]] constexpr result_type run(std::string_view text,
-                                            std::size_t      pos,
-                                            std::size_t      endpos,
-                                            detail::run_mode mode) const
+    [[nodiscard]] constexpr result_type run(std::string_view        text,
+                                            std::size_t             pos,
+                                            std::size_t             endpos,
+                                            detail::run_mode        mode,
+                                            match_semantics         sem = match_semantics::first) const
     {
       const std::size_t              end {endpos < text.size() ? endpos : text.size()};
       typename Storage::state_type   state;
@@ -985,9 +1020,35 @@ namespace real {
       detail::pike_vm                vm(prog, state);
       // OPT-C Cascade is chosen once here (a single search), never in the per-byte scan.
       const bool matched {prog.hints.stop_set_size >= 1
-                          ? vm.template run<true>(text.substr(0, end), pos, mode, slots)
-                          : vm.template run<false>(text.substr(0, end), pos, mode, slots)};
+                          ? vm.template run<true>(text.substr(0, end), pos, mode, slots, 0, sem)
+                          : vm.template run<false>(text.substr(0, end), pos, mode, slots, 0, sem)};
       return {text, std::move(slots), matched, pattern(), prog.names};
+    }
+
+  public:
+
+    /*!
+     * \brief EXPERIMENTAL, opt-in: a single leftmost-**longest** search (POSIX / RE2 `set_longest_match`), the
+     *        default leftmost-first semantics left untouched. Among matches at the leftmost start it returns the
+     *        longest; a lazy quantifier therefore behaves greedily, and captures are the leftmost-first thread's
+     *        at that longest bound (not POSIX submatch). Runs on the general Pike loop (the first-match DFA /
+     *        inner-literal fast paths are bypassed). A prototype for the `match_semantics` arc — not yet a stable
+     *        API. Its iteration twin is \ref find_iter_longest.
+     */
+    [[nodiscard]] result_type search_longest(std::string_view text) const
+    {
+      return run(text, 0, npos, detail::run_mode::search, match_semantics::longest);
+    }
+
+    /*!
+     * \brief Region-aware form of \ref search_longest — leftmost-longest search within `[pos, endpos)`. \p pos is the
+     *        start (not a slice, per \ref run); \p endpos truncates the subject. Byte offsets.
+     */
+    [[nodiscard]] result_type search_longest(std::string_view text,
+                                             std::size_t      pos,
+                                             std::size_t      endpos = npos) const
+    {
+      return run(text, pos, endpos, detail::run_mode::search, match_semantics::longest);
     }
   };
 

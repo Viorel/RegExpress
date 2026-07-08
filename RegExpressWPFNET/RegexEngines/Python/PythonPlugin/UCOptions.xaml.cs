@@ -115,7 +115,7 @@ namespace PythonPlugin
             {
                 ModuleEnum.re => "re",
                 ModuleEnum.regex => "regex",
-                ModuleEnum.real_regex => "real-regex",
+                ModuleEnum.real_regex => "real",
                 _ => "unknown"
             };
         }

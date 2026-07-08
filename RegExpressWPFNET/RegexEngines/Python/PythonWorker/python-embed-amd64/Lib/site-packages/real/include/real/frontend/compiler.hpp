@@ -466,6 +466,11 @@ namespace real::detail {
       // The fold is applied BEFORE negation (Python order): [^k] under icase is the complement of
       // {k, K, Kelvin}, so it rejects Kelvin.
       if (!node.negated) {
+        // Members accumulate in PARSE order — a predicate's range table (`\d`/`\w`/`\p{…}`), then any literal
+        // or range that follows it — but `klass_cp` binary-searches the ranges at match time, so they must be
+        // sorted and merged. Without this, a non-ASCII member after a predicate (`[\dЩ]`, `[\w\W]`) landed out
+        // of order and was silently missed. The negated path already coalesces via complement_code_ranges.
+        folded.ranges = coalesce_ranges(std::move(folded.ranges));
         return folded;
       }
       if (has_flag(flags_, flags::bytes)) {

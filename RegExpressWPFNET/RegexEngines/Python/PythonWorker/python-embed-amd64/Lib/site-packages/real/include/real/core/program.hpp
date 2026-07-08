@@ -51,6 +51,14 @@ namespace real {
     dollar_endonly = 128, //!< `$` (no multiline) matches only at the very end of the text, never before a final `\n` — the Rust/`\z` semantics. Unlike \ref flags::ecma this touches `$` ONLY, leaving `.` at the Python default. Used by the Rust binding for drop-in parity.
   };
 
+  //! \brief Which match a search returns among those starting at the leftmost position (an experimental,
+  //!        opt-in, off-by-default engine mode — the default is unchanged).
+  enum class match_semantics : std::uint8_t
+  {
+    first   = 0, //!< Leftmost-first (Perl / Python `re` / the crate): source-order thread priority decides. Default.
+    longest = 1, //!< Leftmost-longest (POSIX / RE2 `set_longest_match`): the longest overall match wins the bounds.
+  };
+
   /*!
    * \brief Bitwise-OR of two flag sets.
    * \param[in] lhs First flag set.

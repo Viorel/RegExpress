@@ -14,7 +14,7 @@
 //#include "real/std/regex.hpp" // for 'real::compat::regex', to support fallback; not considered here
 
 
-static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, real::flags flags )
+static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, real::flags flags, bool longest )
 {
 
 	DWORD code;
@@ -41,7 +41,7 @@ static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const st
 
 				const std::string textUTF8 = WStringToUtf8( text );
 
-				for( const auto& match : re.find_iter( textUTF8 ) )
+				for( const auto& match : longest ? re.find_iter_longest( textUTF8 ) : re.find_iter( textUTF8 ) )
 				{
 					outbw.WriteT<char>( 'm' );
 					outbw.WriteT<uint64_t>( match.start( ) );
@@ -127,9 +127,11 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::ascii;
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::dollar_endonly;
 
+		bool longest = inbr.ReadByte( ) != 0;
+
 		if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-		DoMatch( outbw, pattern, text, flags );
+		DoMatch( outbw, pattern, text, flags, longest );
 
 		return 0;
 	}

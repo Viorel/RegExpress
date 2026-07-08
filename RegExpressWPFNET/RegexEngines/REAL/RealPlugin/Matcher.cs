@@ -43,6 +43,7 @@ namespace RealPlugin
                 bw.Write( options.ecma );
                 bw.Write( options.ascii );
                 bw.Write( options.dollar_endonly );
+                bw.Write( options.longest );
 
                 bw.Write( (byte)'e' );
             };

@@ -139,7 +139,10 @@ namespace real::compat {
     {
       const std::string_view sv     {std::to_address(begin_),
                                      static_cast<std::size_t>(std::distance(begin_, end_))};
-      const auto             result {std::get<real::regex>(re_->engine()).search(sv, real_pos_)};
+      // POSIX ERE drives the iteration with leftmost-longest bounds; the ECMAScript default keeps first.
+      const real::regex&     engine {std::get<real::regex>(re_->engine())};
+      const auto             result {re_->posix_longest() ? engine.search_longest(sv, real_pos_)
+                                     : engine.search(sv, real_pos_)};
       if (!result.matched()) {
         at_end_ = true;
         return;

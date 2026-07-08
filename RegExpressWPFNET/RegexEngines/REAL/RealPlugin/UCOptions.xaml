@@ -26,6 +26,7 @@
             <ui:CheckboxWithNote Prop="ascii" Note="`\d \w \s \b` stay ASCII and icase folds ASCII only, even in text mode. `.`, explicit classes and UTF-8 literals stay code-point-aware"/>
             <ui:CheckboxWithNote Prop="ecma" Note="`$` (no multiline) matches only at the very end (not before a final `\n`, the Python default), AND `.` (no dotall) also excludes `\r` (ECMAScript excludes `\n` and `\r`; the multi-byte U+2028/U+2029 have no byte-level effect"/>
             <ui:CheckboxWithNote Prop="dollar_endonly" Note="`$` (no multiline) matches only at the very end of the text, never before a final `\n` — the Rust/`\z` semantics. Unlike flags::ecma this touches `$` ONLY, leaving `.` at the Python default. Used by the Rust binding for drop-in parity"/>
+            <ui:CheckboxWithNote Prop="longest" Note="(experimental)"/>
         </StackPanel>
     </Grid>
 </UserControl>

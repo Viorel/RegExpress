@@ -17,6 +17,7 @@ namespace RealPlugin
         public bool ecma { get; set; }
         public bool ascii { get; set; }
         public bool dollar_endonly { get; set; }
+        public bool longest { get; set; }
 
         public Options Clone( )
         {

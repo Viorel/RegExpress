@@ -105,6 +105,21 @@ namespace real::detail {
   //!        same set of code points, the fewest ranges). Used to keep folded / property classes compact.
   constexpr std::vector<code_range> coalesce_ranges(std::vector<code_range> ranges)
   {
+    // Fast path: already sorted and disjoint (no overlap, no adjacency). The shorthand / property tables come
+    // this way, so a bare `\w`/`\d`/`\p{…}` class skips the O(n log n) sort and the second allocation entirely —
+    // which also keeps it within a static_regex's constexpr step budget (the sort of the large word table would
+    // otherwise blow it). Only a genuinely mixed class (a predicate plus a literal/range, or two predicates)
+    // falls through to the sort.
+    bool tidy {true};
+    for (std::size_t i = 1; i < ranges.size(); ++i) {
+      if (ranges[i].lo <= ranges[i - 1].hi + 1U) { // unsorted, overlapping, or adjacent
+        tidy = false;
+        break;
+      }
+    }
+    if (tidy) {
+      return ranges;
+    }
     std::sort(ranges.begin(), ranges.end(),
               [](const code_range& a, const code_range& b) { return a.lo < b.lo; });
     std::vector<code_range> merged;
