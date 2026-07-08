@@ -317,6 +317,17 @@ namespace real {
       std::array<std::uint8_t, 16> inner_literal        {};
       std::uint8_t                 inner_literal_len    {};
       std::int32_t                 inner_literal_prefix {-1};
+
+      //! \brief For a \ref fixed_shape run that is also HOMOGENEOUS -- every position accepts the
+      //!        identical byte set, itself expressible as <= 2 contiguous ranges (`[0-9a-f]{8}`,
+      //!        `\d{4}`) -- the shared range bounds and run length, driving the SIMD scan+verify
+      //!        (SSE2/NEON) in `run_fixed_shape`. \ref fixed_shape_simd_len is 0 when not eligible
+      //!        (mixed-class shapes, a run > 16 bytes, or a class needing > 2 ranges stay scalar).
+      std::uint8_t fixed_shape_lo0      {};
+      std::uint8_t fixed_shape_hi0      {};
+      std::uint8_t fixed_shape_lo1      {1}; //!< lo1 > hi1 (default 1 > 0) encodes "no second range".
+      std::uint8_t fixed_shape_hi1      {};
+      std::uint8_t fixed_shape_simd_len {};  //!< The run length (1..16) when eligible, else 0.
     };
 
     /*!

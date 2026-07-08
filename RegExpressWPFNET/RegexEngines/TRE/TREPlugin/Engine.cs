@@ -361,9 +361,9 @@ namespace TREPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                SupportsUnicode = true,
-                InsideSets_SupportsUnicode = true,
-                SupportsUnicodeCaseFolding = false,
+                Unicode = true,
+                InsideSets_Unicode = true,
+                UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,

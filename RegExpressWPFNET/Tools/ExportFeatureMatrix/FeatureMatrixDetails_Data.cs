@@ -545,16 +545,16 @@ partial class FeatureMatrixDetails
                     .Test( @"x[]?", "x", null ),
                 new FeatureMatrixDetails( @"[^]", @"Any character, even newline", (e, fm) => fm.EmptySetAny)
                     .Test( @"a[^][^][^]b", "ax\r\nb", "ab" ),
-                new FeatureMatrixDetails( @"Unicode", @"Supports Unicode characters, not just ASCII", (e, fm) => fm.SupportsUnicode )
+                new FeatureMatrixDetails( @"Unicode", @"Support Unicode characters, not just ASCII", (e, fm) => fm.Unicode )
                     .Test( @"X.....Y", "XăîșțâY", null ),
-                new FeatureMatrixDetails( @"[Unicode]", @"Supports Unicode characters inside sets", (e, fm) => fm.InsideSets_SupportsUnicode )
+                new FeatureMatrixDetails( @"[Unicode]", @"Support Unicode characters inside sets", (e, fm) => fm.InsideSets_Unicode )
                     .Test( @"X[é]Y", "XéY", null, "XéY" ),
-                new FeatureMatrixDetails( @"é=É", @"Supports Unicode case folding", (e, fm) => fm.SupportsUnicodeCaseFolding )
+                new FeatureMatrixDetails( @"é=É", @"Support Unicode case folding", (e, fm) => fm.UnicodeCaseFolding )
                     .IgnoreCase()
                     .Test( @"XéY", "XÉY", null, "XÉY" )
                     .Test( @"(?i)XéY", "XÉY", null, "XÉY" )
                     .Test( @"(?i:XéY)", "XÉY", null, "XÉY" ),
-                new FeatureMatrixDetails( @"Surrogates", @"“.” matches surrogate pairs as one entity (no split)", (e, fm) => fm.SupportsUnicode && fm.KeepSurrogatePairs )
+                new FeatureMatrixDetails( @"Surrogates", @"“.” matches surrogate pairs as one entity (no split)", (e, fm) => fm.Unicode && fm.KeepSurrogatePairs )
                     .Test( @"X.Y", "X💕Y", null ),
 
                 new FeatureMatrixDetails( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", (e, fm) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams)
@@ -685,7 +685,7 @@ partial class FeatureMatrixDetails
                             return false;
                         }
                     }),
-                new FeatureMatrixDetails( @"", @"Also supports alternative syntax", (e, fm) => fm.Ext_AlternativeLanguage),
+                new FeatureMatrixDetails( @"", @"Also support alternative syntax", (e, fm) => fm.Ext_AlternativeLanguage),
             ]),
 
         ];

@@ -350,9 +350,9 @@ namespace TinyRegexCPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                SupportsUnicode = false,
-                InsideSets_SupportsUnicode = false,
-                SupportsUnicodeCaseFolding = false,
+                Unicode = false,
+                InsideSets_Unicode = false,
+                UnicodeCaseFolding = false,
                 KeepSurrogatePairs = true, // (not applicable)
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,

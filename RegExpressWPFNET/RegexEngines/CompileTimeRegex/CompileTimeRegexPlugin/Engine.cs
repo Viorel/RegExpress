@@ -349,9 +349,9 @@ namespace CompileTimeRegexPlugin
                 EmptySet = false,
                 EmptySetAny = true,
 
-                SupportsUnicode = true,
-                InsideSets_SupportsUnicode = true,
-                SupportsUnicodeCaseFolding = false,
+                Unicode = true,
+                InsideSets_Unicode = true,
+                UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,

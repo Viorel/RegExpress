@@ -355,9 +355,9 @@ namespace PerlPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                SupportsUnicode = true,
-                InsideSets_SupportsUnicode = true,
-                SupportsUnicodeCaseFolding = true,
+                Unicode = true,
+                InsideSets_Unicode = true,
+                UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,

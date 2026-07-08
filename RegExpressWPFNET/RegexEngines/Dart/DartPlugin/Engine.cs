@@ -358,9 +358,9 @@ namespace DartPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                SupportsUnicode = true,
-                InsideSets_SupportsUnicode = true,
-                SupportsUnicodeCaseFolding = true,
+                Unicode = true,
+                InsideSets_Unicode = true,
+                UnicodeCaseFolding = true,
                 KeepSurrogatePairs = isUnicode,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,

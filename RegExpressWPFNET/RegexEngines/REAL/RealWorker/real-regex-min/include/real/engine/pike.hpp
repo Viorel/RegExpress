@@ -23,12 +23,15 @@
 #include <cassert>
 #include <cstdint>
 #include <string_view>
+#include <bit>
+#include <cstring>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "real/core/charclass.hpp"
 #include "real/engine/prefilter.hpp"
+#include "real/engine/simd.hpp" // the ISA-exclusive intrinsics behind the mask-carried scans below
 #include <mutex>
 #include <optional>
 
@@ -39,6 +42,84 @@
 #include "real/unicode/utf8.hpp"
 
 namespace real::detail {
+
+#if defined(__ARM_NEON) || defined(__SSE2__)
+  /*!
+   * \brief L-SIMD v3.2: fused scan+verify for a HOMOGENEOUS fixed shape (every position accepts the
+   *        identical <= 2-range set — \ref pattern_hints::fixed_shape_simd_len > 0).
+   *
+   * Mirrors the two-level structure of the ceil_simd.cpp hex prototype: an outer loop skips whole
+   * 16-byte windows with no candidate at all (one compare per 16 bytes — the coarse scan), and an inner
+   * loop that, once a candidate is found, verifies it and — on a mismatch — finds the NEXT candidate by
+   * reusing the mask it just computed (via \ref next_set_lane) rather than a fresh scalar scan
+   * (`next_candidate` is not called at all here: the same homogeneous set is every position's
+   * first-byte set, so the good-mask already carries where the next candidate is). A fresh mask is
+   * still loaded at each *candidate* (not each byte), which is what makes the reuse sound: the low
+   * `simd_len` lanes of a mask loaded AT a candidate are exactly that candidate's verify.
+   *
+   * Written ONCE against simd.hpp's uniform mask_t interface (\ref load_range_mask, \ref empty, \ref
+   * first_lane, \ref window_all_set, \ref first_clear_lane, \ref next_set_lane) — no `#if` ISA branch
+   * of its own. The intrinsics behind those primitives are ISA-exclusive by construction and live in
+   * simd.hpp (excluded from the coverage floor for exactly that reason); this function is the
+   * decision/loop logic — eligibility already decided by the caller, the block-boundary guard, the
+   * skip-after-failure math, the tail hand-off — which is the SAME C++ on every ISA and is what the
+   * ordinary test suite exercises, regardless of which SIMD leg compiled. (The first cut of this
+   * function still had a `#if NEON ... #elif SSE2 ...` pair of near-identical loop bodies — dead
+   * weight structurally uncoverable on the other ISA's CI runner, the actual coverage-check deficit;
+   * this rewrite is the real fix, not another test chasing the symptom.)
+   *
+   * \param[in]  text        The subject text.
+   * \param[in]  start       Offset to begin scanning from.
+   * \param[in]  hints       The pattern's hints (`fixed_shape_lo0/hi0/lo1/hi1/simd_len`).
+   * \param[out] resume_from On no match, where the scalar tail (`fast_search`/`next_candidate`) should
+   *                         resume from — unset on a match.
+   * \return The match start offset, or \ref npos if the SIMD scan found no match (< 16 bytes remaining
+   *         from some point on, or no candidate byte left at all).
+   */
+  inline std::size_t simd_fixed_shape_scan(std::string_view      text,
+                                           std::size_t           start,
+                                           const pattern_hints&  hints,
+                                           std::size_t&          resume_from)
+  {
+    const std::size_t L   {hints.fixed_shape_simd_len};
+    const std::size_t sz  {text.size()};
+    std::size_t       pos {start};
+    while (pos + 16 <= sz) {
+      std::array<std::uint8_t, 16> blk {};
+      std::memcpy(blk.data(), text.data() + pos, 16); // MISRA-clean byte load (no pointer type-pun)
+      const mask_t m                   {load_range_mask(blk.data(), hints.fixed_shape_lo0, hints.fixed_shape_hi0,
+                                                        hints.fixed_shape_lo1, hints.fixed_shape_hi1)};
+      if (empty(m)) {
+        pos += 16; // no candidate anywhere in this window -- skip the whole block, one compare paid
+        continue;
+      }
+      std::size_t c {pos + first_lane(m)};
+      // Chain through every candidate this SAME loaded window can still verify -- reusing m (no
+      // reload) as long as the candidate's own L-lane window fits inside [pos, pos + 16). Once a
+      // candidate's verify would read past what m covers, stop the chain and reload fresh AT it (the
+      // block-boundary case): querying m past what it actually covers is never attempted (the loop
+      // condition below guards it), so there is no risk of a false negative OR a false skip.
+      while (c + L <= pos + 16) {
+        const std::size_t start_lane {c - pos};
+        if (window_all_set(m, start_lane, L)) {
+          resume_from = c;
+          return c; // all L lanes from start_lane are in range -- a match at c
+        }
+        const std::size_t z   {first_clear_lane(m, start_lane, L)}; // absolute lane of the first failing byte
+        const std::size_t nxt {next_set_lane(m, z + 1U)};           // reuse m -- no rescan: the next candidate lane
+        if (nxt >= 16U) {
+          c = pos + z + 1U; // no further candidate visible in the still-loaded window -- reload from here
+          break;
+        }
+        c = pos + nxt; // next candidate, same loaded mask
+      }
+      pos = c; // either the next window to coarse-scan, or the exact candidate that needs a fresh load
+    }
+    resume_from = pos;
+    return npos;
+  }
+
+#endif
 
   /*!
    * \brief How a VM run is anchored.
@@ -374,8 +455,12 @@ namespace real::detail {
       }) {
         if (!std::is_constant_evaluated() && !inner_literal_route_disabled() && mode == run_mode::search
             && sem_ == match_semantics::first // longest semantics need the general loop (these routes are kFirstMatch)
-            && prog_.hints.inner_literal_len > 0 && prog_.hints.inner_literal_prefix >= 0
-            && (prog_.hints.inner_literal_prefix == 0 || !prog_.prefix_code.empty())) {
+            && prog_.hints.inner_literal_len > 0 && prog_.hints.inner_literal_prefix >= 1
+            && !prog_.prefix_code.empty()) {
+          // A required literal at offset 0 (a match that DOES begin with a literal) is a *prefix*, not an inner
+          // literal — it keeps the faster find_prefix path. Only a genuine inner literal (offset >= 1, for which
+          // the compiler built a `prefix_code` for the reverse-confirm) takes this route; the old
+          // `inner_literal_prefix == 0` clause routed prefixes here too and cost ~3.3x on dense corpora.
           // No size guard: on a no-match haystack the route is memmem-only (the reverse setup is lazy, built on
           // the first candidate, never here), so it wins at every size; and the prefix byte-program is a
           // per-regex immutable (built once, amortized by any later use — the lazy-DFA warmup's own contract).
@@ -1181,6 +1266,27 @@ namespace real::detail {
           out_slots[1] = match_end;
           return true;
         }
+#if defined(__ARM_NEON) || defined(__SSE2__)
+        // L-SIMD v3.1: hex scan+verify, fused. For a HOMOGENEOUS fixed shape (every position accepts
+        // the identical <= 2-range set -- fixed_shape_simd_len > 0, see prefilter.hpp's
+        // class_range_count), \ref simd_fixed_shape_scan does the whole candidate scan AND verify itself
+        // (mirroring the ceil_simd.cpp hex prototype): it does not call next_candidate at all -- the
+        // 53c2de4 cut did, and profiling showed the scalar bitmap scan (a 16-member class is outside the
+        // small_set memchr-cascade) became the new bottleneck. A free function so run_fixed_shape's own
+        // per-instantiation body stays this thin call-and-branch. Scalar tail (< 16 bytes remaining, or
+        // no more candidates) falls through to the existing fast_search/next_candidate walk from
+        // wherever the SIMD scan left off.
+        if (!std::is_constant_evaluated() && prog_.hints.fixed_shape_simd_len >= 1) {
+          std::size_t       resume {};
+          const std::size_t found  {simd_fixed_shape_scan(text, start, prog_.hints, resume)};
+          if (found != npos) {
+            out_slots[0] = found;
+            out_slots[1] = found + prog_.hints.fixed_shape_simd_len;
+            return true;
+          }
+          return fast_search(text, resume, at, out_slots); // scalar tail
+        }
+#endif
         return fast_search(text, start, at, out_slots);
       }
 
@@ -1404,6 +1510,58 @@ namespace real::detail {
         out_slots[1] = match_end;
         return true;
       }
+#if defined(__ARM_NEON) || defined(__SSE2__)
+      // L-SIMD v2.1: mask-carried search. Scan a 16-byte block for any branch first-byte, then verify
+      // every candidate the mask marks (in order — leftmost-first) with match_at before advancing to
+      // the next block. The mask survives across candidates within the block (\ref clear_first, no
+      // reload), which is where the win lives. Written ONCE against simd.hpp's uniform mask_t interface
+      // — no `#if` ISA branch of its own (the first cut had a NEON/SSE2 pair of near-identical loop
+      // bodies, dead weight on whichever ISA a given CI runner isn't; see simd_fixed_shape_scan's
+      // comment for the same fix applied there). Scalar tail (< 16, the net-0-33 pins this boundary).
+      if (!std::is_constant_evaluated() && prog_.hints.small_set_size >= 2 && prog_.hints.small_set_size <= 8) {
+        const std::size_t           cnt {prog_.hints.small_set_size};
+        std::array<std::uint8_t, 8> mem {};
+        for (std::size_t i = 0; i < cnt; ++i) {
+          mem[i] = static_cast<std::uint8_t>(prog_.hints.small_set[i]);
+        }
+        const std::size_t sz  {text.size()};
+        std::size_t       pos {start};
+        for (; pos + 16 <= sz; pos += 16) {
+          std::array<std::uint8_t, 16> buf {};
+          std::memcpy(buf.data(), text.data() + pos, 16); // MISRA-clean byte load (no pointer type-pun)
+          mask_t mask                      {load_members_mask(buf.data(), mem.data(), cnt)};
+          while (!empty(mask)) {
+            const std::size_t lane {first_lane(mask)};
+            const std::size_t me   {match_at(pos + lane, false)};
+            if (me != npos) {
+              out_slots[0] = pos + lane;
+              out_slots[1] = me;
+              return true;
+            }
+            mask = clear_first(mask);
+          }
+        }
+        for (; pos < sz; ++pos) { // scalar tail: the last < 16 bytes (the net pins this boundary)
+          const std::uint8_t b      {static_cast<std::uint8_t>(text[pos])};
+          bool               member {false};
+          for (std::size_t i = 0; i < cnt; ++i) {
+            if (b == mem[i]) {
+              member = true;
+              break;
+            }
+          }
+          if (member) {
+            const std::size_t me {match_at(pos, false)};
+            if (me != npos) {
+              out_slots[0] = pos;
+              out_slots[1] = me;
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+#endif
       return fast_search(text, start, [&](std::size_t match_start) { return match_at(match_start, false); }, out_slots);
     }
 
@@ -1948,11 +2106,61 @@ namespace real::detail {
     [[nodiscard]] constexpr bool lookaround_holds(std::uint16_t sub_id,
                                                   std::size_t   pos)
     {
-      const lookaround_sub& sub     {prog_.lookarounds[sub_id]};
-      const bool            matched {sub.direction == look_dir::behind
-                                       ? lookbehind_matches(sub, pos)
-                                       : lookahead_matches(sub, pos)};
+      const lookaround_sub& sub {prog_.lookarounds[sub_id]};
+      // L1 peephole: a single-width body compiles to exactly [one consuming op; match] (code_length 2). Test it
+      // directly, skipping the sub-VM scaffolding (~37 ns/eval — a ~4x win on the common single-class assertion,
+      // P0-measured). Negation is over the RESULT (applied below), so an empty / boundary position flips right.
+      if (sub.code_length == 2) {
+        const instr& body   {prog_.code[static_cast<std::size_t>(sub.code_offset)]};
+        const bool   direct {body.op == opcode::byte || body.op == opcode::klass
+                             || (body.op == opcode::klass_cp && !prog_.byte_mode)};
+        if (direct) {
+          const bool matched {sub.direction == look_dir::behind ? single_class_behind(body, pos)
+                                                                : single_class_ahead(body, pos)};
+          return sub.negative ? !matched : matched;
+        }
+      }
+      const bool matched {sub.direction == look_dir::behind ? lookbehind_matches(sub, pos)
+                                                            : lookahead_matches(sub, pos)};
       return sub.negative ? !matched : matched;
+    }
+
+    //! \brief L1 peephole — does the single consuming op \p body match the code point / byte AT \p pos (ahead)?
+    //!        Mirrors the per-op logic of \ref lookahead_matches for a one-instruction sub-program.
+    [[nodiscard]] constexpr bool single_class_ahead(const instr& body,
+                                                    std::size_t  pos)
+    {
+      if (pos >= text_.size()) {
+        return false; // nothing ahead: the body cannot match — (?=…) false / (?!…) true (negated by the caller)
+      }
+      if (body.op == opcode::klass_cp) {
+        const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
+        return dc.valid && cp_class_matches(prog_.cp_classes[body.arg16], dc.cp);
+      }
+      const auto b {static_cast<std::uint8_t>(text_[pos])};
+      return body.op == opcode::byte ? b == body.arg8 : prog_.classes[body.arg16].test(b);
+    }
+
+    //! \brief L1 peephole — does \p body match the code point / byte ending EXACTLY at \p pos (behind)?
+    //!        The defining lookbehind trap: the match must END at \p pos, so the code point is the one whose
+    //!        aligned start s gives `s + length == pos` (byte mode: `pos - 1`).
+    [[nodiscard]] constexpr bool single_class_behind(const instr& body,
+                                                     std::size_t  pos)
+    {
+      if (pos == 0) {
+        return false; // nothing behind: (?<=…) false / (?<!…) true (negated by the caller)
+      }
+      if (body.op == opcode::klass_cp) {
+        std::size_t s {pos - 1};
+        while (s > 0 && (static_cast<std::uint8_t>(text_[s]) & 0xC0U) == 0x80U) {
+          --s; // recede over UTF-8 continuation bytes to the code point's aligned start
+        }
+        const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, s)};
+        return dc.valid && s + static_cast<std::size_t>(dc.length) == pos
+               && cp_class_matches(prog_.cp_classes[body.arg16], dc.cp);
+      }
+      const auto b {static_cast<std::uint8_t>(text_[pos - 1])};
+      return body.op == opcode::byte ? b == body.arg8 : prog_.classes[body.arg16].test(b);
     }
 
     /*!

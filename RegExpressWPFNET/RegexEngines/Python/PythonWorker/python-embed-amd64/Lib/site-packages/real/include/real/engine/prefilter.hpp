@@ -216,6 +216,55 @@ namespace real::detail {
   }
 
   /*!
+   * \brief Reports \p klass as up to two contiguous byte ranges.
+   *
+   * `[lo0, hi0]` is always the first run found scanning byte 0..255; `[lo1, hi1]`
+   * the second, if any (`lo1 > hi1` when there is none). Used to test whether a
+   * class qualifies for the SIMD range-compare fast path in `run_fixed_shape`.
+   *
+   * \param[in]  klass The class to scan.
+   * \param[out] lo0   Lower bound of the first run.
+   * \param[out] hi0   Upper bound of the first run.
+   * \param[out] lo1   Lower bound of the second run (unset -- 1 -- when none).
+   * \param[out] hi1   Upper bound of the second run (unset -- 0 -- when none).
+   * \return The number of contiguous runs found; the caller should treat any count
+   *         outside `[1, 2]` (an empty class, or three or more runs) as ineligible.
+   */
+  constexpr int class_range_count(const char_class&  klass,
+                                  std::uint8_t&      lo0,
+                                  std::uint8_t&      hi0,
+                                  std::uint8_t&      lo1,
+                                  std::uint8_t&      hi1)
+  {
+    int count {0};
+    int byte  {0};
+    while (byte <= 255) {
+      if (!klass.test(static_cast<std::uint8_t>(byte))) {
+        ++byte;
+        continue;
+      }
+      const int start {byte};
+      while (byte <= 255 && klass.test(static_cast<std::uint8_t>(byte))) {
+        ++byte;
+      }
+      const int end {byte - 1};
+      ++count;
+      if (count == 1) {
+        lo0 = static_cast<std::uint8_t>(start);
+        hi0 = static_cast<std::uint8_t>(end);
+      }
+      else if (count == 2) {
+        lo1 = static_cast<std::uint8_t>(start);
+        hi1 = static_cast<std::uint8_t>(end);
+      }
+      else {
+        return count; // already ineligible (> 2 runs); no need to keep scanning
+      }
+    }
+    return count;
+  }
+
+  /*!
    * \brief Detects the whole-pattern fast-path shapes and sets their hint flags: `class+`,
    *        fixed-shape straight runs, a single codepoint class (`.`/negated, optional `+`),
    *        and an alternation of straight-line branches.
@@ -350,6 +399,61 @@ namespace real::detail {
         }
         if (width >= 1 && closed && !nested && i + 1 == code.size() && code[i].op == opcode::match) {
           hints.fixed_shape = true;
+        }
+      }
+
+      // SIMD verify eligibility: the run above qualifies for a vectorized scan+verify (pike.hpp
+      // run_fixed_shape) only when it is also HOMOGENEOUS -- every byte/klass position accepts the
+      // identical set, itself <= 2 contiguous ranges -- because the sound "skip to the first failing
+      // lane" only holds when a mismatch at any position rules out every position (same required set
+      // everywhere). Mixed shapes ((\d{4})-(\d{2})-(\d{2})) stay on the scalar walk.
+      if (hints.fixed_shape) {
+        bool          homogeneous {true};
+        bool          have_first  {false};
+        std::uint8_t  lo0         {};
+        std::uint8_t  hi0         {};
+        std::uint8_t  lo1         {1};
+        std::uint8_t  hi1         {};
+        std::uint32_t len         {};
+        for (std::size_t pc {1}; pc < i; ++pc) {
+          const opcode op {code[pc].op};
+          if (op != opcode::byte && op != opcode::klass) {
+            continue; // interleaved capturing save -- epsilon for this purpose
+          }
+          ++len;
+          std::uint8_t plo0 {};
+          std::uint8_t phi0 {};
+          std::uint8_t plo1 {1};
+          std::uint8_t phi1 {};
+          if (op == opcode::byte) {
+            plo0 = code[pc].arg8;
+            phi0 = code[pc].arg8;
+          }
+          else {
+            const int ranges {class_range_count(classes[code[pc].arg16], plo0, phi0, plo1, phi1)};
+            if (ranges < 1 || ranges > 2) {
+              homogeneous = false;
+              break;
+            }
+          }
+          if (!have_first) {
+            lo0        = plo0;
+            hi0        = phi0;
+            lo1        = plo1;
+            hi1        = phi1;
+            have_first = true;
+          }
+          else if (plo0 != lo0 || phi0 != hi0 || plo1 != lo1 || phi1 != hi1) {
+            homogeneous = false; // a position needs a different set -- not uniform, disqualified
+            break;
+          }
+        }
+        if (homogeneous && have_first && len >= 1 && len <= 16) {
+          hints.fixed_shape_lo0      = lo0;
+          hints.fixed_shape_hi0      = hi0;
+          hints.fixed_shape_lo1      = lo1;
+          hints.fixed_shape_hi1      = hi1;
+          hints.fixed_shape_simd_len = static_cast<std::uint8_t>(len);
         }
       }
     }

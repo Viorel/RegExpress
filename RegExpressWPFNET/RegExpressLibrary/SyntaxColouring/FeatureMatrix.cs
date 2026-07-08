@@ -271,9 +271,9 @@ namespace RegExpressLibrary.SyntaxColouring
 
         //
 
-        public bool SupportsUnicode { get; init; }                          // supports Unicode characters, not just ASCII
-        public bool InsideSets_SupportsUnicode { get; init; }               // supports Unicode characters, not just ASCII, inside [...]
-        public bool SupportsUnicodeCaseFolding { get; init; }               // for example, 'é' matches 'É' in case of case-insensitive matching
+        public bool Unicode { get; init; }                                  // supports Unicode characters, not just ASCII
+        public bool InsideSets_Unicode { get; init; }                       // supports Unicode characters, not just ASCII, inside [...]
+        public bool UnicodeCaseFolding { get; init; }                       // for example, 'é' matches 'É' in case of case-insensitive matching
 
         public bool KeepSurrogatePairs { get; init; }                       // when the text contains a surrogate pair (e.g. “😎” U+1F60E), then “.” returns a single result (32-bit surrogate pair)
                                                                             // if it is 'false', then “.” matches two components separately: D83D and DE0E

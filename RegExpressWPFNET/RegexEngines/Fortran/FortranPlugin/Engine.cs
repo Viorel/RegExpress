@@ -372,9 +372,9 @@ namespace FortranPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                SupportsUnicode = true,
-                InsideSets_SupportsUnicode = true,
-                SupportsUnicodeCaseFolding = false,
+                Unicode = true,
+                InsideSets_Unicode = true,
+                UnicodeCaseFolding = false,
                 KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
@@ -589,9 +589,9 @@ namespace FortranPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                SupportsUnicode = false, // (defective match: '..' matches the character  and an empty space between characters)
-                InsideSets_SupportsUnicode = false, // (defect?)
-                SupportsUnicodeCaseFolding = false,
+                Unicode = false, // (defective match: '..' matches the character  and an empty space between characters)
+                InsideSets_Unicode = false, // (defect?)
+                UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
@@ -806,9 +806,9 @@ namespace FortranPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                SupportsUnicode = false, // (defective match: '.' matches the character and an empty space between characters)
-                InsideSets_SupportsUnicode = false, // (defect?)
-                SupportsUnicodeCaseFolding = false,
+                Unicode = false, // (defective match: '.' matches the character and an empty space between characters)
+                InsideSets_Unicode = false, // (defect?)
+                UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,

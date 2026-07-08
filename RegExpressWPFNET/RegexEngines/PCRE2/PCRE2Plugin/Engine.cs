@@ -387,9 +387,9 @@ namespace PCRE2Plugin
                 EmptySet = PCRE2_ALLOW_EMPTY_CLASS,
                 EmptySetAny = true,
 
-                SupportsUnicode = true,
-                InsideSets_SupportsUnicode = true,
-                SupportsUnicodeCaseFolding = true,
+                Unicode = true,
+                InsideSets_Unicode = true,
+                UnicodeCaseFolding = true,
                 KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,

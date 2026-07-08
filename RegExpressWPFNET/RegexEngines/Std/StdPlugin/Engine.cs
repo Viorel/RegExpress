@@ -445,9 +445,9 @@ namespace StdPlugin
                 EmptySet = grammar == GrammarEnum.ECMAScript,
                 EmptySetAny = grammar == GrammarEnum.ECMAScript,
 
-                SupportsUnicode = true,
-                InsideSets_SupportsUnicode = true,
-                SupportsUnicodeCaseFolding = false,
+                Unicode = true,
+                InsideSets_Unicode = true,
+                UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
@@ -688,9 +688,9 @@ namespace StdPlugin
                 EmptySet = grammar == GrammarEnum.ECMAScript,
                 EmptySetAny = grammar == GrammarEnum.ECMAScript,
 
-                SupportsUnicode = true,
-                InsideSets_SupportsUnicode = true,
-                SupportsUnicodeCaseFolding = false,
+                Unicode = true,
+                InsideSets_Unicode = true,
+                UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None, // 'Accept' when 'polynomial' option is set; otherwise it hangs; however, this option disables back-references
@@ -905,9 +905,9 @@ namespace StdPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                SupportsUnicode = true,
-                InsideSets_SupportsUnicode = true,
-                SupportsUnicodeCaseFolding = true,
+                Unicode = true,
+                InsideSets_Unicode = true,
+                UnicodeCaseFolding = true,
                 KeepSurrogatePairs = false,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,

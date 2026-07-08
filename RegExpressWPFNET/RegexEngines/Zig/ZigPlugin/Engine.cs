@@ -386,9 +386,9 @@ namespace ZigPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                SupportsUnicode = false, // ('unicode' flag not yet implemented)
-                InsideSets_SupportsUnicode = false,
-                SupportsUnicodeCaseFolding = false,
+                Unicode = false, // ('unicode' flag not yet implemented)
+                InsideSets_Unicode = false,
+                UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
@@ -603,9 +603,9 @@ namespace ZigPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                SupportsUnicode = false, // ('unicode' flag not yet implemented)
-                InsideSets_SupportsUnicode = false,
-                SupportsUnicodeCaseFolding = false,
+                Unicode = false, // ('unicode' flag not yet implemented)
+                InsideSets_Unicode = false,
+                UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
@@ -820,9 +820,9 @@ namespace ZigPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                SupportsUnicode = false, // ('unicode' flag not yet implemented)
-                InsideSets_SupportsUnicode = false,
-                SupportsUnicodeCaseFolding = false,
+                Unicode = false, // ('unicode' flag not yet implemented)
+                InsideSets_Unicode = false,
+                UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
