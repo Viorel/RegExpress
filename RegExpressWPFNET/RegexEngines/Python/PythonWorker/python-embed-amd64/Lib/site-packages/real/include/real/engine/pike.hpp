@@ -432,6 +432,9 @@ namespace real::detail {
       sem_                = sem;
       // Fast paths only fire for patterns that always consume (literal /
       // class+), which can never produce the empty match the flag guards.
+      // P3c trailing-LA is NOT dispatched here — it lives outside pike_vm::run (real.hpp /
+      // find_iter) so this function stays pre-P3c-sized and keeps inlining into find_iter
+      // (x86: +16–20 % when cold code bloated run() past the inline threshold).
       if (sem_ == match_semantics::first && prog_.hints.greedy_class_loop >= 0) {
         // OPT-C: the memchr-cascade instantiation (Cascade) is selected ONCE by the caller (a whole
         // find_iter/search) from stop_set_size, never per match — so when it is off this run is byte-for-
@@ -522,6 +525,46 @@ namespace real::detail {
           }
           if (state_.fwd_dfa.has_value() && state_.rev_dfa.has_value() && state_.fwd_dfa->eligible()
               && !state_.fwd_dfa->thrashing()) {
+            // A2: anchored-from-candidate. When the pattern has a sound first-byte prefilter, the
+            // reverse DFA pass is pure overhead: next_candidate already knows where a match COULD start,
+            // so anchored_end (no re-seed) tests each candidate directly and a hit's start is the
+            // candidate itself -- zero reverse_dfa. A miss ("false candidate": a valid first byte whose
+            // pattern does not actually continue to match, e.g. [a-z][0-9]+ on "aaaa") advances to the
+            // NEXT candidate, not the next byte -- next_candidate re-scans from there. Leftmost-first by
+            // construction: candidates are tried strictly left to right, and a candidate is only ever
+            // skipped once its own anchored walk has proven no match starts there (the same argument the
+            // SIMD fast paths use for their skip-after-failure). One begin_scan for the whole candidate
+            // loop, not one per candidate: a per-search thrash decision, not a per-candidate one.
+            if (prog_.hints.first_bytes_valid) {
+              state_.fwd_dfa->begin_scan();
+              std::size_t c {start};
+              while (true) {
+                c = next_candidate(text, c, start);
+                if (c > text.size()) {
+                  out_slots.assign(prog_.slot_count, npos);
+                  return false; // no further candidate -- the prefilter itself is exhaustive
+                }
+                const std::size_t match_end {state_.fwd_dfa->anchored_end(text, c)};
+                if (match_end != npos) {
+                  if (prog_.slot_count <= 2) {
+                    out_slots.assign(2, npos);
+                    out_slots[0] = c;
+                    out_slots[1] = match_end;
+                    return true;
+                  }
+                  if (prog_.immut != nullptr && prog_.immut->op_table.has_value()
+                      && prog_.immut->op_table->eligible()
+                      && prog_.immut->op_table->extract(text, c, match_end, out_slots)) {
+                    return true;
+                  }
+                  return run_general<Cascade>(text.substr(0, match_end), c, mode, out_slots);
+                }
+                ++c; // false candidate: past it, one candidate at a time (bounded by the pattern's own
+                     // reach, exactly as run_fixed_shape/run_alternation/run_inner_literal already skip)
+              }
+            }
+            // No sound first-byte prefilter (e.g. .*x): the unanchored forward pass plus a reverse
+            // recovery is the route that applies -- there is no candidate to anchor on.
             const std::size_t match_end {state_.fwd_dfa->forward_end(text.substr(start))};
             if (match_end == npos) {
               out_slots.assign(prog_.slot_count, npos);
@@ -529,10 +572,23 @@ namespace real::detail {
             }
             const std::size_t abs_end   {start + match_end};
             const std::size_t abs_start {state_.rev_dfa->reverse_start(text, abs_end, start)};
+            // OPT bounds-only (A1): a GROUPLESS pattern ([a-z][a-z]+ — slot_count <= 2, group 0 only) has
+            // no captures beyond the span itself, so the one-pass extractor's per-op table walk buys
+            // nothing here — it exists to fill group slots this pattern does not have. The forward+reverse
+            // DFA pair already IS the whole match's span; skip straight to it.
+            if (prog_.slot_count <= 2) {
+              out_slots.assign(2, npos);
+              out_slots[0] = abs_start;
+              out_slots[1] = abs_end;
+              return true;
+            }
             // OPT onepass (Tier A): a one-pass pattern fills captures in a single pass over [s, e] with no
             // thread lists (the shared per-regex table). Otherwise the window-Pike runs the general loop
-            // there. Both give the same slots.
-            if (prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()
+            // there. Both give the same slots. prog_.immut is non-null whenever fwd_dfa/rev_dfa hold a
+            // value (both are set only by ensure_lazy_dfa, which builds on ensure_immutables' own
+            // null-guarded fill) -- the explicit check here just makes that invariant visible to the
+            // analyzer (confirm_at, below, already spells it out the same way).
+            if (prog_.immut != nullptr && prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()
                 && prog_.immut->op_table->extract(text, abs_start, abs_end, out_slots)) {
               return true; // extract filled out_slots directly — no intermediate buffer or copy
             }
@@ -717,7 +773,16 @@ namespace real::detail {
           return false;
         }
         std::size_t s {h}; // boundary 0 = head literal: the reverse is the identity
-        if (boundary >= 1) {
+        if (boundary >= 1 && prog_.hints.il_fused_eligible) {
+          // IL-FUSION: the whole pattern (prefix + literal + suffix) is a plain fixed-width byte/klass
+          // sequence (prog_.hints.fixed_shape, checked at compile time -- compiler.hpp's il_fused_eligible
+          // wiring), so the match start is pure arithmetic: no reverse DFA. Bounds-guarded both ways -- a
+          // hit closer to the text start than the prefix's width, or whose only possible start falls
+          // below the reverse floor, has no valid candidate here (mirrors reverse_start returning npos).
+          const std::size_t prefix_w {prog_.hints.il_fused_prefix_width};
+          s = (h >= prefix_w && h - prefix_w >= min_match_start) ? h - prefix_w : npos;
+        }
+        else if (boundary >= 1) {
           // The prefix's byte program lives in the per-regex immutables — built once (call_once, already done
           // by the first-candidate guard above), not per find_iter; the expensive klass_cp expansion is what a
           // small-input regex must not pay repeatedly. The reverse DFA that spans it is a cheap per-iterator
@@ -736,6 +801,28 @@ namespace real::detail {
         }
         if (s == npos) {
           pos = h + 1; // the prefix reaches no start within [min_match_start, h] -> next candidate
+        }
+        else if (prog_.hints.il_fused_eligible) {
+          // The fused verify: one match_byte_klass_run pass over the WHOLE span (prefix + literal +
+          // suffix, all byte/klass ops by construction) -- no forward DFA, no one-pass extraction. A
+          // fixed-width match has every save at a compile-time-constant offset from the start, exactly
+          // like run_fixed_shape's own grouped path, so fill_fixed_saves (no re-match) fills captures.
+          const std::size_t match_end {prog_.slot_count <= 2 ? match_byte_klass_run<false>(text, 1, s)
+                                                              : match_byte_klass_run<true>(text, 1, s)};
+          if (match_end != npos) {
+            out_slots.assign(prog_.slot_count, npos);
+            out_slots[0] = s;
+            out_slots[1] = match_end;
+            if (prog_.slot_count > 2) {
+              fill_fixed_saves(s, out_slots);
+            }
+            return true;
+          }
+          // min_pre_start intentionally not advanced here: match_byte_klass_run reports pass/fail only,
+          // not how far it got, so there is no sound tighter floor to claim (and none is needed for
+          // linearity -- the fused verify is a hard-bounded O(il_fused_max_width) check per candidate,
+          // not the reverse/forward-DFA cost the guard was built to bound).
+          pos = h + 1;
         }
         else {
           std::size_t stop {s};
@@ -991,6 +1078,11 @@ namespace real::detail {
      * Matches a maximal run of class bytes with one scan loop — exactly the
      * VM's greedy result, with no thread lists.
      *
+     * This function is the no-LA path only (pre-P3c shape). Trailing-lookaround
+     * class+ is dispatched outside \ref run (see real.hpp / find_iter) into
+     * \ref run_class_loop_trailing_la. always_inline: must stay in the find_iter
+     * body on x86 (out-of-line call cost ~16 % over 42k matches).
+     *
      * \tparam Cascade  Take the OPT-C memchr-cascade run tail (chosen once per walk from stop_set_size).
      * \tparam OutSlots Output slot container.
      * \param[in]  text      The subject text.
@@ -1000,6 +1092,9 @@ namespace real::detail {
      * \return `true` if a non-empty run was found.
      */
     template <bool Cascade, typename OutSlots>
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((always_inline))
+#endif
     constexpr bool run_class_loop(std::string_view text,
                                   std::size_t      start,
                                   run_mode         mode,
@@ -1056,6 +1151,117 @@ namespace real::detail {
       out_slots.assign(prog_.slot_count, npos);
       fill_span_slots(out_slots, match_start, match_end);
       return true;
+    }
+
+  public:
+
+    /*!
+     * \brief Trailing-lookaround class+ (P3c): body scan + longest end where lookaround holds.
+     *
+     * Cold, noinline: must not share a function body or inlining unit with
+     * \ref run_class_loop (the daily [a-z]+ path). Invoked from real.hpp / find_iter
+     * **outside** \ref run so pure class-loop run() stays pre-P3c-sized. Dynamic-only.
+     */
+    template <bool Cascade, typename OutSlots>
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline, cold))
+#endif
+    bool run_class_loop_trailing_la(std::string_view text,
+                                    std::size_t      start,
+                                    run_mode         mode,
+                                    OutSlots&        out_slots)
+    {
+      // Static storage has no lookaround scratch and never arms trailing_lookaround.
+      if constexpr (!requires(State & st) {
+        st.lookaround;
+      }) {
+        out_slots.assign(prog_.slot_count, npos);
+        return false;
+      }
+      else {
+        text_ = text; // lookaround_holds reads text_ (callers are outside run())
+        const std::uint8_t* const tbl =
+          class_table(static_cast<std::size_t>(prog_.hints.trailing_la_class));
+        const auto in_class = [&](std::size_t i) {
+                                return tbl[static_cast<std::uint8_t>(text[i])] != 0U;
+                              };
+        const auto scan_end = [&](std::size_t match_start) -> std::size_t {
+                                std::size_t match_end {match_start + 1};
+                                if constexpr (Cascade) {
+                                  if (!std::is_constant_evaluated()) {
+                                    while (match_end < text.size() && in_class(match_end)) {
+                                      ++match_end;
+                                      if (match_end - match_start == cascade_run_threshold) {
+                                        match_end = run_cascade_stop(text, match_end);
+                                        break;
+                                      }
+                                    }
+                                    return match_end;
+                                  }
+                                }
+                                while (match_end < text.size() && in_class(match_end)) {
+                                  ++match_end;
+                                }
+                                return match_end;
+                              };
+
+        const auto sub_id {static_cast<std::uint16_t>(prog_.hints.trailing_lookaround)};
+        const auto try_ends = [&](std::size_t ms, std::size_t me) -> bool {
+                                for (std::size_t e = me; e > ms; --e) {
+                                  if (lookaround_holds(sub_id, e)) {
+                                    out_slots.assign(prog_.slot_count, npos);
+                                    fill_span_slots(out_slots, ms, e);
+                                    return true;
+                                  }
+                                }
+                                return false;
+                              };
+
+        if (mode == run_mode::full) {
+          if (start >= text.size() || !in_class(start)) {
+            out_slots.assign(prog_.slot_count, npos);
+            return false;
+          }
+          const std::size_t match_end {scan_end(start)};
+          if (match_end != text.size() || !lookaround_holds(sub_id, match_end)) {
+            out_slots.assign(prog_.slot_count, npos);
+            return false;
+          }
+          out_slots.assign(prog_.slot_count, npos);
+          fill_span_slots(out_slots, start, match_end);
+          return true;
+        }
+
+        if (mode == run_mode::prefix) {
+          if (start >= text.size() || !in_class(start)) {
+            out_slots.assign(prog_.slot_count, npos);
+            return false;
+          }
+          if (try_ends(start, scan_end(start))) {
+            return true;
+          }
+          out_slots.assign(prog_.slot_count, npos);
+          return false;
+        }
+
+        std::size_t pos {start};
+        while (pos < text.size()) {
+          std::size_t match_start {pos};
+          while (match_start < text.size() && !in_class(match_start)) {
+            ++match_start;
+          }
+          if (match_start >= text.size()) {
+            break;
+          }
+          const std::size_t match_end {scan_end(match_start)};
+          if (try_ends(match_start, match_end)) {
+            return true;
+          }
+          pos = match_end;
+        }
+        out_slots.assign(prog_.slot_count, npos);
+        return false;
+      }
     }
 
     /*!

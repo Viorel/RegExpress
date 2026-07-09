@@ -174,7 +174,8 @@ namespace RustPlugin
             Engine engine_regress_v = new( ) { Options = new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } }; // currently 'ignore_whitespace' not supported
             Engine engine_resharp = new( ) { Options = new Options { crate = CrateEnum.resharp, UnicodeMode = UnicodeModeEnum.Full } };
             Engine engine_anre = new( ) { Options = new Options { crate = CrateEnum.anre } };
-            Engine engine_real = new( ) { Options = new Options { crate = CrateEnum.real_regex, @struct = StructEnum.RegexBuilder, unicode = true } };
+            Engine engine_real = new( ) { Options = new Options { crate = CrateEnum.real_regex, @struct = StructEnum.RegexBuilder, unicode = false } };
+            Engine engine_real_u = new( ) { Options = new Options { crate = CrateEnum.real_regex, @struct = StructEnum.RegexBuilder, unicode = true } };
 
             return
                 [
@@ -184,7 +185,8 @@ namespace RustPlugin
                     new FeatureMatrixVariant("regress (“uv” flags)", LazyFeatureMatrix_Regress.GetValue( (StructEnum.RegexBuilder, isUnicode:true, isUnicodeSets:true) ), engine_regress_v),
                     new FeatureMatrixVariant("resharp (“Full” mode)", LazyFeatureMatrix_Resharp.GetValue( UnicodeModeEnum.Full ), engine_resharp),
                     new FeatureMatrixVariant("anre", LazyFeatureMatrix_Anre.GetValue( 0 ), engine_anre),
-                    new FeatureMatrixVariant("real-regex", LazyFeatureMatrix_RealRegex.GetValue( (StructEnum.RegexBuilder, isUnicode:true) ), engine_real),
+                    new FeatureMatrixVariant("real-regex", LazyFeatureMatrix_RealRegex.GetValue( (StructEnum.RegexBuilder, isUnicode:false) ), engine_real),
+                    new FeatureMatrixVariant("real-regex (“u” flag)", LazyFeatureMatrix_RealRegex.GetValue( (StructEnum.RegexBuilder, isUnicode:true) ), engine_real_u),
                 ];
         }
 
@@ -1736,7 +1738,7 @@ namespace RustPlugin
 
                 Unicode = true,
                 InsideSets_Unicode = true,
-                UnicodeCaseFolding = true,
+                UnicodeCaseFolding = isUnicode,
                 KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,

@@ -16,7 +16,7 @@ namespace RealPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
+        static readonly LazyData<bool /*ascii*/, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -112,7 +112,7 @@ namespace RealPlugin
             return new SyntaxOptions
             {
                 XLevel = Options.verbose ? XLevelEnum.x : XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.Value
+                FeatureMatrix = LazyFeatureMatrix.GetValue( Options.ascii ),
             };
         }
 
@@ -121,7 +121,8 @@ namespace RealPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                    new FeatureMatrixVariant( "“ascii” flag", LazyFeatureMatrix.GetValue( true), new Engine{ Options = new Options{ ascii = true } } ),
+                    new FeatureMatrixVariant( "no “ascii” flag", LazyFeatureMatrix.GetValue( false), new Engine{ Options = new Options{ ascii = false } } ),
                 ];
         }
 
@@ -149,7 +150,7 @@ namespace RealPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        private static FeatureMatrix BuildFeatureMatrix( )
+        private static FeatureMatrix BuildFeatureMatrix( bool isAscii )
         {
             return new FeatureMatrix
             {
@@ -358,11 +359,11 @@ namespace RealPlugin
 
                 Unicode = true,
                 InsideSets_Unicode = true,
-                UnicodeCaseFolding = true,
+                UnicodeCaseFolding = !isAscii,
                 KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
-                Σσς = true,
+                Σσς = !isAscii,
             };
         }
     }

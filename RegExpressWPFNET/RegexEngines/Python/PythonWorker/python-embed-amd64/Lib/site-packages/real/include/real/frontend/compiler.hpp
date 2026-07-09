@@ -136,7 +136,8 @@ namespace real::detail {
       emit(prog, {.op   = opcode::match});
       prog.byte_mode    = has_flag(flags_, flags::bytes);
       prog.unicode_word = !has_flag(flags_, flags::bytes) && !has_flag(flags_, flags::ascii);
-      prog.hints        = analyze_program(prog.code, prog.classes, prog.cp_classes, prog.codepoint_mark_ascii, prog.codepoint_mark_offset);
+      prog.hints        = analyze_program(prog.code, prog.classes, prog.cp_classes, prog.codepoint_mark_ascii,
+                                          prog.codepoint_mark_offset, prog.lookarounds);
       // The required inner literal + its prefix boundary (a single AST walk). Recorded for the inner-literal
       // search path; not yet routed on. Kept off the program code, so byte-identity is untouched.
       const inner_literal il {extract_inner_literal(tree_)};
@@ -913,6 +914,21 @@ namespace real::detail {
       prog.prefix_classes    = pp.classes;
       prog.prefix_cp_classes = pp.cp_classes;
       prog.prefix_cp_ranges  = pp.cp_ranges;
+      // IL-fusion: when the WHOLE pattern is a plain fixed-width byte/klass sequence (fixed_shape --
+      // no branches/klass_cp/assertions anywhere, prefix and suffix both included), the memmem hit's
+      // match start is pure arithmetic and the whole span verifies in one match_byte_klass_run pass
+      // (run_inner_literal, pike.hpp) -- no reverse DFA, no forward DFA, no one-pass extraction. The
+      // prefix sub-program (pp, just compiled) gives the prefix's own width directly; fixed_shape
+      // already guarantees prog.code as a whole (prefix + literal + suffix) is this same shape, so a
+      // second walk of it is only needed for the total-width cap, not to re-prove eligibility.
+      if (prog.hints.fixed_shape) {
+        const std::int32_t prefix_w {fixed_run_width(pp.code)};
+        const std::int32_t total_w  {fixed_run_width(prog.code)};
+        if (prefix_w >= 0 && total_w >= 0 && total_w <= il_fused_max_width) {
+          prog.hints.il_fused_eligible     = true;
+          prog.hints.il_fused_prefix_width = static_cast<std::uint8_t>(prefix_w);
+        }
+      }
     }
     return prog;
   }

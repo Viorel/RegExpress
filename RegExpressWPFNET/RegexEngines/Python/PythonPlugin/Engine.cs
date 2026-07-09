@@ -21,7 +21,7 @@ namespace PythonPlugin
     {
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_Re = new( BuildFeatureMatrix_Re );
         static readonly LazyData<(bool isPosix, bool isVersion1), FeatureMatrix> LazyFeatureMatrix_Regex = new( d => BuildFeatureMatrix_Regex( d.isPosix, d.isVersion1 ) );
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_RealRegex = new( BuildFeatureMatrix_RealRegex );
+        static readonly LazyData<bool /*ascii*/, FeatureMatrix> LazyFeatureMatrix_RealRegex = new( BuildFeatureMatrix_RealRegex );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -124,7 +124,7 @@ namespace PythonPlugin
             {
                 ModuleEnum.re => LazyFeatureMatrix_Re.Value,
                 ModuleEnum.regex => LazyFeatureMatrix_Regex.GetValue( (Options.POSIX, Options.VERSION1) ),
-                ModuleEnum.real_regex => LazyFeatureMatrix_RealRegex.Value,
+                ModuleEnum.real_regex => LazyFeatureMatrix_RealRegex.GetValue( Options.ASCII ),
                 _ => throw new InvalidOperationException( ),
             };
 
@@ -142,7 +142,8 @@ namespace PythonPlugin
             //Engine engine_regex_v0 = new( ) { Options = new Options { Module = ModuleEnum.regex, POSIX = false, VERSION0 = true, VERSION1 = false } };
             Engine engine_regex_v1 = new( ) { Options = new Options { Module = ModuleEnum.regex, POSIX = false, VERSION0 = false, VERSION1 = true } };
             Engine engine_regex_v1_posix = new( ) { Options = new Options { Module = ModuleEnum.regex, POSIX = true, VERSION0 = false, VERSION1 = true } };
-            Engine engine_real_regex = new( ) { Options = new Options { Module = ModuleEnum.real_regex, VERSION0 = false, VERSION1 = false } };
+            Engine engine_real_regex_ascii = new( ) { Options = new Options { Module = ModuleEnum.real_regex, VERSION0 = false, VERSION1 = false, ASCII = true } };
+            Engine engine_real_regex = new( ) { Options = new Options { Module = ModuleEnum.real_regex, VERSION0 = false, VERSION1 = false, ASCII = false } };
 
             return
                 [
@@ -150,7 +151,8 @@ namespace PythonPlugin
                     //new FeatureMatrixVariant("regex V0", LazyFeatureMatrix_Regex.GetValue((isPosix: false, isVersion1: false)), engine_regex_v0),
                     new FeatureMatrixVariant("regex V1", LazyFeatureMatrix_Regex.GetValue((isPosix: false, isVersion1: true)), engine_regex_v1),
                     new FeatureMatrixVariant("regex V1 (posix)", LazyFeatureMatrix_Regex.GetValue((isPosix: true, isVersion1: true)), engine_regex_v1_posix),
-                    new FeatureMatrixVariant("real-regex", LazyFeatureMatrix_RealRegex.Value, engine_real_regex),
+                    new FeatureMatrixVariant("real-regex (ASCII)", LazyFeatureMatrix_RealRegex.GetValue(true), engine_real_regex_ascii),
+                    new FeatureMatrixVariant("real-regex", LazyFeatureMatrix_RealRegex.GetValue(false), engine_real_regex),
                 ];
         }
 
@@ -613,7 +615,7 @@ namespace PythonPlugin
             };
         }
 
-        static FeatureMatrix BuildFeatureMatrix_RealRegex( )
+        static FeatureMatrix BuildFeatureMatrix_RealRegex( bool isAscii )
         {
             return new FeatureMatrix
             {
@@ -822,11 +824,11 @@ namespace PythonPlugin
 
                 Unicode = true,
                 InsideSets_Unicode = true,
-                UnicodeCaseFolding = true,
+                UnicodeCaseFolding = !isAscii,
                 KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
-                Σσς = true,
+                Σσς = !isAscii,
             };
         }
     }

@@ -63,6 +63,15 @@ namespace real::detail {
     return disabled;
   }
 
+  //! \brief Test seam: force the matcher off the trailing-lookaround class+ route onto the pure Pike VM, so a
+  //!        differential can assert routed and unrouted searches agree. Not for production use — the route is
+  //!        transparent by contract (same leftmost-first spans as the general loop on the eligible shape).
+  inline bool& trailing_la_route_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
   //! \brief A byte-level program derived from a Pike program for the DFA passes: every `klass_cp` construct
   //!        is expanded into UTF-8 byte-range split/klass chains, so the whole thing is byte-transition-only
   //!        and a forward DFA can represent it. The Pike program itself is untouched (byte-identity); this
@@ -601,6 +610,71 @@ namespace real::detail {
       return best_end;
     }
 
+    /*!
+     * \brief The end offset of the leftmost-first match ANCHORED at \p start in \p text, or \ref
+     *        real::npos.
+     *
+     * Identical walk to \ref forward_end except it never re-seeds: a single thread is seeded once, at
+     * \p start (\ref step, never \ref step_seeded), so a match must begin exactly there. The caller
+     * already knows \p start is a valid candidate (a prefilter hit) -- this skips the reverse pass
+     * \ref forward_end normally needs to recover the start, since there is nothing left to recover.
+     * Eligible programs only (an ineligible one returns \ref real::npos; the caller keeps the Pike VM).
+     * No captures: this reports the end only, exactly like \ref forward_end.
+     *
+     * Does NOT call \ref begin_scan (unlike \ref forward_end): a caller trying several candidates in a
+     * loop for one logical search calls \ref begin_scan itself, ONCE, before the loop -- resetting the
+     * thrash flag per CANDIDATE rather than per search would mask real thrashing across the loop.
+     *
+     * The lean munch (A3): once find_iter has warmed a search up, the small state set a pattern like
+     * `[a-z][a-z]+` actually visits is already fully cached -- every (state, class) transition and every
+     * state's priority-cut already sit in \ref trans_ / \ref state_cut_. \ref step and \ref cut_cached
+     * exist to COMPUTE and cache those on a miss; paying their call overhead plus the "is this already
+     * built?" branch on every byte, when the answer is essentially always yes post-warm-up, is exactly
+     * the residual cost profiling pinned here (step + cut_cached + this function itself). So the loop
+     * below inlines the two lookups directly -- a flat class-then-transition read per byte, an
+     * accept check against a local, no function call at all in the common case -- and falls back to the
+     * real (state-building, cache-filling, flush-aware) \ref step / \ref cut_cached only on an actual
+     * miss, which is rare once the small state set has been visited once. Same states, same tables, same
+     * memoization \ref step / \ref cut_cached would have produced -- this is a leaner READ of them, not a
+     * different automaton. One accounting gap: the inlined hits do not increment \ref counters::hits
+     * (that counter is a step()/cut_cached()-callers' bookkeeping aid, not behavior -- \ref thrashing
+     * and \ref flush only ever move on an actual miss, which still goes through the real functions).
+     *
+     * \param[in] text  The subject text.
+     * \param[in] start Offset to anchor the match at (must be `<= text.size()`).
+     */
+    [[nodiscard]] std::size_t anchored_end(std::string_view text,
+                                           std::size_t      start)
+    {
+      if (!eligible_) {
+        return npos;
+      }
+      std::uint32_t       state    {start_state_};
+      std::size_t         best_end {npos};
+      std::size_t         pos      {start};
+      const std::uint16_t count    {alpha_.count};
+      while (true) {
+        const std::uint32_t midx {state_match_idx_[state]};
+        if (midx != no_match_idx) {
+          best_end = pos;                                           // the highest-priority accept lives at index midx; a higher thread may extend it
+          const std::uint32_t cut {state_cut_[state]};
+          state = (cut != no_transition) ? cut : cut_cached(state); // already-memoized cut, or build + memoize it
+          if (state == dead_state) {
+            break; // nothing higher-priority survives to extend the match
+          }
+        }
+        if (pos >= text.size() || state == dead_state) {
+          break;
+        }
+        const std::uint8_t  byte  {static_cast<std::uint8_t>(text[pos])};
+        const std::uint8_t  cls   {alpha_.of[byte]};
+        const std::uint32_t trans {trans_[(static_cast<std::size_t>(state) * count) + cls]};
+        state = (trans != no_transition) ? trans : step(state, byte); // anchored: never re-seed -- a match starts at `start` or not at all
+        ++pos;
+      }
+      return best_end;
+    }
+
     //! \brief Whether \p state accepts here (its ordered set contains a `match` PC).
     [[nodiscard]] bool is_match(std::uint32_t state) const
     {
@@ -739,6 +813,13 @@ namespace real::detail {
                               std::vector<std::int32_t>& out,
                               std::vector<char>&         seen) const
     {
+      // Structurally unreachable through the only two callers (step/step_seeded, both private): every pc
+      // they pass is either 0 (the program start) or pc+1 of a consuming instruction's own valid pc, and a
+      // well-formed program never ends on a byte/klass op with nothing after it (a `match` always follows
+      // eventually) -- so pc+1 never runs off the end in practice. Kept as the defensive bound close_into's
+      // OWN recursion-turned-stack-loop below also relies on (a split/jump target is trusted, not re-
+      // checked, past this point); testing it would need a hand-crafted malformed program, not a pattern
+      // the compiler can produce.
       if (pc < 0 || static_cast<std::size_t>(pc) >= code_.size()) {
         return;
       }
@@ -981,8 +1062,16 @@ namespace real::detail {
         }
       }
       rev_closure(next, seen);
-      const std::uint32_t result {intern(next)};
-      trans_[(static_cast<std::size_t>(state) * alpha_.count) + cls] = result;
+      // Same trap lazy_dfa::step guards against: intern() may flush() mid-call (state_pcs_/trans_ cleared
+      // and rebuilt from scratch), which makes `state` -- the CALLER's index, captured before this call --
+      // stale for the now-reset trans_. Only cache the edge back into trans_[state] when no flush happened
+      // this call; a flush means the caller re-seeds anyway (reverse_start reads the RETURNED state, always
+      // fresh), so the cache write is simply skipped rather than landing on a wrong or out-of-bounds slot.
+      const std::size_t   flushes_before {flushes_};
+      const std::uint32_t result         {intern(next)};
+      if (flushes_ == flushes_before) {
+        trans_[(static_cast<std::size_t>(state) * alpha_.count) + cls] = result;
+      }
       return result;
     }
 
@@ -1036,6 +1125,7 @@ namespace real::detail {
 
     constexpr void flush()
     {
+      ++flushes_;
       state_pcs_.clear();
       trans_.clear();
       state_has_start_.clear();
@@ -1060,6 +1150,7 @@ namespace real::detail {
     std::int32_t                                                              match_pc_    {-1};
     std::uint32_t                                                             start_state_ {0};
     std::size_t                                                               budget_      {state_budget};
+    std::size_t                                                               flushes_     {0}; //!< bumped by flush(); step()'s stale-state guard against a mid-call reset.
     std::vector<std::vector<std::int32_t>>                                    rev_eps_;         //!< transposed epsilon edges.
     std::vector<std::vector<std::int32_t>>                                    rev_consume_;     //!< transposed consuming edges (the pred consuming pcs).
     std::vector<std::vector<std::int32_t>>                                    state_pcs_;

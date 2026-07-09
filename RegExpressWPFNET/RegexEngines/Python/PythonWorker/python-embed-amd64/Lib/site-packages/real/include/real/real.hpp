@@ -128,6 +128,16 @@ namespace real {
       return matched_;
     }
 
+    //! \brief P3c cold path for TrailingLA walks only (never referenced from pure walks).
+    template <bool Cascade, typename Vm>
+    constexpr bool engine_refill_trailing_la(Vm&              vm,
+                                             std::string_view text,
+                                             std::size_t      pos)
+    {
+      matched_ = vm.template run_class_loop_trailing_la<Cascade>(text, pos, detail::run_mode::search, slots_);
+      return matched_;
+    }
+
     /*!
      * \brief Returns `true` if the attempt matched.
      */
@@ -253,9 +263,13 @@ namespace real {
    * after a non-empty one), then the scan advances by one codepoint. The regex
    * and the text must outlive the iterator. Obtained from \ref basic_match_range.
    *
-   * \tparam Storage The regex's storage policy (selects the result/scratch types).
+   * \tparam Storage    The regex's storage policy (selects the result/scratch types).
+   * \tparam TrailingLA When `true`, this walk is the P3c trailing-LA class+ path only
+   *                    (once-per-walk choice, like \ref cascade_). Pure walks use
+   *                    `TrailingLA = false` so their `advance` has zero LA code — a per-step
+   *                    runtime branch on trailing_lookaround regressed pure `[a-z]+` ~16 % on x86.
    */
-  template <typename Storage>
+  template <typename Storage, bool TrailingLA = false>
   class basic_match_iterator
   {
   public:
@@ -361,6 +375,10 @@ namespace real {
 
     /*!
      * \brief Finds the next match, applying the empty-match advance rules.
+     *
+     * \c TrailingLA is fixed for the whole walk (constructor / range). Pure walks
+     * (`TrailingLA = false`) contain zero trailing-LA symbols — required for x86
+     * class-loop codegen (see pattern_hints::trailing_lookaround).
      */
     constexpr void advance()
     {
@@ -369,14 +387,19 @@ namespace real {
         return;
       }
       detail::pike_vm vm(prog_, state_);
-      // Refresh the one held result in place, reusing its slot buffer (no per-match allocation). The
-      // Cascade choice is the iterator's compile-time-dispatched cascade_, fixed once at construction, so
-      // the common (non-cascade) walk runs the pre-OPT-C hot path unchanged.
-      const bool ok {cascade_
-                     ? current_.template engine_refill_hot<true>(vm, text_, pos_, detail::run_mode::search,
-                                                                 forbid_empty_until_, sem_)
-                     : current_.template engine_refill_hot<false>(vm, text_, pos_, detail::run_mode::search,
-                                                                  forbid_empty_until_, sem_)};
+      bool            ok {};
+      if constexpr (TrailingLA) {
+        // P3c cold path only — this specialization is never mixed into pure walks.
+        ok = cascade_ ? current_.template engine_refill_trailing_la<true>(vm, text_, pos_)
+                      : current_.template engine_refill_trailing_la<false>(vm, text_, pos_);
+      }
+      else {
+        // Pure walk — pre-P3c shape. Cascade chosen once; both arms are the same hot family.
+        ok = cascade_ ? current_.template engine_refill_hot<true>(vm, text_, pos_, detail::run_mode::search,
+                                                                  forbid_empty_until_, sem_)
+                      : current_.template engine_refill_hot<false>(vm, text_, pos_, detail::run_mode::search,
+                                                                   forbid_empty_until_, sem_);
+      }
       if (!ok) {
         done_ = true;
         return;
@@ -401,9 +424,10 @@ namespace real {
 
   /*!
    * \brief A range of matches, returned by `find_iter()` and usable in range-for.
-   * \tparam Storage The regex's storage policy.
+   * \tparam Storage    The regex's storage policy.
+   * \tparam TrailingLA Once-per-walk P3c path (see \ref basic_match_iterator).
    */
-  template <typename Storage>
+  template <typename Storage, bool TrailingLA = false>
   class basic_match_range
   {
   public:
@@ -431,7 +455,7 @@ namespace real {
     /*!
      * \brief Returns an iterator to the first match.
      */
-    [[nodiscard]] constexpr basic_match_iterator<Storage> begin() const
+    [[nodiscard]] constexpr basic_match_iterator<Storage, TrailingLA> begin() const
     {
       return {prog_, pattern_, text_, start_, sem_};
     }
@@ -439,7 +463,7 @@ namespace real {
     /*!
      * \brief Returns the end sentinel.
      */
-    [[nodiscard]] constexpr basic_match_iterator<Storage> end() const
+    [[nodiscard]] constexpr basic_match_iterator<Storage, TrailingLA> end() const
     {
       return {};
     }
@@ -588,6 +612,13 @@ namespace real {
      * C++20 range-for (the range initializer's temporaries die before the loop
      * body), so that misuse is a compile error (deleted rvalue overloads).
      *
+     * \note Pure monomorphic walk (`TrailingLA = false`). The trailing-LA class+
+     *       fast path is intentionally not taken here — the range's return type is
+     *       fixed at compile time so pure `[a-z]+` codegen stays pristine. For the
+     *       LA-fast route use \ref count_matches, \ref find_all, \ref search,
+     *       \ref match, or \ref replace (once-per-walk dispatch). Correctness is
+     *       identical; only throughput differs on eligible patterns.
+     *
      * \param[in] text The subject text (must outlive the range).
      * \return A \ref basic_match_range usable directly in a range-for.
      */
@@ -656,10 +687,49 @@ namespace real {
                                                        std::size_t = npos) const&& = delete;
 
     /*!
+     * \brief Count non-overlapping matches without allocating result objects.
+     *
+     * Matching-only counter: once-per-walk dispatch (cascade_ model) — pure
+     * monomorphic walk for ordinary patterns; TrailingLA monomorphic walk when
+     * the trailing-lookaround class+ hint is set. Fair for multi-engine benches
+     * (unlike \ref find_all, which builds a vector of Match objects and can
+     * dominate high-cardinality scans). Prefer this over counting \ref find_iter
+     * when measuring trailing-LA throughput — \ref find_iter stays pure by design.
+     *
+     * \param[in] text The subject text.
+     * \return The number of non-overlapping matches.
+     */
+    [[nodiscard]] constexpr std::size_t count_matches(std::string_view text) const
+    {
+      std::size_t n {};
+      if constexpr (requires(typename Storage::state_type & st) {
+        st.lookaround;
+      }) {
+        const auto prog {program_.view()};
+        if (prog.hints.trailing_lookaround >= 0
+            && (std::is_constant_evaluated() || !detail::trailing_la_route_disabled())) {
+          for (const result_type& match :
+               basic_match_range<Storage, /*TrailingLA=*/ true> {prog, pattern(), text}) {
+            (void) match;
+            ++n;
+          }
+          return n;
+        }
+      }
+      for (const result_type& match : find_iter(text)) {
+        (void) match;
+        ++n;
+      }
+      return n;
+    }
+
+    /*!
      * \brief All matches, eagerly (like Python `re.findall` but full results).
      *
      * Lvalue-only for the same reason as \ref find_iter (results reference this
-     * regex's name table).
+     * regex's name table). Once-per-walk TrailingLA dispatch when eligible (same
+     * route as \ref count_matches); vector construction cost is on top of the
+     * scan — high match counts can dominate ns/B.
      *
      * \param[in] text The subject text (must outlive the results).
      * \return A vector of match results.
@@ -667,6 +737,20 @@ namespace real {
     [[nodiscard]] constexpr std::vector<result_type> find_all(std::string_view text) const&
     {
       std::vector<result_type> result;
+      // Same once-per-walk dispatch as count_matches (vector cost is on top of the scan).
+      if constexpr (requires(typename Storage::state_type & st) {
+        st.lookaround;
+      }) {
+        const auto prog {program_.view()};
+        if (prog.hints.trailing_lookaround >= 0
+            && (std::is_constant_evaluated() || !detail::trailing_la_route_disabled())) {
+          for (const result_type& match :
+               basic_match_range<Storage, /*TrailingLA=*/ true> {prog, pattern(), text}) {
+            result.push_back(match);
+          }
+          return result;
+        }
+      }
       for (const result_type& match : find_iter(text)) {
         result.push_back(match);
       }
@@ -1018,10 +1102,31 @@ namespace real {
       typename Storage::slot_storage slots;
       const detail::program_view     prog    {program_.view()};
       detail::pike_vm                vm(prog, state);
-      // OPT-C Cascade is chosen once here (a single search), never in the per-byte scan.
-      const bool matched {prog.hints.stop_set_size >= 1
-                          ? vm.template run<true>(text.substr(0, end), pos, mode, slots, 0, sem)
-                          : vm.template run<false>(text.substr(0, end), pos, mode, slots, 0, sem)};
+      const auto                     subject {text.substr(0, end)};
+      // P3c cold: trailing-LA outside pike_vm::run (keeps pure class-loop run() pre-P3c-sized).
+      // if constexpr: static_storage has no lookaround scratch / rejects LA at compile.
+      bool matched {};
+      if constexpr (requires(typename Storage::state_type & st) {
+        st.lookaround;
+      }) {
+        if (sem == match_semantics::first && prog.hints.trailing_lookaround >= 0
+            && (std::is_constant_evaluated() || !detail::trailing_la_route_disabled())) {
+          matched = prog.hints.stop_set_size >= 1
+                      ? vm.template run_class_loop_trailing_la<true>(subject, pos, mode, slots)
+                      : vm.template run_class_loop_trailing_la<false>(subject, pos, mode, slots);
+        }
+        else {
+          matched = prog.hints.stop_set_size >= 1
+                      ? vm.template run<true>(subject, pos, mode, slots, 0, sem)
+                      : vm.template run<false>(subject, pos, mode, slots, 0, sem);
+        }
+      }
+      else {
+        // OPT-C Cascade is chosen once here (a single search), never in the per-byte scan.
+        matched = prog.hints.stop_set_size >= 1
+                    ? vm.template run<true>(subject, pos, mode, slots, 0, sem)
+                    : vm.template run<false>(subject, pos, mode, slots, 0, sem);
+      }
       return {text, std::move(slots), matched, pattern(), prog.names};
     }
 

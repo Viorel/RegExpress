@@ -84,9 +84,12 @@ namespace real::detail {
     //! \param[in] bp        The byte-program to classify.
     //! \param[in] max_bytes Table-memory cap; larger tables decline. Defaults to \ref max_table_bytes; a
     //!                      smaller value is a test hook to exercise the cap without a huge pattern.
+    //! \param[in] node_cap  Node-count cap (see \ref max_nodes). Defaults to \ref max_nodes; a smaller
+    //!                      value is a test hook to exercise the cap without a 65000-node pattern.
     explicit constexpr onepass(const byte_program&  bp,
-                               std::size_t          max_bytes = max_table_bytes)
-      : max_bytes_ {max_bytes},
+                               std::size_t          max_bytes = max_table_bytes,
+                               std::size_t          node_cap  = max_nodes)
+      : max_bytes_ {max_bytes}, node_cap_ {node_cap},
         ascii_word_ {!bp.unicode_word} // word-ness mode for \b \B \< \> in edge conditions (Tier-B)
     {
       if (!bp.eligible) {
@@ -271,7 +274,7 @@ namespace real::detail {
         queue.pop_back();
         std::vector<char> on_path(bp.code.size(), 0);
         build_edges(pc, 0, 0, on_path, pc_to_node_[static_cast<std::size_t>(pc)], queue);
-        if (nodes_.size() > max_nodes) {
+        if (nodes_.size() > node_cap_) {
           bail("node cap exceeded", static_cast<std::int32_t>(nodes_.size()));
           return;
         }
@@ -471,6 +474,14 @@ namespace real::detail {
           build_edges(pc + 1, cap_mask, assert_mask | (std::uint32_t {1} << in.arg8), on_path, node_id, queue);
           break;
         default:
+          // Structurally unreachable via the current construction, not tested directly: the constructor's
+          // own `!bp.eligible` bail (above) already declines before build_edges ever runs whenever a
+          // lookaround or a word-ness-flipped assertion is present, and build_byte_program converts every
+          // klass_cp into byte/klass chains (never leaves one in an eligible program) -- so no eligible
+          // byte-program can reach this case through any public construction path. Kept as a defensive
+          // guard against a FUTURE opcode added to the switch's domain without a corresponding case here,
+          // not a live decline path -- hand-crafting a byte_program with an illegal op just to hit it would
+          // test the guard's plumbing, not anything the engine can actually produce.
           bail("unexpected op in byte-program (lookaround/klass_cp should be absent)");
           return;
       }
@@ -485,6 +496,7 @@ namespace real::detail {
     std::vector<onepass_node>               nodes_;
     std::size_t                             slot_count_ {0};
     std::size_t                             max_bytes_  {max_table_bytes};
+    std::size_t                             node_cap_   {max_nodes};
     bool                                    ascii_word_ {true};
     std::int32_t                            bail_node_  {-1};
     std::int32_t                            bail_class_ {-1};

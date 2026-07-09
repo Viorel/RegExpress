@@ -215,6 +215,65 @@ namespace real::detail {
     hints.empty_match_possible = empty_match_possible;
   }
 
+  //! \brief IL-fusion cap (compiler.hpp, `pattern_hints::il_fused_eligible`): the largest total width
+  //!        (prefix + literal + suffix) that takes the fused arithmetic verify instead of the
+  //!        reverse/forward-DFA route. A generous bound for the emails/dates/keys the route targets,
+  //!        not a hard architectural limit -- kept narrow deliberately (scope, predictability).
+  inline constexpr std::int32_t il_fused_max_width {32};
+
+  /*!
+   * \brief Total consuming width (in bytes) of a straight-line byte/klass program: `save 0`, an
+   *        interleaved byte/klass/save sequence with no nested capturing groups, `save 1`, `match` --
+   *        the same shape `detect_fast_shapes`'s `fixed_shape` check recognizes, factored out so a
+   *        SEPARATE complete program (e.g. the inner-literal prefix sub-program, compiled on its own
+   *        AST) can be measured the same way without re-deriving the walk.
+   *
+   * \param[in] code A complete instruction stream (`save 0` ... `save 1`, `match`).
+   * \return The number of `byte`/`klass` ops consumed, or -1 if \p code is not this shape.
+   */
+  constexpr std::int32_t fixed_run_width(std::span<const instr> code)
+  {
+    std::size_t  i           {};
+    std::int32_t width       {};
+    std::int32_t open_groups {};
+    bool         closed      {};
+    bool         nested      {};
+    if (i >= code.size() || code[i].op != opcode::save || code[i].arg16 != 0) {
+      return -1;
+    }
+    ++i;
+    while (i < code.size()) {
+      const opcode op {code[i].op};
+      if (op == opcode::byte || op == opcode::klass) {
+        ++width;
+        ++i;
+      }
+      else if (op == opcode::save) {
+        const std::int32_t slot {code[i].arg16};
+        if (slot == 1) {
+          closed = true;
+        }
+        else if (slot >= 2 && (slot % 2) == 0) {
+          if (open_groups > 0) {
+            nested = true;
+          }
+          ++open_groups;
+        }
+        else if (slot >= 3) {
+          --open_groups;
+        }
+        ++i;
+      }
+      else {
+        break;
+      }
+    }
+    if (width >= 1 && closed && !nested && i + 1 == code.size() && code[i].op == opcode::match) {
+      return width;
+    }
+    return -1;
+  }
+
   /*!
    * \brief Reports \p klass as up to two contiguous byte ranges.
    *
@@ -267,13 +326,20 @@ namespace real::detail {
   /*!
    * \brief Detects the whole-pattern fast-path shapes and sets their hint flags: `class+`,
    *        fixed-shape straight runs, a single codepoint class (`.`/negated, optional `+`),
-   *        and an alternation of straight-line branches.
+   *        an alternation of straight-line branches, and trailing-lookaround class+ (P3c).
+   * \param[in]     code           The instruction stream.
+   * \param[in]     classes        Interned character classes referenced by \p code.
+   * \param[in]     cp_mark_ascii  ASCII sub-class index of an emitted codepoint-class block (-1 = none).
+   * \param[in]     cp_mark_offset Program offset where that block starts (-1 = none).
+   * \param[in]     lookarounds    Bounded lookaround subs (for trailing-LA eligibility); may be empty.
+   * \param[in,out] hints          Hint bag to fill (class-loop, fixed-shape, trailing-LA, …).
    */
-  constexpr void detect_fast_shapes(std::span<const instr>      code,
-                                    std::span<const char_class> classes,
-                                    std::int32_t                cp_mark_ascii,
-                                    std::int32_t                cp_mark_offset,
-                                    pattern_hints&              hints)
+  constexpr void detect_fast_shapes(std::span<const instr>          code,
+                                    std::span<const char_class>     classes,
+                                    std::int32_t                    cp_mark_ascii,
+                                    std::int32_t                    cp_mark_offset,
+                                    std::span<const lookaround_sub> lookarounds,
+                                    pattern_hints&                  hints)
   {
     // "class+" shape: save 0, klass, split(back to the klass, exit),
     // save 1, match -- greedy only (the lazy variant has different
@@ -310,6 +376,36 @@ namespace real::detail {
             hints.greedy_group_end   = ge;
           }
         }
+      }
+    }
+
+    // Trailing-lookaround class+: save 0, klass, split(back, exit), assert_lookaround, jump AFTER,
+    // [sub-program … match], AFTER: save 1, match. Groupless only (no enveloping capture — a group's
+    // save would sit between the split and the lookaround and disqualify this shape). The body's
+    // greedy class+ is the same scan as the plain class-loop; the lookaround is applied as an
+    // end-condition on candidate ends of each maximal run (see run_class_loop). Leading lookaround
+    // (assert before the klass) does not match this layout and stays on the general VM.
+    if (hints.greedy_class_loop < 0 && code.size() >= 7 && code[0].op == opcode::save && code[0].arg16 == 0
+        && code[1].op == opcode::klass && code[2].op == opcode::split
+        && code[2].primary_target == 1 && code[2].secondary_target == 3
+        && code[3].op == opcode::assert_lookaround && code[4].op == opcode::jump) {
+      const std::size_t after  {static_cast<std::size_t>(code[4].primary_target)};
+      const std::size_t sub_id {code[3].arg16};
+      // Jump must land on the closing save 1 / match and skip a non-empty sub region that ends in match.
+      if (after >= 6 && after + 1 < code.size() && after + 2 == code.size()
+          && code[after].op == opcode::save && code[after].arg16 == 1
+          && code[after + 1].op == opcode::match
+          && code[after - 1].op == opcode::match // sub-program terminator
+          && sub_id < lookarounds.size()
+          && lookarounds[sub_id].code_offset == 5
+          && lookarounds[sub_id].code_length == static_cast<std::int32_t>(after - 5)
+          && lookarounds[sub_id].direction == look_dir::ahead) {
+        // Do NOT arm greedy_class_loop — that would force every pure class+ call site to also
+        // branch on trailing_lookaround. Cold path reads trailing_la_class only.
+        hints.trailing_lookaround = static_cast<std::int16_t>(sub_id);
+        hints.trailing_la_class   = code[1].arg16;
+        hints.greedy_group_start  = -1;
+        hints.greedy_group_end    = -1;
       }
     }
 
@@ -627,21 +723,22 @@ namespace real::detail {
    *                           block (-1 = none), as recorded by `emit_codepoint_class`.
    * \param[in] cp_mark_offset Program offset where that block starts (-1 = none); the
    *                           whole-pattern codepoint fast path requires it to be 1.
+   * \param[in] lookarounds    Bounded lookaround subs (trailing-LA class+ detection).
    * \return The \ref pattern_hints (anchoring, literal prefix, first-byte set,
    *         and the `class+` / exact-literal fast-path flags).
    */
-  constexpr pattern_hints analyze_program(std::span<const instr>      code,
-                                          std::span<const char_class> classes,
-                                          std::span<const cp_class>   cp_classes,
-                                          std::int32_t                cp_mark_ascii,
-                                          std::int32_t                cp_mark_offset)
+  constexpr pattern_hints analyze_program(std::span<const instr>          code,
+                                          std::span<const char_class>     classes,
+                                          std::span<const cp_class>       cp_classes,
+                                          std::int32_t                    cp_mark_ascii,
+                                          std::int32_t                    cp_mark_offset,
+                                          std::span<const lookaround_sub> lookarounds = {})
   {
     pattern_hints hints;
 
-    // A lookaround forces the general Pike VM: no DFA, no fast path. Detected up front;
-    // the fast-path hints are cleared at the end so none can fire even partially. This is a local,
-    // not a persisted hint: nothing past analyze_program ever reads it (the fast paths and the DFA
-    // gate on the individual hints this clears / on the program itself).
+    // A lookaround forces the general Pike VM: no DFA, no pure class-loop — EXCEPT the measured
+    // trailing-LA class+ shape (P3c), which arms trailing_lookaround + trailing_la_class (not
+    // greedy_class_loop) so the pure [a-z]+ gate stays a single compare.
     bool has_lookaround {false};
     for (const instr& in : code) {
       if (in.op == opcode::assert_lookaround) {
@@ -656,12 +753,11 @@ namespace real::detail {
 
     compute_first_bytes(code, classes, cp_classes, hints);
 
-    detect_fast_shapes(code, classes, cp_mark_ascii, cp_mark_offset, hints);
+    detect_fast_shapes(code, classes, cp_mark_ascii, cp_mark_offset, lookarounds, hints);
 
-    // A lookaround program never takes a fast path or the DFA: the general VM must run so
-    // the sub-VM can evaluate the assertion. Clear every fast-path hint (belt-and-suspenders
-    // — the structural detectors above already miss these shapes). The literal prefix /
-    // first-byte set below stay valid (and sound) filters.
+    // Clear every pure fast-path hint when a lookaround is present. Trailing-LA class+ already
+    // left greedy_class_loop at −1 and only set trailing_* (so this wipe is a no-op for those).
+    // The literal prefix / first-byte set below stay valid (and sound) filters either way.
     if (has_lookaround) {
       hints.greedy_class_loop     = -1;
       hints.exact_literal_len     = 0;

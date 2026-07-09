@@ -14,6 +14,7 @@ namespace DartPlugin
     {
         None,
         RegExp,
+        // 'Duppix' seems abandoned
     }
 
     internal class Options
