@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:DartPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="85.522" d:DesignWidth="666.746" 
+             d:DesignHeight="209.522" d:DesignWidth="666.746" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -19,7 +19,19 @@
     <Grid>
         <StackPanel VerticalAlignment="Top" Orientation="Vertical">
 
-            <StackPanel Orientation="Vertical">
+            <StackPanel Orientation="Horizontal" Margin="0 0 0 4">
+                <StackPanel.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </StackPanel.LayoutTransform>
+                <Label Content="Class:" Target="{Binding ElementName=cbxPackage}" Padding="0 2 4 2" MinWidth="40"/>
+                <ComboBox x:Name="cbxPackage" SelectedValuePath="Tag" SelectedValue="{Binding package, FallbackValue='RegExp'}" VerticalAlignment="Center" SelectionChanged="cbxPackage_SelectionChanged" MinWidth="44" IsEnabled="False">
+                    <ui:ComboBoxItemWithVersion Tag ="RegExp"  Text="RegExp"    Version="" IsSelected="True" />
+                    <!-- 'Duppix' seems abandoned -->
+                    <!--<ui:ComboBoxItemWithVersion Tag ="Duppix"  Text="Duppix"    Version="{Binding Duppix, Source={StaticResource versions}}" />-->
+                </ComboBox>
+            </StackPanel>
+
+            <StackPanel x:Name="pnlRegExp"  Orientation="Vertical">
                 <ui:CheckboxWithNote Prop="multiLine" Note="^ and $ will match the beginning and end of a line, as well as matching beginning and end of the input"/>
                 <ui:CheckboxWithNote Prop="caseSensitive" Note="do not ignore the case of letters when matching"/>
                 <ui:CheckboxWithNote Prop="unicode" Note="treat the pattern as a Unicode pattern per the ECMAScript standard"/>

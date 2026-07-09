@@ -1,0 +1,1 @@
+dart compile exe --target-os windows --target-arch x64 -o "RegExpWorker.exe" ".\bin\reg_exp_worker.dart"

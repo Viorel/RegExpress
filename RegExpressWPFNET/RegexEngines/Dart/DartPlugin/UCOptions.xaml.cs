@@ -91,5 +91,12 @@ namespace DartPlugin
                 --ChangeCounter;
             }
         }
+
+        private void cbxPackage_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateUI( );
+
+            Notify( preferImmediateReaction: true );
+        }
     }
 }

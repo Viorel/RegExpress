@@ -7,14 +7,14 @@ HOW IT'S MADE
 
     > dart info
 
-- If required, edit "DartWorker.dart".
+- If required, edit "RegExpWorker.dart".
 
 - Run
 
     > build.cmd
 
-    It will create "dartworker.exe".
+    It will create "regexpworker.exe".
 
 - Run "testXXX.cmd" to perform simple tests.
 
-- Commit the changes (including "dartworker.exe").
+- Commit the changes (including "regexpworker.exe").

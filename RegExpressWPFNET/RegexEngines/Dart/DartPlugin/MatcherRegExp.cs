@@ -17,7 +17,7 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace DartPlugin
 {
-    class Matcher
+    class MatcherRegExp
     {
         public class RootObject
         {
@@ -187,7 +187,7 @@ namespace DartPlugin
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string worker_exe = Path.Combine( assembly_dir, "dartworker.bin" );
+            string worker_exe = Path.Combine( assembly_dir, "regexpworker.bin" );
 
             return worker_exe;
         }

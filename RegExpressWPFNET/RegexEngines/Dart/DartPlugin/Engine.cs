@@ -104,13 +104,21 @@ namespace DartPlugin
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            return Matcher.GetMatches( cnc, pattern, text, Options );
+            return Options.package switch
+            {
+                PackageEnum.RegExp => MatcherRegExp.GetMatches( cnc, pattern, text, Options ),
+                _ => throw new NotImplementedException( ),
+            };
         }
 
         public SyntaxOptions GetSyntaxOptions( )
         {
             Options options = Options;
-            FeatureMatrix fm = LazyFeatureMatrix_RegExp.GetValue( options.unicode );
+            FeatureMatrix fm = options.package switch
+            {
+                PackageEnum.RegExp => LazyFeatureMatrix_RegExp.GetValue( options.unicode ),
+                _ => throw new NotImplementedException( ),
+            };
 
             return new SyntaxOptions
             {
@@ -124,8 +132,8 @@ namespace DartPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( "RegExp", LazyFeatureMatrix_RegExp.GetValue( false ), new Engine { Options = new Options { unicode = false }} ),
-                    new FeatureMatrixVariant( "RegExp (unicode)", LazyFeatureMatrix_RegExp.GetValue( true ), new Engine { Options = new Options { unicode = true }} ),
+                    new FeatureMatrixVariant( "RegExp", LazyFeatureMatrix_RegExp.GetValue( false ), new Engine { Options = new Options { package = PackageEnum.RegExp, unicode = false }} ),
+                    new FeatureMatrixVariant( "RegExp (unicode)", LazyFeatureMatrix_RegExp.GetValue( true ), new Engine { Options = new Options { package = PackageEnum.RegExp, unicode = true }} ),
                 ];
         }
 
