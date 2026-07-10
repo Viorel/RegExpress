@@ -117,7 +117,7 @@ namespace RESharpPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() ),
+                    new FeatureMatrixVariant( null, new Engine() ),
                 ];
         }
 
@@ -349,7 +349,8 @@ namespace RESharpPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = true,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = false,

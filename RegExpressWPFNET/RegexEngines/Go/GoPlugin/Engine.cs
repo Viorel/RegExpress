@@ -142,12 +142,12 @@ namespace GoPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( "regexp", LazyFeatureMatrix_Regexp.GetValue( false ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix = false }} ),
-                    new FeatureMatrixVariant( "regexp (posix)", LazyFeatureMatrix_Regexp.GetValue( true ), new Engine { Options = new Options { Package = PackageEnum.regexp, posix = true}} ),
-                    new FeatureMatrixVariant( "regexp2", LazyFeatureMatrix_Regexp2.GetValue( (isECMAScript: false, isRE2: false) ), new Engine { Options = new Options { Package = PackageEnum.regexp2, ECMAScript= false, RE2 = false }} ),
-                    new FeatureMatrixVariant( "rexa", LazyFeatureMatrix_Rexa.Value, new Engine { Options = new Options { Package = PackageEnum.rexa }} ),
-                    new FeatureMatrixVariant( "coregex", LazyFeatureMatrix_Coregex.GetValue( false ), new Engine { Options = new Options { Package = PackageEnum.coregex, posix = false }} ),
-                    new FeatureMatrixVariant( "coregex (posix)", LazyFeatureMatrix_Coregex.GetValue( true ), new Engine { Options = new Options { Package = PackageEnum.coregex, posix = true }} ),
+                    new FeatureMatrixVariant( "regexp", new Engine { Options = new Options { Package = PackageEnum.regexp, posix = false }} ),
+                    new FeatureMatrixVariant( "regexp (posix)", new Engine { Options = new Options { Package = PackageEnum.regexp, posix = true}} ),
+                    new FeatureMatrixVariant( "regexp2", new Engine { Options = new Options { Package = PackageEnum.regexp2, ECMAScript= false, RE2 = false }} ),
+                    new FeatureMatrixVariant( "rexa", new Engine { Options = new Options { Package = PackageEnum.rexa }} ),
+                    new FeatureMatrixVariant( "coregex", new Engine { Options = new Options { Package = PackageEnum.coregex, posix = false }} ),
+                    new FeatureMatrixVariant( "coregex (posix)", new Engine { Options = new Options { Package = PackageEnum.coregex, posix = true }} ),
                 ];
         }
 
@@ -384,7 +384,8 @@ namespace GoPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = !isPosix,
                 KeepSurrogatePairs = true,
@@ -601,7 +602,8 @@ namespace GoPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = !isECMAScript && !isRE2,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
@@ -818,7 +820,8 @@ namespace GoPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
@@ -1035,7 +1038,8 @@ namespace GoPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,

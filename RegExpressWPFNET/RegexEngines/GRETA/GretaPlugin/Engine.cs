@@ -119,7 +119,7 @@ namespace GretaPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                    new FeatureMatrixVariant( null, new Engine() )
                 ];
         }
 
@@ -354,7 +354,8 @@ namespace GretaPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,

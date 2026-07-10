@@ -25,8 +25,8 @@ namespace RustPlugin
         static readonly LazyData<(StructEnum @struct, bool isUnicode, bool isOniguruma), FeatureMatrix> LazyFeatureMatrix_FancyRegex =
             new( d => BuildFeatureMatrix_FancyRegex( d.@struct, d.isUnicode, d.isOniguruma ) );
 
-        static readonly LazyData<(StructEnum @struct, bool isUnicode, bool isUnicodeSets), FeatureMatrix> LazyFeatureMatrix_Regress =
-            new( d => BuildFeatureMatrix_Regress( d.@struct, d.isUnicode, d.isUnicodeSets ) );
+        static readonly LazyData<(bool isUnicode, bool isUnicodeSets), FeatureMatrix> LazyFeatureMatrix_Regress =
+            new( d => BuildFeatureMatrix_Regress( d.isUnicode, d.isUnicodeSets ) );
 
         static readonly LazyData<UnicodeModeEnum, FeatureMatrix> LazyFeatureMatrix_Resharp =
             new( unicodeMode => BuildFeatureMatrix_Resharp( unicodeMode ) );
@@ -148,7 +148,7 @@ namespace RustPlugin
                 CrateEnum.regex => LazyFeatureMatrix_Regex.GetValue( (Options.@struct, Options.octal, Options.unicode) ),
                 CrateEnum.regex_lite => LazyFeatureMatrix_RegexLite.GetValue( Options.@struct ),
                 CrateEnum.fancy_regex => LazyFeatureMatrix_FancyRegex.GetValue( (Options.@struct, Options.unicode, Options.oniguruma_mode) ),
-                CrateEnum.regress => LazyFeatureMatrix_Regress.GetValue( (Options.@struct, Options.unicode, Options.unicode_sets) ),
+                CrateEnum.regress => LazyFeatureMatrix_Regress.GetValue( (Options.unicode, Options.unicode_sets) ),
                 CrateEnum.resharp => LazyFeatureMatrix_Resharp.GetValue( Options.UnicodeMode ),
                 CrateEnum.anre => LazyFeatureMatrix_Anre.GetValue( 0 ),
                 CrateEnum.real_regex => LazyFeatureMatrix_RealRegex.GetValue( (Options.@struct, Options.unicode) ),
@@ -171,7 +171,7 @@ namespace RustPlugin
             Engine engine_regex = new( ) { Options = new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, unicode = true, octal = true } };
             Engine engine_lite = new( ) { Options = new Options { crate = CrateEnum.regex_lite, @struct = StructEnum.RegexBuilder } };
             Engine engine_fancy = new( ) { Options = new Options { crate = CrateEnum.fancy_regex, @struct = StructEnum.RegexBuilder, unicode = true } };
-            Engine engine_regress_v = new( ) { Options = new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } }; // currently 'ignore_whitespace' not supported
+            Engine engine_regress_uv = new( ) { Options = new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } }; // currently 'ignore_whitespace' not supported
             Engine engine_resharp = new( ) { Options = new Options { crate = CrateEnum.resharp, UnicodeMode = UnicodeModeEnum.Full } };
             Engine engine_anre = new( ) { Options = new Options { crate = CrateEnum.anre } };
             Engine engine_real = new( ) { Options = new Options { crate = CrateEnum.real_regex, @struct = StructEnum.RegexBuilder, unicode = false } };
@@ -179,14 +179,14 @@ namespace RustPlugin
 
             return
                 [
-                    new FeatureMatrixVariant("regex (“u” flag)", LazyFeatureMatrix_Regex.GetValue( (StructEnum.RegexBuilder, isOctal:true, isUnicode:true) ), engine_regex),
-                    new FeatureMatrixVariant("regex-lite", LazyFeatureMatrix_RegexLite.GetValue( (StructEnum.RegexBuilder) ), engine_lite),
-                    new FeatureMatrixVariant("fancy-regex (“u” flag)", LazyFeatureMatrix_FancyRegex.GetValue( (StructEnum.RegexBuilder, isUnicode:true, isOniguruma:false) ), engine_fancy),
-                    new FeatureMatrixVariant("regress (“uv” flags)", LazyFeatureMatrix_Regress.GetValue( (StructEnum.RegexBuilder, isUnicode:true, isUnicodeSets:true) ), engine_regress_v),
-                    new FeatureMatrixVariant("resharp (“Full” mode)", LazyFeatureMatrix_Resharp.GetValue( UnicodeModeEnum.Full ), engine_resharp),
-                    new FeatureMatrixVariant("anre", LazyFeatureMatrix_Anre.GetValue( 0 ), engine_anre),
-                    new FeatureMatrixVariant("real-regex", LazyFeatureMatrix_RealRegex.GetValue( (StructEnum.RegexBuilder, isUnicode:false) ), engine_real),
-                    new FeatureMatrixVariant("real-regex (“u” flag)", LazyFeatureMatrix_RealRegex.GetValue( (StructEnum.RegexBuilder, isUnicode:true) ), engine_real_u),
+                    new FeatureMatrixVariant("regex (“u” flag)", engine_regex),
+                    new FeatureMatrixVariant("regex-lite", engine_lite),
+                    new FeatureMatrixVariant("fancy-regex (“u” flag)", engine_fancy),
+                    new FeatureMatrixVariant("regress (“uv” flags)", engine_regress_uv),
+                    new FeatureMatrixVariant("resharp (“Full” mode)", engine_resharp),
+                    new FeatureMatrixVariant("anre", engine_anre),
+                    new FeatureMatrixVariant("real-regex", engine_real),
+                    new FeatureMatrixVariant("real-regex (“u” flag)", engine_real_u),
                 ];
         }
 
@@ -422,7 +422,8 @@ namespace RustPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = true,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
@@ -639,7 +640,8 @@ namespace RustPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = true,
@@ -858,7 +860,8 @@ namespace RustPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = true,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
@@ -868,10 +871,8 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_Regress( StructEnum @struct, bool isUnicode, bool isUnicodeSets )
+        private static FeatureMatrix BuildFeatureMatrix_Regress( bool isUnicode, bool isUnicodeSets )
         {
-            isUnicodeSets &= @struct == StructEnum.RegexBuilder;
-
             return new FeatureMatrix
             {
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,
@@ -1077,7 +1078,8 @@ namespace RustPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
@@ -1296,7 +1298,8 @@ namespace RustPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = true,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = is_unicode,
@@ -1517,7 +1520,8 @@ namespace RustPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = true,
@@ -1736,7 +1740,8 @@ namespace RustPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = isUnicode,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = isUnicode,
                 KeepSurrogatePairs = true,

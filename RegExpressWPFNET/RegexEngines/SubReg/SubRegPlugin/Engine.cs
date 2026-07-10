@@ -121,7 +121,7 @@ namespace SubRegPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                    new FeatureMatrixVariant( null, new Engine() )
                 ];
         }
 
@@ -352,7 +352,8 @@ namespace SubRegPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = false,
+                Unicode_Class_Dot = false,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = false,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false, // (not applicable)

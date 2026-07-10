@@ -16,7 +16,8 @@ namespace HyperscanPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
+        static readonly LazyData<(bool HS_FLAG_UCP, bool HS_FLAG_SOM_LEFTMOST), FeatureMatrix> LazyFeatureMatrix =
+            new( d => BuildFeatureMatrix( d.HS_FLAG_UCP, d.HS_FLAG_SOM_LEFTMOST ) );
 
         HyperscanOptions mOptions = new( );
         readonly Lazy<UCHyperscanOptions> mOptionsControl;
@@ -111,19 +112,19 @@ namespace HyperscanPlugin
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.Value
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (Options.HS_FLAG_UCP, Options.HS_FLAG_SOM_LEFTMOST) )
             };
         }
 
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine = new( ) { Options = new HyperscanOptions { HS_FLAG_UTF8 = true, HS_FLAG_SOM_LEFTMOST = false } };
+            Engine engine = new( ) { Options = new HyperscanOptions { HS_FLAG_UTF8 = true, HS_FLAG_UCP = true, HS_FLAG_SOM_LEFTMOST = false } };
             // ('HS_FLAG_UTF8=true' allows non-latin letters, 'HS_FLAG_SOM_LEFTMOST=false' reduce the "Pattern is too large" errors)
 
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, engine )
+                    new FeatureMatrixVariant( null, engine )
                 ];
         }
 
@@ -149,7 +150,7 @@ namespace HyperscanPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        private static FeatureMatrix BuildFeatureMatrix( )
+        private static FeatureMatrix BuildFeatureMatrix( bool isFlagUcp, bool isSomLeftmost )
         {
             return new FeatureMatrix
             {
@@ -277,7 +278,7 @@ namespace HyperscanPlugin
                 Anchor_Z = true,
                 Anchor_z = true,
                 Anchor_G = false,
-                Anchor_bB = true,
+                Anchor_bB = !isFlagUcp && !isSomLeftmost,
                 Anchor_bg = false,
                 Anchor_bBBrace = false,
                 Anchor_K = false,
@@ -356,7 +357,8 @@ namespace HyperscanPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = isFlagUcp,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,

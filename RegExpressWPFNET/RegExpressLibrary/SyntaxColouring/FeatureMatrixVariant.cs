@@ -18,4 +18,9 @@ public sealed class FeatureMatrixVariant
         FeatureMatrix = featureMatrix;
         RegexEngine = regexEngine;
     }
+
+    public FeatureMatrixVariant( string? name, IRegexEngine regexEngine )
+        : this( name, regexEngine.GetSyntaxOptions( ).FeatureMatrix, regexEngine )
+    {
+    }
 }

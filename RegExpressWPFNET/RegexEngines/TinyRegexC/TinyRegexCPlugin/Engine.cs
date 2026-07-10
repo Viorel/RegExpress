@@ -119,7 +119,7 @@ namespace TinyRegexCPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                    new FeatureMatrixVariant( null, new Engine() )
                 ];
         }
 
@@ -350,7 +350,8 @@ namespace TinyRegexCPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = false,
+                Unicode_Class_Dot = false,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = false,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = true, // (not applicable)

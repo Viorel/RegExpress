@@ -132,8 +132,8 @@ namespace DartPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( "RegExp", LazyFeatureMatrix_RegExp.GetValue( false ), new Engine { Options = new Options { package = PackageEnum.RegExp, unicode = false }} ),
-                    new FeatureMatrixVariant( "RegExp (unicode)", LazyFeatureMatrix_RegExp.GetValue( true ), new Engine { Options = new Options { package = PackageEnum.RegExp, unicode = true }} ),
+                    new FeatureMatrixVariant( "RegExp", new Engine { Options = new Options { package = PackageEnum.RegExp, unicode = false }} ),
+                    new FeatureMatrixVariant( "RegExp (unicode)", new Engine { Options = new Options { package = PackageEnum.RegExp, unicode = true }} ),
                 ];
         }
 
@@ -366,7 +366,8 @@ namespace DartPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = isUnicode,

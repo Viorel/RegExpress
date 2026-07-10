@@ -545,8 +545,10 @@ partial class FeatureMatrixDetails
                     .Test( @"x[]?", "x", null ),
                 new FeatureMatrixDetails( @"[^]", @"Any character, even newline", (e, fm) => fm.EmptySetAny)
                     .Test( @"a[^][^][^]b", "ax\r\nb", "ab" ),
-                new FeatureMatrixDetails( @"Unicode", @"Support Unicode characters, not just ASCII", (e, fm) => fm.Unicode )
+                new FeatureMatrixDetails( @"Unicode “.”", @"“.” matches Unicode characters, not just ASCII", (e, fm) => fm.Unicode_Class_Dot )
                     .Test( @"X.....Y", "XăîșțâY", null ),
+                new FeatureMatrixDetails( @"Unicode “\w”", @"“\w” matches Unicode characters, not just ASCII", (e, fm) => fm.Unicode_Class_vW ) 
+                    .Test( @"X\w\w\w\w\wY", "XăîșțâY", null ),
                 new FeatureMatrixDetails( @"[Unicode]", @"Support Unicode characters inside sets", (e, fm) => fm.InsideSets_Unicode )
                     .Test( @"X[é]Y", "XéY", null, "XéY" ),
                 new FeatureMatrixDetails( @"é=É", @"Support Unicode case folding", (e, fm) => fm.UnicodeCaseFolding )
@@ -554,7 +556,7 @@ partial class FeatureMatrixDetails
                     .Test( @"XéY", "XÉY", null, "XÉY" )
                     .Test( @"(?i)XéY", "XÉY", null, "XÉY" )
                     .Test( @"(?i:XéY)", "XÉY", null, "XÉY" ),
-                new FeatureMatrixDetails( @"Surrogates", @"“.” matches surrogate pairs as one entity (no split)", (e, fm) => fm.Unicode && fm.KeepSurrogatePairs )
+                new FeatureMatrixDetails( @"Surrogates", @"“.” matches surrogate pairs as one entity (no split)", (e, fm) => fm.Unicode_Class_Dot && fm.KeepSurrogatePairs )
                     .Test( @"X.Y", "X💕Y", null ),
 
                 new FeatureMatrixDetails( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", (e, fm) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams)
@@ -566,7 +568,6 @@ partial class FeatureMatrixDetails
                     .Test( (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Passed ),
                 new FeatureMatrixDetails( "Reject ReDoS", "Give error on possible ReDoS", (e, fm) => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Reject )
                     .Test( (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Error ),
-                //new ( "No hang but error", "Give errors on possible catastrophic backtracking", fm => false ) { DirectCheck = (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Error },
                 new FeatureMatrixDetails( "Σσς", "Match letters that have multiple uppercase and lowercase variants", (e, fm) => fm.Σσς )
                     .IgnoreCase()
                     .Test( @"ΣΣΣ", "Σσς", null)

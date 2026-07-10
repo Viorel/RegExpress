@@ -30,9 +30,9 @@
             <ui:CheckboxWithNote Prop="dot_nl" Note="dot matches everything including new line"/>
             <ui:CheckboxWithNote Prop="never_capture" Note="parse all parens as non-capturing"/>
             <ui:CheckboxWithNote Prop="case_sensitive" Note="match is case-sensitive (regexp can override with (?i) unless in posix_syntax mode)"/>
-            <ui:CheckboxWithNote Prop="perl_classes" Note="allow Perl's \d \s \w \D \S \W"/>
-            <ui:CheckboxWithNote Prop="word_boundary" Note="allow Perl's \b \B (word boundary and not)"/>
-            <ui:CheckboxWithNote Prop="one_line" Note="^ and $ only match beginning and end of text"/>
+            <ui:CheckboxWithNote Prop="perl_classes" Note="allow Perl's \d \s \w \D \S \W; used with posix_syntax only"/>
+            <ui:CheckboxWithNote Prop="word_boundary" Note="allow Perl's \b \B (word boundary and not); used with posix_syntax only"/>
+            <ui:CheckboxWithNote Prop="one_line" Note="^ and $ only match beginning and end of text; used with posix_syntax only"/>
 
             <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 6">
                 <Grid.LayoutTransform>

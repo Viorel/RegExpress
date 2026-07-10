@@ -271,7 +271,8 @@ namespace RegExpressLibrary.SyntaxColouring
 
         //
 
-        public bool Unicode { get; init; }                                  // supports Unicode characters, not just ASCII
+        public bool Unicode_Class_Dot { get; init; }                        // “.” matches Unicode characters, not just ASCII
+        public bool Unicode_Class_vW { get; init; }                         // “\w” matches Unicode characters, not just ASCII
         public bool InsideSets_Unicode { get; init; }                       // supports Unicode characters, not just ASCII, inside [...]
         public bool UnicodeCaseFolding { get; init; }                       // for example, 'é' matches 'É' in case of case-insensitive matching
 

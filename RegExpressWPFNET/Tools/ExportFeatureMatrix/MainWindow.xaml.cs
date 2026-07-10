@@ -297,6 +297,8 @@ namespace ExportFeatureMatrix
                                         process.StartInfo.UseShellExecute = true;
 
                                         process.Start( );
+
+                                        this.Close( );
                                     }
 
                                     tblProgress.Text = "";

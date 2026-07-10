@@ -147,7 +147,7 @@ namespace PCRE2Plugin
 
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.GetValue((PCRE2_ALLOW_EMPTY_CLASS:true, PCRE2_ALT_BSUX:true, PCRE2_EXTRA_ALT_BSUX: true, PCRE2_ALT_EXTENDED_CLASS: true, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: true) ), engine)
+                    new FeatureMatrixVariant( null, engine)
                 ];
         }
 
@@ -387,7 +387,8 @@ namespace PCRE2Plugin
                 EmptySet = PCRE2_ALLOW_EMPTY_CLASS,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = true,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = false,

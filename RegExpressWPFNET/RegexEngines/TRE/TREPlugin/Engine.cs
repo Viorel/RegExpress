@@ -125,8 +125,8 @@ namespace TREPlugin
 
             return
                 [
-                    new FeatureMatrixVariant("basic", LazyFeatureMatrix.GetValue( false ), engine_basic),
-                    new FeatureMatrixVariant("extended", LazyFeatureMatrix.GetValue( true ), engine_extended),
+                    new FeatureMatrixVariant("basic", engine_basic),
+                    new FeatureMatrixVariant("extended", engine_extended),
                 ];
         }
 
@@ -361,7 +361,8 @@ namespace TREPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,

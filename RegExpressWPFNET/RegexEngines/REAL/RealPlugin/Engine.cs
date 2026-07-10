@@ -121,8 +121,8 @@ namespace RealPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( "“ascii” flag", LazyFeatureMatrix.GetValue( true), new Engine{ Options = new Options{ ascii = true } } ),
-                    new FeatureMatrixVariant( "no “ascii” flag", LazyFeatureMatrix.GetValue( false), new Engine{ Options = new Options{ ascii = false } } ),
+                    new FeatureMatrixVariant( "“ascii” flag", new Engine{ Options = new Options{ ascii = true } } ),
+                    new FeatureMatrixVariant( "no “ascii” flag", new Engine{ Options = new Options{ ascii = false } } ),
                 ];
         }
 
@@ -357,7 +357,8 @@ namespace RealPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = !isAscii,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = !isAscii,
                 KeepSurrogatePairs = true,

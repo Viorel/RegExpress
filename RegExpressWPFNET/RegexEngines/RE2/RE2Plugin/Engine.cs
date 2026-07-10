@@ -16,7 +16,8 @@ namespace RE2Plugin
 {
     class Engine : IRegexEngine
     {
-        static readonly LazyData<bool /*posix*/, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        static readonly LazyData<(bool posix_syntax, bool perl_classes, bool word_boundary), FeatureMatrix> LazyFeatureMatrix =
+            new( d => BuildFeatureMatrix( d.posix_syntax, d.perl_classes, d.word_boundary ) );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -112,16 +113,19 @@ namespace RE2Plugin
             {
                 Literal = Options.literal,
                 XLevel = XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( Options.posix_syntax )
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (Options.posix_syntax, Options.perl_classes, Options.word_boundary) )
             };
         }
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
+            Engine engine_normal = new Engine { Options = new Options { posix_syntax = false } };
+            Engine engine_posix = new Engine { Options = new Options { posix_syntax = true, perl_classes = true, word_boundary = true } };
+
             return
                 [
-                    new FeatureMatrixVariant( "normal", LazyFeatureMatrix.GetValue( false ), new Engine() ),
-                    new FeatureMatrixVariant( "posix", LazyFeatureMatrix.GetValue( true ), new Engine { Options = new Options { posix_syntax = true }} )
+                    new FeatureMatrixVariant( "normal", engine_normal ),
+                    new FeatureMatrixVariant( "posix", engine_posix )
                 ];
         }
 
@@ -149,10 +153,8 @@ namespace RE2Plugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        static FeatureMatrix BuildFeatureMatrix( bool is_posix )
+        static FeatureMatrix BuildFeatureMatrix( bool posix_syntax, bool perl_classes, bool word_boundary )
         {
-            bool is_normal = !is_posix;
-
             return new FeatureMatrix
             {
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,
@@ -167,14 +169,14 @@ namespace RE2Plugin
                 XModeComments = false,
                 InsideSets_XModeComments = false,
 
-                Flags = is_normal,
-                ScopedFlags = is_normal,
+                Flags = !posix_syntax,
+                ScopedFlags = !posix_syntax,
                 CircumflexFlags = false,
                 ScopedCircumflexFlags = false,
                 XFlag = false,
                 XXFlag = false,
 
-                Literal_QE = is_normal,
+                Literal_QE = !posix_syntax,
                 InsideSets_Literal_QE = false,
                 InsideSets_Literal_qBrace = false,
 
@@ -225,37 +227,37 @@ namespace RE2Plugin
                 InsideSets_GenericEscape = false,
 
                 Class_Dot = true,
-                Class_Cbyte = is_normal,
+                Class_Cbyte = !posix_syntax,
                 Class_Ccp = false,
-                Class_dD = is_normal,
+                Class_dD = !posix_syntax || perl_classes,
                 Class_hHhexa = false,
                 Class_hHhorspace = false,
                 Class_lL = false,
                 Class_N = false,
                 Class_O = false,
                 Class_R = false,
-                Class_sS = is_normal,
+                Class_sS = !posix_syntax || perl_classes,
                 Class_sSx = false,
                 Class_uU = false,
                 Class_vV = false,
-                Class_wW = is_normal,
+                Class_wW = !posix_syntax || perl_classes,
                 Class_X = false,
-                Class_pP = is_normal,
-                Class_pPBrace = is_normal,
+                Class_pP = !posix_syntax,
+                Class_pPBrace = !posix_syntax,
 
-                InsideSets_Class_dD = is_normal,
+                InsideSets_Class_dD = !posix_syntax || perl_classes,
                 InsideSets_Class_hHhexa = false,
                 InsideSets_Class_hHhorspace = false,
                 InsideSets_Class_lL = false,
                 InsideSets_Class_R = false,
-                InsideSets_Class_sS = is_normal,
+                InsideSets_Class_sS = !posix_syntax || perl_classes,
                 InsideSets_Class_sSx = false,
                 InsideSets_Class_uU = false,
                 InsideSets_Class_vV = false,
-                InsideSets_Class_wW = is_normal,
+                InsideSets_Class_wW = !posix_syntax || perl_classes,
                 InsideSets_Class_X = false,
-                InsideSets_Class_pP = is_normal,
-                InsideSets_Class_pPBrace = is_normal,
+                InsideSets_Class_pP = !posix_syntax,
+                InsideSets_Class_pPBrace = !posix_syntax,
                 InsideSets_Class_Name = true,
                 InsideSets_Equivalence = false,
                 InsideSets_Collating = false,
@@ -275,11 +277,11 @@ namespace RE2Plugin
 
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
-                Anchor_A = is_normal,
+                Anchor_A = !posix_syntax,
                 Anchor_Z = false,
-                Anchor_z = is_normal,
+                Anchor_z = !posix_syntax,
                 Anchor_G = false,
-                Anchor_bB = is_normal,
+                Anchor_bB = !posix_syntax || word_boundary,
                 Anchor_bg = false,
                 Anchor_bBBrace = false,
                 Anchor_K = false,
@@ -289,13 +291,13 @@ namespace RE2Plugin
                 Anchor_yY = false,
 
                 NamedGroup_Apos = false,
-                NamedGroup_LtGt = is_normal,
-                NamedGroup_PLtGt = is_normal,
+                NamedGroup_LtGt = !posix_syntax,
+                NamedGroup_PLtGt = !posix_syntax,
                 BalancingGroup = false,
                 CapturingGroup = false,
-                DuplicateGroupName = is_normal,
+                DuplicateGroupName = !posix_syntax,
 
-                NoncapturingGroup = is_normal,
+                NoncapturingGroup = !posix_syntax,
                 PositiveLookahead = false,
                 NegativeLookahead = false,
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.None,
@@ -336,7 +338,7 @@ namespace RE2Plugin
                 Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
-                Quantifier_Lazy = is_normal,
+                Quantifier_Lazy = !posix_syntax,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -353,12 +355,13 @@ namespace RE2Plugin
                 ScriptRuns = false,
                 Callouts = false,
 
-                EmptyConstruct = is_normal,
+                EmptyConstruct = !posix_syntax,
                 EmptyConstructX = false,
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,

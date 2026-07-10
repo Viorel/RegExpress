@@ -482,7 +482,8 @@ namespace OnigurumaPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = details.ONIG_SYN_OP_ESC_W_WORD,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,

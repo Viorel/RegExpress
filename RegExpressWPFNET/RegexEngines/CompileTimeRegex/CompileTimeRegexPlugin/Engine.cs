@@ -119,7 +119,7 @@ namespace CompileTimeRegexPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new Engine() )
+                    new FeatureMatrixVariant( null, new Engine() )
                 ];
         }
 
@@ -349,7 +349,8 @@ namespace CompileTimeRegexPlugin
                 EmptySet = false,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,

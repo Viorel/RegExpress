@@ -16,7 +16,8 @@ namespace JavaPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly LazyData<bool /*isUnicodeCase*/, FeatureMatrix> LazyFeatureMatrix_Regex = new( BuildFeatureMatrix_Regex );
+        static readonly LazyData<(bool UNICODE_CASE, bool UNICODE_CHARACTER_CLASS), FeatureMatrix> LazyFeatureMatrix_Regex =
+            new( d => BuildFeatureMatrix_Regex( d.UNICODE_CASE, d.UNICODE_CHARACTER_CLASS ) );
         static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_Re2j = new( BuildFeatureMatrix_Re2j );
 
         Options mOptions = new( );
@@ -119,7 +120,7 @@ namespace JavaPlugin
         {
             FeatureMatrix fm = Options.Package switch
             {
-                PackageEnum.regex => LazyFeatureMatrix_Regex.GetValue( Options.UNICODE_CASE ),
+                PackageEnum.regex => LazyFeatureMatrix_Regex.GetValue( (Options.UNICODE_CASE, Options.UNICODE_CHARACTER_CLASS) ),
                 PackageEnum.re2j => LazyFeatureMatrix_Re2j.Value,
                 _ => throw new InvalidOperationException( )
             };
@@ -136,13 +137,13 @@ namespace JavaPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine_regex = new( ) { Options = new Options { Package = PackageEnum.regex, UNICODE_CASE = true, } };
+            Engine engine_regex = new( ) { Options = new Options { Package = PackageEnum.regex, UNICODE_CASE = true, UNICODE_CHARACTER_CLASS = true } };
             Engine engine_re2j = new( ) { Options = new Options { Package = PackageEnum.re2j } };
 
             return
                 [
-                    new FeatureMatrixVariant("regex", LazyFeatureMatrix_Regex.GetValue(true), engine_regex),
-                    new FeatureMatrixVariant("re2j", LazyFeatureMatrix_Re2j.Value, engine_re2j),
+                    new FeatureMatrixVariant("regex", engine_regex),
+                    new FeatureMatrixVariant("re2j", engine_re2j),
                 ];
         }
 
@@ -170,7 +171,7 @@ namespace JavaPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        static FeatureMatrix BuildFeatureMatrix_Regex( bool isUnicodeCase )
+        static FeatureMatrix BuildFeatureMatrix_Regex( bool isUnicodeCase, bool isUnicodeCharacterClass )
         {
             return new FeatureMatrix
             {
@@ -377,7 +378,8 @@ namespace JavaPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = isUnicodeCharacterClass,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
@@ -594,7 +596,8 @@ namespace JavaPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,

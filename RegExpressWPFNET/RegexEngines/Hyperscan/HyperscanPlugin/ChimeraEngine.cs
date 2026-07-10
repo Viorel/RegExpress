@@ -16,7 +16,7 @@ namespace HyperscanPlugin
 {
     class ChimeraEngine : IRegexEngine
     {
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
+        static readonly LazyData<bool /*CH_FLAG_UCP*/, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         ChimeraOptions mOptions = new( );
         readonly Lazy<UCChimeraOptions> mOptionsControl;
@@ -111,7 +111,7 @@ namespace HyperscanPlugin
             return new SyntaxOptions
             {
                 XLevel = XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.Value
+                FeatureMatrix = LazyFeatureMatrix.GetValue( Options.CH_FLAG_UCP )
             };
         }
 
@@ -120,7 +120,7 @@ namespace HyperscanPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( null, LazyFeatureMatrix.Value, new ChimeraEngine() )
+                    new FeatureMatrixVariant( null, new ChimeraEngine{ Options = new ChimeraOptions { CH_FLAG_UCP = true } } )
                 ];
         }
 
@@ -146,7 +146,7 @@ namespace HyperscanPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        private static FeatureMatrix BuildFeatureMatrix( )
+        private static FeatureMatrix BuildFeatureMatrix( bool isFlagUcp )
         {
             return new FeatureMatrix
             {
@@ -353,7 +353,8 @@ namespace HyperscanPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = isFlagUcp,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,

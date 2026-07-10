@@ -146,13 +146,13 @@ namespace ZigPlugin
             Engine engine;
 
             engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex } };
-            variants.Add( new FeatureMatrixVariant( "zig-regex", LazyFeatureMatrix_ZigRegex.Value, engine ) );
+            variants.Add( new FeatureMatrixVariant( "zig-regex", engine ) );
 
             engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Mvzr } };
-            variants.Add( new FeatureMatrixVariant( "mvzr", LazyFeatureMatrix_Mvzr.Value, engine ) );
+            variants.Add( new FeatureMatrixVariant( "mvzr", engine ) );
 
             engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Pzre } };
-            variants.Add( new FeatureMatrixVariant( "PZRE", LazyFeatureMatrix_Pzre.Value, engine ) );
+            variants.Add( new FeatureMatrixVariant( "PZRE", engine ) );
 
             return variants;
         }
@@ -386,7 +386,8 @@ namespace ZigPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = false, // ('unicode' flag not yet implemented)
+                Unicode_Class_Dot = false, // ('unicode' flag not yet implemented)
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = false,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)
@@ -603,7 +604,8 @@ namespace ZigPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = false, // ('unicode' flag not yet implemented)
+                Unicode_Class_Dot = false, // ('unicode' flag not yet implemented)
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = false,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)
@@ -820,7 +822,8 @@ namespace ZigPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = false, // ('unicode' flag not yet implemented)
+                Unicode_Class_Dot = false, // ('unicode' flag not yet implemented)
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = false,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)

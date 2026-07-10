@@ -144,7 +144,7 @@ namespace BoostPlugin
 
                 Engine engine = new( ) { Options = new Options { Grammar = grammar, match_extra = false } }; // ('match_extra' cannot be used for some grammars)
 
-                variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), LazyFeatureMatrix.GetValue( grammar ), engine ) );
+                variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), engine ) );
             }
 
             return variants;
@@ -413,7 +413,8 @@ namespace BoostPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = is_perl || is_POSIX_extended || is_emacs,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = false,

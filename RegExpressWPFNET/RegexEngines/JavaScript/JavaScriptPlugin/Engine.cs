@@ -168,7 +168,7 @@ namespace JavaScriptPlugin
             Engine njs_engine_no_uv = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = false } };
             //Engine njs_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } };
             Engine njs_engine_v = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = true } };
-            Engine qjs_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.QuickJs, u = false, v = false } };
+            //Engine qjs_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.QuickJs, u = false, v = false } };
             Engine qjs_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.QuickJs, u = true, v = false } };
             Engine sm_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.SpiderMonkey, u = false, v = false } };
             Engine sm_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.SpiderMonkey, u = true, v = false } };
@@ -180,23 +180,23 @@ namespace JavaScriptPlugin
 
             return
                 [
-                    new ("V8", LazyFeatureMatrix_V8.GetValue((false, false)), njs_engine_no_uv),
-                    //new ("V8, “u” flag", LazyFeatureMatrix_V8.GetValue((true, false)), njs_engine_u),
-                    new ("V8 (“v” flag)", LazyFeatureMatrix_V8.GetValue((false, true)), njs_engine_v),
+                    new ("V8", njs_engine_no_uv),
+                    //new ("V8, “u” flag", njs_engine_u),
+                    new ("V8 (“v” flag)", njs_engine_v),
 
-                    //new ("Qjs", LazyFeatureMatrix_QuickJs.GetValue(false), qjs_engine_no_u),
-                    new ("Qjs (“u” flag)", LazyFeatureMatrix_QuickJs.GetValue( true), qjs_engine_u),
+                    //new ("Qjs", qjs_engine_no_u),
+                    new ("Qjs (“u” flag)", qjs_engine_u),
 
                     //new ("SM", LazyFeatureMatrix_SpiderMonkey.GetValue( false), sm_engine_no_u),
-                    new ("SM (“u” flag)", LazyFeatureMatrix_SpiderMonkey.GetValue( true), sm_engine_u),
+                    new ("SM (“u” flag)", sm_engine_u),
 
                     //new ("Bun", LazyFeatureMatrix_Bun.GetValue( false), bun_engine_no_u),
-                    new ("Bun (“u” flag)", LazyFeatureMatrix_Bun.GetValue( true), bun_engine_u),
+                    new ("Bun (“u” flag)", bun_engine_u),
 
-                    new ("RE2JS", LazyFeatureMatrix_RE2JS.GetValue((true, true)), re2js_engine),
+                    new ("RE2JS", re2js_engine),
 
-                    //new ("Regex+ (“x” flag)", LazyFeatureMatrix_RegexPlus.GetValue((false, true)), regexPlus_engineNoV), //...
-                    new ("Regex+ (“vx” flags)", LazyFeatureMatrix_RegexPlus.GetValue((true, true)), regexPlus_engine),
+                    //new ("Regex+ (“x” flag)", regexPlus_engineNoV), //...
+                    new ("Regex+ (“vx” flags)", regexPlus_engine),
                 ];
         }
 
@@ -429,7 +429,8 @@ namespace JavaScriptPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = uFlag || vFlag,
@@ -645,7 +646,8 @@ namespace JavaScriptPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = uFlag,
@@ -861,7 +863,8 @@ namespace JavaScriptPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = uFlag,
@@ -1077,7 +1080,8 @@ namespace JavaScriptPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = uFlag,
@@ -1294,7 +1298,8 @@ namespace JavaScriptPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
@@ -1510,7 +1515,8 @@ namespace JavaScriptPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,

@@ -147,12 +147,12 @@ namespace PythonPlugin
 
             return
                 [
-                    new FeatureMatrixVariant("re", LazyFeatureMatrix_Re.Value, engine_re),
-                    //new FeatureMatrixVariant("regex V0", LazyFeatureMatrix_Regex.GetValue((isPosix: false, isVersion1: false)), engine_regex_v0),
-                    new FeatureMatrixVariant("regex V1", LazyFeatureMatrix_Regex.GetValue((isPosix: false, isVersion1: true)), engine_regex_v1),
-                    new FeatureMatrixVariant("regex V1 (posix)", LazyFeatureMatrix_Regex.GetValue((isPosix: true, isVersion1: true)), engine_regex_v1_posix),
-                    new FeatureMatrixVariant("real-regex (ASCII)", LazyFeatureMatrix_RealRegex.GetValue(true), engine_real_regex_ascii),
-                    new FeatureMatrixVariant("real-regex", LazyFeatureMatrix_RealRegex.GetValue(false), engine_real_regex),
+                    new FeatureMatrixVariant("re", engine_re),
+                    //new FeatureMatrixVariant("regex V0", engine_regex_v0),
+                    new FeatureMatrixVariant("regex V1", engine_regex_v1),
+                    new FeatureMatrixVariant("regex V1 (posix)", engine_regex_v1_posix),
+                    new FeatureMatrixVariant("real-regex (ASCII)", engine_real_regex_ascii),
+                    new FeatureMatrixVariant("real-regex", engine_real_regex),
                 ];
         }
 
@@ -387,7 +387,8 @@ namespace PythonPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = true,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
@@ -605,7 +606,8 @@ namespace PythonPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = true,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
@@ -822,7 +824,8 @@ namespace PythonPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = !isAscii,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = !isAscii,
                 KeepSurrogatePairs = true,

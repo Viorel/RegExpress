@@ -118,7 +118,7 @@ namespace CppBuilderPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( $"TRegEx (C++Builder, Delphi)", LazyFeatureMatrix.Value, new Engine() )
+                    new FeatureMatrixVariant( $"TRegEx (C++Builder, Delphi)", new Engine() )
                 ];
         }
 
@@ -353,7 +353,8 @@ namespace CppBuilderPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,

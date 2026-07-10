@@ -140,7 +140,7 @@ namespace StdPlugin
 
                 Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.MSVC, Grammar = grammar } };
 
-                variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), LazyFeatureMatrix_MSVC.GetValue( grammar ), engine ) );
+                variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), engine ) );
             }
 
             {
@@ -148,7 +148,7 @@ namespace StdPlugin
 
                 Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.GCC, Grammar = grammar } };
 
-                variants.Add( new FeatureMatrixVariant( $"GCC ({Enum.GetName( grammar )})", LazyFeatureMatrix_GCC.GetValue( grammar ), engine ) );
+                variants.Add( new FeatureMatrixVariant( $"GCC ({Enum.GetName( grammar )})", engine ) );
             }
 
             {
@@ -158,12 +158,12 @@ namespace StdPlugin
                 {
                     Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = false, vmode = false } };
 
-                    variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )})", LazyFeatureMatrix_SRELL.GetValue( (grammar, false, false) ), engine ) );
+                    variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )})", engine ) );
                 }
                 {
                     Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = true, vmode = true } };
 
-                    variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )}, “uv” flags)", LazyFeatureMatrix_SRELL.GetValue( (grammar, true, true) ), engine ) );
+                    variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )}, “uv” flags)", engine ) );
                 }
 #else
                 // for investigations
@@ -175,12 +175,12 @@ namespace StdPlugin
                     {
                         Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = false, vmode = false } };
 
-                        variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )})", LazyFeatureMatrix_SRELL.GetValue( (grammar, false, false) ), engine ) );
+                        variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )})", engine ) );
                     }
                     {
                         Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = true, vmode = true } };
 
-                        variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )}, “uv” flags)", LazyFeatureMatrix_SRELL.GetValue( (grammar, true, true) ), engine ) );
+                        variants.Add( new FeatureMatrixVariant( $"SRELL ({Enum.GetName( grammar )}, “uv” flags)", engine ) );
                     }
                 }
 #endif
@@ -445,7 +445,8 @@ namespace StdPlugin
                 EmptySet = grammar == GrammarEnum.ECMAScript,
                 EmptySetAny = grammar == GrammarEnum.ECMAScript,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = grammar == GrammarEnum.ECMAScript,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,
@@ -688,7 +689,8 @@ namespace StdPlugin
                 EmptySet = grammar == GrammarEnum.ECMAScript,
                 EmptySetAny = grammar == GrammarEnum.ECMAScript,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = true,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,
@@ -905,7 +907,8 @@ namespace StdPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = false,

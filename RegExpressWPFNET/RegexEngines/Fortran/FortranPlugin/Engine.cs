@@ -139,9 +139,9 @@ namespace FortranPlugin
 
             return
                 [
-                    new FeatureMatrixVariant("Forgex", LazyFeatureMatrix_Forgex.Value, engine_forgex),
-                    new FeatureMatrixVariant("Regex (Perazz)", LazyFeatureMatrix_RegexPerazz.Value, engine_perazz),
-                    new FeatureMatrixVariant("Regex (Jeyemhex)", LazyFeatureMatrix_RegexJeyemhex.Value,engine_jayemhex),
+                    new FeatureMatrixVariant("Forgex", engine_forgex),
+                    new FeatureMatrixVariant("Regex (Perazz)", engine_perazz),
+                    new FeatureMatrixVariant("Regex (Jeyemhex)", engine_jayemhex),
                 ];
         }
 
@@ -372,7 +372,8 @@ namespace FortranPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = true,
@@ -589,7 +590,8 @@ namespace FortranPlugin
                 EmptySet = true,
                 EmptySetAny = true,
 
-                Unicode = false, // (defective match: '..' matches the character  and an empty space between characters)
+                Unicode_Class_Dot = false, // (defective match: '..' matches the character and an empty space between characters)
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = false, // (defect?)
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,
@@ -806,7 +808,8 @@ namespace FortranPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = false, // (defective match: '.' matches the character and an empty space between characters)
+                Unicode_Class_Dot = false, // (defective match: '.' matches the character and an empty space between characters)
+                Unicode_Class_vW = false,
                 InsideSets_Unicode = false, // (defect?)
                 UnicodeCaseFolding = false,
                 KeepSurrogatePairs = false,

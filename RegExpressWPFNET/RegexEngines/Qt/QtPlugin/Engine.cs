@@ -16,7 +16,7 @@ namespace QtPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        static readonly LazyData<bool /*UseUnicodePropertiesOption*/, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -110,7 +110,7 @@ namespace QtPlugin
             return new SyntaxOptions
             {
                 XLevel = Options.ExtendedPatternSyntaxOption ? XLevelEnum.x : XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.Value,
+                FeatureMatrix = LazyFeatureMatrix.GetValue( Options.UseUnicodePropertiesOption ),
             };
         }
 
@@ -118,7 +118,7 @@ namespace QtPlugin
         {
             return
                 [
-                    new FeatureMatrixVariant( $"Qt", LazyFeatureMatrix.Value, new Engine() )
+                    new FeatureMatrixVariant( $"Qt", new Engine{ Options = new Options{ UseUnicodePropertiesOption = true } } )
                 ];
         }
 
@@ -147,7 +147,7 @@ namespace QtPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        static FeatureMatrix BuildFeatureMatrix( )
+        static FeatureMatrix BuildFeatureMatrix( bool useUnicodePropertiesOption )
         {
             return new FeatureMatrix
             {
@@ -353,7 +353,8 @@ namespace QtPlugin
                 EmptySet = false,
                 EmptySetAny = false,
 
-                Unicode = true,
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = useUnicodePropertiesOption,
                 InsideSets_Unicode = true,
                 UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
