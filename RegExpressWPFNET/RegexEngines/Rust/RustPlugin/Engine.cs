@@ -1689,7 +1689,7 @@ namespace RustPlugin
                 PositiveLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
                 NegativeLookbehind = FeatureMatrix.LookModeEnum.BoundedLength,
                 NestedLookaround = false,
-                AtomicGroup = false,
+                AtomicGroup = true,
                 BranchReset = false,
                 NonatomicPositiveLookahead = false,
                 NonatomicPositiveLookbehind = false,
