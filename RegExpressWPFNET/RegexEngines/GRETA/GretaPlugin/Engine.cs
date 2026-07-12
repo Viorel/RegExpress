@@ -333,6 +333,7 @@ namespace GretaPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
                 Quantifier_Lazy = true,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = false,

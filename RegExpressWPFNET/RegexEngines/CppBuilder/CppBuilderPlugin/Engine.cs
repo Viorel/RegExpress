@@ -332,6 +332,7 @@ namespace CppBuilderPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = true,
+                Quantifier_Possessive = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = true,

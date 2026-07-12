@@ -331,6 +331,7 @@ namespace SubRegPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = false,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

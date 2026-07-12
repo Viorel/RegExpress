@@ -41,7 +41,7 @@ namespace real::detail {
   // encode_utf8_bytes) now lives in utf8_ranges.hpp, shared with the lazy DFA's klass_cp expansion.
 
   //! \brief Whether \p ranges is exactly the whole non-ASCII space `[U+0080, U+10FFFF]` — the
-  //!        "any non-ASCII code point" shape emitted by the compact \ref compiler::emit_codepoint_class.
+  //!        "any non-ASCII code point" shape emitted by \ref compiler::emit_any_codepoint_class.
   constexpr bool is_any_non_ascii(const std::vector<code_range>& ranges)
   {
     return ranges.size() == 1 && ranges[0].lo == 0x80U && ranges[0].hi == 0x10FFFFU;
@@ -136,10 +136,12 @@ namespace real::detail {
       emit(prog, {.op   = opcode::match});
       prog.byte_mode    = has_flag(flags_, flags::bytes);
       prog.unicode_word = !has_flag(flags_, flags::bytes) && !has_flag(flags_, flags::ascii);
-      prog.hints        = analyze_program(prog.code, prog.classes, prog.cp_classes, prog.codepoint_mark_ascii,
-                                          prog.codepoint_mark_offset, prog.lookarounds);
-      // The required inner literal + its prefix boundary (a single AST walk). Recorded for the inner-literal
-      // search path; not yet routed on. Kept off the program code, so byte-identity is untouched.
+      prog.hints        = analyze_program(prog.code, prog.classes, prog.cp_classes, prog.cp_ranges,
+                                          prog.codepoint_mark_ascii, prog.codepoint_mark_offset,
+                                          prog.codepoint_mark_end, prog.lookarounds);
+      // The required inner literal + its prefix boundary (a single AST walk). Recorded in hints for the
+      // inner-literal search route (pike_vm::run dispatches to run_inner_literal); kept off the program
+      // code, so byte-identity is untouched.
       const inner_literal il {extract_inner_literal(tree_)};
       prog.hints.inner_literal        = il.bytes;
       prog.hints.inner_literal_len    = il.len;
@@ -246,8 +248,11 @@ namespace real::detail {
      * \param[in]     klass   The class bitmap to match.
      * \throws real::regex_error if more than 65536 distinct classes are needed.
      */
-    static constexpr void emit_klass(dynamic_program&  prog,
-                                     const char_class& klass)
+    //! \brief Interns \p klass into `prog.classes` (deduplicating), returning its index.
+    //!        Factored out of \ref emit_klass so Tier 1's `klass_loop_possessive` can share
+    //!        the exact same interning without emitting the ordinary single-consume opcode.
+    static constexpr std::uint16_t intern_class(dynamic_program&  prog,
+                                                const char_class& klass)
     {
       std::size_t index {prog.classes.size()};
       for (std::size_t i = 0; i < prog.classes.size(); ++i) {
@@ -262,7 +267,13 @@ namespace real::detail {
         }
         prog.classes.push_back(klass);
       }
-      emit(prog, {.op = opcode::klass, .arg16 = static_cast<std::uint16_t>(index)});
+      return static_cast<std::uint16_t>(index);
+    }
+
+    static constexpr void emit_klass(dynamic_program&  prog,
+                                     const char_class& klass)
+    {
+      emit(prog, {.op = opcode::klass, .arg16 = intern_class(prog, klass)});
     }
 
     /*!
@@ -277,8 +288,12 @@ namespace real::detail {
      * \param[in,out] prog The program being built.
      * \param[in]     cd   The effective code-point class (ASCII bitmap + non-ASCII ranges).
      */
-    static constexpr void emit_klass_cp(dynamic_program& prog,
-                                        const class_def& cd)
+    //! \brief Interns \p cd into `prog.cp_classes`/`prog.cp_ranges` (deduplicating), returning its
+    //!        index. Factored out of \ref emit_klass_cp so Tier 1's `klass_cp_loop_possessive` can
+    //!        share the exact same interning for ANY effective class (predicate or not, negated or
+    //!        not, `.` included) without emitting the ordinary opcode or its continuation chain.
+    static constexpr std::uint16_t intern_cp_class(dynamic_program& prog,
+                                                   const class_def& cd)
     {
       std::size_t index {prog.cp_classes.size()};
       for (std::size_t i = 0; i < prog.cp_classes.size(); ++i) {
@@ -315,7 +330,13 @@ namespace real::detail {
                                    .range_begin = begin,
                                    .range_count = static_cast<std::uint32_t>(cd.ranges.size())});
       }
-      emit(prog, {.op = opcode::klass_cp, .arg16 = static_cast<std::uint16_t>(index)});
+      return static_cast<std::uint16_t>(index);
+    }
+
+    static constexpr void emit_klass_cp(dynamic_program& prog,
+                                        const class_def& cd)
+    {
+      emit(prog, {.op = opcode::klass_cp, .arg16 = intern_cp_class(prog, cd)});
       emit_klass(prog, utf8_cont_set()); // three continuation slots; klass_cp's skip picks the entry
       emit_klass(prog, utf8_cont_set());
       emit_klass(prog, utf8_cont_set());
@@ -326,66 +347,46 @@ namespace real::detail {
     /*!
      * \brief Emits "one codepoint matching \p ascii, or any non-ASCII codepoint".
      *
-     * Expands to the byte-level alternation
-     * `ascii | lead2 cont | lead3 cont cont | lead4 cont cont cont`, so
-     * the engine steps one byte at a time while still consuming whole codepoints.
-     * The UTF-8 byte sets come from charclass.hpp, shared with the prefilter that
-     * recognizes this exact shape.
+     * The non-ASCII branches go through \ref emit_class_codepoints for the code-point
+     * range `[U+0080, U+10FFFF]` — the SAME canonical-splitting algorithm (`utf8_range_sequences`,
+     * RE2-style) already used for `\p{...}`, so the emitted branches narrow each lead byte's first
+     * continuation byte to the sub-range that excludes overlong and surrogate encodings (`0xE0`,
+     * `0xED`, `0xF0`, `0xF4` each get their own branch; every other lead byte keeps the generic
+     * `[0x80,0xBF]` continuation, same as before). This used to be a hand-written 4-branch/16-
+     * instruction block with flat lead-byte classes (charclass.hpp's `utf8_lead2/3/4_set` /
+     * `utf8_cont_set`) that DIDN'T narrow the first continuation byte — a since-fixed correctness
+     * gap (overlong/surrogate byte sequences read as one valid codepoint).
      *
      * \param[in,out] prog  The program being built.
      * \param[in]     ascii The accepted ASCII bytes (the non-ASCII branches are
      *                      always included).
      */
-    constexpr void emit_codepoint_class(dynamic_program&  prog,
-                                        const char_class& ascii) const
+    constexpr void emit_any_codepoint_class(dynamic_program&  prog,
+                                            const char_class& ascii) const
     {
       const std::int32_t block_start {here(prog)}; // start offset, recorded as the marker below
-      const char_class   cont        {utf8_cont_set()};
-      const char_class   lead2       {utf8_lead2_set()};
-      const char_class   lead3       {utf8_lead3_set()};
-      const char_class   lead4       {utf8_lead4_set()};
+      emit_class_codepoints(prog, ascii, {{.lo = 0x80U, .hi = 0x10FFFFU}});
+      const std::int32_t block_end   {here(prog)};
 
-      const std::int32_t s1          {emit_split(prog)};
-      patch_primary(prog, s1, here(prog));
-      emit_klass(prog, ascii);
-      const std::int32_t j1 {emit_jump(prog)};
-
-      patch_secondary(prog, s1, here(prog));
-      const std::int32_t s2 {emit_split(prog)};
-      patch_primary(prog, s2, here(prog));
-      emit_klass(prog, lead2);
-      emit_klass(prog, cont);
-      const std::int32_t j2 {emit_jump(prog)};
-
-      patch_secondary(prog, s2, here(prog));
-      const std::int32_t s3 {emit_split(prog)};
-      patch_primary(prog, s3, here(prog));
-      emit_klass(prog, lead3);
-      emit_klass(prog, cont);
-      emit_klass(prog, cont);
-      const std::int32_t j3 {emit_jump(prog)};
-
-      patch_secondary(prog, s3, here(prog));
-      emit_klass(prog, lead4);
-      emit_klass(prog, cont);
-      emit_klass(prog, cont);
-      emit_klass(prog, cont);
-
-      const std::int32_t end {here(prog)};
-      patch_primary(prog, j1, end);
-      patch_primary(prog, j2, end);
-      patch_primary(prog, j3, end);
-
-      // Record the marker (offset + ASCII sub-class index) so analyze_program reads
-      // it instead of reverse-engineering this 16-instruction block's bytecode shape.
+      // Record the marker (start/end offsets + ASCII sub-class index) so analyze_program reads
+      // it instead of reverse-engineering this block's bytecode shape. The ASCII sub-class sits
+      // at code[block_start+1] whenever `ascii` is non-empty (emit_byte_sequences's first branch
+      // is exactly {ascii}, a single klass step, right after that branch's split) -- true for `.`
+      // always (its accepted ASCII set is never fully empty) and for all but a pathological
+      // negated-ASCII-only class (`[^\x00-\x7F]`, which negates ALL of ASCII); in that one case
+      // this reads a byte-range class's index instead, which the prefilter's content guard (it
+      // must hold ASCII bytes only) then correctly rejects.
       prog.codepoint_mark_offset = block_start;
+      prog.codepoint_mark_end    = block_end;
       prog.codepoint_mark_ascii  = static_cast<std::int32_t>(prog.code[static_cast<std::size_t>(block_start) + 1].arg16);
     }
 
     /*!
-     * \brief Emits an alternation of byte-range sequences (`branches`) as split/jump — the general
-     *        form of \ref emit_codepoint_class. Each branch is a chain of `klass` steps; the leftmost
-     *        matching branch wins. Used for a character class carrying specific code-point ranges.
+     * \brief Emits an alternation of byte-range sequences (`branches`) as split/jump. Each branch
+     *        is a chain of `klass` steps; the leftmost matching branch wins. The shared backbone of
+     *        \ref emit_class_codepoints (used for both `\p{...}`-style specific code-point ranges
+     *        and, via \ref emit_any_codepoint_class, the single `[U+0080, U+10FFFF]` "any non-ASCII"
+     *        range `.`/negated-ASCII-only classes need).
      */
     constexpr void emit_byte_sequences(dynamic_program&                            prog,
                                        const std::vector<std::vector<char_class>>& branches) const
@@ -411,8 +412,8 @@ namespace real::detail {
 
     /*!
      * \brief Emits a code-point class: the ASCII bitmap (one byte, if any) OR the canonical UTF-8
-     *        byte sequences of each code-point range. This is the specific-code-point generalization
-     *        of \ref emit_codepoint_class (whose `[U+0080, U+10FFFF]` "any non-ASCII" is one case).
+     *        byte sequences of each code-point range. \ref emit_any_codepoint_class is a thin
+     *        wrapper over this for the specific `[U+0080, U+10FFFF]` "any non-ASCII" range.
      */
     constexpr void emit_class_codepoints(dynamic_program&               prog,
                                          const char_class&              ascii,
@@ -525,9 +526,9 @@ namespace real::detail {
               break;
             }
             if (is_any_non_ascii(eff.ranges)) {
-              // "ASCII bitmap OR any non-ASCII code point" (`.`-family, `[^x]`): the compact
-              // emit_codepoint_class shape the prefilter/DFA fast path recognizes.
-              emit_codepoint_class(prog, eff.ascii);
+              // "ASCII bitmap OR any non-ASCII code point" (`.`-family, `[^x]`): the
+              // emit_any_codepoint_class shape the prefilter fast path recognizes.
+              emit_any_codepoint_class(prog, eff.ascii);
               break;
             }
             emit_class_codepoints(prog, eff.ascii, eff.ranges);
@@ -556,7 +557,7 @@ namespace real::detail {
               emit_klass(prog, head);
             }
             else {
-              emit_codepoint_class(prog, head);
+              emit_any_codepoint_class(prog, head);
             }
             break;
           }
@@ -587,7 +588,12 @@ namespace real::detail {
           emit_alternation(prog, node, capture_free);
           break;
         case node_kind::group:
-          if (node.group >= 0 && !capture_free) {
+          if (node.possessive) {
+            // Atomic group `(?>...)` — never capturing at its own level (group == -1, like
+            // `(?:...)`), but its body may contain its own numbered captures, which stay live.
+            emit_atomic_group(prog, node, capture_free);
+          }
+          else if (node.group >= 0 && !capture_free) {
             emit(prog, {.op = opcode::save, .arg16 = static_cast<std::uint16_t>(2 * node.group)});
             emit_node(prog, node.child, capture_free);
             emit(prog, {.op = opcode::save, .arg16 = static_cast<std::uint16_t>((2 * node.group) + 1)});
@@ -707,6 +713,10 @@ namespace real::detail {
                                const ast_node&  node,
                                bool             capture_free) const
     {
+      if (node.possessive) {
+        emit_possessive_repeat(prog, node.child, node.min, node.max, capture_free);
+        return;
+      }
       for (std::int32_t i = 0; i < node.min; ++i) {
         if (node.max == -1 && i == node.min - 1) {
           // Last mandatory copy doubles as the loop body: e+ patterns
@@ -889,6 +899,368 @@ namespace real::detail {
           return -1;
       }
       return -1;
+    }
+
+    // --- atomic groups / possessive quantifiers (D1: Tier 1 -- bare atom or single-captured
+    //     atom; a general "Tier 1.5" for compound bodies was scoped out — see
+    //     emit_possessive_repeat's own note on the VM-architecture wall this sidesteps) -------
+
+    /*!
+     * \brief Is \p index a bare, unwrapped single atom (a literal byte, a character class, or
+     *        `.`)?
+     *
+     * \param[in] index Index of the sub-AST node.
+     * \return `true` if \p index is `byte`, `klass`, or `any`.
+     */
+    [[nodiscard]] constexpr bool is_single_atom(std::int32_t index) const
+    {
+      const node_kind k {tree_.nodes[static_cast<std::size_t>(index)].kind};
+      return k == node_kind::byte || k == node_kind::klass || k == node_kind::any;
+    }
+
+    /*!
+     * \brief Tier 1 eligibility: is \p index a bare single atom, or an ordinary (non-atomic)
+     *        capturing group wrapping exactly one (`X*+`, `(a)*+`, `(?>X*)`, …)?
+     *
+     * The dominant real-world shape — the loop carries its own failure locally, within ONE
+     * opcode dispatch (see \ref emit_possessive_repeat's note on why this is what stays
+     * VM-integration-safe when a general compound body does not).
+     *
+     * \param[in] index Index of the sub-AST node.
+     * \return `true` if \p index is Tier 1 eligible.
+     */
+    [[nodiscard]] constexpr bool is_tier1_body(std::int32_t index) const
+    {
+      if (is_single_atom(index)) {
+        return true;
+      }
+      const ast_node& node {tree_.nodes[static_cast<std::size_t>(index)]};
+      return node.kind == node_kind::group && !node.possessive && node.group >= 0 &&
+             is_single_atom(node.child);
+    }
+
+    //! \brief The bare atom Tier 1 should test: \p index itself, or its single captured child
+    //!        when \p index is a capturing-group wrapper. \ref is_tier1_body must hold.
+    [[nodiscard]] constexpr std::int32_t tier1_atom(std::int32_t index) const
+    {
+      const ast_node& node {tree_.nodes[static_cast<std::size_t>(index)]};
+      return node.kind == node_kind::group ? node.child : index;
+    }
+
+    //! \brief The capture group number Tier 1 should wrap the loop in, or -1 for none.
+    //!        \ref is_tier1_body must hold.
+    [[nodiscard]] constexpr std::int32_t tier1_capture_group(std::int32_t index) const
+    {
+      const ast_node& node {tree_.nodes[static_cast<std::size_t>(index)]};
+      return node.kind == node_kind::group ? node.group : -1;
+    }
+
+    /*!
+     * \brief Would compiling the sub-AST at \p index ever emit a `split` opcode?
+     *
+     * Used ONLY by \ref emit_atomic_group's no-outer-repeat shape: a ONE-SHOT atomic group
+     * (`(?>ab)`, `(?>)`, any fixed/deterministic body with no repetition at all) has NOTHING to
+     * give back regardless of how compound its body is, so compiling it inline via ordinary
+     * \ref emit_node is unconditionally safe — zero new opcodes touched, zero VM risk. This is
+     * NOT the same question as Tier 1.5's (a REPEATED compound body, which \ref
+     * emit_possessive_repeat's own note explains is genuinely unsafe in this VM regardless of
+     * determinism) — a one-shot atomic group never loops, so there is no exit-thread/silent-
+     * death concern to sidestep in the first place.
+     *
+     * Mirrors the ACTUAL compiled shape of each node kind, not an approximation:
+     * - `alternation`: always emits `split` — a genuine choice an outer give-back could still
+     *   backtrack into, so `false` here correctly routes to a real rejection, not silent
+     *   miscompilation.
+     * - `repeat`, non-possessive: emits `split` UNLESS it is an exact bounded count (`min ==
+     *   max`, `max != -1`) — `emit_repeat`'s own "optional copies" loop runs zero times then.
+     * - `group`: an atomic group (`possessive == true`) is always opaque-deterministic from the
+     *   outer view — it either compiles deterministically or the compiler rejects it outright,
+     *   so it never leaks a `split`. An ordinary group is transparent.
+     * - `lookaround`: zero-width from the outer view; any `split` inside its own sub-pattern is
+     *   isolated in a separate, bounded sub-VM region, never part of the outer flow.
+     *
+     * \param[in] index Index of the sub-AST node.
+     * \return `true` if compiling \p index introduces no `split` reachable from the outer flow.
+     */
+    [[nodiscard]] constexpr bool is_deterministic(std::int32_t index) const
+    {
+      const ast_node& node {tree_.nodes[static_cast<std::size_t>(index)]};
+      switch (node.kind) {
+        case node_kind::empty:
+        case node_kind::anchor:
+        case node_kind::byte:
+        case node_kind::klass:
+        case node_kind::any:
+        case node_kind::lookaround:
+          return true;
+        case node_kind::concat:
+          for (std::int32_t child = node.child; child != -1;
+               child              = tree_.nodes[static_cast<std::size_t>(child)].next) {
+            if (!is_deterministic(child)) {
+              return false;
+            }
+          }
+          return true;
+        case node_kind::group:
+          return node.possessive || is_deterministic(node.child);
+        case node_kind::repeat:
+          if (node.possessive) {
+            return is_deterministic(node.child);
+          }
+          return node.max != -1 && node.min == node.max && is_deterministic(node.child);
+        case node_kind::alternation:
+          return false;
+      }
+      return false;
+    }
+
+    /*!
+     * \brief Emits a Tier 1 atom-test instruction (`byte_loop_possessive`/`klass_loop_
+     *        possessive`/`klass_cp_loop_possessive`), with a placeholder `secondary_target`
+     *        (the on-no-match exit — patch before use) and `primary_target` set to \p
+     *        capture_start_slot (-1 for uncaptured, else the capture group's start slot; the
+     *        end slot is always start+1).
+     *
+     * On a match, the opcode itself (pike.hpp's `step()`) writes BOTH capture slots directly,
+     * using the position before the test (start) and after it (end) — rather than a separate
+     * `save` emitted BEFORE the test, which would have to fire speculatively before knowing the
+     * test succeeds. A possessive loop always attempts one more repetition after every success,
+     * so a plain leading `save` would overwrite a PRIOR successful iteration's start the moment
+     * the NEXT (ultimately failing) attempt began — corrupting the capture with a torn
+     * [new-but-failed-start, old-end) pair. Writing both slots atomically with the consume, only
+     * on confirmed success, avoids that. `klass_cp_loop_possessive` still emits the ordinary
+     * 3-slot UTF-8 continuation chain right after itself (identical layout to \ref
+     * emit_klass_cp) — the membership decision is already fully made at the first byte; the
+     * chain is the architecture's mandatory one-byte-per-round validation of the remaining
+     * bytes either way, and the capture write happens once, at the first byte's dispatch.
+     *
+     * \param[in,out] prog               The program being built.
+     * \param[in]     atom               Index of the single-atom AST node (`byte`/`klass`/`any`).
+     * \param[in]     capture_start_slot The capture group's start slot, or -1 for none.
+     * \return The emitted TEST instruction's index (its `secondary_target` needs patching).
+     */
+    constexpr std::int32_t emit_tier1_atom_test(dynamic_program& prog,
+                                                std::int32_t     atom,
+                                                std::int32_t     capture_start_slot) const
+    {
+      const ast_node&    node {tree_.nodes[static_cast<std::size_t>(atom)]};
+      const std::int32_t pc   {here(prog)};
+      if (node.kind == node_kind::byte) {
+        emit(prog, {.op             = opcode::byte_loop_possessive, .arg8 = node.byte,
+                    .primary_target = capture_start_slot, .secondary_target = -1});
+        return pc;
+      }
+      if (node.kind == node_kind::any) {
+        const flags node_flags {static_cast<flags>(node.effective_flags)};
+        char_class  head;
+        head.set_range(0x00, 0x7F);
+        if (has_flag(flags_, flags::bytes)) {
+          head.set_range(0x80, 0xFF);
+        }
+        if (!has_flag(node_flags, flags::dotall)) {
+          char_class newline;
+          newline.set('\n');
+          if (has_flag(flags_, flags::ecma)) {
+            newline.set('\r');
+          }
+          head.bits[0] &= ~newline.bits[0];
+        }
+        if (has_flag(flags_, flags::bytes)) {
+          emit(prog, {.op             = opcode::klass_loop_possessive, .arg16 = intern_class(prog, head),
+                      .primary_target = capture_start_slot, .secondary_target = -1});
+          return pc;
+        }
+        const class_def cd {.ascii = head, .ranges = {{.lo = 0x80U, .hi = 0x10FFFFU}}};
+        emit(prog, {.op             = opcode::klass_cp_loop_possessive, .arg16 = intern_cp_class(prog, cd),
+                    .primary_target = capture_start_slot, .secondary_target = -1});
+        emit_klass(prog, utf8_cont_set());
+        emit_klass(prog, utf8_cont_set());
+        emit_klass(prog, utf8_cont_set());
+        return pc;
+      }
+      // node_kind::klass
+      if (tree_.classes[static_cast<std::size_t>(node.klass)].codepoint_predicate) {
+        emit(prog, {.op             = opcode::klass_cp_loop_possessive,
+                    .arg16          = intern_cp_class(prog, effective_class(node)),
+                    .primary_target = capture_start_slot, .secondary_target = -1});
+        emit_klass(prog, utf8_cont_set());
+        emit_klass(prog, utf8_cont_set());
+        emit_klass(prog, utf8_cont_set());
+        return pc;
+      }
+      const class_def eff {effective_class(node)};
+      if (has_flag(flags_, flags::bytes) || eff.ranges.empty()) {
+        emit(prog, {.op             = opcode::klass_loop_possessive, .arg16 = intern_class(prog, eff.ascii),
+                    .primary_target = capture_start_slot, .secondary_target = -1});
+        return pc;
+      }
+      emit(prog, {.op             = opcode::klass_cp_loop_possessive, .arg16 = intern_cp_class(prog, eff),
+                  .primary_target = capture_start_slot, .secondary_target = -1});
+      emit_klass(prog, utf8_cont_set());
+      emit_klass(prog, utf8_cont_set());
+      emit_klass(prog, utf8_cont_set());
+      return pc;
+    }
+
+    /*!
+     * \brief Emits a Tier 1 possessive loop over a single atom, optionally wrapped in one
+     *        capturing group.
+     *
+     * Mandatory copies (up to \p min) are ordinary, unconditional emission — identical to how a
+     * bare atom, or a capturing group wrapping one, already compiles (via \ref emit_node):
+     * failure there needs no exit path, since \p min is required and the thread simply dies,
+     * exactly like any plain consuming instruction. The optional tail is either a genuine
+     * self-loop (`max == -1`: `jump` back to the tail's own start on a match) or a chain of
+     * unrolled optional copies (bounded: natural pc+1 fallthrough chains them, no `jump`
+     * needed) — each copy is one \ref emit_tier1_atom_test, whose `secondary_target` (on no
+     * match) is collected and patched to the construct's shared exit once everything is
+     * emitted, matching the pattern \ref emit_alternation already uses for its own forward
+     * jump targets.
+     *
+     * \param[in,out] prog          The program being built.
+     * \param[in]     atom          Index of the single-atom body (`byte`, `klass`, or `any`).
+     * \param[in]     min           Minimum repetition count.
+     * \param[in]     max           Maximum repetition count (-1 = unbounded).
+     * \param[in]     capture_group Capture group number to wrap the loop in, or -1 for none.
+     * \param[in]     capture_free  Whether captures are suppressed here (inside a lookaround).
+     */
+    constexpr void emit_tier1_loop(dynamic_program& prog,
+                                   std::int32_t     atom,
+                                   std::int32_t     min,
+                                   std::int32_t     max,
+                                   std::int32_t     capture_group,
+                                   bool             capture_free) const
+    {
+      const bool         captured   {capture_group >= 0 && !capture_free};
+      const std::int32_t start_slot {captured ? 2 * capture_group : -1};
+
+      for (std::int32_t i = 0; i < min; ++i) {
+        if (captured) {
+          emit(prog, {.op = opcode::save, .arg16 = static_cast<std::uint16_t>(start_slot)});
+        }
+        emit_node(prog, atom, capture_free);
+        if (captured) {
+          emit(prog, {.op = opcode::save, .arg16 = static_cast<std::uint16_t>(start_slot + 1)});
+        }
+      }
+
+      if (max == min) {
+        return; // exact count: nothing left to give back to begin with
+      }
+
+      std::vector<std::int32_t> exits; // secondary_target sites to patch to the shared exit
+
+      if (max == -1) {
+        const std::int32_t tail_start {here(prog)};
+        exits.push_back(emit_tier1_atom_test(prog, atom, start_slot));
+        const std::int32_t back       {emit_jump(prog)};
+        patch_primary(prog, back, tail_start);
+      }
+      else {
+        const std::int32_t optional_count {max - min};
+        for (std::int32_t i = 0; i < optional_count; ++i) {
+          exits.push_back(emit_tier1_atom_test(prog, atom, start_slot));
+        }
+      }
+
+      const std::int32_t exit {here(prog)};
+      for (const std::int32_t pc : exits) {
+        patch_secondary(prog, pc, exit);
+      }
+    }
+
+    /*!
+     * \brief Dispatches a possessive quantifier body to Tier 1 or a clean rejection — shared by
+     *        \ref emit_repeat (`X*+`/`X++`/`X?+`/`X{n,m}+`, `(a)*+`-style single-captured-atom
+     *        bodies) and \ref emit_atomic_group's `(?>X*)`-style desugaring.
+     *
+     * A general "Tier 1.5" for arbitrary compound deterministic bodies (`(?:ab)*+`, `(?:X++)*+`)
+     * was scoped OUT of this train after verifying a genuine VM-architecture wall, not assumed:
+     * `basic_thread_list` (pike.hpp) stores one uniform position per round for its whole thread
+     * list — no per-thread position. A possessive loop's "give up, exit" transition for a
+     * compound body would need to be offered ONLY once the body's own internal attempt has
+     * DEFINITIVELY failed, at whatever round that happens to be — but a Pike-VM thread that
+     * fails simply dies silently; it cannot redirect to an external exit target from wherever
+     * inside the body it died, unless every leaf-emitting instruction in the compiler (byte/
+     * klass/klass_cp/save/assert_position/assert_lookaround) carries that redirect — real new
+     * infrastructure, not "new opcodes only." A bare atom (or one wrapped in exactly one
+     * capturing group) sidesteps this entirely because it fails ONLY within its own single
+     * dispatch — the opcode IS its own fail-redirect, with nothing to propagate. Deferred to a
+     * future design (bounded compound bodies may fit the same priority-kill sub-VM approach
+     * lookaround already uses; unbounded compound bodies will likely stay rejected, the same
+     * boundary as lookbehind's own unbounded rejection).
+     *
+     * \param[in,out] prog         The program being built.
+     * \param[in]     body         Index of the quantified body.
+     * \param[in]     min          Minimum repetition count.
+     * \param[in]     max          Maximum repetition count (-1 = unbounded).
+     * \param[in]     capture_free Whether captures are suppressed here (inside a lookaround).
+     * \throws real::regex_error when \p body is not Tier 1 eligible, or \p capture_free is
+     *         true (a possessive/atomic construct inside a lookaround) — the lookaround
+     *         sub-VM's own dispatch (pike.hpp's `lookahead_matches`/`sub_fullmatch_window`/
+     *         `sub_add_thread`) hard-assumes only `byte`/`klass`/`klass_cp` ever appear in a
+     *         sub-region; `klass_cp_loop_possessive` there would silently read the WRONG class
+     *         table (`classes` instead of `cp_classes`, since `in.arg16` means something
+     *         different in each) — a latent corruption, not just a missed optimization, so this
+     *         is a hard compile-time reject rather than an attempt to thread the new opcodes
+     *         through three separate hand-written dispatchers as well.
+     */
+    constexpr void emit_possessive_repeat(dynamic_program& prog,
+                                          std::int32_t     body,
+                                          std::int32_t     min,
+                                          std::int32_t     max,
+                                          bool             capture_free) const
+    {
+      if (capture_free) {
+        throw regex_error("possessive/atomic quantifiers inside a lookaround are not supported yet", 0);
+      }
+      if (!is_tier1_body(body)) {
+        throw regex_error("possessive/atomic over a compound body is not supported yet", 0);
+      }
+      emit_tier1_loop(prog, tier1_atom(body), min, max, tier1_capture_group(body), capture_free);
+    }
+
+    /*!
+     * \brief Emits an atomic group `(?>...)`.
+     *
+     * Three shapes, in order:
+     * 1. The child is itself an ordinary `repeat` over a Tier-1-eligible body (a bare atom, or
+     *    one wrapped in exactly one capturing group) — `(?>X*)`, `(?>(a)+)`, … — "upgraded" to
+     *    possessive regardless of that inner repeat's own flag, detected BEFORE any
+     *    bounded-width check, so `(?>[^"]*)`/`(?>\d+)` compile (D0-2's detection-order finding).
+     *    This is a REPEATED construct, so it is subject to the same Tier-1-only restriction (and
+     *    the same lookaround rejection) as \ref emit_possessive_repeat.
+     * 2. No outer repeat at all, and the body is deterministic (\ref is_deterministic) — `(?>ab)`,
+     *    `(?>)`, any fixed/compound-but-split-free body: nothing to give back regardless of how
+     *    compound the body is (it never loops), so this is unconditionally safe compiled inline
+     *    via ordinary \ref emit_node — zero new opcodes touched, safe even inside a lookaround.
+     * 3. Otherwise (a genuine choice with no outer repeat, e.g. `(?>ab|a)`): an outer give-back
+     *    could still backtrack INTO the alternation's own choice via its `split` even with no
+     *    repeat wrapping it, so inline compilation would be a silent correctness bug, not just a
+     *    missed optimization — the clean rejection \ref emit_possessive_repeat documents.
+     *
+     * \param[in,out] prog         The program being built.
+     * \param[in]     node         The \ref node_kind::group node (`possessive == true`).
+     * \param[in]     capture_free Propagated to the body.
+     */
+    constexpr void emit_atomic_group(dynamic_program& prog,
+                                     const ast_node&  node,
+                                     bool             capture_free) const
+    {
+      const ast_node& child {tree_.nodes[static_cast<std::size_t>(node.child)]};
+      if (child.kind == node_kind::repeat && is_tier1_body(child.child)) {
+        if (capture_free) {
+          throw regex_error("possessive/atomic quantifiers inside a lookaround are not supported yet", 0);
+        }
+        emit_tier1_loop(prog, tier1_atom(child.child), child.min, child.max,
+                        tier1_capture_group(child.child), capture_free);
+        return;
+      }
+      if (is_deterministic(node.child)) {
+        emit_node(prog, node.child, capture_free); // vacuously atomic: no repeat, nothing to give back
+        return;
+      }
+      throw regex_error("possessive/atomic over a compound body is not supported yet", 0);
     }
   };
 

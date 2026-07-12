@@ -253,6 +253,51 @@ namespace real::detail {
     result.set_range(0xF0, 0xF4);
     return result;
   }
+
+  /*!
+   * \brief `[lo, hi]` bounds for the FIRST continuation byte of a multi-byte UTF-8 sequence,
+   *        given its lead byte.
+   *
+   * Every lead byte defaults to the generic continuation range `[0x80, 0xBF]`; four narrow it
+   * (Unicode Table 3-7) to exclude an overlong, surrogate, or beyond-`U+10FFFF` encoding: `0xE0`
+   * (3-byte, excludes the 3-byte overlong region `[0x80, 0x9F]`), `0xED` (3-byte, excludes the
+   * `U+D800-U+DFFF` surrogate block `[0xA0, 0xBF]`), `0xF0` (4-byte, excludes the 4-byte overlong
+   * region `[0x80, 0x8F]`), `0xF4` (4-byte, excludes code points past `U+10FFFF`, `[0x90, 0xBF]`).
+   * The 2-byte case needs no narrowing here: excluding `0xC0`/`0xC1` from \ref utf8_lead2_set
+   * already rules out every 2-byte overlong encoding.
+   *
+   * This is the single source of truth for rejecting those four encodings WITHOUT decoding the
+   * full code point (unlike \ref real::detail::decode_codepoint_strict, which accumulates the
+   * code point via shifts and checks it against `min_cp`/the surrogate block after the fact --
+   * correct, but too costly for a hot per-byte scan). Shared by every consumer that needs the
+   * rejection at scan speed: pike.hpp's `.` fast path and compiler.hpp's canonical byte-range
+   * expansion both read this table, so a narrowing here can never diverge between routes.
+   */
+  struct utf8_second_byte_bounds
+  {
+    std::uint8_t lo {}; //!< Lowest valid first-continuation byte for this lead (inclusive).
+    std::uint8_t hi {}; //!< Highest valid first-continuation byte for this lead (inclusive).
+  };
+
+  //! \brief Builds \ref utf8_second_byte_bounds_table (a plain function so the 256-entry table is
+  //!        four lines of exceptions, not a 256-line literal).
+  constexpr std::array<utf8_second_byte_bounds, 256> make_utf8_second_byte_bounds_table()
+  {
+    std::array<utf8_second_byte_bounds, 256> table {};
+    for (auto& entry : table) {
+      entry = {.lo = 0x80, .hi = 0xBF};
+    }
+    table[0xE0] = {.lo = 0xA0, .hi = 0xBF};
+    table[0xED] = {.lo = 0x80, .hi = 0x9F};
+    table[0xF0] = {.lo = 0x90, .hi = 0xBF};
+    table[0xF4] = {.lo = 0x80, .hi = 0x8F};
+    return table;
+  }
+
+  //! \brief The table itself, indexed by lead byte (0–255; only 0xC2–0xF4 are ever consulted).
+  //!        `inline constexpr`: computed once at compile time, one shared instance across TUs.
+  inline constexpr std::array<utf8_second_byte_bounds, 256> utf8_second_byte_bounds_table {
+    make_utf8_second_byte_bounds_table()};
 } // namespace real::detail
 
 #endif // REAL_CHARCLASS_HPP

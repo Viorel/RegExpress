@@ -340,6 +340,7 @@ namespace TREPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
                 Quantifier_Lazy = true, // (see also Options.REG_UNGREEDY)
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

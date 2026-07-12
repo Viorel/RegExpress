@@ -334,6 +334,7 @@ namespace PerlPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
                 Quantifier_Lazy = true,
+                Quantifier_Possessive = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = false,

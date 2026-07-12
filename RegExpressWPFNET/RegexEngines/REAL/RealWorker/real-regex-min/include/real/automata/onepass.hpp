@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cassert>
 #include <mutex>
 #include <optional>
 #include <cstddef>
@@ -418,7 +419,14 @@ namespace real::detail {
             // Only the byte-classes this instruction actually consumes (one for `byte`, a precomputed few
             // for `klass`) — never a scan over the whole alphabet, which made the build O(nodes x classes)
             // and dominated a Unicode \w find_iter.
+            // Invariant: every node is sized to alpha_.count in node_of; cls is always
+            // alpha_.of[byte] or a cover entry, so cls < edge.size(). The assert documents
+            // that precondition. clang-analyzer still false-positives NullDereference on
+            // edge[cls] (cannot see the sizing across the node_of indirection) — NOLINT is
+            // the residual, not a naked suppress of a real bug.
             const auto write_edge {[&](std::uint16_t cls) {
+                                     assert(static_cast<std::size_t>(cls) < node.edge.size());
+                                     // NOLINTBEGIN(clang-analyzer-core.NullDereference)
                                      onepass_edge& slot {node.edge[cls]};
                                      if (slot.assigned
                                          && (slot.next != next || slot.cap_mask != cap_mask
@@ -431,6 +439,7 @@ namespace real::detail {
                                                           .cap_mask    = cap_mask,
                                                           .assert_mask = assert_mask,
                                                           .assigned    = true};
+                                     // NOLINTEND(clang-analyzer-core.NullDereference)
                                      return true;
                                    }};
             if (in.op == opcode::byte) {

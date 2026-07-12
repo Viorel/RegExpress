@@ -392,6 +392,7 @@ namespace BoostPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = is_perl || is_emacs,
+                Quantifier_Possessive = is_perl,
 
                 Conditional_BackrefByNumber = is_perl,
                 Conditional_BackrefByName = false,

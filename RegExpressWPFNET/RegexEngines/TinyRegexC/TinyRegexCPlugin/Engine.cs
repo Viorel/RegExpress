@@ -329,6 +329,7 @@ namespace TinyRegexCPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = true,
                 Quantifier_Lazy = false,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

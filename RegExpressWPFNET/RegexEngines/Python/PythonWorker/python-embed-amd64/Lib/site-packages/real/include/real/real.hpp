@@ -134,6 +134,7 @@ namespace real {
                                              std::string_view text,
                                              std::size_t      pos)
     {
+      detail::prof::tick_route(detail::prof::route::trailing_la);
       matched_ = vm.template run_class_loop_trailing_la<Cascade>(text, pos, detail::run_mode::search, slots_);
       return matched_;
     }
@@ -696,12 +697,22 @@ namespace real {
      * dominate high-cardinality scans). Prefer this over counting \ref find_iter
      * when measuring trailing-LA throughput — \ref find_iter stays pure by design.
      *
-     * \param[in] text The subject text.
-     * \return The number of non-overlapping matches.
+     * Region semantics match \ref find_iter — \p endpos truncates the subject to a
+     * view; \p pos is the start offset (not a slice — \c \\A / \c ^ still see the
+     * absolute position).
+     *
+     * \param[in] text   The subject text.
+     * \param[in] pos    Byte offset to begin counting from (0 = start of text).
+     * \param[in] endpos Exclusive end of the region; \ref npos = end of text.
+     * \return The number of non-overlapping matches in the region.
      */
-    [[nodiscard]] constexpr std::size_t count_matches(std::string_view text) const
+    [[nodiscard]] constexpr std::size_t count_matches(std::string_view text,
+                                                      std::size_t      pos    = 0,
+                                                      std::size_t      endpos = npos) const
     {
-      std::size_t n {};
+      const std::size_t      end    {endpos < text.size() ? endpos : text.size()};
+      const std::string_view region {text.substr(0, end)};
+      std::size_t            n      {};
       if constexpr (requires(typename Storage::state_type & st) {
         st.lookaround;
       }) {
@@ -709,14 +720,14 @@ namespace real {
         if (prog.hints.trailing_lookaround >= 0
             && (std::is_constant_evaluated() || !detail::trailing_la_route_disabled())) {
           for (const result_type& match :
-               basic_match_range<Storage, /*TrailingLA=*/ true> {prog, pattern(), text}) {
+               basic_match_range<Storage, /*TrailingLA=*/ true> {prog, pattern(), region, pos}) {
             (void) match;
             ++n;
           }
           return n;
         }
       }
-      for (const result_type& match : find_iter(text)) {
+      for (const result_type& match : find_iter(text, pos, endpos)) {
         (void) match;
         ++n;
       }
@@ -1111,6 +1122,7 @@ namespace real {
       }) {
         if (sem == match_semantics::first && prog.hints.trailing_lookaround >= 0
             && (std::is_constant_evaluated() || !detail::trailing_la_route_disabled())) {
+          detail::prof::tick_route(detail::prof::route::trailing_la);
           matched = prog.hints.stop_set_size >= 1
                       ? vm.template run_class_loop_trailing_la<true>(subject, pos, mode, slots)
                       : vm.template run_class_loop_trailing_la<false>(subject, pos, mode, slots);

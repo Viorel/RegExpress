@@ -245,7 +245,8 @@ namespace RegExpressLibrary.SyntaxColouring
                                                                             // usually related to Approximate Matching (example: "abcd{+1#2})". (See also 'FuzzyMatchingParams')
         public SpaceUsageEnum Quantifier_Braces_Spaces { get; init; }       // enable spaces like { n }, { n , m }
         public bool Quantifier_LowAbbrev { get; init; }                     // also allow {,m} if Quantifier_Braces is set
-        public bool Quantifier_Lazy { get; init; }                          // also allow *?, +?, ??, {n,m}?
+        public bool Quantifier_Lazy { get; init; }                          // also allow ungreedy *?, +?, ??, {n,m}?
+        public bool Quantifier_Possessive { get; init; }                    // also allow possessive *+, ++, ?+, {n,m}+
 
         public bool Conditional_BackrefByNumber { get; init; }              // (?(number)...|...), (?(+number)...|...), (?(-number)...|...)
         public bool Conditional_BackrefByName { get; init; }                // (?(name)...|...)

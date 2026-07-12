@@ -339,6 +339,7 @@ namespace RE2Plugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = !posix_syntax,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

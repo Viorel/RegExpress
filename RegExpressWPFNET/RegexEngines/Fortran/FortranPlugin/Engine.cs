@@ -351,6 +351,7 @@ namespace FortranPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = true,
                 Quantifier_Lazy = false,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -569,6 +570,7 @@ namespace FortranPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = false,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -787,6 +789,7 @@ namespace FortranPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = false,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

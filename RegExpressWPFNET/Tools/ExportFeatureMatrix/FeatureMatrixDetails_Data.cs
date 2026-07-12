@@ -67,7 +67,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a[\q{xy}]b", "axyb", "axb"),
             ] ),
 
-            new ( @"Quantifiers",
+        new ( @"Quantifiers",
             [
                 new FeatureMatrixDetails( @"*", @"Zero or more times", (e, fm) => fm.Quantifier_Asterisk)
                     .Test( @"xy*", "x", null ),
@@ -88,12 +88,16 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"{,m}, \{,m\}", @"Equivalent to {0,m} or \{0,m\}", (e, fm) => fm.Quantifier_LowAbbrev)
                     .Test( @"x{,3}", "xxx", null )
                     .Test( @"x\{,3\}", "xxx", null ),
-                new FeatureMatrixDetails( @"*??, +??, ??", @"Lazy (non-greedy) quantifiers — match as little as possible",
-                        (e, fm) => fm.Quantifier_Asterisk && fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Normal && fm.Quantifier_Plus== FeatureMatrix.PunctuationEnum.Normal && fm.Quantifier_Lazy )
+                new FeatureMatrixDetails( @"*?, +?, ??, {}?", @"Lazy (non-greedy) quantifiers — match as little as possible",
+                        (e, fm) => fm.Quantifier_Asterisk && fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Normal && fm.Quantifier_Question== FeatureMatrix.PunctuationEnum.Normal && fm.Quantifier_Lazy )
                     .Test( @".+?A.*?AA??", "AAAAAA", null, "AAA" ),
+                new FeatureMatrixDetails( @"*+, ++, ?+, {}+", @"Possessive quantifiers — match without backtracking",
+                        (e, fm) => fm.Quantifier_Plus != FeatureMatrix.PunctuationEnum.None && fm.Quantifier_Possessive )
+                    .Test( @"Xa++.Y", "XaaabY", "XaaaaY" )
+                    .Test( @"Xa\+\+.Y", "XaaabY", "XaaaaY" ),
             ] ),
 
-            new ( @"Escapes",
+        new ( @"Escapes",
             [
                 new FeatureMatrixDetails( @"\a", @"Bell, \u0007", (e, fm) => fm.Esc_a)
                     .Test( @"\a", "\u0007", null ),

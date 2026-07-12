@@ -148,7 +148,8 @@ namespace real::detail {
   } // namespace inner_literal_detail
 
   //! \brief Extract the best required inner literal from a pattern's AST (a pure function on the node pool).
-  //!        Returns an empty \ref inner_literal when the pattern declines. Inert: nothing routes on it yet.
+  //!        Returns an empty \ref inner_literal when the pattern declines; routed on by \ref pike_vm::run
+  //!        (search mode) via \ref pike_vm::run_inner_literal.
   constexpr inner_literal extract_inner_literal(const ast& tree)
   {
     inner_literal_detail::walk_state st;

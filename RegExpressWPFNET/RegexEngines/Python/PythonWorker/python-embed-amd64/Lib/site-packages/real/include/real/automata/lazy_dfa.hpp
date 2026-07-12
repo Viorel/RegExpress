@@ -72,6 +72,15 @@ namespace real::detail {
     return disabled;
   }
 
+  //! \brief Test/profile seam: skip dedicated class-loop and cp-class-loop fast paths so a pattern that
+  //!        would take them falls through to lazy-DFA / general (dispatch-optimality audit). Not for
+  //!        production — same contract as the other route-disabled seams.
+  inline bool& class_fastpath_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
   //! \brief A byte-level program derived from a Pike program for the DFA passes: every `klass_cp` construct
   //!        is expanded into UTF-8 byte-range split/klass chains, so the whole thing is byte-transition-only
   //!        and a forward DFA can represent it. The Pike program itself is untouched (byte-identity); this
@@ -317,6 +326,16 @@ namespace real::detail {
           return bp;
         }
         bp.has_assertions = true; // Tier-B: kept, to become an edge condition in the one-pass table
+      }
+      if (in.op == opcode::byte_loop_possessive || in.op == opcode::klass_loop_possessive ||
+          in.op == opcode::klass_cp_loop_possessive) {
+        // No byte automaton can carry a Tier 1 possessive loop: its `primary_target` is a
+        // capture-slot index (or -1), not a branch target -- the generic copy below blindly
+        // remaps every op's primary_target/secondary_target through the pc `map`, which would
+        // silently corrupt that slot index into a bogus remapped pc for a captured loop. Decline
+        // outright, exactly like a bounded lookaround (Tier-B stops at assertions).
+        bp.eligible = false;
+        return bp;
       }
     }
     bp.classes.assign(prog.classes.begin(), prog.classes.end()); // original classes keep their indices
@@ -610,6 +629,13 @@ namespace real::detail {
       return best_end;
     }
 
+    /*! \brief \ref anchored_end's result: the match end (or \ref real::npos) and how far the walk got. */
+    struct anchored_result
+    {
+      std::size_t end;        //!< Match end, or \ref real::npos.
+      std::size_t scanned_to; //!< Position the walk stopped at (see \ref anchored_end).
+    };
+
     /*!
      * \brief The end offset of the leftmost-first match ANCHORED at \p start in \p text, or \ref
      *        real::npos.
@@ -642,12 +668,20 @@ namespace real::detail {
      *
      * \param[in] text  The subject text.
      * \param[in] start Offset to anchor the match at (must be `<= text.size()`).
+     * \return The match end and the position the walk stopped at (\ref anchored_result::scanned_to). On
+     *         a miss (`end == real::npos`), `scanned_to == text.size()` means the walk consumed the
+     *         whole remaining haystack without a dead state pruning it -- an *unbounded* reach (e.g.
+     *         `.*` with no terminator ahead), as opposed to one the pattern's own structure bounded (a
+     *         dead state hit before the end). A caller trying candidate after candidate (\ref
+     *         real::detail::pike_vm's A2 route) uses this to tell "this candidate's reach is bounded,
+     *         the next one is cheap too" apart from "every candidate from here will re-scan to the end"
+     *         -- the O(n^2) regime.
      */
-    [[nodiscard]] std::size_t anchored_end(std::string_view text,
-                                           std::size_t      start)
+    [[nodiscard]] anchored_result anchored_end(std::string_view text,
+                                               std::size_t      start)
     {
       if (!eligible_) {
-        return npos;
+        return {.end = npos, .scanned_to = start};
       }
       std::uint32_t       state    {start_state_};
       std::size_t         best_end {npos};
@@ -672,7 +706,7 @@ namespace real::detail {
         state = (trans != no_transition) ? trans : step(state, byte); // anchored: never re-seed -- a match starts at `start` or not at all
         ++pos;
       }
-      return best_end;
+      return {.end = best_end, .scanned_to = pos};
     }
 
     //! \brief Whether \p state accepts here (its ordered set contains a `match` PC).
@@ -782,8 +816,13 @@ namespace real::detail {
     {
       for (const instr& in : code) {
         if (in.op == opcode::assert_position || in.op == opcode::assert_lookaround
-            || in.op == opcode::klass_cp) {
-          return false;   // position assertions / variable-width classes: no forward-DFA representation
+            || in.op == opcode::klass_cp || in.op == opcode::byte_loop_possessive
+            || in.op == opcode::klass_loop_possessive || in.op == opcode::klass_cp_loop_possessive) {
+          // Position assertions / variable-width classes: no forward-DFA representation. Tier 1's
+          // possessive-loop family additionally has no consuming-edge representation at all here
+          // (consumes() below only recognizes byte/klass) — treating it as a dead end (silently
+          // non-consuming) would be an outright wrong DFA, not just an unrepresented shape.
+          return false;
         }
       }
       return true;
@@ -1089,7 +1128,11 @@ namespace real::detail {
     {
       for (const instr& in : code) {
         if (in.op == opcode::assert_position || in.op == opcode::assert_lookaround
-            || in.op == opcode::klass_cp) {
+            || in.op == opcode::klass_cp || in.op == opcode::byte_loop_possessive
+            || in.op == opcode::klass_loop_possessive || in.op == opcode::klass_cp_loop_possessive) {
+          // Tier 1's possessive-loop family has no consuming-edge representation here either
+          // (consumes() above only recognizes byte/klass) -- same reasoning as the forward-DFA's
+          // own compute_eligibility.
           return false;
         }
       }

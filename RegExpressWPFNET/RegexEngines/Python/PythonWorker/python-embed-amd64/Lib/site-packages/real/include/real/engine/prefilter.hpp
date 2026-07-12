@@ -26,36 +26,367 @@
 
 #include "real/core/charclass.hpp"
 #include "real/core/program.hpp"
+#include "real/unicode/unicode_props.hpp" // word_ranges — exact \w identity for Arc B-1
 
 namespace real::detail {
 
-  /*!
-   * \brief Tests whether the whole program is an alternation of straight-line
-   *        branches (e.g. `the|fox|dog`).
-   *
-   * Layout: save 0, a chain of `split` nodes whose `primary_target` is a branch
-   * of byte/klass ending in `jump` to the shared exit and whose `secondary_target`
-   * is the next split, the last branch falling through to save 1, match. Captures, assertions, nested
-   * branches and empty branches all disqualify it.
-   *
-   * \param[in] code The instruction stream.
-   * \return `true` if the program has that shape with at least two branches.
-   */
-  constexpr bool is_fixed_alternation(std::span<const instr> code)
+  //! \brief Prefilter work counter for the O(n) vs O(n²) smoke test.
+  //!        Always declared (clang-tidy / tests see the symbol). Billing is a no-op unless
+  //!        \c REAL_TEST_INSTRUMENT is defined on the test binary — wheel/prod pay nothing.
+  inline std::uint64_t& prefilter_work_units() noexcept
   {
-    const std::size_t code_size {code.size()};
-    if (code_size < 7 || code[0].op != opcode::save || code[code_size - 2].op != opcode::save ||
-        code[code_size - 1].op != opcode::match) {
+    static std::uint64_t units {0};
+    return units;
+  }
+
+  inline void prefilter_note_scan(std::size_t n) noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    prefilter_work_units() += static_cast<std::uint64_t>(n);
+#else
+    (void) n;
+#endif
+  }
+
+  /*!
+   * \brief True if \p kind is `\b` or `\B` (the only position asserts B1 wraps on fast paths).
+   * \param[in] kind Assertion kind from `assert_position`.
+   */
+  [[nodiscard]] constexpr bool is_word_boundary_kind(assert_kind kind) noexcept
+  {
+    return kind == assert_kind::word_boundary || kind == assert_kind::not_word_boundary;
+  }
+
+  /*!
+   * \brief Encodes \p kind as a wb_lead/wb_trail hint value (1 = `\b`, 2 = `\B`); 0 if not a word boundary.
+   * \param[in] kind Assertion kind from `assert_position`.
+   */
+  [[nodiscard]] constexpr std::uint8_t wb_hint_of(assert_kind kind) noexcept
+  {
+    if (kind == assert_kind::word_boundary) {
+      return 1;
+    }
+    if (kind == assert_kind::not_word_boundary) {
+      return 2;
+    }
+    return 0;
+  }
+
+  /*!
+   * \brief Peel an optional lead `\b`/`\B` at \p p (typically after `save 0`).
+   *
+   * If \p p is not an assert, leaves \p lead at 0 and returns true. If it is a word-boundary
+   * assert, records the hint, advances \p p, returns true. If it is any other assert, returns
+   * false (shape disqualified for wb-wrapping fast paths).
+   *
+   * \param[in]     code Instruction stream.
+   * \param[in,out] p    Program counter (advanced past the lead assert when peeled).
+   * \param[out]    lead Hint 0/1/2.
+   * \return false if a non-wb lead assert blocks the shape.
+   */
+  [[nodiscard]] constexpr bool peel_optional_lead_wb(std::span<const instr> code,
+                                                     std::size_t&           p,
+                                                     std::uint8_t&          lead) noexcept
+  {
+    lead = 0;
+    if (p >= code.size() || code[p].op != opcode::assert_position) {
+      return true;
+    }
+    const auto k {static_cast<assert_kind>(code[p].arg8)};
+    if (!is_word_boundary_kind(k)) {
       return false;
     }
-    const std::size_t exit     {code_size - 2};
-    std::size_t       pc       {1};
-    std::int32_t      branches {};
+    lead = wb_hint_of(k);
+    ++p;
+    return true;
+  }
+
+  /*!
+   * \brief Peel an optional trail `\b`/`\B` at \p p (before closing `save 1` / exit).
+   *
+   * Same contract as \ref peel_optional_lead_wb for a trailing assert.
+   *
+   * \param[in]     code  Instruction stream.
+   * \param[in,out] p     Program counter (advanced past the trail assert when peeled).
+   * \param[out]    trail Hint 0/1/2.
+   * \return false if a non-wb trail assert blocks the shape.
+   */
+  [[nodiscard]] constexpr bool peel_optional_trail_wb(std::span<const instr> code,
+                                                      std::size_t&           p,
+                                                      std::uint8_t&          trail) noexcept
+  {
+    trail = 0;
+    if (p >= code.size() || code[p].op != opcode::assert_position) {
+      return true;
+    }
+    const auto k {static_cast<assert_kind>(code[p].arg8)};
+    if (!is_word_boundary_kind(k)) {
+      return false;
+    }
+    trail = wb_hint_of(k);
+    ++p;
+    return true;
+  }
+
+  //! \brief True if \p cls is exactly the ASCII word set `[0-9A-Za-z_]` (`\w` under bytes/`re.A`).
+  [[nodiscard]] constexpr bool is_full_ascii_word_class(const char_class& cls) noexcept
+  {
+    for (unsigned b = 0; b < 128U; ++b) {
+      if (cls.test(static_cast<std::uint8_t>(b)) != is_ascii_word_byte(static_cast<std::uint8_t>(b))) {
+        return false;
+      }
+    }
+    for (unsigned b = 128U; b < 256U; ++b) {
+      if (cls.test(static_cast<std::uint8_t>(b))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  //! \brief True if every member of \p cls is an ASCII word byte (subset of `\w` under bytes/`re.A`).
+  [[nodiscard]] constexpr bool is_ascii_word_subset_class(const char_class& cls) noexcept
+  {
+    bool any {false};
+    for (unsigned b = 0; b < 256U; ++b) {
+      if (!cls.test(static_cast<std::uint8_t>(b))) {
+        continue;
+      }
+      any = true;
+      if (!is_ascii_word_byte(static_cast<std::uint8_t>(b))) {
+        return false;
+      }
+    }
+    return any;
+  }
+
+  /*!
+   * \brief True if \p cc is exactly the canonical Unicode `\w` class (not a user superset).
+   *
+   * Compares the ASCII bitmap to \ref is_ascii_word_byte and the non-ASCII range slice to
+   * \ref word_ranges (generated, same table the compiler uses for `\w`). A threshold on
+   * \c range_count alone is unsound: `[\w😀]` has the `\w` ASCII half plus one extra range
+   * and would pass `>= 200`, but `\b[\w😀]+\b` is NOT equivalent to `[\w😀]+`.
+   *
+   * \param[in] cc         The code-point class under test.
+   * \param[in] all_ranges Program flat range buffer (\p cc indexes a slice of it).
+   */
+  [[nodiscard]] constexpr bool is_full_unicode_word_cp_class(const cp_class&             cc,
+                                                             std::span<const code_range> all_ranges) noexcept
+  {
+    for (unsigned b = 0; b < 128U; ++b) {
+      if (cc.ascii.test(static_cast<std::uint8_t>(b)) !=
+          is_ascii_word_byte(static_cast<std::uint8_t>(b))) {
+        return false;
+      }
+    }
+    std::size_t word_hi {0};
+    for (std::size_t i = 0; i < word_ranges_size; ++i) {
+      if (word_ranges[i].lo >= 0x80U) {
+        ++word_hi;
+      }
+    }
+    if (static_cast<std::size_t>(cc.range_count) != word_hi) {
+      return false;
+    }
+    if (static_cast<std::size_t>(cc.range_begin) + word_hi > all_ranges.size()) {
+      return false;
+    }
+    std::size_t j {0};
+    for (std::size_t i = 0; i < word_ranges_size; ++i) {
+      if (word_ranges[i].lo < 0x80U) {
+        continue;
+      }
+      const code_range& r {all_ranges[static_cast<std::size_t>(cc.range_begin) + j]};
+      if (r.lo != word_ranges[i].lo || r.hi != word_ranges[i].hi) {
+        return false;
+      }
+      ++j;
+    }
+    return true;
+  }
+
+  //! \brief Arc B-1: `\b` next to a full-`\w` MAXIMAL run is redundant (`\B` never is).
+  //!        Only sound when the match is a greedy `+` run: a maximal run of `\w` can only ever
+  //!        START where the character before it is non-word (or absent) -- that IS `\b` (or the
+  //!        text edge), so checking it again is redundant. A SINGLE code point (no `+`) has no
+  //!        such guarantee: `\b\w` may legally start mid-run (any word code point qualifies as a
+  //!        candidate start), so dropping the boundary there is unsound, not just conservative.
+  //!        The caller is responsible for only calling this when \p lead / \p trail came from a
+  //!        provably maximal-run shape (see \ref resolve_class_wb_hints's \p maximal_run).
+  [[nodiscard]] constexpr bool wb_redundant_for_full_word(std::uint8_t lead,
+                                                          std::uint8_t trail) noexcept
+  {
+    if (lead == 2 || trail == 2) {
+      return false;
+    }
+    return lead == 1 || trail == 1;
+  }
+
+  /*!
+   * \brief B-1/B-2 policy for class / cp-class loops under optional `\b` wraps.
+   *
+   * Unarms on `\B` or on a non-word-subset class under `\b` (superset maximal-run is unsound).
+   * Full word + `\b` drops boundaries (B-1) -- but ONLY for a maximal (`+`) run; see \ref
+   * wb_redundant_for_full_word. Proper word subset keeps the wrap (B-2). Bare (no `\b`) arms with
+   * zero wb hints.
+   *
+   * \param[in]  full_word   Exact `\w` class (ASCII or Unicode table identity).
+   * \param[in]  word_sub    Non-empty subset of `\w`.
+   * \param[in]  maximal_run Whether the class loop is a greedy `+` (a maximal run, so any valid
+   *                         start already sits at a word/non-word transition) rather than a
+   *                         single code point (which may start anywhere inside a word run, where
+   *                         B-1's redundancy argument does not hold).
+   * \param[in]  lead        Peeled lead hint.
+   * \param[in]  trail       Peeled trail hint.
+   * \param[out] out_lead    Hints to store (0 when dropped).
+   * \param[out] out_trail   Hints to store (0 when dropped).
+   * \return true if the fast path should arm.
+   */
+  [[nodiscard]] constexpr bool resolve_class_wb_hints(bool          full_word,
+                                                      bool          word_sub,
+                                                      bool          maximal_run,
+                                                      std::uint8_t  lead,
+                                                      std::uint8_t  trail,
+                                                      std::uint8_t& out_lead,
+                                                      std::uint8_t& out_trail) noexcept
+  {
+    if (lead == 2 || trail == 2) {
+      return false;
+    }
+    const bool has_wb {lead != 0 || trail != 0};
+    if (has_wb && !full_word && !word_sub) {
+      return false;
+    }
+    if (has_wb && word_sub &&
+        !(maximal_run && full_word && wb_redundant_for_full_word(lead, trail))) {
+      out_lead  = lead;
+      out_trail = trail;
+    }
+    else {
+      out_lead  = 0;
+      out_trail = 0;
+    }
+    return true;
+  }
+
+  //! \brief True if every code point in [\p lo, \p hi] is a Unicode word char (covered by \ref word_ranges).
+  [[nodiscard]] constexpr bool word_ranges_cover_interval(char32_t lo,
+                                                          char32_t hi) noexcept
+  {
+    if (lo > hi) {
+      return false;
+    }
+    char32_t cur {lo};
+    while (cur <= hi) {
+      // Linear scan is fine: called only on the (small) user-class range list at analyze time.
+      bool found {false};
+      for (std::size_t i = 0; i < word_ranges_size; ++i) {
+        const code_range& wr {word_ranges[i]};
+        if (wr.hi < cur) {
+          continue;
+        }
+        if (wr.lo > cur) {
+          return false; // gap: cur is not a word char
+        }
+        // wr covers cur; advance past wr.hi
+        if (wr.hi >= hi) {
+          return true;
+        }
+        cur   = wr.hi + 1;
+        found = true;
+        break;
+      }
+      if (!found) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /*!
+   * \brief True if \p cc is a non-empty subset of Unicode `\w` (safe for maximal-run + `\b` wrap).
+   *
+   * Supersets like `[\w😀]` must NOT take B-2: a maximal class run can start on a non-word member
+   * and skip over a later word-bounded sub-run.
+   */
+  [[nodiscard]] constexpr bool is_unicode_word_subset_cp_class(const cp_class&             cc,
+                                                               std::span<const code_range> all_ranges) noexcept
+  {
+    for (unsigned b = 0; b < 128U; ++b) {
+      if (cc.ascii.test(static_cast<std::uint8_t>(b)) &&
+          !is_ascii_word_byte(static_cast<std::uint8_t>(b))) {
+        return false;
+      }
+    }
+    if (static_cast<std::size_t>(cc.range_begin) + cc.range_count > all_ranges.size()) {
+      return false;
+    }
+    for (std::uint32_t i = 0; i < cc.range_count; ++i) {
+      const code_range& r {all_ranges[static_cast<std::size_t>(cc.range_begin) + i]};
+      if (!word_ranges_cover_interval(static_cast<char32_t>(r.lo), static_cast<char32_t>(r.hi))) {
+        return false;
+      }
+    }
+    // At least one member (ASCII or range) so `\w+`-shaped paths stay non-nullable.
+    bool any {false};
+    for (unsigned b = 0; b < 128U && !any; ++b) {
+      any = cc.ascii.test(static_cast<std::uint8_t>(b));
+    }
+    return any || cc.range_count > 0;
+  }
+
+  /*!
+   * \brief Alternation of straight-line byte/klass branches, optionally wrapped in `\b`/`\B`.
+   *
+   * Layout: `save 0`, optional lead word-boundary assert, split chain of branches, optional trail
+   * word-boundary assert, `save 1`, `match`. Branch jumps target the first instruction after the
+   * last branch (trail assert or save 1). Captures other than group 0, nested branches, empty
+   * branches, and non-wb assertions all disqualify.
+   *
+   * \param[in]  code          The instruction stream.
+   * \param[out] out_wb_lead   Optional; receives lead wb hint (0/1/2).
+   * \param[out] out_wb_trail  Optional; receives trail wb hint (0/1/2).
+   * \param[out] out_body_pc   Optional; receives first branch/split pc after lead wrap.
+   * \return `true` if the program has that shape with at least two branches.
+   */
+  constexpr bool is_fixed_alternation(std::span<const instr> code,
+                                      std::uint8_t*          out_wb_lead  = nullptr,
+                                      std::uint8_t*          out_wb_trail = nullptr,
+                                      std::uint8_t*          out_body_pc  = nullptr)
+  {
+    const std::size_t code_size {code.size()};
+    if (code_size < 7 || code[0].op != opcode::save || code[code_size - 1].op != opcode::match ||
+        code[code_size - 2].op != opcode::save || code[code_size - 2].arg16 != 1) {
+      return false;
+    }
+    std::uint8_t wb_lead  {0};
+    std::uint8_t wb_trail {0};
+    std::size_t  body     {1};
+    std::size_t  exit_pc  {code_size - 2}; // save 1
+    // Optional trail \b/\B immediately before save 1 (branches jump to it).
+    if (exit_pc >= 2 && code[exit_pc - 1].op == opcode::assert_position) {
+      std::size_t t {exit_pc - 1};
+      if (!peel_optional_trail_wb(code, t, wb_trail)) {
+        return false;
+      }
+      exit_pc = exit_pc - 1;
+    }
+    // Optional lead \b/\B immediately after save 0.
+    if (!peel_optional_lead_wb(code, body, wb_lead)) {
+      return false;
+    }
+    if (body >= exit_pc) {
+      return false;
+    }
+    std::size_t  pc       {body};
+    std::int32_t branches {};
     while (true) {
       const bool   is_split     {code[pc].op == opcode::split};
       std::size_t  branch_end   {is_split ? static_cast<std::size_t>(code[pc].primary_target) : pc};
       std::int32_t branch_width {};
-      while (branch_end < exit && (code[branch_end].op == opcode::byte || code[branch_end].op == opcode::klass)) {
+      while (branch_end < exit_pc &&
+             (code[branch_end].op == opcode::byte || code[branch_end].op == opcode::klass)) {
         ++branch_end;
         ++branch_width;
       }
@@ -65,18 +396,30 @@ namespace real::detail {
       ++branches;
       if (is_split) {
         // A non-final branch ends with `jump exit`; continue at the split's y.
-        if (branch_end >= exit || code[branch_end].op != opcode::jump ||
-            code[branch_end].primary_target != static_cast<std::int32_t>(exit)) {
+        if (branch_end >= exit_pc || code[branch_end].op != opcode::jump ||
+            code[branch_end].primary_target != static_cast<std::int32_t>(exit_pc)) {
           return false;
         }
         pc = static_cast<std::size_t>(code[pc].secondary_target);
-        if (pc >= exit) {
+        if (pc >= exit_pc) {
           return false;
         }
       }
       else {
-        // The final branch falls straight through to the exit (save 1).
-        return branch_end == exit && branches >= 2;
+        // The final branch falls straight through to the exit (trail assert or save 1).
+        if (branch_end == exit_pc && branches >= 2) {
+          if (out_wb_lead != nullptr) {
+            *out_wb_lead = wb_lead;
+          }
+          if (out_wb_trail != nullptr) {
+            *out_wb_trail = wb_trail;
+          }
+          if (out_body_pc != nullptr) {
+            *out_body_pc = static_cast<std::uint8_t>(body);
+          }
+          return true;
+        }
+        return false;
       }
     }
   }
@@ -127,26 +470,56 @@ namespace real::detail {
     }
 
     if (hints.prefix_size > 0) {
-      bool has_inter_or_trailing_assert {};
-      bool seen_byte                    {};
-      for (std::size_t i = 0; i < code.size() && !has_inter_or_trailing_assert; ++i) {
+      // Leading asserts were crossed above. Allow only word-boundary asserts after the last
+      // prefix byte (B1: `\bLIT\b` / `LIT\b`); any other trailing/inter assert stays on the VM.
+      bool         blocking_assert {};
+      bool         seen_byte       {};
+      std::uint8_t trail_wb        {};
+      std::uint8_t lead_wb         {};
+      // Lead \b/\B: first assert_position before any byte (after saves).
+      for (std::size_t i = 0; i < code.size(); ++i) {
+        if (code[i].op == opcode::byte) {
+          break;
+        }
+        if (code[i].op == opcode::assert_position) {
+          const auto k {static_cast<assert_kind>(code[i].arg8)};
+          if (is_word_boundary_kind(k)) {
+            lead_wb = wb_hint_of(k);
+          }
+          else {
+            // Non-wb lead (e.g. ^) — exact_literal still ok via replay; no wb_lead hint.
+            lead_wb = 0;
+          }
+          break; // only the first lead assert matters for the wrap hint
+        }
+      }
+      for (std::size_t i = 0; i < code.size() && !blocking_assert; ++i) {
         if (code[i].op == opcode::byte) {
           seen_byte = true;
         }
         else if (seen_byte && code[i].op == opcode::assert_position) {
-          has_inter_or_trailing_assert = true;
+          const auto k {static_cast<assert_kind>(code[i].arg8)};
+          if (is_word_boundary_kind(k) && trail_wb == 0) {
+            trail_wb = wb_hint_of(k); // single trailing wb allowed
+          }
+          else {
+            blocking_assert = true;   // inter-assert, second trail, or non-wb trail
+          }
         }
         else if (seen_byte && code[i].op == opcode::match) {
           break;
         }
       }
-      if (!has_inter_or_trailing_assert) {
+      if (!blocking_assert) {
         std::size_t q {prefix_pc};
-        while (q < code.size() && code[q].op == opcode::save) {
+        while (q < code.size() &&
+               (code[q].op == opcode::save || code[q].op == opcode::assert_position)) {
           ++q;
         }
         if (q < code.size() && code[q].op == opcode::match) {
           hints.exact_literal_len = hints.prefix_size;
+          hints.wb_lead           = lead_wb;
+          hints.wb_trail          = trail_wb;
         }
       }
     }
@@ -209,6 +582,30 @@ namespace real::detail {
         case opcode::match:
           empty_match_possible = true;
           break;
+        case opcode::byte_loop_possessive:
+          // Reachable via pure epsilon traversal from pc 0 ONLY when zero repetitions are
+          // valid here (any mandatory-minimum copies were unrolled as plain `byte` instructions
+          // AHEAD of this opcode, which this walker would have stopped at first) -- so `secondary_target`
+          // (the on-no-match exit) is always a live alternative to explore, unconditionally.
+          hints.first_bytes.set(instruction.arg8);
+          stack.push_back(instruction.secondary_target);
+          break;
+        case opcode::klass_loop_possessive:
+          hints.first_bytes.merge(classes[instruction.arg16]);
+          stack.push_back(instruction.secondary_target);
+          break;
+        case opcode::klass_cp_loop_possessive:
+          {
+            // Same sound superset as klass_cp above: the ASCII members plus every UTF-8 lead
+            // byte a non-ASCII member could begin with. Self-contained (no continuation chain).
+            const cp_class& cc {cp_classes[static_cast<std::size_t>(instruction.arg16)]};
+            hints.first_bytes.merge(cc.ascii);
+            hints.first_bytes.merge(utf8_lead2_set());
+            hints.first_bytes.merge(utf8_lead3_set());
+            hints.first_bytes.merge(utf8_lead4_set());
+            stack.push_back(instruction.secondary_target);
+            break;
+          }
       }
     }
     hints.first_bytes_valid    = !empty_match_possible && !hints.first_bytes.empty();
@@ -329,30 +726,36 @@ namespace real::detail {
    *        an alternation of straight-line branches, and trailing-lookaround class+ (P3c).
    * \param[in]     code           The instruction stream.
    * \param[in]     classes        Interned character classes referenced by \p code.
+   * \param[in]     cp_classes     Match-time code-point classes (for `\w`/`\d`/`\s` Arc B word-class tests).
+   * \param[in]     cp_ranges      Flat range buffer the \p cp_classes slices index into.
    * \param[in]     cp_mark_ascii  ASCII sub-class index of an emitted codepoint-class block (-1 = none).
    * \param[in]     cp_mark_offset Program offset where that block starts (-1 = none).
+   * \param[in]     cp_mark_end    Program offset right after that block ends (-1 = none) -- the
+   *                               block's instruction count is not fixed, so this locates its end.
    * \param[in]     lookarounds    Bounded lookaround subs (for trailing-LA eligibility); may be empty.
    * \param[in,out] hints          Hint bag to fill (class-loop, fixed-shape, trailing-LA, …).
    */
   constexpr void detect_fast_shapes(std::span<const instr>          code,
                                     std::span<const char_class>     classes,
+                                    std::span<const cp_class>       cp_classes,
+                                    std::span<const code_range>     cp_ranges,
                                     std::int32_t                    cp_mark_ascii,
                                     std::int32_t                    cp_mark_offset,
+                                    std::int32_t                    cp_mark_end,
                                     std::span<const lookaround_sub> lookarounds,
                                     pattern_hints&                  hints)
   {
-    // "class+" shape: save 0, klass, split(back to the klass, exit),
-    // save 1, match -- greedy only (the lazy variant has different
-    // semantics) and no capture groups.
-    // "class+", optionally wrapped in exactly ONE capturing group: save 0, [group-start save,] klass,
-    // split(back to the klass, exit), [group-end save,] save 1, match. Greedy only (the lazy variant
-    // differs). An enveloping group ((\w+), ([a-z]+)) has span == the whole match by
-    // construction, so the fast path mirrors the bounds into the group's slots -- no re-match.
+    // "class+" shape: save 0, [optional \b/\B,] [group-start save,] klass, split(back, exit),
+    // [group-end save,] [optional \b/\B,] save 1, match. Arc B via peel + resolve_class_wb_hints.
     {
-      std::size_t  p  {0};
-      std::int16_t gs {-1};
-      if (p < code.size() && code[p].op == opcode::save) {
+      std::size_t  p       {0};
+      std::int16_t gs      {-1};
+      std::uint8_t wb_lead {0};
+      if (p < code.size() && code[p].op == opcode::save && code[p].arg16 == 0) {
         ++p;
+        if (!peel_optional_lead_wb(code, p, wb_lead)) {
+          p = code.size(); // non-wb lead assert — disqualify
+        }
         if (p < code.size() && code[p].op == opcode::save) {
           gs = static_cast<std::int16_t>(code[p].arg16);
           ++p;
@@ -369,11 +772,27 @@ namespace real::detail {
             ++q;
             ok = true;
           }
-          if (ok && q + 1 < code.size() && code[q].op == opcode::save && code[q + 1].op == opcode::match &&
-              q + 2 == code.size()) {
-            hints.greedy_class_loop  = cls;
-            hints.greedy_group_start = gs;
-            hints.greedy_group_end   = ge;
+          std::uint8_t wb_trail {0};
+          if (!peel_optional_trail_wb(code, q, wb_trail)) {
+            ok = false;
+          }
+          if (ok && q + 1 < code.size() && code[q].op == opcode::save && code[q].arg16 == 1 &&
+              code[q + 1].op == opcode::match && q + 2 == code.size() &&
+              cls >= 0 && static_cast<std::size_t>(cls) < classes.size()) {
+            const char_class& cc        {classes[static_cast<std::size_t>(cls)]};
+            std::uint8_t      out_lead  {0};
+            std::uint8_t      out_trail {0};
+            // This shape structurally requires the split/loop matched above -- always a maximal
+            // `+` run, never a single code point -- so B-1's redundancy argument always applies.
+            if (resolve_class_wb_hints(is_full_ascii_word_class(cc), is_ascii_word_subset_class(cc),
+                                       /*maximal_run=*/ true, wb_lead, wb_trail, out_lead,
+                                       out_trail)) {
+              hints.greedy_class_loop  = cls;
+              hints.greedy_group_start = gs;
+              hints.greedy_group_end   = ge;
+              hints.wb_lead            = out_lead;
+              hints.wb_trail           = out_trail;
+            }
           }
         }
       }
@@ -409,14 +828,17 @@ namespace real::detail {
       }
     }
 
-    // Code-point class (klass_cp + its three `klass` continuations), optional greedy `+`, optionally
-    // wrapped in one capturing group: save 0, [group-start save,] klass_cp, klass, klass, klass,
-    // [split back,] [group-end save,] save 1, match. A \w/\d/\s run scanned code point by code point.
+    // Code-point class (klass_cp + three klass continuations), optional greedy `+`, optional `\b`/`\B`
+    // wraps (Arc B), optional one capturing group. Unicode `\w+` / `\d+` / `\s+` via peel + resolve.
     {
-      std::size_t  p  {0};
-      std::int16_t gs {-1};
-      if (p < code.size() && code[p].op == opcode::save) {
+      std::size_t  p       {0};
+      std::int16_t gs      {-1};
+      std::uint8_t wb_lead {0};
+      if (p < code.size() && code[p].op == opcode::save && code[p].arg16 == 0) {
         ++p;
+        if (!peel_optional_lead_wb(code, p, wb_lead)) {
+          p = code.size();
+        }
         if (p < code.size() && code[p].op == opcode::save) {
           gs = static_cast<std::int16_t>(code[p].arg16);
           ++p;
@@ -440,38 +862,78 @@ namespace real::detail {
             ++q;
             ok = true;
           }
-          if (ok && q + 1 < code.size() && code[q].op == opcode::save && code[q + 1].op == opcode::match &&
-              q + 2 == code.size()) {
-            hints.greedy_cp_class      = cp_idx;
-            hints.greedy_cp_class_plus = plus;
-            hints.greedy_group_start   = gs;
-            hints.greedy_group_end     = ge;
+          std::uint8_t wb_trail {0};
+          if (!peel_optional_trail_wb(code, q, wb_trail)) {
+            ok = false;
+          }
+          if (ok && q + 1 < code.size() && code[q].op == opcode::save && code[q].arg16 == 1 &&
+              code[q + 1].op == opcode::match && q + 2 == code.size() &&
+              cp_idx >= 0 && static_cast<std::size_t>(cp_idx) < cp_classes.size()) {
+            const bool has_wb {wb_lead != 0 || wb_trail != 0};
+            // Bare path: no Unicode table walk (keeps constexpr light for static_regex).
+            if (!has_wb) {
+              hints.greedy_cp_class      = cp_idx;
+              hints.greedy_cp_class_plus = plus;
+              hints.greedy_group_start   = gs;
+              hints.greedy_group_end     = ge;
+              hints.wb_lead              = 0;
+              hints.wb_trail             = 0;
+            }
+            else {
+              const cp_class& cc        {cp_classes[static_cast<std::size_t>(cp_idx)]};
+              std::uint8_t    out_lead  {0};
+              std::uint8_t    out_trail {0};
+              // Unlike the ASCII class+ shape above, `plus` here is genuinely optional (this
+              // recognizer accepts both `\b\w+` and bare `\b\w`) -- B-1's redundancy argument
+              // only holds for the former, so it must gate on the ACTUAL shape, not assume it.
+              if (resolve_class_wb_hints(is_full_unicode_word_cp_class(cc, cp_ranges),
+                                         is_unicode_word_subset_cp_class(cc, cp_ranges), plus,
+                                         wb_lead, wb_trail, out_lead, out_trail)) {
+                hints.greedy_cp_class      = cp_idx;
+                hints.greedy_cp_class_plus = plus;
+                hints.greedy_group_start   = gs;
+                hints.greedy_group_end     = ge;
+                hints.wb_lead              = out_lead;
+                hints.wb_trail             = out_trail;
+              }
+            }
           }
         }
       }
     }
 
     // "fixed shape": a straight-line run of fixed-width byte/klass consuming ops, possibly interleaved
-    // with capturing saves ((\d{4})-(\d{2})-(\d{2}), (a)(b)), with no branches or assertions. The
-    // whole match is fixed width, so one walk verifies it; because every width is fixed, each save sits
-    // at a compile-time-constant offset from the match start, so the fast path fills each group slot by
-    // that offset (no re-match). Covers class{n} and mixed sequences; pure literals hit the exact-literal
-    // path first. A klass_cp (Unicode shorthand, variable width), split/jump (alternation, {n,m}/+/*/?),
-    // `.` or a negated class (byte-level branches), and lookarounds all break the run, so they never form
-    // this shape -- ASCII / explicit-class fixed widths are what qualify.
+    // with capturing saves ((\d{4})-(\d{2})-(\d{2}), (a)(b)), with optional leading/trailing `\b`/`\B`
+    // (B1). The whole match is fixed width, so one walk verifies it; because every width is fixed, each
+    // save sits at a compile-time-constant offset from the match start, so the fast path fills each
+    // group slot by that offset (no re-match). Covers class{n} and mixed sequences; pure literals hit
+    // the exact-literal path first. A klass_cp (Unicode shorthand, variable width), split/jump
+    // (alternation, {n,m}/+/*/?), `.` or a negated class (byte-level branches), non-wb assertions,
+    // and lookarounds all break the run.
     {
       std::size_t  i           {};
       std::int32_t width       {};
       std::int32_t open_groups {};  // capturing groups (slots >= 2) currently open, for the nesting guard
       bool         closed      {};  // saw the closing save (slot 1)
       bool         nested      {};  // a group opened inside another -- kept on the general VM (flat only)
+      std::uint8_t wb_lead     {};
+      std::uint8_t wb_trail    {};
+      std::uint8_t body_pc     {1};
+      bool         saw_body    {};  // true once a consuming op has been seen (trail assert only after)
       if (i < code.size() && code[i].op == opcode::save && code[i].arg16 == 0) {
         ++i; // opening save (slot 0)
+        if (!peel_optional_lead_wb(code, i, wb_lead)) {
+          i = code.size(); // non-wb lead — not this shape
+        }
+        else if (wb_lead != 0) {
+          body_pc = static_cast<std::uint8_t>(i);
+        }
         while (i < code.size()) {
           const opcode op {code[i].op};
           if (op == opcode::byte || op == opcode::klass) {
             ++width;
             ++i;
+            saw_body = true;
           }
           else if (op == opcode::save) {
             const std::int32_t slot {code[i].arg16};
@@ -489,12 +951,21 @@ namespace real::detail {
             }
             ++i;
           }
+          else if (op == opcode::assert_position && saw_body && wb_trail == 0) {
+            // Single trailing \b/\B immediately before save 1.
+            if (!peel_optional_trail_wb(code, i, wb_trail)) {
+              break; // non-wb trail assert
+            }
+          }
           else {
-            break; // any other op (split/jump/klass_cp/assert/lookaround) disqualifies the shape
+            break; // split/jump/klass_cp/lookaround/extra assert disqualify
           }
         }
         if (width >= 1 && closed && !nested && i + 1 == code.size() && code[i].op == opcode::match) {
           hints.fixed_shape = true;
+          hints.wb_lead     = wb_lead;
+          hints.wb_trail    = wb_trail;
+          hints.body_pc     = body_pc;
         }
       }
 
@@ -502,7 +973,8 @@ namespace real::detail {
       // run_fixed_shape) only when it is also HOMOGENEOUS -- every byte/klass position accepts the
       // identical set, itself <= 2 contiguous ranges -- because the sound "skip to the first failing
       // lane" only holds when a mismatch at any position rules out every position (same required set
-      // everywhere). Mixed shapes ((\d{4})-(\d{2})-(\d{2})) stay on the scalar walk.
+      // everywhere). Mixed shapes ((\d{4})-(\d{2})-(\d{2})) stay on the scalar walk. Lead/trail `\b`
+      // are zero-width and do not affect homogeneity of the consuming run.
       if (hints.fixed_shape) {
         bool          homogeneous {true};
         bool          have_first  {false};
@@ -511,10 +983,10 @@ namespace real::detail {
         std::uint8_t  lo1         {1};
         std::uint8_t  hi1         {};
         std::uint32_t len         {};
-        for (std::size_t pc {1}; pc < i; ++pc) {
+        for (std::size_t pc {static_cast<std::size_t>(hints.body_pc)}; pc < i; ++pc) {
           const opcode op {code[pc].op};
           if (op != opcode::byte && op != opcode::klass) {
-            continue; // interleaved capturing save -- epsilon for this purpose
+            continue; // interleaved capturing save or trail assert -- epsilon for this purpose
           }
           ++len;
           std::uint8_t plo0 {};
@@ -555,28 +1027,37 @@ namespace real::detail {
     }
 
     // Whole pattern is a single codepoint class (`.`/negated class), optionally a
-    // greedy `+`. Layout: save 0, the 16-instruction codepoint block (at 1..16),
-    // then either save 1, match (bare, 19 instructions) or split(loop, exit),
-    // save 1, match (the `+`, 20 instructions). No captures; `*` is excluded
-    // because its empty match rules out a consuming fast path.
-    if ((code.size() == 19 || code.size() == 20) && code[0].op == opcode::save) {
+    // greedy `+`. Layout: save 0, the codepoint-class block (offset 1..cp_mark_end),
+    // then either save 1, match (bare) or split(loop, exit), save 1, match (the
+    // `+`). No captures; `*` is excluded because its empty match rules out a
+    // consuming fast path. The block's own instruction count is NOT fixed (it
+    // grows with the number of canonical byte-range branches the compiler emits
+    // for the lead bytes it has to narrow) -- cp_mark_end (set alongside
+    // cp_mark_offset/cp_mark_ascii by emit_any_codepoint_class) locates its end,
+    // so this recognizer needs no hardcoded block size.
+    if (cp_mark_offset == 1 && cp_mark_end > cp_mark_offset &&
+        static_cast<std::size_t>(cp_mark_end) < code.size() && code[0].op == opcode::save) {
+      const auto end {static_cast<std::size_t>(cp_mark_end)};
       // The ASCII sub-class index comes from the marker the compiler set when it
-      // emitted the block (emit_codepoint_class) — we no longer reverse-engineer the
-      // 16-instruction bytecode shape here. The whole-program size / `+`-loop checks
+      // emitted the block (emit_any_codepoint_class) — we no longer reverse-engineer
+      // the block's bytecode shape here. The whole-program layout / `+`-loop checks
       // are program structure; the ASCII-only test is class content; neither depends
       // on the block's internal opcode layout.
-      std::int32_t ascii {(cp_mark_ascii >= 0 && cp_mark_offset == 1
-                           && static_cast<std::size_t>(cp_mark_ascii) < classes.size())
+      std::int32_t ascii {(cp_mark_ascii >= 0 && static_cast<std::size_t>(cp_mark_ascii) < classes.size())
                           ? cp_mark_ascii
                           : -1};
       // Content guard: the recorded ASCII sub-class must hold ASCII bytes only.
-      // Provably unreachable today — `ast.hpp::parse_class_item` rejects any class
+      // Provably unreachable today for `.` (its accepted ASCII set always keeps at
+      // least most of [0x00,0x7F]) — `ast.hpp::parse_class_item` rejects any class
       // member >= 0x80 and `char_class::invert_ascii` leaves the high bytes (>= 0x80)
-      // cleared (non-ASCII codepoints are matched via the UTF-8 multi-byte branches),
-      // so the marked sub-class is always pure ASCII. Kept deliberately: unlike the
-      // bytecode-shape recognition this replaced, it is a *content* check that stays
-      // robust to layout changes and becomes load-bearing again if a Unicode
-      // codepoint-class mode is ever added.
+      // cleared, so the marked sub-class is always pure ASCII when it is the ASCII
+      // branch at all. It stops being the ASCII branch only for a class that negates
+      // every ASCII byte (e.g. `[^\x00-\x7F]`, "any non-ASCII", ascii bitmap empty) --
+      // emit_class_codepoints then skips the ascii branch entirely and this reads a
+      // byte-range class's index instead, which this content check correctly rejects
+      // (a lead/continuation byte-range set has high bytes set). Kept deliberately:
+      // unlike the bytecode-shape recognition this replaced, it is a *content* check
+      // that stays robust to layout changes.
       if (ascii >= 0) {
         const char_class& ascii_class {classes[static_cast<std::size_t>(ascii)]};
         for (int byte {0x80}; byte <= 0xFF; ++byte) {
@@ -586,19 +1067,32 @@ namespace real::detail {
           }
         }
       }
-      const bool bare {code.size() == 19 && code[17].op == opcode::save &&
-                       code[18].op == opcode::match};
-      const bool plus {code.size() == 20 && code[17].op == opcode::split && code[17].primary_target == 1 &&
-                       code[18].op == opcode::save && code[19].op == opcode::match};
+      const bool bare {code.size() == end + 2 && code[end].op == opcode::save &&
+                       code[end + 1].op == opcode::match};
+      const bool plus {code.size() == end + 3 && code[end].op == opcode::split &&
+                       code[end].primary_target == 1 && code[end + 1].op == opcode::save &&
+                       code[end + 2].op == opcode::match};
       if (ascii >= 0 && (bare || plus)) {
         hints.codepoint_class_ascii = ascii;
         hints.codepoint_class_plus  = plus;
       }
     }
 
-    // Whole pattern is an alternation of straight-line branches.
-    if (is_fixed_alternation(code)) {
-      hints.fixed_alternation = true;
+    // Whole pattern is an alternation of straight-line branches (optional lead/trail `\b`/`\B`).
+    {
+      std::uint8_t wb_lead  {};
+      std::uint8_t wb_trail {};
+      std::uint8_t body_pc  {1};
+      if (is_fixed_alternation(code, &wb_lead, &wb_trail, &body_pc)) {
+        hints.fixed_alternation = true;
+        // Only set wb_* here if exact_literal / fixed_shape did not already claim them
+        // (a pure literal alternation is rare; prefer not clobbering an earlier path).
+        if (!hints.fixed_shape && hints.exact_literal_len == 0) {
+          hints.wb_lead  = wb_lead;
+          hints.wb_trail = wb_trail;
+          hints.body_pc  = body_pc;
+        }
+      }
     }
   }
 
@@ -719,10 +1213,14 @@ namespace real::detail {
    * \param[in] code           The instruction stream.
    * \param[in] classes        The interned character classes referenced by \p code.
    * \param[in] cp_classes     The match-time code-point classes referenced by `klass_cp`.
+   * \param[in] cp_ranges      Flat range buffer the \p cp_classes slices index into.
    * \param[in] cp_mark_ascii  ASCII sub-class index of an emitted codepoint-class
-   *                           block (-1 = none), as recorded by `emit_codepoint_class`.
+   *                           block (-1 = none), as recorded by `emit_any_codepoint_class`.
    * \param[in] cp_mark_offset Program offset where that block starts (-1 = none); the
    *                           whole-pattern codepoint fast path requires it to be 1.
+   * \param[in] cp_mark_end    Program offset right after that block ends (-1 = none) --
+   *                           the block's own instruction count is not fixed, so this
+   *                           locates its end instead of a hardcoded size.
    * \param[in] lookarounds    Bounded lookaround subs (trailing-LA class+ detection).
    * \return The \ref pattern_hints (anchoring, literal prefix, first-byte set,
    *         and the `class+` / exact-literal fast-path flags).
@@ -730,8 +1228,10 @@ namespace real::detail {
   constexpr pattern_hints analyze_program(std::span<const instr>          code,
                                           std::span<const char_class>     classes,
                                           std::span<const cp_class>       cp_classes,
+                                          std::span<const code_range>     cp_ranges,
                                           std::int32_t                    cp_mark_ascii,
                                           std::int32_t                    cp_mark_offset,
+                                          std::int32_t                    cp_mark_end,
                                           std::span<const lookaround_sub> lookarounds = {})
   {
     pattern_hints hints;
@@ -753,7 +1253,8 @@ namespace real::detail {
 
     compute_first_bytes(code, classes, cp_classes, hints);
 
-    detect_fast_shapes(code, classes, cp_mark_ascii, cp_mark_offset, lookarounds, hints);
+    detect_fast_shapes(code, classes, cp_classes, cp_ranges, cp_mark_ascii, cp_mark_offset, cp_mark_end,
+                       lookarounds, hints);
 
     // Clear every pure fast-path hint when a lookaround is present. Trailing-LA class+ already
     // left greedy_class_loop at −1 and only set trailing_* (so this wipe is a no-op for those).
@@ -870,6 +1371,10 @@ namespace real::detail {
       return npos;
     }
     if (!std::is_constant_evaluated()) {
+#if defined(REAL_TEST_INSTRUMENT)
+      // Bill remaining haystack once per call — O(n) path bills ~once; per-pos restart → O(n²) total.
+      prefilter_note_scan(text.size() - pos);
+#endif
       const void* hit {std::memchr(text.data() + pos, byte, text.size() - pos)};
       return hit == nullptr
              ? npos
@@ -940,6 +1445,13 @@ namespace real::detail {
     if (pos >= text.size()) {
       return npos;
     }
+    if (!std::is_constant_evaluated()) {
+#if defined(REAL_TEST_INSTRUMENT)
+      // Bill remaining haystack once per call. Correct O(n) literal miss → ~1× size;
+      // per-position restart of find_prefix → sum(N..1) ≈ N²/2 (smoke margin 25×).
+      prefilter_note_scan(text.size() - pos);
+#endif
+    }
     const auto off {text.substr(pos).find(prefix)};
     if (off == std::string_view::npos) {
       return npos;
@@ -957,10 +1469,34 @@ namespace real::detail {
    * scalar byte loop. During constant evaluation the plain member-wise scan runs instead (the home-made
    * path — the same shape the bitmap loop takes).
    *
+   * FIX P0 #2 (O(n^2)): for **2+ members**, the window is grown **exponentially** (galloping
+   * search) from a modest initial probe, doubling each round, rather than handed the full
+   * remaining haystack up front. A caller that invokes this once per rejected candidate
+   * (`next_candidate`'s icase small-set route) used to pay one `memchr` per set member over
+   * `text.size() - pos` on EVERY such call; a set with an asymmetrically rare or entirely absent
+   * member (e.g. `(?i)cafe`'s `{c, C}` on an all-lowercase haystack) turned that into a full
+   * remaining-text scan on every rejected candidate — O(n) candidates x O(n) scan = O(n^2), same
+   * family as A2's unbounded-reach fix but one level upstream (the candidate SEARCH, not the
+   * anchored walk once a candidate is found). The geometric series bounds one call's total
+   * scanned bytes to at most ~2x the distance to the actual hit (or the remaining text, on a
+   * true miss) — the standard galloping-search argument — independent of any one member's
+   * frequency.
+   *
+   * FIX (mono/multi split): a **single**-member call (`run_cascade_stop`'s class-loop stop-byte
+   * scan is the hot one — its `stop_set_size` is frequently 1) cannot exhibit the O(n^2) above by
+   * construction: one `memchr` call's own cost already equals its progress (the distance to the
+   * hit, or the whole range on a miss) — there is no second member whose scan could redundantly
+   * re-cover ground the first one already paid for. Windowing a mono-member call therefore adds
+   * pure overhead (per-round setup, the narrowing compare, the doubling arithmetic) for zero
+   * safety benefit, measured as a real x86 regression on stop-set-shaped patterns (`[^\x01]+`-
+   * style) once the general galloping fix landed. So `n == 1` takes the direct pre-fix path — one
+   * unbounded `memchr` over `[pos, text.size())` — and every `n >= 2` call keeps the galloping
+   * loop exactly as the P0 #2 fix landed it, untouched.
+   *
    * \param[in] text The subject text.
    * \param[in] pos  Index to start scanning from.
    * \param[in] set  Pointer to the enumerated set members (first \p n valid).
-   * \param[in] n    Number of valid members (2..4).
+   * \param[in] n    Number of valid members (1..6 — `run_cascade_stop`'s stop_set allows up to 6).
    * \return The least index at or after \p pos whose byte is in the set, else npos.
    */
   constexpr std::size_t find_bytes_cascade(std::string_view text,
@@ -972,20 +1508,61 @@ namespace real::detail {
       return npos;
     }
     if (!std::is_constant_evaluated()) {
-      const char* const base   {text.data()};
-      std::size_t       window {text.size() - pos}; // narrows to [pos, best) as hits are found
-      std::size_t       best   {npos};
-      for (std::uint8_t i = 0; i < n; ++i) {
-        const void* hit {std::memchr(base + pos, set[i], window)};
+      const char* const base  {text.data()};
+      const std::size_t total {text.size() - pos};
+      if (n == 1) {
+        // Mono-member: a single memchr IS the whole search, unwindowed -- see the mono/multi
+        // split note above. Billing mirrors the multi-member loop below: distance-to-hit on a
+        // hit, the full remaining range on a miss (npos).
+        const void* hit {std::memchr(base + pos, set[0], total)};
         if (hit != nullptr) {
           const std::size_t idx {static_cast<std::size_t>(static_cast<const char*>(hit) - base)};
-          if (idx < best) {
-            best   = idx;
-            window = idx - pos; // subsequent members need only search before the current best
+#if defined(REAL_TEST_INSTRUMENT)
+          prefilter_note_scan(idx - pos);
+#endif
+          return idx;
+        }
+#if defined(REAL_TEST_INSTRUMENT)
+        prefilter_note_scan(total);
+#endif
+        return npos;
+      }
+      // Initial probe width: the caller (next_candidate's small-set route) already tried a 32-byte bitmap
+      // probe before falling here, so this starts just past it. Members are enumerated in ascending byte
+      // value (see the hint builder above), so for an icase pair like {c, C} the UPPERCASE byte (0x43) is
+      // always member 0 -- checked first, with the full round window, before the far commoner lowercase
+      // byte even gets a chance to narrow it. That makes this seed a genuine trade-off, not a free
+      // parameter: measured on M1 across four adversarial shapes (a stop-byte set at a ~93-byte period,
+      // and (?i)<literal> sparse/no-match/dense), the stop-set win saturates by ~96 B (no further gain to
+      // 512+) while the icase-sparse/no-match cost keeps climbing past it (roughly +2% at 128 B, +40% by
+      // 1024 B) -- so 512-1024 (an earlier candidate) would have traded a bounded stop-set win for an
+      // unbounded-looking icase cost. 128 captures the stop-set win in full at a ~2% icase cost.
+      constexpr std::size_t seed   {128};
+      std::size_t           window {total < seed ? total : seed};
+      while (true) {
+        std::size_t best {npos};
+        std::size_t win  {window};
+        for (std::uint8_t i = 0; i < n; ++i) {
+          const void* hit {std::memchr(base + pos, set[i], win)};
+          if (hit != nullptr) {
+            const std::size_t idx {static_cast<std::size_t>(static_cast<const char*>(hit) - base)};
+            if (idx < best) {
+              best = idx;
+              win  = best - pos; // subsequent members this round only search the shorter prefix
+            }
           }
         }
+#if defined(REAL_TEST_INSTRUMENT)
+        prefilter_note_scan(win); // bill this round's actual scanned width, like find_prefix does
+#endif
+        if (best != npos) {
+          return best;
+        }
+        if (window >= total) {
+          return npos; // the full remaining haystack was covered across the rounds above; no member anywhere
+        }
+        window = (window > total - window) ? total : window * 2; // double, capped to the remaining text
       }
-      return best;
     }
     for (std::size_t i = pos; i < text.size(); ++i) {
       for (std::uint8_t j = 0; j < n; ++j) {

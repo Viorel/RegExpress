@@ -401,6 +401,7 @@ namespace RustPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = true,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -619,6 +620,7 @@ namespace RustPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = true,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -839,6 +841,7 @@ namespace RustPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.XModeOnly,
                 Quantifier_LowAbbrev = true,
                 Quantifier_Lazy = true,
+                Quantifier_Possessive = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = false,
@@ -1057,6 +1060,7 @@ namespace RustPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = true,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -1277,6 +1281,7 @@ namespace RustPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = false,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -1499,6 +1504,7 @@ namespace RustPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = true,
+                Quantifier_Possessive = false,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,
@@ -1719,6 +1725,7 @@ namespace RustPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
                 Quantifier_LowAbbrev = true,
                 Quantifier_Lazy = true,
+                Quantifier_Possessive = true,
 
                 Conditional_BackrefByNumber = false,
                 Conditional_BackrefByName = false,

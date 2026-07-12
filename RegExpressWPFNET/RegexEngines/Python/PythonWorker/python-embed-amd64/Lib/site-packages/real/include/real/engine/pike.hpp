@@ -38,6 +38,7 @@
 #include "real/automata/lazy_dfa.hpp"
 #include "real/automata/onepass.hpp"
 #include "real/core/program.hpp"
+#include "real/core/profile.hpp"
 #include "real/unicode/unicode_props.hpp"
 #include "real/unicode/utf8.hpp"
 
@@ -367,15 +368,17 @@ namespace real::detail {
    */
   struct pike_state : basic_pike_state<thread_list, std::vector<eps_entry>>
   {
-    lookaround_scratch         lookaround;              //!< Isolated sub-scratch for bounded lookaround evaluation.
-    capture_pool               pool;                    //!< OPT D1: copy-on-write capture blocks (heap-backed).
-    std::optional<lazy_dfa>    fwd_dfa;                 //!< OPT lazy-DFA: forward pass (built lazily, cache persists across a find_iter).
-    std::optional<reverse_dfa> rev_dfa;                 //!< OPT lazy-DFA: the reverse start-finder.
-    const void*                dfa_program   {nullptr}; //!< The program the DFAs were built for (rebuild if it changes).
-    std::optional<reverse_dfa> il_prefix_rev;           //!< IL: the inner-literal prefix reverse DFA (built once per program).
-    const void*                il_prefix_for {nullptr}; //!< IL: the prefix program \ref il_prefix_rev was built for.
-    const void*                il_text       {nullptr}; //!< IL: the haystack \ref il_abandoned refers to (reset the flag when it changes).
-    bool                       il_abandoned  {false};   //!< IL: a linearity guard tripped on this haystack — stay on the core.
+    lookaround_scratch         lookaround;                  //!< Isolated sub-scratch for bounded lookaround evaluation.
+    capture_pool               pool;                        //!< OPT D1: copy-on-write capture blocks (heap-backed).
+    std::optional<lazy_dfa>    fwd_dfa;                     //!< OPT lazy-DFA: forward pass (built lazily, cache persists across a find_iter).
+    std::optional<reverse_dfa> rev_dfa;                     //!< OPT lazy-DFA: the reverse start-finder.
+    const void*                dfa_program       {nullptr}; //!< The program the DFAs were built for (rebuild if it changes).
+    std::optional<reverse_dfa> il_prefix_rev;               //!< IL: the inner-literal prefix reverse DFA (built once per program).
+    const void*                il_prefix_for     {nullptr}; //!< IL: the prefix program \ref il_prefix_rev was built for.
+    const void*                il_text           {nullptr}; //!< IL: the haystack \ref il_abandoned refers to (reset the flag when it changes).
+    bool                       il_abandoned      {false};   //!< IL: a linearity/density guard tripped on this haystack — stay on the core.
+    std::uint32_t              il_density_cands  {};        //!< O1: IL candidates seen on this haystack (density sample).
+    std::size_t                il_density_origin {npos};    //!< O1: byte offset of the first IL candidate this haystack.
   };
 
   /*!
@@ -435,17 +438,28 @@ namespace real::detail {
       // P3c trailing-LA is NOT dispatched here — it lives outside pike_vm::run (real.hpp /
       // find_iter) so this function stays pre-P3c-sized and keeps inlining into find_iter
       // (x86: +16–20 % when cold code bloated run() past the inline threshold).
-      if (sem_ == match_semantics::first && prog_.hints.greedy_class_loop >= 0) {
+      if (sem_ == match_semantics::first && prog_.hints.greedy_class_loop >= 0
+          && (std::is_constant_evaluated() || !class_fastpath_disabled())) {
         // OPT-C: the memchr-cascade instantiation (Cascade) is selected ONCE by the caller (a whole
         // find_iter/search) from stop_set_size, never per match — so when it is off this run is byte-for-
         // byte the pre-OPT-C per-byte loop and the hot path pays nothing. The caller only sets Cascade
         // when stop_set_size >= 1, so the cascade tail always has real stop bytes.
+        prof::tick_route(prof::route::class_loop);
+        if (prog_.hints.wb_lead != 0 || prog_.hints.wb_trail != 0) {
+          prof::tick_event(prof::event::wb_b2_wrap);
+        }
         return run_class_loop<Cascade>(text, start, mode, out_slots);
       }
-      if (sem_ == match_semantics::first && prog_.hints.greedy_cp_class >= 0) {
+      if (sem_ == match_semantics::first && prog_.hints.greedy_cp_class >= 0
+          && (std::is_constant_evaluated() || !class_fastpath_disabled())) {
+        prof::tick_route(prof::route::cp_class_loop);
+        if (prog_.hints.wb_lead != 0 || prog_.hints.wb_trail != 0) {
+          prof::tick_event(prof::event::wb_b2_wrap);
+        }
         return run_cp_class_loop(text, start, mode, out_slots);
       }
       if (sem_ == match_semantics::first && prog_.hints.exact_literal_len > 0) {
+        prof::tick_route(prof::route::exact_literal);
         return run_exact_literal(text, start, mode, out_slots);
       }
       // OPT inner-literal: memmem a required inner literal and reverse/confirm the match around it — the
@@ -468,27 +482,35 @@ namespace real::detail {
           // the first candidate, never here), so it wins at every size; and the prefix byte-program is a
           // per-regex immutable (built once, amortized by any later use — the lazy-DFA warmup's own contract).
           if (state_.il_text != static_cast<const void*>(text.data())) {
-            state_.il_abandoned = false; // a fresh haystack: re-enable the route and re-evaluate its guards
-            state_.il_text      = static_cast<const void*>(text.data());
+            state_.il_abandoned      = false; // a fresh haystack: re-enable the route and re-evaluate its guards
+            state_.il_density_cands  = 0;
+            state_.il_density_origin = npos;
+            state_.il_text           = static_cast<const void*>(text.data());
           }
           if (!state_.il_abandoned) {
             bool       abandon {false};
             const bool matched {run_inner_literal(text, start, out_slots, abandon)};
             if (!abandon) {
+              prof::tick_route(prof::route::inner_literal);
+              prof::tick_event(prof::event::memmem);
               return matched;
             }
-            state_.il_abandoned = true; // a linearity guard tripped: stay on the core for the rest of this haystack
+            prof::tick_event(prof::event::il_abandoned);
+            state_.il_abandoned = true; // linearity or density guard: stay on the core for the rest of this haystack
           }
         }
       }
       if (sem_ == match_semantics::first && prog_.hints.fixed_shape) {
+        prof::tick_route(prof::route::fixed_shape);
         return run_fixed_shape(text, start, mode, out_slots);
       }
       if (sem_ == match_semantics::first && prog_.hints.codepoint_class_ascii >= 0) {
         // OPT-C-1b: the SWAR variant (Cascade) is chosen once per walk, like the class-loop cascade.
+        prof::tick_route(prof::route::codepoint_class);
         return run_codepoint_class<Cascade>(text, start, mode, out_slots);
       }
       if (sem_ == match_semantics::first && prog_.hints.fixed_alternation) {
+        prof::tick_route(prof::route::alternation);
         return run_alternation(text, start, mode, out_slots);
       }
       // OPT inner-literal: memmem a required literal and reverse/confirm the match around it — for patterns
@@ -511,6 +533,7 @@ namespace real::detail {
           ensure_immutables();
           if (prog_.immut != nullptr && prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()
               && prog_.immut->op_table->extract(text, start, text.size(), out_slots)) {
+            prof::tick_route(prof::route::onepass_full);
             return true;
           }
         }
@@ -544,8 +567,11 @@ namespace real::detail {
                   out_slots.assign(prog_.slot_count, npos);
                   return false; // no further candidate -- the prefilter itself is exhaustive
                 }
-                const std::size_t match_end {state_.fwd_dfa->anchored_end(text, c)};
-                if (match_end != npos) {
+                const auto anchored {state_.fwd_dfa->anchored_end(text, c)};
+                prefilter_note_scan(anchored.scanned_to - c);
+                if (anchored.end != npos) {
+                  const std::size_t match_end {anchored.end};
+                  prof::tick_route(prof::route::lazy_dfa_anchored);
                   if (prog_.slot_count <= 2) {
                     out_slots.assign(2, npos);
                     out_slots[0] = c;
@@ -555,23 +581,41 @@ namespace real::detail {
                   if (prog_.immut != nullptr && prog_.immut->op_table.has_value()
                       && prog_.immut->op_table->eligible()
                       && prog_.immut->op_table->extract(text, c, match_end, out_slots)) {
+                    prof::tick_route(prof::route::onepass_window);
                     return true;
                   }
+                  prof::tick_route(prof::route::general_window);
                   return run_general<Cascade>(text.substr(0, match_end), c, mode, out_slots);
+                }
+                // Unbounded reach (scanned_to == text.size(), no dead state pruned it early): this
+                // candidate's miss required scanning to the end of the haystack, so every further
+                // candidate would repeat comparable work -- O(n) candidates x O(n) scan = O(n^2) (the
+                // `a.*b` shape). A2's leftmost-first contract already proved no match starts at or
+                // before c; hand the rest to the forward_end + reverse-recovery route below, which
+                // covers it in one further O(n) pass -- reusing `start` as its origin (safe: every path
+                // from here on returns, so the mutation never escapes to code after this whole block).
+                if (anchored.scanned_to >= text.size()) {
+                  start = c + 1;
+                  break;
                 }
                 ++c; // false candidate: past it, one candidate at a time (bounded by the pattern's own
                      // reach, exactly as run_fixed_shape/run_alternation/run_inner_literal already skip)
               }
+              // Reached only via the unbounded-reach break above (every other path in the loop returns):
+              // falls through to the forward_end + reverse-recovery route below, from `start = c + 1`.
             }
-            // No sound first-byte prefilter (e.g. .*x): the unanchored forward pass plus a reverse
-            // recovery is the route that applies -- there is no candidate to anchor on.
+            // No sound first-byte prefilter (e.g. .*x), or A2 just gave up above: the unanchored forward
+            // pass plus a reverse recovery is the route that applies.
             const std::size_t match_end {state_.fwd_dfa->forward_end(text.substr(start))};
+            prefilter_note_scan(text.size() - start);
             if (match_end == npos) {
+              prof::tick_route(prof::route::lazy_dfa_fwd_rev); // reject at DFA speed still used the route
               out_slots.assign(prog_.slot_count, npos);
-              return false; // the forward DFA rejected the whole suffix at DFA speed
+              return false;                                    // the forward DFA rejected the whole suffix at DFA speed
             }
             const std::size_t abs_end   {start + match_end};
             const std::size_t abs_start {state_.rev_dfa->reverse_start(text, abs_end, start)};
+            prof::tick_route(prof::route::lazy_dfa_fwd_rev);
             // OPT bounds-only (A1): a GROUPLESS pattern ([a-z][a-z]+ — slot_count <= 2, group 0 only) has
             // no captures beyond the span itself, so the one-pass extractor's per-op table walk buys
             // nothing here — it exists to fill group slots this pattern does not have. The forward+reverse
@@ -584,14 +628,16 @@ namespace real::detail {
             }
             // OPT onepass (Tier A): a one-pass pattern fills captures in a single pass over [s, e] with no
             // thread lists (the shared per-regex table). Otherwise the window-Pike runs the general loop
-            // there. Both give the same slots. prog_.immut is non-null whenever fwd_dfa/rev_dfa hold a
+            // there. Both give the same slots. prog_.immut is non-null whenever fwd_dfa/rev_dfa holds a
             // value (both are set only by ensure_lazy_dfa, which builds on ensure_immutables' own
             // null-guarded fill) -- the explicit check here just makes that invariant visible to the
             // analyzer (confirm_at, below, already spells it out the same way).
             if (prog_.immut != nullptr && prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()
                 && prog_.immut->op_table->extract(text, abs_start, abs_end, out_slots)) {
+              prof::tick_route(prof::route::onepass_window);
               return true; // extract filled out_slots directly — no intermediate buffer or copy
             }
+            prof::tick_route(prof::route::general_window);
             return run_general<Cascade>(text.substr(0, abs_end), abs_start, mode, out_slots);
           }
         }
@@ -599,8 +645,10 @@ namespace real::detail {
       if (sem_ == match_semantics::longest) {
         // The longest path uses the plain general loop (the memchr-cascade OPT-C variant is a first-match
         // acceleration; correctness, not throughput, is what the experimental mode needs).
+        prof::tick_route(prof::route::general_full);
         return run_general<false>(text, start, mode, out_slots);
       }
+      prof::tick_route(prof::route::general_full);
       return run_general<Cascade>(text, start, mode, out_slots);
     }
 
@@ -768,6 +816,28 @@ namespace real::detail {
             return false;
           }
         }
+        // O1 density gate: sticky candidate sample across the haystack (find_iter). Capture-free +
+        // DFA-eligible only — see \ref il_density_milli_threshold. Checked before reverse/confirm so a
+        // dense stream of successful hits still switches after K candidates.
+        if constexpr (requires(State & s) {
+          s.il_density_cands;
+        }) {
+          if (state_.il_density_origin == npos) {
+            state_.il_density_origin = h;
+          }
+          ++state_.il_density_cands;
+          if (state_.il_density_cands == il_density_probe_candidates && prog_.slot_count <= 2) {
+            const std::size_t origin {state_.il_density_origin};
+            const std::size_t span   {(h >= origin) ? (h - origin + 1) : 1};
+            if (static_cast<std::size_t>(state_.il_density_cands) * 1000U / span >=
+                il_density_milli_threshold) {
+              if (prog_.immut != nullptr && prog_.immut->byte_prog.eligible) {
+                abandon = true;
+                return false;
+              }
+            }
+          }
+        }
         if (h < min_pre_start) {
           abandon = true; // guard 2: the scan is regressing into confirmed territory -> retry on the core
           return false;
@@ -872,6 +942,19 @@ namespace real::detail {
     //! \brief Below this input length the lazy-DFA routing is skipped (the two-pass setup does not amortise
     //!        on a short subject — the Pike VM goes direct). A measured, documented threshold.
     static constexpr std::size_t lazy_dfa_min_input {512};
+
+    /*!
+     * \brief O1 density-gate sample size and threshold (inner-literal → core/DFA when candidate density is high).
+     *
+     * Measured 2026-07 on M1 Pro, pattern \c (?:\\w+)_(?:\\w+), 300&nbsp;KB corpora, best-of clean timing
+     * vs \c il_off: dens = candidates/byte ≈ underscore/byte for this shape. Crossover IL≈DFA at dens ≈ 0.037;
+     * dens 0.05 → IL 1.3× worse; dens 0.077 → 2.3×; dens 0.17 (P0 \c ident_dense) → ~8×. Threshold 60/1000
+     * (dens 0.06) sits conservatively above crossover so sparse IL wins (dens ≪ 0.01) stay on IL. Capture-free
+     * only (\c slot_count ≤ 2): with groups, IL still beat forced DFA on dense (P0). Probe after K candidates
+     * across the haystack (sticky on \ref pike_state::il_density_cands).
+     */
+    static constexpr std::uint32_t il_density_probe_candidates {8};
+    static constexpr std::size_t   il_density_milli_threshold  {60};
 
     //! \brief Build the forward/reverse DFAs into the reusable state on first eligible use, or rebuild them
     //!        if the state is now bound to a different program (its `code` pointer changed). The cache then
@@ -1105,6 +1188,66 @@ namespace real::detail {
       const auto in_class = [&](std::size_t i) {
                               return tbl[static_cast<std::uint8_t>(text[i])] != 0U;
                             };
+      const auto scan_end = [&](std::size_t match_start) -> std::size_t {
+                              std::size_t match_end {match_start + 1};
+                              // OPT-C: Cascade memchr-stop after a long run; see historical comment.
+                              // Sound because run_class_loop never validates UTF-8 (test_utf8 perimeter).
+                              if constexpr (Cascade) {
+                                if (!std::is_constant_evaluated()) {
+                                  while (match_end < text.size() && in_class(match_end)) {
+                                    ++match_end;
+                                    if (match_end - match_start == cascade_run_threshold) {
+                                      match_end = run_cascade_stop(text, match_end);
+                                      break;
+                                    }
+                                  }
+                                  return match_end;
+                                }
+                              }
+                              while (match_end < text.size() && in_class(match_end)) {
+                                ++match_end;
+                              }
+                              return match_end;
+                            };
+
+      // Arc B-2: optional `\b`/`\B` — try successive maximal class runs until boundaries hold.
+      if (prog_.hints.wb_lead != 0 || prog_.hints.wb_trail != 0) {
+        if (mode == run_mode::full || mode == run_mode::prefix) {
+          if (start >= text.size() || !in_class(start)) {
+            out_slots.assign(prog_.slot_count, npos);
+            return false;
+          }
+          const std::size_t match_end {scan_end(start)};
+          if ((mode == run_mode::full && match_end != text.size()) ||
+              !wb_boundaries_ok(start, match_end)) {
+            out_slots.assign(prog_.slot_count, npos);
+            return false;
+          }
+          out_slots.assign(prog_.slot_count, npos);
+          fill_span_slots(out_slots, start, match_end);
+          return true;
+        }
+        std::size_t pos {start};
+        while (pos < text.size()) {
+          std::size_t match_start {pos};
+          while (match_start < text.size() && !in_class(match_start)) {
+            ++match_start;
+          }
+          if (match_start >= text.size()) {
+            break;
+          }
+          const std::size_t match_end {scan_end(match_start)};
+          if (wb_boundaries_ok(match_start, match_end)) {
+            out_slots.assign(prog_.slot_count, npos);
+            fill_span_slots(out_slots, match_start, match_end);
+            return true;
+          }
+          pos = match_end; // next run (e.g. "9abc def" → skip "abc", try "def")
+        }
+        out_slots.assign(prog_.slot_count, npos);
+        return false;
+      }
+
       std::size_t match_start {start};
       if (mode == run_mode::search) {
         while (match_start < text.size() && !in_class(match_start)) {
@@ -1115,35 +1258,7 @@ namespace real::detail {
         out_slots.assign(prog_.slot_count, npos);
         return false;
       }
-      // OPT-C: this is a byte-wise run whose accepted set may have a small complement (the STOP bytes).
-      // Only the Cascade instantiation carries the memchr-cascade; it advances per byte until a run
-      // passes a 32-byte threshold — a genuinely long run — then jumps to the next stop by a cascade, so
-      // a stop-dense stream of short runs stays on the per-byte path. The constant-evaluation guard is a
-      // per-call property, hoisted out of the loop; at compile time the plain loop runs. The common
-      // classes (`[a-z]+`, `\d+`) compile to the pristine per-byte loop with none of the cascade code.
-      // Sound because run_class_loop never validates UTF-8 (the OPT-C perimeter pin, test_utf8.cpp).
-      std::size_t match_end {match_start + 1};
-      if constexpr (Cascade) {
-        if (!std::is_constant_evaluated()) {
-          while (match_end < text.size() && in_class(match_end)) {
-            ++match_end;
-            if (match_end - match_start == cascade_run_threshold) {
-              match_end = run_cascade_stop(text, match_end);
-              break;
-            }
-          }
-        }
-        else {
-          while (match_end < text.size() && in_class(match_end)) {
-            ++match_end;
-          }
-        }
-      }
-      else {
-        while (match_end < text.size() && in_class(match_end)) {
-          ++match_end;
-        }
-      }
+      const std::size_t match_end {scan_end(match_start)};
       if (mode == run_mode::full && match_end != text.size()) {
         out_slots.assign(prog_.slot_count, npos);
         return false;
@@ -1279,13 +1394,24 @@ namespace real::detail {
      * \param[out] out_slots Receives the matched span on success.
      * \return `true` if a non-empty run was found.
      */
+    // O2r-1b (gcc-only outline of the >= 0x80 path in run_cp_class_loop): split into
+    // real/engine/cpclass_gcc.hpp (full rationale + measured numbers there), excluded from the
+    // coverage floor like simd.hpp — a branch clang never compiles shouldn't inflate this file's line
+    // count. #else (in run_cp_class_loop below) is the original nested-closure shape, untouched.
+#if defined(__GNUC__) && !defined(__clang__)
+#include "real/engine/cpclass_gcc.hpp"
+#endif
+
     template <typename OutSlots>
     constexpr bool run_cp_class_loop(std::string_view text,
                                      std::size_t      start,
                                      run_mode         mode,
                                      OutSlots&        out_slots)
     {
-      const std::size_t          cp_index {static_cast<std::size_t>(prog_.hints.greedy_cp_class)};
+      const std::size_t cp_index {static_cast<std::size_t>(prog_.hints.greedy_cp_class)};
+#if defined(__GNUC__) && !defined(__clang__)
+#include "real/engine/cpclass_gcc_loop.hpp"
+#else
       const detail::cp_class&    cc       {prog_.cp_classes[cp_index]};
       const std::uint8_t* const  asc      {cp_ascii_table(cp_index)};
       // Membership of a non-ASCII code point (>= 0x80): a one-load page-bitmap test over the two-byte
@@ -1310,6 +1436,64 @@ namespace real::detail {
                            return m ? dc.length : 0;
                          };
       out_slots.assign(prog_.slot_count, npos);
+      const auto extend_run = [&](std::size_t match_start) -> std::size_t {
+                                const std::size_t first {width(match_start)};
+                                if (first == 0) {
+                                  return npos;
+                                }
+                                std::size_t match_end {match_start + first};
+                                if (prog_.hints.greedy_cp_class_plus) {
+                                  while (match_end < text.size()) {
+                                    const auto lead {static_cast<std::uint8_t>(text[match_end])};
+                                    if (lead < 0x80U) {
+                                      if (asc[lead] == 0U) {
+                                        break;
+                                      }
+                                      ++match_end;
+                                      continue;
+                                    }
+                                    const detail::decoded_codepoint dc {
+                                      detail::decode_codepoint_strict(text, match_end)};
+                                    if (!dc.valid || !member_hi(dc.cp)) {
+                                      break;
+                                    }
+                                    match_end += dc.length;
+                                  }
+                                }
+                                return match_end;
+                              };
+#endif
+
+      // Arc B-2: `\b`/`\B` on subset cp-class (e.g. `\b\d+\b`) — try successive runs.
+      if (prog_.hints.wb_lead != 0 || prog_.hints.wb_trail != 0) {
+        if (mode == run_mode::full || mode == run_mode::prefix) {
+          const std::size_t match_end {extend_run(start)};
+          if (match_end == npos || (mode == run_mode::full && match_end != text.size()) ||
+              !wb_boundaries_ok(start, match_end)) {
+            return false;
+          }
+          fill_span_slots(out_slots, start, match_end);
+          return true;
+        }
+        std::size_t pos {start};
+        while (pos < text.size()) {
+          std::size_t match_start {pos};
+          while (match_start < text.size() && width(match_start) == 0) {
+            ++match_start;
+          }
+          if (match_start >= text.size()) {
+            break;
+          }
+          const std::size_t match_end {extend_run(match_start)};
+          if (match_end != npos && wb_boundaries_ok(match_start, match_end)) {
+            fill_span_slots(out_slots, match_start, match_end);
+            return true;
+          }
+          pos = match_end == npos ? match_start + 1 : match_end;
+        }
+        return false;
+      }
+
       std::size_t match_start {start};
       if (mode == run_mode::search) {
         while (match_start < text.size() && width(match_start) == 0) {
@@ -1319,34 +1503,9 @@ namespace real::detail {
       if (match_start >= text.size()) {
         return false;
       }
-      // The first code point must match: this path is only chosen for `\w`/`\w+` (never nullable), so
-      // it reports a non-empty match or none — it can never produce the empty match `forbid_empty_until_`
-      // guards, which is why that state is not consulted here (see the fast-path dispatch in run()).
-      const std::size_t first {width(match_start)};
-      if (first == 0) {
-        return false;
-      }
-      std::size_t match_end {match_start + first};
-      if (prog_.hints.greedy_cp_class_plus) {
-        while (match_end < text.size()) {
-          // Tight ASCII inner loop: a byte-indexed table lookup with no decode and no call,
-          // the same one-load trick the byte-NFA scan loop uses; only a non-ASCII lead decodes.
-          const auto lead {static_cast<std::uint8_t>(text[match_end])};
-          if (lead < 0x80U) {
-            if (asc[lead] == 0U) {
-              break;
-            }
-            ++match_end;
-            continue;
-          }
-          const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, match_end)};
-          if (!dc.valid || !member_hi(dc.cp)) {
-            break;
-          }
-          match_end += dc.length;
-        }
-      }
-      if (mode == run_mode::full && match_end != text.size()) {
+      // The first code point must match: this path is only chosen for `\w`/`\w+` (never nullable).
+      const std::size_t match_end {extend_run(match_start)};
+      if (match_end == npos || (mode == run_mode::full && match_end != text.size())) {
         return false;
       }
       fill_span_slots(out_slots, match_start, match_end);
@@ -1397,6 +1556,51 @@ namespace real::detail {
         ++pc;
       }
       return s + consumed;
+    }
+
+    /*!
+     * \brief O(1) lead/trail `\b`/`\B` check at match bounds [\p s, \p e).
+     *
+     * Single verification helper for every wb-wrapping fast path (class-loop, cp-class,
+     * fixed-shape, literal, alternation). Hints 0/1/2 from \ref pattern_hints::wb_lead /
+     * \ref pattern_hints::wb_trail.
+     *
+     * \param[in] s Match start (lead assert position).
+     * \param[in] e Match end (trail assert position).
+     * \return true if both configured boundaries hold (or are unset).
+     */
+    [[nodiscard]] constexpr bool wb_boundaries_ok(std::size_t s,
+                                                  std::size_t e) const
+    {
+      if (prog_.hints.wb_lead != 0) {
+        const assert_kind k {prog_.hints.wb_lead == 2 ? assert_kind::not_word_boundary
+                                                      : assert_kind::word_boundary};
+        if (!assertion_holds(k, s, false)) {
+          return false;
+        }
+      }
+      if (prog_.hints.wb_trail != 0) {
+        const assert_kind k {prog_.hints.wb_trail == 2 ? assert_kind::not_word_boundary
+                                                       : assert_kind::word_boundary};
+        if (!assertion_holds(k, e, false)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    //! \brief Fixed-shape body match from \ref pattern_hints::body_pc, then B1 `\b`/`\B` wrap.
+    template <bool SkipSaves>
+    [[nodiscard]] constexpr std::size_t match_fixed_body_wb(std::string_view text,
+                                                            std::size_t      s) const
+    {
+      const std::size_t body_pc {prog_.hints.body_pc == 0 ? std::size_t {1}
+                                                          : static_cast<std::size_t>(prog_.hints.body_pc)};
+      const std::size_t e       {match_byte_klass_run<SkipSaves>(text, body_pc, s)};
+      if (e == npos || !wb_boundaries_ok(s, e)) {
+        return npos;
+      }
+      return e;
     }
 
     /*!
@@ -1462,7 +1666,9 @@ namespace real::detail {
       // No inner groups (slot_count 2): a contiguous byte/klass run, the original tight path unchanged.
       if (prog_.slot_count <= 2) {
         out_slots.assign(2, npos);
-        const auto at {[&](std::size_t s) { return match_byte_klass_run<false>(text, 1, s); }};
+        const auto at {[&](std::size_t s) {
+                         return match_fixed_body_wb</*SkipSaves=*/ false>(text, s);
+                       }};
         if (mode != run_mode::search) {
           const std::size_t match_end {at(start)};
           if (match_end == npos || (mode == run_mode::full && match_end != text.size())) {
@@ -1481,16 +1687,24 @@ namespace real::detail {
         // small_set memchr-cascade) became the new bottleneck. A free function so run_fixed_shape's own
         // per-instantiation body stays this thin call-and-branch. Scalar tail (< 16 bytes remaining, or
         // no more candidates) falls through to the existing fast_search/next_candidate walk from
-        // wherever the SIMD scan left off.
+        // wherever the SIMD scan left off. Lead/trail `\b` rejections re-enter the scan past the miss.
         if (!std::is_constant_evaluated() && prog_.hints.fixed_shape_simd_len >= 1) {
-          std::size_t       resume {};
-          const std::size_t found  {simd_fixed_shape_scan(text, start, prog_.hints, resume)};
-          if (found != npos) {
-            out_slots[0] = found;
-            out_slots[1] = found + prog_.hints.fixed_shape_simd_len;
-            return true;
+          std::size_t pos {start};
+          while (pos < text.size()) {
+            std::size_t       resume {};
+            const std::size_t found  {simd_fixed_shape_scan(text, pos, prog_.hints, resume)};
+            if (found == npos) {
+              return fast_search(text, resume, at, out_slots); // scalar tail
+            }
+            const std::size_t e {found + prog_.hints.fixed_shape_simd_len};
+            if (wb_boundaries_ok(found, e)) {
+              out_slots[0] = found;
+              out_slots[1] = e;
+              return true;
+            }
+            pos = found + 1; // body matched but `\b` failed — try next candidate
           }
-          return fast_search(text, resume, at, out_slots); // scalar tail
+          return false;
         }
 #endif
         return fast_search(text, start, at, out_slots);
@@ -1500,7 +1714,9 @@ namespace real::detail {
       // (SkipSaves) and the group slots are filled from their constant offsets on success only (not per
       // failed candidate). A separate body keeps the no-group loop above free of any grouping branch.
       out_slots.assign(prog_.slot_count, npos);
-      const auto at {[&](std::size_t s) { return match_byte_klass_run<true>(text, 1, s); }};
+      const auto at {[&](std::size_t s) {
+                       return match_fixed_body_wb</*SkipSaves=*/ true>(text, s);
+                     }};
       if (mode != run_mode::search) {
         const std::size_t match_end {at(start)};
         if (match_end == npos || (mode == run_mode::full && match_end != text.size())) {
@@ -1578,7 +1794,15 @@ namespace real::detail {
                           const auto cont_byte {static_cast<std::uint8_t>(text[i])};
                           return cont_byte >= 0x80 && cont_byte <= 0xBF;
                         };
-      // Byte length of a matching codepoint at i, or 0 for no match.
+      // Byte length of a matching codepoint at i, or 0 for no match. ASCII stays a direct table
+      // hit; the 3-/4-byte cases bounds-check their FIRST continuation byte against
+      // utf8_second_byte_bounds_table (charclass.hpp) instead of the generic [0x80,0xBF] `cont`
+      // check -- that generic check accepted overlong (E0 80 80 / F0 80 80 80) and encoded-
+      // surrogate (ED A0 80) sequences as one code point. A table lookup, not a full decode: an
+      // earlier version reused decode_codepoint_strict (which accumulates the code point via
+      // shifts and checks it against min_cp/the surrogate block after the fact) and cost +13%
+      // ns/B on this exact path -- rejected. This keeps the original branch/comparison shape,
+      // swapping only one hardcoded bound for a per-lead table entry.
       const auto width = [&](std::size_t i) -> std::size_t {
                            const auto byte_value {static_cast<std::uint8_t>(text[i])};
                            if (byte_value < 0x80) {
@@ -1588,10 +1812,22 @@ namespace real::detail {
                              return i + 1 < text.size() && cont(i + 1) ? 2 : 0;
                            }
                            if (byte_value >= 0xE0 && byte_value <= 0xEF) {
-                             return i + 2 < text.size() && cont(i + 1) && cont(i + 2) ? 3 : 0;
+                             if (i + 2 >= text.size()) {
+                               return 0;
+                             }
+                             const detail::utf8_second_byte_bounds& b {
+                               detail::utf8_second_byte_bounds_table[byte_value]};
+                             const auto b2                            {static_cast<std::uint8_t>(text[i + 1])};
+                             return b2 >= b.lo && b2 <= b.hi && cont(i + 2) ? 3 : 0;
                            }
                            if (byte_value >= 0xF0 && byte_value <= 0xF4) {
-                             return i + 3 < text.size() && cont(i + 1) && cont(i + 2) && cont(i + 3) ? 4 : 0;
+                             if (i + 3 >= text.size()) {
+                               return 0;
+                             }
+                             const detail::utf8_second_byte_bounds& b {
+                               detail::utf8_second_byte_bounds_table[byte_value]};
+                             const auto b2                            {static_cast<std::uint8_t>(text[i + 1])};
+                             return b2 >= b.lo && b2 <= b.hi && cont(i + 2) && cont(i + 3) ? 4 : 0;
                            }
                            return 0;
                          };
@@ -1690,14 +1926,17 @@ namespace real::detail {
 
       // First branch that matches at \p s (and, for full, spans to the end). The
       // branches are read from the split chain in source order (highest priority
-      // first), mirroring the VM's thread priority.
+      // first), mirroring the VM's thread priority. body_pc skips a lead `\b`.
       const auto match_at = [&](std::size_t match_start, bool require_full) -> std::size_t {
-                              std::size_t pc {1};
+                              std::size_t pc {prog_.hints.body_pc == 0
+                                                ? std::size_t {1}
+                                                : static_cast<std::size_t>(prog_.hints.body_pc)};
                               while (true) {
                                 const bool        is_split  {code[pc].op == opcode::split};
                                 const std::size_t branch    {is_split ? static_cast<std::size_t>(code[pc].primary_target) : pc};
                                 const std::size_t match_end {match_byte_klass_run(text, branch, match_start)};
-                                if (match_end != npos && (!require_full || match_end == text.size())) {
+                                if (match_end != npos && wb_boundaries_ok(match_start, match_end) &&
+                                    (!require_full || match_end == text.size())) {
                                   return match_end;
                                 }
                                 if (!is_split) {
@@ -2082,6 +2321,29 @@ namespace real::detail {
               }
             }
             break;
+          case opcode::byte_loop_possessive:
+          case opcode::klass_loop_possessive:
+            // Tier 1 (D1, redesigned): by the time a leaf reaches step(), add_thread's closure
+            // has ALREADY confirmed the atom matches at pos (that's precisely why it was parked
+            // here instead of being routed to secondary_target immediately) — no re-test, no
+            // fail branch, and no need to distinguish byte from klass here either (the arg8-vs-
+            // arg16 test already happened in closure). See add_thread's own case for the full
+            // rationale (a same-round-convergent alternation sibling could otherwise steal
+            // priority from a step()-time exit decision, a real bug this redesign closes).
+            tier1_capture_on_match(clist, i, instruction.primary_target, pos, pos + 1);
+            advance_thread(clist, nlist, i, pc + 1, pos + 1);
+            break;
+          case opcode::klass_cp_loop_possessive:
+            {
+              // Closure already confirmed the codepoint matches; decode once more here purely
+              // for dc.length (the chain-skip arithmetic) — cheap and deterministic, not a
+              // second decision.
+              const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
+              tier1_capture_on_match(clist, i, instruction.primary_target, pos, pos + dc.length);
+              advance_thread(clist, nlist, i,
+                             pc + 1 + static_cast<std::int32_t>(4 - dc.length), pos + 1);
+              break;
+            }
           case opcode::match:
             {
               if (mode == run_mode::full && pos != text_.size()) {
@@ -2124,6 +2386,39 @@ namespace real::detail {
             break; // epsilon ops never appear in a stepped list
         }
       }
+    }
+
+    /*!
+     * \brief Tier 1's on-match capture write (D1): if \p capture_start_slot is not -1, records
+     *        [\p start, \p end) into thread \p i's capture block, in place.
+     *
+     * Called ONLY on a confirmed atom match — never speculatively before the test, which is
+     * what makes this safe: a possessive loop always attempts one more repetition after every
+     * success, so a `save` fired BEFORE knowing the next attempt succeeds would overwrite THIS
+     * successful iteration's start the moment the next (possibly failing) attempt began,
+     * corrupting the capture with a torn [next-attempt's-start, this-iteration's-end) pair. See
+     * program.hpp's opcode-family note.
+     *
+     * \param[in,out] clist              The current thread list (whose slot this thread owns is updated).
+     * \param[in]     i                  Index of the thread in \p clist.
+     * \param[in]     capture_start_slot The start slot, or -1 for an uncaptured Tier 1 loop (a no-op).
+     * \param[in]     start              Position before the atom was consumed.
+     * \param[in]     end                Position after the atom was consumed.
+     */
+    constexpr void tier1_capture_on_match(list_type&    clist,
+                                          std::size_t   i,
+                                          std::int32_t  capture_start_slot,
+                                          std::size_t   start,
+                                          std::size_t   end)
+    {
+      if (capture_start_slot < 0) {
+        return;
+      }
+      const auto    slot  {static_cast<std::uint16_t>(capture_start_slot)};
+      std::uint32_t block {static_cast<std::uint32_t>(clist.slots[i])};
+      block          = state_.pool.cow_write(block, slot, start);
+      block          = state_.pool.cow_write(block, static_cast<std::uint16_t>(slot + 1), end);
+      clist.slots[i] = block;
     }
 
     /*!
@@ -2279,6 +2574,58 @@ namespace real::detail {
             list.pcs.push_back(pc);
             list.slots.push_back(block); // transfer the ref to the thread: one block handle per pc
             break;
+          case opcode::byte_loop_possessive:
+            // Tier 1 (D1, redesigned): the match/no-match decision is made HERE, at insertion
+            // time, in the SAME priority-ordered closure pass as everything else — not deferred
+            // to step() one round later. That deferral was the root cause of a real bug this
+            // opcode family shipped with first: inside an alternation, a same-round-convergent
+            // LOWER-priority sibling (single leaf, resolves in one round) could claim the shared
+            // convergence pc via its own advance_thread call BEFORE a step()-time exit from this
+            // (HIGHER-priority, but multi-round) construct got a chance to compete — plain "first
+            // felt this generation wins" dedup has no notion of true priority once insertion
+            // order is violated. Precedented by assert_lookaround just above: a whole sub-VM
+            // decision, evaluated at closure time; testing one byte here is far cheaper.
+            //
+            // A match: park as a leaf, exactly like byte/klass/klass_cp (step() consumes it,
+            // capture-writes if captured, and re-inserts the SAME pc at pos+1 — where THIS SAME
+            // closure logic re-decides, fresh). A non-match (or end of text): do NOT park —
+            // continue the closure walk via secondary_target RIGHT NOW, in this pass, so the
+            // exit's priority position is exactly this thread's own earned position, identical
+            // in spirit to how `jump`'s target is pushed above.
+            if (pos < text_.size() && static_cast<std::uint8_t>(text_[pos]) == instruction.arg8) {
+              list.pcs.push_back(pc);
+              list.slots.push_back(block);
+            }
+            else {
+              stack.push_back({.pc = instruction.secondary_target, .block = block});
+            }
+            break;
+          case opcode::klass_loop_possessive:
+            if (pos < text_.size() &&
+                prog_.classes[instruction.arg16].test(static_cast<std::uint8_t>(text_[pos]))) {
+              list.pcs.push_back(pc);
+              list.slots.push_back(block);
+            }
+            else {
+              stack.push_back({.pc = instruction.secondary_target, .block = block});
+            }
+            break;
+          case opcode::klass_cp_loop_possessive:
+            {
+              bool matched_here {false};
+              if (pos < text_.size()) {
+                const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
+                matched_here = dc.valid && cp_class_matches(prog_.cp_classes[instruction.arg16], dc.cp);
+              }
+              if (matched_here) {
+                list.pcs.push_back(pc);
+                list.slots.push_back(block);
+              }
+              else {
+                stack.push_back({.pc = instruction.secondary_target, .block = block});
+              }
+              break;
+            }
         }
       }
     }
@@ -2561,8 +2908,20 @@ namespace real::detail {
             list.pcs.push_back(pc);
             break;
           case opcode::assert_lookaround:
-            // intentionally uncovered: -Wswitch exhaustiveness arm; nesting is rejected at
-            // parse time, so a sub-program never contains an assert_lookaround.
+          // intentionally uncovered: -Wswitch exhaustiveness arm; nesting is rejected at parse
+          // time, so a sub-program never contains an assert_lookaround.
+          //
+          // Tier 1's possessive-loop family is ALSO structurally absent here, for a related but
+          // distinct reason: the compiler rejects a possessive/atomic quantifier inside a
+          // lookaround (emit_possessive_repeat / emit_atomic_group throw on capture_free), so a
+          // sub-program never contains one of these either — this dispatcher (and lookahead_
+          // matches'/sub_fullmatch_window's own inline byte/klass/klass_cp-only dispatch) would
+          // otherwise silently misread klass_cp_loop_possessive's arg16 against the wrong class
+          // table. Folded into this same arm (not a separate one) — bugprone-branch-clone flags
+          // adjacent case labels whose bodies are both just `break;`, comments notwithstanding.
+          case opcode::byte_loop_possessive:
+          case opcode::klass_loop_possessive:
+          case opcode::klass_cp_loop_possessive:
             break;
         }
       }

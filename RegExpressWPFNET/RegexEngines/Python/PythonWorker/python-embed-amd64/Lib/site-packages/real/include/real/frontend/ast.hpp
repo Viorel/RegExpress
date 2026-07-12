@@ -32,10 +32,12 @@
 #include "real/core/charclass.hpp"
 #include "real/core/config.hpp"
 #include "real/core/program.hpp"
+#include "real/unicode/unicode_binprop.hpp"
 #include "real/unicode/unicode_fold.hpp"
 #include "real/unicode/unicode_property.hpp"
 #include "real/unicode/unicode_props.hpp"
 #include "real/unicode/unicode_script.hpp"
+#include "real/unicode/unicode_scx.hpp"
 #include "real/unicode/utf8.hpp"
 
 namespace real::detail {
@@ -82,6 +84,7 @@ namespace real::detail {
     anchor_kind  anchor          {anchor_kind::caret}; //!< anchor: the assertion kind.
     bool         negated         {};                   //!< klass: written as `[^...]` / `\D` `\W` `\S`.
     bool         lazy            {};                   //!< repeat: prefer the shortest expansion.
+    bool         possessive      {};                   //!< repeat: no give-back (`X*+`/`X++`/`X?+`/`X{n,m}+`). group: atomic `(?>...)` — same "no give-back" meaning, reused.
     look_dir     direction       {look_dir::ahead};    //!< lookaround: ahead `(?=`/`(?!` or behind `(?<=`/`(?<!`.
     std::int32_t klass           {-1};                 //!< klass: index into \ref ast::classes.
     std::int32_t min             {};                   //!< repeat: minimum count.
@@ -560,10 +563,15 @@ namespace real::detail {
 
     /*!
      * \brief Resolves a `\p{...}` property name to its code-point ranges, or fails with a clear error. An
-     *        optional `gc=` / `sc=` (or `general_category=` / `script=`) prefix picks the namespace; a bare name
-     *        tries General_Category then Script. GC ranges come straight from the table; a Script's ranges are
-     *        collected from the partition. The alias resolvers are the generated, loose-keyed `resolve_gc` /
-     *        `resolve_script`.
+     *        optional `gc=` / `sc=` / `scx=` (or `general_category=` / `script=` / `scriptextensions=`)
+     *        prefix picks the namespace; a bare name tries General_Category, then Script, then a binary
+     *        property (`\p{Alphabetic}`, no namespace of its own, same as PCRE2) -- `scx=` has no bare-name
+     *        form (PCRE2: a bare name never means Script_Extensions, the explicit prefix is required). GC
+     *        ranges come straight from the table; a Script's ranges are collected from the partition; a
+     *        binary property's or a Script_Extensions' ranges come straight from their own table (both are
+     *        NOT partitions -- a code point can satisfy several). The alias resolvers are the generated,
+     *        loose-keyed `resolve_gc` / `resolve_script` (shared by `sc=` and `scx=` -- same script names,
+     *        long or short UAX24 code) / `resolve_binprop`.
      */
     [[nodiscard]] constexpr std::vector<code_range> resolve_property(std::string_view name) const
     {
@@ -580,9 +588,10 @@ namespace real::detail {
       const std::string_view nk          {ns_key.view()};
       const bool             want_gc     {nk.empty() || nk == "gc" || nk == "generalcategory"};
       const bool             want_script {nk.empty() || nk == "sc" || nk == "script"};
-      if (!want_gc && !want_script) {
+      const bool             want_scx    {nk == "scx" || nk == "scriptextensions"};
+      if (!want_gc && !want_script && !want_scx) {
         // well-formed `\p{ns=...}` but a namespace REAL does not offer (a binding may delegate it).
-        fail_unsupported("unknown Unicode property namespace in \\p{...} (use gc= or sc=)");
+        fail_unsupported("unknown Unicode property namespace in \\p{...} (use gc=, sc= or scx=)");
       }
       const loose_buf value_key {loose_key(value)};
       if (want_gc) {
@@ -604,9 +613,28 @@ namespace real::detail {
           return out;
         }
       }
-      // well-formed `\p{Name}` but a property REAL does not yet tabulate (e.g. a binary property like
-      // `\p{Alphabetic}`, or a script/category REAL lacks): unsupported, so a binding can delegate it.
-      fail_unsupported("unsupported Unicode property in \\p{...} (only General_Category and Script are built in)");
+      if (want_scx) {
+        const script sc {resolve_script(value_key.view())};
+        if (sc != script::count) {
+          const std::span<const code_range> t {scx_ranges[static_cast<std::size_t>(sc)]};
+          return {t.begin(), t.end()};
+        }
+      }
+      if (nk.empty()) {
+        // Binary properties have no namespace of their own (like PCRE2): only a bare `\p{Name}` tries
+        // one, never `\p{gc=Name}` / `\p{sc=Name}` with a name that failed to resolve in that explicit
+        // namespace -- an explicit, misspelled namespace should fail, not silently fall through.
+        const binprop bp {resolve_binprop(value_key.view())};
+        if (bp != binprop::count) {
+          const std::span<const code_range> t {binprop_ranges[static_cast<std::size_t>(bp)]};
+          return {t.begin(), t.end()};
+        }
+      }
+      // well-formed `\p{Name}` but a property REAL does not yet tabulate (a script/category REAL lacks,
+      // or an unknown/misspelled binary property or Script_Extensions name): unsupported, so a binding
+      // can delegate it.
+      fail_unsupported("unsupported Unicode property in \\p{...} (General_Category, Script, "
+                       "Script_Extensions and the standard binary properties are built in)");
     }
 
     //! \brief Rejects bytes mode, consumes the `p`/`P` and the `{Name}` (or single letter), and resolves it to
@@ -873,7 +901,8 @@ namespace real::detail {
         default:
           return atom;
       }
-      const bool lazy {accept('?')};
+      const bool lazy       {accept('?')};
+      const bool possessive {!lazy && accept('+')}; // X*+/X++/X?+/X{n,m}+ — mutually exclusive with lazy
       if (!eof()) {
         const char   ch          {peek()};
         std::int32_t ignored_min {};
@@ -883,7 +912,12 @@ namespace real::detail {
           fail("multiple repeat");
         }
       }
-      return add_node(out, {.kind = node_kind::repeat, .lazy = lazy, .min = min, .max = max, .child = atom});
+      return add_node(out, {.kind       = node_kind::repeat,
+                            .lazy       = lazy,
+                            .possessive = possessive,
+                            .min        = min,
+                            .max        = max,
+                            .child      = atom});
     }
 
     /*!
@@ -1098,7 +1132,7 @@ namespace real::detail {
           return parse_lookaround(out, look_dir::ahead, open_pos);
         }
         else if (!eof() && peek() == '>') {
-          fail("atomic groups are not supported");
+          return parse_atomic_group(out, open_pos);
         }
         else if (!eof() && peek() == '(') {
           fail("conditional groups are not supported");
@@ -1189,6 +1223,34 @@ namespace real::detail {
                             .negated   = negative,
                             .direction = direction,
                             .child     = sub});
+    }
+
+    /*!
+     * \brief Parses an atomic group after `(?>` (the `>` is not yet consumed).
+     *
+     * Builds a \ref node_kind::group node with `possessive = true` and `group = -1`
+     * (atomic groups are never capturing at their own level, exactly like `(?:...)`;
+     * a numbered capture group written inside one still gets its own number and
+     * stays visible after the atomic group closes — the parser does not special-case
+     * this, since it never restricts capture numbering inside the body). Compile-time
+     * linearity/support restrictions (deterministic-body tiers) are enforced later by
+     * the compiler, not here — this function only builds the tree.
+     *
+     * \param[in,out] out      The AST being built.
+     * \param[in]     open_pos Offset of the group's `(` (for error reporting).
+     * \return The index of the atomic group's \ref node_kind::group node.
+     */
+    constexpr std::int32_t parse_atomic_group(ast&        out,
+                                              std::size_t open_pos)
+    {
+      ++pos_; // consume '>'
+      const std::int32_t body {parse_alternation(out)};
+      if (!accept(')')) {
+        pos_ = open_pos;
+        fail("missing ), unterminated subpattern");
+      }
+      --depth_;
+      return add_node(out, {.kind = node_kind::group, .possessive = true, .group = -1, .child = body});
     }
 
     /*!
