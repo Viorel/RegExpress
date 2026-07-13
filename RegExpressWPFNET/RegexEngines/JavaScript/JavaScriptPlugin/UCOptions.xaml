@@ -81,6 +81,7 @@
                     <ui:CheckboxWithNote Prop="y" Note="“sticky” search"/>
                     <ui:CheckboxWithNote Prop="g" Note="global search"/>
                     <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True"/>
+                    <ui:CheckboxWithNote x:Name="checkboxSubclass" Prop="subclass" Note="using a RegExp subclass to avoid issues with numbered backreferences" />
                 </StackPanel>
 
                 <StackPanel x:Name="pnlRE2JS" Orientation="Vertical" Margin="0">

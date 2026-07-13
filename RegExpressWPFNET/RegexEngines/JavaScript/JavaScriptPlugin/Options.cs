@@ -82,6 +82,7 @@ namespace JavaScriptPlugin
 
         public bool x { get; set; } = true;
         public bool n { get; set; } = true;
+        public bool subclass { get; set; }
 
 
         [JsonIgnore]

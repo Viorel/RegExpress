@@ -18,14 +18,16 @@ try
   const n_flag = flags.includes("n");
   //const u_flag = flags.includes("u"); // no use
   const v_flag = flags.includes("v");
+  const subclass = flags.includes("C");
 
-  let adjusted_flags = flags.replace(/[vuxn]/g, ""); // to avoid "Implicit flags v/u/x/n cannot be explicitly added"
+  let adjusted_flags = flags.replace(/[vuxnC]/g, ""); // to avoid "Implicit flags v/u/x/n cannot be explicitly added", and to remove special "C"
 
   if( ! adjusted_flags.includes("d")) adjusted_flags += "d"; // "d" -- generate indices
 
   const options =
   {
     flags: adjusted_flags,
+    subclass: subclass,
     disable: 
     {
       x: !x_flag,

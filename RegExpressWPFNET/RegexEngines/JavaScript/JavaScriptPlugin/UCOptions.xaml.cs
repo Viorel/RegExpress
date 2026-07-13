@@ -98,6 +98,7 @@ namespace JavaScriptPlugin
                 checkboxV.Display( is_V8 || is_QuickJs || is_RegexPlus );
                 checkboxX.Display( is_RegexPlus );
                 checkboxN.Display( is_RegexPlus );
+                checkboxSubclass.Display( is_RegexPlus );
             }
             finally
             {

@@ -50,7 +50,8 @@ namespace JavaScriptPlugin
                 options.x ? "x" : "",
                 options.n ? "n" : "",
                 options.y ? "y" : "",
-                options.g ? "g" : ""
+                options.g ? "g" : "",
+                options.subclass ? "C" : ""
                 );
 
             string func = options.Function switch { FunctionEnum.MatchAll => "matchAll", FunctionEnum.Exec => "exec", _ => throw new InvalidOperationException( ) };
