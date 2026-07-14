@@ -81,6 +81,16 @@ namespace real::detail {
     return disabled;
   }
 
+  //! \brief Test/profile seam (D1-perf, Étage A): force the matcher off the possessive-loop fast paths
+  //!        (bare/suffixed/delimited `X*+`/`X++`) onto the general VM, so a differential can assert
+  //!        route-auto and forced-general agree on every input — the "wagon-4 pattern" applied to the new
+  //!        recognizers. Not for production use — same contract as the other route-disabled seams.
+  inline bool& possessive_fastpath_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
   //! \brief A byte-level program derived from a Pike program for the DFA passes: every `klass_cp` construct
   //!        is expanded into UTF-8 byte-range split/klass chains, so the whole thing is byte-transition-only
   //!        and a forward DFA can represent it. The Pike program itself is untouched (byte-identity); this

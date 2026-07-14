@@ -41,6 +41,10 @@ namespace real::detail::prof {
     general_full,
     general_window,
     trailing_la,
+    possessive_byte_loop,     //!< R2 (phase Raffinement): bare/suffixed possessive literal-byte +/++ (byte_loop_possessive).
+    possessive_class_loop,    //!< D1-perf Étage A: bare/suffixed possessive class+/++ (klass_loop_possessive).
+    possessive_cp_class_loop, //!< D1-perf Étage A: bare/suffixed possessive cp-class +/++ (klass_cp_loop_possessive).
+    possessive_delimited,     //!< D1-perf Étage A: literal-prefix + possessive loop + literal-suffix ("quoted").
     count_
   };
 
@@ -129,6 +133,10 @@ namespace real::detail::prof {
       case route::general_full: return "general_full";
       case route::general_window: return "general_window";
       case route::trailing_la: return "trailing_la";
+      case route::possessive_byte_loop: return "possessive_byte_loop";
+      case route::possessive_class_loop: return "possessive_class_loop";
+      case route::possessive_cp_class_loop: return "possessive_cp_class_loop";
+      case route::possessive_delimited: return "possessive_delimited";
       case route::count_: return "?";
     }
     return "?";

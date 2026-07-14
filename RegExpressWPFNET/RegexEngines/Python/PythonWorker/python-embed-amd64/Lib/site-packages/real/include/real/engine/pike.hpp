@@ -458,6 +458,25 @@ namespace real::detail {
         }
         return run_cp_class_loop(text, start, mode, out_slots);
       }
+      // D1-perf (Étage A): possessive class+/++ loop -- bare/suffixed or delimited/"quoted". A
+      // possessive pattern can never also be greedy_class_loop/greedy_cp_class (mutually exclusive
+      // AST shapes), so ordering relative to those two is moot -- it matters only relative to
+      // exact_literal/inner_literal/lazy-DFA below, which this shape reliably beats (see the
+      // D1-perf fiche's route-profile: those routes decline every possessive opcode outright today).
+      // The route-name split (bare vs delimited, profiling only) is pushed into the runners
+      // themselves so this dispatch site stays exactly as small as the existing two above it.
+      if (sem_ == match_semantics::first && prog_.hints.possessive_class.kind == class_kind::byte
+          && (std::is_constant_evaluated() || !possessive_fastpath_disabled())) {
+        return run_possessive_byte_loop(text, start, mode, out_slots);
+      }
+      if (sem_ == match_semantics::first && prog_.hints.possessive_class.kind == class_kind::klass
+          && (std::is_constant_evaluated() || !possessive_fastpath_disabled())) {
+        return run_possessive_class_loop(text, start, mode, out_slots);
+      }
+      if (sem_ == match_semantics::first && prog_.hints.possessive_class.kind == class_kind::klass_cp
+          && (std::is_constant_evaluated() || !possessive_fastpath_disabled())) {
+        return run_possessive_cp_class_loop(text, start, mode, out_slots);
+      }
       if (sem_ == match_semantics::first && prog_.hints.exact_literal_len > 0) {
         prof::tick_route(prof::route::exact_literal);
         return run_exact_literal(text, start, mode, out_slots);
@@ -1248,10 +1267,34 @@ namespace real::detail {
         return false;
       }
 
+      // B-1 window-edge guard, mode::full/prefix: anchored at `start` with no retry available --
+      // see pattern_hints::wb_lead_maximal_run's own doc comment for the full argument.
+      if ((mode == run_mode::full || mode == run_mode::prefix) && prog_.hints.wb_lead_maximal_run &&
+          start > 0 && start < text.size() && in_class(start) &&
+          !assertion_holds(assert_kind::word_boundary, start, false)) {
+        out_slots.assign(prog_.slot_count, npos);
+        return false;
+      }
       std::size_t match_start {start};
       if (mode == run_mode::search) {
-        while (match_start < text.size() && !in_class(match_start)) {
-          ++match_start;
+        while (true) {
+          while (match_start < text.size() && !in_class(match_start)) {
+            ++match_start;
+          }
+          if (match_start >= text.size()) {
+            break;
+          }
+          // B-1 window-edge guard: a candidate found by scanning forward past a non-class byte
+          // is provably preceded by one (the scan just confirmed it), so B-1's redundancy
+          // argument holds unconditionally there. The ONE exception is the very first candidate
+          // when it coincides with `start` itself (no forward scan occurred) AND `start > 0` --
+          // see pattern_hints::wb_lead_maximal_run's own doc comment for the full argument.
+          if (prog_.hints.wb_lead_maximal_run && match_start == start && match_start > 0 &&
+              !assertion_holds(assert_kind::word_boundary, match_start, false)) {
+            match_start = scan_end(match_start); // no genuine boundary here: skip this whole run
+            continue;
+          }
+          break;
         }
       }
       if (match_start >= text.size() || !in_class(match_start)) {
@@ -1494,10 +1537,37 @@ namespace real::detail {
         return false;
       }
 
+      // B-1 window-edge guard, mode::full/prefix: anchored at `start` with no retry available --
+      // see pattern_hints::wb_lead_maximal_run's own doc comment for the full argument.
+      if ((mode == run_mode::full || mode == run_mode::prefix) && prog_.hints.wb_lead_maximal_run &&
+          start > 0 && start < text.size() && width(start) != 0 &&
+          !assertion_holds(assert_kind::word_boundary, start, false)) {
+        return false;
+      }
       std::size_t match_start {start};
       if (mode == run_mode::search) {
-        while (match_start < text.size() && width(match_start) == 0) {
-          ++match_start;
+        while (true) {
+          while (match_start < text.size() && width(match_start) == 0) {
+            ++match_start;
+          }
+          if (match_start >= text.size()) {
+            break;
+          }
+          // B-1 window-edge guard: a candidate found by scanning forward past a non-class
+          // code point is provably preceded by one, so B-1's redundancy argument holds
+          // unconditionally there. The ONE exception is the very first candidate when it
+          // coincides with `start` itself (no forward scan occurred) AND `start > 0` -- see
+          // pattern_hints::wb_lead_maximal_run's own doc comment for the full argument.
+          if (prog_.hints.wb_lead_maximal_run && match_start == start && match_start > 0 &&
+              !assertion_holds(assert_kind::word_boundary, match_start, false)) {
+            const std::size_t skip {extend_run(match_start)};
+            if (skip == npos) {
+              return false; // malformed sequence right at the window edge: nothing to skip to
+            }
+            match_start = skip; // no genuine boundary here: skip this whole run
+            continue;
+          }
+          break;
         }
       }
       if (match_start >= text.size()) {
@@ -1510,6 +1580,299 @@ namespace real::detail {
       }
       fill_span_slots(out_slots, match_start, match_end);
       return true;
+    }
+
+    /*!
+     * \brief D1-perf (Étage A) shared driver: a possessive class+/++ loop, bare/suffixed (\ref
+     *        pattern_hints::possessive_prefix_size == 0) or delimited/"quoted" (non-zero) -- the
+     *        BODY's own class/cp-class membership test is supplied by \p in_class / \p scan_end so this
+     *        one driver serves both the byte-class and the code-point-class runners below.
+     *
+     * A possessive run never gives back: once matched, it always advances maximally, so -- unlike \ref
+     * run_class_loop's whole-pattern shape, which has nothing AFTER the loop to fail against -- this
+     * scan can hit a required literal SUFFIX (or, for the delimited shape, fail to find the closing
+     * SUFFIX after a required PREFIX) that does not follow. There is nothing to retry within one
+     * attempt (that is exactly what "possessive" means); in \c search mode the NEXT candidate is tried,
+     * and the retry skips straight to the failed attempt's own body end -- provably safe and linear, not
+     * merely fast, PROVIDED the eligibility \ref pattern_hints documents held at recognition time
+     * (prefilter.hpp): every candidate strictly between the attempt's start and its body end is
+     * guaranteed to fail identically (an unbounded possessive run has no shorter/longer variant to
+     * offer), so skipping them loses no leftmost match.
+     *
+     * \tparam InClass    `bool(std::size_t) -> true` if the body's class/cp-class accepts the
+     *                    byte/code point starting at that offset.
+     * \tparam ScanEnd    `std::size_t(std::size_t from) -> end` of the maximal body run starting at
+     *                    \p from (== \p from itself when \p from is not a valid start -- a
+     *                    zero-length run).
+     * \tparam LastWidth  `std::size_t(std::size_t end) -> width` (in bytes) of the LAST atom
+     *                    consumed by a non-empty run ending at \p end -- fixed at 1 for a byte or
+     *                    byte-class body, a backward UTF-8 decode for a code-point-class body (see
+     *                    \ref codepoint_retreat). Only ever called with \p end strictly greater than
+     *                    the run's own start, so there is always at least one atom to measure.
+     */
+    template <typename OutSlots, typename InClass, typename ScanEnd, typename LastWidth>
+    constexpr bool run_possessive_loop_generic(std::string_view    text,
+                                               std::size_t         start,
+                                               run_mode            mode,
+                                               OutSlots&           out_slots,
+                                               const InClass&      in_class,
+                                               const ScanEnd&      scan_end,
+                                               const LastWidth&    last_width)
+    {
+      const auto&        h           {prog_.hints};
+      const std::uint8_t prefix_size {h.possessive_prefix_size};
+      const std::uint8_t suffix_size {h.possessive_suffix_size};
+      const auto         suffix_ok = [&](std::size_t pos) {
+                                       if (suffix_size == 0) {
+                                         return true;
+                                       }
+                                       if (pos + suffix_size > text.size()) {
+                                         return false;
+                                       }
+                                       for (std::uint8_t k {0}; k < suffix_size; ++k) {
+                                         if (text[pos + k] != h.possessive_suffix[k]) {
+                                           return false;
+                                         }
+                                       }
+                                       return true;
+                                     };
+      // R2 capture fix: the captured group is the possessive loop's own LAST iteration, not the
+      // whole match span -- re's own semantics, matching what the general VM already got right (it
+      // was never routed through this driver for a byte-literal body before R2 armed one, which is
+      // how this bug -- shipped since D1-perf's original klass/klass_cp fast path, 7.36 -- surfaced
+      // live). \p body_end is the loop's own end (before any suffix); defaults to npos for the
+      // delimited ("quoted") shape, which never captures at all (possessive_group_start stays -1
+      // there by construction, so the branch below never runs regardless of what body_end is).
+      // Zero iterations (body_end == s) leaves the group UNSET (npos, re's `None`), never [s, s).
+      const auto write_success = [&](std::size_t s, std::size_t e, std::size_t body_end = npos) {
+                                   out_slots.assign(prog_.slot_count, npos);
+                                   out_slots[0] = s;
+                                   out_slots[1] = e;
+                                   if (h.possessive_group_start >= 0 && body_end != npos && body_end > s) {
+                                     const std::size_t w {last_width(body_end)};
+                                     out_slots[static_cast<std::size_t>(h.possessive_group_start)] =
+                                       body_end - w;
+                                     out_slots[static_cast<std::size_t>(h.possessive_group_end)] = body_end;
+                                   }
+                                 };
+      const auto fail = [&]() {
+                          out_slots.assign(prog_.slot_count, npos);
+                          return false;
+                        };
+      if (prefix_size > 0) {
+        // Delimited ("quoted") shape: no capture, no \b wrap by construction (prefilter.hpp never
+        // arms both together this train) -- suffix_ok / write_success above already cover it exactly.
+        const auto find_prefix = [&](std::size_t from) -> std::size_t {
+                                   if (from > text.size() || prefix_size > text.size() - from) {
+                                     return npos;
+                                   }
+                                   for (std::size_t i {from}; i <= text.size() - prefix_size; ++i) {
+                                     bool ok {true};
+                                     for (std::uint8_t k {0}; k < prefix_size; ++k) {
+                                       if (text[i + k] != h.possessive_prefix[k]) {
+                                         ok = false;
+                                         break;
+                                       }
+                                     }
+                                     if (ok) {
+                                       return i;
+                                     }
+                                   }
+                                   return npos;
+                                 };
+        if (mode == run_mode::full || mode == run_mode::prefix) {
+          if (prefix_size > (text.size() >= start ? text.size() - start : 0)) {
+            return fail();
+          }
+          for (std::uint8_t k {0}; k < prefix_size; ++k) {
+            if (text[start + k] != h.possessive_prefix[k]) {
+              return fail();
+            }
+          }
+          const std::size_t body_end {scan_end(start + prefix_size)};
+          if (!suffix_ok(body_end)) {
+            return fail();
+          }
+          const std::size_t end {body_end + suffix_size};
+          if (mode == run_mode::full && end != text.size()) {
+            return fail();
+          }
+          write_success(start, end);
+          return true;
+        }
+        std::size_t pos {start};
+        while (true) {
+          const std::size_t cand {find_prefix(pos)};
+          if (cand == npos) {
+            return fail();
+          }
+          const std::size_t body_end {scan_end(cand + prefix_size)};
+          if (suffix_ok(body_end)) {
+            write_success(cand, body_end + suffix_size);
+            return true;
+          }
+          pos = body_end > cand ? body_end : cand + 1;
+        }
+      }
+      // Bare / suffixed (no leading literal).
+      const bool min_nonzero {h.possessive_min_nonzero};
+      // B-1 window-edge guard: see pattern_hints::wb_lead_maximal_run's own doc comment. Applies
+      // only when `start` itself is the candidate AND is actually in-class (a zero-length body at
+      // a non-class `start` has no "run" for B-1's argument to be about in the first place).
+      const auto b1_edge_blocks = [&](std::size_t pos) {
+                                    return h.wb_lead_maximal_run && pos > 0 && pos < text.size() &&
+                                           in_class(pos) &&
+                                           !assertion_holds(assert_kind::word_boundary, pos, false);
+                                  };
+      if (mode == run_mode::full || mode == run_mode::prefix) {
+        if (min_nonzero && (start >= text.size() || !in_class(start))) {
+          return fail();
+        }
+        if (b1_edge_blocks(start)) {
+          return fail();
+        }
+        const std::size_t body_end {start < text.size() && in_class(start) ? scan_end(start) : start};
+        if (!wb_boundaries_ok(start, body_end) || !suffix_ok(body_end)) {
+          return fail();
+        }
+        const std::size_t end {body_end + suffix_size};
+        if (mode == run_mode::full && end != text.size()) {
+          return fail();
+        }
+        write_success(start, end, body_end);
+        return true;
+      }
+      std::size_t pos {start};
+      while (pos <= text.size()) {
+        if (min_nonzero) {
+          while (pos < text.size() && !in_class(pos)) {
+            ++pos;
+          }
+          if (pos >= text.size()) {
+            break;
+          }
+        }
+        if (pos == start && b1_edge_blocks(pos)) {
+          // No genuine boundary at the window's own edge: skip past this whole run (a candidate
+          // reached by scanning forward past a non-class byte is provably preceded by one, so
+          // this guard can never re-trigger on a LATER iteration of this same loop).
+          pos = scan_end(pos);
+          continue;
+        }
+        const std::size_t body_end {pos < text.size() && in_class(pos) ? scan_end(pos) : pos};
+        if (wb_boundaries_ok(pos, body_end) && suffix_ok(body_end)) {
+          write_success(pos, body_end + suffix_size, body_end);
+          return true;
+        }
+        pos = body_end > pos ? body_end : pos + 1;
+      }
+      return fail();
+    }
+
+    //! \brief R2 (phase Raffinement): possessive literal-byte +/++ loop (`byte_loop_possessive`,
+    //!        e.g. `a++`) -- the asymmetry class_ref's typing made natural to close: this opcode was
+    //!        already emitted and executed by the general VM, but had no dedicated recognizer or
+    //!        runner, so `a++` fell back to the general VM despite the class/cp-class family
+    //!        already having one. See \ref run_possessive_loop_generic for the shared algorithm.
+    template <typename OutSlots>
+    constexpr bool run_possessive_byte_loop(std::string_view  text,
+                                            std::size_t       start,
+                                            run_mode          mode,
+                                            OutSlots&         out_slots)
+    {
+      prof::tick_route(prog_.hints.possessive_prefix_size > 0 ? prof::route::possessive_delimited
+                                                               : prof::route::possessive_byte_loop);
+      const std::uint8_t target {static_cast<std::uint8_t>(prog_.hints.possessive_class.index)};
+      const auto         in_class = [&](std::size_t i) {
+                                      return static_cast<std::uint8_t>(text[i]) == target;
+                                    };
+      const auto scan_end = [&](std::size_t from) -> std::size_t {
+                              std::size_t e {from};
+                              while (e < text.size() && in_class(e)) {
+                                ++e;
+                              }
+                              return e;
+                            };
+      // A byte's own width is always 1 -- no decode needed.
+      const auto last_width = [](std::size_t) { return std::size_t {1}; };
+      return run_possessive_loop_generic(text, start, mode, out_slots, in_class, scan_end, last_width);
+    }
+
+    //! \brief D1-perf Étage A: possessive class+/++ loop over a BYTE class (`klass_loop_possessive`).
+    //!        See \ref run_possessive_loop_generic for the shared algorithm.
+    template <typename OutSlots>
+    constexpr bool run_possessive_class_loop(std::string_view  text,
+                                             std::size_t       start,
+                                             run_mode          mode,
+                                             OutSlots&         out_slots)
+    {
+      prof::tick_route(prog_.hints.possessive_prefix_size > 0 ? prof::route::possessive_delimited
+                                                               : prof::route::possessive_class_loop);
+      const std::uint8_t* const tbl {
+        class_table(static_cast<std::size_t>(prog_.hints.possessive_class.index))};
+      const auto in_class = [&](std::size_t i) {
+                              return tbl[static_cast<std::uint8_t>(text[i])] != 0U;
+                            };
+      const auto scan_end = [&](std::size_t from) -> std::size_t {
+                              std::size_t e {from};
+                              while (e < text.size() && in_class(e)) {
+                                ++e;
+                              }
+                              return e;
+                            };
+      // A byte-class member is always 1 byte wide -- no decode needed.
+      const auto last_width = [](std::size_t) { return std::size_t {1}; };
+      return run_possessive_loop_generic(text, start, mode, out_slots, in_class, scan_end, last_width);
+    }
+
+    //! \brief D1-perf Étage A: possessive class+/++ loop over a CODE-POINT class
+    //!        (`klass_cp_loop_possessive`). Mirrors \ref run_cp_class_loop's decode/membership
+    //!        primitives (no O2r-1b GCC split here yet -- measure-first; not in this train's scope).
+    //!        See \ref run_possessive_loop_generic for the shared algorithm.
+    template <typename OutSlots>
+    constexpr bool run_possessive_cp_class_loop(std::string_view  text,
+                                                std::size_t       start,
+                                                run_mode          mode,
+                                                OutSlots&         out_slots)
+    {
+      prof::tick_route(prog_.hints.possessive_prefix_size > 0 ? prof::route::possessive_delimited
+                                                               : prof::route::possessive_cp_class_loop);
+      const std::size_t         cp_index {static_cast<std::size_t>(prog_.hints.possessive_class.index)};
+      const detail::cp_class&   cc       {prog_.cp_classes[cp_index]};
+      const std::uint8_t* const asc      {cp_ascii_table(cp_index)};
+      const auto                member_hi = [&](char32_t cp) -> bool {
+                                              if (cp <= cp_page_max) {
+                                                const std::uint64_t* const page {cp_page_table(cp_index)};
+                                                const std::uint32_t        bit  {static_cast<std::uint32_t>(cp) - 0x80U};
+                                                return ((page[bit >> 6U] >> (bit & 63U)) & std::uint64_t {1}) != 0U;
+                                              }
+                                              return cp_class_matches(cc, cp);
+                                            };
+      const auto cp_width = [&](std::size_t i) -> std::size_t {
+                              const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, i)};
+                              if (!dc.valid) {
+                                return 0;
+                              }
+                              const bool m {dc.cp < 0x80U ? asc[dc.cp] != 0U : member_hi(dc.cp)};
+                              return m ? dc.length : 0;
+                            };
+      const auto in_class = [&](std::size_t i) { return i < text.size() && cp_width(i) != 0; };
+      const auto scan_end = [&](std::size_t from) -> std::size_t {
+                              std::size_t e {from};
+                              while (e < text.size()) {
+                                const std::size_t w {cp_width(e)};
+                                if (w == 0) {
+                                  break;
+                                }
+                                e += w;
+                              }
+                              return e;
+                            };
+      // The last code point's own width, decoded backward from its end -- see codepoint_retreat's
+      // own doc comment. `start` is a sound floor: the loop can never have consumed anything before
+      // its own start.
+      const auto last_width = [&](std::size_t end) { return detail::codepoint_retreat(text, end, start); };
+      return run_possessive_loop_generic(text, start, mode, out_slots, in_class, scan_end, last_width);
     }
 
     /*!
@@ -1739,6 +2102,14 @@ namespace real::detail {
      *        byte wide, so each save sits at a constant offset from the match start; a single linear
      *        pass writes `slot = match_start + offset`. No-op when the pattern has no inner groups
      *        (slot_count 2). Not a re-match: the bytes were already verified.
+     *
+     * Starts at \ref pattern_hints::body_pc, not a hardcoded `1`: an optional leading `\b`/`\B`
+     * (`hints.wb_lead`) sits at pc 1, and starting the walk there instead of at the body's own
+     * first byte/klass/save hits the assert_position immediately, which matches neither the
+     * byte/klass nor the save arm below and so `break`s on the FIRST instruction — silently
+     * filling zero capture slots. Found live: `\B(\w){2}` (plain greedy, no possessive quantifier
+     * involved) loses group(1) entirely, `(\w){2}` without the `\B` does not — confirmed by
+     * bisection, not assumed from reading the loop.
      * \param[in]  match_start Byte offset where the match begins.
      * \param[out] out_slots   Receives the group slots.
      */
@@ -1749,8 +2120,10 @@ namespace real::detail {
       if (prog_.slot_count <= 2) {
         return;
       }
-      std::size_t offset {};
-      for (std::size_t pc {1}; pc < prog_.code.size(); ++pc) {
+      const std::size_t body_pc {prog_.hints.body_pc == 0 ? std::size_t {1}
+                                                          : static_cast<std::size_t>(prog_.hints.body_pc)};
+      std::size_t offset        {};
+      for (std::size_t pc {body_pc}; pc < prog_.code.size(); ++pc) {
         const instr& instruction {prog_.code[pc]};
         if (instruction.op == opcode::byte || instruction.op == opcode::klass) {
           ++offset;
@@ -1759,7 +2132,7 @@ namespace real::detail {
           out_slots[static_cast<std::size_t>(instruction.arg16)] = match_start + offset;
         }
         else {
-          break; // reached match
+          break; // reached a trailing \b/\B or match
         }
       }
     }

@@ -181,13 +181,20 @@ namespace real::detail {
   }
 
   /*!
-   * \brief The ASCII whitespace set behind `\s`.
-   * \return The set `[ \t\n\r\f\v]` plus `U+001C`–`U+001F`.
+   * \brief The ASCII whitespace set behind `\s` under `flags::ascii` / `flags::bytes`.
+   * \return The set `[ \t\n\r\f\v]`.
    *
-   * \note Python `re`'s `\s` (REAL's contract) includes the four separators `U+001C`–`U+001F` (FS/GS/RS/US)
-   *       beyond the usual ASCII whitespace — `str.isspace()` does. This ASCII set is hand-written (tier-1 core
-   *       cannot reach the tier-2 generated `space_ranges`, which is oracle-built and does list them), so a
-   *       test pins it to that oracle table over `[0,128)` — see `ascii_shorthands_match_generated_ranges`.
+   * \note This is Python `re`'s own ASCII-mode `\s` set — NOT `str.isspace()`, which is a
+   *       different, broader (Unicode-aware) predicate that happens to agree with Python's
+   *       *text*-mode `\s` (the generated `space_ranges` table, which does list `U+001C`-
+   *       `U+001F` FS/GS/RS/US — verified live: `re.match(r"\s", "\x1c")` matches, but
+   *       `re.match(r"(?a)\s", "\x1c")` does not). An earlier version of this comment
+   *       conflated the two and wrongly added FS/GS/RS/US here too, making ASCII-mode `\s`
+   *       accept four bytes Python's own ASCII `\s` rejects — found by differential fuzzing
+   *       (`(?a)\s` matching `'\\x1c'` where `re` does not), fixed by removing them; `\\w`/`\\d`/
+   *       `\\b` were already correct (unaffected — this bug was specific to `space_set`).
+   *       `space_ranges` (text/Unicode mode, unaffected by this set) is the correct place
+   *       FS/GS/RS/US belong, and already lists them (`U+001C`-`U+0020`).
    */
   constexpr char_class space_set()
   {
@@ -198,10 +205,6 @@ namespace real::detail {
     result.set('\r');
     result.set('\f');
     result.set('\v');
-    result.set(char {0x1C}); // FS  \ Python re \s also matches these four (str.isspace); the generated
-    result.set(char {0x1D}); // GS  |  space_ranges lists U+001C-U+001F, the ASCII set must agree — the
-    result.set(char {0x1E}); // RS  |  drift-guard test asserts it.
-    result.set(char {0x1F}); // US /
     return result;
   }
 

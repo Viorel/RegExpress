@@ -285,6 +285,42 @@ namespace real {
       std::int32_t  secondary_target {}; //!< Secondary branch target (split).
     };
 
+    //! \brief Which operand space a `class_ref` indexes: `byte_loop_possessive`'s own literal
+    //!        byte value (not a table at all), `classes[]` (`klass_loop_possessive`), or
+    //!        `cp_classes[]` (`klass_cp_loop_possessive`). `none` = unarmed.
+    enum class class_kind : std::uint8_t
+    {
+      none,
+      byte,
+      klass,
+      klass_cp,
+    };
+
+    /*!
+     * \brief A typed reference into one of the three possessive-loop-body opcodes' own operand
+     *        spaces.
+     *
+     * R2 (phase Raffinement): replaces the untyped `{classes-index, cp_classes-index, is_cp bool}`
+     * triple that was Bug D/E's own locus -- prefilter.hpp's same_atom check compared a
+     * classes-table index against a cp_classes-table index with nothing but a hand-written side
+     * check to know they were different tables; a coincidental numeric collision (both table-index
+     * 0) let `[abc].*+` match unconditionally. A `class_ref`'s `operator==` always compares
+     * `kind` first, so a byte/klass/klass_cp mismatch cannot silently compare equal.
+     */
+    struct class_ref
+    {
+      class_kind    kind  {class_kind::none};
+      std::uint16_t index {}; //!< classes[]/cp_classes[] index (kind == klass/klass_cp), or the literal byte value 0-255 (kind == byte).
+
+      [[nodiscard]] constexpr bool armed() const noexcept
+      {
+        return kind != class_kind::none;
+      }
+
+      friend constexpr bool operator==(const class_ref&,
+                                       const class_ref&) noexcept = default;
+    };
+
     /*!
      * \brief Search-acceleration hints extracted from a compiled program.
      *
@@ -377,12 +413,51 @@ namespace real {
       std::int16_t trailing_lookaround {-1};
       std::int32_t trailing_la_class   {-1}; //!< Class index for \ref trailing_lookaround body; −1 if unset.
 
+      //! \brief D1-perf (Étage A): possessive fast-path hints -- additive, mirrors \ref greedy_class_loop /
+      //!        \ref greedy_cp_class / \ref prefix. Scope: UNBOUNDED possessive loops only (`X*+`/`X++`, an
+      //!        opcode-level self-loop via `jump` back to itself) -- a bounded count (`X{n,m}+`) has no "any
+      //!        start within the run reaches the identical body end" invariant (the upper bound can cut
+      //!        different start positions at genuinely different lengths -- see the per-attempt-independence
+      //!        divergence pinned in test_static.cpp's `(a){2,4}+b`), so a linear-time skip-based search
+      //!        cannot be built for it here; it stays on the general VM. At most one leading mandatory copy
+      //!        (min in {0,1}); min >= 2 also stays on the general VM (not in this train's measured corpus).
+      //!        A non-empty \ref possessive_prefix additionally requires (checked at recognition time,
+      //!        prefilter.hpp) that the loop's class excludes the prefix's AND suffix's leading byte -- the
+      //!        invariant that makes the delimited/"quoted" runner's skip-to-body-end retry provably linear
+      //!        rather than quadratic on adversarial input (`id=[a-z0-9]*+;` fails this and stays general --
+      //!        alphanumeric prefix bytes are members of the loop's own class).
+      std::array<char, 8>   possessive_prefix       {};   //!< Required literal BEFORE the loop (0 len = none; the delimited/"quoted" shape).
+      std::uint8_t          possessive_prefix_size  {};
+      std::array<char, 8>   possessive_suffix       {};   //!< Required literal AFTER the loop (0 len = none; e.g. the 'x' in `\d++x`).
+      std::uint8_t          possessive_suffix_size  {};
+      class_ref             possessive_class        {};   //!< The loop body's class, typed by opcode.
+      std::int16_t          possessive_group_start  {-1}; //!< Enveloping single capture group's start slot (mirrors \ref greedy_group_start), -1 = none.
+      std::int16_t          possessive_group_end    {-1}; //!< The enveloping group's end slot.
+      bool                  possessive_min_nonzero  {};   //!< True for `X++`/`X{1,}+` (one mandatory copy present) — a search candidate MUST be in-class; false for `X*+` (min 0), where a zero-length body is also a valid candidate anywhere.
+
       //! \brief Optional leading/trailing word-boundary wrap on fixed_shape / fixed_alternation /
       //!        exact_literal (Arc II B1). 0 = none; 1 = `\b` (\ref assert_kind::word_boundary);
       //!        2 = `\B` (\ref assert_kind::not_word_boundary). Verified in O(1) at the match
       //!        start/end after the body fast-path accepts a candidate.
       std::uint8_t wb_lead  {};
       std::uint8_t wb_trail {};
+      //! \brief True when a genuine leading `\b` was dropped by the B-1 optimization (a maximal
+      //!        greedy/possessive run can only legitimately START where the preceding character
+      //!        is non-word, so the runtime check is redundant -- \ref resolve_class_wb_hints).
+      //!        That argument silently assumes "preceding character absent" means the TRUE start
+      //!        of the text -- sound for `mode::full`/`mode::prefix` and for `search()`'s own
+      //!        internal position-0 seed, but NOT for a caller-supplied `search(text, pos, ...)`
+      //!        with `pos > 0`: `pos` restricts where a match may START, it does not assert that
+      //!        `text[pos - 1]` is absent or non-word (Python's own `re.search(pat, text, pos)`
+      //!        does not treat `pos` as a virtual string start for `\b` purposes -- verified
+      //!        against the live oracle, and confirmed asymmetric with `endpos`, which DOES act
+      //!        as a virtual end for a *trailing* `\b`, so only the lead side needs this guard).
+      //!        When true, a fast-path runner whose very first search-mode candidate coincides
+      //!        with `start` itself (no forward scan past a genuine non-word byte occurred) must
+      //!        fall back to an explicit `assertion_holds` check at that one position before
+      //!        accepting it — found live by differential fuzzing (`\b\w+` search'd from `pos>0`
+      //!        wrongly matched with no boundary at `pos`).
+      bool wb_lead_maximal_run {};
       //! \brief First consuming (byte/klass) or branch pc for fixed_shape / alternation after
       //!        save 0 and an optional lead `\b`/`\B`. Default 1 (no lead wrap).
       std::uint8_t body_pc {1};

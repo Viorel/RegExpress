@@ -514,20 +514,52 @@ namespace real::detail {
       bool                        negated; //!< True for the uppercase form (`\D \W \S`).
     };
 
+    //! \brief `\s`'s ASCII-range (< 0x80) component for TEXT mode: `space_set()` (the ASCII-MODE set,
+    //!        `[ \t\n\r\f\v]`) plus `U+001C`-`U+001F` (FS/GS/RS/US). Needed because `shorthand_ranges`
+    //!        deliberately omits any wholly-ASCII range from `.ranges` ("already covered by the
+    //!        bitmap") — so for text mode, where `re`'s own `\s` DOES include FS/GS/RS/US (verified:
+    //!        `re.match(r"\s", "\x1c")` matches; `str.isspace()` agrees) but ASCII-mode `\s` does not
+    //!        (`re.match(r"(?a)\s", "\x1c")` does not match), the bitmap that "already covers" the
+    //!        ASCII range must itself differ by mode — `space_set()` alone is only correct for the
+    //!        ASCII-mode case. Found live by differential fuzzing (ASCII mode wrongly matching FS/GS/
+    //!        RS/US) and fixed once at `space_set()` itself before this second bug (text mode then
+    //!        losing them entirely) surfaced immediately in `test_classes.cpp`'s own regression suite —
+    //!        the two modes generate genuinely different ASCII bitmaps, not one shared one.
+    [[nodiscard]] static constexpr char_class space_set_text_ascii_component()
+    {
+      char_class result {space_set()};
+      result.set(char {0x1C}); // FS
+      result.set(char {0x1D}); // GS
+      result.set(char {0x1E}); // RS
+      result.set(char {0x1F}); // US
+      return result;
+    }
+
     //! \brief Maps a shorthand letter to its \ref shorthand_spec. The single place the
     //!        letter -> (set, range table, negation) fact lives; the atom ladder (parse_escape) and the
     //!        class ladder (parse_class_item) share it, then each consumes the spec its own way (emit a
     //!        class node vs merge into a class) -- the same shared-decode / divergent-use split as
     //!        \ref decode_digit_escape.
-    [[nodiscard]] static constexpr shorthand_spec shorthand_class(char letter)
+    //! \param[in] letter    The shorthand letter (`d D w W s S`).
+    //! \param[in] text_mode Whether this shorthand compiles as a text-mode code-point predicate (the
+    //!                      caller's own \ref text_shorthand) — only `\s`/`\S` need it: the ASCII-range
+    //!                      component of `\s` legitimately differs between ASCII mode (`[ \t\n\r\f\v]`)
+    //!                      and text mode (the same set plus `U+001C`-`U+001F`); `\w`/`\d` do not have
+    //!                      this divergence, so they ignore the parameter.
+    [[nodiscard]] static constexpr shorthand_spec shorthand_class(char letter,
+                                                                  bool text_mode)
     {
       switch (letter) {
         case 'd': return {.set = digit_set(), .ranges = digit_ranges, .negated = false};
         case 'D': return {.set = digit_set(), .ranges = digit_ranges, .negated = true};
         case 'w': return {.set = word_set(), .ranges = word_ranges, .negated = false};
         case 'W': return {.set = word_set(), .ranges = word_ranges, .negated = true};
-        case 's': return {.set = space_set(), .ranges = space_ranges, .negated = false};
-        case 'S': return {.set = space_set(), .ranges = space_ranges, .negated = true};
+        case 's':
+          return {.set = text_mode ? space_set_text_ascii_component() : space_set(),
+                  .ranges = space_ranges, .negated = false};
+        case 'S':
+          return {.set = text_mode ? space_set_text_ascii_component() : space_set(),
+                  .ranges = space_ranges, .negated = true};
         default: break;
       }
       // Unreachable: both call sites dispatch only on the six shorthand letters (see parse_escape /
@@ -1633,7 +1665,7 @@ namespace real::detail {
         case 'W':
         case 's':
         case 'S': {
-            const shorthand_spec sc {shorthand_class(peek())};
+            const shorthand_spec sc {shorthand_class(peek(), text_shorthand())};
             ++pos_;
             return add_class_node(out, sc.set, sc.negated, shorthand_ranges(sc.ranges), text_shorthand());
           }
@@ -1755,7 +1787,7 @@ namespace real::detail {
         case 'W':
         case 's':
         case 'S': {
-            const shorthand_spec sc {shorthand_class(peek())};
+            const shorthand_spec sc {shorthand_class(peek(), text_shorthand())};
             ++pos_;
             merge_property(klass, ranges, sc.set, sc.ranges, sc.negated, property_derived);
             return -1;

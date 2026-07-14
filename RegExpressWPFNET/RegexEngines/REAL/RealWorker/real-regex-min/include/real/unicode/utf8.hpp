@@ -114,6 +114,33 @@ namespace real::detail {
     }
     return i - pos;
   }
+
+  /*!
+   * \brief Number of bytes from the code-point boundary immediately before \p end back to \p end --
+   *        the mirror of \ref codepoint_advance, for the width of the LAST code point in a
+   *        well-formed run ending at \p end (a possessive cp-class loop's own last iteration: the
+   *        loop only ever advanced by `codepoint_advance`-consistent steps, so walking backward
+   *        over continuation bytes lands on the same boundary walking forward would have stopped
+   *        at). Capped at 4 (the longest valid UTF-8 sequence) and never walks past \p floor, so a
+   *        malformed/truncated run can never read out of the caller's own known-valid range.
+   *
+   * \param[in] text  The subject text.
+   * \param[in] end   Index one past the last consumed byte; must be <= text.size() and > \p floor.
+   * \param[in] floor Never walk back past this index (the run's own known start).
+   * \return The retreat in bytes (>= 1, <= min(4, end - floor)).
+   */
+  constexpr std::size_t codepoint_retreat(std::string_view text,
+                                          std::size_t      end,
+                                          std::size_t      floor)
+  {
+    const std::size_t  max_back {(end - floor) < 4 ? (end - floor) : std::size_t {4}};
+    std::size_t        w        {1};
+    while (w < max_back &&
+           (static_cast<unsigned>(static_cast<std::uint8_t>(text[end - w])) & 0xC0U) == 0x80U) {
+      ++w; // text[end - w] is itself a continuation byte -- the lead byte is further back still
+    }
+    return w;
+  }
 } // namespace real::detail
 
 #endif // REAL_UTF8_HPP

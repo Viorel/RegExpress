@@ -128,6 +128,51 @@ namespace real::detail {
     return true;
   }
 
+  //! \brief detect_fast_shapes's outer envelope: `save 0`, optional lead `\b`/`\B`. No-ops safely
+  //!        on a shape with no `\b`/`\B` support (e.g. a literal `byte` right after `save 0`).
+  struct shape_lead
+  {
+    std::size_t  body_start {}; //!< pc where the shape-specific body begins.
+    std::uint8_t wb_lead    {}; //!< 0/1/2, see \ref wb_hint_of.
+    bool         ok         {}; //!< false: no leading `save 0`, or a non-wb lead assert disqualifies.
+  };
+
+  [[nodiscard]] constexpr shape_lead parse_shape_lead(std::span<const instr> code) noexcept
+  {
+    if (code.empty() || code[0].op != opcode::save || code[0].arg16 != 0) {
+      return {};
+    }
+    std::size_t  p       {1};
+    std::uint8_t wb_lead {0};
+    if (!peel_optional_lead_wb(code, p, wb_lead)) {
+      return {};
+    }
+    return {.body_start = p, .wb_lead = wb_lead, .ok = true};
+  }
+
+  //! \brief The \ref shape_lead counterpart: optional trail `\b`/`\B` at \p from, then exactly
+  //!        `save 1`, `match` at the very end of \p code. \p from (the body's own end) is the
+  //!        caller's to supply -- only its shape-specific body walk knows where that is.
+  struct shape_close
+  {
+    std::uint8_t wb_trail {}; //!< 0/1/2, see \ref wb_hint_of.
+    bool         ok       {}; //!< false: not exactly `save 1`, `match` at the end after peeling.
+  };
+
+  [[nodiscard]] constexpr shape_close parse_shape_close(std::span<const instr> code,
+                                                        std::size_t            from) noexcept
+  {
+    std::uint8_t wb_trail {0};
+    if (!peel_optional_trail_wb(code, from, wb_trail)) {
+      return {};
+    }
+    if (from + 1 < code.size() && code[from].op == opcode::save && code[from].arg16 == 1 &&
+        code[from + 1].op == opcode::match && from + 2 == code.size()) {
+      return {.wb_trail = wb_trail, .ok = true};
+    }
+    return {};
+  }
+
   //! \brief True if \p cls is exactly the ASCII word set `[0-9A-Za-z_]` (`\w` under bytes/`re.A`).
   [[nodiscard]] constexpr bool is_full_ascii_word_class(const char_class& cls) noexcept
   {
@@ -334,6 +379,21 @@ namespace real::detail {
       any = cc.ascii.test(static_cast<std::uint8_t>(b));
     }
     return any || cc.range_count > 0;
+  }
+
+  //! \brief D1-perf (Étage A) safety check: true if the ASCII byte \p b could be a member of code-point
+  //!        class \p cc — used only to test whether a single-byte delimiter (a "quoted"-shape prefix or
+  //!        suffix) could hide inside a `klass_cp_loop_possessive` body, in which case the delimited
+  //!        fast path must decline (see \ref pattern_hints::possessive_prefix). A non-ASCII \p b (>=
+  //!        0x80) is conservatively treated as a member (unsafe, declines) — this shape's corpus is
+  //!        single-byte ASCII delimiters (`"`, `;`, …), so a multi-byte delimiter simply stays general.
+  [[nodiscard]] constexpr bool cp_class_may_contain_ascii_byte(const cp_class& cc,
+                                                               std::uint8_t    b) noexcept
+  {
+    if (b >= 0x80U) {
+      return true;
+    }
+    return cc.ascii.test(b);
   }
 
   /*!
@@ -747,15 +807,12 @@ namespace real::detail {
   {
     // "class+" shape: save 0, [optional \b/\B,] [group-start save,] klass, split(back, exit),
     // [group-end save,] [optional \b/\B,] save 1, match. Arc B via peel + resolve_class_wb_hints.
+    // R3: the outer envelope (open/close) is \ref parse_shape_lead / \ref parse_shape_close.
     {
-      std::size_t  p       {0};
-      std::int16_t gs      {-1};
-      std::uint8_t wb_lead {0};
-      if (p < code.size() && code[p].op == opcode::save && code[p].arg16 == 0) {
-        ++p;
-        if (!peel_optional_lead_wb(code, p, wb_lead)) {
-          p = code.size(); // non-wb lead assert — disqualify
-        }
+      const shape_lead lead {parse_shape_lead(code)};
+      if (lead.ok) {
+        std::size_t  p  {lead.body_start};
+        std::int16_t gs {-1};
         if (p < code.size() && code[p].op == opcode::save) {
           gs = static_cast<std::int16_t>(code[p].arg16);
           ++p;
@@ -772,26 +829,25 @@ namespace real::detail {
             ++q;
             ok = true;
           }
-          std::uint8_t wb_trail {0};
-          if (!peel_optional_trail_wb(code, q, wb_trail)) {
-            ok = false;
-          }
-          if (ok && q + 1 < code.size() && code[q].op == opcode::save && code[q].arg16 == 1 &&
-              code[q + 1].op == opcode::match && q + 2 == code.size() &&
-              cls >= 0 && static_cast<std::size_t>(cls) < classes.size()) {
+          const shape_close close {ok ? parse_shape_close(code, q) : shape_close {}};
+          if (ok && close.ok && cls >= 0 && static_cast<std::size_t>(cls) < classes.size()) {
             const char_class& cc        {classes[static_cast<std::size_t>(cls)]};
             std::uint8_t      out_lead  {0};
             std::uint8_t      out_trail {0};
             // This shape structurally requires the split/loop matched above -- always a maximal
             // `+` run, never a single code point -- so B-1's redundancy argument always applies.
             if (resolve_class_wb_hints(is_full_ascii_word_class(cc), is_ascii_word_subset_class(cc),
-                                       /*maximal_run=*/ true, wb_lead, wb_trail, out_lead,
+                                       /*maximal_run=*/ true, lead.wb_lead, close.wb_trail, out_lead,
                                        out_trail)) {
               hints.greedy_class_loop  = cls;
               hints.greedy_group_start = gs;
               hints.greedy_group_end   = ge;
               hints.wb_lead            = out_lead;
               hints.wb_trail           = out_trail;
+              // B-1 dropped a genuine leading \b (wb_lead was 1, out_lead came back 0): the
+              // runner's search-mode fast path needs the start>0 window-edge guard -- see
+              // pattern_hints::wb_lead_maximal_run's own doc comment for the full argument.
+              hints.wb_lead_maximal_run = (lead.wb_lead == 1 && out_lead == 0);
             }
           }
         }
@@ -830,15 +886,12 @@ namespace real::detail {
 
     // Code-point class (klass_cp + three klass continuations), optional greedy `+`, optional `\b`/`\B`
     // wraps (Arc B), optional one capturing group. Unicode `\w+` / `\d+` / `\s+` via peel + resolve.
+    // R3: the outer envelope (open/close) is \ref parse_shape_lead / \ref parse_shape_close.
     {
-      std::size_t  p       {0};
-      std::int16_t gs      {-1};
-      std::uint8_t wb_lead {0};
-      if (p < code.size() && code[p].op == opcode::save && code[p].arg16 == 0) {
-        ++p;
-        if (!peel_optional_lead_wb(code, p, wb_lead)) {
-          p = code.size();
-        }
+      const shape_lead lead {parse_shape_lead(code)};
+      if (lead.ok) {
+        std::size_t  p  {lead.body_start};
+        std::int16_t gs {-1};
         if (p < code.size() && code[p].op == opcode::save) {
           gs = static_cast<std::int16_t>(code[p].arg16);
           ++p;
@@ -862,14 +915,9 @@ namespace real::detail {
             ++q;
             ok = true;
           }
-          std::uint8_t wb_trail {0};
-          if (!peel_optional_trail_wb(code, q, wb_trail)) {
-            ok = false;
-          }
-          if (ok && q + 1 < code.size() && code[q].op == opcode::save && code[q].arg16 == 1 &&
-              code[q + 1].op == opcode::match && q + 2 == code.size() &&
-              cp_idx >= 0 && static_cast<std::size_t>(cp_idx) < cp_classes.size()) {
-            const bool has_wb {wb_lead != 0 || wb_trail != 0};
+          const shape_close close {ok ? parse_shape_close(code, q) : shape_close {}};
+          if (ok && close.ok && cp_idx >= 0 && static_cast<std::size_t>(cp_idx) < cp_classes.size()) {
+            const bool has_wb {lead.wb_lead != 0 || close.wb_trail != 0};
             // Bare path: no Unicode table walk (keeps constexpr light for static_regex).
             if (!has_wb) {
               hints.greedy_cp_class      = cp_idx;
@@ -888,13 +936,14 @@ namespace real::detail {
               // only holds for the former, so it must gate on the ACTUAL shape, not assume it.
               if (resolve_class_wb_hints(is_full_unicode_word_cp_class(cc, cp_ranges),
                                          is_unicode_word_subset_cp_class(cc, cp_ranges), plus,
-                                         wb_lead, wb_trail, out_lead, out_trail)) {
+                                         lead.wb_lead, close.wb_trail, out_lead, out_trail)) {
                 hints.greedy_cp_class      = cp_idx;
                 hints.greedy_cp_class_plus = plus;
                 hints.greedy_group_start   = gs;
                 hints.greedy_group_end     = ge;
                 hints.wb_lead              = out_lead;
                 hints.wb_trail             = out_trail;
+                hints.wb_lead_maximal_run  = (lead.wb_lead == 1 && out_lead == 0);
               }
             }
           }
@@ -910,22 +959,21 @@ namespace real::detail {
     // the exact-literal path first. A klass_cp (Unicode shorthand, variable width), split/jump
     // (alternation, {n,m}/+/*/?), `.` or a negated class (byte-level branches), non-wb assertions,
     // and lookarounds all break the run.
+    // R3: only \ref parse_shape_lead applies here -- the close interleaves its trailing-wb peel
+    // with the arbitrary-length body walk below, unlike \ref shape_close's immediate check.
     {
-      std::size_t  i           {};
-      std::int32_t width       {};
-      std::int32_t open_groups {};  // capturing groups (slots >= 2) currently open, for the nesting guard
-      bool         closed      {};  // saw the closing save (slot 1)
-      bool         nested      {};  // a group opened inside another -- kept on the general VM (flat only)
-      std::uint8_t wb_lead     {};
-      std::uint8_t wb_trail    {};
-      std::uint8_t body_pc     {1};
-      bool         saw_body    {};  // true once a consuming op has been seen (trail assert only after)
-      if (i < code.size() && code[i].op == opcode::save && code[i].arg16 == 0) {
-        ++i; // opening save (slot 0)
-        if (!peel_optional_lead_wb(code, i, wb_lead)) {
-          i = code.size(); // non-wb lead — not this shape
-        }
-        else if (wb_lead != 0) {
+      std::int32_t       width       {};
+      std::int32_t       open_groups {}; // capturing groups (slots >= 2) currently open, for the nesting guard
+      bool               closed      {}; // saw the closing save (slot 1)
+      bool               nested      {}; // a group opened inside another -- kept on the general VM (flat only)
+      std::uint8_t       wb_trail    {};
+      std::uint8_t       body_pc     {1};
+      bool               saw_body    {}; // true once a consuming op has been seen (trail assert only after)
+      const shape_lead   lead        {parse_shape_lead(code)};
+      std::size_t        i           {lead.ok ? lead.body_start : code.size()};
+      const std::uint8_t wb_lead     {lead.wb_lead};
+      if (lead.ok) {
+        if (wb_lead != 0) {
           body_pc = static_cast<std::uint8_t>(i);
         }
         while (i < code.size()) {
@@ -1091,6 +1139,227 @@ namespace real::detail {
           hints.wb_lead  = wb_lead;
           hints.wb_trail = wb_trail;
           hints.body_pc  = body_pc;
+        }
+      }
+    }
+
+    // D1-perf (Étage A): possessive class+/cp-class+ loop -- UNBOUNDED only (X*+/X++, self-loop via
+    // `jump` back to the loop opcode's own pc; see pattern_hints's doc comment for why a bounded count
+    // is out of scope). Layout: save 0, [optional lead \b/\B], [optional ONE mandatory copy: klass |
+    // klass_cp(+3-instr chain), the SAME class/cp-class as the loop, min=1 -- min>=2 stays general],
+    // loop_pc: klass_loop_possessive | klass_cp_loop_possessive(+3-instr chain), jump(self), [optional
+    // trail \b/\B], [optional literal SUFFIX: 0+ plain `byte` ops, e.g. the 'x' in \d++x], save 1, match.
+    //
+    // Capture: NOT a preceding `save` -- Tier 1's own design (program.hpp's opcode doc comment)
+    // deliberately never emits one (a `save` before the test would fire speculatively and corrupt a
+    // prior successful iteration's capture the moment a later attempt failed). The ONLY place a capture
+    // slot is visible is `code[loop_pc].primary_target`, read directly off the loop opcode itself once
+    // found -- there is nothing to "look for" ahead of it. (`([a-z])*+b`, the group AROUND the
+    // quantifier, compiles this way and is exactly what this block targets; `([a-z]++)`, the group
+    // wrapping an ALREADY-possessive class with no quantifier of its own, is an ordinary capturing group
+    // compiled with plain ahead-of-time save/save instructions around a Tier-1 loop that itself claims
+    // no capture -- a structurally different, uncaptured-at-the-opcode-level shape this block also
+    // matches, just with gs resolving to -1: correct, not a bug, since the group's OWN save/save pair,
+    // sitting outside [p, loop_pc), is simply invisible to (and irrelevant for) this recognizer.
+    // R3: only \ref parse_shape_lead applies here -- the close interleaves its trailing-wb peel
+    // with an optional literal SUFFIX before save1+match, unlike \ref shape_close's immediate check.
+    {
+      const shape_lead   lead    {parse_shape_lead(code)};
+      const std::size_t  p       {lead.ok ? lead.body_start : code.size()};
+      const std::uint8_t wb_lead {lead.wb_lead};
+      if (lead.ok) {
+        const std::size_t mandatory_start {p};
+        std::size_t       loop_pc         {mandatory_start};
+        bool              has_mandatory   {false};
+        class_ref         mandatory_ref   {};
+        if (loop_pc < code.size() && code[loop_pc].op == opcode::byte) {
+          loop_pc       = mandatory_start + 1;
+          has_mandatory = true;
+          mandatory_ref = {.kind = class_kind::byte, .index = code[mandatory_start].arg8};
+        }
+        else if (loop_pc < code.size() && code[loop_pc].op == opcode::klass) {
+          loop_pc       = mandatory_start + 1;
+          has_mandatory = true;
+          mandatory_ref = {.kind = class_kind::klass, .index = code[mandatory_start].arg16};
+        }
+        else if (loop_pc + 3 < code.size() && code[loop_pc].op == opcode::klass_cp &&
+                 code[loop_pc + 1].op == opcode::klass && code[loop_pc + 2].op == opcode::klass &&
+                 code[loop_pc + 3].op == opcode::klass) {
+          loop_pc       = mandatory_start + 4;
+          has_mandatory = true;
+          mandatory_ref = {.kind = class_kind::klass_cp, .index = code[mandatory_start].arg16};
+        }
+        if (loop_pc < code.size() && (code[loop_pc].op == opcode::byte_loop_possessive ||
+                                      code[loop_pc].op == opcode::klass_loop_possessive ||
+                                      code[loop_pc].op == opcode::klass_cp_loop_possessive)) {
+          class_kind loop_kind {class_kind::klass_cp};
+          if (code[loop_pc].op == opcode::byte_loop_possessive) {
+            loop_kind = class_kind::byte;
+          }
+          else if (code[loop_pc].op == opcode::klass_loop_possessive) {
+            loop_kind = class_kind::klass;
+          }
+          const std::int32_t body_idx  {loop_kind == class_kind::byte ? code[loop_pc].arg8
+                                                                      : code[loop_pc].arg16};
+          const class_ref    loop_ref  {.kind = loop_kind, .index = static_cast<std::uint16_t>(body_idx)};
+          const std::int32_t cap_slot  {code[loop_pc].primary_target};
+          const std::int16_t gs        {cap_slot >= 0 ? static_cast<std::int16_t>(cap_slot) : std::int16_t {-1}};
+          // A captured shape must have no mandatory copy (min == 0): a captured min>=1 has its OWN,
+          // structurally different shape (a save/save-wrapped mandatory copy, unrolled per repetition)
+          // this block does not attempt to recognize this train -- see the doc comment above.
+          // Possessive-capture-fix: write_success now captures the loop's own LAST iteration (a
+          // last_width policy per class_kind), not the whole match span -- the bug that originally
+          // made this recognizer decline kind=byte captured outright is fixed at the driver level, so
+          // byte captures exactly like klass/klass_cp now.
+          const bool capture_ok {cap_slot < 0 || !has_mandatory};
+          // Never assume: the mandatory copy (if any) must be literally the same atom the loop tests
+          // -- class_ref's own operator== compares \ref class_kind first, so a byte/klass/klass_cp
+          // mismatch (the exact shape of Bug D/E: `[abc].*+`'s mandatory `klass` colliding with the
+          // loop's `klass_cp` on a shared numeric index) cannot silently compare equal.
+          const bool         same_atom   {!has_mandatory || mandatory_ref == loop_ref};
+          const std::size_t  exit_pc     {static_cast<std::size_t>(code[loop_pc].secondary_target)};
+          const std::size_t  block_width {loop_kind == class_kind::klass_cp ? std::size_t {4}
+                                                                             : std::size_t {1}};
+          const std::size_t after_loop   {loop_pc + block_width};
+          if (capture_ok && same_atom && after_loop < code.size() &&
+              code[after_loop].op == opcode::jump &&
+              code[after_loop].primary_target == static_cast<std::int32_t>(loop_pc) &&
+              exit_pc == after_loop + 1) {
+            std::size_t  q        {exit_pc};
+            std::uint8_t wb_trail {0};
+            if (!peel_optional_trail_wb(code, q, wb_trail)) {
+              q = code.size(); // disqualify below
+            }
+            std::array<char, 8>  suffix      {};
+            std::uint8_t         suffix_len  {0};
+            while (q < code.size() && code[q].op == opcode::byte && suffix_len < suffix.size()) {
+              suffix[suffix_len] = static_cast<char>(code[q].arg8);
+              ++suffix_len;
+              ++q;
+            }
+            // Non-empty-consumption guard: a min=0 (star) loop with no required suffix can match the
+            // EMPTY string (0 repetitions, nothing after) -- exactly the case run()'s dispatch comment
+            // warns fast paths must never reach ("Fast paths only fire for patterns that always
+            // consume"), since this driver has no forbid_empty_until/iterator-advance contract. Mirrors
+            // greedy's own class+ recognizer, which for the identical reason never arms on bare `[a-z]*`
+            // (confirmed empirically: `[a-z]*` alone stays on general_full, only `[a-z]+` arms).
+            const bool table_bound_ok {loop_kind == class_kind::byte ||
+                                       (loop_kind == class_kind::klass_cp
+                                          ? static_cast<std::size_t>(body_idx) < cp_classes.size()
+                                          : static_cast<std::size_t>(body_idx) < classes.size())};
+            if (q + 1 < code.size() && q + 2 == code.size() && code[q].op == opcode::save &&
+                code[q].arg16 == 1 && code[q + 1].op == opcode::match && body_idx >= 0 &&
+                (has_mandatory || suffix_len >= 1) && table_bound_ok) {
+              const bool   has_wb    {wb_lead != 0 || wb_trail != 0};
+              // R2: a literal byte has no "word class" to resolve B-1 eligibility against yet --
+              // the wb-wrapped byte-possessive shape (`\ba++\b`) stays on the general VM, documented
+              // rather than silently dropped; the bare/suffixed shape (`a++`, `a++x`) still arms
+              // (arm starts true whenever there is no wb at all, regardless of kind).
+              bool         arm       {!has_wb};
+              std::uint8_t out_lead  {0};
+              std::uint8_t out_trail {0};
+              if (has_wb && loop_kind != class_kind::byte) {
+                // Unbounded possessive: always a maximal run wherever it starts (no upper bound to cut
+                // it short at different lengths for different starts), so B-1's redundancy argument --
+                // "a maximal run can only legitimately start where the byte before it is non-word" --
+                // holds unconditionally here, unlike a BOUNDED possessive count (see pattern_hints's own
+                // doc comment on why those stay out of this fast path's scope entirely).
+                if (loop_kind == class_kind::klass_cp) {
+                  const cp_class& cc {cp_classes[static_cast<std::size_t>(body_idx)]};
+                  arm = resolve_class_wb_hints(is_full_unicode_word_cp_class(cc, cp_ranges),
+                                               is_unicode_word_subset_cp_class(cc, cp_ranges),
+                                               /*maximal_run=*/ true, wb_lead, wb_trail, out_lead,
+                                               out_trail);
+                }
+                else {
+                  const char_class& cc {classes[static_cast<std::size_t>(body_idx)]};
+                  arm = resolve_class_wb_hints(is_full_ascii_word_class(cc), is_ascii_word_subset_class(cc),
+                                               /*maximal_run=*/ true, wb_lead, wb_trail, out_lead,
+                                               out_trail);
+                }
+              }
+              if (arm) {
+                hints.possessive_class        = loop_ref;
+                hints.possessive_group_start  = gs;
+                hints.possessive_group_end    = gs < 0 ? std::int16_t {-1}
+                                                        : static_cast<std::int16_t>(gs + 1);
+                hints.possessive_suffix       = suffix;
+                hints.possessive_suffix_size  = suffix_len;
+                hints.possessive_min_nonzero  = has_mandatory;
+                if (has_wb) {
+                  hints.wb_lead             = out_lead;
+                  hints.wb_trail            = out_trail;
+                  hints.wb_lead_maximal_run = (wb_lead == 1 && out_lead == 0);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // D1-perf (Étage A): possessive delimited ("quoted") shape -- literal PREFIX (1+ bytes) + possessive
+    // class+/cp-class+ loop (UNBOUNDED, min=0, uncaptured) + literal SUFFIX (1+ bytes). Eligibility
+    // additionally requires the loop's class to EXCLUDE the prefix's AND the suffix's leading byte: without
+    // it, a prefix occurrence could hide inside an already-scanned body run (an alphanumeric "id=" prefix
+    // inside an `[a-z0-9]*+` body, say), and the delimited runner's skip-to-body-end retry (pike.hpp) would
+    // either silently skip a valid leftmost match or, absent the skip, degrade to quadratic on adversarial
+    // input -- see pattern_hints's own doc comment. Mutually exclusive with the shape above by construction
+    // (that one never starts with a literal `byte`; this one always does) and only tried when it did not
+    // already claim the pattern.
+    if (!hints.possessive_class.armed() && code.size() >= 6 &&
+        code[0].op == opcode::save && code[0].arg16 == 0 && code[1].op == opcode::byte) {
+      std::size_t           p          {1};
+      std::array<char, 8>   prefix     {};
+      std::uint8_t          prefix_len {0};
+      while (p < code.size() && code[p].op == opcode::byte && prefix_len < prefix.size()) {
+        prefix[prefix_len] = static_cast<char>(code[p].arg8);
+        ++prefix_len;
+        ++p;
+      }
+      const std::size_t loop_pc {p};
+      if (loop_pc < code.size() &&
+          (code[loop_pc].op == opcode::klass_loop_possessive ||
+           code[loop_pc].op == opcode::klass_cp_loop_possessive) &&
+          code[loop_pc].primary_target < 0) {
+        const bool         is_cp       {code[loop_pc].op == opcode::klass_cp_loop_possessive};
+        const std::int32_t body_idx    {code[loop_pc].arg16};
+        const std::size_t  exit_pc     {static_cast<std::size_t>(code[loop_pc].secondary_target)};
+        const std::size_t  block_width {is_cp ? std::size_t {4} : std::size_t {1}};
+        const std::size_t  after_loop  {loop_pc + block_width};
+        if (after_loop < code.size() && code[after_loop].op == opcode::jump &&
+            code[after_loop].primary_target == static_cast<std::int32_t>(loop_pc) &&
+            exit_pc == after_loop + 1) {
+          std::size_t           q          {exit_pc};
+          std::array<char, 8>   suffix     {};
+          std::uint8_t          suffix_len {0};
+          while (q < code.size() && code[q].op == opcode::byte && suffix_len < suffix.size()) {
+            suffix[suffix_len] = static_cast<char>(code[q].arg8);
+            ++suffix_len;
+            ++q;
+          }
+          if (prefix_len >= 1 && suffix_len >= 1 && q + 1 < code.size() && q + 2 == code.size() &&
+              code[q].op == opcode::save && code[q].arg16 == 1 && code[q + 1].op == opcode::match &&
+              body_idx >= 0 &&
+              (is_cp ? static_cast<std::size_t>(body_idx) < cp_classes.size()
+                     : static_cast<std::size_t>(body_idx) < classes.size())) {
+            const auto excludes = [&](std::uint8_t b) {
+                                    return is_cp
+                                             ? !cp_class_may_contain_ascii_byte(
+                                      cp_classes[static_cast<std::size_t>(body_idx)], b)
+                                             : !classes[static_cast<std::size_t>(body_idx)].test(b);
+                                  };
+            if (excludes(static_cast<std::uint8_t>(prefix[0])) &&
+                excludes(static_cast<std::uint8_t>(suffix[0]))) {
+              hints.possessive_prefix         = prefix;
+              hints.possessive_prefix_size    = prefix_len;
+              hints.possessive_suffix         = suffix;
+              hints.possessive_suffix_size    = suffix_len;
+              hints.possessive_min_nonzero    = false; // the loop itself is min=0 in this shape; the PREFIX is the mandatory part
+              const class_kind delimited_kind {is_cp ? class_kind::klass_cp : class_kind::klass};
+              hints.possessive_class          = {.kind = delimited_kind, .index = static_cast<std::uint16_t>(body_idx)};
+            }
+          }
         }
       }
     }
