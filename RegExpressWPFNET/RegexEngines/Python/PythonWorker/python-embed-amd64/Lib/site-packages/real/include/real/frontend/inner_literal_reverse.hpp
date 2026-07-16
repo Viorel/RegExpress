@@ -30,8 +30,9 @@ namespace real::detail {
   //!
   //! The prefix is compiled through the normal path: its capturing groups become `save` ops, which \ref
   //! build_byte_program drops as zero-width, so the byte program (and the reverse over it) is capture-free by
-  //! construction — no separate capture-free compile is needed. Because the extraction declines anchors and
-  //! lookarounds, an extracted pattern's prefix is always byte-program eligible.
+  //! construction — no separate capture-free compile is needed. Top-level `\b`/`\B` are peeled before the
+  //! prefix is built (D1a, \ref extract_inner_literal / \ref build_prefix_ast with skip); other anchors and
+  //! lookarounds still decline extraction, so an extracted pattern's prefix stays byte-program eligible.
   inline std::size_t prefix_reverse_start(const ast&       tree,
                                           std::int32_t     count,
                                           flags            compile_flags,

@@ -2,13 +2,13 @@
  * \file std/regex_core.hpp
  * \brief std::regex-compatibility layer, part 1/3: the constants, the error type, the backend-routing
  *        screens, and `basic_regex`. Included via the `std/regex.hpp` umbrella — do not include the
- *        parts directly; `#include <real/std/regex.hpp>` stays the one public entry point.
+ *        parts directly; `#include <real/compat/std/regex.hpp>` stays the one public entry point.
  */
 #ifndef REAL_STD_REGEX_CORE_HPP
 #define REAL_STD_REGEX_CORE_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/std/regex.hpp>).
+// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
 
 #include <real/version.hpp>
 
@@ -179,6 +179,16 @@ namespace real::compat {
     //! digit a syntax error (no valid production), so neither is "the" spec answer — routing to std
     //! keeps compat ≡ its secondary oracle and the contract (never a silent divergence). The fuzzer
     //! found this. (`\1`-`\9` already route to std via real's backreference rejection.)
+    //!
+    //! `\C` (RE2's raw-byte escape, D1 volet A): `real` accepts it here because `real::compat` always
+    //! compiles its internal engine with `flags::bytes` (for byte-per-`std::regex`-char alignment, see
+    //! the file header), which is the ONLY gate `\C` itself checks — an internal implementation detail
+    //! leaking through as accidental, unintended public surface. `\C` is not ECMAScript at all (an
+    //! RE2/real-only extension outside this layer's std::regex contract), and libstdc++ does not accept
+    //! it either — a genuine both-behavior mismatch (real: matches one byte; std: rejects, or accepts
+    //! it as some other escape and matches differently), not a case where routing to std even yields
+    //! agreement. Route to std up front so compat never exposes it. The fuzzer found this (the exact
+    //! seed corpus added for `\C`'s own coverage, replayed here since `fuzz/corpus` is shared).
     [[nodiscard]] inline bool pattern_forces_std(std::string_view p) noexcept
     {
       const auto is_flag_or_dash = [](char c) {
@@ -188,6 +198,9 @@ namespace real::compat {
         if (p[i] == '\\') {
           if (i + 2 < p.size() && p[i + 1] == '0' && p[i + 2] >= '0' && p[i + 2] <= '9') {
             return true;
+          }
+          if (i + 1 < p.size() && p[i + 1] == 'C') {
+            return true; // \C -- see the doc comment above
           }
           ++i; // consume the escaped character (so `\\0` is an escaped backslash, not `\0`)
           continue;

@@ -34,6 +34,7 @@ namespace real::detail::prof {
     fixed_shape,
     codepoint_class,
     alternation,
+    aho_corasick,      //!< D1-AC: multi-literal automaton, past the measured branch-count threshold.
     onepass_full,
     onepass_window,
     lazy_dfa_anchored, //!< A2: first-byte candidate + anchored_end
@@ -126,6 +127,7 @@ namespace real::detail::prof {
       case route::fixed_shape: return "fixed_shape";
       case route::codepoint_class: return "codepoint_class";
       case route::alternation: return "alternation";
+      case route::aho_corasick: return "aho_corasick";
       case route::onepass_full: return "onepass_full";
       case route::onepass_window: return "onepass_window";
       case route::lazy_dfa_anchored: return "lazy_dfa_anchored";

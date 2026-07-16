@@ -18,7 +18,7 @@
 #define REAL_COMPILER_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/std/regex.hpp>).
+// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
 
 #include "real/version.hpp"
 
@@ -143,9 +143,15 @@ namespace real::detail {
       // inner-literal search route (pike_vm::run dispatches to run_inner_literal); kept off the program
       // code, so byte-identity is untouched.
       const inner_literal il {extract_inner_literal(tree_)};
-      prog.hints.inner_literal        = il.bytes;
-      prog.hints.inner_literal_len    = il.len;
-      prog.hints.inner_literal_prefix = il.prefix_child_count;
+      prog.hints.inner_literal             = il.bytes;
+      prog.hints.inner_literal_len         = il.len;
+      prog.hints.inner_literal_prefix      = il.prefix_child_count;
+      // D1a: peel-lead skip for the reverse-prefix (see build_prefix_ast). Non-zero only when the
+      // IL route is live. confirm_at still runs the full program (lead/trail `\b`/`\B` checked there).
+      prog.hints.inner_literal_prefix_skip =
+        (il.len > 0 && il.prefix_child_count >= 1 && il.prefix_skip > 0)
+          ? static_cast<std::uint8_t>(il.prefix_skip)
+          : std::uint8_t {0};
       if (prog.code.size() > max_program_size) {
         throw regex_error("program too large", 0);
       }
@@ -535,6 +541,15 @@ namespace real::detail {
             break;
           }
         case node_kind::any:
+          if (node.raw_byte) {
+            // \C (RE2's raw-byte escape, parser-restricted to flags::bytes): the plain 256-bit "any byte"
+            // klass -- the same shape bytes-mode `.` emits below, but unconditional (no dotall exclusion:
+            // \C matches a literal '\n' byte too, RE2's own semantics).
+            char_class all;
+            all.set_range(0x00, 0xFF);
+            emit_klass(prog, all);
+            break;
+          }
           {
             // dotall is read from this node's own scope (a scoped (?s:.) matches \n inside the island
             // only); bytes and ecma are not scopable and stay global. A non-scoped node carries the
@@ -1051,6 +1066,16 @@ namespace real::detail {
         return pc;
       }
       if (node.kind == node_kind::any) {
+        if (node.raw_byte) {
+          // \C (parser-restricted to flags::bytes, so this branch's own bytes-mode klass_loop_possessive
+          // shape already applies): the full 256-bit set, unconditionally -- no dotall/newline exclusion,
+          // matching emit_node's own \C case.
+          char_class all;
+          all.set_range(0x00, 0xFF);
+          emit(prog, {.op             = opcode::klass_loop_possessive, .arg16 = intern_class(prog, all),
+                      .primary_target = capture_start_slot, .secondary_target = -1});
+          return pc;
+        }
         const flags node_flags {static_cast<flags>(node.effective_flags)};
         char_class  head;
         head.set_range(0x00, 0x7F);
@@ -1281,7 +1306,10 @@ namespace real::detail {
     // budget" choice, taken up front). The prefix program is a subset, so this does not recurse into itself.
     if (!std::is_constant_evaluated() && prog.hints.inner_literal_prefix >= 1) {
       const dynamic_program pp {
-        compiler(build_prefix_ast(tree, prog.hints.inner_literal_prefix), compile_flags).compile()};
+        compiler(build_prefix_ast(tree, prog.hints.inner_literal_prefix,
+                                  prog.hints.inner_literal_prefix_skip),
+                 compile_flags)
+        .compile()};
       prog.prefix_code       = pp.code;
       prog.prefix_classes    = pp.classes;
       prog.prefix_cp_classes = pp.cp_classes;

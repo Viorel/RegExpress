@@ -15,7 +15,7 @@
 #define REAL_PIKE_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/std/regex.hpp>).
+// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
 
 #include "real/version.hpp"
 
@@ -39,6 +39,7 @@
 #include "real/automata/onepass.hpp"
 #include "real/core/program.hpp"
 #include "real/core/profile.hpp"
+#include "real/engine/aho_corasick.hpp"
 #include "real/unicode/unicode_props.hpp"
 #include "real/unicode/utf8.hpp"
 
@@ -368,23 +369,34 @@ namespace real::detail {
    */
   struct pike_state : basic_pike_state<thread_list, std::vector<eps_entry>>
   {
-    lookaround_scratch         lookaround;                  //!< Isolated sub-scratch for bounded lookaround evaluation.
-    capture_pool               pool;                        //!< OPT D1: copy-on-write capture blocks (heap-backed).
-    std::optional<lazy_dfa>    fwd_dfa;                     //!< OPT lazy-DFA: forward pass (built lazily, cache persists across a find_iter).
-    std::optional<reverse_dfa> rev_dfa;                     //!< OPT lazy-DFA: the reverse start-finder.
-    const void*                dfa_program       {nullptr}; //!< The program the DFAs were built for (rebuild if it changes).
-    std::optional<reverse_dfa> il_prefix_rev;               //!< IL: the inner-literal prefix reverse DFA (built once per program).
-    const void*                il_prefix_for     {nullptr}; //!< IL: the prefix program \ref il_prefix_rev was built for.
-    const void*                il_text           {nullptr}; //!< IL: the haystack \ref il_abandoned refers to (reset the flag when it changes).
-    bool                       il_abandoned      {false};   //!< IL: a linearity/density guard tripped on this haystack — stay on the core.
-    std::uint32_t              il_density_cands  {};        //!< O1: IL candidates seen on this haystack (density sample).
-    std::size_t                il_density_origin {npos};    //!< O1: byte offset of the first IL candidate this haystack.
+    lookaround_scratch          lookaround;                  //!< Isolated sub-scratch for bounded lookaround evaluation.
+    capture_pool                pool;                        //!< OPT D1: copy-on-write capture blocks (heap-backed).
+    std::optional<lazy_dfa>     fwd_dfa;                     //!< Fallback when immut is null; prefer shared_fwd_dfa (D1).
+    std::optional<reverse_dfa>  rev_dfa;                     //!< Fallback reverse; prefer shared_rev_dfa (D1).
+    const void *                dfa_program       {nullptr}; //!< Program the per-state DFAs were built for (fallback).
+    std::optional<reverse_dfa>  il_prefix_rev;               //!< Fallback IL prefix reverse; prefer shared_il_prefix_rev (D1).
+    const void *                il_prefix_for     {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
+    const void *                il_text           {nullptr}; //!< IL: the haystack \ref il_abandoned refers to (reset the flag when it changes).
+    bool                        il_abandoned      {false};   //!< IL: a linearity/density guard tripped on this haystack — stay on the core.
+    std::uint32_t               il_density_cands  {};        //!< O1: IL candidates seen on this haystack (density sample).
+    std::size_t                 il_density_origin {npos};    //!< O1: byte offset of the first IL candidate this haystack.
+    // D1-AC fields placed LAST (own reason as pattern_hints::alternation_branch_count): inserting
+    // here right after il_prefix_for -- as an earlier draft of this struct did -- shifted il_text/
+    // il_abandoned/il_density_cands/il_density_origin (the inner-literal density-gate fields, read
+    // on every search that takes that route) by the full size of std::optional<ac_automaton> plus
+    // a pointer. Caught by re-inspection against dynamic_storage::state_type (storage.hpp), which
+    // already had this right -- this struct (pike_state) is test-harness-only (the meta-seam
+    // differential), never real::regex's own runtime state, so the mid-struct version never
+    // affected any measured path; fixed anyway for consistency with the stated placement rule.
+    std::optional<ac_automaton> ac_state;               //!< D1-AC: the multi-literal automaton (built once per program).
+    const void*                 ac_state_for {nullptr}; //!< D1-AC: the program \ref ac_state was built for.
   };
 
   /*!
    * \brief The Pike VM, generic over the scratch-state container policy.
    * \tparam State A \ref basic_pike_state instantiation (vector- or static-backed).
    */
+
   template <typename State>
   class pike_vm
   {
@@ -421,6 +433,23 @@ namespace real::detail {
      * \param[in]  sem   Match semantics: \ref match_semantics::first (default, leftmost-first) or the
      *             experimental \ref match_semantics::longest (which forces the general loop, off every fast path).
      * \return `true` if a match was found.
+     *
+     * D1-AC gcc/x86 note: an x86 A/B (relayed, not independently run here) found `[^,]+` +39%
+     * slower with the AC engine present but never dispatched to (a class-loop pattern returns from
+     * \ref run_class_loop before ever reaching the fixed_alternation check) — callgrind/cachegrind
+     * showed byte-identical instructions/cache misses, isolating it to front-end loop-alignment
+     * codegen-luck from the AC code's mere presence in this translation unit, not a logic or
+     * memory-access change. Two targeted `optimize("align-loops=N")` attempts were tried and
+     * reverted: one on \ref run_class_loop (provably inert once force-inlined — confirmed on this
+     * machine's own gcc via `-S`, the attribute does not travel with an `always_inline` callee's
+     * body into its caller) and one here on `run()` itself (did align the right loop — confirmed
+     * via the same `-S` method, `.p2align 6` where baseline only had one incidental occurrence —
+     * but `[^,]+`, `[a-z]+`, and `\w+` all share this same inlined class-loop body with different
+     * alignment optima, so uniformly forcing one traded the `[^,]+` regression for new ones on the
+     * other two). No uniform alignment satisfies all three; accepted as a documented, gcc+x86-only,
+     * arm64/clang-unaffected regression rather than trading one hot path's regression for another's
+     * — the Alternation route's own gain (this file's `aho_corasick_route_disabled()` — see
+     * `run_aho_corasick`) is unconditional and far larger.
      */
     template <bool Cascade = false, typename OutSlots>
     constexpr bool run(std::string_view text,
@@ -529,6 +558,26 @@ namespace real::detail {
         return run_codepoint_class<Cascade>(text, start, mode, out_slots);
       }
       if (sem_ == match_semantics::first && prog_.hints.fixed_alternation) {
+        // D1-AC: past the measured branch-count threshold, a single Aho-Corasick automaton walk
+        // beats small_set's 2..8-member memchr-cascade scan (which has no fast path at all past 8
+        // distinct first bytes — issue #3's "Alternation" gap). Search mode only (the automaton's
+        // whole value is candidate-finding; full/prefix modes keep the existing run_alternation,
+        // unchanged). Dynamic storage only (if constexpr elides this for static_regex, which does
+        // not benefit from AC — see the D1-AC report) and only when the automaton actually built
+        // (ensure_ac_automaton declines, leaving it unset, on a pathological icase-expansion
+        // branch — falls through to run_alternation below, zero behavior change).
+        if constexpr (requires(State & s) {
+          s.ac_state;
+        }) {
+          if (!std::is_constant_evaluated() && !aho_corasick_route_disabled() && mode == run_mode::search
+              && prog_.hints.alternation_branch_count >= ac_branch_threshold) {
+            ensure_ac_automaton();
+            if (state_.ac_state.has_value()) {
+              prof::tick_route(prof::route::aho_corasick);
+              return run_aho_corasick(text, start, out_slots);
+            }
+          }
+        }
         prof::tick_route(prof::route::alternation);
         return run_alternation(text, start, mode, out_slots);
       }
@@ -562,102 +611,11 @@ namespace real::detail {
         if (!std::is_constant_evaluated() && !lazy_dfa_route_disabled() && mode == run_mode::search
             && sem_ == match_semantics::first // kFirstMatch forward pass; longest uses the general loop below
             && forbid_empty_until_ == 0 && text.size() - start >= lazy_dfa_min_input) {
-          if (state_.dfa_program != static_cast<const void*>(prog_.code.data())) {
-            ensure_lazy_dfa(); // once per iterator, not per match — skips the call_once atomic load on the hot path
-          }
-          if (state_.fwd_dfa.has_value() && state_.rev_dfa.has_value() && state_.fwd_dfa->eligible()
-              && !state_.fwd_dfa->thrashing()) {
-            // A2: anchored-from-candidate. When the pattern has a sound first-byte prefilter, the
-            // reverse DFA pass is pure overhead: next_candidate already knows where a match COULD start,
-            // so anchored_end (no re-seed) tests each candidate directly and a hit's start is the
-            // candidate itself -- zero reverse_dfa. A miss ("false candidate": a valid first byte whose
-            // pattern does not actually continue to match, e.g. [a-z][0-9]+ on "aaaa") advances to the
-            // NEXT candidate, not the next byte -- next_candidate re-scans from there. Leftmost-first by
-            // construction: candidates are tried strictly left to right, and a candidate is only ever
-            // skipped once its own anchored walk has proven no match starts there (the same argument the
-            // SIMD fast paths use for their skip-after-failure). One begin_scan for the whole candidate
-            // loop, not one per candidate: a per-search thrash decision, not a per-candidate one.
-            if (prog_.hints.first_bytes_valid) {
-              state_.fwd_dfa->begin_scan();
-              std::size_t c {start};
-              while (true) {
-                c = next_candidate(text, c, start);
-                if (c > text.size()) {
-                  out_slots.assign(prog_.slot_count, npos);
-                  return false; // no further candidate -- the prefilter itself is exhaustive
-                }
-                const auto anchored {state_.fwd_dfa->anchored_end(text, c)};
-                prefilter_note_scan(anchored.scanned_to - c);
-                if (anchored.end != npos) {
-                  const std::size_t match_end {anchored.end};
-                  prof::tick_route(prof::route::lazy_dfa_anchored);
-                  if (prog_.slot_count <= 2) {
-                    out_slots.assign(2, npos);
-                    out_slots[0] = c;
-                    out_slots[1] = match_end;
-                    return true;
-                  }
-                  if (prog_.immut != nullptr && prog_.immut->op_table.has_value()
-                      && prog_.immut->op_table->eligible()
-                      && prog_.immut->op_table->extract(text, c, match_end, out_slots)) {
-                    prof::tick_route(prof::route::onepass_window);
-                    return true;
-                  }
-                  prof::tick_route(prof::route::general_window);
-                  return run_general<Cascade>(text.substr(0, match_end), c, mode, out_slots);
-                }
-                // Unbounded reach (scanned_to == text.size(), no dead state pruned it early): this
-                // candidate's miss required scanning to the end of the haystack, so every further
-                // candidate would repeat comparable work -- O(n) candidates x O(n) scan = O(n^2) (the
-                // `a.*b` shape). A2's leftmost-first contract already proved no match starts at or
-                // before c; hand the rest to the forward_end + reverse-recovery route below, which
-                // covers it in one further O(n) pass -- reusing `start` as its origin (safe: every path
-                // from here on returns, so the mutation never escapes to code after this whole block).
-                if (anchored.scanned_to >= text.size()) {
-                  start = c + 1;
-                  break;
-                }
-                ++c; // false candidate: past it, one candidate at a time (bounded by the pattern's own
-                     // reach, exactly as run_fixed_shape/run_alternation/run_inner_literal already skip)
-              }
-              // Reached only via the unbounded-reach break above (every other path in the loop returns):
-              // falls through to the forward_end + reverse-recovery route below, from `start = c + 1`.
-            }
-            // No sound first-byte prefilter (e.g. .*x), or A2 just gave up above: the unanchored forward
-            // pass plus a reverse recovery is the route that applies.
-            const std::size_t match_end {state_.fwd_dfa->forward_end(text.substr(start))};
-            prefilter_note_scan(text.size() - start);
-            if (match_end == npos) {
-              prof::tick_route(prof::route::lazy_dfa_fwd_rev); // reject at DFA speed still used the route
-              out_slots.assign(prog_.slot_count, npos);
-              return false;                                    // the forward DFA rejected the whole suffix at DFA speed
-            }
-            const std::size_t abs_end   {start + match_end};
-            const std::size_t abs_start {state_.rev_dfa->reverse_start(text, abs_end, start)};
-            prof::tick_route(prof::route::lazy_dfa_fwd_rev);
-            // OPT bounds-only (A1): a GROUPLESS pattern ([a-z][a-z]+ — slot_count <= 2, group 0 only) has
-            // no captures beyond the span itself, so the one-pass extractor's per-op table walk buys
-            // nothing here — it exists to fill group slots this pattern does not have. The forward+reverse
-            // DFA pair already IS the whole match's span; skip straight to it.
-            if (prog_.slot_count <= 2) {
-              out_slots.assign(2, npos);
-              out_slots[0] = abs_start;
-              out_slots[1] = abs_end;
-              return true;
-            }
-            // OPT onepass (Tier A): a one-pass pattern fills captures in a single pass over [s, e] with no
-            // thread lists (the shared per-regex table). Otherwise the window-Pike runs the general loop
-            // there. Both give the same slots. prog_.immut is non-null whenever fwd_dfa/rev_dfa holds a
-            // value (both are set only by ensure_lazy_dfa, which builds on ensure_immutables' own
-            // null-guarded fill) -- the explicit check here just makes that invariant visible to the
-            // analyzer (confirm_at, below, already spells it out the same way).
-            if (prog_.immut != nullptr && prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()
-                && prog_.immut->op_table->extract(text, abs_start, abs_end, out_slots)) {
-              prof::tick_route(prof::route::onepass_window);
-              return true; // extract filled out_slots directly — no intermediate buffer or copy
-            }
-            prof::tick_route(prof::route::general_window);
-            return run_general<Cascade>(text.substr(0, abs_end), abs_start, mode, out_slots);
+          // D1: noinline out of run() so the shared-DFA body cannot bloat class-loop codegen (x86
+          // witness/wplus regression pattern — same fix shape as ensure_ac_automaton).
+          if (const std::optional<bool> dfa_result {
+            try_shared_lazy_dfa_search<Cascade>(text, start, mode, out_slots)}) {
+            return *dfa_result;
           }
         }
       }
@@ -764,24 +722,32 @@ namespace real::detail {
         st.fwd_dfa;
       }) {
         if (!lazy_dfa_route_disabled()) {
-          if (state_.dfa_program != static_cast<const void*>(prog_.code.data())) {
-            ensure_lazy_dfa();
-          }
-          if (state_.fwd_dfa.has_value() && state_.fwd_dfa->eligible() && !state_.fwd_dfa->thrashing()) {
-            const std::size_t match_end {state_.fwd_dfa->forward_end(text.substr(s))};
+          // D1: anchored_end on the shared confirm DFA (under slot.mu). begin_scan mirrors pre-D1
+          // forward_end's per-confirm thrash reset; the transition cache itself stays warm across iters.
+          std::size_t match_end {npos};
+          const bool  dfa_ok    {
+            with_search_dfas([&](lazy_dfa& fwd, reverse_dfa& /*rev*/) {
+                               fwd.begin_scan();
+                               const auto ar {fwd.anchored_end(text, s)};
+                               match_end = ar.end;
+                               stop      = (ar.end != npos) ? ar.end : ar.scanned_to;
+                             })};
+          if (dfa_ok) {
             if (match_end == npos) {
-              stop = text.size();
+              // Pre-D1 forward_end miss set stop = text.size(); keep a floor of s for the IL backstop.
+              if (stop < s) {
+                stop = s;
+              }
               out_slots.assign(prog_.slot_count, npos);
-              return false; // the forward DFA rejects the whole suffix
+              return false;
             }
-            const std::size_t e {s + match_end};
+            const std::size_t e {match_end};
             stop = e;
             ensure_immutables();
             if (prog_.immut != nullptr && prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()
                 && prog_.immut->op_table->extract(text, s, e, out_slots)) {
-              return true; // one-pass filled the captures for [s, e] anchored at s
+              return true;
             }
-            // Not one-pass, or the DFA's leftmost match did not begin at s: the anchored window Pike decides.
             return run_general<false>(text.substr(0, e), s, run_mode::prefix, out_slots, &stop);
           }
         }
@@ -874,18 +840,22 @@ namespace real::detail {
         else if (boundary >= 1) {
           // The prefix's byte program lives in the per-regex immutables — built once (call_once, already done
           // by the first-candidate guard above), not per find_iter; the expensive klass_cp expansion is what a
-          // small-input regex must not pay repeatedly. The reverse DFA that spans it is a cheap per-iterator
-          // wrapper, (re)created when this iterator binds a new program.
+          // small-input regex must not pay repeatedly.
           if (prog_.immut == nullptr || !prog_.immut->il_prefix_prog.eligible) {
             abandon = true; // no per-regex cache, or the prefix is not byte-DFA-eligible — let the core VM handle it
             return false;
           }
-          if (state_.il_prefix_for != static_cast<const void*>(prog_.immut->il_prefix_prog.code.data())) {
-            state_.il_prefix_rev.emplace(prog_.immut->il_prefix_prog.code, prog_.immut->il_prefix_prog.classes);
-            state_.il_prefix_for = static_cast<const void*>(prog_.immut->il_prefix_prog.code.data());
-          }
-          if (state_.il_prefix_rev.has_value()) {
-            s = state_.il_prefix_rev->reverse_start(text, h, min_match_start);
+          // D1: shared IL-prefix reverse under slot.mu (warmed once per regex via epoch).
+          {
+            shared_dfa_slot&                  slot {shared_dfa_for(prog_.immut)};
+            const std::lock_guard<std::mutex> lock {slot.mu};
+            ensure_slot_il_prefix_rev_unlocked(*prog_.immut, slot);
+            if (slot.il_prefix_rev.has_value()) {
+              s = slot.il_prefix_rev->reverse_start(text, h, min_match_start);
+            }
+            else {
+              s = npos;
+            }
           }
         }
         if (s == npos) {
@@ -1019,37 +989,195 @@ namespace real::detail {
                          const std::size_t sz {immut->il_prefix_prog.code.size()};
                          immut->il_min_haystack = std::min<std::size_t>(512UL * 1024, std::max<std::size_t>(64UL * 1024, sz * 64));
                        }
+                       // D1: address-reuse of *immut must not keep a previous pattern's shared DFAs.
+                       reset_shared_dfas(immut);
                      });
     }
 
-    //! \brief Ensure this iterator's lazy DFA caches are warm for the current program. Builds the shared
-    //!        immutables first (\ref ensure_immutables), then — only when the state is now bound to a
-    //!        different program — (re)creates the per-iterator forward and reverse lazy-DFA transition caches
-    //!        over the shared byte-program. The caches are mutable (they fill during a scan) and per-iterator,
-    //!        so this runs once per iterator, not per match, off the hot path.
-    void ensure_lazy_dfa()
+    //! \brief D1: warm shared search DFAs for \p immut into \p slot (caller holds \p slot.mu).
+    void ensure_slot_search_dfas_unlocked(detail::regex_immutables& immut,
+                                          shared_dfa_slot&          slot)
+    {
+      if (!immut.byte_prog.eligible) {
+        return;
+      }
+      if (!slot.fwd.has_value()) {
+        slot.fwd.emplace(immut.byte_prog.code, immut.byte_prog.classes, lazy_dfa::state_budget, &immut.alphabet);
+        slot.rev.emplace(immut.byte_prog.code, immut.byte_prog.classes, reverse_dfa::state_budget, &immut.alphabet);
+      }
+    }
+
+    //! \brief D1: warm shared IL-prefix reverse DFA (caller holds \p slot.mu).
+    void ensure_slot_il_prefix_rev_unlocked(detail::regex_immutables& immut,
+                                            shared_dfa_slot&          slot)
+    {
+      if (!immut.il_prefix_prog.eligible) {
+        return;
+      }
+      if (!slot.il_prefix_rev.has_value()) {
+        slot.il_prefix_rev.emplace(immut.il_prefix_prog.code, immut.il_prefix_prog.classes);
+      }
+    }
+
+    //! \brief D1: run \p fn with the shared search DFAs under the slot lock.
+    //!        Returns false when the route must stay on the Pike VM (no immut / ineligible).
+    template <typename Fn>
+    bool with_search_dfas(Fn&& fn)
     {
       detail::regex_immutables* const immut {prog_.immut};
       if (immut == nullptr) {
-        return; // no per-regex cache (not the dynamic storage) — the caller keeps the VM
+        return false; // same contract as pre-D1 ensure_lazy_dfa: no per-regex cache → no DFA route
       }
       ensure_immutables();
-      // The DFA transition caches are mutable (warm per scan): they stay per-iterator, spanning the shared
-      // byte-program, rebuilt only if this state is now bound to a different program.
-      const auto* const program {static_cast<const void*>(prog_.code.data())};
-      if (state_.dfa_program != program) {
-        if (immut->byte_prog.eligible) {
-          state_.fwd_dfa.emplace(immut->byte_prog.code, immut->byte_prog.classes, lazy_dfa::state_budget,
-                                 &immut->alphabet);
-          state_.rev_dfa.emplace(immut->byte_prog.code, immut->byte_prog.classes, reverse_dfa::state_budget,
-                                 &immut->alphabet);
-        }
-        else {
-          state_.fwd_dfa.reset();
-          state_.rev_dfa.reset();
-        }
-        state_.dfa_program = program;
+      shared_dfa_slot&                  slot {shared_dfa_for(immut)};
+      const std::lock_guard<std::mutex> lock {slot.mu};
+      ensure_slot_search_dfas_unlocked(*immut, slot);
+      if (!slot.fwd.has_value() || !slot.rev.has_value() || !slot.fwd->eligible()) {
+        return false;
       }
+      // Pre-D1 thrashing was per-iterator (a new iterator re-armed). On a shared slot a sticky thrash
+      // flag would permanently decline the DFA route for every later search on this regex — re-arm
+      // per logical entry. Callers that walk many candidates (A2) still call begin_scan once more
+      // for a single thrash window across that loop; a double-reset here is harmless.
+      slot.fwd->begin_scan();
+      std::forward<Fn>(fn)(*slot.fwd, *slot.rev);
+      return true;
+    }
+
+    //! \brief D1: lazy-DFA search route on the shared confirm DFAs. \c noinline so its body cannot
+    //!        inflate \ref run (x86 class-loop codegen neighbor — same shape as \ref ensure_ac_automaton).
+    //! \return matched / no-match when the route handled the search; empty when the caller must fall to Pike.
+    template <bool Cascade, typename OutSlots>
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
+    std::optional<bool> try_shared_lazy_dfa_search(std::string_view text,
+                                                   std::size_t      start,
+                                                   run_mode         mode,
+                                                   OutSlots&        out_slots)
+    {
+      std::optional<bool> dfa_result;
+      std::size_t         scan_start {start};
+      const bool          used       {
+        with_search_dfas([&](lazy_dfa& fwd, reverse_dfa& rev) {
+                           // A2: anchored-from-candidate when first_bytes is sound; else forward_end + reverse.
+                           if (prog_.hints.first_bytes_valid) {
+                             fwd.begin_scan();
+                             std::size_t c {scan_start};
+                             while (true) {
+                               c = next_candidate(text, c, scan_start);
+                               if (c > text.size()) {
+                                 out_slots.assign(prog_.slot_count, npos);
+                                 dfa_result = false;
+                                 return;
+                               }
+                               const auto anchored {fwd.anchored_end(text, c)};
+                               prefilter_note_scan(anchored.scanned_to - c);
+                               if (anchored.end != npos) {
+                                 const std::size_t match_end {anchored.end};
+                                 prof::tick_route(prof::route::lazy_dfa_anchored);
+                                 if (prog_.slot_count <= 2) {
+                                   out_slots.assign(2, npos);
+                                   out_slots[0] = c;
+                                   out_slots[1] = match_end;
+                                   dfa_result   = true;
+                                   return;
+                                 }
+                                 if (prog_.immut != nullptr && prog_.immut->op_table.has_value()
+                                     && prog_.immut->op_table->eligible()
+                                     && prog_.immut->op_table->extract(text, c, match_end, out_slots)) {
+                                   prof::tick_route(prof::route::onepass_window);
+                                   dfa_result = true;
+                                   return;
+                                 }
+                                 prof::tick_route(prof::route::general_window);
+                                 dfa_result = run_general<Cascade>(text.substr(0, match_end), c, mode, out_slots);
+                                 return;
+                               }
+                               if (anchored.scanned_to >= text.size()) {
+                                 scan_start = c + 1;
+                                 break;
+                               }
+                               ++c;
+                             }
+                           }
+                           const std::size_t match_end {fwd.forward_end(text.substr(scan_start))};
+                           prefilter_note_scan(text.size() - scan_start);
+                           if (match_end == npos) {
+                             prof::tick_route(prof::route::lazy_dfa_fwd_rev);
+                             out_slots.assign(prog_.slot_count, npos);
+                             dfa_result = false;
+                             return;
+                           }
+                           const std::size_t abs_end   {scan_start + match_end};
+                           const std::size_t abs_start {rev.reverse_start(text, abs_end, scan_start)};
+                           prof::tick_route(prof::route::lazy_dfa_fwd_rev);
+                           if (prog_.slot_count <= 2) {
+                             out_slots.assign(2, npos);
+                             out_slots[0] = abs_start;
+                             out_slots[1] = abs_end;
+                             dfa_result   = true;
+                             return;
+                           }
+                           if (prog_.immut != nullptr && prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()
+                               && prog_.immut->op_table->extract(text, abs_start, abs_end, out_slots)) {
+                             prof::tick_route(prof::route::onepass_window);
+                             dfa_result = true;
+                             return;
+                           }
+                           prof::tick_route(prof::route::general_window);
+                           dfa_result = run_general<Cascade>(text.substr(0, abs_end), abs_start, mode, out_slots);
+                         })};
+      if (used && dfa_result.has_value()) {
+        return dfa_result;
+      }
+      return std::nullopt;
+    }
+
+    //! \brief Branch count of a \ref pattern_hints::fixed_alternation at or above which a single
+    //!        Aho-Corasick automaton walk beats \ref pattern_hints::small_set's 2..8-member
+    //!        memchr-cascade scan (which has no fast path at all past 8 distinct first bytes).
+    //!        Measured 2026-07 on M1 Pro against the WIRED engine (real::regex, find_iter, min-of-5,
+    //!        aho_corasick_route_disabled() toggle) on two corpus shapes — mostly-non-matching prose
+    //!        and majority-matching text: at N=11 AC already wins on the match-heavy corpus (0.66x)
+    //!        but is ~8% SLOWER on prose (1.08x); at N=12 it wins on both (0.72x prose, 0.61x match)
+    //!        with no measured regression. 12, not 11, so the gate matches its own contract — AC
+    //!        BEATS the VM-branch path at the threshold, not roughly ties it (see D1-AC report; the
+    //!        issue #3 repro's own N=10 stays correctly below threshold either way, AC/VM=1.16x
+    //!        there against the standalone POC — inside the closed-gap target of <=~1.5x).
+    static constexpr std::uint16_t ac_branch_threshold {12};
+
+    //! \brief Build (or rebuild, on a program change) this iterator's Aho-Corasick automaton for a
+    //!        `fixed_alternation` program whose branch count has reached \ref ac_branch_threshold.
+    //!        Declines (leaves \ref pike_state::ac_state unset) if any branch's icase-fold
+    //!        expansion would exceed \ref ac_max_branch_expansion — the caller falls back to the
+    //!        existing \ref run_alternation, zero behavior change. Runs once per iterator/program,
+    //!        off the hot path, mirroring \ref with_search_dfas's cache-by-program-pointer contract.
+    //!
+    //!        `noinline`, deliberately NOT `cold` (round-2 x86 isolation A/B: neither the
+    //!        pattern_hints field alone nor the pike_state size growth alone regressed the
+    //!        non-alternation hot-corpus witnesses, isolating the cause to code called directly
+    //!        from `run()`'s own dispatch chain — a codegen-neighbor/inlining-bloat effect on
+    //!        `run_class_loop`, which shares the same translation unit and physically returns
+    //!        before ever reaching this call at runtime, so it's presence, not execution, doing the
+    //!        damage). `cold` would additionally deprioritize this function's OWN optimization —
+    //!        wrong here, since it (unlike the actual construction work in aho_corasick.hpp,
+    //!        already marked `cold`) is called on every AC-eligible search, not just once per
+    //!        program. `noinline` alone keeps it fully optimized while stopping the compiler from
+    //!        folding its body into `run()`'s.
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
+    void ensure_ac_automaton()
+    {
+      const auto* const program {static_cast<const void*>(prog_.code.data())};
+      if (state_.ac_state_for == program) {
+        return;
+      }
+      const std::size_t body_pc {prog_.hints.body_pc == 0 ? std::size_t {1}
+                                                          : static_cast<std::size_t>(prog_.hints.body_pc)};
+      state_.ac_state     = build_ac_automaton(prog_.code, prog_.classes, body_pc);
+      state_.ac_state_for = program;
     }
 
     //! \brief The capture-block pool type of the bound `State` (OPT D1) — heap-backed for dynamic,
@@ -1202,6 +1330,11 @@ namespace real::detail {
                                   run_mode         mode,
                                   OutSlots&        out_slots)
     {
+      // P1 (issue #3): minimum run length in BYTES for the `X{k,}` desugaring (k identical copies
+      // of the atom + a loop of it, see prefilter.hpp's extended class+ recognizer); 1 for the
+      // original bare `X+` shape, where every one of the checks below is a dead branch (byte
+      // runs are never shorter than 1) -- byte-identical to the pre-P1 behavior.
+      const std::size_t         min_len {prog_.hints.greedy_class_loop_min};
       const std::uint8_t* const tbl =
         class_table(static_cast<std::size_t>(prog_.hints.greedy_class_loop));
       const auto in_class = [&](std::size_t i) {
@@ -1238,7 +1371,7 @@ namespace real::detail {
           }
           const std::size_t match_end {scan_end(start)};
           if ((mode == run_mode::full && match_end != text.size()) ||
-              !wb_boundaries_ok(start, match_end)) {
+              !wb_boundaries_ok(start, match_end) || (match_end - start) < min_len) {
             out_slots.assign(prog_.slot_count, npos);
             return false;
           }
@@ -1256,7 +1389,7 @@ namespace real::detail {
             break;
           }
           const std::size_t match_end {scan_end(match_start)};
-          if (wb_boundaries_ok(match_start, match_end)) {
+          if ((match_end - match_start) >= min_len && wb_boundaries_ok(match_start, match_end)) {
             out_slots.assign(prog_.slot_count, npos);
             fill_span_slots(out_slots, match_start, match_end);
             return true;
@@ -1276,13 +1409,15 @@ namespace real::detail {
         return false;
       }
       std::size_t match_start {start};
-      if (mode == run_mode::search) {
-        while (true) {
+      std::size_t match_end   {};
+      while (true) {
+        if (mode == run_mode::search) {
           while (match_start < text.size() && !in_class(match_start)) {
             ++match_start;
           }
           if (match_start >= text.size()) {
-            break;
+            out_slots.assign(prog_.slot_count, npos);
+            return false;
           }
           // B-1 window-edge guard: a candidate found by scanning forward past a non-class byte
           // is provably preceded by one (the scan just confirmed it), so B-1's redundancy
@@ -1294,17 +1429,28 @@ namespace real::detail {
             match_start = scan_end(match_start); // no genuine boundary here: skip this whole run
             continue;
           }
-          break;
         }
-      }
-      if (match_start >= text.size() || !in_class(match_start)) {
-        out_slots.assign(prog_.slot_count, npos);
-        return false;
-      }
-      const std::size_t match_end {scan_end(match_start)};
-      if (mode == run_mode::full && match_end != text.size()) {
-        out_slots.assign(prog_.slot_count, npos);
-        return false;
+        if (match_start >= text.size() || !in_class(match_start)) {
+          out_slots.assign(prog_.slot_count, npos);
+          return false;
+        }
+        match_end = scan_end(match_start);
+        if (mode == run_mode::full && match_end != text.size()) {
+          out_slots.assign(prog_.slot_count, npos);
+          return false;
+        }
+        // P1: a maximal run shorter than the required minimum can never satisfy `X{k,}` starting
+        // here -- in search mode, skip past the whole (too-short) run and try the next one,
+        // exactly like the wb-boundary retry above; anchored modes have no retry, so fail outright.
+        if ((match_end - match_start) < min_len) {
+          if (mode != run_mode::search) {
+            out_slots.assign(prog_.slot_count, npos);
+            return false;
+          }
+          match_start = match_end;
+          continue;
+        }
+        break;
       }
       out_slots.assign(prog_.slot_count, npos);
       fill_span_slots(out_slots, match_start, match_end);
@@ -1451,6 +1597,9 @@ namespace real::detail {
                                      run_mode         mode,
                                      OutSlots&        out_slots)
     {
+      // P1 (issue #3): minimum run length in CODE POINTS (not bytes) for the `X{k,}` desugaring --
+      // see run_class_loop's own doc comment; 1 for the original bare shape (dead branch below).
+      const std::size_t min_len  {prog_.hints.greedy_cp_class_min};
       const std::size_t cp_index {static_cast<std::size_t>(prog_.hints.greedy_cp_class)};
 #if defined(__GNUC__) && !defined(__clang__)
 #include "real/engine/cpclass_gcc_loop.hpp"
@@ -1507,12 +1656,28 @@ namespace real::detail {
                               };
 #endif
 
+      // P1: counts code points in [s, e) -- only walked when min_len > 1 (the {k,} shape); the
+      // range is already known to be a valid run of class-member code points (extend_run just
+      // built it), so this simply re-walks UTF-8 lead bytes to count boundaries, never re-validates.
+      const auto count_cps = [&](std::size_t s, std::size_t e) -> std::size_t {
+                               std::size_t n {0};
+                               std::size_t i {s};
+                               while (i < e) {
+                                 const auto lead {static_cast<std::uint8_t>(text[i])};
+                                 i += lead < 0x80U ? std::size_t {1}
+                                                   : detail::decode_codepoint_strict(text, i).length;
+                                 ++n;
+                               }
+                               return n;
+                             };
+
       // Arc B-2: `\b`/`\B` on subset cp-class (e.g. `\b\d+\b`) — try successive runs.
       if (prog_.hints.wb_lead != 0 || prog_.hints.wb_trail != 0) {
         if (mode == run_mode::full || mode == run_mode::prefix) {
           const std::size_t match_end {extend_run(start)};
           if (match_end == npos || (mode == run_mode::full && match_end != text.size()) ||
-              !wb_boundaries_ok(start, match_end)) {
+              !wb_boundaries_ok(start, match_end) ||
+              (min_len > 1 && count_cps(start, match_end) < min_len)) {
             return false;
           }
           fill_span_slots(out_slots, start, match_end);
@@ -1528,7 +1693,8 @@ namespace real::detail {
             break;
           }
           const std::size_t match_end {extend_run(match_start)};
-          if (match_end != npos && wb_boundaries_ok(match_start, match_end)) {
+          if (match_end != npos && wb_boundaries_ok(match_start, match_end) &&
+              (min_len <= 1 || count_cps(match_start, match_end) >= min_len)) {
             fill_span_slots(out_slots, match_start, match_end);
             return true;
           }
@@ -1545,13 +1711,14 @@ namespace real::detail {
         return false;
       }
       std::size_t match_start {start};
-      if (mode == run_mode::search) {
-        while (true) {
+      std::size_t match_end   {};
+      while (true) {
+        if (mode == run_mode::search) {
           while (match_start < text.size() && width(match_start) == 0) {
             ++match_start;
           }
           if (match_start >= text.size()) {
-            break;
+            return false;
           }
           // B-1 window-edge guard: a candidate found by scanning forward past a non-class
           // code point is provably preceded by one, so B-1's redundancy argument holds
@@ -1567,16 +1734,26 @@ namespace real::detail {
             match_start = skip; // no genuine boundary here: skip this whole run
             continue;
           }
-          break;
         }
-      }
-      if (match_start >= text.size()) {
-        return false;
-      }
-      // The first code point must match: this path is only chosen for `\w`/`\w+` (never nullable).
-      const std::size_t match_end {extend_run(match_start)};
-      if (match_end == npos || (mode == run_mode::full && match_end != text.size())) {
-        return false;
+        if (match_start >= text.size()) {
+          return false;
+        }
+        // The first code point must match: this path is only chosen for `\w`/`\w+` (never nullable).
+        match_end = extend_run(match_start);
+        if (match_end == npos || (mode == run_mode::full && match_end != text.size())) {
+          return false;
+        }
+        // P1: a maximal run shorter than the required minimum can never satisfy `X{k,}` starting
+        // here -- in search mode, skip past the whole (too-short) run and try the next one;
+        // anchored modes have no retry, so fail outright (mirrors run_class_loop's own min-check).
+        if (min_len > 1 && count_cps(match_start, match_end) < min_len) {
+          if (mode != run_mode::search) {
+            return false;
+          }
+          match_start = match_end;
+          continue;
+        }
+        break;
       }
       fill_span_slots(out_slots, match_start, match_end);
       return true;
@@ -2270,6 +2447,51 @@ namespace real::detail {
       }
       out_slots[0] = match_start;
       out_slots[1] = match_end;
+      return true;
+    }
+
+    /*!
+     * \brief D1-AC: multi-literal search via the automaton cached in \ref pike_state::ac_state.
+     *
+     * Search mode only — the automaton's own leftmost-first scan already IS the candidate search
+     * (no separate memchr-cascade block scan). Non-`constexpr` by construction (needs a runtime
+     * scratch cache), so this is never instantiated for the static storage's `State` — guarded at
+     * the call site by `if constexpr (requires(State& s) { s.ac_state; })`.
+     *
+     * \tparam OutSlots Output slot container.
+     * \param[in]  text      The subject text.
+     * \param[in]  start     Index to begin at.
+     * \param[out] out_slots Receives the matched span on success.
+     * \return `true` if some branch matched.
+     *
+     * `noinline`, deliberately NOT `cold` — same reasoning as \ref ensure_ac_automaton (called on
+     * every AC-eligible search, so it must stay fully optimized); only kept OUT of `run()`'s own
+     * body, which is what a round-2 x86 isolation A/B (relayed) traced the "fields [^,]+ +39%"
+     * finding to (neither the pattern_hints field nor the pike_state size growth alone regressed
+     * it — only the full dispatch/search code sharing `run()`'s translation unit did).
+     */
+    template <typename OutSlots>
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
+    bool run_aho_corasick(std::string_view text,
+                          std::size_t      start,
+                          OutSlots&        out_slots)
+    {
+      out_slots.assign(2, npos);
+      // Called only from the dispatch site's own state_.ac_state.has_value() guard, but that
+      // invariant is invisible across the call boundary to static analysis -- an explicit local
+      // check keeps this function's own contract self-contained (defensive, not defensive-in-name).
+      if (!state_.ac_state.has_value()) {
+        return false;
+      }
+      const auto wb_ok = [&](std::size_t s, std::size_t e) { return wb_boundaries_ok(s, e); };
+      const auto m {state_.ac_state->search(text, start, wb_ok)};
+      if (!m.matched) {
+        return false;
+      }
+      out_slots[0] = m.start;
+      out_slots[1] = m.end;
       return true;
     }
 

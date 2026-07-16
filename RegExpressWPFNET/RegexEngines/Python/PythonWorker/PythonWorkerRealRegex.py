@@ -12,7 +12,7 @@ pattern     = input_obj['pattern']
 text        = input_obj['text']
 flags_obj   = input_obj['flags']
 
-flags = 0
+flags = re.NOFLAG
 if flags_obj['IGNORECASE']  : flags |= re.IGNORECASE
 if flags_obj['MULTILINE']   : flags |= re.MULTILINE
 if flags_obj['DOTALL']      : flags |= re.DOTALL

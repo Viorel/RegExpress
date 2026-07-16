@@ -13,7 +13,7 @@
 #define REAL_PREFILTER_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/std/regex.hpp>).
+// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
 
 #include "real/version.hpp"
 
@@ -269,12 +269,18 @@ namespace real::detail {
   }
 
   /*!
-   * \brief B-1/B-2 policy for class / cp-class loops under optional `\b` wraps.
+   * \brief B-1/B-2 policy for class / cp-class loops under optional `\b`/`\B` wraps.
    *
-   * Unarms on `\B` or on a non-word-subset class under `\b` (superset maximal-run is unsound).
-   * Full word + `\b` drops boundaries (B-1) -- but ONLY for a maximal (`+`) run; see \ref
-   * wb_redundant_for_full_word. Proper word subset keeps the wrap (B-2). Bare (no `\b`) arms with
-   * zero wb hints.
+   * - Full word + `\b` on a maximal (`+`) run: drop boundaries (B-1); see \ref
+   *   wb_redundant_for_full_word.
+   * - Proper word subset + `\b`, or full word + `\b` on a single atom: keep the wrap (B-2).
+   * - `\B` on a **maximal** run: **unarm** — the runner skips whole class runs on a failed lead
+   *   check, but `\B` legitimately starts *mid-run* (`\B\w+` on "hello" → "ello"). That skip is
+   *   unsound; stay on the general VM (D1a will not invent a mid-run scanner here).
+   * - `\B` on a **single** atom (`\B\w`, `\B\d`, …): keep the wrap — each candidate is one
+   *   code point, so a failed lead check advances one atom and mid-run hits are found (D1a).
+   * - Non-word-subset class under any wb: unarm (superset maximal-run is unsound).
+   * - Bare (no wb): arm with zero wb hints.
    *
    * \param[in]  full_word   Exact `\w` class (ASCII or Unicode table identity).
    * \param[in]  word_sub    Non-empty subset of `\w`.
@@ -296,14 +302,16 @@ namespace real::detail {
                                                       std::uint8_t& out_lead,
                                                       std::uint8_t& out_trail) noexcept
   {
-    if (lead == 2 || trail == 2) {
+    // `\B` + maximal-run scanner is unsound (mid-run starts); unarm. Single-atom `\B` is fine.
+    if ((lead == 2 || trail == 2) && maximal_run) {
       return false;
     }
     const bool has_wb {lead != 0 || trail != 0};
     if (has_wb && !full_word && !word_sub) {
       return false;
     }
-    if (has_wb && word_sub &&
+    // Keep the wrap for subset/`\B`/single-atom `\b`; B-1 drops only maximal full-word + `\b`.
+    if (has_wb && (word_sub || full_word) &&
         !(maximal_run && full_word && wb_redundant_for_full_word(lead, trail))) {
       out_lead  = lead;
       out_trail = trail;
@@ -404,16 +412,21 @@ namespace real::detail {
    * last branch (trail assert or save 1). Captures other than group 0, nested branches, empty
    * branches, and non-wb assertions all disqualify.
    *
-   * \param[in]  code          The instruction stream.
-   * \param[out] out_wb_lead   Optional; receives lead wb hint (0/1/2).
-   * \param[out] out_wb_trail  Optional; receives trail wb hint (0/1/2).
-   * \param[out] out_body_pc   Optional; receives first branch/split pc after lead wrap.
+   * \param[in]  code            The instruction stream.
+   * \param[out] out_wb_lead     Optional; receives lead wb hint (0/1/2).
+   * \param[out] out_wb_trail    Optional; receives trail wb hint (0/1/2).
+   * \param[out] out_body_pc     Optional; receives first branch/split pc after lead wrap.
+   * \param[out] out_branch_count Optional; receives the branch count (already tracked internally
+   *             to enforce the ">= 2 branches" rule below) -- lets a caller pick a runtime STRATEGY
+   *             (e.g. Aho-Corasick past a literal-count threshold) without re-walking the split
+   *             chain a second time. Does not change eligibility: still requires >= 2 branches.
    * \return `true` if the program has that shape with at least two branches.
    */
   constexpr bool is_fixed_alternation(std::span<const instr> code,
-                                      std::uint8_t*          out_wb_lead  = nullptr,
-                                      std::uint8_t*          out_wb_trail = nullptr,
-                                      std::uint8_t*          out_body_pc  = nullptr)
+                                      std::uint8_t*          out_wb_lead      = nullptr,
+                                      std::uint8_t*          out_wb_trail     = nullptr,
+                                      std::uint8_t*          out_body_pc      = nullptr,
+                                      std::int32_t*          out_branch_count = nullptr)
   {
     const std::size_t code_size {code.size()};
     if (code_size < 7 || code[0].op != opcode::save || code[code_size - 1].op != opcode::match ||
@@ -476,6 +489,9 @@ namespace real::detail {
           }
           if (out_body_pc != nullptr) {
             *out_body_pc = static_cast<std::uint8_t>(body);
+          }
+          if (out_branch_count != nullptr) {
+            *out_branch_count = branches;
           }
           return true;
         }
@@ -805,9 +821,15 @@ namespace real::detail {
                                     std::span<const lookaround_sub> lookarounds,
                                     pattern_hints&                  hints)
   {
-    // "class+" shape: save 0, [optional \b/\B,] [group-start save,] klass, split(back, exit),
+    // "class+" shape: save 0, [optional \b/\B,] [group-start save,] klass{k}, split(back, exit),
     // [group-end save,] [optional \b/\B,] save 1, match. Arc B via peel + resolve_class_wb_hints.
     // R3: the outer envelope (open/close) is \ref parse_shape_lead / \ref parse_shape_close.
+    // P1 (issue #3): `klass{k}` (k >= 1 consecutive copies of the SAME class) generalizes the
+    // original single-`klass` shape -- `X{k,}` desugars to k-1 mandatory copies then a k-th copy
+    // that doubles as the loop body (compiler.hpp's emit_repeat), so k identical `klass` ops
+    // followed by a self-loop split is the bytecode signature of `X{k,}` (k==1 is the original
+    // bare `X+`). A literal run like `\w\w\w+` desugars to the SAME bytecode as `\w{3,}` and is
+    // correctly recognized identically -- same matching semantics, same fast path.
     {
       const shape_lead lead {parse_shape_lead(code)};
       if (lead.ok) {
@@ -817,37 +839,47 @@ namespace real::detail {
           gs = static_cast<std::int16_t>(code[p].arg16);
           ++p;
         }
-        if (p + 1 < code.size() && code[p].op == opcode::klass && code[p + 1].op == opcode::split &&
-            code[p + 1].primary_target == static_cast<std::int32_t>(p) &&
-            code[p + 1].secondary_target == static_cast<std::int32_t>(p + 2)) {
+        if (p < code.size() && code[p].op == opcode::klass) {
           const std::int32_t cls {code[p].arg16};
-          std::size_t        q   {p + 2};
-          std::int16_t       ge  {-1};
-          bool               ok  {gs < 0};
-          if (gs >= 0 && q < code.size() && code[q].op == opcode::save) {
-            ge = static_cast<std::int16_t>(code[q].arg16);
-            ++q;
-            ok = true;
+          std::size_t        k   {1};
+          while (p + k < code.size() && code[p + k].op == opcode::klass && code[p + k].arg16 == cls) {
+            ++k;
           }
-          const shape_close close {ok ? parse_shape_close(code, q) : shape_close {}};
-          if (ok && close.ok && cls >= 0 && static_cast<std::size_t>(cls) < classes.size()) {
-            const char_class& cc        {classes[static_cast<std::size_t>(cls)]};
-            std::uint8_t      out_lead  {0};
-            std::uint8_t      out_trail {0};
-            // This shape structurally requires the split/loop matched above -- always a maximal
-            // `+` run, never a single code point -- so B-1's redundancy argument always applies.
-            if (resolve_class_wb_hints(is_full_ascii_word_class(cc), is_ascii_word_subset_class(cc),
-                                       /*maximal_run=*/ true, lead.wb_lead, close.wb_trail, out_lead,
-                                       out_trail)) {
-              hints.greedy_class_loop  = cls;
-              hints.greedy_group_start = gs;
-              hints.greedy_group_end   = ge;
-              hints.wb_lead            = out_lead;
-              hints.wb_trail           = out_trail;
-              // B-1 dropped a genuine leading \b (wb_lead was 1, out_lead came back 0): the
-              // runner's search-mode fast path needs the start>0 window-edge guard -- see
-              // pattern_hints::wb_lead_maximal_run's own doc comment for the full argument.
-              hints.wb_lead_maximal_run = (lead.wb_lead == 1 && out_lead == 0);
+          const std::size_t last {p + k - 1};
+          if (last + 1 < code.size() && code[last + 1].op == opcode::split &&
+              code[last + 1].primary_target == static_cast<std::int32_t>(last) &&
+              code[last + 1].secondary_target == static_cast<std::int32_t>(last + 2)) {
+            std::size_t  q  {last + 2};
+            std::int16_t ge {-1};
+            bool         ok {gs < 0};
+            if (gs >= 0 && q < code.size() && code[q].op == opcode::save) {
+              ge = static_cast<std::int16_t>(code[q].arg16);
+              ++q;
+              ok = true;
+            }
+            const shape_close close {ok ? parse_shape_close(code, q) : shape_close {}};
+            if (ok && close.ok && cls >= 0 && static_cast<std::size_t>(cls) < classes.size()
+                && k <= 65535) {
+              const char_class& cc        {classes[static_cast<std::size_t>(cls)]};
+              std::uint8_t      out_lead  {0};
+              std::uint8_t      out_trail {0};
+              // This shape structurally requires the split/loop matched above -- always a maximal
+              // `+`-family run, never a single code point -- so B-1's redundancy argument always
+              // applies regardless of k.
+              if (resolve_class_wb_hints(is_full_ascii_word_class(cc), is_ascii_word_subset_class(cc),
+                                         /*maximal_run=*/ true, lead.wb_lead, close.wb_trail, out_lead,
+                                         out_trail)) {
+                hints.greedy_class_loop     = cls;
+                hints.greedy_class_loop_min = static_cast<std::uint16_t>(k);
+                hints.greedy_group_start    = gs;
+                hints.greedy_group_end      = ge;
+                hints.wb_lead               = out_lead;
+                hints.wb_trail              = out_trail;
+                // B-1 dropped a genuine leading \b (wb_lead was 1, out_lead came back 0): the
+                // runner's search-mode fast path needs the start>0 window-edge guard -- see
+                // pattern_hints::wb_lead_maximal_run's own doc comment for the full argument.
+                hints.wb_lead_maximal_run = (lead.wb_lead == 1 && out_lead == 0);
+              }
             }
           }
         }
@@ -884,9 +916,16 @@ namespace real::detail {
       }
     }
 
-    // Code-point class (klass_cp + three klass continuations), optional greedy `+`, optional `\b`/`\B`
-    // wraps (Arc B), optional one capturing group. Unicode `\w+` / `\d+` / `\s+` via peel + resolve.
-    // R3: the outer envelope (open/close) is \ref parse_shape_lead / \ref parse_shape_close.
+    // Code-point class (klass_cp + three klass continuations){k}, optional greedy `+` (a self-loop
+    // of the LAST block), optional `\b`/`\B` wraps (Arc B), optional one capturing group. Unicode
+    // `\w+` / `\d+` / `\s+` / `\w{k,}` via peel + resolve. R3: the outer envelope (open/close) is
+    // \ref parse_shape_lead / \ref parse_shape_close.
+    // P1 (issue #3): k >= 1 consecutive copies of the IDENTICAL 4-instruction klass_cp block --
+    // `\w{k,}` desugars to k-1 mandatory copies then a k-th copy that doubles as the loop body
+    // (compiler.hpp's emit_repeat). intern_cp_class/intern_class content-based dedup (compiler.hpp)
+    // guarantees repeated blocks are byte-identical (same cp_idx, same 3 continuation class
+    // indices) -- verified explicitly below rather than assumed, so a future emitter change that
+    // broke the guarantee would just decline this shape, never misrecognize it.
     {
       const shape_lead lead {parse_shape_lead(code)};
       if (lead.ok) {
@@ -898,9 +937,23 @@ namespace real::detail {
         }
         if (p + 3 < code.size() && code[p].op == opcode::klass_cp && code[p + 1].op == opcode::klass &&
             code[p + 2].op == opcode::klass && code[p + 3].op == opcode::klass) {
-          const std::int32_t cp_idx  {code[p].arg16};
-          const std::size_t  loop_pc {p};
-          std::size_t        q       {p + 4};
+          const std::int32_t  cp_idx {code[p].arg16};
+          const std::int32_t  cont0  {code[p + 1].arg16};
+          const std::int32_t  cont1  {code[p + 2].arg16};
+          const std::int32_t  cont2  {code[p + 3].arg16};
+          std::size_t         k      {1};
+          while (p + (k * 4) + 3 < code.size()) {
+            const std::size_t bp {p + (k * 4)};
+            if (code[bp].op != opcode::klass_cp || code[bp].arg16 != cp_idx ||
+                code[bp + 1].op != opcode::klass || code[bp + 1].arg16 != cont0 ||
+                code[bp + 2].op != opcode::klass || code[bp + 2].arg16 != cont1 ||
+                code[bp + 3].op != opcode::klass || code[bp + 3].arg16 != cont2) {
+              break;
+            }
+            ++k;
+          }
+          const std::size_t  loop_pc {p + ((k - 1) * 4)}; // the LAST block's own klass_cp position
+          std::size_t        q       {loop_pc + 4};
           bool               plus    {false};
           if (q < code.size() && code[q].op == opcode::split &&
               code[q].primary_target == static_cast<std::int32_t>(loop_pc) &&
@@ -916,12 +969,17 @@ namespace real::detail {
             ok = true;
           }
           const shape_close close {ok ? parse_shape_close(code, q) : shape_close {}};
-          if (ok && close.ok && cp_idx >= 0 && static_cast<std::size_t>(cp_idx) < cp_classes.size()) {
+          // k > 1 without a trailing self-loop is `X{k}` (exact count, no MIN-only run to bound a
+          // search against) -- not this recognizer's shape; only arm when the loop is present
+          // (the {k,} shape) or k == 1 (the original bare-atom/optional-`+` shape).
+          if (ok && close.ok && (plus || k == 1) && cp_idx >= 0
+              && static_cast<std::size_t>(cp_idx) < cp_classes.size() && k <= 65535) {
             const bool has_wb {lead.wb_lead != 0 || close.wb_trail != 0};
             // Bare path: no Unicode table walk (keeps constexpr light for static_regex).
             if (!has_wb) {
               hints.greedy_cp_class      = cp_idx;
               hints.greedy_cp_class_plus = plus;
+              hints.greedy_cp_class_min  = static_cast<std::uint16_t>(k);
               hints.greedy_group_start   = gs;
               hints.greedy_group_end     = ge;
               hints.wb_lead              = 0;
@@ -939,6 +997,7 @@ namespace real::detail {
                                          lead.wb_lead, close.wb_trail, out_lead, out_trail)) {
                 hints.greedy_cp_class      = cp_idx;
                 hints.greedy_cp_class_plus = plus;
+                hints.greedy_cp_class_min  = static_cast<std::uint16_t>(k);
                 hints.greedy_group_start   = gs;
                 hints.greedy_group_end     = ge;
                 hints.wb_lead              = out_lead;
@@ -1128,11 +1187,13 @@ namespace real::detail {
 
     // Whole pattern is an alternation of straight-line branches (optional lead/trail `\b`/`\B`).
     {
-      std::uint8_t wb_lead  {};
-      std::uint8_t wb_trail {};
-      std::uint8_t body_pc  {1};
-      if (is_fixed_alternation(code, &wb_lead, &wb_trail, &body_pc)) {
-        hints.fixed_alternation = true;
+      std::uint8_t  wb_lead      {};
+      std::uint8_t  wb_trail     {};
+      std::uint8_t  body_pc      {1};
+      std::int32_t  branch_count {};
+      if (is_fixed_alternation(code, &wb_lead, &wb_trail, &body_pc, &branch_count)) {
+        hints.fixed_alternation        = true;
+        hints.alternation_branch_count = static_cast<std::uint16_t>(branch_count);
         // Only set wb_* here if exact_literal / fixed_shape did not already claim them
         // (a pure literal alternation is rare; prefer not clobbering an earlier path).
         if (!hints.fixed_shape && hints.exact_literal_len == 0) {
@@ -1540,17 +1601,22 @@ namespace real::detail {
       hints.single_first = static_cast<unsigned char>(hints.prefix[0]);
     }
     else if (hints.first_bytes_valid) {
-      // Enumerate the set, stopping once it exceeds four. A single member drives find_byte (one memchr);
-      // two-to-four members drive the memchr-cascade (small_set); five or more stay on the bitmap loop.
-      std::array<char, 4> members {};
+      // Enumerate the set, stopping once it exceeds eight -- the recognizer's own cap now matches
+      // run_alternation's L-SIMD masked-block scan (pike.hpp), which has always gated on
+      // small_set_size <= 8; only this enumeration cap was left at 4 (issue #3's Alternation gap:
+      // a 5-8-distinct-first-byte pattern like `cat|dog|fish|bird|fox|bear|wolf|deer|hawk|frog`
+      // fell all the way to the bitmap loop, un-accelerated). A single member drives find_byte (one
+      // memchr); two-to-eight members drive the memchr-cascade/SIMD scan (small_set); nine or more
+      // stay on the bitmap loop.
+      std::array<char, 8> members {};
       int                 count   {0};
       for (unsigned byte = 0; byte < 256; ++byte) {
         if (hints.first_bytes.test(static_cast<std::uint8_t>(byte))) {
-          if (count < 4) {
+          if (count < 8) {
             members[static_cast<std::size_t>(count)] = static_cast<char>(byte);
           }
           ++count;
-          if (count > 4) {
+          if (count > 8) {
             break;
           }
         }
@@ -1558,7 +1624,7 @@ namespace real::detail {
       if (count == 1) {
         hints.single_first = static_cast<std::int16_t>(static_cast<unsigned char>(members[0]));
       }
-      else if (count >= 2 && count <= 4) {
+      else if (count >= 2 && count <= 8) {
         hints.small_set      = members;
         hints.small_set_size = static_cast<std::uint8_t>(count);
       }

@@ -2,7 +2,7 @@
  * \file std/regex.hpp
  * \brief `real::compat` — a `std::regex`-compatible drop-in (`<regex>` surface), char path.
  *
- * The umbrella header: it includes the three parts below; `#include <real/std/regex.hpp>` is the one
+ * The umbrella header: it includes the three parts below; `#include <real/compat/std/regex.hpp>` is the one
  * public entry point. The `real::compat` API is split purely organizationally —
  * `std/regex_core.hpp` (constants, error, backend-routing screens, `basic_regex`),
  * `std/regex_match.hpp` (`sub_match`, `match_results`, the runner, and the `regex_search` /
@@ -33,7 +33,7 @@
 #define REAL_STD_REGEX_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/std/regex.hpp>).
+// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
 
 #include "regex_core.hpp"
 #include "regex_match.hpp"

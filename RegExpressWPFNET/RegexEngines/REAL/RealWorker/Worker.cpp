@@ -126,6 +126,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::ecma;
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::ascii;
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::dollar_endonly;
+		if( inbr.ReadByte( ) ) flags = flags | real::flags::allow_raw_byte;
 
 		bool longest = inbr.ReadByte( ) != 0;
 

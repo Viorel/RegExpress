@@ -21,13 +21,15 @@
 #define REAL_ONEPASS_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/std/regex.hpp>).
+// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
 
 #include <algorithm>
 #include <array>
 #include <bit>
 #include <cassert>
+#include <memory>
 #include <mutex>
+#include <unordered_map>
 #include <optional>
 #include <cstddef>
 #include <cstdint>
@@ -81,16 +83,29 @@ namespace real::detail {
     static constexpr std::size_t   max_slots        {10};           //!< Slot-pointer cap: group 0 + four user groups.
     static constexpr std::size_t   minimize_buckets {4096};         //!< Hash buckets for the Moore-refinement dedup.
     static constexpr std::size_t   max_table_bytes  {8U << 20};     //!< Table-memory cap (~8 MB): larger declines to the VM.
+    //! Moore-refinement work cap (rounds x nodes x per-node signature width). A repeated large class (e.g.
+    //! `\w{k}`, whose Unicode trie floods thousands of nodes per copy) forms a *chain* of that many node
+    //! groups, and Moore refinement needs one round per link of the chain to propagate a distinguishing byte
+    //! all the way back to the start -- rounds ~ O(k), each O(nodes x alphabet), so total work is quadratic
+    //! in k and unbounded as k grows (confirmed: `\w{30}` alone took ~2.1s on arm64/-O2 before this cap).
+    //! Calibrated against the full test suite's own one-pass patterns, whose peak observed work is ~5.9M
+    //! (5 rounds, 3762 nodes) -- this cap gives that a >16x margin while bounding worst-case wall time to a
+    //! few hundred ms instead of seconds-to-unbounded. Larger declines to the VM, same as the other caps here.
+    static constexpr std::uint64_t max_minimize_work {100'000'000ULL};
 
     //! \param[in] bp        The byte-program to classify.
     //! \param[in] max_bytes Table-memory cap; larger tables decline. Defaults to \ref max_table_bytes; a
     //!                      smaller value is a test hook to exercise the cap without a huge pattern.
     //! \param[in] node_cap  Node-count cap (see \ref max_nodes). Defaults to \ref max_nodes; a smaller
     //!                      value is a test hook to exercise the cap without a 65000-node pattern.
+    //! \param[in] work_cap  Moore-refinement work cap (see \ref max_minimize_work). Defaults to \ref
+    //!                      max_minimize_work; a smaller value is a test hook to exercise the cap without a
+    //!                      pattern that takes hundreds of milliseconds to build.
     explicit constexpr onepass(const byte_program&  bp,
                                std::size_t          max_bytes = max_table_bytes,
-                               std::size_t          node_cap  = max_nodes)
-      : max_bytes_ {max_bytes}, node_cap_ {node_cap},
+                               std::size_t          node_cap  = max_nodes,
+                               std::uint64_t        work_cap  = max_minimize_work)
+      : max_bytes_ {max_bytes}, node_cap_ {node_cap}, work_cap_ {work_cap},
         ascii_word_ {!bp.unicode_word} // word-ness mode for \b \B \< \> in edge conditions (Tier-B)
     {
       if (!bp.eligible) {
@@ -270,10 +285,17 @@ namespace real::detail {
       pc_to_node_.assign(bp.code.size(), no_node);
       std::vector<std::int32_t> queue;
       node_of(0, queue); // the start node
+      // Allocated once, not once per queued node: build_edges's own DFS backtrack (its unconditional trailing
+      // `on_path[pc] = 0`) restores every entry it touched to 0 before returning here, on every path that
+      // keeps `eligible_` true -- the only paths that skip that clear are the ones that also bail() (turn
+      // eligible_ false), which stops this loop on its next condition check regardless. So the array is
+      // already all-zero at the top of each iteration; re-zeroing bp.code.size() elements per node (up to
+      // node_cap_ times) was O(node_cap x code size) for no reason -- multiple seconds on a large repeated
+      // class (e.g. `\w{100}`) before it ever reached minimize().
+      std::vector<char> on_path(bp.code.size(), 0);
       while (!queue.empty() && eligible_) {
         const std::int32_t pc {queue.back()};
         queue.pop_back();
-        std::vector<char> on_path(bp.code.size(), 0);
         build_edges(pc, 0, 0, on_path, pc_to_node_[static_cast<std::size_t>(pc)], queue);
         if (nodes_.size() > node_cap_) {
           bail("node cap exceeded", static_cast<std::int32_t>(nodes_.size()));
@@ -284,6 +306,9 @@ namespace real::detail {
         return;
       }
       minimize(); // (i) collapse equivalent nodes (the byte-program's trie sharing, lost in the flood, recovered)
+      if (!eligible_) {
+        return; // minimize() itself declined (its own work cap): nodes_ is an unfinished flood, not a table.
+      }
       // (ii) memory cap: even minimized, a pathological table declines to the Pike VM rather than bloat the regex.
       std::size_t bytes {0};
       for (const onepass_node& nd : nodes_) {
@@ -305,7 +330,19 @@ namespace real::detail {
       const std::size_t          n       {nodes_.size()};
       std::vector<std::uint32_t> cls(n, 0);
       std::uint32_t              classes {0};
+      // Per-round cost is n signatures of width (4 + 3 x alpha_.count) each -- fixed for the whole call, since
+      // only `cls` (not n or the alphabet) changes between rounds. A chain-shaped automaton (a repeated large
+      // class, e.g. `\w{k}`) needs ~k rounds to converge, so bound *cumulative* work rather than round count:
+      // that lets small automata refine as many rounds as they need while still catching a large chain early.
+      const std::uint64_t sig_width  {4U + (3U * static_cast<std::uint64_t>(alpha_.count))};
+      const std::uint64_t round_work {static_cast<std::uint64_t>(n) * sig_width};
+      std::uint64_t       work_done  {0};
       while (true) {
+        if (work_done + round_work > work_cap_) {
+          bail("one-pass minimization exceeded its work budget: not one-pass", static_cast<std::int32_t>(n));
+          return;
+        }
+        work_done += round_work;
         std::vector<std::vector<std::uint64_t>> sigs(n);
         for (std::size_t i = 0; i < n; ++i) {
           std::vector<std::uint64_t>& s {sigs[i]};
@@ -506,6 +543,7 @@ namespace real::detail {
     std::size_t                             slot_count_ {0};
     std::size_t                             max_bytes_  {max_table_bytes};
     std::size_t                             node_cap_   {max_nodes};
+    std::uint64_t                           work_cap_   {max_minimize_work};
     bool                                    ascii_word_ {true};
     std::int32_t                            bail_node_  {-1};
     std::int32_t                            bail_class_ {-1};
@@ -517,14 +555,18 @@ namespace real::detail {
   //! \brief The per-regex immutable cache the router shares across every find_iter on a regex: the byte-
   //!        program (klass_cp expanded to the deterministic trie) and, when the pattern is one-pass, the
   //!        extractor table. Built exactly once, under \ref once, so a const regex used from many threads
-  //!        (the binding shares the compiled object across GIL-released calls) builds it race-free. The
-  //!        mutable DFA transition caches stay per-iterator — they warm per scan and would need a lock here.
+  //!        (the binding shares the compiled object across GIL-released calls) builds it race-free.
+  //!
+  //!        D1: the mutable lazy-DFA transition caches live in a process-wide side table
+  //!        (\ref shared_dfa_slot), keyed by this object's address and guarded by a per-slot mutex —
+  //!        so this struct stays free of \c std::mutex / extra members (layout and constexpr size match
+  //!        pre-D1; address-reuse invalidates the slot from \c call_once via \ref reset_shared_dfas).
   struct regex_immutables
   {
     byte_program           byte_prog;          //!< klass_cp-expanded byte program (empty until built).
     lazy_byte_alphabet     alphabet;           //!< byte-class alphabet of byte_prog (shared by both DFAs, else recomputed per scan).
     std::optional<onepass> op_table;           //!< one-pass extractor, present iff the pattern is one-pass.
-    byte_program           il_prefix_prog;     //!< IL: the inner-literal prefix's byte program (ineligible until built). Per-regex so the reverse DFA that spans it is a cheap per-iterator wrapper, not a per-find_iter rebuild.
+    byte_program           il_prefix_prog;     //!< IL: the inner-literal prefix's byte program (ineligible until built). Per-regex so the reverse DFA that spans it is a cheap shared wrapper, not a per-find_iter rebuild.
     std::size_t            il_min_haystack {}; //!< IL: on a haystack that HAS a candidate, the route only fires at or above this size (0 = always). The prefix reverse DFA's cache is per-iterator and re-warms per find_iter; below N that cost does not amortize and the core is faster. Checked ONLY after the first memmem hit, so a no-match haystack (memmem-only) is never gated. Scaled by the prefix byte-program size (its cache size); see \ref pike_vm::run_inner_literal.
     std::once_flag         once;               //!< guards the one-time build.
 
@@ -552,8 +594,64 @@ namespace real::detail {
       return *this;
     }
 
+    // Default dtor: required for constexpr \c dynamic_storage::compile / \c static_assert paths. Shared
+    // DFA slots are process-lifetime (keyed by address); a new immutables at a reused address re-runs
+    // \c call_once which clears the slot (\ref reset_shared_dfas).
     ~regex_immutables() = default;
   };
+
+  //! \brief D1: process-wide shared DFA transition caches keyed by \ref regex_immutables*.
+  //!        Thread-safe: map insert under \ref shared_dfa_map_mu, DFA warm/scan under \ref mu.
+  struct shared_dfa_slot
+  {
+    std::mutex                 mu;
+    std::optional<lazy_dfa>    fwd;
+    std::optional<reverse_dfa> rev;
+    std::optional<reverse_dfa> il_prefix_rev;
+  };
+
+  inline std::mutex& shared_dfa_map_mu()
+  {
+    static std::mutex m;
+    return m;
+  }
+
+  inline std::unordered_map<const regex_immutables*, std::unique_ptr<shared_dfa_slot>>& shared_dfa_map()
+  {
+    static std::unordered_map<const regex_immutables*, std::unique_ptr<shared_dfa_slot>> m;
+    return m;
+  }
+
+  //! \brief Resolve the process-wide DFA slot for this regex (map insert under \ref shared_dfa_map_mu).
+  //!        Thread-local last-hit cache: dense IL was paying map_mu per candidate without it; the cache
+  //!        is not on \ref regex_immutables (layout isolation — x86 class-loop +6% suspect).
+  [[nodiscard]] inline shared_dfa_slot& shared_dfa_for(regex_immutables* immut)
+  {
+    thread_local const regex_immutables* cached_immut {nullptr};
+    thread_local shared_dfa_slot*        cached_slot  {nullptr};
+    if (cached_immut == immut && cached_slot != nullptr) {
+      return *cached_slot;
+    }
+    const std::lock_guard<std::mutex> lock {shared_dfa_map_mu()};
+    std::unique_ptr<shared_dfa_slot>& slot {shared_dfa_map()[immut]};
+    if (!slot) {
+      slot = std::make_unique<shared_dfa_slot>();
+    }
+    cached_immut = immut;
+    cached_slot  = slot.get();
+    return *slot;
+  }
+
+  //! \brief Drop any DFAs cached for \p immut (caller holds nothing; takes map + slot locks).
+  //!        Invoked from \c call_once so a reused immutables address cannot keep a previous pattern's DFAs.
+  inline void reset_shared_dfas(regex_immutables* immut)
+  {
+    shared_dfa_slot&                  slot {shared_dfa_for(immut)};
+    const std::lock_guard<std::mutex> lock {slot.mu};
+    slot.fwd.reset();
+    slot.rev.reset();
+    slot.il_prefix_rev.reset();
+  }
 } // namespace real::detail
 
 #endif // REAL_ONEPASS_HPP

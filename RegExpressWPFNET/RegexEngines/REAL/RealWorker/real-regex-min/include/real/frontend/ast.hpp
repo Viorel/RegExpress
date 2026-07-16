@@ -19,7 +19,7 @@
 #define REAL_AST_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/std/regex.hpp>).
+// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
 
 #include "real/version.hpp"
 
@@ -79,20 +79,21 @@ namespace real::detail {
    */
   struct ast_node
   {
-    node_kind    kind            {node_kind::empty};   //!< Which fields below are meaningful.
-    std::uint8_t byte            {};                   //!< byte: the exact byte value.
-    anchor_kind  anchor          {anchor_kind::caret}; //!< anchor: the assertion kind.
-    bool         negated         {};                   //!< klass: written as `[^...]` / `\D` `\W` `\S`.
-    bool         lazy            {};                   //!< repeat: prefer the shortest expansion.
-    bool         possessive      {};                   //!< repeat: no give-back (`X*+`/`X++`/`X?+`/`X{n,m}+`). group: atomic `(?>...)` — same "no give-back" meaning, reused.
-    look_dir     direction       {look_dir::ahead};    //!< lookaround: ahead `(?=`/`(?!` or behind `(?<=`/`(?<!`.
-    std::int32_t klass           {-1};                 //!< klass: index into \ref ast::classes.
-    std::int32_t min             {};                   //!< repeat: minimum count.
-    std::int32_t max             {-1};                 //!< repeat: maximum count (-1 = unbounded).
-    std::int32_t group           {-1};                 //!< group: capture number, -1 for `(?:...)`.
-    std::int32_t child           {-1};                 //!< First child (concat, repeat, alternation, group).
-    std::int32_t next            {-1};                 //!< Next sibling in the parent's child list.
-    std::uint8_t effective_flags {};                   //!< Flag set in force where this node was parsed (see \ref flags). Stamped from the scope stack; carried for scoped-flag semantics.
+    node_kind     kind            {node_kind::empty};   //!< Which fields below are meaningful.
+    std::uint8_t  byte            {};                   //!< byte: the exact byte value.
+    anchor_kind   anchor          {anchor_kind::caret}; //!< anchor: the assertion kind.
+    bool          negated         {};                   //!< klass: written as `[^...]` / `\D` `\W` `\S`.
+    bool          raw_byte        {};                   //!< any: `\C` (RE2's raw-byte escape) — always 1 byte, bypasses UTF-8 even outside bytes mode. Parser requires flags::bytes (see `parse_escape`).
+    bool          lazy            {};                   //!< repeat: prefer the shortest expansion.
+    bool          possessive      {};                   //!< repeat: no give-back (`X*+`/`X++`/`X?+`/`X{n,m}+`). group: atomic `(?>...)` — same "no give-back" meaning, reused.
+    look_dir      direction       {look_dir::ahead};    //!< lookaround: ahead `(?=`/`(?!` or behind `(?<=`/`(?<!`.
+    std::int32_t  klass           {-1};                 //!< klass: index into \ref ast::classes.
+    std::int32_t  min             {};                   //!< repeat: minimum count.
+    std::int32_t  max             {-1};                 //!< repeat: maximum count (-1 = unbounded).
+    std::int32_t  group           {-1};                 //!< group: capture number, -1 for `(?:...)`.
+    std::int32_t  child           {-1};                 //!< First child (concat, repeat, alternation, group).
+    std::int32_t  next            {-1};                 //!< Next sibling in the parent's child list.
+    std::uint16_t effective_flags {};                   //!< Flag set in force where this node was parsed (see \ref flags). Stamped from the scope stack; carried for scoped-flag semantics.
   };
 
   //! \brief A parsed character class: its ASCII bitmap plus any non-ASCII code-point ranges. Bundling
@@ -417,7 +418,7 @@ namespace real::detail {
     {
       // Stamp the flag set in force where this node was parsed (from the scope stack). Carried for
       // scoped-flag semantics; the compiler does not read it yet, so it does not change any program.
-      node.effective_flags = static_cast<std::uint8_t>(current_flags());
+      node.effective_flags = static_cast<std::uint16_t>(current_flags());
       out.nodes.push_back(node);
       return static_cast<std::int32_t>(out.nodes.size()) - 1;
     }
@@ -1725,6 +1726,24 @@ namespace real::detail {
         case 'N':
           ++pos_;
           return emit_literal_codepoint(out, parse_named_codepoint());
+        // `\C` — RE2's raw-byte escape hatch: match exactly one byte, bypassing UTF-8 entirely (RE2 does
+        // this even under its default UTF-8 mode). Gated on flags::bytes OR flags::allow_raw_byte: outside
+        // either, a \C span can land mid-codepoint, which is well-formed on a byte-offset API (RE2 behaves
+        // identically) but corrupts a binding that converts byte offsets to character offsets (e.g. the
+        // Python layer) -- rejecting it there (where every offset is already byte-native under flags::bytes,
+        // or explicitly opted into via allow_raw_byte by a byte-offset-native consumer like real::compat::re2)
+        // keeps every char-offset REAL-native surface codepoint-clean by construction, matching the
+        // strict-dot precedent (see divergences.dox). allow_raw_byte widens the *gate* only -- \C itself
+        // still always consumes exactly one raw byte, same as under flags::bytes.
+        case 'C':
+          ++pos_;
+          // Read bytes-mode from the scope stack, not the global `bytes_` member (the flag-scope ratchet):
+          // bytes is never scoped, so this equals `bytes_` while keeping the parser's global-read count flat.
+          // allow_raw_byte is never scoped either (a constructor-only opt-in, like bytes).
+          if (!has_flag(current_flags(), flags::bytes) && !has_flag(current_flags(), flags::allow_raw_byte)) {
+            fail_unsupported("\\C (raw-byte escape) requires flags::bytes or flags::allow_raw_byte -- it can split a UTF-8 codepoint");
+          }
+          return add_node(out, {.kind = node_kind::any, .raw_byte = true});
         default:
           {
             const std::int32_t byte_value {parse_byte_escape()};

@@ -17,7 +17,7 @@
 #define REAL_LAZY_DFA_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/std/regex.hpp>).
+// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
 
 #include <algorithm>
 #include <array>
@@ -86,6 +86,16 @@ namespace real::detail {
   //!        route-auto and forced-general agree on every input — the "wagon-4 pattern" applied to the new
   //!        recognizers. Not for production use — same contract as the other route-disabled seams.
   inline bool& possessive_fastpath_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
+  //! \brief Test seam (D1-AC): force the matcher off the Aho-Corasick multi-literal route (past the
+  //!        branch-count threshold) onto the existing \ref pattern_hints::fixed_alternation
+  //!        `run_alternation` path, so a differential can assert routed and unrouted searches agree.
+  //!        Not for production use — same contract as the other route-disabled seams.
+  inline bool& aho_corasick_route_disabled()
   {
     static bool disabled {false};
     return disabled;
@@ -313,15 +323,39 @@ namespace real::detail {
     }
   }
 
+  //! Cap on the expanded byte-program's instruction count (the running `cur` total below, checked as it
+  //! grows). Each `klass_cp` occurrence gets its OWN freshly-built UTF-8 trie here (unshared even when many
+  //! occurrences reference the identical class — e.g. every copy of a `{k}`-repeated `\w`), so a large
+  //! repeat count multiplies the trie's several-hundred-to-thousand-node size by k with no cache to amortize
+  //! it. Left unbounded, that is O(k x trie size) wall-clock BEFORE onepass or the lazy DFA ever run (their
+  //! own caps — \ref onepass::max_nodes, \ref onepass::max_minimize_work — sit downstream of this and never
+  //! get a chance to bound it). Calibrated empirically (arm64, the sanitizer-instrumented `make fuzz` build,
+  //! whose -timeout=10 is the real constraint): `\w{5}a` -> 17154 instrs/1.3s, `\w{10}a` -> 34304/3.9s,
+  //! `\w{15}a` -> 51454/7.1s already flirts with the timeout. 20000 keeps sanitized wall time around 1.5-2s
+  //! (5x+ margin) while comfortably exceeding every legitimate pattern in the test suite. Exceeding it
+  //! declines Tier-A/Tier-B (and so onepass/lazy-DFA) entirely, falling back to the general Pike VM, which
+  //! matches straight off the (small, unexpanded) compiled program and needs no trie expansion at all.
+  inline constexpr std::size_t max_byte_program_size {20000};
+
   /*!
    * \brief Builds the byte-level DFA program for \p prog (see \ref byte_program). A `klass_cp` at P (a four-
    *        instruction construct: the op plus three `utf8_cont` continuation slots) is replaced by the
    *        deterministic UTF-8 trie recognising its code-point class (\ref build_utf8_trie), converging on
    *        the mapped P+4; every other op is copied with its branch targets remapped. Two passes: the first
-   *        builds each trie and sizes it to form the old→new pc map, the second emits.
+   *        builds each trie and sizes it to form the old→new pc map, the second emits. The first pass also
+   *        enforces \p max_size (see \ref max_byte_program_size) as it accumulates `cur`, so a large repeated
+   *        class declines before building any trie past the one that crosses the cap.
+   *
+   * \param[in] prog            The Pike program to expand.
+   * \param[in] keep_assertions Tier-B: keep `assert_position` ops as edge conditions instead of declining
+   *                            them (Tier-A's default).
+   * \param[in] max_size        Expanded-program-size cap. Defaults to \ref max_byte_program_size; a smaller
+   *                            value is a test hook to exercise the decline without a pattern that takes
+   *                            seconds to build.
    */
   inline byte_program build_byte_program(const program_view& prog,
-                                         bool                keep_assertions = false)
+                                         bool                keep_assertions = false,
+                                         std::size_t         max_size        = max_byte_program_size)
   {
     byte_program bp;
     bp.unicode_word = prog.unicode_word;
@@ -359,6 +393,10 @@ namespace real::detail {
       if (prog.code[pc].op == opcode::klass_cp) {
         tries[pc]   = build_utf8_trie(prog.cp_classes[prog.code[pc].arg16], prog.cp_ranges);
         cur        += utf8_trie_emit_size(tries[pc]);
+        if (cur > max_size) {
+          bp.eligible = false; // a large repeated class (e.g. `\w{k}` for a big k): decline before building
+          return bp;           // any further trie -- the general Pike VM needs no byte-program expansion.
+        }
         map[pc + 1] = map[pc + 2] = map[pc + 3] = static_cast<std::int32_t>(cur); // continuation slots absorbed
         pc         += 3;                                                          // skip the construct's tail
       }

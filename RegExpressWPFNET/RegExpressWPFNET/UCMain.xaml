@@ -102,7 +102,7 @@
                         <TextBlock x:Name="lblMatches" Grid.Row="0" Text="Matches" Style="{StaticResource Labels}"/>
                         <TextBlock x:Name="pnlOwerlappingMatches" Padding="0" Margin="22 0 0 0">
                             <Run Foreground="OrangeRed">&#x26a0;</Run>
-                            Overlapping matches found
+                            Overlapping matches
                         </TextBlock>
                     </StackPanel>
                 </Grid>
