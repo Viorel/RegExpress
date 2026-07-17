@@ -22,6 +22,7 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <memory>
 #include <string_view>
 #include <bit>
 #include <cstring>
@@ -304,6 +305,31 @@ namespace real::detail {
     }
   };
 
+  //! \brief D1 Unicode-property: sparse 2-stage membership for code points > U+07FF (page = cp>>8 → 256-bit block).
+  //!        Thread-local heap cache only — \ref basic_pike_state size is unchanged (ASCII class-loop safe).
+  struct cp_hi_table
+  {
+    static constexpr std::uint16_t             empty {0xFFFFU}; //!< \ref page_of sentinel: no members in that page.
+    std::vector<std::uint16_t>                 page_of;         //!< page_of[cp>>8] → index into \ref blocks, or \ref empty.
+    std::vector<std::array<std::uint8_t, 32>>  blocks;          //!< Non-empty 256-bit pages only.
+
+    [[nodiscard]] bool contains(char32_t cp) const noexcept
+    {
+      const std::uint32_t u    {static_cast<std::uint32_t>(cp)};
+      const std::uint32_t page {u >> 8U};
+      if (page >= page_of.size()) {
+        return false;
+      }
+      const std::uint16_t idx {page_of[page]};
+      if (idx == empty) {
+        return false;
+      }
+      const auto&         blk {blocks[idx]};
+      const std::uint32_t lo  {u & 0xFFU};
+      return ((static_cast<unsigned>(blk[lo >> 3U]) >> (lo & 7U)) & 1U) != 0U;
+    }
+  };
+
   /*!
    * \brief Reusable VM scratch state.
    *
@@ -336,11 +362,14 @@ namespace real::detail {
 
     /*!
      * \brief Membership bitmap for a `cp_class` over the 2-byte UTF-8 range `[U+0080, U+07FF]`, and
-     *        the class it was built for. A `klass_cp` scan otherwise binary-searches ~771 ranges per
-     *        non-ASCII code point; European text lives almost entirely in this range (Latin, IPA,
+     *        the class it was built for. European text lives almost entirely in this range (Latin, IPA,
      *        Greek, Cyrillic, Hebrew, Arabic…), so a 240-byte bitmap answers it in one load. Built once
-     *        per class and reused across a `find_all`-style walk; code points beyond U+07FF (CJK,
-     *        astral) fall back to the range search.
+     *        per class and reused across a `find_all`-style walk.
+     *
+     *        Code points beyond U+07FF (CJK, astral) use \ref cp_hi_table (2-stage sparse pages), not an
+     *        inline BMP array — expanding this field would inflate every pattern's hot state (ASCII
+     *        class-loop sensitivity, §A 7.46). The table is heap-only (thread-local cache) and built
+     *        lazily on the first high-cp membership probe.
      */
     std::int32_t                   cp_page_class {-1};
     std::array<std::uint64_t, 30>  cp_page       {}; //!< 1 where the code point (U+0080..U+07FF) is a member.
@@ -369,17 +398,19 @@ namespace real::detail {
    */
   struct pike_state : basic_pike_state<thread_list, std::vector<eps_entry>>
   {
-    lookaround_scratch          lookaround;                  //!< Isolated sub-scratch for bounded lookaround evaluation.
-    capture_pool                pool;                        //!< OPT D1: copy-on-write capture blocks (heap-backed).
-    std::optional<lazy_dfa>     fwd_dfa;                     //!< Fallback when immut is null; prefer shared_fwd_dfa (D1).
-    std::optional<reverse_dfa>  rev_dfa;                     //!< Fallback reverse; prefer shared_rev_dfa (D1).
-    const void *                dfa_program       {nullptr}; //!< Program the per-state DFAs were built for (fallback).
-    std::optional<reverse_dfa>  il_prefix_rev;               //!< Fallback IL prefix reverse; prefer shared_il_prefix_rev (D1).
-    const void *                il_prefix_for     {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
-    const void *                il_text           {nullptr}; //!< IL: the haystack \ref il_abandoned refers to (reset the flag when it changes).
-    bool                        il_abandoned      {false};   //!< IL: a linearity/density guard tripped on this haystack — stay on the core.
-    std::uint32_t               il_density_cands  {};        //!< O1: IL candidates seen on this haystack (density sample).
-    std::size_t                 il_density_origin {npos};    //!< O1: byte offset of the first IL candidate this haystack.
+    lookaround_scratch          lookaround;                    //!< Isolated sub-scratch for bounded lookaround evaluation.
+    capture_pool                pool;                          //!< OPT D1: copy-on-write capture blocks (heap-backed).
+    std::optional<lazy_dfa>     fwd_dfa;                       //!< Fallback when immut is null; prefer shared_fwd_dfa (D1).
+    std::optional<reverse_dfa>  rev_dfa;                       //!< Fallback reverse; prefer shared_rev_dfa (D1).
+    const void *                dfa_program         {nullptr}; //!< Program the per-state DFAs were built for (fallback).
+    std::optional<reverse_dfa>  il_prefix_rev;                 //!< Fallback IL prefix reverse; prefer shared_il_prefix_rev (D1).
+    const void *                il_prefix_for       {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
+    const void *                il_text             {nullptr}; //!< IL: the haystack \ref il_abandoned refers to (reset the flag when it changes).
+    bool                        il_abandoned        {false};   //!< IL: a linearity/density guard tripped on this haystack — stay on the core.
+    std::uint32_t               il_density_cands    {};        //!< O1: IL candidates seen on this haystack (density sample).
+    std::size_t                 il_density_origin   {npos};    //!< O1: byte offset of the first IL candidate this haystack.
+    const void *                rare_disc_text      {nullptr}; //!< Rare-disc: haystack \ref rare_disc_abandoned refers to.
+    bool                        rare_disc_abandoned {false};   //!< Rare-disc density guard: stay on prefix for this haystack.
     // D1-AC fields placed LAST (own reason as pattern_hints::alternation_branch_count): inserting
     // here right after il_prefix_for -- as an earlier draft of this struct did -- shifted il_text/
     // il_abandoned/il_density_cands/il_density_origin (the inner-literal density-gate fields, read
@@ -1271,6 +1302,165 @@ namespace real::detail {
       return state_.cp_page.data();
     }
 
+    //! \brief Cache entry for \ref cp_hi_cached (thread-local, not on \ref basic_pike_state).
+    //!        Keyed by a content fingerprint of the class (never a pointer into a program):
+    //!        programs die while this cache lives for the thread, and the allocator can recycle
+    //!        the same `cp_ranges` address for a *different* class — a pointer key then returns
+    //!        the wrong sparse table (false membership, e.g. emoji matching `[\w€]` after a prior
+    //!        high-range class was destroyed). Seen as a deterministic wrong-match on macos-clang
+    //!        CI after a long test binary has churned many classes (find_iter euro empty-alt pin).
+    struct cp_hi_cache_entry
+    {
+      std::uint64_t                key_fp {0};
+      std::unique_ptr<cp_hi_table> table;
+    };
+
+    //! \brief Cold path: build a sparse hi table and install it in the thread-local cache.
+    //!        Outlined so the hot membership check never inlines the range-walk builder.
+    [[nodiscard]]
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline, cold))
+#endif
+    static const cp_hi_table* cp_hi_build(const program_view&               prog,
+                                          std::size_t                       cp_index,
+                                          std::uint64_t                     key_fp,
+                                          std::array<cp_hi_cache_entry, 8>& cache,
+                                          const cp_hi_table*&               last_tab,
+                                          std::uint64_t&                    last_fp)
+    {
+      const detail::cp_class& cc       {prog.cp_classes[cp_index]};
+      auto                    table    {std::make_unique<cp_hi_table>()};
+      bool                    needs_hi {false};
+      if (cc.range_count > 0) {
+        const detail::code_range& last {
+          prog.cp_ranges[static_cast<std::size_t>(cc.range_begin) + cc.range_count - 1U]};
+        needs_hi = last.hi > cp_page_max;
+      }
+      if (needs_hi) {
+        table->page_of.assign(0x1100U, cp_hi_table::empty);
+        for (std::uint32_t k {0}; k < cc.range_count; ++k) {
+          const detail::code_range& r {prog.cp_ranges[cc.range_begin + k]};
+          if (r.hi <= cp_page_max) {
+            continue;
+          }
+          std::uint32_t       cp  {r.lo > cp_page_max ? r.lo : (cp_page_max + 1U)};
+          const std::uint32_t end {r.hi < 0x110000U ? r.hi : 0x10FFFFU};
+          while (cp <= end) {
+            const std::uint32_t page     {cp >> 8U};
+            const std::uint32_t page_end {((page + 1U) << 8U) - 1U};
+            const std::uint32_t hi       {end < page_end ? end : page_end};
+            std::uint16_t&      slot     {table->page_of[page]};
+            if (slot == cp_hi_table::empty) {
+              slot = static_cast<std::uint16_t>(table->blocks.size());
+              table->blocks.push_back({});
+            }
+            auto& blk {table->blocks[slot]};
+            for (std::uint32_t c {cp}; c <= hi; ++c) {
+              const std::uint32_t lo {c & 0xFFU};
+              blk[lo >> 3U] =
+                static_cast<std::uint8_t>(blk[lo >> 3U] | static_cast<std::uint8_t>(1U << (lo & 7U)));
+            }
+            if (hi == 0x10FFFFU) {
+              break;
+            }
+            cp = hi + 1U;
+          }
+        }
+      }
+      // Prefer an empty slot; if the 8-entry cache is full, evict slot 0 and drop last-hit if it
+      // pointed at the table we are about to destroy (otherwise last_tab would dangle).
+      cp_hi_cache_entry* slot {&cache[0]};
+      for (cp_hi_cache_entry& e : cache) {
+        if (!e.table) {
+          slot = &e;
+          break;
+        }
+      }
+      if (slot->table && last_tab == slot->table.get()) {
+        last_tab = nullptr;
+        last_fp  = 0;
+      }
+      slot->key_fp = key_fp;
+      slot->table  = std::move(table);
+      return slot->table.get();
+    }
+
+    //! \brief Thread-local sparse hi tables, keyed by \ref cp_class::fingerprint (set once at intern).
+    //!        Hot path: load `uint64` + sticky compare (cheap, like the pre-poisoning pointer key) —
+    //!        never re-hash ranges per codepoint. Keeps \ref basic_pike_state sizeof unchanged.
+    [[nodiscard]] static const cp_hi_table* cp_hi_cached(const program_view& prog,
+                                                         std::size_t         cp_index)
+    {
+      const detail::cp_class& cc                  {prog.cp_classes[cp_index]};
+      const std::uint64_t     key_fp              {cc.fingerprint}; // interned once — O(1) load, not FNV of 675 ranges
+      // One-thread sticky last hit: a tight `\p{L}+` run probes the same class millions of times.
+      thread_local std::uint64_t         last_fp  {0};
+      thread_local const cp_hi_table*    last_tab {nullptr};
+      if (last_fp == key_fp && last_tab != nullptr) {
+        return last_tab;
+      }
+      thread_local std::array<cp_hi_cache_entry, 8> cache {};
+      for (const cp_hi_cache_entry& e : cache) {
+        if (e.key_fp == key_fp && e.table) {
+          last_fp  = key_fp;
+          last_tab = e.table.get();
+          return last_tab;
+        }
+      }
+      const cp_hi_table* const built {cp_hi_build(prog, cp_index, key_fp, cache, last_tab, last_fp)};
+      last_fp  = key_fp;
+      last_tab = built;
+      return built;
+    }
+
+    //! \brief Below this many total ranges, high-cp membership stays on bsearch (small scripts).
+    //!        Measured: sc=Han=22, scx=Cyrl=18 already quasi-tie; the sparse table pays only for dense
+    //!        classes (L=675, w=767, N=143).
+    static constexpr std::uint32_t cp_hi_range_threshold {32U};
+
+    //! \brief Page-bitmap membership for U+0080..U+07FF. Kept separate so class-loop lambdas can
+    //!        inline it without pulling the sparse-hi path into the European hot stream (`\p{N}`, accented).
+    [[nodiscard]] constexpr bool cp_member_page(std::size_t cp_index,
+                                                char32_t    cp)
+    {
+      const std::uint64_t* const page {cp_page_table(cp_index)};
+      const std::uint32_t        bit  {static_cast<std::uint32_t>(cp) - 0x80U};
+      return ((page[bit >> 6U] >> (bit & 63U)) & std::uint64_t {1}) != 0U;
+    }
+
+    //! \brief Membership for cp > U+07FF: sparse 2-stage hi table, else bsearch (small classes / constexpr).
+    //!        The table *build* is cold-outlined; the per-cp probe is last-hit + bit test.
+    [[nodiscard]] constexpr bool cp_member_high(std::size_t cp_index,
+                                                char32_t    cp)
+    {
+      if (std::is_constant_evaluated()) {
+        return cp_class_matches(prog_.cp_classes[cp_index], cp);
+      }
+      // Small classes: bsearch is already O(log ~32) and avoids the sparse-table build/cache.
+      if (prog_.cp_classes[cp_index].range_count < cp_hi_range_threshold) {
+        return cp_class_matches(prog_.cp_classes[cp_index], cp);
+      }
+      const cp_hi_table* const hi {cp_hi_cached(prog_, cp_index)};
+      if (hi != nullptr && !hi->page_of.empty()) {
+        return hi->contains(cp);
+      }
+      // No high ranges (or empty table): every cp > cp_page_max is a non-member.
+      if (hi != nullptr && hi->page_of.empty()) {
+        return false;
+      }
+      return cp_class_matches(prog_.cp_classes[cp_index], cp);
+    }
+
+    //! \brief Non-ASCII membership: European page bitmap, then sparse 2-stage hi / bsearch.
+    [[nodiscard]] constexpr bool cp_member_hi(std::size_t cp_index,
+                                              char32_t    cp)
+    {
+      if (cp <= cp_page_max) {
+        return cp_member_page(cp_index, cp);
+      }
+      return cp_member_high(cp_index, cp);
+    }
+
     /*!
      * \brief Writes a class-loop fast-path result into \p out_slots: the whole-match span in slots
      *        0/1, and — for a pattern wrapped in one capturing group (`(\w+)`, `([a-z]+)`) —
@@ -1604,18 +1794,14 @@ namespace real::detail {
 #if defined(__GNUC__) && !defined(__clang__)
 #include "real/engine/cpclass_gcc_loop.hpp"
 #else
-      const detail::cp_class&    cc       {prog_.cp_classes[cp_index]};
-      const std::uint8_t* const  asc      {cp_ascii_table(cp_index)};
-      // Membership of a non-ASCII code point (>= 0x80): a one-load page-bitmap test over the two-byte
-      // range, the range search only for CJK / astral code points beyond it. The page is built
-      // lazily on the first non-ASCII code point, so a pure-ASCII scan never pays for it.
+      const std::uint8_t* const  asc {cp_ascii_table(cp_index)};
+      // Membership of a non-ASCII code point (>= 0x80): page path inlined here so European streams
+      // (`\p{N}`, accented) never pay the sparse-hi body; CJK/astral → \ref cp_member_high.
       const auto member_hi = [&](char32_t cp) -> bool {
                                if (cp <= cp_page_max) {
-                                 const std::uint64_t* const page {cp_page_table(cp_index)};
-                                 const std::uint32_t        bit  {static_cast<std::uint32_t>(cp) - 0x80U};
-                                 return ((page[bit >> 6U] >> (bit & 63U)) & std::uint64_t {1}) != 0U;
+                                 return cp_member_page(cp_index, cp);
                                }
-                               return cp_class_matches(cc, cp);
+                               return cp_member_high(cp_index, cp);
                              };
       // Byte width of a matching code point at i, or 0. Used for the leftmost-scan step and the first
       // code point; the hot greedy run is scanned inline below.
@@ -2015,15 +2201,12 @@ namespace real::detail {
       prof::tick_route(prog_.hints.possessive_prefix_size > 0 ? prof::route::possessive_delimited
                                                                : prof::route::possessive_cp_class_loop);
       const std::size_t         cp_index {static_cast<std::size_t>(prog_.hints.possessive_class.index)};
-      const detail::cp_class&   cc       {prog_.cp_classes[cp_index]};
       const std::uint8_t* const asc      {cp_ascii_table(cp_index)};
       const auto                member_hi = [&](char32_t cp) -> bool {
                                               if (cp <= cp_page_max) {
-                                                const std::uint64_t* const page {cp_page_table(cp_index)};
-                                                const std::uint32_t        bit  {static_cast<std::uint32_t>(cp) - 0x80U};
-                                                return ((page[bit >> 6U] >> (bit & 63U)) & std::uint64_t {1}) != 0U;
+                                                return cp_member_page(cp_index, cp);
                                               }
-                                              return cp_class_matches(cc, cp);
+                                              return cp_member_high(cp_index, cp);
                                             };
       const auto cp_width = [&](std::size_t i) -> std::size_t {
                               const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, i)};
@@ -2741,6 +2924,37 @@ namespace real::detail {
       if (hints.anchored_start) {
         return pos == start ? pos : npos; // one shot at the start
       }
+      // Rare discriminant (URL `https?://…`): memchr the rare mid-byte, back-verify optional
+      // prefix — prefer over a weak literal prefix (`http`) when armed. Meta-seam for differentials.
+      // Runtime-only: the seam is not constexpr (same shape as IL / lazy-DFA toggles).
+      // Density abandon (sticky per haystack): dense `:` filler makes memchr+verify lose to prefix.
+      if (!std::is_constant_evaluated() && hints.rare_disc >= 0 && !rare_disc_route_disabled()) {
+        bool use_disc {true};
+        if constexpr (requires(State & s) {
+          s.rare_disc_abandoned;
+        }) {
+          if (state_.rare_disc_text != static_cast<const void*>(text.data())) {
+            state_.rare_disc_abandoned = false;
+            state_.rare_disc_text      = static_cast<const void*>(text.data());
+          }
+          use_disc = !state_.rare_disc_abandoned;
+        }
+        if (use_disc) {
+          bool              density_abandon {false};
+          const std::size_t cand            {find_rare_disc_candidate(text, pos, hints, &density_abandon)};
+          if (density_abandon) {
+            if constexpr (requires(State & s) {
+              s.rare_disc_abandoned;
+            }) {
+              state_.rare_disc_abandoned = true;
+            }
+            // Fall through to prefix / first-byte below for this candidate.
+          }
+          else {
+            return cand;
+          }
+        }
+      }
       if (hints.prefix_size >= 2) {
         return find_prefix(text, pos, std::string_view(hints.prefix.data(), hints.prefix_size));
       }
@@ -2910,7 +3124,7 @@ namespace real::detail {
             if (pos < text_.size()) {
               const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
               if (dc.valid &&
-                  cp_class_matches(prog_.cp_classes[instruction.arg16], dc.cp)) {
+                  cp_class_matches_idx(instruction.arg16, dc.cp)) {
                 advance_thread(clist, nlist, i,
                                pc + 1 + static_cast<std::int32_t>(4 - dc.length), pos + 1);
               }
@@ -3050,29 +3264,40 @@ namespace real::detail {
      * \param[in] cp The decoded code point.
      * \return Whether \p cp is a member.
      */
+    /*!
+     * \brief Tests a decoded code point against a `klass_cp` class: ASCII bitmap below 0x80; above,
+     *        \ref cp_member_hi when a class index is known at runtime (page + sparse hi table), else
+     *        pure binary search of the class's range slice (constexpr / const paths).
+     */
     [[nodiscard]] constexpr bool cp_class_matches(const detail::cp_class& cc,
                                                   char32_t                cp) const
     {
-      bool member {};
       if (cp < 0x80U) {
-        member = cc.ascii.test(static_cast<std::uint8_t>(cp));
+        return cc.ascii.test(static_cast<std::uint8_t>(cp));
       }
-      else {
-        std::size_t lo {cc.range_begin};
-        std::size_t hi {static_cast<std::size_t>(cc.range_begin) + cc.range_count};
-        while (lo < hi) {
-          const std::size_t mid {lo + ((hi - lo) / 2)};
-          if (prog_.cp_ranges[mid].hi < cp) {
-            lo = mid + 1;
-          }
-          else {
-            hi = mid;
-          }
+      std::size_t lo {cc.range_begin};
+      std::size_t hi {static_cast<std::size_t>(cc.range_begin) + cc.range_count};
+      while (lo < hi) {
+        const std::size_t mid {lo + ((hi - lo) / 2)};
+        if (prog_.cp_ranges[mid].hi < cp) {
+          lo = mid + 1;
         }
-        member = lo < static_cast<std::size_t>(cc.range_begin) + cc.range_count &&
-                 cp >= prog_.cp_ranges[lo].lo && cp <= prog_.cp_ranges[lo].hi;
+        else {
+          hi = mid;
+        }
       }
-      return member;
+      return lo < static_cast<std::size_t>(cc.range_begin) + cc.range_count &&
+             cp >= prog_.cp_ranges[lo].lo && cp <= prog_.cp_ranges[lo].hi;
+    }
+
+    //! \brief Membership by class index (ASCII + European page + sparse hi / bsearch).
+    [[nodiscard]] constexpr bool cp_class_matches_idx(std::size_t cp_index,
+                                                      char32_t    cp)
+    {
+      if (cp < 0x80U) {
+        return prog_.cp_classes[cp_index].ascii.test(static_cast<std::uint8_t>(cp));
+      }
+      return cp_member_hi(cp_index, cp);
     }
 
     /*!
@@ -3210,7 +3435,7 @@ namespace real::detail {
               bool matched_here {false};
               if (pos < text_.size()) {
                 const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
-                matched_here = dc.valid && cp_class_matches(prog_.cp_classes[instruction.arg16], dc.cp);
+                matched_here = dc.valid && cp_class_matches_idx(instruction.arg16, dc.cp);
               }
               if (matched_here) {
                 list.pcs.push_back(pc);
@@ -3283,7 +3508,7 @@ namespace real::detail {
       }
       if (body.op == opcode::klass_cp) {
         const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
-        return dc.valid && cp_class_matches(prog_.cp_classes[body.arg16], dc.cp);
+        return dc.valid && cp_class_matches_idx(body.arg16, dc.cp);
       }
       const auto b {static_cast<std::uint8_t>(text_[pos])};
       return body.op == opcode::byte ? b == body.arg8 : prog_.classes[body.arg16].test(b);
@@ -3305,7 +3530,7 @@ namespace real::detail {
         }
         const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, s)};
         return dc.valid && s + static_cast<std::size_t>(dc.length) == pos
-               && cp_class_matches(prog_.cp_classes[body.arg16], dc.cp);
+               && cp_class_matches_idx(body.arg16, dc.cp);
       }
       const auto b {static_cast<std::uint8_t>(text_[pos - 1])};
       return body.op == opcode::byte ? b == body.arg8 : prog_.classes[body.arg16].test(b);
@@ -3336,7 +3561,7 @@ namespace real::detail {
             // A code-point predicate inside the lookahead: decode once, then enter the continuation
             // chain via the computed skip (same mechanism as the main VM's step).
             const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, p)};
-            if (dc.valid && cp_class_matches(prog_.cp_classes[in.arg16], dc.cp)) {
+            if (dc.valid && cp_class_matches_idx(in.arg16, dc.cp)) {
               sub_add_thread(*nlist, pc + 1 + static_cast<std::int32_t>(4 - dc.length), p + 1, matched);
             }
             continue;
@@ -3419,7 +3644,7 @@ namespace real::detail {
           const instr& in      {prog_.code[static_cast<std::size_t>(pc)]};
           if (in.op == opcode::klass_cp) {
             const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, p)};
-            if (dc.valid && cp_class_matches(prog_.cp_classes[in.arg16], dc.cp)) {
+            if (dc.valid && cp_class_matches_idx(in.arg16, dc.cp)) {
               sub_add_thread(*nlist, pc + 1 + static_cast<std::int32_t>(4 - dc.length), p + 1,
                              last ? at_pos : sink);
             }

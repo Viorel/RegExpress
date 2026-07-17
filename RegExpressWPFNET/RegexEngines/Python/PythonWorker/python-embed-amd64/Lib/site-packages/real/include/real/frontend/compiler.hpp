@@ -332,9 +332,15 @@ namespace real::detail {
         for (const code_range& r : cd.ranges) {
           prog.cp_ranges.push_back(r);
         }
+        const auto n {static_cast<std::uint32_t>(cd.ranges.size())};
+        // Fingerprint once from the just-appended span (same content as cd.ranges); match-time
+        // cp_hi cache reads this field — never re-hashes per codepoint (7.47 \p{} hot path).
+        const std::uint64_t fp {fingerprint_cp_class_content(
+                                  cd.ascii, n == 0 ? nullptr : &prog.cp_ranges[begin], n)};
         prog.cp_classes.push_back({.ascii       = cd.ascii,
                                    .range_begin = begin,
-                                   .range_count = static_cast<std::uint32_t>(cd.ranges.size())});
+                                   .range_count = n,
+                                   .fingerprint = fp});
       }
       return static_cast<std::uint16_t>(index);
     }

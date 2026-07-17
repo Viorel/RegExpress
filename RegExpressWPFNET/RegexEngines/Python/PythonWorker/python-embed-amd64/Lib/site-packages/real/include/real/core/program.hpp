@@ -178,10 +178,39 @@ namespace real {
     //!        match time — O(log ranges) per position, independent of the range count.
     struct cp_class
     {
-      char_class    ascii;          //!< Members `< 0x80`.
-      std::uint32_t range_begin {}; //!< First range in the program's `cp_ranges` buffer.
-      std::uint32_t range_count {}; //!< Number of ranges belonging to this class.
+      char_class    ascii;             //!< Members `< 0x80`.
+      std::uint32_t range_begin {};    //!< First range in the program's `cp_ranges` buffer.
+      std::uint32_t range_count {};    //!< Number of ranges belonging to this class.
+      //! Content identity (FNV-1a of ASCII bitmap + every range), set once at intern. The thread-local
+      //! sparse `cp_hi` cache keys by this (not a pointer into a program) so a destroyed program's
+      //! recycled `cp_ranges` address cannot poison a later class. Read O(1) per codepoint on the
+      //! hot path — never re-hashed per probe (that would erase the 7.47 `\p{}` gain).
+      std::uint64_t fingerprint {};
     };
+
+    //! \brief FNV-1a 64-bit content fingerprint of an ASCII bitmap + a contiguous range span.
+    //!        Used once at `intern_cp_class` (compile time / first intern); match time only reads
+    //!        \ref cp_class::fingerprint. Constexpr so `static_regex` stays happy.
+    [[nodiscard]] constexpr std::uint64_t fingerprint_cp_class_content(
+      const char_class&                     ascii,
+      const code_range*                     ranges,
+      std::uint32_t                         range_count)
+    {
+      std::uint64_t h {14695981039346656037ULL};
+      const auto    mix {[&h](std::uint64_t v) constexpr {
+                           h ^= v;
+                           h *= 1099511628211ULL;
+                         }};
+      for (const std::uint64_t word : ascii.bits) {
+        mix(word);
+      }
+      mix(range_count);
+      for (std::uint32_t k {0}; k < range_count; ++k) {
+        mix(ranges[k].lo);
+        mix(ranges[k].hi);
+      }
+      return h;
+    }
 
     /*!
      * \brief NFA instruction opcodes executed by the Pike VM.
@@ -384,6 +413,19 @@ namespace real {
       //!        the per-byte first-byte bitmap loop on a common class. -1 when no such byte was found.
       std::int16_t rare_byte   {-1};
       std::uint8_t rare_offset {}; //!< The fixed byte offset of \ref rare_byte from the match start.
+
+      //! \brief Rare *discriminant* with optional mono-byte before it (URL `https?://…`).
+      //!        Search: `memchr(rare_disc)` (SIMD single-byte) → back-verify
+      //!        `[prefix][opt?][disc][after]` → return match start. Prefer this over a weak
+      //!        literal prefix (`http`) when the disc is rarer than the first-byte filter.
+      //!        Unlike \ref rare_byte, the disc offset from match start is **not** fixed when
+      //!        \ref rare_disc_opt is set (`s?` → colon at 4 or 5). -1 = unarmed.
+      std::int16_t        rare_disc            {-1}; //!< Discriminant byte (e.g. `:`).
+      std::array<char, 8> rare_disc_prefix     {};   //!< Required bytes before the optional (e.g. `http`).
+      std::uint8_t        rare_disc_prefix_len {};   //!< Length of \ref rare_disc_prefix.
+      std::int16_t        rare_disc_opt        {-1}; //!< Optional mono-byte before the disc (`s`), or -1.
+      std::array<char, 4> rare_disc_after      {};   //!< Fixed bytes after the disc (e.g. `//`).
+      std::uint8_t        rare_disc_after_len  {};   //!< Length of \ref rare_disc_after.
 
       //! \brief A *required inner literal* every match must contain (the memmem candidate the inner-literal
       //!        prefilter scans for), and how many top-level children precede it — the prefix the prefilter

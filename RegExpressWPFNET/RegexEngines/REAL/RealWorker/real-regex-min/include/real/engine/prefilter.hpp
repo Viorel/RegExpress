@@ -1059,9 +1059,22 @@ namespace real::detail {
             ++i;
           }
           else if (op == opcode::assert_position && saw_body && wb_trail == 0) {
-            // Single trailing \b/\B immediately before save 1.
-            if (!peel_optional_trail_wb(code, i, wb_trail)) {
-              break; // non-wb trail assert
+            // Single trailing \b/\B only when it is immediately before save 1 / match.
+            // A mid-pattern \b (e.g. `\w{2}\bthe`) must NOT be peeled as trail: match_byte_klass_run
+            // stops at the assert and would silently drop the following literal, falsely matching
+            // just the prefix (fuzz-compat crash 86573f5 / pattern `\w{2}\bthe` on "…ox").
+            std::size_t  probe      {i};
+            std::uint8_t trail_hint {0};
+            if (!peel_optional_trail_wb(code, probe, trail_hint)) {
+              break; // non-wb assert
+            }
+            if (probe + 1 < code.size() && code[probe].op == opcode::save && code[probe].arg16 == 1
+                && code[probe + 1].op == opcode::match && probe + 2 == code.size()) {
+              wb_trail = trail_hint;
+              i        = probe; // advance past the trail assert; next iter hits save 1
+            }
+            else {
+              break;            // mid-pattern \b/\B — fixed-shape cannot represent a mid-run zero-width assert
             }
           }
           else {
@@ -1539,6 +1552,125 @@ namespace real::detail {
   }
 
   /*!
+   * \brief Arms the rare-discriminant prefilter for shapes like `https?://…`:
+   *        fixed prefix (`http`) + optional mono-byte (`s?`) + fixed mid with a rare disc (`://`).
+   *
+   * Unlike \ref extract_rare_byte, the disc need not sit at a *fixed* match offset (the optional
+   * changes it). Search memchr's the disc and back-verifies the optional shape — never memmem.
+   * Supersedes a weak literal-prefix scan when the disc is several times rarer than the first byte.
+   * Always sound: only filters candidates; the VM confirms.
+   */
+  constexpr void extract_rare_discriminant(std::span<const instr> code,
+                                           pattern_hints&         hints)
+  {
+    if (hints.anchored_start) {
+      return;
+    }
+    // Leading saves, then fixed `byte` ops, optionally interrupted by a mono-byte `?` split.
+    std::size_t pc {0};
+    while (pc < code.size() && code[pc].op == opcode::save) {
+      ++pc;
+    }
+    std::array<char, 16> fixed     {};
+    std::uint8_t         fixed_len {};
+    std::int16_t         opt       {-1};
+    std::uint8_t         opt_at    {}; // index in `fixed` where the optional sits (prefix ends there)
+    bool                 saw_opt   {};
+    while (pc < code.size() && fixed_len < fixed.size()) {
+      if (code[pc].op == opcode::byte) {
+        fixed[fixed_len++] = static_cast<char>(code[pc].arg8);
+        ++pc;
+        continue;
+      }
+      // Optional mono-byte once: split → byte X → join (the `s?` shape).
+      if (!saw_opt && code[pc].op == opcode::split) {
+        const std::int32_t pri {code[pc].primary_target};
+        const std::int32_t sec {code[pc].secondary_target};
+        if (pri == static_cast<std::int32_t>(pc + 1) && sec == static_cast<std::int32_t>(pc + 2) &&
+            pc + 1 < code.size() && code[pc + 1].op == opcode::byte) {
+          opt     = static_cast<std::int16_t>(static_cast<std::uint8_t>(code[pc + 1].arg8));
+          opt_at  = fixed_len; // prefix = fixed[0..opt_at)
+          saw_opt = true;
+          pc      = static_cast<std::size_t>(sec);
+          continue;
+        }
+      }
+      break;  // variable-width / complex branch
+    }
+    if (fixed_len < 2) {
+      return; // need at least disc + something (or disc mid-run)
+    }
+    // Discriminant = rarest byte in the fixed run *after* the optional site (or whole run if no opt).
+    // For `http` + s? + `://`, that is among `://`. For pure `https://`, among the whole string.
+    const std::uint8_t search_from {saw_opt ? opt_at : static_cast<std::uint8_t>(0)};
+    if (search_from >= fixed_len) {
+      return;
+    }
+    std::int16_t  best_byte {-1};
+    std::uint8_t  best_idx  {};
+    std::uint16_t best_freq {0xFFFFU};
+    for (std::uint8_t i {search_from}; i < fixed_len; ++i) {
+      const auto freq {byte_frequency(static_cast<std::uint8_t>(fixed[i]))};
+      if (freq < best_freq) {
+        best_freq = freq;
+        best_byte = static_cast<std::int16_t>(static_cast<std::uint8_t>(fixed[i]));
+        best_idx  = i;
+      }
+    }
+    if (best_byte < 0 || best_idx < search_from) {
+      return;
+    }
+    // Prefix before the disc: either fixed[0..best_idx) with no opt, or fixed[0..opt_at) with opt
+    // between prefix and disc (disc must be the first mid byte after opt for the simple shape).
+    std::uint8_t prefix_len {};
+    if (saw_opt) {
+      // Require disc immediately after the optional site in the fixed mid (URL `://` after `s?`).
+      if (best_idx != opt_at) {
+        return;
+      }
+      prefix_len = opt_at;
+      if (prefix_len == 0 || prefix_len > 8) {
+        return;
+      }
+    }
+    else {
+      prefix_len = best_idx;
+      if (prefix_len > 8) {
+        return;
+      }
+    }
+    const std::uint8_t after_len {static_cast<std::uint8_t>(fixed_len - best_idx - 1U)};
+    if (after_len > 4) {
+      return;
+    }
+    // Rarity gate vs the first-byte filter (same spirit as extract_rare_byte).
+    std::uint32_t first_freq {0};
+    if (hints.single_first >= 0) {
+      first_freq = byte_frequency(static_cast<std::uint8_t>(hints.single_first));
+    }
+    else {
+      for (int b = 0; b < 256; ++b) {
+        if (hints.first_bytes.test(static_cast<std::uint8_t>(b))) {
+          first_freq += byte_frequency(static_cast<std::uint8_t>(b));
+        }
+      }
+    }
+    if (!(best_freq < 100U && static_cast<std::uint32_t>(best_freq) * 4U < first_freq)) {
+      return;
+    }
+    hints.rare_disc            = best_byte;
+    hints.rare_disc_prefix_len = prefix_len;
+    for (std::uint8_t k {0}; k < prefix_len; ++k) {
+      hints.rare_disc_prefix[k] = fixed[k];
+    }
+    hints.rare_disc_opt       = saw_opt ? opt : static_cast<std::int16_t>(-1);
+    hints.rare_disc_after_len = after_len;
+    for (std::uint8_t j {0}; j < after_len; ++j) {
+      hints.rare_disc_after[j] = fixed[static_cast<std::size_t>(best_idx) + 1U + j];
+    }
+  }
+
+  /*!
    * \brief Walks a compiled program once to derive its search hints.
    * \param[in] code           The instruction stream.
    * \param[in] classes        The interned character classes referenced by \p code.
@@ -1685,6 +1817,9 @@ namespace real::detail {
     // gives a single-byte memchr target far more selective than the first-byte class. Computed last, so it
     // can compare against the finalized first-byte hints. Sound: it only filters candidate starts.
     extract_rare_byte(code, hints);
+    // Rare discriminant past an optional mono-byte (URL `https?://`): memchr the disc, back-verify
+    // prefix+opt+after. Preferable to a weak literal prefix (`http`) when the disc is rarer.
+    extract_rare_discriminant(code, hints);
     return hints;
   }
 
@@ -1723,6 +1858,114 @@ namespace real::detail {
     return npos;
   }
 
+  //! \brief Consecutive disc hits that fail back-verify before the density gate trips.
+  //!        Dense `:` filler (e.g. `a:b:c:d…`) makes memchr+verify lose to a selective `http` prefix.
+  inline constexpr std::uint32_t rare_disc_fail_abandon {32};
+
+  /*!
+   * \brief Next candidate start for the rare-discriminant prefilter, or \ref real::npos.
+   *
+   * Scans for \p hints.rare_disc with \ref find_byte (memchr/SIMD), then back-verifies
+   * `[prefix][opt?][disc][after]`. Returns the verified match start if it is ≥ \p pos.
+   *
+   * Density abandon: when the disc is dense (many hits that fail back-verify), sets
+   * \p density_abandon and returns npos so the caller can sticky-switch to the prefix path
+   * for the rest of the haystack (same contract as the IL density gate — never miss a match).
+   */
+  constexpr std::size_t find_rare_disc_candidate(std::string_view     text,
+                                                 std::size_t          pos,
+                                                 const pattern_hints& hints,
+                                                 bool*                density_abandon = nullptr)
+  {
+    if (density_abandon != nullptr) {
+      *density_abandon = false;
+    }
+    if (hints.rare_disc < 0) {
+      return npos;
+    }
+    const auto        disc    {static_cast<char>(hints.rare_disc)};
+    const std::size_t pref    {hints.rare_disc_prefix_len};
+    const bool        has_opt {hints.rare_disc_opt >= 0};
+    const auto        opt_ch  {static_cast<char>(hints.rare_disc_opt)};
+    const std::size_t after   {hints.rare_disc_after_len};
+    // Shortest legal back-span is prefix alone (http://); with opt, https:// is longer —
+    // must still scan from pos+pref so the no-opt shape is not skipped at the start.
+    const std::size_t min_back {pref};
+    std::size_t       scan     {pos + min_back < text.size() ? pos + min_back : text.size()};
+    std::uint32_t     fails    {};
+    while (scan < text.size()) {
+      const std::size_t i {find_byte(text, scan, disc)};
+      if (i == npos) {
+        return npos;
+      }
+      if (i + 1U + after > text.size()) {
+        return npos;
+      }
+      bool after_ok {true};
+      for (std::size_t j {0}; j < after; ++j) {
+        if (text[i + 1U + j] != hints.rare_disc_after[j]) {
+          after_ok = false;
+          break;
+        }
+      }
+      if (!after_ok) {
+        ++fails;
+        if (fails >= rare_disc_fail_abandon) {
+          if (density_abandon != nullptr) {
+            *density_abandon = true;
+          }
+          return npos;
+        }
+        scan = i + 1U;
+        continue;
+      }
+      // Prefer longer prefix when both fit (https before http).
+      std::size_t start {npos};
+      if (has_opt && i >= pref + 1U) {
+        const std::size_t s {i - pref - 1U};
+        if (s >= pos && text[s + pref] == opt_ch) {
+          bool ok {true};
+          for (std::size_t k {0}; k < pref; ++k) {
+            if (text[s + k] != hints.rare_disc_prefix[k]) {
+              ok = false;
+              break;
+            }
+          }
+          if (ok) {
+            start = s;
+          }
+        }
+      }
+      if (start == npos && i >= pref) {
+        const std::size_t s {i - pref};
+        if (s >= pos) {
+          bool ok {true};
+          for (std::size_t k {0}; k < pref; ++k) {
+            if (text[s + k] != hints.rare_disc_prefix[k]) {
+              ok = false;
+              break;
+            }
+          }
+          if (ok) {
+            start = s;
+          }
+        }
+      }
+      if (start != npos) {
+        return start;
+      }
+      ++fails;
+      if (fails >= rare_disc_fail_abandon) {
+        if (density_abandon != nullptr) {
+          *density_abandon = true;
+        }
+        return npos;
+      }
+      scan = i + 1U;
+    }
+    return npos;
+  }
+
   /*!
    * \brief Index of the first occurrence of \p literal in `text[pos..)`, or \ref real::npos.
    *
@@ -1730,6 +1973,11 @@ namespace real::detail {
    * `memchr`). For a multi-byte literal it scans for the lead byte with `memchr` (SIMD at run time) and
    * verifies the tail — a portable substring search that needs no `memmem` (absent on MSVC), and stays a
    * plain loop during constant evaluation.
+   *
+   * \param[in] text    The subject text.
+   * \param[in] pos     Index to start searching from.
+   * \param[in] literal The literal to locate.
+   * \return The index of the first occurrence at or after \p pos, else npos.
    */
   constexpr std::size_t find_literal(std::string_view text,
                                      std::size_t      pos,

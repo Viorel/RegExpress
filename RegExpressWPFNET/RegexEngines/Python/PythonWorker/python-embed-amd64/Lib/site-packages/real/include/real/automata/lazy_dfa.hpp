@@ -52,6 +52,14 @@ namespace real::detail {
     return disabled;
   }
 
+  //! \brief Test seam: force off the rare-discriminant prefilter (`https?://` memchr-`:` route)
+  //!        onto prefix/first-byte search, so a differential can assert routed and unrouted agree.
+  inline bool& rare_disc_route_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
   //! \brief Test seam: force the inner-literal small-haystack guard off, so the route fires on any size. In
   //!        production the guard keeps the route off a haystack too small for its per-iterator reverse cache to
   //!        amortize (it would else be slower than the core). The correctness suites (the exhaustive compat run,

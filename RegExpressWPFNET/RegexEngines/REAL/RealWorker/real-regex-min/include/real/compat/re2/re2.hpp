@@ -642,6 +642,11 @@ namespace real::compat::re2 {
      *
      * \p rewrite may reference groups RE2-style: `\0` (whole match), `\1`…`\9`, `\\` for a literal
      * backslash.
+     *
+     * Empty-match policy matches real RE2's `GlobalReplace`: a zero-width match whose start
+     * equals the end of the previous (accepted) match is skipped — it abuts the prior match and
+     * must not produce a second rewrite (e.g. `a*` on `"aa"` yields one replacement, not two).
+     * Legitimate non-abutting empty matches (e.g. `a*` on `"bbb"` → `#b#b#b#`) are still applied.
      * \param[in,out] str     The subject; rewritten in place only if every match's \p rewrite
      *                        expansion succeeds.
      * \param[in]     re      The pattern (an `RE2`, or a pattern text implicitly converted to one).
@@ -657,15 +662,24 @@ namespace real::compat::re2 {
       }
       std::string  out;
       out.reserve(str->size());
-      std::size_t  last    {};
-      int          count   {};
-      const auto   matches {re.longest_match_ ? re.regex_->find_iter_longest(*str) : re.regex_->find_iter(*str)};
+      std::size_t  last           {};
+      int          count          {};
+      bool         have_prev_end  {false};
+      std::size_t  prev_end       {};
+      const auto   matches        {re.longest_match_ ? re.regex_->find_iter_longest(*str) : re.regex_->find_iter(*str)};
       for (const auto& match : matches) {
+        // RE2 empty-abut skip: do not rewrite a zero-width match that starts exactly where the
+        // previous accepted match ended (nullable quantifier trailing empty after a greedy run).
+        if (match.start() == match.end() && have_prev_end && match.start() == prev_end) {
+          continue;
+        }
         out.append(str->substr(last, match.start() - last));
         if (!expand_rewrite(out, rewrite, match)) {
           return 0;
         }
-        last = match.end();
+        last          = match.end();
+        prev_end      = match.end();
+        have_prev_end = true;
         ++count;
       }
       if (count == 0) {
