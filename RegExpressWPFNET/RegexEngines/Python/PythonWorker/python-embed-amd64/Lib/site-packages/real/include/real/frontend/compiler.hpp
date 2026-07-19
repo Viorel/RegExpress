@@ -102,6 +102,136 @@ namespace real::detail {
     return out;
   }
 
+  //! \brief True if the AST subtree rooted at \p idx can match the empty string. `concat`: every
+  //!        child nullable; `alternation`: some branch nullable; `group`: its body nullable;
+  //!        `repeat`: `min == 0` or its body nullable; `byte`/`klass`/`any`: never (they always
+  //!        consume exactly one unit). `empty`/`anchor`/`lookaround` are always zero-width by
+  //!        construction — never consuming input as part of the surrounding match — so they are
+  //!        always nullable here; not an approximation for those three, the exact contribution of
+  //!        those node kinds to the enclosing match's width. Used by \ref
+  //!        ast_has_nullable_captured_repeat to decide whether a capturing group's body is nullable.
+  constexpr bool node_nullable(const ast&   tree,
+                               std::int32_t idx)
+  {
+    if (idx < 0) {
+      return true;
+    }
+    const ast_node& n {tree.nodes[static_cast<std::size_t>(idx)]};
+    switch (n.kind) {
+      case node_kind::empty:
+      case node_kind::anchor:
+      case node_kind::lookaround:
+        return true;
+      case node_kind::byte:
+      case node_kind::klass:
+      case node_kind::any:
+        return false;
+      case node_kind::concat:
+        for (std::int32_t c = n.child; c >= 0; c = tree.nodes[static_cast<std::size_t>(c)].next) {
+          if (!node_nullable(tree, c)) {
+            return false;
+          }
+        }
+        return true;
+      case node_kind::alternation:
+        for (std::int32_t c = n.child; c >= 0; c = tree.nodes[static_cast<std::size_t>(c)].next) {
+          if (node_nullable(tree, c)) {
+            return true;
+          }
+        }
+        return false;
+      case node_kind::group:
+        return node_nullable(tree, n.child);
+      case node_kind::repeat:
+        return n.min == 0 || node_nullable(tree, n.child);
+    }
+    return true;
+  }
+
+  //! \brief True if the AST subtree rooted at \p idx contains a CAPTURING group (`group >= 0`, i.e.
+  //!        not `(?:...)`) whose own body is nullable (\ref node_nullable). Descends through every
+  //!        node kind that can nest a group (including a further `repeat`/`lookaround`) so a group
+  //!        need not be the direct child of the `repeat` this is called from — only transitively
+  //!        underneath it. Used only from \ref ast_has_nullable_captured_repeat, on a `repeat`
+  //!        node's subtree.
+  constexpr bool subtree_has_nullable_capturing_group(const ast&   tree,
+                                                      std::int32_t idx)
+  {
+    if (idx < 0) {
+      return false;
+    }
+    const ast_node& n {tree.nodes[static_cast<std::size_t>(idx)]};
+    switch (n.kind) {
+      case node_kind::group:
+        if (n.group >= 0 && node_nullable(tree, n.child)) {
+          return true;
+        }
+        return subtree_has_nullable_capturing_group(tree, n.child);
+      case node_kind::concat:
+      case node_kind::alternation:
+        for (std::int32_t c = n.child; c >= 0; c = tree.nodes[static_cast<std::size_t>(c)].next) {
+          if (subtree_has_nullable_capturing_group(tree, c)) {
+            return true;
+          }
+        }
+        return false;
+      case node_kind::repeat:
+      case node_kind::lookaround:
+        return subtree_has_nullable_capturing_group(tree, n.child);
+      case node_kind::empty:
+      case node_kind::byte:
+      case node_kind::klass:
+      case node_kind::any:
+      case node_kind::anchor:
+        return false;
+    }
+    return false;
+  }
+
+  //! \brief True if the AST rooted at \p idx contains a capturing group with a nullable body,
+  //!        transitively under a quantifier (any quantifier, `?` included) — the frontend source of
+  //!        \ref pattern_hints::nullable_captured_repeat (compiler::compile() reads this after
+  //!        `analyze_program`, the same AST-derived-hint slot as the inner-literal fields below).
+  //!        At each `repeat` node, checks its whole subtree for a nullable capturing group (\ref
+  //!        subtree_has_nullable_capturing_group) — the group need not be the repeat's immediate
+  //!        child — and independently keeps walking for any other `repeat` elsewhere in the tree.
+  //!        Safe over-approximation: it does not prove the loop's empty iteration actually surfaces
+  //!        a divergent capture, only that the shape can (e.g. `(\b|x)+` counts: `\b` is nullable by
+  //!        \ref node_nullable, conservatively, same posture as `empty_match_possible`).
+  constexpr bool ast_has_nullable_captured_repeat(const ast&   tree,
+                                                  std::int32_t idx)
+  {
+    if (idx < 0) {
+      return false;
+    }
+    const ast_node& n {tree.nodes[static_cast<std::size_t>(idx)]};
+    switch (n.kind) {
+      case node_kind::repeat:
+        if (subtree_has_nullable_capturing_group(tree, n.child)) {
+          return true;
+        }
+        return ast_has_nullable_captured_repeat(tree, n.child);
+      case node_kind::group:
+      case node_kind::lookaround:
+        return ast_has_nullable_captured_repeat(tree, n.child);
+      case node_kind::concat:
+      case node_kind::alternation:
+        for (std::int32_t c = n.child; c >= 0; c = tree.nodes[static_cast<std::size_t>(c)].next) {
+          if (ast_has_nullable_captured_repeat(tree, c)) {
+            return true;
+          }
+        }
+        return false;
+      case node_kind::empty:
+      case node_kind::byte:
+      case node_kind::klass:
+      case node_kind::any:
+      case node_kind::anchor:
+        return false;
+    }
+    return false;
+  }
+
   /*!
    * \brief Compiles an \ref ast into a \ref dynamic_program (NFA bytecode).
    */
@@ -152,6 +282,14 @@ namespace real::detail {
         (il.len > 0 && il.prefix_child_count >= 1 && il.prefix_skip > 0)
           ? static_cast<std::uint8_t>(il.prefix_skip)
           : std::uint8_t {0};
+      // Nullable-captured-repeat: another AST-derived hint (same slot as inner_literal above, not
+      // analyze_program/prefilter.hpp — that epsilon-walk sees the compiled program, not the AST's
+      // group-under-quantifier structure). Drives real::compat's uses_real_traversal(): a real-backed
+      // pattern in this class captures a nullable loop's last CONSUMING iteration (RE2/Rust/Go
+      // lineage), which diverges from an ECMAScript backtracker's extra empty final iteration, so
+      // compat routes replace/iterate to std for it (regex_core.hpp). regex_search/match are
+      // unaffected by this hint — see COMPATIBILITY.md's nullable-loop group-capture section.
+      prog.hints.nullable_captured_repeat = ast_has_nullable_captured_repeat(tree_, tree_.root);
       if (prog.code.size() > max_program_size) {
         throw regex_error("program too large", 0);
       }

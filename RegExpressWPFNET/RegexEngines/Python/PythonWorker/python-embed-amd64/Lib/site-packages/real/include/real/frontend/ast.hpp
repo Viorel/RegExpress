@@ -301,6 +301,14 @@ namespace real::detail {
       return has_flag(current_flags(), flags::verbose);
     }
 
+    //! \brief True in the ECMAScript grammar. `flags::ecma` is not scopable, so the scope-stack
+    //!        base always carries it; reading it here keeps the flag-scope ratchet's global-read
+    //!        count at its terminal state (no new `ecma_` member reads).
+    [[nodiscard]] constexpr bool is_ecma() const
+    {
+      return has_flag(current_flags(), flags::ecma);
+    }
+
     //! \brief True when icase (`re.I`) is in force at the current scope (a scoped `(?i:...)` honoured).
     [[nodiscard]] constexpr bool is_icase() const
     {
@@ -662,6 +670,16 @@ namespace real::detail {
           const std::span<const code_range> t {binprop_ranges[static_cast<std::size_t>(bp)]};
           return {t.begin(), t.end()};
         }
+        // `\p{Any}` is an engine-defined meta-property (RE2/Perl: "every code point"), not UCD data --
+        // there is no generated table entry for it, so it is resolved here as the full code-point
+        // range instead. ECMAScript-conforming (the spec's binary-property table lists `Any`; V8
+        // accepts it), so this carries no ecma gate -- the fix benefits every dialect equally. Loose-
+        // matched like every other bare name. `\p{gc=Any}` / `\p{sc=Any}` stay unsupported: Any is
+        // neither a General_Category nor a Script, so an explicit namespace never reaches this branch
+        // (gated by the enclosing `nk.empty()`).
+        if (value_key.view() == "any") {
+          return {{.lo = 0x0, .hi = 0x10FFFF}};
+        }
       }
       // well-formed `\p{Name}` but a property REAL does not yet tabulate (a script/category REAL lacks,
       // or an unknown/misspelled binary property or Script_Extensions name): unsupported, so a binding
@@ -670,10 +688,21 @@ namespace real::detail {
                        "Script_Extensions and the standard binary properties are built in)");
     }
 
-    //! \brief Rejects bytes mode, consumes the `p`/`P` and the `{Name}` (or single letter), and resolves it to
-    //!        the property's code-point ranges. Shared by the out-of-class atom and the in-class merge. On entry
-    //!        `pos_` is on the `p`/`P`; on return it is just past the name.
-    constexpr std::vector<code_range> parse_property_table()
+    //! \brief The result of \ref parse_property_table — the property's code-point ranges, plus whether a
+    //!        leading `\p{^...}` caret was stripped (RE2/Perl negation-by-caret, e.g. `\p{^L}` == `\P{L}`).
+    //!        `caret` is XORed into the caller's own negation flag so the caret composes with `\P` /
+    //!        `[^...]` instead of overriding them.
+    struct property_table_result
+    {
+      std::vector<code_range>  ranges; //!< The resolved property's code-point ranges (never caret-adjusted).
+      bool                     caret;  //!< True when a leading `^` (native dialects only) was stripped from the name.
+    };
+
+    //! \brief Rejects bytes mode, consumes the `p`/`P` and the `{Name}` (or single letter), strips a leading
+    //!        `^` caret-negation (native dialects only), and resolves the remaining name to the property's
+    //!        code-point ranges. Shared by the out-of-class atom and the in-class merge. On entry `pos_` is on
+    //!        the `p`/`P`; on return it is just past the name (caret and all).
+    constexpr property_table_result parse_property_table()
     {
       // Read bytes-mode from the scope stack, not the global `bytes_` member (the flag-scope ratchet): bytes is
       // never scoped, so this equals `bytes_` while keeping the parser's global-read count flat.
@@ -704,7 +733,18 @@ namespace real::detail {
       if (name.empty()) {
         fail("empty Unicode property name in \\p{}");
       }
-      return resolve_property(name);
+      // `\p{^Name}` is RE2/Perl caret-negation (`\p{^L}` == `\P{L}`), not ECMAScript (a SyntaxError under
+      // V8) -- so the strip is gated to the native dialects only. Under ecma the `^` is left in `name`
+      // and falls through to `resolve_property`, which fails it with the existing "unsupported Unicode
+      // property" message -- rejection is automatic, no new error path. The caret sits ahead of any
+      // namespace, so `\p{^gc=L}` / `\p{^Latin}` strip first and then negate whatever the namespace
+      // resolves.
+      bool caret {false};
+      if (!is_ecma() && !name.empty() && name.front() == '^') {
+        caret = true;
+        name.remove_prefix(1);
+      }
+      return {.ranges = resolve_property(name), .caret = caret};
     }
 
     //! \brief Splits a property's ranges into its ASCII bitmap (< 0x80) and its non-ASCII ranges. Unconditional:
@@ -730,15 +770,18 @@ namespace real::detail {
     /*!
      * \brief Parses `\p{Name}` / `\P{Name}` / `\pX` (outside a class) into a negatable Unicode code-point class
      *        (`klass_cp`), reusing the same match-time mechanism as `\w`. Negation is the class-node flag, as for
-     *        `\W`. `pos_` is on the letter after `\`; `negated` distinguishes `\P` from `\p`.
+     *        `\W`, XORed with a caret-negation `\p{^Name}` stripped by \ref parse_property_table (so
+     *        `\P{^L}` negates twice back to `\p{L}`, same as `\P{...}` on an already-negated property would).
+     *        `pos_` is on the letter after `\`; `negated` distinguishes `\P` from `\p`.
      */
     constexpr std::int32_t parse_unicode_property(ast& out,
                                                   bool negated)
     {
-      const std::vector<code_range> table {parse_property_table()};
+      const property_table_result table {parse_property_table()};
+      negated = negated != table.caret; // bool XOR without the int promotion misra rejects
       char_class                    ascii;
       std::vector<code_range>       high;
-      property_ascii_high(table, ascii, high);
+      property_ascii_high(table.ranges, ascii, high);
       return add_class_node(out, ascii, negated, high, /*codepoint_predicate=*/ true);
     }
 
@@ -799,6 +842,17 @@ namespace real::detail {
 
     /*!
      * \brief Parses `sequence := (atom quantifier?)*`, stopping at `|` or `)`.
+     *
+     * Also intercepts `\Q...\E` literal quoting here (RE2/Perl syntax, `!is_ecma()` only — under
+     * ecma `\Q` keeps falling through to the rejected unknown escape): the span emits a SEQUENCE of
+     * literal atoms, not one atom, so it cannot live in \ref parse_atom. A quantifier after `\E`
+     * binds to the span's LAST character (`\Qab\E+` == `ab+`, libre2-measured): all-but-last chain
+     * bare and the last atom re-enters the loop's normal quantifier path. An empty `\Q\E` is
+     * grammar-invisible (libre2-measured `a\Q\E+` == `a+`): a quantifier after it re-binds to the
+     * PREVIOUS atom — the `prev` tracker exists to re-chain that re-quantified atom — and with no
+     * previous atom the next iteration fails ("nothing to repeat"), matching RE2's "no argument for
+     * repetition operator".
+     *
      * \param[in,out] out The AST being built.
      * \return The index of a concat node, a single atom, or an empty node.
      */
@@ -806,12 +860,46 @@ namespace real::detail {
     {
       std::int32_t first {-1};
       std::int32_t last  {-1};
+      std::int32_t prev  {-1}; // predecessor of `last` (-1: none): the re-chain point after an empty \Q\E
       while (true) {
         skip_insignificant(); // verbose: between elements and before '|' / ')'
         if (eof() || peek() == '|' || peek() == ')') {
           break;
         }
-        std::int32_t atom {parse_atom(out)};
+        std::int32_t atom {-1};
+        if (peek() == '\\' && pos_ + 1 < pattern_.size() && pattern_[pos_ + 1] == 'Q' && !is_ecma()) {
+          pos_ += 2; // consume \Q
+          const quoted_span span {parse_quoted_span(out)};
+          if (span.last == -1) {
+            if (last != -1) {
+              skip_insignificant();
+              const std::int32_t requant {parse_quantifier(out, last)};
+              if (requant != last) {
+                if (prev == -1) {
+                  first = requant;
+                }
+                else {
+                  out.nodes[static_cast<std::size_t>(prev)].next = requant;
+                }
+                last = requant;
+              }
+            }
+            continue;
+          }
+          if (span.head != -1) { // chain the bare all-but-last prefix
+            if (first == -1) {
+              first = span.head;
+            }
+            else {
+              out.nodes[static_cast<std::size_t>(last)].next = span.head;
+            }
+            last = span.head_tail;
+          }
+          atom = span.last; // the span's final atom takes the normal quantifier path below
+        }
+        else {
+          atom = parse_atom(out);
+        }
         skip_insignificant(); // verbose: whitespace between an atom and its quantifier
         atom = parse_quantifier(out, atom);
         if (first == -1) {
@@ -819,6 +907,7 @@ namespace real::detail {
         }
         else {
           out.nodes[static_cast<std::size_t>(last)].next = atom;
+          prev                                           = last;
         }
         last = atom;
       }
@@ -831,6 +920,77 @@ namespace real::detail {
       const std::int32_t seq                         = add_node(out, {.kind = node_kind::concat});
       out.nodes[static_cast<std::size_t>(seq)].child = first;
       return seq;
+    }
+
+    //! \brief What \ref parse_quoted_span emitted: a bare pre-chained all-but-last prefix
+    //!        (`head`..`head_tail`, -1 when the span has fewer than two characters) plus the span's
+    //!        final atom `last` (-1 when the span is empty) — the caller's quantifier target.
+    struct quoted_span
+    {
+      std::int32_t head      {-1}; //!< First atom of the all-but-last prefix chain (-1: none).
+      std::int32_t head_tail {-1}; //!< Last atom of the prefix chain (-1: none).
+      std::int32_t last      {-1}; //!< The span's final atom (-1: empty span).
+    };
+
+    /*!
+     * \brief Scans a `\Q...\E` literal span (the `\Q` is already consumed) and emits its characters
+     *        as literal atoms — the same emission as \ref parse_atom's default (whole code point per
+     *        atom in text mode, single byte in bytes mode, icase folding via
+     *        \ref emit_literal_codepoint), libre2-measured semantics:
+     *
+     * - The span ends at the exact two-character `\E` (consumed) or at the end of the pattern
+     *   (an unterminated `\Q` quotes to the end).
+     * - Everything inside is literal — metacharacters, `|`, `)`, whitespace (even in verbose mode;
+     *   RE2 has no `(?x)` so this is REAL's own call: a quoted span protects its spaces), and a
+     *   backslash NOT followed by `E` (so `\Qa\Qb\E` is the literal `a\Qb` and a trailing `\Qa\` is
+     *   the literal `a\` — the "dumb scan": no escape processing, no nesting).
+     * - All atoms except the last are chained bare; the last is left unchained so the caller can
+     *   apply a following quantifier to it alone (`\Qab\E+` == `ab+`).
+     *
+     * \param[in,out] out The AST being built.
+     * \return A \ref quoted_span (all members -1 for an empty `\Q\E`).
+     * \throws real::regex_error on an invalid UTF-8 byte inside the span (text mode).
+     */
+    constexpr quoted_span parse_quoted_span(ast& out)
+    {
+      quoted_span  r;
+      std::int32_t pending {-1}; // the previously scanned character, not yet known to be the last
+      while (!eof()) {
+        if (peek() == '\\' && pos_ + 1 < pattern_.size() && pattern_[pos_ + 1] == 'E') {
+          pos_ += 2; // consume the \E terminator
+          break;
+        }
+        std::int32_t cp {};
+        // Read bytes-mode from the scope stack, not the global `bytes_` member (the flag-scope
+        // ratchet; bytes is never scoped, so this equals `bytes_` — same precedent as `\C`).
+        if (!has_flag(current_flags(), flags::bytes) && static_cast<std::uint8_t>(peek()) >= 0x80U) {
+          const detail::decoded_codepoint decoded {detail::decode_codepoint_strict(pattern_, pos_)};
+          if (!decoded.valid) {
+            fail("invalid UTF-8 byte in pattern");
+          }
+          pos_ += decoded.length;
+          cp    = static_cast<std::int32_t>(decoded.cp);
+        }
+        else {
+          cp = static_cast<std::uint8_t>(peek());
+          ++pos_;
+        }
+        if (pending >= 0) { // the previous character is now known not-last: chain it bare
+          const std::int32_t node {emit_literal_codepoint(out, pending)};
+          if (r.head == -1) {
+            r.head = node;
+          }
+          else {
+            out.nodes[static_cast<std::size_t>(r.head_tail)].next = node;
+          }
+          r.head_tail = node;
+        }
+        pending = cp;
+      }
+      if (pending >= 0) {
+        r.last = emit_literal_codepoint(out, pending);
+      }
+      return r;
     }
 
     /*!
@@ -934,8 +1094,19 @@ namespace real::detail {
         default:
           return atom;
       }
-      const bool lazy       {accept('?')};
-      const bool possessive {!lazy && accept('+')}; // X*+/X++/X?+/X{n,m}+ — mutually exclusive with lazy
+      // (?U) ungreedy (RE2): swap the default greediness — a bare quantifier becomes lazy and the
+      // explicit '?' re-inverts back to greedy (measured vs libre2 11.0.0: `(?U)a+` on "aaa" matches
+      // "a", `(?U)a+?` matches "aaa"). Read from the scope stack, so `(?U:...)` scopes, `(?-U:...)`
+      // removal and the flags::ungreedy constructor seed all work; resolved here at parse time into
+      // node.lazy — the compiler and VM are unchanged.
+      const bool explicit_q {accept('?')};
+      const bool lazy       {has_flag(current_flags(), flags::ungreedy) ? !explicit_q : explicit_q};
+      // X*+/X++/X?+/X{n,m}+ — native dialect only, mutually exclusive with lazy. ECMAScript has no
+      // possessive quantifiers, so under ecma the '+' stays unconsumed and hits the multiple-repeat
+      // check below (SyntaxError, agreeing with V8 and both std libraries). Under (?U) a bare
+      // quantifier is lazy, so `(?U)a++` fails "multiple repeat" — in agreement with libre2, which
+      // rejects it too ("bad repetition operator", RE2 has no possessives; measured 2026-07-17).
+      const bool possessive {!is_ecma() && !lazy && accept('+')};
       if (!eof()) {
         const char   ch          {peek()};
         std::int32_t ignored_min {};
@@ -1022,9 +1193,8 @@ namespace real::detail {
 
     /*!
      * \brief Maps a flag letter to its \ref flags value.
-     * \param[in] letter One of 'i', 'm', 's', 'a'.
-     * \return The flag; \ref flags::none for 'a' (ASCII — already the default)
-     *         and for any unrecognized letter.
+     * \param[in] letter One of 'i', 'm', 's', 'x', 'a', 'U'.
+     * \return The flag; \ref flags::none for any unrecognized letter.
      */
     static constexpr flags flag_for_letter(char letter)
     {
@@ -1039,36 +1209,48 @@ namespace real::detail {
           return flags::verbose;
         case 'a': // ASCII mode: `\d \w \s \b` stay ASCII, icase folds ASCII only.
           return flags::ascii;
+        case 'U': // Ungreedy mode (RE2 (?U)): swap the default quantifier greediness.
+          return flags::ungreedy;
         default:
           return flags::none;
       }
     }
 
     /*!
-     * \brief Returns `true` if \p letter is a flag letter (imsax).
+     * \brief Returns `true` if \p letter is a flag letter (imsaxU).
      * \param[in] letter A character.
-     * \return `true` if \p letter is a flag letter (imsax).
+     * \return `true` if \p letter is a flag letter (imsaxU).
      */
     static constexpr bool is_flag_letter(char letter)
     {
-      return letter == 'i' || letter == 'm' || letter == 's' || letter == 'a' || letter == 'x';
+      return letter == 'i' || letter == 'm' || letter == 's' || letter == 'a' || letter == 'x' ||
+             letter == 'U';
     }
 
-    //! \brief \p value with \p bit cleared.
+    //! \brief \p value with \p bit cleared. The intermediate cast matches the enum's
+    //!        `std::uint16_t` underlying type — a `std::uint8_t` here (the pre-widening
+    //!        vestige) would silently drop `flags::ungreedy` (512) from every scope.
     static constexpr flags without(flags value,
                                    flags bit)
     {
       return static_cast<flags>(
-        static_cast<std::uint8_t>(static_cast<unsigned>(value) & ~static_cast<unsigned>(bit)));
+        static_cast<std::uint16_t>(static_cast<unsigned>(value) & ~static_cast<unsigned>(bit)));
     }
 
     /*!
-     * \brief Consumes a leading `(?ims)` global-flags group, if present.
+     * \brief Consumes a leading `(?ims)` or `(?ims-ims)` global-flags group, if present.
      *
      * Like Python (3.11+), global flags are only legal at the very start of the
-     * pattern; later occurrences are rejected in \ref parse_group.
+     * pattern; later occurrences are rejected in \ref parse_group. RE2 additionally
+     * permits an optional `-removed` suffix (e.g. `(?i-s)`, or a pure `(?-s)`) that
+     * clears flags from the base scope for the rest of the pattern — this mirrors
+     * the added/`-`/removed parse in \ref parse_group's scoped-flags branch
+     * (`(?flags-flags:...)`), minus its trailing `:` (a global prefix has none).
      *
-     * \param[in,out] out Receives the flags into \ref ast::inline_flags.
+     * \param[in,out] out Receives the added letters into \ref ast::inline_flags — same
+     *                    convention as the pre-existing add-only path; the removed set
+     *                    only ever clears bits on the scope stack (see \ref ast::inline_flags
+     *                    itself, which is OR-only and cannot represent a removal).
      * \return `true` if a flags group was consumed (position advanced), else
      *         `false` (position restored, for \ref parse_group to handle).
      */
@@ -1086,15 +1268,33 @@ namespace real::detail {
         any_letter = true;
         ++pos_;
       }
-      if (!any_letter || !accept(')')) {
-        pos_ = saved_pos; // some other (?...) construct: let parse_group decide
+      flags removed     {flags::none};
+      bool  any_removed {};
+      if (accept('-')) {
+        bool saw_negative {false};
+        while (!eof() && is_flag_letter(peek())) {
+          removed      = removed | flag_for_letter(peek());
+          saw_negative = true;
+          ++pos_;
+        }
+        if (!saw_negative) {
+          // '-' right after (? is only ever a flags construct (global or scoped) — see
+          // parse_group's dispatch, which fails the same way for the scoped form. No other
+          // (?...) construct starts with a dash, so this is a hard failure, not a backtrack.
+          fail("missing flag after '-'");
+        }
+        any_removed = true;
+      }
+      if ((!any_letter && !any_removed) || !accept(')')) {
+        pos_ = saved_pos; // some other (?...) construct, or a scoped (?flags-flags:...): let parse_group decide
         return false;
       }
       out.inline_flags = out.inline_flags | found;
       // A leading (?flags) group sets the base scope, so the rest of the pattern is parsed under it —
       // verbose affects tokenization, icase/ascii affect literal folding and the \w\d\s tables. This
-      // mirrors the constructor flags, which seed the same base scope.
-      flag_scopes_.back() = flag_scopes_.back() | found;
+      // mirrors the constructor flags, which seed the same base scope. The optional -removed clears
+      // flags from that same base scope (RE2 semantics: (?i-s) enables i and disables s from here on).
+      flag_scopes_.back() = without(current_flags() | found, removed);
       return true;
     }
 
@@ -1109,8 +1309,12 @@ namespace real::detail {
      *        | '(?<name>'  alternation ')'   named (.NET style)
      * \endcode
      * Unsupported extensions (lookaround, backreferences, atomic groups,
-     * scoped inline flags) fail with a message naming the feature. Nesting
-     * beyond \ref max_nesting_depth is rejected.
+     * scoped inline flags) fail with a message naming the feature. Under
+     * `flags::ecma` the native-only constructs `(?#...)`, `(?P<name>` and the
+     * atomic group `(?>...)` fail as "unknown extension" — the ECMAScript
+     * grammar has no such groups (possessive quantifiers are gated the same
+     * way at their parse site). Nesting beyond \ref max_nesting_depth is
+     * rejected.
      *
      * \param[in,out] out The AST being built.
      * \return The index of the \ref node_kind::group node.
@@ -1126,7 +1330,7 @@ namespace real::detail {
       std::int32_t group        {-1};
       bool         scoped_flags {false}; //!< A (?flags:...) group pushed a scope to pop after the body.
       if (accept('?')) {
-        if (accept('#')) {
+        if (!is_ecma() && accept('#')) { // (?#...) comments are native-dialect; under ecma: unknown extension
           // (?#...) comment: skip to the first ')' (a backslash is not special here, like re);
           // emits nothing. Works the same in verbose and non-verbose mode.
           while (!eof() && peek() != ')') {
@@ -1142,7 +1346,7 @@ namespace real::detail {
         if (accept(':')) {
           // non-capturing
         }
-        else if (accept('P')) {
+        else if (!is_ecma() && accept('P')) { // (?P<name>/(?P= are native-dialect; under ecma: unknown extension
           if (accept('<')) {
             group = new_group(out, open_pos);
             parse_group_name(out, group);
@@ -1164,7 +1368,7 @@ namespace real::detail {
         else if (!eof() && (peek() == '=' || peek() == '!')) {
           return parse_lookaround(out, look_dir::ahead, open_pos);
         }
-        else if (!eof() && peek() == '>') {
+        else if (!is_ecma() && !eof() && peek() == '>') { // atomic (?>...) is native-dialect; under ecma: unknown extension
           return parse_atomic_group(out, open_pos);
         }
         else if (!eof() && peek() == '(') {
@@ -1195,9 +1399,10 @@ namespace real::detail {
             // parse_global_flags_prefix); anything else here is a misplaced global-flags group.
             fail("global flags not at the start of the expression");
           }
-          // Every inline flag (i m s x a) is honoured per scope: verbose changes tokenization, icase/
-          // ascii govern folding and the \w\d\s tables, dotall the dot, multiline the ^/$ anchors — all
-          // read from the scope stack. The added set is applied and the removed set cleared for the body.
+          // Every inline flag (i m s x a U) is honoured per scope: verbose changes tokenization, icase/
+          // ascii govern folding and the \w\d\s tables, dotall the dot, multiline the ^/$ anchors,
+          // ungreedy the default quantifier greediness — all read from the scope stack. The added set
+          // is applied and the removed set cleared for the body.
           flag_scopes_.push_back(without(current_flags() | added, removed));
           scoped_flags = true; // group stays non-capturing (-1)
         }
@@ -1496,33 +1701,19 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Decodes a `\N{U+XXXX}` named-code-point escape (1–6 hex digits) — the same code-point path
-     *        as `\u`/`\U`, spelled by its U+ scalar value. `re` writes `\N{NAME}` for the *name*; the
-     *        Python binding rewrites a name to this `U+XXXX` form before parsing, so the engine only ever
-     *        sees the scalar. A C++ caller writes `\N{U+XXXX}` directly.
+     * \brief Decodes a braced hex scalar `HHHHHH}` (1–6 hex digits, then the closing `}`) — the code-
+     *        point reader shared by `\N{U+XXXX}` (after its own `U+` prefix) and `\x{XXXX}` (after its
+     *        own bytes-mode check, see \ref parse_braced_hex_escape). The opening `{` is already
+     *        consumed by the caller; this reads the hex digits, the closing `}`, and rejects a
+     *        surrogate (U+D800–U+DFFF) or a value beyond U+10FFFF — the same code-point range `\u`/`\U`
+     *        enforce (Python semantics).
      *
-     * Rejected with clear messages: byte mode (no code-point meaning ≡ `re`'s `bad escape \N`), a missing
-     * or malformed `{U+…}`, a surrogate, or a value beyond U+10FFFF. The backslash and `N` are already
-     * consumed.
      * \return The code point in `[0, 0x10FFFF]` (never a surrogate).
+     * \throws real::regex_error on a missing digit run, an unterminated brace, a surrogate, or a value
+     *         beyond U+10FFFF.
      */
-    constexpr std::int32_t parse_named_codepoint()
+    constexpr std::int32_t parse_braced_hex_scalar()
     {
-      if (bytes_) {
-        fail("\\N escapes are not allowed in bytes patterns");
-      }
-      if (eof() || peek() != '{') {
-        fail("expected '{' after \\N (\\N{U+XXXX})");
-      }
-      ++pos_; // consume '{'
-      if (eof() || peek() != 'U') {
-        fail("\\N{...} takes a U+XXXX code point; a character name is resolved by the Python binding");
-      }
-      ++pos_; // consume 'U'
-      if (eof() || peek() != '+') {
-        fail("expected '+' in \\N{U+XXXX}");
-      }
-      ++pos_; // consume '+'
       std::int32_t value {};
       int          count {};
       while (!eof() && count < 6) {
@@ -1545,19 +1736,73 @@ namespace real::detail {
         ++count;
       }
       if (count == 0) {
-        fail("expected 1 to 6 hex digits in \\N{U+XXXX}");
+        fail("expected 1 to 6 hex digits in a braced hex escape");
       }
       if (eof() || peek() != '}') {
-        fail("unterminated \\N{U+XXXX} (expected '}')");
+        fail("unterminated braced hex escape (expected '}')");
       }
       ++pos_; // consume '}'
       if (value >= 0xD800 && value <= 0xDFFF) {
-        fail("invalid \\N escape: surrogate code point");
+        fail("invalid braced hex escape: surrogate code point");
       }
       if (value > 0x10FFFF) {
-        fail("invalid \\N escape: code point out of range");
+        fail("invalid braced hex escape: code point out of range");
       }
       return value;
+    }
+
+    /*!
+     * \brief Decodes a `\N{U+XXXX}` named-code-point escape (1–6 hex digits) — the same code-point path
+     *        as `\u`/`\U`, spelled by its U+ scalar value. `re` writes `\N{NAME}` for the *name*; the
+     *        Python binding rewrites a name to this `U+XXXX` form before parsing, so the engine only ever
+     *        sees the scalar. A C++ caller writes `\N{U+XXXX}` directly.
+     *
+     * Rejected with clear messages: byte mode (no code-point meaning ≡ `re`'s `bad escape \N`), a missing
+     * or malformed `{U+…}`; \ref parse_braced_hex_scalar rejects a surrogate or a value beyond U+10FFFF.
+     * The backslash and `N` are already consumed.
+     * \return The code point in `[0, 0x10FFFF]` (never a surrogate).
+     */
+    constexpr std::int32_t parse_named_codepoint()
+    {
+      if (bytes_) {
+        fail("\\N escapes are not allowed in bytes patterns");
+      }
+      if (eof() || peek() != '{') {
+        fail("expected '{' after \\N (\\N{U+XXXX})");
+      }
+      ++pos_; // consume '{'
+      if (eof() || peek() != 'U') {
+        fail("\\N{...} takes a U+XXXX code point; a character name is resolved by the Python binding");
+      }
+      ++pos_; // consume 'U'
+      if (eof() || peek() != '+') {
+        fail("expected '+' in \\N{U+XXXX}");
+      }
+      ++pos_; // consume '+'
+      return parse_braced_hex_scalar();
+    }
+
+    /*!
+     * \brief Decodes a `\x{XXXX}` braced code-point escape — RE2/Perl syntax (ECMAScript spells this
+     *        `\u{...}` instead, so every caller gates on `!is_ecma()` before reaching here). Rejected in
+     *        bytes mode, like `\u`/`\U`/`\N` (no code-point meaning there) — read from the scope stack,
+     *        not the global `bytes_` member (the flag-scope ratchet: bytes is never scoped, so this
+     *        equals `bytes_` while keeping the parser's global-read count flat; same precedent as `\C`
+     *        above). Shares its digit-loop / surrogate / overflow validation with `\N{U+XXXX}` via
+     *        \ref parse_braced_hex_scalar — this function only adds the bytes-mode check and the
+     *        opening `{`. The backslash and `x` are already consumed by the caller.
+     *
+     * \return The code point in `[0, 0x10FFFF]` (never a surrogate).
+     * \throws real::regex_error in bytes mode, or (via \ref parse_braced_hex_scalar) on a malformed or
+     *         unterminated `{...}`, a surrogate, or a value beyond U+10FFFF.
+     */
+    constexpr std::int32_t parse_braced_hex_escape()
+    {
+      if (has_flag(current_flags(), flags::bytes)) {
+        fail("\\x{...} escapes are not allowed in bytes patterns");
+      }
+      ++pos_; // consume '{'
+      return parse_braced_hex_scalar();
     }
 
     /*!
@@ -1746,6 +1991,15 @@ namespace real::detail {
           return add_node(out, {.kind = node_kind::any, .raw_byte = true});
         default:
           {
+            // `\x{...}` is RE2/Perl's braced code-point escape (ECMAScript spells this `\u{...}`
+            // instead — Annex B has no braced `\x`, so under ecma `\x` keeps its two-hex meaning).
+            // Gated `!is_ecma()`, mirroring `\u`/`\U` above (l.1770/1772). Anything else — ecma, `\x`
+            // not followed by `{`, or any other escaped char — falls through unchanged to the
+            // existing `\xHH` / octal / punctuation byte path via parse_byte_escape below.
+            if (peek() == 'x' && !is_ecma() && pos_ + 1 < pattern_.size() && pattern_[pos_ + 1] == '{') {
+              ++pos_; // consume 'x'
+              return emit_literal_codepoint(out, parse_braced_hex_escape());
+            }
             const std::int32_t byte_value {parse_byte_escape()};
             if (byte_value < 0) {
               fail_unsupported("unsupported escape sequence");
@@ -1812,11 +2066,13 @@ namespace real::detail {
             return -1;
           }
         // `\p{Name}` / `\P{Name}` / `\pX` inside a class — a Unicode General_Category / Script property member.
+        // Caret-negation `\p{^Name}` XORs into `negated` too, so `[\p{^L}]` == `[\P{L}]` here as well.
         case 'p':
         case 'P': {
-            const bool                    negated {peek() == 'P'};
-            const std::vector<code_range> table   {parse_property_table()};
-            merge_unicode_property(klass, ranges, table, negated, property_derived);
+            bool                         negated {peek() == 'P'};
+            const property_table_result  table   {parse_property_table()};
+            negated = negated != table.caret; // bool XOR without the int promotion misra rejects
+            merge_unicode_property(klass, ranges, table.ranges, negated, property_derived);
             return -1;
           }
         case 'b':
@@ -1863,6 +2119,12 @@ namespace real::detail {
           fail("invalid escape (\\8 and \\9 are not octal and there are no back-references in a class)");
         default:
           {
+            // Mirrors the outside-class `\x{...}` gate in parse_escape: RE2/Perl braced code point,
+            // `!is_ecma()`, else the existing `\xHH` byte path below (parse_byte_escape) is unchanged.
+            if (peek() == 'x' && !is_ecma() && pos_ + 1 < pattern_.size() && pattern_[pos_ + 1] == '{') {
+              ++pos_; // consume 'x'
+              return parse_braced_hex_escape();
+            }
             const std::int32_t byte_value {parse_byte_escape()};
             if (byte_value < 0) {
               fail_unsupported("unsupported escape sequence");

@@ -49,7 +49,7 @@ The following engines are included:
 * [**Python**](https://www.python.org/) 3.14.6 modules:
   * _re_,
   * [_regex_](https://pypi.org/project/regex) 2026.6.28,
-  * [_real-regex_](https://pypi.org/project/real-regex/) 2026.7.50.
+  * [_real-regex_](https://pypi.org/project/real-regex/) 2026.7.51.
 * [**D**](https://dlang.org/phobos/std_regex.html) 2.112.0 (*std.regex* module).
 * [**Perl**](https://perldoc.perl.org/perlreref) 5.40.2 (Strawberry Perl).
 * **Fortran** [**Forgex**](https://github.com/ShinobuAmasaki/forgex) v4.6 module (Intel® Fortran Compiler 2026.0.0).
@@ -71,7 +71,7 @@ The following engines are included:
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
   * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.22.
 * **Dart** 3.12.2 [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html).
-* [**REAL**](https://github.com/RECHE23/real-regex) 2026.7.50 (in C++).
+* [**REAL**](https://github.com/RECHE23/real-regex) 2026.7.51 (in C++).
 
 ## Running the playground
 

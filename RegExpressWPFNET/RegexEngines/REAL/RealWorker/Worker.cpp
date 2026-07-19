@@ -10,8 +10,8 @@
 #include "CheckedCast.h"
 #include "SEHFilter.h"
 
-#include "real/real.hpp"
-//#include "real/std/regex.hpp" // for 'real::compat::regex', to support fallback; not considered here
+#include "real\\real.hpp"
+//#include "real\\compat\\std\\regex.hpp" // for 'real::compat::regex', to support fallback; not considered here
 
 
 static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, real::flags flags, bool longest )
@@ -127,6 +127,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::ascii;
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::dollar_endonly;
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::allow_raw_byte;
+		if( inbr.ReadByte( ) ) flags = flags | real::flags::ungreedy;
 
 		bool longest = inbr.ReadByte( ) != 0;
 

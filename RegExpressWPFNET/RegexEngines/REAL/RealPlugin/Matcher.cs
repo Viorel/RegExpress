@@ -44,6 +44,7 @@ namespace RealPlugin
                 bw.Write( options.ascii );
                 bw.Write( options.dollar_endonly );
                 bw.Write( options.allow_raw_byte ); //
+                bw.Write( options.ungreedy );
                 bw.Write( options.longest );
 
                 bw.Write( (byte)'e' );

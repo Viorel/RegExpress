@@ -18,6 +18,7 @@ namespace RealPlugin
         public bool ascii { get; set; }
         public bool dollar_endonly { get; set; }
         public bool allow_raw_byte { get; set; }
+        public bool ungreedy { get; set; }
         public bool longest { get; set; }
 
         public Options Clone( )

@@ -192,7 +192,8 @@ namespace real::compat {
     [[nodiscard]] inline bool pattern_forces_std(std::string_view p) noexcept
     {
       const auto is_flag_or_dash = [](char c) {
-                                     return c == '-' || c == 'i' || c == 'm' || c == 's' || c == 'x' || c == 'a';
+                                     return c == '-' || c == 'i' || c == 'm' || c == 's' || c == 'x' || c == 'a' ||
+                                            c == 'U';
                                    };
       for (std::size_t i = 0; i < p.size(); ++i) {
         if (p[i] == '\\') {
@@ -205,10 +206,12 @@ namespace real::compat {
           ++i; // consume the escaped character (so `\\0` is an escaped backslash, not `\0`)
           continue;
         }
-        // An inline-flags group `(?imsxa:...)` / `(?-...:...)` / a bare `(?imsxa)`: real accepts these
-        // (Python semantics), but ECMAScript has no inline flags, so std rejects them. Route to std so
-        // compat stays ≡ std — the char after `(?` is a flag letter or `-` only for a flag construct
-        // (`(?:` `(?=` `(?!` `(?<` `(?P` start with other characters). Over-routing here is safe.
+        // An inline-flags group `(?imsxaU:...)` / `(?-...:...)` / a bare `(?imsxaU)`: real accepts
+        // these (Python semantics; `U` is the RE2 ungreedy swap), but ECMAScript has no inline flags,
+        // so std rejects them. Route to std so compat stays ≡ std — the char after `(?` is a flag
+        // letter or `-` only for a flag construct (`(?:` `(?=` `(?!` `(?<` `(?P` start with other
+        // characters). Over-routing here is safe. Omitting `U` here would be a guaranteed divergence:
+        // real would honor `(?U)` (swapped greediness) while std rejects it.
         if (p[i] == '(' && i + 2 < p.size() && p[i + 1] == '?' && is_flag_or_dash(p[i + 2])) {
           return true;
         }
@@ -654,6 +657,7 @@ namespace real::compat {
       std::swap(flags_, other.flags_);
       std::swap(mark_count_, other.mark_count_);
       std::swap(nullable_, other.nullable_);
+      std::swap(nullable_captured_repeat_, other.nullable_captured_repeat_);
       std::swap(posix_longest_, other.posix_longest_);
       std::swap(lazy_std_, other.lazy_std_);
       std::swap(policy_, other.policy_);
@@ -702,13 +706,19 @@ namespace real::compat {
       return posix_longest_;
     }
 
-    //! \brief Whether replace/iterate run on the `real` traversal (real-backed AND non-nullable). A nullable
-    //!        pattern delegates replace/iterate to std (the empty-match traversal differs; and iterating a
-    //!        nullable pattern whose per-position match cost is O(n) is O(n²) on any linear engine, so routing
-    //!        it buys correctness but not a linear guarantee — see the nullable note in COMPATIBILITY.md).
+    //! \brief Whether replace/iterate run on the `real` traversal (real-backed AND non-nullable AND no
+    //!        nullable captured-repeat group). A nullable pattern delegates replace/iterate to std (the
+    //!        empty-match traversal differs; and iterating a nullable pattern whose per-position match
+    //!        cost is O(n) is O(n²) on any linear engine, so routing it buys correctness but not a linear
+    //!        guarantee — see the nullable note in COMPATIBILITY.md). A pattern with a capturing group
+    //!        that is nullable under a quantifier (`(ab|)+a`) is itself non-nullable as a whole, but
+    //!        real's last-consuming-iteration capture (RE2/Rust/Go lineage) diverges from an ECMAScript
+    //!        backtracker's extra empty final iteration on that GROUP's span — so it routes too, for the
+    //!        same reason: `regex_search`/`match` are unaffected (see the nullable-loop group-capture
+    //!        section of COMPATIBILITY.md — the search residue is intentional, not an oversight).
     [[nodiscard]] bool uses_real_traversal() const noexcept
     {
-      return uses_real() && !nullable_;
+      return uses_real() && !nullable_ && !nullable_captured_repeat_;
     }
 
     //! \brief The `std::regex` for the std / lazy-std path (built once on demand for a real-backed
@@ -745,13 +755,14 @@ namespace real::compat {
 
     // std backend first so the variant is default-constructible (real::regex has no default ctor).
     std::variant<std::basic_regex<CharT, Traits>, real::regex>           engine_;
-    string_type                                                          pattern_;                        //!< Original pattern (for the lazy std build).
-    flag_type                                                            flags_         {regex_constants::ECMAScript};
-    std::size_t                                                          mark_count_    {};
-    bool                                                                 nullable_      {};               //!< empty_match_possible (real-backed).
-    bool                                                                 posix_longest_ {};               //!< POSIX ERE on REAL: search uses leftmost-longest bounds.
-    mutable std::optional<std::basic_regex<CharT, Traits>>               lazy_std_;                       //!< Lazy std for nullable replace/iterate.
-    compat::policy                                                       policy_        {policy::strict}; //!< strict rejects ineligible, fallback delegates to std.
+    string_type                                                          pattern_;                                   //!< Original pattern (for the lazy std build).
+    flag_type                                                            flags_                    {regex_constants::ECMAScript};
+    std::size_t                                                          mark_count_               {};
+    bool                                                                 nullable_                 {};               //!< empty_match_possible (real-backed).
+    bool                                                                 nullable_captured_repeat_ {};               //!< nullable_captured_repeat (real-backed) — a nullable capturing group under a quantifier; see \ref uses_real_traversal.
+    bool                                                                 posix_longest_            {};               //!< POSIX ERE on REAL: search uses leftmost-longest bounds.
+    mutable std::optional<std::basic_regex<CharT, Traits>>               lazy_std_;                                  //!< Lazy std for nullable replace/iterate.
+    compat::policy                                                       policy_                   {policy::strict}; //!< strict rejects ineligible, fallback delegates to std.
 
     void assign(std::basic_string_view<CharT> pattern,
                 flag_type                     f)
@@ -759,8 +770,9 @@ namespace real::compat {
       flags_   = f;
       pattern_ = string_type(pattern);
       lazy_std_.reset();
-      nullable_      = false;
-      posix_longest_ = false;
+      nullable_                 = false;
+      nullable_captured_repeat_ = false;
+      posix_longest_            = false;
       if constexpr (detail::real_eligible<CharT, Traits>) {
         const std::string_view sv {pattern.data(), pattern.size()};
         // PX1a/PX1b: a single POSIX grammar (extended -> ERE, basic -> BRE; awk/grep/egrep next) on the linear
@@ -772,9 +784,10 @@ namespace real::compat {
           if (const std::optional<std::string> translated {detail::translate_posix(sv, f)}) {
             try {
               real::regex compiled(*translated, detail::to_real(f));
-              mark_count_    = compiled.group_count();
-              nullable_      = compiled.raw_program().hints.empty_match_possible;
-              posix_longest_ = true;
+              mark_count_               = compiled.group_count();
+              nullable_                 = compiled.raw_program().hints.empty_match_possible;
+              nullable_captured_repeat_ = compiled.raw_program().hints.nullable_captured_repeat;
+              posix_longest_            = true;
               engine_.template emplace<real::regex>(std::move(compiled));
               return;
             }
@@ -791,8 +804,9 @@ namespace real::compat {
         }
         try {
           real::regex compiled(sv, detail::to_real(f));
-          mark_count_ = compiled.group_count();
-          nullable_   = compiled.raw_program().hints.empty_match_possible;
+          mark_count_               = compiled.group_count();
+          nullable_                 = compiled.raw_program().hints.empty_match_possible;
+          nullable_captured_repeat_ = compiled.raw_program().hints.nullable_captured_repeat;
           engine_.template emplace<real::regex>(std::move(compiled));
           // The std engine for a real-backed pattern (needed for a constraining flag or nullable
           // replace/iterate) is built lazily and thread-safely by std_engine() under its build mutex,

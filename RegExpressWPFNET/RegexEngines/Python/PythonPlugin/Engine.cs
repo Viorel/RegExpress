@@ -642,7 +642,7 @@ namespace PythonPlugin
                 XFlag = true,
                 XXFlag = false,
 
-                Literal_QE = false,
+                Literal_QE = true,
                 InsideSets_Literal_QE = false,
                 InsideSets_Literal_qBrace = false,
 
@@ -658,7 +658,7 @@ namespace PythonPlugin
                 Esc_Octal0_1_3 = false,
                 Esc_oBrace = false,
                 Esc_x2 = true,
-                Esc_xBrace = false,
+                Esc_xBrace = true,
                 Esc_u4 = true,
                 Esc_U8 = true,
                 Esc_uBrace = false,
@@ -681,7 +681,7 @@ namespace PythonPlugin
                 InsideSets_Esc_Octal0_1_3 = false,
                 InsideSets_Esc_oBrace = false,
                 InsideSets_Esc_x2 = true,
-                InsideSets_Esc_xBrace = false,
+                InsideSets_Esc_xBrace = true,
                 InsideSets_Esc_u4 = true,
                 InsideSets_Esc_U8 = true,
                 InsideSets_Esc_uBrace = false,

@@ -8,11 +8,20 @@
  * types them, not translated to REAL's own naming conventions; that is the entire point of a
  * drop-in.
  *
- * REAL is a strict syntax superset of RE2 (it compiles everything RE2 compiles, plus bounded
- * lookarounds, possessive quantifiers, and `\p{}`, which RE2 rejects outright — see the design
- * spike behind this layer), so this wraps `real::regex` / `real::regex_set` directly: **no RE2
- * dependency at runtime** (header-only, zero-dep; RE2 is a test-time oracle only, never linked
- * by this header or anything it includes).
+ * REAL is a near-total syntax superset of RE2: it compiles everything RE2 compiles, plus bounded
+ * lookarounds and possessive quantifiers (which RE2 rejects outright) and a wider Unicode property
+ * set — namespaced `\p{gc=…}`/`\p{sc=…}`/`\p{scx=…}` and the UCD binary properties
+ * (`\p{Alphabetic}`, `\p{Emoji}`, …), which RE2's `\p{…}` grammar lacks. Two constructs are the
+ * deliberate exceptions where REAL is intentionally *stricter* than RE2 — principled divergences,
+ * not unimplemented gaps: (1) **duplicate capturing-group names** (`(?P<n>…)(?P<n>…)`) — RE2
+ * tolerates them; REAL rejects them because its named-capture lookup (match-by-name) would be
+ * ambiguous with a repeated name (capture-safety); (2) **surrogate code points** in
+ * `\x{…}`/`\u`/`\U`/`\N` (e.g. `\x{D800}`) — RE2 does not validate them, REAL rejects them through
+ * the same Unicode-scalar validation it applies to every code-point escape. Both surface as a
+ * clean `ok() == false`, and are the only two entries in this layer's `fuzz_re2` KNOWN-GAP ledger.
+ * So this wraps `real::regex` / `real::regex_set` directly: **no RE2 dependency at runtime**
+ * (header-only, zero-dep; RE2 is a test-time oracle only, never linked by this header or anything
+ * it includes).
  *
  * **No fallback policy.** The `std::regex` compat layer can delegate an ineligible pattern to
  * `std::regex` (`policy::fallback`) because `std::regex` is always there. RE2 is not a runtime
