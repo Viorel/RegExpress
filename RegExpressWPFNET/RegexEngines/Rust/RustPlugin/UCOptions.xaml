@@ -47,6 +47,7 @@
                     <ui:ComboBoxItemWithVersion Tag ="resharp"     Text="resharp"     Version="{Binding Resharp, Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="anre"        Text="regex-anre"  Version="{Binding Anre, Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="real_regex"  Text="real-regex"  Version="{Binding RealRegex, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="java_regex"  Text="java_regex"  Version="{Binding JavaRegex, Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 
@@ -210,6 +211,18 @@
             <StackPanel x:Name="pnlAnreOptions" Orientation="Vertical" Visibility="Collapsed" d:Visibility="Visible">
                 <ui:CheckboxWithNote Prop="anre_syntax" Text="ANRE" Note="use ANRE language"/>
             </StackPanel>
+
+            <StackPanel x:Name="pnlJavaRegexOptions">
+                <ui:CheckboxWithNote Prop="case_insensitive" Text="i" Note="case-insensitive matching"/>
+                <ui:CheckboxWithNote Prop="multi_line" Text="m" Note="multiline mode (^ and $ match line boundaries)"/>
+                <ui:CheckboxWithNote Prop="dot_matches_new_line" Text="s" Note="dotall mode (. matches line terminators)"/>
+                <ui:CheckboxWithNote Prop="ignore_whitespace" Text="x" Note="comments mode (whitespace and # comments ignored)"/>
+                <ui:CheckboxWithNote Prop="unicode" Text="u" Note="Unicode-aware case folding"/>
+                <ui:CheckboxWithNote Prop="unicode_sets" Text="U" Note="Unicode character classes for POSIX properties"/>
+                <ui:CheckboxWithNote Prop="d" Text="d" Note="Unix lines mode (only \n is a line terminator)"/>
+                <ui:CheckboxWithNote Prop="l" Text="l" Note="literal mode (pattern is treated as a literal string)"/>
+            </StackPanel>
+            
         </StackPanel>
     </Grid>
 </UserControl>

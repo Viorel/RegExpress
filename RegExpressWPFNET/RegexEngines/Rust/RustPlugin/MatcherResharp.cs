@@ -90,7 +90,7 @@ namespace RustPlugin
 
                 (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
-                SimpleMatch? match = SimpleMatch.Create( native_start, native_end, char_start, char_length, stg );
+                SimpleMatch? match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
 
                 match.AddDefaultGroup( );
 

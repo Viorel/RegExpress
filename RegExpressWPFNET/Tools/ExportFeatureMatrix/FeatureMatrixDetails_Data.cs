@@ -147,6 +147,7 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"\N{…}", @"Unicode name or 'U+code'", (e, fm) => fm.Esc_NBrace)
                     .Test( @"\N{COMMA}", ",", null )
                     .Test( @"\N{comma}", ",", null )
+                    .Test( @"\N{LATIN CAPITAL LETTER A}", "A", null )
                     .Test( @"\N{U+0061}", "a", null ),
                 new FeatureMatrixDetails( @"\any", @"Generic escape", (e, fm) => fm.GenericEscape)
                     .Test( @"a\j", @"aj", @"a\j" ),

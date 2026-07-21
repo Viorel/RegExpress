@@ -9,12 +9,13 @@ namespace RustPlugin
     internal class Versions
     {
         public static string Rust { get; } = "1.96.0";
-        public static string Regex { get; } = "1.12.4";
+        public static string Regex { get; } = "1.13.1";
         public static string RegexLite { get; } = "0.1.9";
         public static string FancyRegex { get; } = "0.18.0";
         public static string Regress { get; } = "0.11.1";
-        public static string Resharp { get; } = "0.6.16";
+        public static string Resharp { get; } = "0.6.19";
         public static string Anre { get; } = "2.1.2";
-        public static string RealRegex { get; } = "2026.7.50";
+        public static string RealRegex { get; } = "2026.7.51";
+        public static string JavaRegex { get; } = "0.1.0";
     }
 }

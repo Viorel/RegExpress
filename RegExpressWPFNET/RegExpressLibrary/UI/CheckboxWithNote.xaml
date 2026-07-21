@@ -17,7 +17,7 @@
                             <Setter Property="Text" Value="{Binding Note, ElementName=userControl, Mode=OneWay, FallbackValue='', StringFormat=' – {0}'}"/>
                             <Setter Property="Foreground">
                                 <Setter.Value>
-                                    <SolidColorBrush Opacity="0.77" Color="{x:Static SystemColors.ControlTextColor}"/>
+                                    <SolidColorBrush Opacity="1" Color="{x:Static SystemColors.ControlTextColor}"/>
                                 </Setter.Value>
                             </Setter>
                             <Style.Triggers>

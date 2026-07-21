@@ -17,6 +17,7 @@ namespace RustPlugin
         resharp,
         anre,
         real_regex,
+        java_regex,
     }
 
     enum StructEnum
@@ -49,7 +50,7 @@ namespace RustPlugin
         public bool octal { get; set; }
         public bool crlf { get; set; } // ('regex', 'regex-lite', 'fancy-regex' specific, the (?R) flag)
         public bool no_opt { get; set; } // ('regress' specific)
-        public bool unicode_sets { get; set; } // ('regress' specific)
+        public bool unicode_sets { get; set; } // ('regress', 'java_regex' specific)
         public bool oniguruma_mode { get; set; } // ('fancy-regex' specific)
         public bool find_not_empty { get; set; } // ('fancy-regex' specific)
         public bool ignore_numbered_groups_when_named_groups_exist { get; set; } // ('fancy-regex' specific)
@@ -57,27 +58,31 @@ namespace RustPlugin
         public bool unbounded_size { get; set; } // ('resharp' specific)
         public UnicodeModeEnum UnicodeMode { get; set; } = UnicodeModeEnum.Default; // ('resharp' specific)
 
-        // Regex and Regex-lite crates
+        // Regex and Regex-lite
 
         public string? size_limit { get; set; }
         public string? dfa_size_limit { get; set; } // (not in 'regex_lite')
         public string? nest_limit { get; set; }
 
-        // Fancy-regex crate
+        // Fancy-regex
 
         public string? backtrack_limit { get; set; }
         public string? delegate_size_limit { get; set; }
         public string? delegate_dfa_size_limit { get; set; }
 
-        // Resharp crate
+        // Resharp
         public string? max_dfa_capacity { get; set; }
         public string? lookahead_context_max { get; set; }
 
-        // Regex-anre crate
+        // Regex-anre
         public bool anre_syntax { get; set; }
 
-        // Real-regex crate
+        // Real-regex
         public bool fallback { get; set; }
+
+        // Java_regex
+        public bool d { get; set; }
+        public bool l { get; set; }
 
         public Options Clone( )
         {
