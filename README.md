@@ -64,7 +64,7 @@ The following engines are included:
   * [_zig-regex_](https://github.com/zig-utils/zig-regex) v0.2.0, 
   * [_mvzr_](https://github.com/mnemnion/mvzr) v0.3.12
   * _PZRE_ v0.2.2.
-* [**RE#**](https://github.com/ieviev/resharp-dotnet) 1.0.4 (for F#, C#, VB).
+* [**RE#**](https://github.com/ieviev/resharp-dotnet) 1.0.5 (for F#, C#, VB).
 * **Go** 1.26.4 packages:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.4,
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.2.2,

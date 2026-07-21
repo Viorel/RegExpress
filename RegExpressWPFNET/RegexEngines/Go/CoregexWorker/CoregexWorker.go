@@ -1,135 +1,134 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
-	"fmt"
-	"io"
-	"os"
+    "bufio"
+    "encoding/json"
+    "fmt"
+    "io"
+    "os"
 
-	coregex "github.com/coregx/coregex"
+    coregex "github.com/coregx/coregex"
 )
 
 type inputStruct struct {
-	Package string
-	Pattern string
-	Text    string
+    Pattern string
+    Text    string
 
-	EnableDFA               bool
-	EnablePrefilter         bool
-	EnableASCIIOptimization bool
+    EnableDFA               bool
+    EnablePrefilter         bool
+    EnableASCIIOptimization bool
 
-	MaxDFAStates         *uint32
-	DeterminizationLimit *int
-	MinLiteralLen        *int
-	MaxLiterals          *int
-	MaxRecursionDepth    *int
+    MaxDFAStates         *uint32
+    DeterminizationLimit *int
+    MinLiteralLen        *int
+    MaxLiterals          *int
+    MaxRecursionDepth    *int
 
-	Posix   bool
-	Longest bool
-	Literal bool
+    Posix   bool
+    Longest bool
+    Literal bool
 }
 
 type outputStruct struct {
-	Names   []string
-	Matches [][]int
+    Names   []string
+    Matches [][]int
 }
 
 func main() {
-	var err error
+    var err error
 
-	reader := bufio.NewReader(os.Stdin)
-	input_text, err := reader.ReadString(0)
-	if err != nil && err != io.EOF {
-		fmt.Fprintln(os.Stderr, err)
+    reader := bufio.NewReader(os.Stdin)
+    input_text, err := reader.ReadString(0)
+    if err != nil && err != io.EOF {
+        fmt.Fprintln(os.Stderr, err)
 
-		return
-	}
+        return
+    }
 
-	//fmt.Printf("Input text: {%s}\n", input_text)
+    //fmt.Printf("Input text: {%s}\n", input_text)
 
-	var input inputStruct
+    var input inputStruct
 
-	err = json.Unmarshal([]byte(input_text), &input)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+    err = json.Unmarshal([]byte(input_text), &input)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, err)
 
-		return
-	}
+        return
+    }
 
-	//fmt.Printf("Input struct: {%+v}\n", input)
+    //fmt.Printf("Input struct: {%+v}\n", input)
 
-	pattern := input.Pattern
-	text := input.Text
+    pattern := input.Pattern
+    text := input.Text
 
-	is_POSIX := input.Posix
-	is_longest := input.Longest
-	is_literal := input.Literal
+    is_POSIX := input.Posix
+    is_longest := input.Longest
+    is_literal := input.Literal
 
-	if is_literal {
-		pattern = coregex.QuoteMeta(pattern)
-	}
+    if is_literal {
+        pattern = coregex.QuoteMeta(pattern)
+    }
 
-	config := coregex.DefaultConfig()
+    config := coregex.DefaultConfig()
 
-	config.EnableDFA = input.EnableDFA
-	config.EnablePrefilter = input.EnablePrefilter
-	config.EnableASCIIOptimization = input.EnableASCIIOptimization
+    config.EnableDFA = input.EnableDFA
+    config.EnablePrefilter = input.EnablePrefilter
+    config.EnableASCIIOptimization = input.EnableASCIIOptimization
 
-	if input.MaxDFAStates != nil {
-		config.MaxDFAStates = *input.MaxDFAStates
-	}
-	if input.DeterminizationLimit != nil {
-		config.DeterminizationLimit = *input.DeterminizationLimit
-	}
-	if input.MinLiteralLen != nil {
-		config.MinLiteralLen = *input.MinLiteralLen
-	}
-	if input.MaxLiterals != nil {
-		config.MaxLiterals = *input.MaxLiterals
-	}
-	if input.MaxRecursionDepth != nil {
-		config.MaxRecursionDepth = *input.MaxRecursionDepth
-	}
+    if input.MaxDFAStates != nil {
+        config.MaxDFAStates = *input.MaxDFAStates
+    }
+    if input.DeterminizationLimit != nil {
+        config.DeterminizationLimit = *input.DeterminizationLimit
+    }
+    if input.MinLiteralLen != nil {
+        config.MinLiteralLen = *input.MinLiteralLen
+    }
+    if input.MaxLiterals != nil {
+        config.MaxLiterals = *input.MaxLiterals
+    }
+    if input.MaxRecursionDepth != nil {
+        config.MaxRecursionDepth = *input.MaxRecursionDepth
+    }
 
-	var re *coregex.Regexp
+    var re *coregex.Regexp
 
-	if is_POSIX {
-		re, err = coregex.CompilePOSIX(pattern)
-	} else {
-		re, err = coregex.CompileWithConfig(pattern, config)
-	}
+    if is_POSIX {
+        re, err = coregex.CompilePOSIX(pattern)
+    } else {
+        re, err = coregex.CompileWithConfig(pattern, config)
+    }
 
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, err)
 
-		return
-	}
+        return
+    }
 
-	if is_longest {
-		re.Longest()
-	}
+    if is_longest {
+        re.Longest()
+    }
 
-	names := re.SubexpNames() // []string
-	//fmt.Printf( "names: %q\n", names)
+    names := re.SubexpNames() // []string
+    //fmt.Printf( "names: %q\n", names)
 
-	matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
-	//fmt.Printf( "matches: %d\n", matches)
+    matches := re.FindAllStringSubmatchIndex(text, -1) // [][]int
+    //fmt.Printf( "matches: %d\n", matches)
 
-	var output outputStruct
+    var output outputStruct
 
-	output.Names = names
-	output.Matches = matches
+    output.Names = names
+    output.Matches = matches
 
-	//fmt.Printf( "output: %+v\n", output)
+    //fmt.Printf( "output: %+v\n", output)
 
-	output_json, err := json.Marshal(output)
+    output_json, err := json.Marshal(output)
 
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, err)
 
-		return
-	}
+        return
+    }
 
-	fmt.Printf("%s\n", output_json)
+    fmt.Printf("%s\n", output_json)
 }
