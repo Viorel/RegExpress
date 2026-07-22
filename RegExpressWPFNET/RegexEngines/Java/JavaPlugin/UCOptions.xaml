@@ -27,8 +27,9 @@
                 </StackPanel.LayoutTransform>
                 <Label Content="Package:" Target="{Binding ElementName=cbxPackage}" Padding="0 2 4 2" />
                 <ComboBox x:Name="cbxPackage" SelectedValuePath="Tag" SelectedValue="{Binding Package, FallbackValue='regex'}" VerticalAlignment="Center" MinWidth="90" SelectionChanged="cbxPackage_SelectionChanged">
-                    <ui:ComboBoxItemWithVersion Tag ="regex" Text="java.util.regex" Version="{Binding Regex, Source={StaticResource versions}}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag ="re2j"  Text="com.google.re2j" Version="{Binding Re2j, Source={StaticResource versions}}"/>
+                    <ui:ComboBoxItemWithVersion Tag ="regex"    Text="java.util.regex"  Version="{Binding Regex,    Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag ="re2j"     Text="RE2/J"            Version="{Binding Re2j,     Source={StaticResource versions}}"/>
+                    <ui:ComboBoxItemWithVersion Tag ="safere"   Text="SafeRE"           Version="{Binding SafeRE,   Source={StaticResource versions}}"/>
                 </ComboBox>
             </StackPanel>
 

@@ -84,22 +84,24 @@ namespace JavaPlugin
                 {
                     "regex" => PackageEnum.regex,
                     "re2j" => PackageEnum.re2j,
+                    "safere" => PackageEnum.safere,
                     _ => PackageEnum.None,
                 };
 
                 bool is_regex = package == PackageEnum.regex;
                 bool is_re2j = package == PackageEnum.re2j;
+                bool is_safere = package == PackageEnum.safere;
 
                 CANON_EQ.Display( is_regex );
-                COMMENTS.Display( is_regex );
-                LITERAL.Display( is_regex );
-                UNICODE_CASE.Display( is_regex );
-                UNICODE_CHARACTER_CLASS.Display( is_regex );
-                UNIX_LINES.Display( is_regex );
+                COMMENTS.Display( is_regex || is_safere );
+                LITERAL.Display( is_regex || is_safere );
+                UNICODE_CASE.Display( is_regex || is_safere );
+                UNICODE_CHARACTER_CLASS.Display( is_regex || is_safere );
+                UNIX_LINES.Display( is_regex || is_safere );
                 DISABLE_UNICODE_GROUPS.Display( is_re2j );
                 LONGEST_MATCH.Display( is_re2j );
 
-                panelRegion.Display( is_regex );
+                panelRegion.Display( is_regex || is_safere );
             }
             finally
             {
@@ -130,7 +132,8 @@ namespace JavaPlugin
             return Options.Package switch
             {
                 PackageEnum.regex => "regex",
-                PackageEnum.re2j => "re2j",
+                PackageEnum.re2j => "RE2/J",
+                PackageEnum.safere => "SafeRE",
                 _ => "Unknown"
             };
         }

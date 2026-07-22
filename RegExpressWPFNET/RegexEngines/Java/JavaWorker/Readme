@@ -1,4 +1,4 @@
-To edit "JavaWorker.java"
+To edit "*.java" files
 -------------------------
 
 - Install JDK, use Visual Studio Code, use "Extension Pack for Java" extension.
@@ -9,20 +9,29 @@ or:
   use Visual Studio Code, use "Extension Pack for Java" extension, go to File, Preferences, Settings, 
   find and edit this settings:
 
-  "java.jdt.ls.java.home": "...path-to-JDK..."
+  "java.jdt.ls.java.home": "path-to-JDK folder"
 
-- The new version of RE2J can be got from https://github.com/google/re2j/releases.
+  For additional .jar files:
 
-To recompile the "JavaWorker.java" and "RE2JWorker.java"
+  "java.project.referencedLibraries": 
+  [
+    "path to xxx1.jar",
+    "path to xxx2.jar"
+  ]
+
+- The new version of RE2J (.jar) can be got from https://github.com/google/re2j/releases.
+
+- The new version of SafeRE (.jar) can be got from https://central.sonatype.com/artifact/org.safere/safere.
+
+
+To recompile the "*.java" workers
 --------------------------------------------------------
-
-- Get a copy of JDK without installation, or install JDK.
 
 - Adjust the JDK_ROOT variable in "compile.bat".
 
 - Run "compile.bat".
 
-- Commit "JavaWorker.java" and "JavaWorker.class" to GIT.
+- Commit "*.java" and "*.class" files to GIT.
 
 
 To re-make the minimal JRE ("JRE-min.zip")
@@ -30,9 +39,7 @@ To re-make the minimal JRE ("JRE-min.zip")
 
 - (See: https://blog.adoptium.net/2021/10/jlink-to-produce-own-runtime/)
 
-- Get a copy of JDK without installation, or install JDK.
-
-- If "JavaWorker.class" is not made yet, recompile the "JavaWorker.java" as explained before. (Use the new JDK).
+- If "*.class" are not made yet, recompile the "*.java" files as explained before.
 
 - Adjust the JDK_ROOT variable in "deps.bat" and "makejre.bat".
 
@@ -48,5 +55,3 @@ To re-make the minimal JRE ("JRE-min.zip")
 - Compress the "JRE-min" folder to "JRE-min.zip" file, uzing ZIP format, ultra level, Deflate or Deflate64 method.
 
 - Commit "JRE-min.zip" to GIT.
-
-

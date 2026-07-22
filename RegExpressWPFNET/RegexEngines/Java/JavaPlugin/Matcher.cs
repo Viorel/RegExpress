@@ -22,12 +22,21 @@ namespace JavaPlugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            Int32? region_start = ValidationUtilities.ParseInt32( "start", options.regionStart );
-            Int32? region_end = ValidationUtilities.ParseInt32( "end", options.regionEnd );
+            bool is_regex = options.Package == PackageEnum.regex;
+            bool is_re2j = options.Package == PackageEnum.re2j;
+            bool is_safere = options.Package == PackageEnum.safere;
 
-            if( ( region_start == null ) != ( region_end == null ) )
+            bool region_supported = is_regex || is_safere;
+
+            Int32? region_start = region_supported ? ValidationUtilities.ParseInt32( "start", options.regionStart ) : null;
+            Int32? region_end = region_supported ? ValidationUtilities.ParseInt32( "end", options.regionEnd ) : null;
+
+            if( region_supported )
             {
-                throw new ApplicationException( "Both “start” and “end” must be entered or blank." );
+                if( ( region_start == null ) != ( region_end == null ) )
+                {
+                    throw new ApplicationException( "Both “start” and “end” must be entered or blank." );
+                }
             }
 
             var sb = new StringBuilder( );
@@ -55,7 +64,7 @@ namespace JavaPlugin
             if( string.IsNullOrWhiteSpace( javaExePath ) ) throw new Exception( "Cannot initialize JRE" );
             if( string.IsNullOrWhiteSpace( workerDir ) ) throw new Exception( "Cannot initialize Java worker" );
 
-            using ProcessHelper ph = new ProcessHelper( javaExePath );
+            using ProcessHelper ph = new( javaExePath );
 
             ph.AllEncoding = EncodingEnum.UTF8;
 
@@ -67,9 +76,16 @@ namespace JavaPlugin
             case PackageEnum.re2j:
                 ph.Arguments = ["-cp", $"{workerDir};{Path.Combine( workerDir, "re2j-1.8.jar" )}", "RE2JWorker"];
                 break;
+            case PackageEnum.safere:
+                ph.Arguments = ["-cp", $"{workerDir};{Path.Combine( workerDir, "safere-0.9.0.jar" )}", "SafeREWorker"];
+                break;
             default:
                 throw new InvalidOperationException( );
             }
+
+            // TODO: consider using JSON, if JRE do not become too large
+
+            if( pattern.Contains( '\x1F' ) || text.Contains( '\x1F' ) ) throw new Exception( "Pattern and text cannot contain “\\x1F”" );
 
             ph.StreamWriter = sw =>
             {

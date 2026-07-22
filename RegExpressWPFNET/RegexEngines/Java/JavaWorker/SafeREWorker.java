@@ -1,16 +1,20 @@
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidParameterException;
 import java.util.Set;
 import java.util.TreeSet;
-import com.google.re2j.Pattern;
-import com.google.re2j.Matcher;
+import org.safere.Pattern;
+import org.safere.Matcher;
 
 
-class RE2JWorker
+class SafeREWorker
 {
     public static void main( String[] args) 
     {
         try 
         {
+            //String input = "get-version";
+            //String input = "get-matches\u001F(?<n1>a)(b)?(c)\u001Fac\u001F-";
+
             byte[] input_bytes = System.in.readAllBytes();
             String input = new String( input_bytes, StandardCharsets.UTF_8);
 
@@ -28,15 +32,15 @@ class RE2JWorker
 
             switch( command.trim())
             {
-            //case "get-version":
-            //
-            //    //System.getProperty("java.runtime.version") -- like "18.0.1.1+2-6"
-            //    //System.getProperty("java.version") -- like "18.0.1.1"
-            //    
-            //    OutLn( "Version=" + System.getProperty("java.version"));
-            //
-            //    System.exit(0);
-            //    return;
+            // case "get-version":
+
+            //     //System.getProperty("java.runtime.version") -- like "18.0.1.1+2-6"
+            //     //System.getProperty("java.version") -- like "18.0.1.1"
+                
+            //     OutLn( "Version=" + System.getProperty("java.version"));
+
+            //     System.exit(0);
+            //     return;
 
             case "get-matches":
 
@@ -48,36 +52,50 @@ class RE2JWorker
                     return;
                 }
 
-                //
-                // Unsupported features (vs. standard Java classes) are commented 
-                //
-
                 String input_pattern = parts[1];
                 String input_text = parts[2];
                 String input_options = parts[3];
+                String region_start_s = parts[4];
+                String region_end_s = parts[5];
 
                 int options = 0;
+                Boolean use_anchoring_bounds = false;
+                Boolean use_transparent_bounds = false;
 
                 //if( input_options.contains( ",CANON_EQ,")) options |= Pattern.CANON_EQ;
                 if( input_options.contains( ",CASE_INSENSITIVE,")) options |= Pattern.CASE_INSENSITIVE;
-                //if( input_options.contains( ",COMMENTS,")) options |= Pattern.COMMENTS;
+                if( input_options.contains( ",COMMENTS,")) options |= Pattern.COMMENTS;
                 if( input_options.contains( ",DOTALL,")) options |= Pattern.DOTALL;
-                //if( input_options.contains( ",LITERAL,")) options |= Pattern.LITERAL;
+                if( input_options.contains( ",LITERAL,")) options |= Pattern.LITERAL;
                 if( input_options.contains( ",MULTILINE,")) options |= Pattern.MULTILINE;
-                //if( input_options.contains( ",UNICODE_CASE,")) options |= Pattern.UNICODE_CASE;
-                //if( input_options.contains( ",UNICODE_CHARACTER_CLASS,")) options |= Pattern.UNICODE_CHARACTER_CLASS;
-                //if( input_options.contains( ",UNIX_LINES,")) options |= Pattern.UNIX_LINES;
-
-                // re2j specific
-                if( input_options.contains( ",DISABLE_UNICODE_GROUPS,")) options |= Pattern.DISABLE_UNICODE_GROUPS;
-                if( input_options.contains( ",LONGEST_MATCH,")) options |= Pattern.LONGEST_MATCH;
+                if( input_options.contains( ",UNICODE_CASE,")) options |= Pattern.UNICODE_CASE;
+                if( input_options.contains( ",UNICODE_CHARACTER_CLASS,")) options |= Pattern.UNICODE_CHARACTER_CLASS;
+                if( input_options.contains( ",UNIX_LINES,")) options |= Pattern.UNIX_LINES;
+                if( input_options.contains( ",useAnchoringBounds,")) use_anchoring_bounds = true;
+                if( input_options.contains( ",useTransparentBounds,")) use_transparent_bounds = true;
                 
                 Pattern pattern = Pattern.compile( input_pattern, options);
                 Matcher matcher = pattern.matcher( input_text);
 
+                if( (region_start_s.trim().length() > 0) != (region_end_s.trim().length()) > 0 )
+                {
+                    throw new InvalidParameterException( "Both “start” and “end” must be entered or blank" );
+                }
+
+                if( region_start_s.trim().length() > 0 && region_end_s.trim().length() > 0 )
+                {
+                    int region_start = Integer.parseInt( region_start_s.trim() );
+                    int region_end = Integer.parseInt( region_end_s.trim() );
+
+                    matcher.region( region_start, region_end );
+                }
+
+                matcher.useAnchoringBounds( use_anchoring_bounds );
+                matcher.useTransparentBounds( use_transparent_bounds );
+
                 Set<String> possible_names = new TreeSet<String>();
                 {
-                    java.util.regex.Matcher m = java.util.regex.Pattern.compile( "\\(\\s*\\?<\\s*([a-z][a-z0-9\\s]*)>", java.util.regex.Pattern.CASE_INSENSITIVE).matcher( input_pattern);
+                    Matcher m = Pattern.compile( "\\(\\s*\\?<\\s*([a-z][a-z0-9\\s]*)>", Pattern.CASE_INSENSITIVE).matcher( input_pattern);
             
                     while( m.find()) 
                     {

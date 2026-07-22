@@ -42,11 +42,14 @@ The following engines are included:
   * [_regex-lite_](https://crates.io/crates/regex-lite) 0.1.9,
   * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.18.0, 
   * [_regress_](https://crates.io/crates/regress) 0.11.1,
-  * [_resharp_](https://crates.io/crates/resharp) 0.6.19.
-  * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2.
-  * [_real-regex_](https://crates.io/crates/real-regex) 2026.7.51.
+  * [_resharp_](https://crates.io/crates/resharp) 0.6.19,
+  * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
+  * [_real-regex_](https://crates.io/crates/real-regex) 2026.7.51,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0.
-* [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.1 (*java.util.regex* and *com.google.re2j* packages).
+* [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2 packages:
+  * _java.util.regex_,
+  * [_RE2/J_](https://github.com/google/re2j) 1.8,
+  * [_SafeRE_](https://github.com/eaftan/safere) 0.9.0.
 * [**Python**](https://www.python.org/) 3.14.6 modules:
   * _re_,
   * [_regex_](https://pypi.org/project/regex) 2026.6.28,
@@ -63,7 +66,7 @@ The following engines are included:
 * **GRETA** 2.6.4 (in C++).
 * **Zig** 0.16.0 libraries:
   * [_zig-regex_](https://github.com/zig-utils/zig-regex) v0.2.0, 
-  * [_mvzr_](https://github.com/mnemnion/mvzr) v0.3.12
+  * [_mvzr_](https://github.com/mnemnion/mvzr) v0.3.12,
   * _PZRE_ v0.2.2.
 * [**RE#**](https://github.com/ieviev/resharp-dotnet) 1.0.5 (for F#, C#, VB).
 * **Go** 1.26.5 packages:

@@ -13,6 +13,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Microsoft.Win32;
 using RegExpressLibrary;
+using Path = System.IO.Path;
 
 namespace ExportFeatureMatrix
 {
@@ -390,6 +391,58 @@ namespace ExportFeatureMatrix
         private void buttonClose_Click( object sender, RoutedEventArgs e )
         {
             Close( );
+        }
+
+        void PlusMinusV( TextBox tb, bool plus )
+        {
+            try
+            {
+                string? dir = Path.GetDirectoryName( tb.Text );
+                string? file = Path.GetFileNameWithoutExtension( tb.Text );
+                string? ext = Path.GetExtension( tb.Text );
+
+                if( dir != null && file != null && ext != null )
+                {
+                    if( plus )
+                    {
+                        if( !file.EndsWith( 'V' ) )
+                        {
+                            file += 'V';
+                        }
+                    }
+                    else
+                    {
+                        if( file.EndsWith( 'V' ) )
+                        {
+                            file = file[..^1];
+                        }
+                    }
+
+                    string new_path = Path.Combine( dir, file + ext );
+
+                    tb.Text = new_path;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private void btnPlusV_Click( object sender, RoutedEventArgs e )
+        {
+            PlusMinusV( tbEnginesFile, true );
+            PlusMinusV( tbOutputFile, true );
+
+            checkBoxVerify.IsChecked = true;
+        }
+
+        private void btnMinusV_Click( object sender, RoutedEventArgs e )
+        {
+            PlusMinusV( tbEnginesFile, false );
+            PlusMinusV( tbOutputFile, false );
+
+            checkBoxVerify.IsChecked = false;
         }
     }
 }

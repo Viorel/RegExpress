@@ -150,6 +150,8 @@ xcopy /D /R /Y "%BasePath%\JavaWorker\JavaWorker.class" "%EnginesTargetPath%\Jav
 xcopy /D /R /Y "%BasePath%\JavaWorker\JRE-min.zip" "%EnginesTargetPath%\Java\*"
 xcopy /D /R /Y "%BasePath%\JavaWorker\RE2JWorker.class" "%EnginesTargetPath%\Java\*"
 xcopy /D /R /Y "%BasePath%\JavaWorker\re2j-1.8.jar" "%EnginesTargetPath%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaWorker\SafeREWorker.class" "%EnginesTargetPath%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaWorker\safere-0.9.0.jar" "%EnginesTargetPath%\Java\*"
 
 
 rem -- Python --

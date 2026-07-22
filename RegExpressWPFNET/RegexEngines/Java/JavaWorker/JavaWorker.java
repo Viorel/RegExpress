@@ -46,7 +46,7 @@ class JavaWorker
 
                 if( parts.length < 6)
                 {
-                    ErrLn( "No enought parameters: " + parts.length);
+                    ErrLn( "No enough parameters: " + parts.length);
 
                     System.exit( 1);
                     return;
