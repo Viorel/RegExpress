@@ -30,20 +30,23 @@
                     <ui:ComboBoxItemWithVersion Tag ="regex"    Text="java.util.regex"  Version="{Binding Regex,    Source={StaticResource versions}}" IsSelected="True" />
                     <ui:ComboBoxItemWithVersion Tag ="re2j"     Text="RE2/J"            Version="{Binding Re2j,     Source={StaticResource versions}}"/>
                     <ui:ComboBoxItemWithVersion Tag ="safere"   Text="SafeRE"           Version="{Binding SafeRE,   Source={StaticResource versions}}"/>
+                    <ui:ComboBoxItemWithVersion Tag ="reggie"   Text="Reggie"           Version="{Binding Reggie,   Source={StaticResource versions}}"/>
                 </ComboBox>
             </StackPanel>
-
-            <ui:CheckboxWithNote x:Name="CANON_EQ" Prop="CANON_EQ" Note="canonical equivalence"/>
-            <ui:CheckboxWithNote Prop="CASE_INSENSITIVE" Note="(i) case-insensitive matching"/>
-            <ui:CheckboxWithNote x:Name="COMMENTS" Prop="COMMENTS" Note="(x) whitespace and comments in pattern"/>
-            <ui:CheckboxWithNote Prop="DOTALL" Note="(s) “.” matches any character, including a line terminator"/>
-            <ui:CheckboxWithNote x:Name="LITERAL" Prop="LITERAL" Note="literal parsing of the pattern"/>
-            <ui:CheckboxWithNote Prop="MULTILINE" Note="(m) “^” and “$” match just after or just before, respectively, a line terminator or the end of the input"/>
-            <ui:CheckboxWithNote x:Name="UNICODE_CASE" Prop="UNICODE_CASE" Note="(u) Unicode-aware case folding"/>
-            <ui:CheckboxWithNote x:Name="UNICODE_CHARACTER_CLASS" Prop="UNICODE_CHARACTER_CLASS" Note="(U) Unicode version of Predefined character classes and POSIX character classes"/>
-            <ui:CheckboxWithNote x:Name="UNIX_LINES" Prop="UNIX_LINES" Note="(d) only the “\n” line terminator is recognized in the behavior of “.”, “^”, and “$”"/>
-            <ui:CheckboxWithNote x:Name="DISABLE_UNICODE_GROUPS" Prop="DISABLE_UNICODE_GROUPS" Note="Unicode groups (e.g. \p{Greek}) will be syntax errors"/>
-            <ui:CheckboxWithNote x:Name="LONGEST_MATCH" Prop="LONGEST_MATCH" Note="matches longest possible string"/>
+            
+            <StackPanel x:Name="pnlCommon"  Orientation="Vertical">
+                <ui:CheckboxWithNote x:Name="CANON_EQ" Prop="CANON_EQ" Note="canonical equivalence"/>
+                <ui:CheckboxWithNote Prop="CASE_INSENSITIVE" Note="(i) case-insensitive matching"/>
+                <ui:CheckboxWithNote x:Name="COMMENTS" Prop="COMMENTS" Note="(x) whitespace and comments in pattern"/>
+                <ui:CheckboxWithNote Prop="DOTALL" Note="(s) “.” matches any character, including a line terminator"/>
+                <ui:CheckboxWithNote x:Name="LITERAL" Prop="LITERAL" Note="literal parsing of the pattern"/>
+                <ui:CheckboxWithNote Prop="MULTILINE" Note="(m) “^” and “$” match just after or just before, respectively, a line terminator or the end of the input"/>
+                <ui:CheckboxWithNote x:Name="UNICODE_CASE" Prop="UNICODE_CASE" Note="(u) Unicode-aware case folding"/>
+                <ui:CheckboxWithNote x:Name="UNICODE_CHARACTER_CLASS" Prop="UNICODE_CHARACTER_CLASS" Note="(U) Unicode version of Predefined character classes and POSIX character classes"/>
+                <ui:CheckboxWithNote x:Name="UNIX_LINES" Prop="UNIX_LINES" Note="(d) only the “\n” line terminator is recognized in the behavior of “.”, “^”, and “$”"/>
+                <ui:CheckboxWithNote x:Name="DISABLE_UNICODE_GROUPS" Prop="DISABLE_UNICODE_GROUPS" Note="Unicode groups (e.g. \p{Greek}) will be syntax errors"/>
+                <ui:CheckboxWithNote x:Name="LONGEST_MATCH" Prop="LONGEST_MATCH" Note="matches longest possible string"/>
+            </StackPanel>
 
             <StackPanel x:Name="panelRegion" Orientation="Vertical" VerticalAlignment="Top">
 

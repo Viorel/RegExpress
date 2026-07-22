@@ -25,6 +25,7 @@ namespace JavaPlugin
             bool is_regex = options.Package == PackageEnum.regex;
             bool is_re2j = options.Package == PackageEnum.re2j;
             bool is_safere = options.Package == PackageEnum.safere;
+            bool is_reggie = options.Package == PackageEnum.safere;
 
             bool region_supported = is_regex || is_safere;
 
@@ -79,11 +80,14 @@ namespace JavaPlugin
             case PackageEnum.safere:
                 ph.Arguments = ["-cp", $"{workerDir};{Path.Combine( workerDir, "safere-0.9.0.jar" )}", "SafeREWorker"];
                 break;
+            case PackageEnum.reggie:
+                ph.Arguments = ["-cp", $"{workerDir};{Path.Combine( workerDir, "reggie-0.3.0.jar" )};{Path.Combine( workerDir, "asm-9.9.1.jar" )};{Path.Combine( workerDir, "asm-commons-9.9.1.jar" )};{Path.Combine( workerDir, "asm-util-9.9.1.jar" )}", "ReggieWorker"];
+                break;
             default:
                 throw new InvalidOperationException( );
             }
 
-            // TODO: consider using JSON, if JRE do not become too large
+            // TODO: consider using JSON, if JRE does not become too large
 
             if( pattern.Contains( '\x1F' ) || text.Contains( '\x1F' ) ) throw new Exception( "Pattern and text cannot contain “\\x1F”" );
 

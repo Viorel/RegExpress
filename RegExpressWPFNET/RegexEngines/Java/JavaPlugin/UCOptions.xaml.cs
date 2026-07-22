@@ -85,12 +85,16 @@ namespace JavaPlugin
                     "regex" => PackageEnum.regex,
                     "re2j" => PackageEnum.re2j,
                     "safere" => PackageEnum.safere,
+                    "reggie" => PackageEnum.reggie,
                     _ => PackageEnum.None,
                 };
 
                 bool is_regex = package == PackageEnum.regex;
                 bool is_re2j = package == PackageEnum.re2j;
                 bool is_safere = package == PackageEnum.safere;
+                bool is_reggie= package == PackageEnum.reggie;
+
+                pnlCommon.Display( is_regex || is_re2j || is_safere );
 
                 CANON_EQ.Display( is_regex );
                 COMMENTS.Display( is_regex || is_safere );
@@ -134,6 +138,7 @@ namespace JavaPlugin
                 PackageEnum.regex => "regex",
                 PackageEnum.re2j => "RE2/J",
                 PackageEnum.safere => "SafeRE",
+                PackageEnum.reggie=> "Reggie",
                 _ => "Unknown"
             };
         }

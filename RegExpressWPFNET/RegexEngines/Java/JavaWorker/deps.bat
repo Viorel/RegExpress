@@ -3,3 +3,4 @@
 "%JDK_ROOT%\bin\jdeps" JavaWorker.class
 "%JDK_ROOT%\bin\jdeps" RE2JWorker.class
 "%JDK_ROOT%\bin\jdeps" SafeREWorker.class
+"%JDK_ROOT%\bin\jdeps" ReggieWorker.class

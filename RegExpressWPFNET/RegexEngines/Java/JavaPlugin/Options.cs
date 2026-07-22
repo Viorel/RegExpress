@@ -13,6 +13,7 @@ namespace JavaPlugin
         regex,
         re2j,
         safere,
+        reggie,
     }
 
     internal class Options

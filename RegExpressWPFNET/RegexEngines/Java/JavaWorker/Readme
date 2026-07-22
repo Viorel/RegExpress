@@ -23,6 +23,7 @@ or:
 
 - The new version of SafeRE (.jar) can be got from https://central.sonatype.com/artifact/org.safere/safere.
 
+- The new version of Reggie (.jar) can be got from https://central.sonatype.com/artifact/com.datadoghq/reggie.
 
 To recompile the "*.java" workers
 --------------------------------------------------------

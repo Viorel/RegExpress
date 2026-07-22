@@ -342,7 +342,7 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"\b{…}, \B{…}", @"Typed boundary", (e, fm) => fm.Anchor_bBBrace)
                     .Test( @"\b{wb}x", "y x", null ).Test( @"\b{start}x", "y x", null ),
                 new FeatureMatrixDetails( @"\K", @"Keep the stuff left of the \K", (e, fm) => fm.Anchor_K)
-                    .Test( @"a\Kb", "ab", null ),
+                    .Test( @"a\Kb", "ab", "aKb", "b" ),
                 new FeatureMatrixDetails( @"\m, \M", @"Start of word, end of word", (e, fm) => fm.Anchor_mM)
                     .Test( @"\mword\M", "some word here", null ),
                 new FeatureMatrixDetails( @"\<, \>", @"Start of word, end of word", (e, fm) => fm.Anchor_LtGt)
