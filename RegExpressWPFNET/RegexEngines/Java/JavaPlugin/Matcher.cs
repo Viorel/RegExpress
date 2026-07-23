@@ -147,7 +147,7 @@ namespace JavaPlugin
                         int native_end = int.Parse( mG.Groups[2].Value, CultureInfo.InvariantCulture );
                         int native_length = native_end - native_start;
 
-                        bool success = native_start >= 0;
+                        bool success = native_start >= 0 && native_end >= 0;
 
                         if( match == null ) throw new InvalidOperationException( );
 

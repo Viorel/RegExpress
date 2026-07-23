@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -74,6 +75,9 @@ namespace RegExpressLibrary.Matches.Simple
 
         public SimpleGroup AddSucceededGroup( int nativeIndex, int nativeLength, int charIndex, int charLength, string name )
         {
+            Debug.Assert( charIndex >= 0 );
+            Debug.Assert( charLength >= 0 );
+
             SimpleGroup group = new( nativeIndex, nativeLength, charIndex, charLength, true, name, TextGetter );
             mGroups.Add( group );
 
