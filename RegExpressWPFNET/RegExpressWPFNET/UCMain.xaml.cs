@@ -49,6 +49,9 @@ namespace RegExpressWPFNET
         public event EventHandler? NewTabClicked;
 
         static readonly DependencyProperty SubtitleProperty = DependencyProperty.Register( nameof( Subtitle ), typeof( string ), typeof( UCMain ) );
+        static readonly DependencyProperty RegexIndexProperty = DependencyProperty.Register( nameof( RegexIndex ), typeof( int ), typeof( UCMain ) );
+        static readonly DependencyProperty PatternSampleProperty = DependencyProperty.Register( nameof( PatternSample ), typeof( string ), typeof( UCMain ) );
+        static readonly DependencyProperty TextSampleProperty = DependencyProperty.Register( nameof( TextSample ), typeof( string ), typeof( UCMain ) );
 
         public string Subtitle
         {
@@ -62,6 +65,41 @@ namespace RegExpressWPFNET
             }
         }
 
+        public int RegexIndex
+        {
+            get
+            {
+                return (int)GetValue( RegexIndexProperty );
+            }
+            set
+            {
+                SetValue( RegexIndexProperty, value );
+            }
+        }
+
+        public string PatternSample
+        {
+            get
+            {
+                return (string)GetValue( PatternSampleProperty );
+            }
+            private set
+            {
+                SetValue( PatternSampleProperty, value );
+            }
+        }
+
+        public string TextSample
+        {
+            get
+            {
+                return (string)GetValue( TextSampleProperty );
+            }
+            private set
+            {
+                SetValue( TextSampleProperty, value );
+            }
+        }
 
         public UCMain( IReadOnlyList<IRegexEngine> engines )
         {
@@ -129,6 +167,9 @@ namespace RegExpressWPFNET
             }
 
             UpdateSubtitle( );
+            UpdatePatternSample( );
+            UpdateTextSample( );
+
             if( CurrentRegexEngine != null )
             {
                 UpdateShowSucceededGroupsOnlyCheckbox( CurrentRegexEngine );
@@ -610,7 +651,7 @@ namespace RegExpressWPFNET
                     }
                 }
 
-                engine ??= DefaultRegexEngine; 
+                engine ??= DefaultRegexEngine;
 
                 CurrentRegexEngine = engine;
                 SetEngineOption( engine ); //
@@ -695,6 +736,9 @@ namespace RegExpressWPFNET
                 ApplyMetrics( tabData.Metrics, full: true );
 
                 chbxWrap.IsChecked = tabData.Wrap;
+
+                UpdatePatternSample( );
+                UpdateTextSample( );
             }
             finally
             {
@@ -950,6 +994,8 @@ namespace RegExpressWPFNET
                     TextData td = ucPattern.GetTextData( GetEolOption( ) );
 
                     ShowTextInfo( cnc, lblPatternInfo, ucPatternHadFocus, td );
+
+                    UpdatePatternSample( );
                 } );
         }
 
@@ -961,6 +1007,8 @@ namespace RegExpressWPFNET
                     TextData td = ucText.GetTextData( GetEolOption( ) );
 
                     ShowTextInfo( cnc, lblTextInfo, ucTextHadFocus, td );
+
+                    UpdateTextSample( );
                 } );
         }
 
@@ -1101,6 +1149,50 @@ namespace RegExpressWPFNET
             }
         }
 
+        void UpdatePatternSample( )
+        {
+            string pattern;
+
+            if( InitialTabData != null )
+            {
+                pattern = ( InitialTabData?.Pattern ?? "" ).Trim( );
+            }
+            else
+            {
+                TextData td = ucPattern.GetTextData( GetEolOption( ) );
+
+                pattern = td.Text.Trim( );
+            }
+
+            pattern = pattern[..Math.Min( pattern.Length, 33 )];
+
+            pattern = RegexReplaceLineEnds( ).Replace( pattern, " " );
+
+            PatternSample = pattern;
+        }
+
+        void UpdateTextSample( )
+        {
+            string text;
+
+            if( InitialTabData != null )
+            {
+                text = ( InitialTabData?.Text ?? "" ).Trim( );
+            }
+            else
+            {
+                TextData td = ucText.GetTextData( GetEolOption( ) );
+
+                text = td.Text.Trim( );
+            }
+
+            text = text[..Math.Min( text.Length, 33 )];
+
+            text = RegexReplaceLineEnds( ).Replace( text, " " );
+
+            TextSample = text;
+        }
+
         void UpdateOptions( IRegexEngine engine )
         {
             pnlRegexOptions.Children.Clear( );
@@ -1196,5 +1288,7 @@ namespace RegExpressWPFNET
         [GeneratedRegex( @"\t|([ ](\r|\n|$))|((\r|\n)$)", RegexOptions.ExplicitCapture )]
         private static partial Regex HasWhitespaceRegex( );
 
+        [GeneratedRegex( "(\r\n|[\r\n\t \f\v])+", RegexOptions.ExplicitCapture )]
+        private static partial Regex RegexReplaceLineEnds( );
     }
 }

@@ -110,7 +110,7 @@ namespace GretaPlugin
         {
             return new SyntaxOptions
             {
-                XLevel = XLevelEnum.none,
+                XLevel = Options.EXTENDED ? XLevelEnum.x : XLevelEnum.none,
                 FeatureMatrix = LazyFeatureMatrix.Value
             };
         }

@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RegExpressWPFNET"
+        xmlns:local_code="clr-namespace:RegExpressWPFNET.Code"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="RegExpress" Height="500" Width="900" 
@@ -12,6 +13,10 @@
         Closing="Window_Closing"
         >
 
+    <Window.Resources>
+
+    </Window.Resources>
+    
     <Window.TaskbarItemInfo>
         <TaskbarItemInfo x:Name="taskBarItemInfo" Description="RegExpress" ProgressState="None" ProgressValue="0" />
     </Window.TaskbarItemInfo>
@@ -38,9 +43,9 @@
 
     <Grid Margin="0 1 0 0">
 
-        <TextBlock x:Name="textBlockInfo" Text="Loading..." TextAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="2"/>
+        <TextBlock x:Name="textBlockInfo" Text="Loading..." TextAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="2" Visibility="Collapsed" d:Visibility="Visible" />
 
-        <TabControl x:Name="tabControl" Visibility="Visible" SelectionChanged="tabControlMain_SelectionChanged" Panel.ZIndex="1">
+        <TabControl x:Name="tabControl" Visibility="Visible" SelectionChanged="tabControlMain_SelectionChanged" Panel.ZIndex="1" HorizontalContentAlignment="Stretch" >
 
             <TabControl.Resources>
 
@@ -50,7 +55,7 @@
                             <BeginStoryboard>
                                 <Storyboard>
                                     <DoubleAnimation 
-                                        Storyboard.TargetName="TabCaption" 
+                                        Storyboard.TargetName="RegexIndex" 
                                         Storyboard.TargetProperty="Opacity" 
                                         From="0" 
                                         To="1"  
@@ -60,19 +65,43 @@
                         </EventTrigger>
                     </DataTemplate.Triggers>
 
-                    <StackPanel Orientation="Horizontal">
-                        <StackPanel Orientation="Vertical">
-                            <Label x:Name="TabCaption" 
-                               Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Header, NotifyOnTargetUpdated=True}"
-                               Padding="2 3"
-                               />
-                            <!-- //NOTE: TextBlock does not underline accelerators (which is desired here) -->
-                            <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.Subtitle, FallbackValue='Untitled'}" Padding="2 2" FontStyle="Italic" FontSize="10"/>
-                        </StackPanel>
+                    <Grid HorizontalAlignment="Stretch">
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" MinWidth="22"/>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
+                        <Label x:Name="RegexIndex" Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
+                            Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.RegexIndex, Mode=OneWay, FallbackValue='1', NotifyOnTargetUpdated=True}"
+                            Padding="2 3" HorizontalContentAlignment="Center" HorizontalAlignment="Left" VerticalContentAlignment="Center" VerticalAlignment="Top" Foreground="Gray"
+                        />
+
+                        <Label x:Name="TabCaption" Grid.Column="1" Grid.Row="0"
+                            Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.Subtitle, FallbackValue='Title'}"
+                            Padding="2 3" 
+                            />
+
+                        <TextBlock Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" 
+                                   Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.PatternSample, Mode=OneWay, FallbackValue='.+'}" 
+                                   Padding="2 2" FontFamily="Courier New" FontSize="10" MaxWidth="80" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" 
+                                   HorizontalAlignment="Left"
+                                   />
+
+                        <TextBlock Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2" 
+                                   Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.TextSample, Mode=OneWay, FallbackValue='abc'}" 
+                                   Padding="2 2" FontFamily="Courier New" FontSize="10" MaxWidth="80" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" 
+                                   HorizontalAlignment="Left"
+                                   />
+                        
                         <!-- ╳ ⛌ ⛒ ❌ ⨯ ×  ➕ -->
 
-                        <Button x:Name="btnDeleteTab" 
+                        <Button x:Name="btnDeleteTab" Grid.Column="2" Grid.Row="0"
                                 Content="⨯" 
                                 ToolTip="Close tab"
                                 Margin="3 0 0 0"
@@ -120,17 +149,14 @@
                                 </ControlTemplate>
                             </Button.Template>
                         </Button>
-                    </StackPanel>
+
+                    </Grid>
                 </DataTemplate>
             </TabControl.Resources>
 
-            <TabItem x:Name="tabInitial" Header="Regex 1" HeaderTemplate="{StaticResource TabTemplate}" d:IsSelected="True">
+            <TabItem x:Name="tabInitial" Header=".NET" HeaderTemplate="{StaticResource TabTemplate}" d:IsSelected="True"/>
 
-            </TabItem>
-
-            <TabItem Header="Regex 2" HeaderTemplate="{StaticResource TabTemplate}" Visibility="Collapsed" d:Visibility="Visible">
-
-            </TabItem>
+            <TabItem Header="Rust (regex)" HeaderTemplate="{StaticResource TabTemplate}" Visibility="Collapsed" d:Visibility="Visible"/>
 
             <TabItem x:Name="tabItemNew" Header="[NEW]">
                 <TabItem.Template>

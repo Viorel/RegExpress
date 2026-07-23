@@ -697,7 +697,8 @@ namespace RegExpressWPFNET
             var uc_main = new UCMain( GetEngines( ) )
             {
                 Width = double.NaN,
-                Height = double.NaN
+                Height = double.NaN,
+                RegexIndex = max + 1,
             };
 
             new_tab_item.Content = uc_main;
@@ -776,6 +777,7 @@ namespace RegExpressWPFNET
             {
                 var name = "Regex " + ( ++i );
                 if( !name.Equals( tab.Header ) ) tab.Header = name; // ('If' to avoid effects)
+                if( tab.Content is UCMain uc_main && uc_main.RegexIndex != i ) uc_main.RegexIndex = i;
             }
         }
 
