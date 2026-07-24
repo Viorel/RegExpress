@@ -80,6 +80,7 @@
                         <Label x:Name="RegexIndex" Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
                             Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.RegexIndex, Mode=OneWay, FallbackValue='1', NotifyOnTargetUpdated=True}"
                             Padding="2 3" HorizontalContentAlignment="Center" HorizontalAlignment="Left" VerticalContentAlignment="Center" VerticalAlignment="Top" Foreground="Gray"
+                            Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=InfoVisibility, Mode=OneWay, FallbackValue='Visible' }"
                         />
 
                         <Label x:Name="TabCaption" Grid.Column="1" Grid.Row="0"
@@ -91,12 +92,14 @@
                                    Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.PatternSample, Mode=OneWay, FallbackValue='.+'}" 
                                    Padding="2 2" FontFamily="Courier New" FontSize="10" MaxWidth="80" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" 
                                    HorizontalAlignment="Left"
+                                   Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=InfoVisibility, Mode=OneWay, FallbackValue='Visible' }"
                                    />
 
                         <TextBlock Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2" 
                                    Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.TextSample, Mode=OneWay, FallbackValue='abc'}" 
                                    Padding="2 2" FontFamily="Courier New" FontSize="10" MaxWidth="80" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" 
                                    HorizontalAlignment="Left"
+                                   Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=InfoVisibility, Mode=OneWay, FallbackValue='Visible' }"
                                    />
                         
                         <!-- ╳ ⛌ ⛒ ❌ ⨯ ×  ➕ -->

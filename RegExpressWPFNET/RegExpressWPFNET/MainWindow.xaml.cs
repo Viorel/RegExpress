@@ -55,6 +55,21 @@ namespace RegExpressWPFNET
         readonly List<RegexPlugin> mNoFmRegexPlugins = [];
         bool IsError = false;
 
+        static readonly DependencyProperty InfoVisibilityProperty = DependencyProperty.Register( nameof( InfoVisibility ), typeof( Visibility ), typeof( MainWindow ) );
+
+        public Visibility InfoVisibility
+        {
+            get
+            {
+                return (Visibility)GetValue( InfoVisibilityProperty );
+            }
+            set
+            {
+                SetValue( InfoVisibilityProperty, value );
+            }
+        }
+
+
         public MainWindow( )
         {
             InitializeComponent( );
@@ -67,6 +82,8 @@ namespace RegExpressWPFNET
             if( interval < MIN_INTERVAL ) interval = MIN_INTERVAL;
 
             AutoSaveLoop = new ResumableLoop( "AutoSave", AutoSaveThreadProc, (int)interval.TotalMilliseconds );
+
+            InfoVisibility = Visibility.Collapsed;
         }
 
 
@@ -192,6 +209,8 @@ namespace RegExpressWPFNET
 
             textBlockInfo.Visibility = Visibility.Collapsed;
             tabControl.Visibility = Visibility.Visible;
+
+            UpdateInfoVisibility( );
         }
 
 
@@ -711,6 +730,8 @@ namespace RegExpressWPFNET
 
             tabControl.SelectedItem = new_tab_item; //?
 
+            UpdateInfoVisibility( );
+
             return new_tab_item;
         }
 
@@ -767,6 +788,7 @@ namespace RegExpressWPFNET
             tabControl.SelectedItem = tab_item_to_select;
 
             RenumberTabs( );
+            UpdateInfoVisibility( );
         }
 
 
@@ -781,6 +803,12 @@ namespace RegExpressWPFNET
             }
         }
 
+        void UpdateInfoVisibility( )
+        {
+            bool more_than_one = GetMainTabs( ).Skip( 1 ).Any( );
+
+            InfoVisibility = more_than_one ? Visibility.Visible : Visibility.Collapsed;
+        }
 
         IEnumerable<TabItem> GetMainTabs( )
         {
@@ -815,6 +843,7 @@ namespace RegExpressWPFNET
                 tabControl.SelectedItem = new_tab_item;
 
                 RenumberTabs( );
+                UpdateInfoVisibility( );
             }
         }
 
