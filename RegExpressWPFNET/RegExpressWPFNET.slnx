@@ -25,11 +25,11 @@
   <Folder Name="/RegexEngines/Dart/">
     <Project Path="RegexEngines/Dart/DartPlugin/DartPlugin.csproj" />
   </Folder>
-  <Folder Name="/RegexEngines/DotNET9/">
-    <Project Path="RegexEngines/DotNET9/DotNET9Plugin/DotNET9Plugin.csproj">
-      <BuildDependency Project="RegexEngines/DotNET9/DotNET9Worker/DotNET9Worker.csproj" />
+  <Folder Name="/RegexEngines/DotNET/">
+    <Project Path="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj">
+      <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
     </Project>
-    <Project Path="RegexEngines/DotNET9/DotNET9Worker/DotNET9Worker.csproj" />
+    <Project Path="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/DotNETFramework4_8/">
     <Project Path="RegexEngines/DotNETFramework4_8/DotNETFrameworkPlugin/DotNETFrameworkPlugin.csproj">
@@ -165,8 +165,8 @@
     <BuildDependency Project="RegexEngines/CppBuilder/CppBuilderPlugin/CppBuilderPlugin.csproj" />
     <BuildDependency Project="RegexEngines/D/DPlugin/DPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Dart/DartPlugin/DartPlugin.csproj" />
-    <BuildDependency Project="RegexEngines/DotNET9/DotNET9Plugin/DotNET9Plugin.csproj" />
-    <BuildDependency Project="RegexEngines/DotNET9/DotNET9Worker/DotNET9Worker.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkPlugin/DotNETFrameworkPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     <BuildDependency Project="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />

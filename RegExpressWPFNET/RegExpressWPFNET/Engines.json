@@ -1,7 +1,7 @@
 {
   "engines": [
     {
-      "path": "Engines\\DotNET9\\DotNET9Plugin.dll"
+      "path": "Engines\\DotNET\\DotNETPlugin.dll"
     },
     {
       "path": "Engines\\DotNETFramework4_8\\DotNETFrameworkPlugin.dll",

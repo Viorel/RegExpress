@@ -13,5 +13,5 @@
   <Rule IsEnabled="false" ProcessName="TREWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="TinyRegexCWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
   <Rule IsEnabled="false" ProcessName="SrellWorker.bin" CommandLine="" EngineFilter="{3b476d35-a401-11d2-aad4-00c04f990171}" />
-  <Rule IsEnabled="true" ProcessName="DotNET9Plugin.dll" CommandLine="" EngineFilter="[inherit]" />
+  <Rule IsEnabled="true" ProcessName="DotNETPlugin.dll" CommandLine="" EngineFilter="[inherit]" />
 </ChildProcessDebuggingSettings>

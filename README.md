@@ -14,7 +14,7 @@ The comparison chart is an Excel file:
 
 The following engines are included:
 
-* [**Regex**](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-9.0) class from .NET 9.
+* [**Regex**](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-10.0) class from .NET 10.
 * [**Regex**](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8) class from .NET Framework 4.8.
 * [**wregex**](https://docs.microsoft.com/en-us/cpp/standard-library/regex) class in C++:
   * Standard Template Library, MSVC, 
@@ -80,7 +80,7 @@ The following engines are included:
 
 ## Running the playground
 
-The program can be built using Visual Studio 2026 (recommended) or Visual Studio 2022. 
+The program can be built using Visual Studio 2026 and .NET 10. 
 The following Visual Studio workloads are required:
 
 * .NET desktop development.
@@ -93,9 +93,6 @@ To build the program, open the **RegExpressWPFNET.slnx** solution. Right-click
 the **RegExpressWPFNET** project in Solution Explorer and select “Set as Startup Project”. 
 Select “Rebuild Solution” from BUILD menu. Then the program can be started.
 
-> [!NOTE]
-> To build the solution in Visual Studio 2022, the Platform Toolset option for C++ projects 
-can be changed from **v145** to **v143**.
 
 #### Details
 
@@ -103,6 +100,7 @@ can be changed from **v145** to **v143**.
 * Solution file: **RegExpressWPFNET.slnx**.
 * Startup project: **RegExpressWPFNET**.
 * Configurations: **“Debug, Any CPU”** or **“Release, Any CPU”**. The C++ projects use **“x64”**.
+* .NET: **10**.
 * Operating Systems: **Windows 11**, **Windows 10**.
 * Main languages: C#, C++.
 
