@@ -1,0 +1,1 @@
+@echo { "command" : "get-version" } | .\JRE-min\bin\java.exe -cp .;json-simple-1.1.1.jar JavaWorker

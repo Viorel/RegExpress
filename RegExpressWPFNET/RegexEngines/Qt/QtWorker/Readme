@@ -3,15 +3,19 @@ HOW IT'S MADE
 
 - Install the Qt (Free Community edition)
   
-  NOTE. During installation, select "Custom", and specify "MSVC" (not just "MINGW", or instead of).
+  NOTE. During installation, select "Qt XX for desktop development" and "Custom Installation".
+  In a tree, specify "Qt for Development > Qt > Qt XX > MSVC 2022 64-bit" (not just "MINGW", which can be unselected).
 
 - In Visual Studio, install the "Qt Visual Studio Tools" extension.
 
-  It will ask to configure the Qt version by selecting the folder with previously installed Qt.
+  It will ask to configure the Qt version by selecting the folder with previously installed Qt (path to MSVC subfolder).
+  Just press "Autodetect".
 
 - In Visual Studio, load the "QtWorker.slnx" solution. If required, edit the code.
 
 - Build the "Release", "x64" configuration. 
+
+  If 'qtdeploy.targets(318,5): error MSB4023: Cannot evaluate the item metadata "%(Fullpath)"...' error appears, it can be ignored.
 
   It will generate the next files in "x64\Release":
     

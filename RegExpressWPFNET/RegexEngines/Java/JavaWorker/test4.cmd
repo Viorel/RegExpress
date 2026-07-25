@@ -1,0 +1,1 @@
+@echo { "command" : "get-matches", "pattern" : "(?<n1>a)|(?<n2>x)", "text" : "abc" } | .\JRE-min\bin\java.exe -cp .;json-simple-1.1.1.jar JavaWorker

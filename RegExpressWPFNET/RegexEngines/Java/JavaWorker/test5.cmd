@@ -1,0 +1,1 @@
+@echo { "command" : "get-matches", "pattern" : "a", "text" : "axA", "options" : { "CASE_INSENSITIVE" : true } } | .\JRE-min\bin\java.exe -cp .;json-simple-1.1.1.jar JavaWorker

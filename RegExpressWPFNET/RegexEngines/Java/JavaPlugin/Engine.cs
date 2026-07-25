@@ -119,7 +119,15 @@ namespace JavaPlugin
 
         public RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
         {
-            return Matcher.GetMatches( cnc, pattern, text, Options );
+            return
+                Options.Package switch
+                {
+                    PackageEnum.regex => MatcherRegex.GetMatches( cnc, pattern, text, Options ),
+                    PackageEnum.re2j => MatcherRE2J.GetMatches( cnc, pattern, text, Options ),
+                    PackageEnum.safere => MatcherSafeRE.GetMatches( cnc, pattern, text, Options ),
+                    PackageEnum.reggie => MatcherReggie.GetMatches( cnc, pattern, text, Options ),
+                    _ => throw new NotImplementedException( ),
+                };
         }
 
         public SyntaxOptions GetSyntaxOptions( )

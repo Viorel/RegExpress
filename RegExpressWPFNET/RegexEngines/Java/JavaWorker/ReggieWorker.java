@@ -1,8 +1,14 @@
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
 import java.util.regex.Matcher;
 import com.datadoghq.reggie.Reggie;
 import com.datadoghq.reggie.runtime.MatchResult;
@@ -14,85 +20,23 @@ class ReggieWorker
     {
         try 
         {
-            //String input = "get-version";
-            //String input = "get-matches\u001F(?<n1>a)(b)?(c)\u001Fac\u001F-";
-
             byte[] input_bytes = System.in.readAllBytes();
             String input = new String( input_bytes, StandardCharsets.UTF_8);
 
-            // String input = 
-            //     "get-matches" + "\u001F" + 
-            //     "pattern" + "\u001F" + 
-            //     "text" + "\u001F" + 
-            //     "options + "\u001F" +
-            //     "start + "\u001F" +
-            //     "end + "\u001F" +
-            //     "";
+            JSONParser parser = new JSONParser();
+            JSONObject input_json = (JSONObject)parser.parse(input); // TODO: use reader
 
-            String [ ] parts = input.split( "\u001F", -1 );
-            String command = parts[0];
+            String command = (String)input_json.get("command");
 
             switch( command.trim())
             {
-            case "get-version":
-
-                //System.getProperty("java.runtime.version") -- like "18.0.1.1+2-6"
-                //System.getProperty("java.version") -- like "18.0.1.1"
-                
-                OutLn( "Version=" + System.getProperty("java.version"));
-
-                System.exit(0);
-                return;
-
             case "get-matches":
 
-                if( parts.length < 6)
-                {
-                    ErrLn( "No enough parameters: " + parts.length);
-
-                    System.exit( 1);
-                    return;
-                }
-
-                String input_pattern = parts[1];
-                String input_text = parts[2];
-                //String input_options = parts[3];
-
-
-                //ReggieOptions options = new ReggieOptions();
-
-                // if( input_options.contains( ",CANON_EQ,")) options |= Pattern.CANON_EQ;
-                // if( input_options.contains( ",CASE_INSENSITIVE,")) options |= Pattern.CASE_INSENSITIVE;
-                // if( input_options.contains( ",COMMENTS,")) options |= Pattern.COMMENTS;
-                // if( input_options.contains( ",DOTALL,")) options |= Pattern.DOTALL;
-                // if( input_options.contains( ",LITERAL,")) options |= Pattern.LITERAL;
-                // if( input_options.contains( ",MULTILINE,")) options |= Pattern.MULTILINE;
-                // if( input_options.contains( ",UNICODE_CASE,")) options |= Pattern.UNICODE_CASE;
-                // if( input_options.contains( ",UNICODE_CHARACTER_CLASS,")) options |= Pattern.UNICODE_CHARACTER_CLASS;
-                // if( input_options.contains( ",UNIX_LINES,")) options |= Pattern.UNIX_LINES;
-                // if( input_options.contains( ",useAnchoringBounds,")) use_anchoring_bounds = true;
-                // if( input_options.contains( ",useTransparentBounds,")) use_transparent_bounds = true;
+                String input_pattern = (String)input_json.get( "pattern");
+                String input_text = (String)input_json.get( "text");
                 
                 ReggieMatcher matcher = Reggie.compile( input_pattern);
                 List<MatchResult> matches = matcher.findAll(input_text);
-                java.util.logging.Logger lg = null;
-                java.util.logging.LogManager lm = null;
-
-                // if( (region_start_s.trim().length() > 0) != (region_end_s.trim().length()) > 0 )
-                // {
-                //     throw new InvalidParameterException( "Both “start” and “end” must be entered or blank" );
-                // }
-
-                // if( region_start_s.trim().length() > 0 && region_end_s.trim().length() > 0 )
-                // {
-                //     int region_start = Integer.parseInt( region_start_s.trim() );
-                //     int region_end = Integer.parseInt( region_end_s.trim() );
-
-                //     matcher.region( region_start, region_end );
-                // }
-
-                // matcher.useAnchoringBounds( use_anchoring_bounds );
-                // matcher.useTransparentBounds( use_transparent_bounds );
 
                 Set<String> possible_names = new TreeSet<String>();
                 {
@@ -106,37 +50,64 @@ class ReggieWorker
                     }
                 }
 
-                //OutLn("D pattern: '" + input_pattern + "'");
-                //OutLn("D text: '" + input_text + "'");
+                ArrayList<Object> all_matches = new ArrayList<>();
 
                 for(int j = 0; j < matches.size(); ++j)
                 {
                     MatchResult match = matches.get(j);
 
-                    OutLn( "M " + match.start() + " " + match.end());
+                    HashMap<String, Object> one_match = new HashMap<>();
+
+                    one_match.put("s", match.start());
+                    one_match.put("e", match.end());
+
+                    ArrayList<ArrayList<Number>> unnamed_groups = new ArrayList<>();
 
                     for( int i = 0; i <= match.groupCount(); ++i)
                     {
-                        OutLn( "G " + match.start(i) + " " + match.end(i));
+                        ArrayList<Number> a = new ArrayList<>();
+
+                        a.add(match.start(i));
+                        a.add(match.end(i));
+
+                        unnamed_groups.add(a);
                     }
+
+                    one_match.put("g", unnamed_groups);
+
+                    ArrayList<Object> named_groups = new ArrayList<>();
 
                     for( String name : possible_names)
                     {
-                        String value = null;
                         try
                         {
-                            value = match.group( name);
+                            HashMap<String, Object> one_named_group = new HashMap<>();
+
+                            one_named_group.put("s", match.start( name));
+                            one_named_group.put("e", match.end( name));
+                            one_named_group.put("n", name);
+
+                            named_groups.add(one_named_group);
                         }
                         catch( IllegalArgumentException exc)
                         {
                             // group name not found; ignore
                         }
-                        if( value != null)
-                        {
-                            OutLn( "N " + match.start( name) + " " + match.end( name) + " <" + name + ">");
-                        }
+
                     }
+
+                    one_match.put("ng", named_groups);
+
+                    all_matches.add(one_match);
                 }
+
+                HashMap<String, Object> result = new HashMap<>();
+
+                result.put("matches", all_matches);
+
+                String json = JSONObject.toJSONString(result);
+
+                OutLn( json);
 
                 System.exit( 0);
                 return;

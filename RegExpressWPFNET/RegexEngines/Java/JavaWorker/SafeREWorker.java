@@ -1,8 +1,12 @@
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidParameterException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.TreeSet;
 import org.safere.Pattern;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.safere.Matcher;
 
 
@@ -12,81 +16,48 @@ class SafeREWorker
     {
         try 
         {
-            //String input = "get-version";
-            //String input = "get-matches\u001F(?<n1>a)(b)?(c)\u001Fac\u001F-";
-
             byte[] input_bytes = System.in.readAllBytes();
             String input = new String( input_bytes, StandardCharsets.UTF_8);
 
-            // String input = 
-            //     "get-matches" + "\u001F" + 
-            //     "pattern" + "\u001F" + 
-            //     "text" + "\u001F" + 
-            //     "options + "\u001F" +
-            //     "start + "\u001F" +
-            //     "end + "\u001F" +
-            //     "";
+            JSONParser parser = new JSONParser();
+            JSONObject input_json = (JSONObject)parser.parse(input); // TODO: use reader
 
-            String [ ] parts = input.split( "\u001F", -1 );
-            String command = parts[0];
+            String command = (String)input_json.get("command");
 
             switch( command.trim())
             {
-            // case "get-version":
-
-            //     //System.getProperty("java.runtime.version") -- like "18.0.1.1+2-6"
-            //     //System.getProperty("java.version") -- like "18.0.1.1"
-                
-            //     OutLn( "Version=" + System.getProperty("java.version"));
-
-            //     System.exit(0);
-            //     return;
-
             case "get-matches":
 
-                if( parts.length < 6)
-                {
-                    ErrLn( "No enough parameters: " + parts.length);
-
-                    System.exit( 1);
-                    return;
-                }
-
-                String input_pattern = parts[1];
-                String input_text = parts[2];
-                String input_options = parts[3];
-                String region_start_s = parts[4];
-                String region_end_s = parts[5];
+                String input_pattern = (String)input_json.get( "pattern");
+                String input_text = (String)input_json.get( "text");
+                JSONObject input_options = (JSONObject)input_json.get("options");
 
                 int options = 0;
-                Boolean use_anchoring_bounds = false;
-                Boolean use_transparent_bounds = false;
+                if( GetBoolean( input_options, "CASE_INSENSITIVE")) options |= Pattern.CASE_INSENSITIVE;
+                if( GetBoolean( input_options, "COMMENTS")) options |= Pattern.COMMENTS;
+                if( GetBoolean( input_options, "DOTALL")) options |= Pattern.DOTALL;
+                if( GetBoolean( input_options, "LITERAL")) options |= Pattern.LITERAL;
+                if( GetBoolean( input_options, "MULTILINE")) options |= Pattern.MULTILINE;
+                if( GetBoolean( input_options, "UNICODE_CASE")) options |= Pattern.UNICODE_CASE;
+                if( GetBoolean( input_options, "UNICODE_CHARACTER_CLASS")) options |= Pattern.UNICODE_CHARACTER_CLASS;
+                if( GetBoolean( input_options, "UNIX_LINES")) options |= Pattern.UNIX_LINES;
 
-                //if( input_options.contains( ",CANON_EQ,")) options |= Pattern.CANON_EQ;
-                if( input_options.contains( ",CASE_INSENSITIVE,")) options |= Pattern.CASE_INSENSITIVE;
-                if( input_options.contains( ",COMMENTS,")) options |= Pattern.COMMENTS;
-                if( input_options.contains( ",DOTALL,")) options |= Pattern.DOTALL;
-                if( input_options.contains( ",LITERAL,")) options |= Pattern.LITERAL;
-                if( input_options.contains( ",MULTILINE,")) options |= Pattern.MULTILINE;
-                if( input_options.contains( ",UNICODE_CASE,")) options |= Pattern.UNICODE_CASE;
-                if( input_options.contains( ",UNICODE_CHARACTER_CLASS,")) options |= Pattern.UNICODE_CHARACTER_CLASS;
-                if( input_options.contains( ",UNIX_LINES,")) options |= Pattern.UNIX_LINES;
-                if( input_options.contains( ",useAnchoringBounds,")) use_anchoring_bounds = true;
-                if( input_options.contains( ",useTransparentBounds,")) use_transparent_bounds = true;
-                
-                Pattern pattern = Pattern.compile( input_pattern, options);
-                Matcher matcher = pattern.matcher( input_text);
+                Integer region_start = GetInteger( input_options, "region_start");
+                Integer region_end = GetInteger( input_options, "region_end");
 
-                if( (region_start_s.trim().length() > 0) != (region_end_s.trim().length()) > 0 )
+                if( ( region_start == null) != ( region_end == null) )
                 {
                     throw new InvalidParameterException( "Both “start” and “end” must be entered or blank" );
                 }
 
-                if( region_start_s.trim().length() > 0 && region_end_s.trim().length() > 0 )
-                {
-                    int region_start = Integer.parseInt( region_start_s.trim() );
-                    int region_end = Integer.parseInt( region_end_s.trim() );
+                Boolean use_anchoring_bounds = GetBoolean(input_options, "useAnchoringBounds");
+                Boolean use_transparent_bounds  = GetBoolean(input_options, "useTransparentBounds");
+                
+                Pattern pattern = Pattern.compile( input_pattern, options);
+                Matcher matcher = pattern.matcher( input_text);
 
+                if( region_start != null && region_end != null )
+                {
                     matcher.region( region_start, region_end );
                 }
 
@@ -105,35 +76,61 @@ class SafeREWorker
                     }
                 }
 
-                //OutLn("D pattern: '" + input_pattern + "'");
-                //OutLn("D text: '" + input_text + "'");
+                ArrayList<Object> all_matches = new ArrayList<>();
 
                 while( matcher.find())
                 {
-                    OutLn( "M " + matcher.start() + " " + matcher.end());
+                    HashMap<String, Object> one_match = new HashMap<>();
+
+                    one_match.put("s", matcher.start());
+                    one_match.put("e", matcher.end());
+
+                    ArrayList<ArrayList<Number>> unnamed_groups = new ArrayList<>();
 
                     for( int i = 0; i <= matcher.groupCount(); ++i)
                     {
-                        OutLn( "G " + matcher.start(i) + " " + matcher.end(i));
+                        ArrayList<Number> a = new ArrayList<>();
+
+                        a.add(matcher.start(i));
+                        a.add(matcher.end(i));
+
+                        unnamed_groups.add(a);
                     }
+
+                    one_match.put("g", unnamed_groups);
+
+                    ArrayList<Object> named_groups = new ArrayList<>();
 
                     for( String name : possible_names)
                     {
-                        String value = null;
                         try
                         {
-                            value = matcher.group( name);
+                            HashMap<String, Object> one_named_group = new HashMap<>();
+
+                            one_named_group.put("s", matcher.start( name));
+                            one_named_group.put("e", matcher.end( name));
+                            one_named_group.put("n", name);
+
+                            named_groups.add(one_named_group);
                         }
                         catch( IllegalArgumentException exc)
                         {
                             // group name not found; ignore
                         }
-                        if( value != null)
-                        {
-                            OutLn( "N " + matcher.start( name) + " " + matcher.end( name) + " <" + name + ">");
-                        }
                     }
+
+                    one_match.put("ng", named_groups);
+
+                    all_matches.add(one_match);
                 }
+
+                HashMap<String, Object> result = new HashMap<>();
+
+                result.put("matches", all_matches);
+
+                String json = JSONObject.toJSONString(result);
+
+                OutLn( json);
 
                 System.exit( 0);
                 return;
@@ -153,13 +150,25 @@ class SafeREWorker
         }
     }
 
+    static Boolean GetBoolean( JSONObject j, String k)
+    {
+        return j != null && j.containsKey( k) && (Boolean)j.get(k);
+    }
+
+    static Integer GetInteger( JSONObject j, String k)
+    {
+        if( j == null) return null;
+        
+        Long l = (Long)j.get( k);
+
+        return l == null ? null : l.intValue();
+    }
 
     static void OutLn( String text)
     {
         System.out.writeBytes( text.getBytes( StandardCharsets.UTF_8));
         System.out.writeBytes( "\r\n".getBytes( StandardCharsets.UTF_8));
     }
-
 
     static void ErrLn( String text)
     {

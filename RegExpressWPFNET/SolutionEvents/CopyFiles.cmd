@@ -146,17 +146,12 @@ rem -- Java --
 
 set BasePath=%SolutionDir%\RegexEngines\Java
 xcopy /D /R /Y "%BasePath%\JavaPlugin\bin\%Configuration%\%TargetDir%\JavaPlugin.dll" "%EnginesTargetPath%\Java\*"
-xcopy /D /R /Y "%BasePath%\JavaWorker\JavaWorker.class" "%EnginesTargetPath%\Java\*"
 xcopy /D /R /Y "%BasePath%\JavaWorker\JRE-min.zip" "%EnginesTargetPath%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaWorker\JavaWorker.class" "%EnginesTargetPath%\Java\*"
 xcopy /D /R /Y "%BasePath%\JavaWorker\RE2JWorker.class" "%EnginesTargetPath%\Java\*"
-xcopy /D /R /Y "%BasePath%\JavaWorker\re2j-1.8.jar" "%EnginesTargetPath%\Java\*"
 xcopy /D /R /Y "%BasePath%\JavaWorker\SafeREWorker.class" "%EnginesTargetPath%\Java\*"
-xcopy /D /R /Y "%BasePath%\JavaWorker\safere-0.9.0.jar" "%EnginesTargetPath%\Java\*"
 xcopy /D /R /Y "%BasePath%\JavaWorker\ReggieWorker.class" "%EnginesTargetPath%\Java\*"
-xcopy /D /R /Y "%BasePath%\JavaWorker\reggie-0.3.0.jar" "%EnginesTargetPath%\Java\*"
-xcopy /D /R /Y "%BasePath%\JavaWorker\asm-9.9.1.jar" "%EnginesTargetPath%\Java\*"
-xcopy /D /R /Y "%BasePath%\JavaWorker\asm-commons-9.9.1.jar" "%EnginesTargetPath%\Java\*"
-xcopy /D /R /Y "%BasePath%\JavaWorker\asm-util-9.9.1.jar" "%EnginesTargetPath%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaWorker\*.jar" "%EnginesTargetPath%\Java\*"
 
 
 rem -- Python --
