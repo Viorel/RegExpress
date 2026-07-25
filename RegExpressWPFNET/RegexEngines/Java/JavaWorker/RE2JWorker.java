@@ -131,7 +131,6 @@ class RE2JWorker
         }
     }
 
-
     static Boolean GetBoolean( JSONObject j, String k)
     {
         return j != null && j.containsKey( k) && (Boolean)j.get(k);

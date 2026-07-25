@@ -7,7 +7,7 @@
  * -shaped program (see prefilter.hpp's `is_fixed_alternation`) once its branch count reaches the
  * measured threshold where a single O(n) automaton walk beats \ref
  * real::detail::pattern_hints::small_set's 2..8-member memchr-cascade scan — that scan has no fast
- * path at all past 8 distinct first bytes (issue #3's "Alternation" gap). Complements
+ * path at all past 8 distinct first bytes (the alternation gap). Complements
  * small_set/fixed_alternation; does not replace them — an eligible pattern under the threshold
  * keeps the existing route unchanged.
  *
@@ -46,7 +46,7 @@ namespace real::detail {
    * \ref goto_ starts as a sparse trie edge set (missing = -1) during \ref ac_automaton::build
    * and ends as a TOTAL transition function (goto-function-as-DFA): every entry is a valid state
    * index once construction finishes, so a search-time lookup is a single array read with no
-   * fail-chain walk. Dense-only: no sparse/hybrid representation — the D0 spike found the backup
+   * fail-chain walk. Dense-only: no sparse/hybrid representation — the initial spike found the backup
    * engine's claimed "~60x memory savings" there embedded a full `array<int,256>` unconditionally
    * anyway (not a real saving), so a bespoke sparse layout was not pursued here either, for the
    * realistic literal-alternation sizes this engine targets (tens of nodes, not thousands).
@@ -97,7 +97,7 @@ namespace real::detail {
       for (const std::uint8_t byte : bytes) {
         // A COPY, not a reference: nodes_[state].goto_[byte] must not be held by reference across
         // emplace_back below, which can reallocate nodes_'s backing storage and dangle it (a
-        // heap-use-after-free ASan caught here — ported, unnoticed, from the D0 POC, whose
+        // heap-use-after-free ASan caught here — ported, unnoticed, from the original POC, whose
         // differential never happened to exercise a reallocating growth step badly enough to
         // change an answer). Write the new index back through a FRESH index into nodes_ (valid
         // post-reallocation) rather than through any reference taken before emplace_back.
@@ -216,7 +216,7 @@ namespace real::detail {
         // the FIRST candidate whose (start, end) passes wb_ok — output_link chains are strictly
         // decreasing in depth, hence strictly increasing start_pos, so the shallowest wb-passing
         // entry is always the best one this position can offer (nothing deeper can have an
-        // earlier start). Stops after one check in the common (no-wb) case: O(1) amortized (D0
+        // earlier start). Stops after one check in the common (no-wb) case: O(1) amortized (measured
         // verified: worst-case ratio pinned at 2.00x across a 4096x text-length range under a
         // 64-deep adversarial nested-suffix pattern set — no re-scan).
         std::int32_t node_idx {state};

@@ -34,7 +34,7 @@ namespace real::detail::prof {
     fixed_shape,
     codepoint_class,
     alternation,
-    aho_corasick,      //!< D1-AC: multi-literal automaton, past the measured branch-count threshold.
+    aho_corasick,      //!< multi-literal automaton, past the measured branch-count threshold.
     onepass_full,
     onepass_window,
     lazy_dfa_anchored, //!< A2: first-byte candidate + anchored_end
@@ -43,9 +43,9 @@ namespace real::detail::prof {
     general_window,
     trailing_la,
     possessive_byte_loop,     //!< R2 (phase Raffinement): bare/suffixed possessive literal-byte +/++ (byte_loop_possessive).
-    possessive_class_loop,    //!< D1-perf Étage A: bare/suffixed possessive class+/++ (klass_loop_possessive).
-    possessive_cp_class_loop, //!< D1-perf Étage A: bare/suffixed possessive cp-class +/++ (klass_cp_loop_possessive).
-    possessive_delimited,     //!< D1-perf Étage A: literal-prefix + possessive loop + literal-suffix ("quoted").
+    possessive_class_loop,    //!< bare/suffixed possessive class+/++ (klass_loop_possessive).
+    possessive_cp_class_loop, //!< bare/suffixed possessive cp-class +/++ (klass_cp_loop_possessive).
+    possessive_delimited,     //!< literal-prefix + possessive loop + literal-suffix ("quoted").
     count_
   };
 

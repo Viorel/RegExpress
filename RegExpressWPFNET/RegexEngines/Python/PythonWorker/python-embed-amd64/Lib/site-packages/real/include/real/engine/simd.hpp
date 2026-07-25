@@ -92,6 +92,34 @@ namespace real::detail {
     return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(good), 4)), 0);
   }
 
+  //! \brief Mask of the lanes where `buf16_a[l] == a` AND `buf16_b[l] == b` — the two-byte substring
+  //!        prefilter (prefilter.hpp's `simd_literal_scan`).
+  //!
+  //! **The one primitive here with no SSE2 twin, deliberately.** Its only caller
+  //! (`prefilter.hpp`'s `simd_literal_scan`) is NEON-gated: on x86-64 glibc's `find`/`memchr` are AVX2
+  //! (256-bit) and beat a 128-bit block filter on every row measured, so x86 keeps the platform search
+  //! and an SSE2 leg here would be unrouted code inviting someone to route it. An AVX2 leg — plus its
+  //! own wider mask type — is the honest way to bring this win to x86; that is a separate arc.
+  //!
+  //! The two windows are the SAME 16 candidate starts probed at two needle offsets: the caller loads
+  //! \p buf16_a at the candidate positions and \p buf16_b shifted by the offset delta, so lane `l`
+  //! answers "could the needle start at candidate `l`?" for both probes at once. Two bytes rejects far
+  //! more than one — the point of the filter — and the survivors still get a full verify.
+  //! \param[in] buf16_a 16 already-loaded bytes at the candidate starts (the caller's MISRA-clean memcpy).
+  //! \param[in] a       The needle byte expected at the first probe offset.
+  //! \param[in] buf16_b 16 already-loaded bytes at the candidate starts + delta (same, shifted).
+  //! \param[in] b       The needle byte expected at the second probe offset.
+  inline mask_t load_pair_mask(const std::uint8_t * buf16_a,
+                               std::uint8_t         a,
+                               const std::uint8_t * buf16_b,
+                               std::uint8_t         b)
+  {
+    const uint8x16_t eq_a {vceqq_u8(vld1q_u8(buf16_a), vdupq_n_u8(a))};
+    const uint8x16_t eq_b {vceqq_u8(vld1q_u8(buf16_b), vdupq_n_u8(b))};
+    const uint8x16_t hit  {vandq_u8(eq_a, eq_b)};
+    return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(hit), 4)), 0);
+  }
+
   //! \brief `true` if no lane of \p m is set.
   inline bool empty(mask_t m)
   {

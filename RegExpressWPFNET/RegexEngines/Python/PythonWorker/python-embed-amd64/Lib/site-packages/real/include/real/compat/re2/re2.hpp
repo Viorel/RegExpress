@@ -1,6 +1,6 @@
 /*!
  * \file re2/re2.hpp
- * \brief `real::compat::re2` — an RE2-compatible drop-in (issue #2), the `RE2` class surface.
+ * \brief `real::compat::re2` — an RE2-compatible drop-in, the `RE2` class surface.
  *
  * `#include <real/compat/re2/re2.hpp>` is the one public entry point (it pulls in `re2/arg.hpp`
  * for `RE2::Arg`). Mirrors real RE2's own `re2.h` naming exactly — `FullMatch`, `PartialMatch`,

@@ -472,7 +472,7 @@ namespace real::detail {
         }
         const auto n {static_cast<std::uint32_t>(cd.ranges.size())};
         // Fingerprint once from the just-appended span (same content as cd.ranges); match-time
-        // cp_hi cache reads this field — never re-hashes per codepoint (7.47 \p{} hot path).
+        // cp_hi cache reads this field — never re-hashes per codepoint (the \p{} hot path).
         const std::uint64_t fp {fingerprint_cp_class_content(
                                   cd.ascii, n == 0 ? nullptr : &prog.cp_ranges[begin], n)};
         prog.cp_classes.push_back({.ascii       = cd.ascii,
@@ -502,7 +502,7 @@ namespace real::detail {
      * RE2-style) already used for `\p{...}`, so the emitted branches narrow each lead byte's first
      * continuation byte to the sub-range that excludes overlong and surrogate encodings (`0xE0`,
      * `0xED`, `0xF0`, `0xF4` each get their own branch; every other lead byte keeps the generic
-     * `[0x80,0xBF]` continuation, same as before). This used to be a hand-written 4-branch/16-
+     * `[0x80,0xBF]` continuation, same as before). This replaces a hand-written 4-branch/16-
      * instruction block with flat lead-byte classes (charclass.hpp's `utf8_lead2/3/4_set` /
      * `utf8_cont_set`) that DIDN'T narrow the first continuation byte — a since-fixed correctness
      * gap (overlong/surrogate byte sequences read as one valid codepoint).
@@ -1046,7 +1046,11 @@ namespace real::detail {
               return -1;
             }
             if (body > 0 && node.max > max_lookaround_length / body) {
-              return -1; // the product would exceed the cap (nested {n}{m}...) -> reject; no int32 overflow
+              // Bounded but over the lookaround cap (e.g. \w{64} = 256 B > 255). Saturate so
+              // emit_lookaround takes the "too long" path — not -1/"unbounded", which would
+              // wrongly advise "use a fixed repeat count" on a count that is already fixed.
+              // max_lookaround_length + 1 is tiny: no int32 overflow.
+              return max_lookaround_length + 1;
             }
             return node.max * body;
           }
@@ -1060,7 +1064,7 @@ namespace real::detail {
       return -1;
     }
 
-    // --- atomic groups / possessive quantifiers (D1: Tier 1 -- bare atom or single-captured
+    // --- atomic groups / possessive quantifiers (Tier 1 -- bare atom or single-captured
     //     atom; a general "Tier 1.5" for compound bodies was scoped out — see
     //     emit_possessive_repeat's own note on the VM-architecture wall this sidesteps) -------
 
@@ -1396,7 +1400,7 @@ namespace real::detail {
      * 1. The child is itself an ordinary `repeat` over a Tier-1-eligible body (a bare atom, or
      *    one wrapped in exactly one capturing group) — `(?>X*)`, `(?>(a)+)`, … — "upgraded" to
      *    possessive regardless of that inner repeat's own flag, detected BEFORE any
-     *    bounded-width check, so `(?>[^"]*)`/`(?>\d+)` compile (D0-2's detection-order finding).
+     *    bounded-width check, so `(?>[^"]*)`/`(?>\d+)` compile (a measured detection-order requirement).
      *    This is a REPEATED construct, so it is subject to the same Tier-1-only restriction (and
      *    the same lookaround rejection) as \ref emit_possessive_repeat.
      * 2. No outer repeat at all, and the body is deterministic (\ref is_deterministic) — `(?>ab)`,

@@ -15,7 +15,7 @@ const auto                width = [&](std::size_t i) -> std::size_t {
                                     }
                                     return cp_class_hi_width(text, i, cp_index);
                                   };
-out_slots.assign(prog_.slot_count, npos);
+// Success: fill_span_slots ensure_size; fail assigns below (shared fail lambda after this splice).
 const auto extend_run = [&](std::size_t match_start) -> std::size_t {
                           const std::size_t first {width(match_start)};
                           if (first == 0) {

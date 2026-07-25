@@ -188,8 +188,8 @@ namespace real::detail {
    *       different, broader (Unicode-aware) predicate that happens to agree with Python's
    *       *text*-mode `\s` (the generated `space_ranges` table, which does list `U+001C`-
    *       `U+001F` FS/GS/RS/US — verified live: `re.match(r"\s", "\x1c")` matches, but
-   *       `re.match(r"(?a)\s", "\x1c")` does not). An earlier version of this comment
-   *       conflated the two and wrongly added FS/GS/RS/US here too, making ASCII-mode `\s`
+   *       `re.match(r"(?a)\s", "\x1c")` does not). Adding FS/GS/RS/US here
+   *       would conflate the two, making ASCII-mode `\s`
    *       accept four bytes Python's own ASCII `\s` rejects — found by differential fuzzing
    *       (`(?a)\s` matching `'\\x1c'` where `re` does not), fixed by removing them; `\\w`/`\\d`/
    *       `\\b` were already correct (unaffected — this bug was specific to `space_set`).

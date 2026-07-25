@@ -710,6 +710,19 @@ namespace real::compat {
     return std::copy(result.begin(), result.end(), out);
   }
 
+  //! \brief `regex_replace` to an output iterator with a C-string format (std parity).
+  //!        Mirrors the string+`const CharT*` overload — a bare literal `"+"` decays to `const CharT*`.
+  template <typename OutputIt, typename BidirIt, typename CharT, typename Traits>
+  OutputIt regex_replace(OutputIt                          out,
+                         BidirIt                           first,
+                         BidirIt                           last,
+                         const basic_regex<CharT, Traits>& re,
+                         const CharT                     * fmt,
+                         regex_constants::match_flag_type  flags = regex_constants::format_default)
+  {
+    return regex_replace(out, first, last, re, std::basic_string<CharT>(fmt), flags);
+  }
+
   // --- regex_iterator ----------------------------------------------------------------------
 } // namespace real::compat
 

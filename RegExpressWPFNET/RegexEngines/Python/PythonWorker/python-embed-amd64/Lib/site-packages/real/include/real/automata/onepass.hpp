@@ -25,10 +25,12 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <bit>
 #include <cassert>
 #include <memory>
 #include <mutex>
+#include <type_traits>
 #include <unordered_map>
 #include <optional>
 #include <cstddef>
@@ -554,61 +556,111 @@ namespace real::detail {
 
   //! \brief The per-regex immutable cache the router shares across every find_iter on a regex: the byte-
   //!        program (klass_cp expanded to the deterministic trie) and, when the pattern is one-pass, the
-  //!        extractor table. Built exactly once, under \ref once, so a const regex used from many threads
-  //!        (the binding shares the compiled object across GIL-released calls) builds it race-free.
+  //!        extractor table. Built under program-identity invalidation (\ref built_for), so a const regex
+  //!        used from many threads builds race-free, and assign-onto-warmed rebuilds for the new program.
   //!
-  //!        D1: the mutable lazy-DFA transition caches live in a process-wide side table
+  struct regex_immutables; // forward — \ref erase_shared_dfas is called from the dtor
+  inline void erase_shared_dfas(const regex_immutables* immut);
+
+  //!        The mutable lazy-DFA transition caches live in a process-wide side table
   //!        (\ref shared_dfa_slot), keyed by this object's address and guarded by a per-slot mutex —
-  //!        so this struct stays free of \c std::mutex / extra members (layout and constexpr size match
-  //!        pre-D1; address-reuse invalidates the slot from \c call_once via \ref reset_shared_dfas).
+  //!        so this struct stays free of \c std::mutex / extra members (layout: \c once_flag →
+  //!        \c atomic pointer, same footprint). Address-reuse of the immutables object invalidates
+  //!        the slot via \ref reset_shared_dfas; program change at the same address is detected by
+  //!        \ref built_for (see \ref pike_vm::ensure_immutables). The dtor erases this address's map
+  //!        entry so match-time caches do not outlive the regex.
   struct regex_immutables
   {
     byte_program           byte_prog;          //!< klass_cp-expanded byte program (empty until built).
     lazy_byte_alphabet     alphabet;           //!< byte-class alphabet of byte_prog (shared by both DFAs, else recomputed per scan).
     std::optional<onepass> op_table;           //!< one-pass extractor, present iff the pattern is one-pass.
     byte_program           il_prefix_prog;     //!< IL: the inner-literal prefix's byte program (ineligible until built). Per-regex so the reverse DFA that spans it is a cheap shared wrapper, not a per-find_iter rebuild.
-    std::size_t            il_min_haystack {}; //!< IL: on a haystack that HAS a candidate, the route only fires at or above this size (0 = always). The prefix reverse DFA's cache is per-iterator and re-warms per find_iter; below N that cost does not amortize and the core is faster. Checked ONLY after the first memmem hit, so a no-match haystack (memmem-only) is never gated. Scaled by the prefix byte-program size (its cache size); see \ref pike_vm::run_inner_literal.
-    std::once_flag         once;               //!< guards the one-time build.
+    std::size_t            il_min_haystack {}; //!< IL cold floor: first candidate-scan on this regex only fires at or above this size when the haystack HAS a match (0 = always). Warm scans use \ref il_warm_floor (shared reverse DFA in \ref shared_dfa_slot). Checked ONLY after the first memmem hit — no-match is never gated. Scaled by prefix byte-program size; see \ref pike_vm::run_inner_literal.
+    //! \brief \c prog.code.data() this cache was built for, or null if never built / invalidated.
+    //!        Hot path: one atomic load. Not \c once_flag — assignment reuses this object under a new
+    //!        program; a spent once_flag would never rebuild (silent wrong matches).
+    std::atomic<const void*> built_for {nullptr};
 
-    // A copied regex is an independent regex: it gets its own fresh, unbuilt cache rather than sharing
-    // (std::once_flag is not copyable anyway). Copy/move reset rather than transfer — the built state is a
-    // pure runtime accelerator, cheap to rebuild.
+    // A copied regex is an independent regex: fresh unbuilt cache (built_for null). Copy/move of the
+    // cache body is never transferred — pure runtime accelerator, cheap to rebuild.
     regex_immutables() = default;
     regex_immutables(const regex_immutables& /*other*/) noexcept
+      : built_for {nullptr}
     {}
 
     regex_immutables(regex_immutables&& /*other*/) noexcept
+      : built_for {nullptr}
     {}
 
-    // Assignment keeps this object's own (fresh) cache — it deliberately copies/moves nothing, which is
-    // inherently self-assignment-safe (there is no state to guard). NOLINT: the empty body is the contract.
+    // Assignment keeps this object's cache storage but marks it invalid — the destination's program
+    // is already the new one by the time storage assignment reaches here; we cannot rebuild from
+    // the source's program (and must not inherit its built state). built_for=null forces
+    // ensure_immutables to rebuild. Self-assignment-safe. NOLINT: deliberate non-copy of members.
     // NOLINTNEXTLINE(cert-oop54-cpp)
     regex_immutables& operator=(const regex_immutables& /*other*/) noexcept
     {
+      built_for.store(nullptr, std::memory_order_relaxed);
       return *this;
     }
 
     // NOLINTNEXTLINE(cert-oop54-cpp)
     regex_immutables& operator=(regex_immutables&& /*other*/) noexcept
     {
+      built_for.store(nullptr, std::memory_order_relaxed);
       return *this;
     }
 
-    // Default dtor: required for constexpr \c dynamic_storage::compile / \c static_assert paths. Shared
-    // DFA slots are process-lifetime (keyed by address); a new immutables at a reused address re-runs
-    // \c call_once which clears the slot (\ref reset_shared_dfas).
-    ~regex_immutables() = default;
+    // Runtime erase of this regex's shared DFA slot (reclaims match-time caches). Constexpr paths
+    // skip the map entirely — \c is_constant_evaluated so dynamic_storage::compile / static_assert stay valid.
+    constexpr ~regex_immutables()
+    {
+      if (!std::is_constant_evaluated()) {
+        erase_shared_dfas(this);
+      }
+    }
   };
 
-  //! \brief D1: process-wide shared DFA transition caches keyed by \ref regex_immutables*.
-  //!        Thread-safe: map insert under \ref shared_dfa_map_mu, DFA warm/scan under \ref mu.
+  //! \brief Striped rebuild lock for \ref pike_vm::ensure_immutables (not on \ref regex_immutables —
+  //!        layout isolation). Distinct from \ref shared_dfa_map_mu / slot.mu so \ref reset_shared_dfas
+  //!        cannot self-deadlock. Different immutables rarely share a stripe.
+  [[nodiscard]] inline std::mutex& immut_build_mu(const regex_immutables* immut)
+  {
+    static std::array<std::mutex, 64> stripes {};
+    const std::size_t                 h       {std::hash<const void*> {}(immut)};
+    return stripes[h % stripes.size()];
+  }
+
+  //! \brief Process-wide shared DFA transition caches keyed by \ref regex_immutables*.
+  //!        Thread-safe: map insert/erase under \ref shared_dfa_map_mu, DFA warm/scan under \ref mu.
+  //!        Slots are \c shared_ptr so a concurrent \ref erase_shared_dfas (dtor) cannot free a slot a
+  //!        thread is still scanning — the slot dies when the last holder (map or TLS cache) releases.
   struct shared_dfa_slot
   {
     std::mutex                 mu;
     std::optional<lazy_dfa>    fwd;
     std::optional<reverse_dfa> rev;
     std::optional<reverse_dfa> il_prefix_rev;
+    //! \brief True after this regex has been IL-candidate-scanned at least once (any size).
+    //!        Cold first scan keeps the high \ref regex_immutables::il_min_haystack floor; warm
+    //!        scans use \ref il_warm_floor. Not "il_prefix_rev is built" — a always-<floor corpus
+    //!        would never build the reverse DFA and would never drop the floor (audit 3.1).
+    std::atomic<bool>          il_warmed {false};
+
+    //! \brief The regex this slot belongs to, or null once \ref erase_shared_dfas has retired it.
+    //!
+    //! This is what validates a thread's last-hit cache in \ref shared_dfa_for — a cached slot is still
+    //! this regex's slot exactly while `owner == immut`. The predecessor was a single process-wide
+    //! epoch counter bumped on every erase, which meant ANY regex's destruction invalidated EVERY
+    //! thread's cache and sent them all back to \ref shared_dfa_map_mu — the global mutex the cache
+    //! exists to avoid, once per inner-literal candidate. Ownership is per slot, so one regex dying
+    //! now costs only the threads that were actually using it.
+    std::atomic<const regex_immutables*> owner {nullptr};
   };
+
+  //! \brief Warm-regime IL min haystack (bytes). Shared reverse DFA amortizes after scan 1; below this
+  //!        even warm IL may not win (measured ~4 KB email dense collapse, 2026-07). Cold first scan
+  //!        still uses \ref regex_immutables::il_min_haystack (~94 KB email).
+  inline constexpr std::size_t il_warm_floor {4UL * 1024};
 
   inline std::mutex& shared_dfa_map_mu()
   {
@@ -616,34 +668,70 @@ namespace real::detail {
     return m;
   }
 
-  inline std::unordered_map<const regex_immutables*, std::unique_ptr<shared_dfa_slot>>& shared_dfa_map()
+  //! \brief Bumped on every \ref erase_shared_dfas so a TLS last-hit cache never serves a destroyed
+  //!        regex's slot to a new immutables that reuses the same address.
+  //! \brief Process-wide map. Intentionally never destroyed (leaky singleton): a static map would
+  //!        tear down at exit while other statics' \c ~regex_immutables still call \ref erase_shared_dfas.
+  //!        The OS reclaims the map at process exit — not an accumulating leak; entries are erased on dtor.
+  inline std::unordered_map<const regex_immutables*, std::shared_ptr<shared_dfa_slot>>& shared_dfa_map()
   {
-    static std::unordered_map<const regex_immutables*, std::unique_ptr<shared_dfa_slot>> m;
-    return m;
+    static auto* m {
+      new std::unordered_map<const regex_immutables*, std::shared_ptr<shared_dfa_slot>>};
+    return *m;
+  }
+
+  //! \brief Retire this regex's slot (called from \c ~regex_immutables). Concurrent scans that still hold
+  //!        a \c shared_ptr via TLS keep the slot object alive until they release; clearing
+  //!        \ref shared_dfa_slot::owner is what makes their cached copy stop matching, so a new regex
+  //!        landing on this address can never be served the retired slot.
+  //!
+  //! The owner store is release and \ref shared_dfa_for's check is acquire. That pairing is what a new
+  //! regex at a REUSED address relies on: the allocator handing the address out again orders this
+  //! erase before that construction, and a thread can only reach the new regex through some
+  //! synchronization with its constructor, so the null is visible by the time it asks.
+  //! The map entry drops under the lock; the last \c shared_ptr reference is released outside it.
+  inline void erase_shared_dfas(const regex_immutables* immut)
+  {
+    std::shared_ptr<shared_dfa_slot> retired;
+    {
+      const std::lock_guard<std::mutex> lock  {shared_dfa_map_mu()};
+      const auto                        found {shared_dfa_map().find(immut)};
+      if (found == shared_dfa_map().end()) {
+        return; // this regex never took a DFA route — nothing was ever inserted
+      }
+      retired = std::move(found->second);
+      shared_dfa_map().erase(found);
+    }
+    retired->owner.store(nullptr, std::memory_order_release);
   }
 
   //! \brief Resolve the process-wide DFA slot for this regex (map insert under \ref shared_dfa_map_mu).
   //!        Thread-local last-hit cache: dense IL was paying map_mu per candidate without it; the cache
-  //!        is not on \ref regex_immutables (layout isolation — x86 class-loop +6% suspect).
+  //!        is not on \ref regex_immutables (layout isolation — x86 class-loop +6% suspect). Holds a
+  //!        \c shared_ptr (not a raw pointer) so erase cannot UAF a live scan, and validates it against
+  //!        the slot's own \ref shared_dfa_slot::owner — so an unrelated regex's destruction no longer
+  //!        invalidates this thread's cache (the process-wide epoch counter it replaced did).
   [[nodiscard]] inline shared_dfa_slot& shared_dfa_for(regex_immutables* immut)
   {
-    thread_local const regex_immutables* cached_immut {nullptr};
-    thread_local shared_dfa_slot*        cached_slot  {nullptr};
-    if (cached_immut == immut && cached_slot != nullptr) {
+    thread_local std::shared_ptr<shared_dfa_slot> cached_slot {};
+    // One acquire load on a line this thread already owns. `owner == immut` subsumes the old separate
+    // identity check: a retired slot's owner is null, and a slot only ever names one regex.
+    if (cached_slot && cached_slot->owner.load(std::memory_order_acquire) == immut) {
       return *cached_slot;
     }
     const std::lock_guard<std::mutex> lock {shared_dfa_map_mu()};
-    std::unique_ptr<shared_dfa_slot>& slot {shared_dfa_map()[immut]};
+    std::shared_ptr<shared_dfa_slot>& slot {shared_dfa_map()[immut]};
     if (!slot) {
-      slot = std::make_unique<shared_dfa_slot>();
+      slot = std::make_shared<shared_dfa_slot>();
+      slot->owner.store(immut, std::memory_order_relaxed); // published by this mutex's release
     }
-    cached_immut = immut;
-    cached_slot  = slot.get();
+    cached_slot = slot; // shared_ptr copy — free-safe if erase races
     return *slot;
   }
 
   //! \brief Drop any DFAs cached for \p immut (caller holds nothing; takes map + slot locks).
-  //!        Invoked from \c call_once so a reused immutables address cannot keep a previous pattern's DFAs.
+  //!        Invoked from \ref pike_vm::ensure_immutables rebuild so a reused immutables address — or
+  //!        the same address under a new program — cannot keep a previous pattern's DFAs.
   inline void reset_shared_dfas(regex_immutables* immut)
   {
     shared_dfa_slot&                  slot {shared_dfa_for(immut)};
@@ -651,6 +739,14 @@ namespace real::detail {
     slot.fwd.reset();
     slot.rev.reset();
     slot.il_prefix_rev.reset();
+    slot.il_warmed.store(false, std::memory_order_relaxed);
+  }
+
+  //! \brief Test/audit: number of live shared-DFA map entries (process-wide). Not for production.
+  [[nodiscard]] inline std::size_t shared_dfa_map_size_for_test()
+  {
+    const std::lock_guard<std::mutex> lock {shared_dfa_map_mu()};
+    return shared_dfa_map().size();
   }
 } // namespace real::detail
 

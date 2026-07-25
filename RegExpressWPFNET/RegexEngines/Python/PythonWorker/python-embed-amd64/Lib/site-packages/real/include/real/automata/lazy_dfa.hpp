@@ -61,10 +61,10 @@ namespace real::detail {
   }
 
   //! \brief Test seam: force the inner-literal small-haystack guard off, so the route fires on any size. In
-  //!        production the guard keeps the route off a haystack too small for its per-iterator reverse cache to
-  //!        amortize (it would else be slower than the core). The correctness suites (the exhaustive compat run,
-  //!        the routed==core differential) use tiny inputs, so they set this to exercise the route itself rather
-  //!        than the core it would otherwise fall back to. Not for production use.
+  //!        production the guard uses a cold floor (\ref regex_immutables::il_min_haystack) on the first
+  //!        candidate-scan and \ref il_warm_floor thereafter (shared reverse DFA in \ref shared_dfa_slot).
+  //!        Correctness suites use tiny inputs, so they set this to exercise the route rather than the core
+  //!        fallback. Not for production use.
   inline bool& inner_literal_guard_disabled()
   {
     static bool disabled {false};
@@ -80,8 +80,9 @@ namespace real::detail {
     return disabled;
   }
 
-  //! \brief Test/profile seam: skip dedicated class-loop and cp-class-loop fast paths so a pattern that
-  //!        would take them falls through to lazy-DFA / general (dispatch-optimality audit). Not for
+  //! \brief Test/profile seam: skip dedicated class-scan fast paths (byte class-loop, cp-class-loop,
+  //!        and codepoint_class / negated-class `.`/`[^,]+`) so a pattern that would take them falls
+  //!        through to lazy-DFA / general (dispatch-optimality audit; matrix4d class-scan rows). Not for
   //!        production — same contract as the other route-disabled seams.
   inline bool& class_fastpath_disabled()
   {
@@ -89,9 +90,9 @@ namespace real::detail {
     return disabled;
   }
 
-  //! \brief Test/profile seam (D1-perf, Étage A): force the matcher off the possessive-loop fast paths
+  //! \brief Test/profile seam : force the matcher off the possessive-loop fast paths
   //!        (bare/suffixed/delimited `X*+`/`X++`) onto the general VM, so a differential can assert
-  //!        route-auto and forced-general agree on every input — the "wagon-4 pattern" applied to the new
+  //!        route-auto and forced-general agree on every input — the route-agreement pattern applied to the new
   //!        recognizers. Not for production use — same contract as the other route-disabled seams.
   inline bool& possessive_fastpath_disabled()
   {
@@ -99,7 +100,7 @@ namespace real::detail {
     return disabled;
   }
 
-  //! \brief Test seam (D1-AC): force the matcher off the Aho-Corasick multi-literal route (past the
+  //! \brief Test seam : force the matcher off the Aho-Corasick multi-literal route (past the
   //!        branch-count threshold) onto the existing \ref pattern_hints::fixed_alternation
   //!        `run_alternation` path, so a differential can assert routed and unrouted searches agree.
   //!        Not for production use — same contract as the other route-disabled seams.

@@ -35,13 +35,14 @@ namespace real {
   /*!
    * \brief Compilation flags, mirroring Python's `re.I`, `re.M` and `re.S`.
    *
-   * Combinable with \ref operator|. Case folding is ASCII-only, consistent with
-   * the library's character-class semantics.
+   * Combinable with \ref operator|. Case folding under \ref flags::icase is
+   * Unicode in text mode and ASCII-only under \ref flags::ascii (same split as
+   * the enumerator below and docs/divergences).
    */
   enum class flags : std::uint16_t
   {
     none      = 0,        //!< No flags.
-    icase     = 1,        //!< Case-insensitive (ASCII).
+    icase     = 1,        //!< Case-insensitive (Unicode fold in text mode; ASCII under \ref flags::ascii).
     multiline = 2,        //!< `^` and `$` also match at line boundaries.
     dotall    = 4,        //!< `.` also matches `\n`.
     bytes     = 8,        //!< Binary mode: `.` and `[^…]` match raw bytes, not codepoints.
@@ -49,7 +50,7 @@ namespace real {
     ecma = 32,            //!< ECMAScript compatibility: `$` (no multiline) matches only at the very end (not before a final `\n`, the Python default), AND `.` (no dotall) also excludes `\r` (ECMAScript excludes `\n` and `\r`; the multi-byte U+2028/U+2029 have no byte-level effect).
     ascii = 64,           //!< ASCII mode (`re.A`): `\d \w \s \b` stay ASCII and icase folds ASCII only, even in text mode. `.`, explicit classes and UTF-8 literals stay code-point-aware.
     dollar_endonly = 128, //!< `$` (no multiline) matches only at the very end of the text, never before a final `\n` — the Rust/`\z` semantics. Unlike \ref flags::ecma this touches `$` ONLY, leaving `.` at the Python default. Used by the Rust binding for drop-in parity.
-    allow_raw_byte = 256, //!< Permits `\C` (RE2's raw-byte escape) outside `flags::bytes` too — for byte-offset-native consumers only (e.g. `real::compat::re2`), never a char-offset-based binding (a `\C` span can land mid-codepoint). `flags::bytes` alone still suffices on its own; this widens the *gate*, not `\C`'s own byte-only behavior. `std::uint16_t`-backed since `bytes`..`dollar_endonly` already claim every bit of a `std::uint8_t` (a D0 spike confirmed the width change is layout-neutral: `sizeof`/`offsetof` on every downstream struct are unchanged, the extra byte absorbed by existing padding).
+    allow_raw_byte = 256, //!< Permits `\C` (RE2's raw-byte escape) outside `flags::bytes` too — for byte-offset-native consumers only (e.g. `real::compat::re2`), never a char-offset-based binding (a `\C` span can land mid-codepoint). `flags::bytes` alone still suffices on its own; this widens the *gate*, not `\C`'s own byte-only behavior. `std::uint16_t`-backed since `bytes`..`dollar_endonly` already claim every bit of a `std::uint8_t` (a spike confirmed the width change is layout-neutral: `sizeof`/`offsetof` on every downstream struct are unchanged, the extra byte absorbed by existing padding).
     ungreedy = 512,       //!< Ungreedy mode (RE2 `(?U)`): swap the default quantifier greediness — a bare quantifier becomes lazy and the explicit `?` suffix re-inverts back to greedy (`(?U)a+` matches minimally, `(?U)a+?` maximally). Resolved entirely at parse time into each repeat node's `lazy` bit (the compiler and VM never read this flag), and scoped like the other inline letters: `(?U:…)`, `(?-U:…)` and the constructor flag all work through the flag-scope stack.
   };
 
@@ -185,7 +186,7 @@ namespace real {
       //! Content identity (FNV-1a of ASCII bitmap + every range), set once at intern. The thread-local
       //! sparse `cp_hi` cache keys by this (not a pointer into a program) so a destroyed program's
       //! recycled `cp_ranges` address cannot poison a later class. Read O(1) per codepoint on the
-      //! hot path — never re-hashed per probe (that would erase the 7.47 `\p{}` gain).
+      //! hot path — never re-hashed per probe (that would erase the `\p{}` hot-path gain).
       std::uint64_t fingerprint {};
     };
 
@@ -227,7 +228,7 @@ namespace real {
       assert_position,   //!< Epsilon; proceeds only if assertion arg8 holds here.
       match,             //!< Accept.
       assert_lookaround, //!< Epsilon; proceeds only if the lookaround sub-program arg16 holds here.
-      // Tier 1 (D1): the OPTIONAL tail of a possessive/atomic quantifier over a single bare atom
+      // Tier 1: the OPTIONAL tail of a possessive/atomic quantifier over a single bare atom
       // (byte/klass/klass_cp), after any mandatory-minimum copies have been unrolled as plain
       // byte/klass/klass_cp instructions ahead of this opcode (dies naturally like any plain
       // atom on failure — no new opcode needed for the mandatory part, since a required
@@ -469,7 +470,7 @@ namespace real {
       std::int16_t trailing_lookaround {-1};
       std::int32_t trailing_la_class   {-1}; //!< Class index for \ref trailing_lookaround body; −1 if unset.
 
-      //! \brief D1-perf (Étage A): possessive fast-path hints -- additive, mirrors \ref greedy_class_loop /
+      //! \brief possessive fast-path hints -- additive, mirrors \ref greedy_class_loop /
       //!        \ref greedy_cp_class / \ref prefix. Scope: UNBOUNDED possessive loops only (`X*+`/`X++`, an
       //!        opcode-level self-loop via `jump` back to itself) -- a bounded count (`X{n,m}+`) has no "any
       //!        start within the run reaches the identical body end" invariant (the upper bound can cut
@@ -492,7 +493,7 @@ namespace real {
       bool                  possessive_min_nonzero  {};   //!< True for `X++`/`X{1,}+` (one mandatory copy present) — a search candidate MUST be in-class; false for `X*+` (min 0), where a zero-length body is also a valid candidate anywhere.
 
       //! \brief Optional leading/trailing word-boundary wrap on fixed_shape / fixed_alternation /
-      //!        exact_literal (Arc II B1). 0 = none; 1 = `\b` (\ref assert_kind::word_boundary);
+      //!        exact_literal. 0 = none; 1 = `\b` (\ref assert_kind::word_boundary);
       //!        2 = `\B` (\ref assert_kind::not_word_boundary). Verified in O(1) at the match
       //!        start/end after the body fast-path accepts a candidate.
       std::uint8_t wb_lead  {};
@@ -531,11 +532,32 @@ namespace real {
       //!        for every existing field, verified before/after.
       std::uint16_t alternation_branch_count {};
 
-      //! \brief D1a: number of leading top-level children peeled before the IL reverse-prefix
+      //! \brief Number of leading top-level children peeled before the IL reverse-prefix
       //!        (a lead `\b`/`\B` on `\b\w+@\w+\b`). \ref build_prefix_ast skips this many children
       //!        then takes \ref inner_literal_prefix body children. Appended last (same placement
       //!        rule as \ref alternation_branch_count) so hot-field offsets stay put.
       std::uint8_t inner_literal_prefix_skip {};
+
+      //! \brief One `find_prefix` answers the whole exact-literal search: every per-match step the
+      //!        general `run_exact_literal` loop takes is provably redundant for this program.
+      //!
+      //! Set when ALL of: \ref exact_literal_len >= 2 (a 1-byte literal goes through `find_byte`,
+      //! not `find_prefix`); \ref prefix_size == \ref exact_literal_len (so `find_prefix` matches
+      //! the *whole* literal, making `literal_at`'s re-compare redundant); the program carries no
+      //! `assert_position` (an exact-literal program legally may — `\bdog`, `^dog`, `dog\b`, see
+      //! `extract_prefix` — and each occurrence must then be checked at its own position, which is
+      //! exactly the retry the general loop exists for); and neither \ref anchored_start, \ref
+      //! line_anchored nor \ref rare_disc is armed (each takes an earlier branch in
+      //! `next_candidate`, so the candidate would not come from `find_prefix`).
+      //!
+      //! Folded into one bit deliberately: every term is a property of the compiled program, never
+      //! of the subject, so evaluating them per match cost the shapes that FAIL the guard ~1–1.6%
+      //! (measured) for a decision that cannot change. The caller adds only `slot_count == 2`,
+      //! which lives on the program rather than here. Assertion-freeness is computed directly from
+      //! `code` and deliberately **not** inferred from \ref wb_lead / \ref anchored_start / \ref
+      //! line_anchored — an assert kind those hints do not represent would make that inference
+      //! silently unsound. Appended last (same placement rule as \ref alternation_branch_count).
+      bool literal_one_search {};
     };
 
     /*!

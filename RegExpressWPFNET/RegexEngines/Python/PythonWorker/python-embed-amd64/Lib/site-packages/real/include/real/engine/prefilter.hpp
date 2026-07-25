@@ -26,7 +26,10 @@
 
 #include "real/core/charclass.hpp"
 #include "real/core/program.hpp"
+#include "real/engine/simd.hpp"           // load_pair_mask — the two-byte literal prefilter
 #include "real/unicode/unicode_props.hpp" // word_ranges — exact \w identity for Arc B-1
+
+#include <array>
 
 namespace real::detail {
 
@@ -389,7 +392,7 @@ namespace real::detail {
     return any || cc.range_count > 0;
   }
 
-  //! \brief D1-perf (Étage A) safety check: true if the ASCII byte \p b could be a member of code-point
+  //! \brief safety check: true if the ASCII byte \p b could be a member of code-point
   //!        class \p cc — used only to test whether a single-byte delimiter (a "quoted"-shape prefix or
   //!        suffix) could hide inside a `klass_cp_loop_possessive` body, in which case the delimited
   //!        fast path must decline (see \ref pattern_hints::possessive_prefix). A non-ASCII \p b (>=
@@ -799,7 +802,7 @@ namespace real::detail {
   /*!
    * \brief Detects the whole-pattern fast-path shapes and sets their hint flags: `class+`,
    *        fixed-shape straight runs, a single codepoint class (`.`/negated, optional `+`),
-   *        an alternation of straight-line branches, and trailing-lookaround class+ (P3c).
+   *        an alternation of straight-line branches, and trailing-lookaround class+.
    * \param[in]     code           The instruction stream.
    * \param[in]     classes        Interned character classes referenced by \p code.
    * \param[in]     cp_classes     Match-time code-point classes (for `\w`/`\d`/`\s` Arc B word-class tests).
@@ -824,7 +827,7 @@ namespace real::detail {
     // "class+" shape: save 0, [optional \b/\B,] [group-start save,] klass{k}, split(back, exit),
     // [group-end save,] [optional \b/\B,] save 1, match. Arc B via peel + resolve_class_wb_hints.
     // R3: the outer envelope (open/close) is \ref parse_shape_lead / \ref parse_shape_close.
-    // P1 (issue #3): `klass{k}` (k >= 1 consecutive copies of the SAME class) generalizes the
+    // `klass{k}` (k >= 1 consecutive copies of the SAME class) generalizes the
     // original single-`klass` shape -- `X{k,}` desugars to k-1 mandatory copies then a k-th copy
     // that doubles as the loop body (compiler.hpp's emit_repeat), so k identical `klass` ops
     // followed by a self-loop split is the bytecode signature of `X{k,}` (k==1 is the original
@@ -920,7 +923,7 @@ namespace real::detail {
     // of the LAST block), optional `\b`/`\B` wraps (Arc B), optional one capturing group. Unicode
     // `\w+` / `\d+` / `\s+` / `\w{k,}` via peel + resolve. R3: the outer envelope (open/close) is
     // \ref parse_shape_lead / \ref parse_shape_close.
-    // P1 (issue #3): k >= 1 consecutive copies of the IDENTICAL 4-instruction klass_cp block --
+    // k >= 1 consecutive copies of the IDENTICAL 4-instruction klass_cp block --
     // `\w{k,}` desugars to k-1 mandatory copies then a k-th copy that doubles as the loop body
     // (compiler.hpp's emit_repeat). intern_cp_class/intern_class content-based dedup (compiler.hpp)
     // guarantees repeated blocks are byte-identical (same cp_idx, same 3 continuation class
@@ -1159,7 +1162,7 @@ namespace real::detail {
         static_cast<std::size_t>(cp_mark_end) < code.size() && code[0].op == opcode::save) {
       const auto end {static_cast<std::size_t>(cp_mark_end)};
       // The ASCII sub-class index comes from the marker the compiler set when it
-      // emitted the block (emit_any_codepoint_class) — we no longer reverse-engineer
+      // emitted the block (emit_any_codepoint_class) — we never reverse-engineer
       // the block's bytecode shape here. The whole-program layout / `+`-loop checks
       // are program structure; the ASCII-only test is class content; neither depends
       // on the block's internal opcode layout.
@@ -1217,7 +1220,7 @@ namespace real::detail {
       }
     }
 
-    // D1-perf (Étage A): possessive class+/cp-class+ loop -- UNBOUNDED only (X*+/X++, self-loop via
+    // possessive class+/cp-class+ loop -- UNBOUNDED only (X*+/X++, self-loop via
     // `jump` back to the loop opcode's own pc; see pattern_hints's doc comment for why a bounded count
     // is out of scope). Layout: save 0, [optional lead \b/\B], [optional ONE mandatory copy: klass |
     // klass_cp(+3-instr chain), the SAME class/cp-class as the loop, min=1 -- min>=2 stays general],
@@ -1372,7 +1375,7 @@ namespace real::detail {
       }
     }
 
-    // D1-perf (Étage A): possessive delimited ("quoted") shape -- literal PREFIX (1+ bytes) + possessive
+    // possessive delimited ("quoted") shape -- literal PREFIX (1+ bytes) + possessive
     // class+/cp-class+ loop (UNBOUNDED, min=0, uncaptured) + literal SUFFIX (1+ bytes). Eligibility
     // additionally requires the loop's class to EXCLUDE the prefix's AND the suffix's leading byte: without
     // it, a prefix occurrence could hide inside an already-scanned body run (an alphanumeric "id=" prefix
@@ -1526,7 +1529,7 @@ namespace real::detail {
         ++pc;
       }
       else {
-        break; // klass_cp (variable width) / split / jump / match: the offset is no longer fixed
+        break; // klass_cp (variable width) / split / jump / match: the offset is not fixed
       }
     }
     if (best_byte < 0) {
@@ -1699,7 +1702,7 @@ namespace real::detail {
     pattern_hints hints;
 
     // A lookaround forces the general Pike VM: no DFA, no pure class-loop — EXCEPT the measured
-    // trailing-LA class+ shape (P3c), which arms trailing_lookaround + trailing_la_class (not
+    // trailing-LA class+ shape, which arms trailing_lookaround + trailing_la_class (not
     // greedy_class_loop) so the pure [a-z]+ gate stays a single compare.
     bool has_lookaround {false};
     for (const instr& in : code) {
@@ -1735,7 +1738,7 @@ namespace real::detail {
     else if (hints.first_bytes_valid) {
       // Enumerate the set, stopping once it exceeds eight -- the recognizer's own cap now matches
       // run_alternation's L-SIMD masked-block scan (pike.hpp), which has always gated on
-      // small_set_size <= 8; only this enumeration cap was left at 4 (issue #3's Alternation gap:
+      // small_set_size <= 8; only this enumeration cap was left at 4 (the alternation gap:
       // a 5-8-distinct-first-byte pattern like `cat|dog|fish|bird|fox|bear|wolf|deer|hawk|frog`
       // fell all the way to the bitmap loop, un-accelerated). A single member drives find_byte (one
       // memchr); two-to-eight members drive the memchr-cascade/SIMD scan (small_set); nine or more
@@ -1820,6 +1823,26 @@ namespace real::detail {
     // Rare discriminant past an optional mono-byte (URL `https?://`): memchr the disc, back-verify
     // prefix+opt+after. Preferable to a weak literal prefix (`http`) when the disc is rarer.
     extract_rare_discriminant(code, hints);
+
+    // Fold the exact-literal one-search decision, LAST: it reads anchored_start (extract_anchoring),
+    // prefix_size/exact_literal_len (extract_prefix, already zeroed by the lookaround wipe above when
+    // one is present) and rare_disc (extract_rare_discriminant, just above) -- every contributor has
+    // run by here. See pattern_hints::literal_one_search for why this is one precomputed bit and not
+    // a per-match condition chain.
+    if (hints.exact_literal_len >= 2 && hints.prefix_size == hints.exact_literal_len
+        && !hints.anchored_start && !hints.line_anchored && hints.rare_disc < 0) {
+      bool no_assert {true};
+      for (const instr& instruction : code) {
+        if (instruction.op == opcode::assert_position) {
+          no_assert = false;
+          break;
+        }
+        if (instruction.op == opcode::match) {
+          break;
+        }
+      }
+      hints.literal_one_search = no_assert;
+    }
     return hints;
   }
 
@@ -1966,6 +1989,114 @@ namespace real::detail {
     return npos;
   }
 
+#if defined(__ARM_NEON)
+  /*!
+   * \brief The multi-byte substring search behind \ref find_prefix / \ref find_literal: a two-byte
+   *        block prefilter, then verify. **NEON only — see the ISA note below.**
+   *
+   * One vector compare answers "could the needle start here?" for 16 candidate positions at once, at
+   * *two* needle offsets (the first byte and the last) — so a block with no surviving candidate is
+   * skipped 16 bytes at a time for the cost of two loads and an AND. Two probes rather than one is what
+   * makes it worth the vector: a single-byte filter is what `memchr` already gives, and on text where
+   * the lead byte is common (`d` for `dog`) it survives constantly.
+   *
+   * Written ONCE against simd.hpp's uniform \ref mask_t interface (\ref load_pair_mask, \ref empty,
+   * \ref first_lane, \ref clear_first) — no `#if` ISA branch of its own, the same split
+   * `simd_fixed_shape_scan` documents: the intrinsics are ISA-exclusive and live in simd.hpp, this
+   * loop is the same C++ everywhere and is what the test suite exercises on either leg.
+   *
+   * **Why NEON only.** This filter must beat the platform's own substring search to be worth taking, and
+   * whether it does is genuinely per-ISA -- it is not a portable win. On arm64 it is (NEON is 128-bit,
+   * like this loop, and the platform search is less aggressive): dense `dog` -31.6 %, a no-match scan
+   * -60 %. On x86-64 glibc's `find`/`memchr` are **AVX2** -- 256-bit, twice this loop's width -- and a
+   * 128-bit SSE2 block filter loses to them on EVERY row measured (dense +13 %, `localhost` +17 %,
+   * no-match +19 to +24 %, devbox g++ 13.3, natively, 3 interleaved rounds). So x86 keeps the platform
+   * search, and gating restores it exactly to its pre-filter numbers on all six literal rows. An AVX2
+   * leg would be the honest way to bring this win to x86; a 128-bit one is not it, and shipping the
+   * SSE2 leg unrouted would only invite someone to route it.
+   *
+   * Linearity is unchanged from the scalar path it replaces: the block loop advances 16 per iteration
+   * and each block verifies at most 16 candidates of \p literal bytes each, so the work stays
+   * `O(n · |literal|)` with `|literal|` capped by the hint arrays (16) — the same bound the
+   * memchr-lead-plus-compare scan carried. The caller does the work-counter billing (see
+   * \ref find_prefix), once per call, so this function must not be entered per candidate.
+   *
+   * \param[in] text    The subject text.
+   * \param[in] pos     Index to start searching from.
+   * \param[in] literal The needle (>= 2 bytes; a single byte belongs on \ref find_byte's one memchr).
+   * \return The index of the first occurrence at or after \p pos, else \ref real::npos.
+   */
+  inline std::size_t simd_literal_scan(std::string_view text,
+                                       std::size_t      pos,
+                                       std::string_view literal)
+  {
+    const std::size_t len {literal.size()};
+    if (text.size() < len) {
+      return npos;
+    }
+    const std::size_t last  {text.size() - len}; // last index a match could start at
+    const auto        lead  {static_cast<std::uint8_t>(literal.front())};
+    const auto        trail {static_cast<std::uint8_t>(literal[len - 1])};
+    const std::size_t delta {len - 1};           // trail's offset from a candidate start
+    const char* const base  {text.data()};
+    std::size_t       p     {pos};
+    // Four blocks (64 candidates) per round. A no-match scan spends all its time in the reject test, and
+    // libc `memchr` sets the bar there by covering 64 B per round: at one block per round this filter
+    // measured ~13 % SLOWER than the platform `find` it replaces on a pure miss, despite rejecting on two
+    // bytes instead of one. Four independent load pairs per round (ILP, one branch) turn that into ~2.5x
+    // FASTER than memchr — the two-byte selectivity finally paying at memchr's throughput. Masks are
+    // consumed in block order, and within a mask in lane order, so candidates are still visited strictly
+    // left to right: the first verified hit is the leftmost, which the callers require.
+    constexpr std::size_t unroll {4};
+    while (p + (unroll * 16) <= last + 1) {
+      std::array<mask_t, unroll> masks {};
+      for (std::size_t u = 0; u < unroll; ++u) {
+        std::array<std::uint8_t, 16> blk_lead  {};
+        std::array<std::uint8_t, 16> blk_trail {};
+        std::memcpy(blk_lead.data(), base + p + (u * 16), 16); // MISRA-clean byte loads (no type-pun)
+        std::memcpy(blk_trail.data(), base + p + (u * 16) + delta, 16);
+        masks[u] = load_pair_mask(blk_lead.data(), lead, blk_trail.data(), trail);
+      }
+      for (std::size_t u = 0; u < unroll; ++u) {
+        mask_t mask {masks[u]};
+        while (!empty(mask)) {
+          const std::size_t cand {p + (u * 16) + first_lane(mask)};
+          if (std::memcmp(base + cand, literal.data(), len) == 0) {
+            return cand;
+          }
+          mask = clear_first(mask);
+        }
+      }
+      p += unroll * 16;
+    }
+    // A block covers candidates [p, p + 16); the furthest one reads its trail byte at p + 15 + delta,
+    // which the `p + 16 <= last + 1` guard keeps inside the text (p + 15 <= last).
+    while (p + 16 <= last + 1) {
+      std::array<std::uint8_t, 16> blk_lead  {};
+      std::array<std::uint8_t, 16> blk_trail {};
+      std::memcpy(blk_lead.data(), base + p, 16);          // MISRA-clean byte loads (no pointer type-pun)
+      std::memcpy(blk_trail.data(), base + p + delta, 16);
+      mask_t mask {load_pair_mask(blk_lead.data(), lead, blk_trail.data(), trail)};
+      while (!empty(mask)) {
+        const std::size_t cand {p + first_lane(mask)};
+        if (std::memcmp(base + cand, literal.data(), len) == 0) {
+          return cand;
+        }
+        mask = clear_first(mask); // this window can still hold a later candidate — no reload
+      }
+      p += 16;
+    }
+    while (p <= last) { // tail: fewer than 16 candidate starts left
+      if (std::memcmp(base + p, literal.data(), len) == 0) {
+        return p;
+      }
+      ++p;
+    }
+    return npos;
+  }
+
+#endif // __ARM_NEON
+
   /*!
    * \brief Index of the first occurrence of \p literal in `text[pos..)`, or \ref real::npos.
    *
@@ -1992,6 +2123,11 @@ namespace real::detail {
     if (text.size() < literal.size()) {
       return npos;
     }
+#if defined(__ARM_NEON)
+    if (!std::is_constant_evaluated()) {
+      return simd_literal_scan(text, pos, literal); // two-byte block filter; the loop below is its oracle
+    }
+#endif
     const std::size_t last_start {text.size() - literal.size()};
     std::size_t       i          {pos};
     while (i <= last_start) {
@@ -2034,6 +2170,15 @@ namespace real::detail {
       // per-position restart of find_prefix → sum(N..1) ≈ N²/2 (smoke margin 25×).
       prefilter_note_scan(text.size() - pos);
 #endif
+#if defined(__ARM_NEON)
+      // Two-byte block filter (NEON only -- see simd_literal_scan's ISA note; x86 falls through to the
+      // platform `find`, whose AVX2 implementation beats a 128-bit block loop). A single byte has no
+      // second probe to AND, so it stays on find_byte's one memchr either way.
+      if (prefix.size() >= 2U) {
+        return simd_literal_scan(text, pos, prefix);
+      }
+      return find_byte(text, pos, prefix.front());
+#endif
     }
     const auto off {text.substr(pos).find(prefix)};
     if (off == std::string_view::npos) {
@@ -2055,7 +2200,7 @@ namespace real::detail {
    * FIX P0 #2 (O(n^2)): for **2+ members**, the window is grown **exponentially** (galloping
    * search) from a modest initial probe, doubling each round, rather than handed the full
    * remaining haystack up front. A caller that invokes this once per rejected candidate
-   * (`next_candidate`'s icase small-set route) used to pay one `memchr` per set member over
+   * (`next_candidate`'s icase small-set route) would otherwise pay one `memchr` per set member over
    * `text.size() - pos` on EVERY such call; a set with an asymmetrically rare or entirely absent
    * member (e.g. `(?i)cafe`'s `{c, C}` on an all-lowercase haystack) turned that into a full
    * remaining-text scan on every rejected candidate — O(n) candidates x O(n) scan = O(n^2), same
@@ -2118,7 +2263,7 @@ namespace real::detail {
       // parameter: measured on M1 across four adversarial shapes (a stop-byte set at a ~93-byte period,
       // and (?i)<literal> sparse/no-match/dense), the stop-set win saturates by ~96 B (no further gain to
       // 512+) while the icase-sparse/no-match cost keeps climbing past it (roughly +2% at 128 B, +40% by
-      // 1024 B) -- so 512-1024 (an earlier candidate) would have traded a bounded stop-set win for an
+      // 1024 B) -- so 512-1024 would trade a bounded stop-set win for an
       // unbounded-looking icase cost. 128 captures the stop-set win in full at a ~2% icase cost.
       constexpr std::size_t seed   {128};
       std::size_t           window {total < seed ? total : seed};

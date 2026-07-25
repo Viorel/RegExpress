@@ -243,6 +243,32 @@ namespace real {
       return g == npos ? std::string_view {} : (*this)[g];
     }
 
+    /*!
+     * \brief The capture slots as one flat `[start0, end0, start1, end1, …]` view — the raw storage,
+     *        for a caller that copies every group out in one pass.
+     *
+     * Same layout and length as the C ABI's `spans` buffer, so the shim fills it by reading straight
+     * across instead of calling \ref start / \ref end per group — each of those re-tests
+     * `matched()` and the group bound, which a caller that has *already* established a match (the
+     * ABI checks the return code first) pays for nothing. Measured on the C shim: `\b\w+\b`
+     * −20.7 % per match, `[a-z]+` −7.1 %, multi-group patterns neutral.
+     *
+     * This is the raw storage, so it is only meaningful on a matched result — an unmatched one
+     * carries whatever the last fill left (\ref start / \ref end are the safe accessors, and return
+     * \ref real::npos there). Copy it **pairwise** (`spans[2g]`, `spans[2g+1]`) rather than with one
+     * `memcpy`: the length is a runtime value, so `memcpy` compiles to a real libc call that costs
+     * more than the stores for the 1–2 slot shapes that dominate.
+     *
+     * \return A view of `2 * size()` slot values; empty when there are no slots.
+     */
+    [[nodiscard]] constexpr std::span<const std::size_t> spans() const noexcept
+    {
+      if (slots_.empty()) {
+        return {};
+      }
+      return std::span<const std::size_t> {&slots_[0], slots_.size()};
+    }
+
   private:
 
     std::string_view                     text_;       //!< The searched text.

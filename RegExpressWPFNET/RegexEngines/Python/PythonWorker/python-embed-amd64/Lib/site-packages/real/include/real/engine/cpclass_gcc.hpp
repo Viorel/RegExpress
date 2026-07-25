@@ -45,7 +45,7 @@ constexpr std::size_t cp_class_hi_width(std::string_view text,
   if (!dc.valid) {
     return 0;
   }
-  // D1: European page + sparse hi table (same split as run_cp_class_loop's member_hi).
+  // European page + sparse hi table (same split as run_cp_class_loop's member_hi).
   const bool m {dc.cp <= cp_page_max ? cp_member_page(cp_index, dc.cp)
                                      : cp_member_high(cp_index, dc.cp)};
   return m ? dc.length : 0;

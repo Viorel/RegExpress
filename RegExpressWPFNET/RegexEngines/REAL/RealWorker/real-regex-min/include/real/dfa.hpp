@@ -49,10 +49,12 @@ namespace real {
   /*!
    * \brief Thrown when a pattern cannot be represented as a DFA.
    *
-   * The cause is always a zero-width assertion other than a leading `\A`/`^`
-   * (e.g. `$`, `\b`, `\B`, multiline anchors). `real::dfa` never falls back
-   * silently — a violated contract is an error the caller handles (e.g. by
-   * keeping that rule on the Pike VM).
+   * Four causes: a zero-width assertion other than a leading `\A`/`^` (`$`,
+   * `\b`, `\B`, multiline anchors), a lookaround, a Unicode code-point class
+   * (`\w`/`\d`/`\s` in text mode — use byte classes), or a possessive
+   * quantifier / atomic group. `real::dfa` never falls back silently — a
+   * violated contract is an error the caller handles (e.g. by keeping that
+   * rule on the Pike VM).
    */
   class dfa_error : public std::runtime_error
   {
@@ -100,7 +102,8 @@ namespace real {
 
     /*!
      * \brief Flattens \p programs into one union NFA, auditing DFA-ability.
-     * \throws real::dfa_error if any program has an assertion other than a head text_start.
+     * \throws real::dfa_error if any program holds an assertion other than a head text_start,
+     *         a lookaround, a code-point class, or a possessive/atomic construct.
      */
     inline dfa_nfa dfa_flatten(std::span<const program_view> programs)
     {
@@ -382,7 +385,7 @@ namespace real {
       std::size_t                   num_states {0};
       std::size_t                   rule_count {0};
       bool                          unanchored {false}; //!< Built for which-matched mid-stream restart.
-      //! Set-level first-byte skip for \ref dfa::which_matched (Arc I): union of each rule's
+      //! Set-level first-byte skip for \ref dfa::which_matched -- union of each rule's
       //! \c first_bytes. Disabled if any rule has \c first_bytes_valid == false (empty match /
       //! can start anywhere). Applied only when the walk is in \ref start (no partial in flight).
       bool                          skip_first_enabled  {false};
@@ -547,7 +550,7 @@ namespace real {
       }
       out.start = static_cast<std::uint32_t>(block[out.start]);
 
-      // Arc I: set-level first-byte union for which_matched skip (unanchored only).
+      // Set-level first-byte union for the which_matched skip (unanchored only).
       // Any rule without a sound first-byte set disables the skip (correctness).
       if (unanchored && !programs.empty()) {
         bool                  ok {true};
@@ -618,7 +621,8 @@ namespace real {
      * \brief Builds the DFA from compiled programs (the embedder path).
      * \param[in] programs The patterns' programs, in priority order (see \ref regex::raw_program).
      * \param[in] mode     Munch (default) or which-matched unanchored multi-accept.
-     * \throws real::dfa_error if any program holds a non-head zero-width assertion.
+     * \throws real::dfa_error if any program holds a non-head zero-width assertion, a
+     *         lookaround, a code-point class, or a possessive/atomic construct.
      */
     explicit dfa(std::span<const detail::program_view> programs,
                  dfa_mode                              mode = dfa_mode::munch)
@@ -629,7 +633,8 @@ namespace real {
      * \brief Builds the DFA from regexes (a convenience over \ref regex::raw_program).
      * \param[in] patterns The patterns, in priority order; they must outlive this call.
      * \param[in] mode     Munch (default) or which-matched.
-     * \throws real::dfa_error if any pattern holds a non-head zero-width assertion.
+     * \throws real::dfa_error if any pattern holds a non-head zero-width assertion, a
+     *         lookaround, a code-point class, or a possessive/atomic construct.
      */
     explicit dfa(std::span<const regex> patterns,
                  dfa_mode               mode = dfa_mode::munch)
@@ -677,8 +682,8 @@ namespace real {
      *
      * \param[in] text            Subject text.
      * \param[in] first_byte_skip When true (default), fast-forward over bytes that cannot
-     *                            start any rule while the walk is in the start state (Arc I
-     *                            pure opt). Pass false to disable for equivalence tests.
+     *                            start any rule while the walk is in the start state (a pure
+     *                            optimization). Pass false to disable for equivalence tests.
      */
     [[nodiscard]] std::vector<bool> which_matched(std::string_view text,
                                                   bool             first_byte_skip = true) const
@@ -694,7 +699,7 @@ namespace real {
       std::size_t                pending {tables_.rule_count};
       const bool                 do_skip {first_byte_skip && tables_.skip_first_enabled};
       for (std::size_t i = 0; i < text.size();) {
-        // Arc I: at start (no partial in flight), jump to the next set-first-byte candidate.
+        // At start (no partial in flight), jump to the next set-first-byte candidate.
         if (do_skip && state == tables_.start) {
           const auto b0 {static_cast<std::uint8_t>(text[i])};
           if (!tables_.skip_first_bytes.test(b0)) {
@@ -773,7 +778,7 @@ namespace real {
       return hit;
     }
 
-    //! \brief True if set-level first-byte skip is armed for which_matched (Arc I).
+    //! \brief True if set-level first-byte skip is armed for which_matched.
     [[nodiscard]] bool has_first_byte_skip() const noexcept
     {
       return tables_.skip_first_enabled;

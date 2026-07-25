@@ -28,7 +28,7 @@ namespace real::detail {
   //!        #prefix_skip so the reverse-prefix excludes them (asserts are not byte-DFA-eligible) while
   //!        `confirm_at` still runs the full program (boundaries checked there).
   //!
-  //!        D1' (prefilter skip-filler, P0.1-only): a **pure-literal alternation** (`info|error|warn`) no
+  //!        Prefilter skip-filler: a **pure-literal alternation** (`info|error|warn`) no
   //!        longer aborts the whole walk — flush and continue so a later required run (`req=`) can arm.
   //!        Branch bytes are never appended. Mono-byte optionals (`s?`) stay declined (P0.2 dropped after
   //!        x86 A/B: IL on `://` regressed vs a strong first-byte/`http` baseline).
@@ -153,7 +153,7 @@ namespace real::detail {
     //!        would make a required inner literal unsound (a path could bypass it). Every byte appended is
     //!        present in *every* match; the confirming scan then verifies the surrounding context.
     //!
-    //!        D1': pure-literal alternations \c flush and continue (no branch bytes) so a later
+    //!        Pure-literal alternations \c flush and continue (no branch bytes) so a later
     //!        unconditional run can still arm. Optionals stay declined (conservative v1 / P0.2 dropped).
     constexpr bool walk(const ast&   tree,
                         std::int32_t idx,
@@ -202,7 +202,7 @@ namespace real::detail {
           flush(st); // a non-byte guaranteed segment breaks the run
           return true;
         case node_kind::alternation: {
-            // D1' P0.1: pure-literal alt (`info|error|warn`) — every branch is fixed bytes, so the alt is a
+            // Pure-literal alt (`info|error|warn`) — every branch is fixed bytes, so the alt is a
             // representable reverse-prefix segment. Flush (do not append any branch's bytes: none are
             // shared) and continue. A branch with klass/repeat/nested-alt declines the whole extract.
             for (std::int32_t b = n.child; b >= 0; b = tree.nodes[static_cast<std::size_t>(b)].next) {

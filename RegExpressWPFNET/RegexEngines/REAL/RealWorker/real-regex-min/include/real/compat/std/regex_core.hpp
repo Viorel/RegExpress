@@ -180,7 +180,7 @@ namespace real::compat {
     //! keeps compat ≡ its secondary oracle and the contract (never a silent divergence). The fuzzer
     //! found this. (`\1`-`\9` already route to std via real's backreference rejection.)
     //!
-    //! `\C` (RE2's raw-byte escape, D1 volet A): `real` accepts it here because `real::compat` always
+    //! `\C` (RE2's raw-byte escape): `real` accepts it here because `real::compat` always
     //! compiles its internal engine with `flags::bytes` (for byte-per-`std::regex`-char alignment, see
     //! the file header), which is the ONLY gate `\C` itself checks — an internal implementation detail
     //! leaking through as accidental, unintended public surface. `\C` is not ECMAScript at all (an
@@ -779,7 +779,7 @@ namespace real::compat {
         // engine when the pattern translates — run it on REAL with leftmost-LONGEST bounds (the POSIX semantics,
         // via search_longest / find_iter_longest) instead of delegating to std's backtracker. A `nullopt` (a
         // wrong grammar mix, or an untranslatable construct) or a real reject falls through to the std path below;
-        // the fallback lives, and nothing that used to reach std stops reaching it.
+        // the fallback lives, and everything that reaches std keeps reaching it.
         if (!detail::pattern_forces_std(sv)) {
           if (const std::optional<std::string> translated {detail::translate_posix(sv, f)}) {
             try {
