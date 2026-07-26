@@ -8,7 +8,7 @@ namespace RustPlugin
 {
     internal class Versions
     {
-        public static string Rust { get; } = "1.96.0";
+        public static string Rust { get; } = "1.97.1";
         public static string Regex { get; } = "1.13.1";
         public static string RegexLite { get; } = "0.1.9";
         public static string FancyRegex { get; } = "0.18.0";
