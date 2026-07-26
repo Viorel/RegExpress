@@ -26,7 +26,7 @@
                 <RowDefinition Height="5" />
                 <RowDefinition Height="*" MinHeight="33" />
                 <RowDefinition Height="5" />
-                <RowDefinition x:Name="BottomRow" Height="230" MinHeight="33" />
+                <RowDefinition x:Name="BottomRow" Height="220" MinHeight="33" />
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0" Margin="0 0 0 1">
