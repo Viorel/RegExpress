@@ -57,7 +57,7 @@ namespace JavaPlugin
 
             ph.AllEncoding = EncodingEnum.UTF8;
 
-            ph.Arguments = ["-cp", $"{workerDir};{Path.Combine( workerDir, "re2j-1.8.jar" )};{Path.Combine( workerDir, "json-simple-1.1.1.jar" )}", "RE2JWorker"];
+            ph.Arguments = ["-cp", $"{workerDir};{Path.Combine( workerDir, $"re2j-{Versions.Re2j}.jar" )};{Path.Combine( workerDir, "json-simple-1.1.1.jar" )}", "RE2JWorker"];
 
             var obj = new
             {

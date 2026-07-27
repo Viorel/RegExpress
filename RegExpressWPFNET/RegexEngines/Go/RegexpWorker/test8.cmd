@@ -1,0 +1,1 @@
+echo { "pattern" : "(.)\\1", "text" : "aa" } | RegexpWorker.exe
