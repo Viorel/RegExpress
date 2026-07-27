@@ -15,9 +15,9 @@ using RegExpressLibrary.Matches;
 using RegExpressLibrary.Matches.Simple;
 
 
-namespace DotNET9Plugin
+namespace DotNETPlugin
 {
-    static class Matcher
+    static class MatcherDotNetFramework
     {
         sealed class VersionResponse
         {
@@ -125,7 +125,7 @@ namespace DotNET9Plugin
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string worker_exe = Path.Combine( assembly_dir, "Worker", @"DotNETWorker.bin" );
+            string worker_exe = Path.Combine( assembly_dir, "FrameworkWorker", @"DotNETFrameworkWorker.bin" );
 
             return worker_exe;
         }

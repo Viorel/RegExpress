@@ -16,25 +16,20 @@ rem echo %SolutionDir%
 rem echo %TargetDir%
 
 
-rem -- .NET 10 --
+rem -- .NET --
 
 set BasePath=%SolutionDir%\RegexEngines\DotNET
 xcopy /D /R /Y "%BasePath%\DotNETPlugin\bin\%Configuration%\%TargetDir%\DotNETPlugin.dll" "%EnginesTargetPath%\DotNET\*"
+
 xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.dll" "%EnginesTargetPath%\DotNET\Worker\*"
 xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.exe" "%EnginesTargetPath%\DotNET\Worker\*.bin"
 xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.deps.json" "%EnginesTargetPath%\DotNET\Worker\*"
 xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\Worker\*"
 
-
-rem -- .NET Framework 4.8 --
-
-set BasePath=%SolutionDir%\RegexEngines\DotNETFramework4_8
-xcopy /D /R /Y "%BasePath%\DotNETFrameworkPlugin\bin\%Configuration%\%TargetDir%\DotNETFrameworkPlugin.dll" "%EnginesTargetPath%\DotNETFramework4_8\*"
-xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe" "%EnginesTargetPath%\DotNETFramework4_8\Worker\*.bin"
-xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe.config" "%EnginesTargetPath%\DotNETFramework4_8\Worker\*"
-copy /Y "%EnginesTargetPath%\DotNETFramework4_8\Worker\DotNETFrameworkWorker.exe.config" "%EnginesTargetPath%\DotNETFramework4_8\Worker\DotNETFrameworkWorker.bin.config" > nul
-xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\*.dll" "%EnginesTargetPath%\DotNETFramework4_8\Worker\*"
-rem xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\*.config" "%EnginesTargetPath%\DotNETFramework4_8\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe" "%EnginesTargetPath%\DotNET\FrameworkWorker\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe.config" "%EnginesTargetPath%\DotNET\FrameworkWorker\*"
+copy /Y "%EnginesTargetPath%\DotNET\FrameworkWorker\DotNETFrameworkWorker.exe.config" "%EnginesTargetPath%\DotNET\FrameworkWorker\DotNETFrameworkWorker.bin.config" > nul
+xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\*.dll" "%EnginesTargetPath%\DotNET\FrameworkWorker\*"
 
 
 rem -- STD --

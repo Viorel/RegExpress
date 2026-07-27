@@ -26,16 +26,12 @@
     <Project Path="RegexEngines/Dart/DartPlugin/DartPlugin.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/DotNET/">
+    <Project Path="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" Id="4129f02d-f0ea-4235-a8e7-ddd591dae7f6" />
     <Project Path="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj">
+      <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
     </Project>
     <Project Path="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
-  </Folder>
-  <Folder Name="/RegexEngines/DotNETFramework4_8/">
-    <Project Path="RegexEngines/DotNETFramework4_8/DotNETFrameworkPlugin/DotNETFrameworkPlugin.csproj">
-      <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
-    </Project>
-    <Project Path="RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" Id="4129f02d-f0ea-4235-a8e7-ddd591dae7f6" />
   </Folder>
   <Folder Name="/RegexEngines/Fortran/">
     <Project Path="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
@@ -165,10 +161,9 @@
     <BuildDependency Project="RegexEngines/CppBuilder/CppBuilderPlugin/CppBuilderPlugin.csproj" />
     <BuildDependency Project="RegexEngines/D/DPlugin/DPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Dart/DartPlugin/DartPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
-    <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkPlugin/DotNETFrameworkPlugin.csproj" />
-    <BuildDependency Project="RegexEngines/DotNETFramework4_8/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     <BuildDependency Project="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Go/GoPlugin/GoPlugin.csproj" />
     <BuildDependency Project="RegexEngines/GRETA/GretaPlugin/GretaPlugin.csproj" />
