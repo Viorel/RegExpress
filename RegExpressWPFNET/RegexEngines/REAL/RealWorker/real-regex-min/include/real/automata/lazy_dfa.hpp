@@ -26,6 +26,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "real/core/program.hpp"
@@ -75,6 +76,17 @@ namespace real::detail {
   //!        differential can assert routed and unrouted searches agree. Not for production use — the route is
   //!        transparent by contract (same leftmost-first spans as the general loop on the eligible shape).
   inline bool& trailing_la_route_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
+  //! \brief Test seam: force the matcher off the heterogeneous fixed-shape pair-filter route onto the
+  //!        ordinary \c run_fixed_shape walk, so a differential can assert routed and unrouted agree.
+  //!        The route is transparent by contract (it only *filters* candidates; the same
+  //!        `match_fixed_body_wb` verify decides every one of them), and this seam is what proves it.
+  //!        Not for production use.
+  inline bool& fixed_shape_pair_route_disabled()
   {
     static bool disabled {false};
     return disabled;
@@ -182,14 +194,25 @@ namespace real::detail {
     if (seqs.empty()) {
       return trie;
     }
+    //! \brief A sequence's remaining byte ranges, as a view. The sequences in `seqs` outlive the whole
+    //!        recursion, so a suffix needs no copy -- `subspan(1)` replaces a fresh vector per candidate
+    //!        per interval, which was 3179 allocations for a `\w` trie and the single largest allocation
+    //!        source in this build.
+    using seq_view = std::span<const utf8_byte_range>;
+
     struct builder
     {
-      std::vector<utf8_trie_node>&            nodes;
-      std::vector<std::vector<std::int32_t>>& memo; // hash-cons index: FNV(trans) bucket -> node ids. The
-                                                    // engine headers avoid std::hash / std::unordered_map,
-                                                    // whose out-of-line libc++ symbols (e.g. __hash_memory)
-                                                    // drift across toolchains; an in-house FNV over the
-                                                    // transitions hash-conses with no string key per node.
+      std::vector<utf8_trie_node>& nodes;
+      // Hash-cons index over FNV(trans), as an INTRUSIVE chain: `memo_head[bucket]` is a node id or -1,
+      // `memo_next[id]` the next id in that bucket. 1024 inner vectors cost 1024 allocations per trie and
+      // more memory than the table they index. Head insertion is safe because a bucket only ever holds one
+      // representative per distinct `trans` -- an identical node returns the existing id and is not inserted
+      // -- so the walk order cannot change the result.
+      // The engine headers avoid std::hash / std::unordered_map, whose out-of-line libc++ symbols (e.g.
+      // __hash_memory) drift across toolchains; an in-house FNV over the transitions hash-conses with no
+      // string key per node.
+      std::vector<std::int32_t>&   memo_head;
+      std::vector<std::int32_t>&   memo_next;
 
       static constexpr std::uint64_t hash_trans(const std::vector<std::pair<utf8_byte_range, std::int32_t>>& trans)
       {
@@ -216,10 +239,10 @@ namespace real::detail {
         return true;
       }
 
-      std::int32_t build(const std::vector<std::vector<utf8_byte_range>>& in) // all non-empty sequences
+      std::int32_t build(const std::vector<seq_view>& in) // all non-empty sequences
       {
         std::vector<int> bounds;
-        for (const std::vector<utf8_byte_range>& s : in) {
+        for (const seq_view& s : in) {
           bounds.push_back(s[0].lo);
           bounds.push_back(s[0].hi + 1);
         }
@@ -230,13 +253,13 @@ namespace real::detail {
         for (std::size_t i = 0; i + 1 < bounds.size(); ++i) {
           const int                                 lo        {bounds[i]};
           const int                                 hi        {bounds[i + 1] - 1};
-          std::vector<std::vector<utf8_byte_range>> tails;
+          std::vector<seq_view>                     tails;
           bool                                      all_empty {true};
-          for (const std::vector<utf8_byte_range>& s : in) {
+          for (const seq_view& s : in) {
             if (s[0].lo <= lo && hi <= s[0].hi) { // this disjoint interval sits inside sequence s's first range
-              std::vector<utf8_byte_range> tail(s.begin() + 1, s.end());
+              const seq_view tail {s.subspan(1)};
               all_empty = all_empty && tail.empty();
-              tails.push_back(std::move(tail));
+              tails.push_back(tail);
             }
           }
           if (tails.empty()) {
@@ -244,10 +267,10 @@ namespace real::detail {
           }
           std::int32_t child {-1};
           if (!all_empty) { // UTF-8 is prefix-free, so within one interval the tails share a length
-            std::vector<std::vector<utf8_byte_range>> nonempty;
-            for (std::vector<utf8_byte_range>& t : tails) {
+            std::vector<seq_view> nonempty;
+            for (const seq_view& t : tails) {
               if (!t.empty()) {
-                nonempty.push_back(std::move(t));
+                nonempty.push_back(t);
               }
             }
             child = build(nonempty);
@@ -255,22 +278,31 @@ namespace real::detail {
           node.trans.emplace_back(utf8_byte_range {.lo = static_cast<std::uint8_t>(lo), .hi = static_cast<std::uint8_t>(hi)}, child);
         }
 
-        std::vector<std::int32_t>& bucket {memo[hash_trans(node.trans) % memo.size()]};
-        for (const std::int32_t existing : bucket) {
+        std::int32_t& head {memo_head[hash_trans(node.trans) % memo_head.size()]};
+        for (std::int32_t existing = head; existing >= 0;
+             existing = memo_next[static_cast<std::size_t>(existing)]) {
           if (trans_equal(nodes[static_cast<std::size_t>(existing)].trans, node.trans)) {
             return existing; // an identical suffix sub-trie already exists (Daciuk sharing)
           }
         }
         const auto id {static_cast<std::int32_t>(nodes.size())};
         nodes.push_back(std::move(node));
-        bucket.push_back(id);
+        memo_next.push_back(head);
+        head = id;
         return id;
       }
     };
-    constexpr std::size_t                  trie_memo_buckets {1024}; // chained buckets, sized for the bounded trie
-    std::vector<std::vector<std::int32_t>> memo(trie_memo_buckets);
-    builder                                b                 {trie.nodes, memo};
-    trie.root = b.build(seqs);
+    constexpr std::size_t     trie_memo_buckets {1024}; // chained buckets, sized for the bounded trie
+    std::vector<std::int32_t> memo_head(trie_memo_buckets, -1);
+    std::vector<std::int32_t> memo_next;
+    memo_next.reserve(seqs.size());
+    std::vector<seq_view>     roots;
+    roots.reserve(seqs.size());
+    for (const std::vector<utf8_byte_range>& s : seqs) {
+      roots.emplace_back(s);
+    }
+    builder b {trie.nodes, memo_head, memo_next};
+    trie.root = b.build(roots);
     return trie;
   }
 
@@ -291,9 +323,24 @@ namespace real::detail {
   //! \brief Emits \p trie into \p bp as a deterministic split/klass/jump fragment; accept edges jump to
   //!        \p after (the construct's successor). The root is emitted first, so the fragment's entry is its
   //!        base pc. Disjoint ranges mean at most one branch matches any byte.
-  inline void emit_utf8_trie(byte_program&    bp,
-                             const utf8_trie& trie,
-                             std::int32_t     after)
+  /*!
+   * \brief Emits \p trie into \p bp, interning each edge's byte range through \p seen.
+   *
+   * Every edge class here is a SINGLE range (`set_range` below), so `(lo, hi)` is an exact key and two
+   * edges with the same range can share one interned class. Without that sharing a UTF-8 trie interns
+   * the same range once per edge -- the continuation range `0x80..0xBF` sits on nearly every node --
+   * and the redundancy compounds across occurrences: `(\w+)@(\w+)` interned 2507 classes for 475
+   * distinct ranges. The caller owns \p seen so it spans all occurrences in one program, which is
+   * where most of the duplication lives (each `\w+` emits its own full trie).
+   *
+   * Sharing an index is safe because a class index is only ever read as "which byte set" -- the
+   * alphabet, `onepass`'s class_cover_, and the DFA all treat it that way; nothing uses it to tell two
+   * `klass` instructions apart.
+   */
+  inline void emit_utf8_trie(byte_program&                                     bp,
+                             const utf8_trie&                                  trie,
+                             std::int32_t                                      after,
+                             std::unordered_map<std::uint16_t, std::uint16_t>& seen)
   {
     if (trie.root < 0) {
       bp.code.push_back({.op = opcode::klass, .arg16 = static_cast<std::uint16_t>(bp.classes.size())});
@@ -323,10 +370,21 @@ namespace real::detail {
         if (j + 1 < k) {
           bp.code.push_back({.op = opcode::split, .primary_target = here + 1, .secondary_target = here + 3});
         }
-        char_class cc;
-        cc.set_range(edge.first.lo, edge.first.hi);
-        bp.code.push_back({.op = opcode::klass, .arg16 = static_cast<std::uint16_t>(bp.classes.size())});
-        bp.classes.push_back(cc);
+        const auto key    {static_cast<std::uint16_t>((static_cast<unsigned>(edge.first.lo) << 8U)
+                                                      | static_cast<unsigned>(edge.first.hi))};
+        const auto    it  {seen.find(key)};
+        std::uint16_t idx {};
+        if (it != seen.end()) {
+          idx = it->second;
+        }
+        else {
+          idx = static_cast<std::uint16_t>(bp.classes.size());
+          char_class cc;
+          cc.set_range(edge.first.lo, edge.first.hi);
+          bp.classes.push_back(cc);
+          seen.emplace(key, idx);
+        }
+        bp.code.push_back({.op = opcode::klass, .arg16 = idx});
         bp.code.push_back({.op = opcode::jump, .primary_target = target});
       }
     }
@@ -415,13 +473,17 @@ namespace real::detail {
     }
     map[n] = static_cast<std::int32_t>(cur);
 
+    // One intern cache for the whole program: the same UTF-8 range recurs across occurrences, not
+    // just within one trie.
+    std::unordered_map<std::uint16_t, std::uint16_t> range_intern;
+
     const auto remap {[&](std::int32_t t) {
                         return (t >= 0 && static_cast<std::size_t>(t) <= n) ? map[static_cast<std::size_t>(t)] : t;
                       }};
     for (std::size_t pc = 0; pc < n; ++pc) {
       const instr& in {prog.code[pc]};
       if (in.op == opcode::klass_cp) {
-        emit_utf8_trie(bp, tries[pc], map[pc + 4]);
+        emit_utf8_trie(bp, tries[pc], map[pc + 4], range_intern);
         pc += 3;
       }
       else {
@@ -460,12 +522,56 @@ namespace real::detail {
                                               }
                                               vec.push_back(value);
                                             }};
+    // Memoize by class index and by literal byte. `push_unique` is a linear scan with a full 256-bit
+    // char_class compare, and it ran once per `klass` INSTRUCTION -- ~2507 of them for `(\w+)@(\w+)`
+    // against only 475 distinct classes, so ~595k class comparisons where 113k suffice. Skipping an
+    // index already processed is a no-op by construction: its content was pushed the first time.
+    // This pays only because emit_utf8_trie now shares one interned class per byte range; with a fresh
+    // index per edge the memo would never hit.
+    // Distinct-class collection, hashed rather than linear-scanned. The linear scan compares whole
+    // 256-bit char_class values; on `(\w+)@(\w+)` it ran 112575 of them to find exactly ONE duplicate,
+    // because interning already shares one class per byte range (see emit_utf8_trie) so the array arrives
+    // nearly deduplicated. Intrusive chain, not std::unordered_map: this function is constexpr and the
+    // engine headers avoid std::hash, whose out-of-line libc++ symbols drift across toolchains. Insertion
+    // order in `class_preds` is preserved, so sig_equal's early exit behaves identically.
+    constexpr std::size_t     pred_buckets {512};
+    std::vector<std::int32_t> pred_head(pred_buckets, -1);
+    std::vector<std::int32_t> pred_next;
+    std::vector<bool>         seen_class(classes.size(), false);
+    std::array<bool, 256>     seen_byte {};
     for (const instr& in : code) {
       if (in.op == opcode::klass && in.arg16 < classes.size()) {
-        push_unique(class_preds, classes[in.arg16]);
+        if (!seen_class[in.arg16]) {
+          seen_class[in.arg16] = true;
+          // Inlined rather than a lambda: the analyzer cannot model a `[&]`-captured vector through the
+          // call and reports a null-pointer call on every use of `class_preds`, and one call site does not
+          // justify suppressing that.
+          const char_class& cc {classes[in.arg16]};
+          std::uint64_t     h  {1469598103934665603ULL};
+          for (const std::uint64_t w : cc.bits) {
+            h = (h ^ w) * 1099511628211ULL;
+          }
+          std::int32_t& head    {pred_head[static_cast<std::size_t>(h) % pred_buckets]};
+          bool          present {false};
+          for (std::int32_t i2 = head; i2 >= 0; i2 = pred_next[static_cast<std::size_t>(i2)]) {
+            if (class_preds[static_cast<std::size_t>(i2)] == cc) {
+              present = true;
+              break;
+            }
+          }
+          if (!present) {
+            const auto id {static_cast<std::int32_t>(class_preds.size())};
+            class_preds.push_back(cc);
+            pred_next.push_back(head);
+            head = id;
+          }
+        }
       }
       else if (in.op == opcode::byte) {
-        push_unique(literal_preds, static_cast<std::uint16_t>(in.arg8));
+        if (!seen_byte[in.arg8]) {
+          seen_byte[in.arg8] = true;
+          push_unique(literal_preds, static_cast<std::uint16_t>(in.arg8));
+        }
       }
     }
     const auto sig_equal {[&](unsigned a, unsigned b) {

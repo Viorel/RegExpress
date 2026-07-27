@@ -122,6 +122,84 @@ namespace real::detail {
     return npos;
   }
 
+  /*!
+   * \brief Candidate scan for a HETEROGENEOUS fixed shape: two positions filtered per vector compare,
+   *        each survivor handed to \p verify.
+   *
+   * \ref simd_fixed_shape_scan serves only a shape whose every position accepts the identical set,
+   * because there "all L lanes in range" *is* the verify. A shape whose positions differ — `(?i)cafe`
+   * (position 0 accepts `{c,C}`, position 3 `{e,E}`), `\w\d\w\d` — had no vector path at all and
+   * scanned byte by byte. This one filters on the two most selective positions the compiler picked
+   * (\ref pattern_hints::fs_pair_width and friends), so it is a *prefilter*, not a fused verify.
+   *
+   * The mask is `load_range_mask(A) & load_range_mask(B)` — no new ISA primitive: both legs return a
+   * per-lane all-ones/all-zero mask, so the bitwise AND is the conjunction on either packing.
+   *
+   * Linear by \ref simd_literal_scan's argument: the block loop advances 16 per round and verifies at
+   * most 16 candidates of `fs_pair_width` bytes each, so the work stays `O(n · width)`, `width <= 16`.
+   *
+   * \tparam Verify Callable `(std::size_t) -> std::size_t`: the match end, or \ref real::npos.
+   *                (by value, like \ref fast_search takes its MatchAt -- a forwarding reference here
+   *                is never forwarded, which clang-tidy rightly flags).
+   * \param[in]  text        The subject text.
+   * \param[in]  start       Offset to begin scanning from.
+   * \param[in]  hints       The pattern's hints (`fs_pair_*`).
+   * \param[in]  verify      The caller's per-position walk (it also applies the `\b` conditions).
+   * \param[out] match_end   On a match, the verified end offset.
+   * \param[out] resume_from On no match, where the scalar walk should resume.
+   * \return The verified match start, or \ref real::npos when this scan found none.
+   */
+  template <typename Verify>
+  inline std::size_t simd_fixed_shape_pair_scan(std::string_view     text,
+                                                std::size_t          start,
+                                                const pattern_hints& hints,
+                                                Verify               verify,
+                                                std::size_t&         match_end,
+                                                std::size_t&         resume_from)
+  {
+    const std::size_t width {hints.fs_pair_width};
+    const std::size_t sz    {text.size()};
+    resume_from = start;
+    if (sz < width) {
+      return npos;
+    }
+    const std::size_t off_a {hints.fs_pair_off_a};
+    const std::size_t off_b {hints.fs_pair_off_b};
+    const std::size_t last  {sz - width};
+    std::size_t       pos   {start};
+    while (pos + 16 <= last + 1) {
+      std::array<std::uint8_t, 16> blk_a {};
+      std::array<std::uint8_t, 16> blk_b {};
+      std::memcpy(blk_a.data(), text.data() + pos + off_a, 16); // MISRA-clean byte loads (no type-pun)
+      std::memcpy(blk_b.data(), text.data() + pos + off_b, 16);
+      mask_t m {static_cast<mask_t>(
+                  load_range_mask(blk_a.data(), hints.fs_pair_a_lo0, hints.fs_pair_a_hi0,
+                                  hints.fs_pair_a_lo1, hints.fs_pair_a_hi1)
+                  & load_range_mask(blk_b.data(), hints.fs_pair_b_lo0, hints.fs_pair_b_hi0,
+                                    hints.fs_pair_b_lo1, hints.fs_pair_b_hi1))};
+#if defined(REAL_TEST_INSTRUMENT)
+      // Bill this round's 16 candidate starts, as find_bytes_cascade bills its rounds. NOT optional:
+      // the deterministic work-counter gate is what caught the historical O(n^2) icase cascade, and it
+      // caught it only once that function billed. An icase literal reaches THIS path now, so a scan
+      // that bills nothing would silently un-cover the very shape the gate exists for (observed:
+      // work_units == 0 at both 256 KiB and 1 MiB, turning the assertion into 0 < 0).
+      prefilter_note_scan(16);
+#endif
+      while (!empty(m)) {
+        const std::size_t cand {pos + first_lane(m)};
+        const std::size_t e    {verify(cand)};
+        if (e != npos) {
+          match_end = e;
+          return cand;
+        }
+        m = clear_first(m); // this window can still hold a later candidate — no reload
+      }
+      pos += 16;
+    }
+    resume_from = pos; // fewer than 16 candidate starts left: the scalar walk takes it from here
+    return npos;
+  }
+
 #endif
 
   /*!
@@ -582,6 +660,24 @@ namespace real::detail {
           }
         }
       }
+#if defined(__ARM_NEON) || defined(__SSE2__)
+      // Heterogeneous fixed shape with a usable two-position filter (fs_pair_width; the compiler sets it
+      // only when the homogeneous fused scan does NOT apply and no single byte is memchr-able). Its own
+      // route so run_fixed_shape stays byte-identical -- see run_pair_filtered_shape.
+      // slot_count <= 2 (groupless) is load-bearing, not a convenience: a CAPTURING fixed shape needs its
+      // group slots filled, which run_fixed_shape does through its own grouped path (fill_fixed_saves at
+      // compile-time-constant offsets). This route writes only [0,1], so on `([ab])(a)` it reported a
+      // width-2 match with slots sized to 2 and the walk never terminated -- caught by exhaustive-compat
+      // (3.2M cases) as a runaway, and by a routed-vs-unrouted differential over the same corpus as a
+      // wrong span. Groupless is the whole target anyway ((?i)cafe, [ab][cd]); grouped shapes keep the
+      // ordinary walk.
+      if (!std::is_constant_evaluated() && sem_ == match_semantics::first
+          && mode == run_mode::search && prog_.hints.fs_pair_width >= 2
+          && prog_.slot_count <= 2 && !fixed_shape_pair_route_disabled()) {
+        prof::tick_route(prof::route::fixed_shape_pair);
+        return run_pair_filtered_shape(text, start, out_slots);
+      }
+#endif
       if (sem_ == match_semantics::first && prog_.hints.fixed_shape) {
         prof::tick_route(prof::route::fixed_shape);
         return run_fixed_shape(text, start, mode, out_slots);
@@ -1017,6 +1113,11 @@ namespace real::detail {
       if (immut->built_for.load(std::memory_order_relaxed) == want) {
         return; // double-check
       }
+      // Destroy the old extractor BEFORE the program it spans is replaced: onepass keeps `code_` /
+      // `classes_` as spans over its byte_program, so reassigning byte_prog first would leave the still-live
+      // op_table pointing at a freed buffer. Nothing dereferences it in that window today; closing the
+      // window costs one statement and removes the need to know that.
+      immut->op_table.reset();
       immut->byte_prog = build_byte_program(prog_); // Tier-A: ineligible if assert/lookaround
       if (immut->byte_prog.eligible) {
         immut->alphabet =
@@ -1025,10 +1126,24 @@ namespace real::detail {
       else {
         immut->alphabet = {};
       }
-      immut->op_table.reset();
-      const byte_program tier_b {build_byte_program(prog_, /*keep_assertions=*/ true)};
-      if (tier_b.eligible) {
-        immut->op_table.emplace(tier_b); // one-pass extractor: Tier-A window + Tier-B anchored
+      // Tier-B differs from Tier-A ONLY at `assert_position`: build_byte_program reads keep_assertions
+      // nowhere else, and every other ineligibility (assert_lookaround, a Tier 1 possessive loop) is
+      // decided identically either way. So a program with no `assert_position` yields a byte-for-byte
+      // identical expansion, and rebuilding it means expanding every Unicode class's UTF-8 trie a second
+      // time -- measured, that was 2 of the 5 trie builds per regex, plus a second full
+      // compute_lazy_alphabet over the same input.
+      //
+      // Reusing immut->byte_prog is also the sounder lifetime: onepass keeps `code_` / `classes_` as spans
+      // over the program it was built from, and the Tier-B local died at the end of this block.
+      if (std::any_of(prog_.code.begin(), prog_.code.end(),
+                      [](const instr& in) { return in.op == opcode::assert_position; })) {
+        const byte_program tier_b {build_byte_program(prog_, /*keep_assertions=*/ true)};
+        if (tier_b.eligible) {
+          immut->op_table.emplace(tier_b); // one-pass extractor: Tier-A window + Tier-B anchored
+        }
+      }
+      else if (immut->byte_prog.eligible) {
+        immut->op_table.emplace(immut->byte_prog);
       }
       immut->il_prefix_prog  = {};
       immut->il_min_haystack = 0;
@@ -2417,6 +2532,59 @@ namespace real::detail {
         }
         ++match_start;
       }
+      return false;
+    }
+
+    /*!
+     * \brief Search route for a HETEROGENEOUS fixed shape: vector-prefilter two positions, verify each
+     *        survivor with the ordinary fixed-body walk, hand the sub-block tail to \ref fast_search.
+     *
+     * **Its own route, dispatched from \ref run — deliberately NOT a branch inside \ref
+     * run_fixed_shape.** Hosting this block there was measured on callgrind to cost **+4 to +7 % more
+     * INSTRUCTIONS** on heterogeneous shapes that never enter it (`[0-9]{2}:[0-9]{2}`, which the
+     * `rare_byte` veto declines): not cycles, not layout luck — the block changed that function's
+     * optimization decisions and its scalar path paid. Two variants were tried inside it, inline and
+     * `noinline`; the `noinline` one halved the cost but also cut the win (icase −61.5 % → −56.0 % Ir),
+     * so neither was clean. Out here, `run_fixed_shape`'s body is byte-identical to before and only
+     * patterns that actually take this route see new code — the same isolation \ref
+     * run_class_loop_trailing_la buys for the class loop.
+     *
+     * `noinline` for the mirror reason: \ref run's own body must not grow (the guard there is one
+     * compare). Search mode only — anchored modes have a single candidate and go straight to the walk.
+     *
+     * \tparam OutSlots Output slot container.
+     * \param[in]  text      The subject text.
+     * \param[in]  start     Index to begin searching at.
+     * \param[out] out_slots Receives the matched span on success, `npos` on failure (seam parity with
+     *                       \ref run_fixed_shape's own `fail()`).
+     * \return `true` if the sequence matched.
+     */
+    template <typename OutSlots>
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
+    bool run_pair_filtered_shape(std::string_view text,
+                                 std::size_t      start,
+                                 OutSlots&        out_slots)
+    {
+      // The same verify run_fixed_shape uses, `\b` conditions included — not a reimplementation.
+      const auto at {[&](std::size_t s) {
+                       return match_fixed_body_wb</*SkipSaves=*/ false>(text, s);
+                     }};
+      std::size_t       resume {start};
+      std::size_t       end    {npos};
+      const std::size_t found  {
+        simd_fixed_shape_pair_scan(text, start, prog_.hints, at, end, resume)};
+      if (found != npos) {
+        ensure_slot_size(out_slots, 2); // == run_fixed_shape's write_span
+        out_slots[0] = found;
+        out_slots[1] = end;
+        return true;
+      }
+      if (fast_search(text, resume, at, out_slots)) { // the < 16-candidate tail
+        return true;
+      }
+      out_slots.assign(2, npos);
       return false;
     }
 

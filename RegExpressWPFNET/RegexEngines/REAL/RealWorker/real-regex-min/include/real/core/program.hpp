@@ -558,6 +558,34 @@ namespace real {
       //! line_anchored — an assert kind those hints do not represent would make that inference
       //! silently unsound. Appended last (same placement rule as \ref alternation_branch_count).
       bool literal_one_search {};
+
+      //! \brief HETEROGENEOUS fixed-shape pair filter: two positions, each with its own <= 2-range
+      //!        accepted set, used to reject 16 candidate starts per vector compare.
+      //!
+      //! \ref fixed_shape_simd_len only fires when EVERY position accepts the identical set (a
+      //! homogeneous shape like `[0-9a-f]{8}`), because there the "all L lanes in range" test *is* the
+      //! verify. A shape whose positions differ — `(?i)cafe` (position 0 accepts `{c,C}`, position 3
+      //! `{e,E}`), `[0-9]{2}:[0-9]{2}`, `\w\d\w\d` — got no vector help at all and scanned one byte
+      //! at a time. This pair filters instead of verifying: the two chosen positions must both match,
+      //! then the ordinary per-position walk confirms the candidate.
+      //!
+      //! The pair is the two most *selective* positions (smallest accepted-set cardinality, ties broken
+      //! toward the widest separation, so the two probes decorrelate). \ref fs_pair_width is the shape's
+      //! byte width, 0 when ineligible — set only when \ref fixed_shape_simd_len is 0 (the homogeneous
+      //! path already has its own, better, fused scan), the width is 2..16, and every position resolved
+      //! to 1..2 ranges. `lo1 > hi1` encodes "no second range", the same convention as \ref
+      //! fixed_shape_lo1. Appended last (same placement rule as \ref alternation_branch_count).
+      std::uint8_t fs_pair_width {};
+      std::uint8_t fs_pair_off_a {};
+      std::uint8_t fs_pair_off_b {};
+      std::uint8_t fs_pair_a_lo0 {};
+      std::uint8_t fs_pair_a_hi0 {};
+      std::uint8_t fs_pair_a_lo1 {1};
+      std::uint8_t fs_pair_a_hi1 {};
+      std::uint8_t fs_pair_b_lo0 {};
+      std::uint8_t fs_pair_b_hi0 {};
+      std::uint8_t fs_pair_b_lo1 {1};
+      std::uint8_t fs_pair_b_hi1 {};
     };
 
     /*!

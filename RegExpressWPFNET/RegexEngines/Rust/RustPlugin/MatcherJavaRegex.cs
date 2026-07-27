@@ -22,17 +22,16 @@ namespace RustPlugin
     static class MatcherJavaRegex
     {
 
-
         public class MatchesResponse
         {
-            public MatchResponse[] matches { get; set; }
+            public required MatchResponse[] matches { get; set; }
         }
 
         public class MatchResponse
         {
-            public int[] m { get; set; }
-            public int[][] g { get; set; }
-            public string[][] ng { get; set; }
+            public required int[] m { get; set; }
+            public required int[][] g { get; set; }
+            public required string[][] ng { get; set; }
         }
 
 
