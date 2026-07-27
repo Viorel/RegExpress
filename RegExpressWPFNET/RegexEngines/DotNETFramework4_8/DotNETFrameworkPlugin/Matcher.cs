@@ -21,14 +21,14 @@ namespace DotNETFrameworkPlugin
     {
         sealed class VersionResponse
         {
-            public string? version { get; init; }
+            public required string version { get; init; }
         }
 
         sealed class WorkerMatch
         {
             public int index { get; init; }
             public int length { get; init; }
-            public WorkerGroup[] groups { get; init; } = [];
+            public required WorkerGroup[] groups { get; init; }
         }
 
         sealed class WorkerGroup
@@ -37,7 +37,7 @@ namespace DotNETFrameworkPlugin
             public int index { get; init; }
             public int length { get; init; }
             public string? name { get; init; }
-            public WorkerCapture[] captures { get; init; } = [];
+            public required WorkerCapture[] captures { get; init; }
         }
 
         sealed class WorkerCapture
@@ -67,7 +67,9 @@ namespace DotNETFrameworkPlugin
 
             WorkerMatch[]? worker_matches = JsonSerializer.Deserialize<WorkerMatch[]>( ph.OutputStream );
 
-            SimpleMatch[] matches = new SimpleMatch[worker_matches!.Length];
+            if( worker_matches == null ) throw new Exception( "Invalid response." );
+
+            SimpleMatch[] matches = new SimpleMatch[worker_matches.Length];
             SimpleTextGetter text_getter = new( text );
 
             for( int i = 0; i < worker_matches.Length; i++ )
@@ -114,9 +116,9 @@ namespace DotNETFrameworkPlugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            VersionResponse response = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream )!;
+            VersionResponse? response = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream );
 
-            return response.version;
+            return response?.version;
         }
 
         static string GetWorkerExePath( )

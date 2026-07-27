@@ -23,22 +23,22 @@ namespace JavaPlugin
 
         public class Rootobject
         {
-            public Match[] matches { get; set; }
+            public required Match[] matches { get; set; }
         }
 
         public class Match
         {
             public int s { get; set; }
             public int e { get; set; }
-            public int[][] g { get; set; }
-            public Ng[] ng { get; set; }
+            public required int[][] g { get; set; }
+            public required Ng[] ng { get; set; }
         }
 
         public class Ng
         {
             public int s { get; set; }
             public int e { get; set; }
-            public string n { get; set; }
+            public required string n { get; set; }
         }
 
 
