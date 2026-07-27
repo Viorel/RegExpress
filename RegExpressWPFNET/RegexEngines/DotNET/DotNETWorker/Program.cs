@@ -170,6 +170,7 @@ namespace DotNET9Worker
             {
                 if( options.Compiled ) o |= RegexOptions.Compiled;
                 if( options.CultureInvariant ) o |= RegexOptions.CultureInvariant;
+                if( options.ECMAScript ) o |= RegexOptions.ECMAScript;
                 if( options.ExplicitCapture ) o |= RegexOptions.ExplicitCapture;
                 if( options.IgnoreCase ) o |= RegexOptions.IgnoreCase;
                 if( options.IgnorePatternWhitespace ) o |= RegexOptions.IgnorePatternWhitespace;
