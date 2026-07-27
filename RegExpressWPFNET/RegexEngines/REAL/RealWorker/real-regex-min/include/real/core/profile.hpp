@@ -32,6 +32,7 @@ namespace real::detail::prof {
     exact_literal,
     inner_literal,
     fixed_shape,
+    fixed_shape_pair,  //!< heterogeneous fixed shape, two-position vector prefilter.
     codepoint_class,
     alternation,
     aho_corasick,      //!< multi-literal automaton, past the measured branch-count threshold.
@@ -125,6 +126,7 @@ namespace real::detail::prof {
       case route::exact_literal: return "exact_literal";
       case route::inner_literal: return "inner_literal";
       case route::fixed_shape: return "fixed_shape";
+      case route::fixed_shape_pair: return "fixed_shape_pair";
       case route::codepoint_class: return "codepoint_class";
       case route::alternation: return "alternation";
       case route::aho_corasick: return "aho_corasick";
