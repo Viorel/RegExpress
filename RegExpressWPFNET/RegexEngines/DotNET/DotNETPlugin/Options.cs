@@ -14,6 +14,7 @@ namespace DotNETPlugin
         None,
         RegexDotNet,
         RegexDotNetFramework,
+        GoRegexp,
     }
 
     sealed class Options
@@ -32,6 +33,13 @@ namespace DotNETPlugin
         public bool Singleline { get; set; }
 
         public long TimeoutMs { get; set; } = 10_000;
+
+        // go.regexp
+
+        public bool posix { get; set; }
+        public bool longest { get; set; }
+        public bool literal { get; set; }
+
 
         public Options Clone( )
         {

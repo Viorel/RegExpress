@@ -1,0 +1,1 @@
+echo { "pattern" : "a(?<nameA>.)(?<nameB>Z)?(.)", "text" : "xx abc ade" } | ".\bin\Debug\net10.0-windows7.0\DotNETGoRegexpWorker.exe"

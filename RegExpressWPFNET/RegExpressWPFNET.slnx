@@ -30,8 +30,10 @@
     <Project Path="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj">
       <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+      <BuildDependency Project="RegexEngines/DotNET/DotNETGoRegexpWorker/DotNETGoRegexpWorker.csproj" />
     </Project>
     <Project Path="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+    <Project Path="RegexEngines/DotNET/DotNETGoRegexpWorker/DotNETGoRegexpWorker.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/Fortran/">
     <Project Path="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
@@ -164,6 +166,7 @@
     <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET/DotNETGoRegexpWorker/DotNETGoRegexpWorker.csproj" />
     <BuildDependency Project="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Go/GoPlugin/GoPlugin.csproj" />
     <BuildDependency Project="RegexEngines/GRETA/GretaPlugin/GretaPlugin.csproj" />

@@ -1,0 +1,1 @@
+echo { "pattern" : "*", "text" : "ab*c", "options" : { "literal" : true } } | ".\bin\Debug\net10.0-windows7.0\DotNETGoRegexpWorker.exe"

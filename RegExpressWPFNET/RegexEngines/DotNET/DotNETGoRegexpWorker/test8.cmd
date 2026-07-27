@@ -1,0 +1,1 @@
+echo { "pattern" : "(.)\\1", "text" : "aa" } | ".\bin\Debug\net10.0-windows7.0\DotNETGoRegexpWorker.exe"

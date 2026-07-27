@@ -12,5 +12,6 @@ namespace DotNETPlugin
 
         public static string? DotNet { get; } = LazyVersionDotNet.Value;
         public static string? DotNetFramework { get; } = LazyVersionDotNetFramework.Value;
+        public static string? GoRegexp { get; } = "1.23.1.2";
     }
 }

@@ -6,8 +6,7 @@
              xmlns:local="clr-namespace:DotNETPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             Loaded="UserControl_Loaded" d:DesignHeight="237.656" d:DesignWidth="526.328" >
-
+             Loaded="UserControl_Loaded" d:DesignHeight="298.456" d:DesignWidth="526.328" >
 
     <UserControl.Resources>
         <local:Versions x:Key="versions"/>
@@ -17,20 +16,21 @@
     </UserControl.Resources>
 
     <Grid>
-        <StackPanel>
-            <StackPanel>
+        <StackPanel Orientation="Vertical">
+            
+            <StackPanel Orientation="Horizontal" Margin="0 0 0 7">
+                <StackPanel.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </StackPanel.LayoutTransform>
+                <Label Content="Class:" Target="{Binding ElementName=cbxClass}" Padding="0 2 4 2" MinWidth="40" VerticalAlignment="Center"/>
+                <ComboBox x:Name="cbxClass" SelectedValuePath="Tag" SelectedValue="{Binding Class, FallbackValue='RegexDotNet'}" VerticalAlignment="Center" SelectionChanged="cbxClass_SelectionChanged"  MinWidth="44">
+                    <ui:ComboBoxItemWithVersion Tag="RegexDotNet"           Text="Regex .NET"           Version="{Binding DotNet,           Source={StaticResource versions}}" d:Version="###" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="RegexDotNetFramework"  Text="Regex .NET Framework" Version="{Binding DotNetFramework,  Source={StaticResource versions}}" d:Version="###" />
+                    <ui:ComboBoxItemWithVersion Tag="GoRegexp"              Text="go.regex"             Version="{Binding GoRegexp,         Source={StaticResource versions}}" d:Version="###" />
+                </ComboBox>
+            </StackPanel>
 
-                <StackPanel Orientation="Horizontal" Margin="0 0 0 7">
-                    <StackPanel.LayoutTransform>
-                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                    </StackPanel.LayoutTransform>
-                    <Label Content="Class:" Target="{Binding ElementName=cbxClass}" Padding="0 2 4 2" MinWidth="40" VerticalAlignment="Center"/>
-                    <ComboBox x:Name="cbxClass" SelectedValuePath="Tag" SelectedValue="{Binding Class, FallbackValue='RegexDotNet'}" VerticalAlignment="Center" SelectionChanged="cbxClass_SelectionChanged"  MinWidth="44">
-                        <ui:ComboBoxItemWithVersion Tag ="RegexDotNet"          Text="Regex .NET"           Version="{Binding DotNet, Source={StaticResource versions}}" d:Version="###" IsSelected="True" />
-                        <ui:ComboBoxItemWithVersion Tag ="RegexDotNetFramework" Text="Regex .NET Framework" Version="{Binding DotNetFramework, Source={StaticResource versions}}" d:Version="###" />
-                    </ComboBox>
-                </StackPanel>
-
+            <StackPanel x:Name="pnlRegex" Orientation="Vertical">
                 <ui:CheckboxWithNote Prop="Compiled" Note="compile to MSIL code"/>
                 <ui:CheckboxWithNote Prop="CultureInvariant" Note="ignore cultural differences"/>
                 <ui:CheckboxWithNote Prop="ECMAScript" Note="ECMAScript-compliant behavior"/>
@@ -42,22 +42,30 @@
                 <ui:CheckboxWithNote x:Name="NonBacktrackingDisabled" Prop="" Text="NonBacktracking" Note="avoid backtracking, guarantee linear-time processing" IsEnabled="False"/>
                 <ui:CheckboxWithNote Prop="RightToLeft" Note="search from right to left"/>
                 <ui:CheckboxWithNote Prop="Singleline" Note="“.” matches “\n” too (?s)"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
+                    <StackPanel.LayoutTransform>
+                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                    </StackPanel.LayoutTransform>
+                    <Label Content="Timeout:" Target="{Binding ElementName=cbxTimeout}" Padding="0 2 4 2"/>
+                    <ComboBox x:Name="cbxTimeout" SelectedValuePath="Tag" SelectedValue="{Binding TimeoutMs, FallbackValue='10000'}" VerticalAlignment="Center" SelectionChanged="cbxTimeout_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
+                        <ComboBoxItem Tag="1000" Content="1 s"/>
+                        <ComboBoxItem Tag="2000" Content="2 s"/>
+                        <ComboBoxItem Tag="5000" Content="5 s"/>
+                        <ComboBoxItem Tag="10000" Content="10 s" IsSelected="True"/>
+                        <ComboBoxItem Tag="15000" Content="15 s"/>
+                        <ComboBoxItem Tag="30000" Content="30 s"/>
+                        <ComboBoxItem Tag="-1" Content="None"/>
+                    </ComboBox>
+                </StackPanel>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
-                <StackPanel.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </StackPanel.LayoutTransform>
-                <Label Content="Timeout:" Target="{Binding ElementName=cbxTimeout}" Padding="0 2 4 2"/>
-                <ComboBox x:Name="cbxTimeout" SelectedValuePath="Tag" SelectedValue="{Binding TimeoutMs, FallbackValue='10000'}" VerticalAlignment="Center" SelectionChanged="cbxTimeout_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
-                    <ComboBoxItem Tag="1000" Content="1 s"/>
-                    <ComboBoxItem Tag="2000" Content="2 s"/>
-                    <ComboBoxItem Tag="5000" Content="5 s"/>
-                    <ComboBoxItem Tag="10000" Content="10 s" IsSelected="True"/>
-                    <ComboBoxItem Tag="15000" Content="15 s"/>
-                    <ComboBoxItem Tag="30000" Content="30 s"/>
-                    <ComboBoxItem Tag="-1" Content="None"/>
-                </ComboBox>
+
+            <StackPanel x:Name="pnlGoRegexp" Orientation="Vertical">
+                <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>
+                <ui:CheckboxWithNote x:Name="cbxLongest" Prop="longest" Text="longest" Note="prefer the leftmost-longest match"/>
+                <ui:CheckboxWithNote x:Name="cbxLiteral" Prop="literal" Note="interpret pattern as literal, not regexp"/>
             </StackPanel>
+
         </StackPanel>
     </Grid>
 </UserControl>

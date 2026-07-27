@@ -31,6 +31,10 @@ xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrame
 copy /Y "%EnginesTargetPath%\DotNET\FrameworkWorker\DotNETFrameworkWorker.exe.config" "%EnginesTargetPath%\DotNET\FrameworkWorker\DotNETFrameworkWorker.bin.config" > nul
 xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\*.dll" "%EnginesTargetPath%\DotNET\FrameworkWorker\*"
 
+xcopy /D /R /Y "%BasePath%\DotNETGoRegexpWorker\bin\%Configuration%\net10.0-windows7.0\DotNETGoRegexpWorker.exe" "%EnginesTargetPath%\DotNET\DotNETGoRegexpWorker\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNETGoRegexpWorker\bin\%Configuration%\net10.0-windows7.0\*.dll" "%EnginesTargetPath%\DotNET\DotNETGoRegexpWorker\*"
+xcopy /D /R /Y "%BasePath%\DotNETGoRegexpWorker\bin\%Configuration%\net10.0-windows7.0\*.json" "%EnginesTargetPath%\DotNET\DotNETGoRegexpWorker\*"
+
 
 rem -- STD --
 

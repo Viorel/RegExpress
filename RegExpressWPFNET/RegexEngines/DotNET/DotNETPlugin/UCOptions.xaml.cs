@@ -58,11 +58,16 @@ namespace DotNETPlugin
                 {
                     "RegexDotNet" => ClassEnum.RegexDotNet,
                     "RegexDotNetFramework" => ClassEnum.RegexDotNetFramework,
+                    "GoRegexp" => ClassEnum.GoRegexp,
                     _ => ClassEnum.None,
                 };
 
                 bool is_dotnet = @class == ClassEnum.RegexDotNet;
                 bool is_dotnet_framework = @class == ClassEnum.RegexDotNetFramework;
+                bool is_goregexp = @class == ClassEnum.GoRegexp;
+
+                pnlRegex.Display( is_dotnet || is_dotnet_framework );
+                pnlGoRegexp.Display( is_goregexp );
 
                 NonBacktracking.Display( is_dotnet );
                 NonBacktrackingDisabled.Display( !is_dotnet );
