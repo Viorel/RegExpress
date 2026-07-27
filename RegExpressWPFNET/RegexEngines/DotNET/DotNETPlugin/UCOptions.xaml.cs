@@ -13,9 +13,10 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using RegExpressLibrary;
+using RegExpressLibrary.UI;
 
 
-namespace DotNET9Plugin
+namespace DotNETPlugin
 {
     /// <summary>
     /// Interaction logic for UCOptions.xaml
@@ -40,26 +41,60 @@ namespace DotNET9Plugin
             if( IsFullyLoaded ) return;
 
             IsFullyLoaded = true;
+
+            UpdateUI( );
         }
 
         void UpdateUI( )
         {
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
+
+            try
+            {
+                ++ChangeCounter;
+
+                ClassEnum @class = ( (ComboBoxItem)cbxClass.SelectedItem )?.Tag?.ToString( ) switch
+                {
+                    "RegexDotNet" => ClassEnum.RegexDotNet,
+                    "RegexDotNetFramework" => ClassEnum.RegexDotNetFramework,
+                    _ => ClassEnum.None,
+                };
+
+                bool is_dotnet = @class == ClassEnum.RegexDotNet;
+                bool is_dotnet_framework = @class == ClassEnum.RegexDotNetFramework;
+
+                NonBacktracking.Display( is_dotnet );
+                NonBacktrackingDisabled.Display( !NonBacktracking.IsVisible );
+            }
+            finally
+            {
+                --ChangeCounter;
+            }
+        }
+
+        void Notify( bool preferImmediateReaction )
+        {
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
+
+            Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
+        }
+
+        private void cbxClass_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateUI( );
+            Notify( true );
         }
 
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
-            if( !IsFullyLoaded ) return;
-            if( ChangeCounter != 0 ) return;
-
-            Changed?.Invoke( this, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = false } );
+            Notify( false );
         }
 
         private void cbxTimeout_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            if( !IsFullyLoaded ) return;
-            if( ChangeCounter != 0 ) return;
-
-            Changed?.Invoke( this, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = true } );
+            Notify( true );
         }
 
         internal void SetOptions( Options options )
@@ -79,5 +114,6 @@ namespace DotNET9Plugin
                 --ChangeCounter;
             }
         }
+
     }
 }

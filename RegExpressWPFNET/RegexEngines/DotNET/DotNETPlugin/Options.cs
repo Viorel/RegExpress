@@ -7,10 +7,19 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 
-namespace DotNET9Plugin
+namespace DotNETPlugin
 {
+    enum ClassEnum
+    {
+        None,
+        RegexDotNet,
+        RegexDotNetFramework,
+    }
+
     sealed class Options
     {
+        public ClassEnum Class { get; set; } = ClassEnum.RegexDotNet;
+
         public bool Compiled { get; set; }
         public bool CultureInvariant { get; set; }
         public bool ECMAScript { get; set; }
@@ -18,7 +27,7 @@ namespace DotNET9Plugin
         public bool IgnoreCase { get; set; }
         public bool IgnorePatternWhitespace { get; set; }
         public bool Multiline { get; set; }
-        public bool NonBacktracking { get; set; }
+        public bool NonBacktracking { get; set; } // not in .NET Framework 4.8
         public bool RightToLeft { get; set; }
         public bool Singleline { get; set; }
 

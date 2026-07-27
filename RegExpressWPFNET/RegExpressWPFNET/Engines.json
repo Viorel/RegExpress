@@ -4,10 +4,6 @@
       "path": "Engines\\DotNET\\DotNETPlugin.dll"
     },
     {
-      "path": "Engines\\DotNETFramework4_8\\DotNETFrameworkPlugin.dll",
-      "no_fm": true
-    },
-    {
       "path": "Engines\\Std\\StdPlugin.dll"
     },
     {
