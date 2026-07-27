@@ -65,7 +65,7 @@ namespace JavaPlugin
 
             ph.AllEncoding = EncodingEnum.UTF8;
 
-            ph.Arguments = ["-cp", $"{workerDir};{Path.Combine( workerDir, "safere-0.9.0.jar" )};{Path.Combine( workerDir, "json-simple-1.1.1.jar" )}", "SafeREWorker"];
+            ph.Arguments = ["-cp", $"{workerDir};{Path.Combine( workerDir, $"safere-{Versions.SafeRE}.jar" )};{Path.Combine( workerDir, "json-simple-1.1.1.jar" )}", "SafeREWorker"];
 
             var obj = new
             {

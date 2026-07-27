@@ -57,7 +57,7 @@ namespace JavaPlugin
 
             ph.AllEncoding = EncodingEnum.UTF8;
 
-            ph.Arguments = ["-cp", $"{workerDir};{Path.Combine( workerDir, "reggie-0.3.0.jar" )};{Path.Combine( workerDir, "asm-9.9.1.jar" )};{Path.Combine( workerDir, "asm-commons-9.9.1.jar" )};{Path.Combine( workerDir, "asm-util-9.9.1.jar" )};{Path.Combine( workerDir, "json-simple-1.1.1.jar" )}", "ReggieWorker"];
+            ph.Arguments = ["-cp", $"{workerDir};{Path.Combine( workerDir, $"reggie-{Versions.Reggie}.jar" )};{Path.Combine( workerDir, "asm-9.9.1.jar" )};{Path.Combine( workerDir, "asm-commons-9.9.1.jar" )};{Path.Combine( workerDir, "asm-util-9.9.1.jar" )};{Path.Combine( workerDir, "json-simple-1.1.1.jar" )}", "ReggieWorker"];
 
             var obj = new
             {
