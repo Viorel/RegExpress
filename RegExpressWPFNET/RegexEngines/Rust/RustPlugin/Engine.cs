@@ -82,8 +82,9 @@ namespace RustPlugin
         public RegexEngineCapabilityEnum Capabilities =>
             Options.crate switch
             {
-                CrateEnum.resharp => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd,
-                _ => RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd
+                CrateEnum.regex => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd,
+                CrateEnum.resharp => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures,
+                _ => RegexEngineCapabilityEnum.NoCaptures
             };
 
         public string? NoteForCaptures => null;

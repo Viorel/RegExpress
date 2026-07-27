@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 json = "0.12.4"
-real-regex = { version = "2026.7.55", features = ["fallback"] }
+real-regex = { version = "2026.7.56", features = ["fallback"] }

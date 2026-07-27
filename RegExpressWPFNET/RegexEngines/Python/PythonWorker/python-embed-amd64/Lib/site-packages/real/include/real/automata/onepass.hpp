@@ -30,6 +30,7 @@
 #include <cassert>
 #include <memory>
 #include <mutex>
+#include <span>
 #include <type_traits>
 #include <unordered_map>
 #include <optional>
@@ -236,6 +237,37 @@ namespace real::detail {
       bail_pc_     = pc;
     }
 
+    /*!
+     * \brief The first non-`jump` pc reachable from \p pc by following unconditional jumps.
+     *
+     * A `jump` is a pure epsilon step -- no byte consumed, no capture written, no assertion added (see the
+     * `opcode::jump` case in \ref build_edges, which just recurses with the masks unchanged) -- so the node
+     * at a jump's pc and the node at its target receive identical edges. Creating one for each was what left
+     * the flood holding a private copy of every shared trie subgraph for \ref minimize to merge afterwards:
+     * 2506 of 2508 nodes for `(\w+)@(\w+)` sat on a jump, because \ref emit_utf8_trie writes `klass` then
+     * `jump(target)` per trie edge and the successor below was taken as `pc + 1`. Resolving the chain makes
+     * the flood produce the shared node directly -- measured, the flood now lands ON the minimal automaton
+     * for those patterns (660 nodes in and 660 out, where it was 2508 in and 660 out).
+     *
+     * Bounded by the code size. A jump cycle would spin here, and \ref build_edges's `on_path` detection only
+     * sees pcs it actually visits; on hitting the bound the pc is returned as-is, the flood reaches the cycle
+     * through \ref build_edges, and that bails exactly as before.
+     *
+     * \param[in] pc Starting pc.
+     * \return The resolved pc (\p pc itself when it is not a jump, or on running out of steps).
+     */
+    [[nodiscard]] constexpr std::int32_t follow_jumps(std::int32_t pc) const
+    {
+      for (std::size_t steps = 0; steps < code_.size(); ++steps) {
+        if (pc < 0 || static_cast<std::size_t>(pc) >= code_.size()
+            || code_[static_cast<std::size_t>(pc)].op != opcode::jump) {
+          return pc;
+        }
+        pc = code_[static_cast<std::size_t>(pc)].primary_target;
+      }
+      return pc;
+    }
+
     //! \brief Get-or-create the node whose entry pc is \p pc, enqueueing a fresh one for the flood.
     constexpr std::uint32_t node_of(std::int32_t               pc,
                                     std::vector<std::int32_t>& queue)
@@ -339,46 +371,113 @@ namespace real::detail {
       const std::uint64_t sig_width  {4U + (3U * static_cast<std::uint64_t>(alpha_.count))};
       const std::uint64_t round_work {static_cast<std::uint64_t>(n) * sig_width};
       std::uint64_t       work_done  {0};
+      // All scratch is FLAT and hoisted out of the refinement loop. Nested vectors cost three ways:
+      // rebuilding them per round was n + minimize_buckets (= 4096) allocations *each round*; the
+      // signatures' per-element push_back was capacity check plus construct per word (17 % of this
+      // build's instructions on a `\w`-shaped program); and 4096 vector headers is more memory than
+      // the table it indexes. Flat removes all three -- four allocations for the whole call.
+      //
+      // Every node's `edge` holds exactly alpha_.count entries (see build/rebuild), which is why
+      // `sig_width` above can be a single number for the work budget. Rows are nonetheless of
+      // VARIABLE length, because most of those entries are unassigned and contribute nothing -- hence
+      // `row_at` below rather than a fixed stride.
+      //
+      // Buckets are an intrusive chain (`bucket_head` + `bucket_next`) rather than 4096 vectors.
+      // Insertion is at the head, which is safe because a bucket only ever holds ONE representative
+      // per distinct signature -- a later node with an equal signature reuses its class and is not
+      // inserted -- so the walk order cannot change the result. `bucket_next` needs no per-round
+      // reset: heads are reset each round, so every node reached on a chain had its `next` written
+      // this round.
+      // Rows are SPARSE: only an ASSIGNED byte-class contributes. An unassigned class adds the same
+      // (0, 0, 0) to every node's dense row, so dropping it cannot change any comparison; and each
+      // sparse entry carries its class index, so two nodes whose assigned SETS differ can never
+      // compare equal. Density, not sparsity, is what decides the size of the win: 39.4 assigned
+      // classes of 103 for `(\w+)@(\w+)` gives 162 words a row against 313 dense, and 9.5 of 66 for
+      // `(\d+)@(\d+)` gives 42 against 202. Even the widest node measured (64 assigned) is 260, so
+      // the encoding never loses.
+      //
+      // Row at `row_at[i]`, `row_at[i + 1] - row_at[i]` words:
+      //   [0] cls[i]                                  <- per round
+      //   [1..3] matches, match_cap_mask, match_assert_mask
+      //   then per assigned class, in class order:
+      //   [+0] class index   [+1] cls[edge.next] + 1   <- per round
+      //   [+2] cap_mask      [+3] assert_mask
+      //
+      // The assigned set never changes between rounds -- only the partition ids do -- so the layout
+      // and every invariant word are written ONCE here, and a round rewrites just 1 + assigned words
+      // per node rather than the whole row.
+      std::vector<std::size_t> row_at(n + 1, 0);
+      for (std::size_t i = 0; i < n; ++i) {
+        std::size_t w {4};
+        for (const onepass_edge& e : nodes_[i].edge) {
+          w += e.assigned ? 4U : 0U;
+        }
+        row_at[i + 1] = row_at[i] + w;
+      }
+      std::vector<std::uint64_t> sigs(row_at[n], 0);
+      for (std::size_t i = 0; i < n; ++i) {
+        std::uint64_t* s {sigs.data() + row_at[i]};
+        s[1] = nodes_[i].matches ? 1U : 0U;
+        s[2] = nodes_[i].match_cap_mask;
+        s[3] = nodes_[i].match_assert_mask;
+        std::size_t w {4};
+        for (std::size_t c = 0; c < nodes_[i].edge.size(); ++c) {
+          const onepass_edge& e {nodes_[i].edge[c]};
+          if (e.assigned) {
+            s[w]     = c;
+            s[w + 2] = e.cap_mask;
+            s[w + 3] = e.assert_mask;
+            w       += 4;
+          }
+        }
+      }
+      std::vector<std::uint32_t> next_cls(n, 0);
+      std::vector<std::uint32_t> bucket_head(minimize_buckets, no_node);
+      std::vector<std::uint32_t> bucket_next(n, no_node);
       while (true) {
+        // The budget is still counted on the DENSE width. Sparse rows do less real work, but the cap
+        // was calibrated against observed dense work, and loosening it would let programs that used
+        // to decline build a table instead -- a route change, not a speed change.
         if (work_done + round_work > work_cap_) {
           bail("one-pass minimization exceeded its work budget: not one-pass", static_cast<std::int32_t>(n));
           return;
         }
         work_done += round_work;
-        std::vector<std::vector<std::uint64_t>> sigs(n);
         for (std::size_t i = 0; i < n; ++i) {
-          std::vector<std::uint64_t>& s {sigs[i]};
-          s.push_back(cls[i]);
-          s.push_back(nodes_[i].matches ? 1U : 0U);
-          s.push_back(nodes_[i].match_cap_mask);
-          s.push_back(nodes_[i].match_assert_mask);
+          std::uint64_t* s {sigs.data() + row_at[i]};
+          s[0] = cls[i];
+          std::size_t w    {5};
           for (const onepass_edge& e : nodes_[i].edge) {
-            s.push_back(e.assigned ? static_cast<std::uint64_t>(cls[e.next]) + 1U : 0U);
-            s.push_back(e.cap_mask);
-            s.push_back(e.assert_mask);
+            if (e.assigned) {
+              s[w] = static_cast<std::uint64_t>(cls[e.next]) + 1U;
+              w   += 4;
+            }
           }
         }
-        std::vector<std::uint32_t>              next_cls(n, 0);
-        std::vector<std::vector<std::uint32_t>> buckets(minimize_buckets);
-        std::uint32_t                           next {0};
+        next_cls.assign(n, 0);
+        bucket_head.assign(minimize_buckets, no_node);
+        std::uint32_t next {0};
         for (std::size_t i = 0; i < n; ++i) {
-          std::vector<std::uint32_t>& bucket {buckets[sig_hash(sigs[i]) % minimize_buckets]};
-          std::uint32_t               id     {no_node};
-          for (const std::uint32_t j : bucket) {
-            if (sigs[j] == sigs[i]) {
+          const std::span<const std::uint64_t> row  {sigs.data() + row_at[i], row_at[i + 1] - row_at[i]};
+          std::uint32_t&                       head {bucket_head[sig_hash(row) % minimize_buckets]};
+          std::uint32_t                        id   {no_node};
+          for (std::uint32_t j = head; j != no_node; j = bucket_next[j]) {
+            const std::span<const std::uint64_t> other {sigs.data() + row_at[j], row_at[j + 1] - row_at[j]};
+            if (std::equal(row.begin(), row.end(), other.begin(), other.end())) {
               id = next_cls[j];
               break;
             }
           }
           if (id == no_node) {
-            next_cls[i] = next++;
-            bucket.push_back(static_cast<std::uint32_t>(i));
+            next_cls[i]    = next++;
+            bucket_next[i] = head;
+            head           = static_cast<std::uint32_t>(i);
           }
           else {
             next_cls[i] = id;
           }
         }
-        cls = std::move(next_cls);
+        cls.swap(next_cls); // swap, not move: `next_cls` is reused next round (assign(n, 0) above)
         if (next == classes) {
           break; // fixpoint: the partition stopped refining
         }
@@ -423,7 +522,7 @@ namespace real::detail {
     //! \brief FNV-1a hash of a partition signature (for the constexpr-friendly bucket dedup). Accumulates in
     //!        a fixed 64-bit width and truncates only at the return, so a 32-bit `size_t` (Win32) never sees
     //!        a narrowing brace-init of the 64-bit offset basis.
-    static constexpr std::size_t sig_hash(const std::vector<std::uint64_t>& v)
+    static constexpr std::size_t sig_hash(std::span<const std::uint64_t> v)
     {
       std::uint64_t h {1469598103934665603ULL};
       for (const std::uint64_t x : v) {
@@ -453,7 +552,7 @@ namespace real::detail {
       switch (in.op) {
         case opcode::byte:
         case opcode::klass: {
-            const std::uint32_t next {node_of(pc + 1, queue)};
+            const std::uint32_t next {node_of(follow_jumps(pc + 1), queue)};
             onepass_node&       node {nodes_[node_id]};
             // Only the byte-classes this instruction actually consumes (one for `byte`, a precomputed few
             // for `klass`) — never a scan over the whole alphabet, which made the build O(nodes x classes)
