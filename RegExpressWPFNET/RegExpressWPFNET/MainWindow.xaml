@@ -77,26 +77,36 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <Label x:Name="RegexIndex" Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
-                            Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.RegexIndex, Mode=OneWay, FallbackValue='1', NotifyOnTargetUpdated=True}"
-                            Padding="2 3" HorizontalContentAlignment="Center" HorizontalAlignment="Left" VerticalContentAlignment="Center" VerticalAlignment="Top" Foreground="Gray"
+                        <Label x:Name="RegexIndex" Grid.Column="0" Grid.Row="0" Grid.RowSpan="3" d:Content="1"
+                            Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.RegexIndex, Mode=OneWay, NotifyOnTargetUpdated=True}"
+                            Padding="2 3" HorizontalContentAlignment="Center" HorizontalAlignment="Left" VerticalContentAlignment="Center" VerticalAlignment="Top" 
                             Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=InfoVisibility, Mode=OneWay, FallbackValue='Visible' }"
-                        />
+                        >
+                            <Label.Style>
+                                <Style TargetType="Label">
+                                    <Setter Property="Foreground">
+                                        <Setter.Value>
+                                            <SolidColorBrush Opacity="0.77" Color="{x:Static SystemColors.ControlTextColor}"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Label.Style>
+                        </Label>
 
-                        <Label x:Name="TabCaption" Grid.Column="1" Grid.Row="0"
-                            Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.Subtitle, FallbackValue='Title'}"
+                        <Label x:Name="TabCaption" Grid.Column="1" Grid.Row="0" d:Content="Title"
+                            Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.Subtitle}"
                             Padding="2 3" 
                             />
 
-                        <TextBlock Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" 
-                                   Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.PatternSample, Mode=OneWay, FallbackValue='.+'}" 
+                        <TextBlock Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" d:Text=".+"
+                                   Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.PatternSample, Mode=OneWay}" 
                                    Padding="2 2" FontFamily="Courier New" FontSize="10" MaxWidth="80" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" 
                                    HorizontalAlignment="Left"
                                    Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=InfoVisibility, Mode=OneWay, FallbackValue='Visible' }"
                                    />
 
-                        <TextBlock Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2" 
-                                   Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.TextSample, Mode=OneWay, FallbackValue='abc'}" 
+                        <TextBlock Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2" d:Text="abc"
+                                   Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.TextSample, Mode=OneWay}" 
                                    Padding="2 2" FontFamily="Courier New" FontSize="10" MaxWidth="80" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" 
                                    HorizontalAlignment="Left"
                                    Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=InfoVisibility, Mode=OneWay, FallbackValue='Visible' }"

@@ -65,7 +65,7 @@ namespace DotNETPlugin
                 bool is_dotnet_framework = @class == ClassEnum.RegexDotNetFramework;
 
                 NonBacktracking.Display( is_dotnet );
-                NonBacktrackingDisabled.Display( !NonBacktracking.IsVisible );
+                NonBacktrackingDisabled.Display( !is_dotnet );
             }
             finally
             {

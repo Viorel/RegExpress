@@ -10,16 +10,17 @@
              >
     <CheckBox IsChecked="{Binding IsChecked, ElementName=userControl}" HorizontalAlignment="Left">
         <TextBlock x:Name="textBlock" HorizontalAlignment="Left" VerticalAlignment="Top" TextWrapping="Wrap">
-                <Run x:Name="run" Text="Sample text"/>
+                <Run x:Name="run" d:Text="Sample text"/>
                 <Run>
                     <Run.Style>
                         <Style TargetType="Run">
-                            <Setter Property="Text" Value="{Binding Note, ElementName=userControl, Mode=OneWay, FallbackValue='', StringFormat=' – {0}'}"/>
-                            <Setter Property="Foreground">
+                            <Setter Property="Text" Value="{Binding Note, ElementName=userControl, Mode=OneWay, StringFormat=' – {0}'}" d:Value=" – some note" />
+                            <Setter Property="FontStyle" Value="Italic"/>
+                            <!--<Setter Property="Foreground">
                                 <Setter.Value>
-                                    <SolidColorBrush Opacity="1" Color="{x:Static SystemColors.ControlTextColor}"/>
+                                    <SolidColorBrush Opacity="0.77" Color="{x:Static SystemColors.ControlTextColor}"/>
                                 </Setter.Value>
-                            </Setter>
+                            </Setter>-->
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Note, ElementName=userControl, Mode=OneWay}" Value="">
                                     <Setter Property="Text" Value=""/>
