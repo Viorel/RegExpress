@@ -177,6 +177,7 @@ namespace DotNETFrameworkConsole
                 if( options.Singleline ) o |= RegexOptions.Singleline;
                 if( options.IgnorePatternWhitespace ) o |= RegexOptions.IgnorePatternWhitespace;
                 if( options.RightToLeft ) o |= RegexOptions.RightToLeft;
+                if( options.ECMAScript ) o |= RegexOptions.ECMAScript;
                 if( options.CultureInvariant ) o |= RegexOptions.CultureInvariant;
             }
 
