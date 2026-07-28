@@ -289,6 +289,120 @@ namespace real::detail {
       // lineage), which diverges from an ECMAScript backtracker's extra empty final iteration, so
       // compat routes replace/iterate to std for it (regex_core.hpp). regex_search/match are
       // unaffected by this hint — see COMPATIBILITY.md's nullable-loop group-capture section.
+      // IL reverse-by-class (hints.il_rev_class): recognise the shape `save… <class atom> split(back, out)
+      // save… byte(literal)` at the head of the program — one greedy class loop, then the required literal.
+      // Read off the COMPILED code rather than the AST because the answer is a class INDEX, which only
+      // exists after emission. A fixed repeat count emits the atom N times with no `split`, so `\d{4}-…`
+      // falls out here and keeps the general path.
+      if (il.len > 0 && il.prefix_child_count == 1) {
+        std::size_t pc {0};
+        while (pc < prog.code.size() && prog.code[pc].op == opcode::save) {
+          ++pc; // leading whole-match save, plus a capture group's open save
+        }
+        const std::size_t atom  {pc};
+        std::size_t       after {pc};
+        bool              is_cp {false};
+        if (atom < prog.code.size() && prog.code[atom].op == opcode::klass) {
+          after = atom + 1;
+        }
+        else if (atom < prog.code.size() && prog.code[atom].op == opcode::klass_cp) {
+          after = atom + 4; // klass_cp is a four-slot construct (see run_cp_class_loop's `pc += 3`)
+          is_cp = true;
+        }
+        if (after > atom && after < prog.code.size() && prog.code[after].op == opcode::split
+            && prog.code[after].primary_target == static_cast<std::int32_t>(atom)
+            && prog.code[after].secondary_target == static_cast<std::int32_t>(after) + 1) {
+          std::size_t lit {after + 1};
+          while (lit < prog.code.size() && prog.code[lit].op == opcode::save) {
+            ++lit; // the group's closing save, and the next group's opening one
+          }
+          if (lit < prog.code.size() && prog.code[lit].op == opcode::byte
+              && prog.code[lit].arg8 == prog.hints.inner_literal[0]) {
+            prog.hints.il_rev_class = static_cast<std::int32_t>(prog.code[atom].arg16);
+            prog.hints.il_rev_is_cp = is_cp;
+
+            // Keep reading: if the LITERAL is followed by one greedy class loop and then nothing but saves
+            // and `match`, the whole pattern is `class+ <literal> class+` and a confirmed candidate needs no
+            // match engine — see pattern_hints::il_fwd_class. Every op is checked, so an assertion, a
+            // lookaround or any trailing structure leaves the hint clear and the general confirm in place.
+            std::size_t tail {lit};
+            while (tail < prog.code.size() && prog.code[tail].op == opcode::byte) {
+              ++tail; // a multi-byte literal is several `byte` ops
+            }
+            while (tail < prog.code.size() && prog.code[tail].op == opcode::save) {
+              ++tail;
+            }
+            const std::size_t suffix  {tail};
+            std::size_t       past    {tail};
+            bool              tail_cp {false};
+            if (suffix < prog.code.size() && prog.code[suffix].op == opcode::klass) {
+              past = suffix + 1;
+            }
+            else if (suffix < prog.code.size() && prog.code[suffix].op == opcode::klass_cp) {
+              past    = suffix + 4;
+              tail_cp = true;
+            }
+            if (past > suffix && past < prog.code.size() && prog.code[past].op == opcode::split
+                && prog.code[past].primary_target == static_cast<std::int32_t>(suffix)
+                && prog.code[past].secondary_target == static_cast<std::int32_t>(past) + 1) {
+              std::size_t end {past + 1};
+              while (end < prog.code.size() && prog.code[end].op == opcode::save) {
+                ++end;
+              }
+              if (end + 1 == prog.code.size() && prog.code[end].op == opcode::match) {
+                prog.hints.il_fwd_class = static_cast<std::int32_t>(prog.code[suffix].arg16);
+                prog.hints.il_fwd_is_cp = tail_cp;
+              }
+            }
+          }
+        }
+      }
+      // IL fixed code-point shape (hints.il_cp_shape_eligible): the whole program is saves plus a fixed
+      // sequence of code-point atoms and literal bytes, with no split, jump or assertion anywhere. The
+      // byte-width-fixed case is il_fused_eligible's; this is the one a `klass_cp` puts out of its reach.
+      // No `!il_fused_eligible` guard here: that flag is set later, by compile() below, so it would read
+      // false whatever the pattern. Both hints may be set at once; run_inner_literal prefers the fused
+      // verify, which is the cheaper of the two when the shape is byte-width-fixed as well.
+      if (il.len > 0 && il.prefix_child_count >= 1) {
+        std::size_t pc          {0};
+        std::size_t cps         {0};
+        bool        ok          {true};
+        bool        hit_literal {false};
+        while (pc < prog.code.size() && ok) {
+          const opcode op {prog.code[pc].op};
+          if (op == opcode::save) {
+            ++pc;
+          }
+          else if (op == opcode::klass_cp) {
+            pc  += 4; // the four-slot construct (see run_cp_class_loop's `pc += 3`)
+            cps += hit_literal ? 0U : 1U;
+          }
+          else if (op == opcode::klass) {
+            ++pc;
+            cps += hit_literal ? 0U : 1U;
+          }
+          else if (op == opcode::byte) {
+            if (!hit_literal) {
+              // The first literal byte must be the inner literal's own first byte, else the count above
+              // does not describe the distance the route will walk back from a candidate.
+              ok          = prog.code[pc].arg8 == prog.hints.inner_literal[0];
+              hit_literal = true;
+            }
+            ++pc;
+          }
+          else if (op == opcode::match) {
+            break;
+          }
+          else {
+            ok = false; // a split, jump, assertion or lookaround: not a fixed sequence
+          }
+        }
+        if (ok && hit_literal && cps > 0 && cps <= 255 && pc < prog.code.size()
+            && prog.code[pc].op == opcode::match) {
+          prog.hints.il_cp_shape_eligible = true;
+          prog.hints.il_cp_prefix_cps     = static_cast<std::uint8_t>(cps);
+        }
+      }
       prog.hints.nullable_captured_repeat = ast_has_nullable_captured_repeat(tree_, tree_.root);
       if (prog.code.size() > max_program_size) {
         throw regex_error("program too large", 0);

@@ -101,14 +101,14 @@
                         <TextBlock Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" d:Text=".+"
                                    Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.PatternSample, Mode=OneWay}" 
                                    Padding="2 2" FontFamily="Courier New" FontSize="10" MaxWidth="80" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" 
-                                   HorizontalAlignment="Left"
+                                   HorizontalAlignment="Left" Opacity="0.6"
                                    Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=InfoVisibility, Mode=OneWay, FallbackValue='Visible' }"
                                    />
 
                         <TextBlock Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2" d:Text="abc"
                                    Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.TextSample, Mode=OneWay}" 
                                    Padding="2 2" FontFamily="Courier New" FontSize="10" MaxWidth="80" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" 
-                                   HorizontalAlignment="Left"
+                                   HorizontalAlignment="Left" Opacity="0.6"
                                    Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=InfoVisibility, Mode=OneWay, FallbackValue='Visible' }"
                                    />
                         
