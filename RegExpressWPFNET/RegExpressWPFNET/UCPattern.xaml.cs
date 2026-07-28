@@ -37,7 +37,7 @@ namespace RegExpressWPFNET
 
         readonly UndoRedoHelper UndoRedoHelper;
 
-        bool AlreadyLoaded = false;
+        bool IsFullyLoaded = false;
 
         readonly StyleInfo PatternNormalStyleInfo;
         readonly StyleInfo PatternGroupNameStyleInfo;
@@ -140,7 +140,7 @@ namespace RegExpressWPFNET
                 }
             }
 
-            if( IsLoaded )
+            if( IsFullyLoaded )
             {
                 RecolouringLoop.SignalWaitAndExecute( );
                 HighlightingLoop.SignalWaitAndExecute( );
@@ -193,7 +193,7 @@ namespace RegExpressWPFNET
 
         private void UserControl_Loaded( object sender, RoutedEventArgs e )
         {
-            if( AlreadyLoaded ) return;
+            if( IsFullyLoaded ) return;
 
             // TODO: add an option
             //rtb.Document.MinPageWidth = Utilities.ToPoints( "21cm" );
@@ -201,13 +201,13 @@ namespace RegExpressWPFNET
             var adorner_layer = AdornerLayer.GetAdornerLayer( rtb );
             adorner_layer.Add( WhitespaceAdorner );
 
-            AlreadyLoaded = true;
+            IsFullyLoaded = true;
         }
 
 
         private void Rtb_SelectionChanged( object sender, RoutedEventArgs e )
         {
-            if( !IsLoaded ) return;
+            if( !IsFullyLoaded ) return;
             if( rtb.ChangeEventHelper.IsInChange ) return;
             if( !rtb.IsFocused ) return;
 
@@ -220,7 +220,7 @@ namespace RegExpressWPFNET
 
         private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
         {
-            if( !IsLoaded ) return;
+            if( !IsFullyLoaded ) return;
             if( rtb.ChangeEventHelper.IsInChange ) return;
 
             UndoRedoHelper.HandleTextChanged( e );
@@ -251,7 +251,7 @@ namespace RegExpressWPFNET
 
         private void Rtb_ScrollChanged( object sender, ScrollChangedEventArgs e )
         {
-            if( !IsLoaded ) return;
+            if( !IsFullyLoaded ) return;
             if( rtb.ChangeEventHelper.IsInChange ) return;
 
             RecolouringLoop.SignalWaitAndExecute( );
@@ -261,7 +261,7 @@ namespace RegExpressWPFNET
 
         private void Rtb_SizeChanged( object sender, SizeChangedEventArgs e )
         {
-            if( !IsLoaded ) return;
+            if( !IsFullyLoaded ) return;
             if( rtb.ChangeEventHelper.IsInChange ) return;
 
             RecolouringLoop.SignalWaitAndExecute( );
@@ -271,7 +271,7 @@ namespace RegExpressWPFNET
 
         private void Rtb_GotFocus( object sender, RoutedEventArgs e )
         {
-            if( !IsLoaded ) return;
+            if( !IsFullyLoaded ) return;
             if( rtb.ChangeEventHelper.IsInChange ) return;
 
             HighlightingLoop.SignalWaitAndExecute( );
@@ -288,7 +288,7 @@ namespace RegExpressWPFNET
 
         private void Rtb_LostFocus( object sender, RoutedEventArgs e )
         {
-            if( !IsLoaded ) return;
+            if( !IsFullyLoaded ) return;
             if( rtb.ChangeEventHelper.IsInChange ) return;
 
             HighlightingLoop.SignalWaitAndExecute( );

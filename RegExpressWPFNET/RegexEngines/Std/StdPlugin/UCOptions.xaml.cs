@@ -82,20 +82,7 @@ namespace StdPlugin
             Notify( preferImmediateReaction: false );
         }
 
-
-        private void tbREGEX_MAX_STACK_COUNT_TextChanged( object sender, TextChangedEventArgs e )
-        {
-            Notify( preferImmediateReaction: false );
-        }
-
-
-        private void tbREGEX_MAX_COMPLEXITY_COUNT_TextChanged( object sender, TextChangedEventArgs e )
-        {
-            Notify( preferImmediateReaction: false );
-        }
-
-
-        private void tb_limit_counter_TextChanged( object sender, TextChangedEventArgs e )
+        private void TextBox_TextChanged( object sender, TextChangedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
         }
@@ -112,13 +99,17 @@ namespace StdPlugin
                 bool is_MSVC = Options.Compiler == CompilerEnum.MSVC;
                 bool is_GCC = Options.Compiler == CompilerEnum.GCC;
                 bool is_SRELL = Options.Compiler == CompilerEnum.SRELL;
+                bool is_SRELL_LINEAR = Options.Compiler == CompilerEnum.SRELL_LINEAR;
 
                 cbxLocale.Display( is_MSVC || is_GCC );
                 cbxLocaleDisabled.Display( !( is_MSVC || is_GCC ) );
 
-                chkMultiline.Display( is_MSVC || is_GCC || is_SRELL );
+                chkMultiline.Display( is_MSVC || is_GCC || is_SRELL || is_SRELL_LINEAR );
                 chkPolynomial.Display( is_GCC );
-                new FrameworkElement[] { chkDotall, chkUnicodesets, chkVMode, pnlSRELLConstants }.Display( is_SRELL );
+                new FrameworkElement[] { chkDotall, chkUnicodesets, chkVMode, pnlSRELLConstants }.Display( is_SRELL || is_SRELL_LINEAR );
+                lbl_limit_counter.IsEnabled = tb_limit_counter.IsEnabled = is_SRELL;
+                tb_limit_counter.Display( is_SRELL );
+                tb_limit_counter_DISABLED.Display( is_SRELL_LINEAR );
             }
             finally
             {

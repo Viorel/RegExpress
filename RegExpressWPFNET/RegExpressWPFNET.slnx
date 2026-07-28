@@ -112,8 +112,10 @@
     <Project Path="RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/Std/">
+    <Project Path="RegexEngines/Std/SrellLinearWorker/SrellLinearWorker.vcxproj" />
     <Project Path="RegexEngines/Std/SrellWorker/SrellWorker.vcxproj" />
     <Project Path="RegexEngines/Std/StdPlugin/StdPlugin.csproj">
+      <BuildDependency Project="RegexEngines/Std/SrellLinearWorker/SrellLinearWorker.vcxproj" />
       <BuildDependency Project="RegexEngines/Std/SrellWorker/SrellWorker.vcxproj" />
       <BuildDependency Project="RegexEngines/Std/StdWorker/StdWorker.vcxproj" />
     </Project>
@@ -189,6 +191,7 @@
     <BuildDependency Project="RegexEngines/RESharp/RESharpPlugin/RESharpPlugin.csproj" />
     <BuildDependency Project="RegexEngines/RESharp/RESharpWorker/RESharpWorker.csproj" />
     <BuildDependency Project="RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/Std/SrellLinearWorker/SrellLinearWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/Std/SrellWorker/SrellWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/Std/StdPlugin/StdPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Std/StdWorker/StdWorker.vcxproj" />

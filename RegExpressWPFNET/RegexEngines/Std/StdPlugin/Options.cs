@@ -15,6 +15,7 @@ namespace StdPlugin
         MSVC,
         GCC,
         SRELL,
+        SRELL_LINEAR,
     }
 
     enum GrammarEnum
@@ -63,6 +64,8 @@ namespace StdPlugin
         public bool unicodesets { get; set; }
         public bool vmode { get; set; }
         public string? limit_counter { get; set; }
+        public string? max_dfacache { get; set; }
+        public string? max_states { get; set; }
 
         public Options Clone( )
         {

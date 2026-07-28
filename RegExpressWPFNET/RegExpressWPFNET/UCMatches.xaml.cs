@@ -55,7 +55,7 @@ namespace RegExpressWPFNET
         readonly StyleInfo GroupFailedStyleInfo;
         readonly StyleInfo GroupOverflowStyleInfo;
 
-        bool AlreadyLoaded = false;
+        bool IsFullyLoaded = false;
 
         const int MIN_LEFT_WIDTH = 18;
 
@@ -355,7 +355,7 @@ namespace RegExpressWPFNET
 
         private void UserControl_Loaded( object sender, RoutedEventArgs e )
         {
-            if( AlreadyLoaded ) return;
+            if( IsFullyLoaded ) return;
 
             rtbMatches.Document.PageWidth = double.NaN; // (NaN -- wrap)
 
@@ -363,7 +363,7 @@ namespace RegExpressWPFNET
             adorner_layer.Add( LocalUnderliningAdorner );
             adorner_layer.Add( ExternalUnderliningAdorner );
 
-            AlreadyLoaded = true;
+            IsFullyLoaded = true;
         }
 
 
@@ -375,7 +375,7 @@ namespace RegExpressWPFNET
 
         private void RtbMatches_SelectionChanged( object sender, RoutedEventArgs e )
         {
-            if( !IsLoaded ) return;
+            if( !IsFullyLoaded ) return;
             if( ChangeEventHelper.IsInChange ) return;
             if( !rtbMatches.IsFocused ) return;
 
