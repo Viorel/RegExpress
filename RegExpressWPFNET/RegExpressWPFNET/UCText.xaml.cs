@@ -36,7 +36,7 @@ namespace RegExpressWPFNET
 
         readonly UndoRedoHelper UndoRedoHelper;
 
-        bool AlreadyLoaded = false;
+        bool IsFullyLoaded = false;
 
         string? LastText;
         RegexMatches? LastMatches;
@@ -256,7 +256,7 @@ namespace RegExpressWPFNET
 
         private void UserControl_Loaded( object sender, RoutedEventArgs e )
         {
-            if( AlreadyLoaded ) return;
+            if( IsFullyLoaded ) return;
 
             rtb.Document.PageWidth = Utilities.PointsFromInvariantString( FormattableString.Invariant( $"{PageSizes.A4.WidthMm / 10.0}cm" ) );
 
@@ -265,13 +265,13 @@ namespace RegExpressWPFNET
             adorner_layer.Add( LocalUnderliningAdorner );
             adorner_layer.Add( ExternalUnderliningAdorner );
 
-            AlreadyLoaded = true;
+            IsFullyLoaded = true;
         }
 
 
         private void Rtb_SelectionChanged( object sender, RoutedEventArgs e )
         {
-            if( !IsLoaded ) return;
+            if( !IsFullyLoaded ) return;
             if( rtb.ChangeEventHelper.IsInChange ) return;
             if( !rtb.IsFocused ) return;
 
@@ -287,7 +287,7 @@ namespace RegExpressWPFNET
 
         private void Rtb_TextChanged( object sender, TextChangedEventArgs e )
         {
-            if( !IsLoaded ) return;
+            if( !IsFullyLoaded ) return;
             if( rtb.ChangeEventHelper.IsInChange ) return;
 
             RecolouringLoop.SignalRewind( );
@@ -322,7 +322,7 @@ namespace RegExpressWPFNET
 
         private void Rtb_ScrollChanged( object sender, ScrollChangedEventArgs e )
         {
-            if( !IsLoaded ) return;
+            if( !IsFullyLoaded ) return;
             if( rtb.ChangeEventHelper.IsInChange ) return;
 
             RecolouringLoop.SignalWaitAndExecute( );
@@ -331,7 +331,7 @@ namespace RegExpressWPFNET
 
         private void Rtb_SizeChanged( object sender, SizeChangedEventArgs e )
         {
-            if( !AlreadyLoaded ) return;
+            if( !IsFullyLoaded ) return;
             if( rtb.ChangeEventHelper.IsInChange ) return;
 
             RecolouringLoop.SignalWaitAndExecute( );

@@ -39,6 +39,7 @@ xcopy /D /R /Y "%BasePath%\StdPlugin\bin\%Configuration%\%TargetDir%\StdPlugin.d
 xcopy /D /R /Y "%BasePath%\StdWorker\bin\%Configuration%\%Platform%\StdWorker.exe" "%EnginesTargetPath%\Std\*.bin"
 xcopy /D /R /Y "%BasePath%\GccWorker\GccWorker.exe" "%EnginesTargetPath%\Std\*.bin"
 xcopy /D /R /Y "%BasePath%\SrellWorker\bin\%Configuration%\%Platform%\SrellWorker.exe" "%EnginesTargetPath%\Std\*.bin"
+xcopy /D /R /Y "%BasePath%\SrellLinearWorker\bin\%Configuration%\%Platform%\SrellLinearWorker.exe" "%EnginesTargetPath%\Std\*.bin"
 
 
 rem -- RE2 --

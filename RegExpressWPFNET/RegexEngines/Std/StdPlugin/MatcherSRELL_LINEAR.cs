@@ -17,13 +17,14 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace StdPlugin
 {
-    static class MatcherSRELL
+    static class MatcherSRELL_LINEAR
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            UInt64? limit_counter = ValidationUtilities.ParseUInt64( "limit_counter", options.limit_counter );
+            UInt64? max_dfacache = ValidationUtilities.ParseUInt64( "max_dfacache", options.max_dfacache );
+            UInt64? max_states = ValidationUtilities.ParseUInt64( "max_states", options.max_states );
 
-            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.Unicode;
 
@@ -56,7 +57,8 @@ namespace StdPlugin
                 bw.Write( Convert.ToByte( options.match_continuous ) );
                 bw.Write( Convert.ToByte( options.match_prev_avail ) );
 
-                bw.WriteOptional( limit_counter );
+                bw.WriteOptional( max_dfacache );
+                bw.WriteOptional( max_states );
 
                 bw.Write( (byte)'e' );
             };
@@ -124,7 +126,7 @@ namespace StdPlugin
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string worker_exe = Path.Combine( assembly_dir, @"SrellWorker.bin" );
+            string worker_exe = Path.Combine( assembly_dir, @"SrellLinearWorker.bin" );
 
             return worker_exe;
         }

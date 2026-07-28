@@ -155,6 +155,7 @@ namespace RegExpressWPFNET
 
             if( !IsFullyLoaded || !IsVisible )
             {
+                StopAll( );
                 InitialTabData = tabData;
             }
             else
