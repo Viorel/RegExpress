@@ -163,8 +163,8 @@ namespace real::detail {
    * (a `\w` collapses from thousands of instructions to a few hundred shared nodes, which the lazy DFA also
    * profits from).
    */
-  inline utf8_trie build_utf8_trie(const cp_class&             cc,
-                                   std::span<const code_range> cp_ranges)
+  constexpr utf8_trie build_utf8_trie(const cp_class&             cc,
+                                      std::span<const code_range> cp_ranges)
   {
     std::vector<std::vector<utf8_byte_range>> seqs;
     for (int b = 0; b < 0x80;) { // ASCII: each contiguous run of set bits is a one-byte sequence
@@ -225,8 +225,8 @@ namespace real::detail {
         return h;
       }
 
-      static bool trans_equal(const std::vector<std::pair<utf8_byte_range, std::int32_t>>& a,
-                              const std::vector<std::pair<utf8_byte_range, std::int32_t>>& b)
+      static constexpr bool trans_equal(const std::vector<std::pair<utf8_byte_range, std::int32_t>>& a,
+                                        const std::vector<std::pair<utf8_byte_range, std::int32_t>>& b)
       {
         if (a.size() != b.size()) {
           return false;
@@ -239,7 +239,7 @@ namespace real::detail {
         return true;
       }
 
-      std::int32_t build(const std::vector<seq_view>& in) // all non-empty sequences
+      constexpr std::int32_t build(const std::vector<seq_view>& in) // all non-empty sequences
       {
         std::vector<int> bounds;
         for (const seq_view& s : in) {
@@ -308,7 +308,7 @@ namespace real::detail {
 
   //! \brief The instruction count \ref emit_utf8_trie writes: an empty class is one dead `klass`; otherwise
   //!        each node is a split-guarded chain of `k` byte ranges (`3k - 1` instructions).
-  inline std::size_t utf8_trie_emit_size(const utf8_trie& trie)
+  constexpr std::size_t utf8_trie_emit_size(const utf8_trie& trie)
   {
     if (trie.root < 0) {
       return 1;
@@ -319,6 +319,81 @@ namespace real::detail {
     }
     return n;
   }
+
+  /*!
+   * \brief Intern table for UTF-8 edge byte ranges, keyed by the exact 16-bit `(lo << 8) | hi`.
+   *
+   * An open-addressed probe table over a flat buffer rather than `std::unordered_map`, because this
+   * builder must also run inside a constant expression: `static_storage` builds its byte program at
+   * compile time, and no node-based standard container is constexpr-constructible before C++23.
+   *
+   * A slot holds `(key << 16) | (index + 1)`, so a zero slot means empty and the range `0x00..0x00`
+   * stays a legal key. The table grows at half load rather than capping, so a pattern with many
+   * distinct Unicode classes degrades in speed and never in correctness — a fixed capacity would
+   * either fill and spin or silently stop interning.
+   */
+  struct range_intern_table
+  {
+    static constexpr std::uint16_t absent {0xFFFFU};                               //!< \ref find's miss answer (never a valid index: it would be slot 0x10000).
+
+    std::vector<std::uint32_t> slots      {std::vector<std::uint32_t>(1024U, 0U)}; //!< Power of two; 1024 covers the ~476 ranges a `\w`-heavy program interns without a rehash.
+    std::size_t                count      {0};                                     //!< Occupied slots, for the load factor.
+
+    //! \brief Probe start for \p key: Fibonacci hashing — the key times 2^64/phi, keeping the high bits.
+    //!
+    //! The keys cluster hard and arrive in near-runs (`lo` walks a trie node's disjoint ranges in order,
+    //! and the continuation range `0x80..0xBF` sits on nearly every node), so the stride between
+    //! consecutive keys is what decides whether the table is used or a quarter of it is. Taking the high
+    //! bits of the 64-bit product gives a stride coprime with the table size; the 32-bit constant shifted
+    //! by a fixed amount does not — its stride shares a factor of 4 with 1024, so three of every four
+    //! buckets would be unreachable for a run of keys and the reachable quarter would be over 100% loaded
+    //! at the half-load rehash point. Wrapping is intended (it is the modular multiply).
+    [[nodiscard]] static constexpr std::size_t bucket(std::uint16_t key,
+                                                      std::size_t   mask) noexcept
+    {
+      constexpr std::uint64_t phi_inverse {0x9E3779B97F4A7C15ULL}; // 2^64 / golden ratio, odd
+      return static_cast<std::size_t>((static_cast<std::uint64_t>(key) * phi_inverse) >> 48U) & mask;
+    }
+
+    //! \brief Returns the interned class index for \p key, or \ref absent.
+    [[nodiscard]] constexpr std::uint16_t find(std::uint16_t key) const noexcept
+    {
+      const std::size_t mask {slots.size() - 1U};
+      for (std::size_t i {bucket(key, mask)}; slots[i] != 0U; i = (i + 1U) & mask) {
+        if (static_cast<std::uint16_t>(slots[i] >> 16U) == key) {
+          return static_cast<std::uint16_t>((slots[i] & 0xFFFFU) - 1U);
+        }
+      }
+      return absent;
+    }
+
+    //! \brief Records \p idx for \p key, doubling the table first when it would pass half load.
+    constexpr void insert(std::uint16_t key,
+                          std::uint16_t idx)
+    {
+      if ((count + 1U) * 2U > slots.size()) {
+        std::vector<std::uint32_t> wider(slots.size() * 2U, 0U);
+        const std::size_t          wide_mask {wider.size() - 1U};
+        for (const std::uint32_t packed : slots) {
+          if (packed != 0U) {
+            std::size_t i {bucket(static_cast<std::uint16_t>(packed >> 16U), wide_mask)};
+            while (wider[i] != 0U) {
+              i = (i + 1U) & wide_mask;
+            }
+            wider[i] = packed;
+          }
+        }
+        slots = std::move(wider);
+      }
+      const std::size_t mask {slots.size() - 1U};
+      std::size_t       i    {bucket(key, mask)};
+      while (slots[i] != 0U) {
+        i = (i + 1U) & mask;
+      }
+      slots[i] = (static_cast<std::uint32_t>(key) << 16U) | (static_cast<std::uint32_t>(idx) + 1U);
+      ++count;
+    }
+  };
 
   //! \brief Emits \p trie into \p bp as a deterministic split/klass/jump fragment; accept edges jump to
   //!        \p after (the construct's successor). The root is emitted first, so the fragment's entry is its
@@ -337,10 +412,10 @@ namespace real::detail {
    * alphabet, `onepass`'s class_cover_, and the DFA all treat it that way; nothing uses it to tell two
    * `klass` instructions apart.
    */
-  inline void emit_utf8_trie(byte_program&                                     bp,
-                             const utf8_trie&                                  trie,
-                             std::int32_t                                      after,
-                             std::unordered_map<std::uint16_t, std::uint16_t>& seen)
+  constexpr void emit_utf8_trie(byte_program&        bp,
+                                const utf8_trie&     trie,
+                                std::int32_t         after,
+                                range_intern_table&  seen)
   {
     if (trie.root < 0) {
       bp.code.push_back({.op = opcode::klass, .arg16 = static_cast<std::uint16_t>(bp.classes.size())});
@@ -372,17 +447,13 @@ namespace real::detail {
         }
         const auto key    {static_cast<std::uint16_t>((static_cast<unsigned>(edge.first.lo) << 8U)
                                                       | static_cast<unsigned>(edge.first.hi))};
-        const auto    it  {seen.find(key)};
-        std::uint16_t idx {};
-        if (it != seen.end()) {
-          idx = it->second;
-        }
-        else {
+        std::uint16_t idx {seen.find(key)};
+        if (idx == range_intern_table::absent) {
           idx = static_cast<std::uint16_t>(bp.classes.size());
           char_class cc;
           cc.set_range(edge.first.lo, edge.first.hi);
           bp.classes.push_back(cc);
-          seen.emplace(key, idx);
+          seen.insert(key, idx);
         }
         bp.code.push_back({.op = opcode::klass, .arg16 = idx});
         bp.code.push_back({.op = opcode::jump, .primary_target = target});
@@ -420,12 +491,21 @@ namespace real::detail {
    *                            value is a test hook to exercise the decline without a pattern that takes
    *                            seconds to build.
    */
-  inline byte_program build_byte_program(const program_view& prog,
-                                         bool                keep_assertions = false,
-                                         std::size_t         max_size        = max_byte_program_size)
+  constexpr byte_program build_byte_program(const program_view& prog,
+                                            bool                keep_assertions = false,
+                                            std::size_t         max_size        = max_byte_program_size)
   {
     byte_program bp;
     bp.unicode_word = prog.unicode_word;
+    if (prog.code.empty()) {
+      // An empty program is not a recognizer, and saying `eligible` about one is worse than declining:
+      // every consumer reads that flag as "the byte automata can run this", so a reverse pass built over
+      // it answers npos at every position and the caller silently drops every candidate instead of
+      // falling back to the VM. Reachable only by a caller that hands over a program it never compiled --
+      // which is exactly what a storage with a cache but no inner-literal prefix sub-program would do.
+      bp.eligible = false;
+      return bp;
+    }
     for (const instr& in : prog.code) {
       if (in.op == opcode::assert_lookaround) {
         bp.eligible = false; // no byte automaton can carry a bounded lookaround (Tier-B stops at assertions)
@@ -475,7 +555,7 @@ namespace real::detail {
 
     // One intern cache for the whole program: the same UTF-8 range recurs across occurrences, not
     // just within one trie.
-    std::unordered_map<std::uint16_t, std::uint16_t> range_intern;
+    range_intern_table range_intern;
 
     const auto remap {[&](std::int32_t t) {
                         return (t >= 0 && static_cast<std::size_t>(t) <= n) ? map[static_cast<std::size_t>(t)] : t;

@@ -418,9 +418,36 @@ namespace real::detail {
    * \tparam ThreadList The thread-list type (a \ref basic_thread_list).
    * \tparam EpsVec     Container for the epsilon-closure stack.
    */
+  // MISRA deviation, documented in docs/MISRA.md: \ref table and \ref cp_page are deliberately left
+  // uninitialized -- each is a lookup table filled in full on a miss against its own sentinel
+  // (\ref table_class / \ref cp_page_class, both -1 here), so zeroing them was never observed and cost a
+  // 496-byte clear on every state construction. `search()` builds a fresh state per call, so that landed on
+  // every single search. Residual cost of suppressing at the record: a member added later WITHOUT an
+  // initializer would not be flagged for this struct -- every other member here carries one.
   template <typename ThreadList, typename EpsVec>
   struct basic_pike_state
   {
+    /*!
+     * \brief Value-initializes \ref table and \ref cp_page during constant evaluation only.
+     *
+     * Same reason as \ref real::detail::static_vec's own constructor: MSVC's constant evaluator rejects an
+     * object carrying an indeterminate subobject even where nothing reads it (C2131 on `static_regex`'s
+     * compile-time assertions), while clang and gcc accept it. The run-time path, which is the one that
+     * was paying a 496-byte clear per `search()`, keeps the trivial initialization everywhere.
+     */
+    // MISRA deviation, documented in docs/MISRA.md: \ref table and \ref cp_page are left trivially
+    // initialized at run time on purpose — each is filled in FULL on a miss against its own sentinel
+    // (\ref table_class / \ref cp_page_class, both -1 here), so the zeros were never read and cost a
+    // 496-byte clear on every state construction, which `search()` pays per call.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
+    constexpr basic_pike_state() noexcept
+    {
+      if (std::is_constant_evaluated()) {
+        table   = {};
+        cp_page = {};
+      }
+    }
+
     ThreadList lists[2]; //!< Current and next thread lists (flipped by index).
     EpsVec     stack;    //!< Epsilon-closure DFS stack.
 
@@ -436,7 +463,7 @@ namespace real::detail {
      * so it adds nothing to the program or to the static binary.
      */
     std::int32_t                   table_class {-1};
-    std::array<std::uint8_t, 256>  table       {}; //!< 1 where the byte is in \ref table_class.
+    std::array<std::uint8_t, 256>  table;         //!< 1 where the byte is in \ref table_class (filled on a class_table miss).
 
     /*!
      * \brief Membership bitmap for a `cp_class` over the 2-byte UTF-8 range `[U+0080, U+07FF]`, and
@@ -450,7 +477,7 @@ namespace real::detail {
      *        lazily on the first high-cp membership probe.
      */
     std::int32_t                   cp_page_class {-1};
-    std::array<std::uint64_t, 30>  cp_page       {}; //!< 1 where the code point (U+0080..U+07FF) is a member.
+    std::array<std::uint64_t, 30>  cp_page;         //!< 1 where the code point (U+0080..U+07FF) is a member (filled on a cp_page_table miss).
   };
 
   /*!
@@ -624,13 +651,24 @@ namespace real::detail {
       // `@`). Placed AFTER the literal / class-loop fast paths (an exact-literal `dog` must keep its own path)
       // but BEFORE the fixed-shape / DFA scans it beats. Search mode, runtime, dynamic-only. On a linearity
       // guard it abandons and falls through to the scans below.
+      // `il_text` as the proxy for "this state can track IL abandonment": every storage reaching this route
+      // needs the per-haystack guard fields, and only the reverse-confirm sub-case below needs a reverse
+      // DFA. Gating on the DFA instead would exclude a storage that profits from the literal sweep without
+      // ever confirming through it (see `wants_inner_literal` in storage.hpp).
       if constexpr (requires(State & s) {
-        s.il_prefix_rev;
+        s.il_text;
       }) {
+        // The prefix sub-program feeds the reverse confirm and nothing else, so it is required only of a
+        // storage that can run one. Without it the route is the memmem sweep plus a hand-back to the core
+        // on the first candidate, which needs no prefix program at all -- and not compiling one is what
+        // keeps a second compile out of the constant-evaluation budget.
+        constexpr bool confirms_by_reverse {requires(State & s) {
+                                              s.il_prefix_rev;
+                                            }};
         if (!std::is_constant_evaluated() && !inner_literal_route_disabled() && mode == run_mode::search
             && sem_ == match_semantics::first // longest semantics need the general loop (these routes are kFirstMatch)
             && prog_.hints.inner_literal_len > 0 && prog_.hints.inner_literal_prefix >= 1
-            && !prog_.prefix_code.empty()) {
+            && (!confirms_by_reverse || !prog_.prefix_code.empty())) {
           // A required literal at offset 0 (a match that DOES begin with a literal) is a *prefix*, not an inner
           // literal — it keeps the faster find_prefix path. Only a genuine inner literal (offset >= 1, for which
           // the compiler built a `prefix_code` for the reverse-confirm) takes this route; the old
@@ -922,6 +960,24 @@ namespace real::detail {
         }
         if (first_candidate) {
           first_candidate = false;
+          // No immutables, no reverse-by-class AND no fixed code-point shape: IL is a NO-MATCH accelerator
+          // here and nothing more.
+          // Reaching this point means memmem found a candidate, and without a way to place its match start
+          // the route's own confirm has to beat the core scans -- which for this storage are the
+          // exactly-sized compile-time ones, and they win. A prefix that IS one class loop does have a way
+          // (`il_rev_class`, the backward walk below); so does a fixed code-point shape, which steps back a
+          // known count. Both stay. Measured over a 64 KiB corpus, for the shapes that have neither, static
+          // vs the same pattern on the dynamic regex:
+          //   [0-9]{4}-[0-9]{2}-[0-9]{2}, dates present   core 30.9 us  vs  IL 37.9 us
+          //   \d{4}-\d{2}-\d{2}, no date present         core  151 us  vs  IL  1.4 us
+          // So: keep the memmem-only sweep, hand back the moment a candidate needs confirming. Sticky,
+          // so the cost on a hit haystack is one candidate, once. A sparse-hit haystack would still
+          // rather stay on IL; that needs a candidate-cost model this has no measurement for yet.
+          if (prog_.immut == nullptr && prog_.hints.il_rev_class < 0 && !prog_.hints.il_cp_shape_eligible) {
+            abandon             = true;
+            state_.il_abandoned = true;
+            return false;
+          }
           // Small-haystack guard, once per scan (sticky via il_abandoned). Applies only when a match
           // candidate exists — no-match is memmem-only and never gated. Floor is cold vs warm: cold
           // first scan uses il_min_haystack (~94 KB email, amortizes reverse-DFA *build*); warm scans
@@ -978,6 +1034,51 @@ namespace real::detail {
           const std::size_t prefix_w {prog_.hints.il_fused_prefix_width};
           s = (h >= prefix_w && h - prefix_w >= min_match_start) ? h - prefix_w : npos;
         }
+        else if (boundary >= 1 && prog_.hints.il_rev_class >= 0) {
+          // IL REVERSE-BY-CLASS: the prefix is one greedy class loop, so the match start for this candidate
+          // is where the class run ending at `h` begins — a backward walk, no automaton and no per-regex
+          // cache, which is what lets a storage without immutables take this route at all. `+` needs at
+          // least one member, so a run of length zero yields no candidate here. Membership is tested
+          // against the class directly rather than through `class_table`/`cp_page`: those cache ONE class
+          // in the VM state, and the confirm that follows every candidate uses the pattern's other classes,
+          // so routing through them would refill a 256-byte table per candidate.
+          s = h;
+          if (!prog_.hints.il_rev_is_cp) {
+            const char_class& cc {prog_.classes[static_cast<std::size_t>(prog_.hints.il_rev_class)]};
+            while (s > min_match_start && cc.test(static_cast<std::uint8_t>(text[s - 1]))) {
+              --s;
+            }
+          }
+          else {
+            const cp_class& cc {prog_.cp_classes[static_cast<std::size_t>(prog_.hints.il_rev_class)]};
+            while (s > min_match_start) {
+              const std::size_t               w  {detail::codepoint_retreat(text, s, min_match_start)};
+              const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, s - w)};
+              if (!dc.valid || dc.length != w || !cp_class_holds(cc, dc.cp)) {
+                break;
+              }
+              s -= w;
+            }
+          }
+          if (s == h) {
+            s = npos; // no member immediately before the literal: this candidate has no start
+          }
+        }
+        // Ordered after the class-loop reverse deliberately: putting this test first cost `\d+\.\d+` 5.5%
+        // and `[a-z]+@[a-z]+` 2.0% in x86-64 instructions -- shapes that reach neither branch but pay for
+        // the extra test ahead of theirs. This order leaves them within 0.5% of where they were.
+        else if (boundary >= 1 && prog_.hints.il_cp_shape_eligible) {
+          // FIXED CODE-POINT SHAPE: no loop anywhere, so the start is exactly `il_cp_prefix_cps` code
+          // points before the literal — arithmetic on UTF-8 boundaries, not a reverse pass. The forward
+          // walk below is what decides; this only proposes a boundary.
+          for (std::uint8_t k {0}; k < prog_.hints.il_cp_prefix_cps && s != npos; ++k) {
+            if (s <= min_match_start) {
+              s = npos; // the shape does not fit between the floor and this candidate
+              break;
+            }
+            s -= detail::codepoint_retreat(text, s, min_match_start);
+          }
+        }
         else if (boundary >= 1) {
           // The prefix's byte program lives in the per-regex immutables — built once (call_once, already done
           // by the first-candidate guard above), not per find_iter; the expensive klass_cp expansion is what a
@@ -1022,6 +1123,56 @@ namespace real::detail {
           // not how far it got, so there is no sound tighter floor to claim (and none is needed for
           // linearity -- the fused verify is a hard-bounded O(il_fused_max_width) check per candidate,
           // not the reverse/forward-DFA cost the guard was built to bound).
+          pos = h + 1;
+        }
+        else if (prog_.hints.il_fwd_class >= 0) {
+          // TWO-RUN CONFIRM: the whole pattern is `class+ <literal> class+` (hints.il_fwd_class), and the
+          // backward walk above already proved the prefix run reaches `s`. What remains is the suffix run,
+          // so the match end is where that run stops — no match engine, no DFA, no one-pass table, which is
+          // what a storage with no per-regex cache could not otherwise reach. `+` needs one member, so a
+          // suffix run of length zero is no match at this candidate.
+          const std::size_t lit_end {h + prog_.hints.inner_literal_len};
+          std::size_t       e       {lit_end};
+          if (!prog_.hints.il_fwd_is_cp) {
+            const char_class& cc {prog_.classes[static_cast<std::size_t>(prog_.hints.il_fwd_class)]};
+            while (e < text.size() && cc.test(static_cast<std::uint8_t>(text[e]))) {
+              ++e;
+            }
+          }
+          else {
+            const cp_class& cc {prog_.cp_classes[static_cast<std::size_t>(prog_.hints.il_fwd_class)]};
+            while (e < text.size()) {
+              const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, e)};
+              if (!dc.valid || !cp_class_holds(cc, dc.cp)) {
+                break;
+              }
+              e += dc.length;
+            }
+          }
+          if (e > lit_end) {
+            out_slots.assign(prog_.slot_count, npos);
+            out_slots[0] = s;
+            out_slots[1] = e;
+            fill_two_run_saves(s, h, lit_end, e, out_slots);
+            return true;
+          }
+          // No suffix member: this candidate cannot match. min_pre_start is not advanced -- the walk reports
+          // where it stopped, but that is one class run, a hard-bounded check per candidate rather than the
+          // reverse/forward-DFA cost the linearity guard exists to bound (same argument as the fused verify).
+          pos = h + 1;
+        }
+        else if (prog_.hints.il_cp_shape_eligible) {
+          // One linear walk verifies every atom of the fixed shape from the start the step-back proposed,
+          // and fills every capture on the way — no engine, and no separate capture pass.
+          out_slots.assign(prog_.slot_count, npos);
+          const std::size_t match_end {match_cp_shape(text, s, out_slots)};
+          if (match_end != npos) {
+            out_slots[0] = s;
+            out_slots[1] = match_end;
+            return true;
+          }
+          // Same argument as the fused verify: the walk is a hard-bounded per-candidate check, not the
+          // reverse/forward-DFA cost the linearity guard exists to bound, so min_pre_start is not advanced.
           pos = h + 1;
         }
         else {
@@ -1405,6 +1556,41 @@ namespace real::detail {
       return state_.table.data();
     }
 
+    /*!
+     * \brief Stateless membership of \p cp in \p cc — no VM-state cache touched.
+     *
+     * The cached paths (\ref cp_member_page, \ref cp_member_high) hold ONE class each in the state, which
+     * is right for a scan that stays on one class. The inner-literal reverse alternates with the confirm's
+     * classes on every candidate, so it reads the class directly: the ASCII bitmap for `cp < 0x80` (the
+     * overwhelming case), and a binary search of the class's own range span above it.
+     * \param[in] cc The code-point class.
+     * \param[in] cp The code point.
+     * \return `true` if \p cp is a member.
+     */
+    [[nodiscard]] constexpr bool cp_class_holds(const cp_class& cc,
+                                                char32_t        cp) const
+    {
+      if (cp < 0x80U) {
+        return cc.ascii.test(static_cast<std::uint8_t>(cp));
+      }
+      std::size_t lo {cc.range_begin};
+      std::size_t hi {static_cast<std::size_t>(cc.range_begin) + cc.range_count};
+      while (lo < hi) {
+        const std::size_t mid {lo + ((hi - lo) / 2)};
+        const code_range& r   {prog_.cp_ranges[mid]};
+        if (cp < r.lo) {
+          hi = mid;
+        }
+        else if (cp > r.hi) {
+          lo = mid + 1;
+        }
+        else {
+          return true;
+        }
+      }
+      return false;
+    }
+
     //! \brief Highest code point covered by the `cp_page` bitmap (the 2-byte UTF-8 range).
     static constexpr std::uint32_t cp_page_max {0x7FFU};
 
@@ -1634,7 +1820,15 @@ namespace real::detail {
      * this writer covers every slot the program has; a prior \c assign(slot_count, npos) was dead
      * work on every find_iter match after the first (slots already sized, values overwritten).
      */
+    // always_inline, guarded as profile.hpp guards its own tick helpers. This writer is four stores and a
+    // branch, yet it was emitted OUT OF LINE and cost 31 instructions a match -- most of it the call frame.
+    // It runs once per match, not per byte, so inlining grows the caller without touching the per-byte loop:
+    // measured x86 instruction counts for find_iter over 64 KiB, `[a-z]+` -14.5 %, `\b\w+\b` -7.9 %, and
+    // wall clock -4.1 to -4.9 % on every row tried, none regressing.
     template <typename OutSlots>
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((always_inline))
+#endif
     constexpr void fill_span_slots(OutSlots&   out_slots,
                                    std::size_t match_start,
                                    std::size_t match_end) const
@@ -1978,6 +2172,30 @@ namespace real::detail {
                          };
       // Success uses fill_span_slots (ensure_size, no npos fill). Fail still assigns (seam +
       // general-path slot parity when !matched).
+      /*!
+       * \brief Whether a class member starts at \p i — membership only, no width.
+       *
+       * The leftmost scan below needs one bit per byte, and asking \ref width for it built a three-field
+       * decode result, tested `valid`, re-branched on `cp < 0x80` and mapped a length back to the bit
+       * `asc[lead]` already held. A strict decode of a byte below 0x80 is exactly
+       * `{cp = lead, length = 1, valid = true}`, so that table entry IS the answer — the same shape
+       * \ref run_class_loop's own `in_class` has, which is why its scan costs a fraction of this one.
+       *
+       * Kept separate from \ref width rather than folded into it: `extend_run` needs the length, and one
+       * lambda returning a width cannot narrow to a bool for the scan. Measured on a 64 KiB corpus,
+       * find_iter, each pattern ALONE in its translation unit (arm64/clang, best of 25, two repeats):
+       * `\d+` 179.0 -> 114.4 us, `\w+` 338.0 -> 319.8 us, and `[a-z]+` / `[0-9]+` / `[^,]+` / `dog`
+       * byte-identical. Isolating the scan on a corpus with no member at all, this route cost 6.1x the
+       * byte-class route for the same work (125.8 vs 20.6 us) before this.
+       */
+      const auto in_class = [&](std::size_t i) -> bool {
+                              const auto lead {static_cast<std::uint8_t>(text[i])};
+                              if (lead < 0x80U) {
+                                return asc[lead] != 0U;
+                              }
+                              const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, i)};
+                              return dc.valid && member_hi(dc.cp);
+                            };
       const auto extend_run = [&](std::size_t match_start) -> std::size_t {
                                 const std::size_t first {width(match_start)};
                                 if (first == 0) {
@@ -2040,7 +2258,7 @@ namespace real::detail {
         std::size_t pos {start};
         while (pos < text.size()) {
           std::size_t match_start {pos};
-          while (match_start < text.size() && width(match_start) == 0) {
+          while (match_start < text.size() && !in_class(match_start)) {
             ++match_start;
           }
           if (match_start >= text.size()) {
@@ -2068,7 +2286,7 @@ namespace real::detail {
       std::size_t match_end   {};
       while (true) {
         if (mode == run_mode::search) {
-          while (match_start < text.size() && width(match_start) == 0) {
+          while (match_start < text.size() && !in_class(match_start)) {
             ++match_start;
           }
           if (match_start >= text.size()) {
@@ -2358,7 +2576,9 @@ namespace real::detail {
 
     //! \brief Possessive class+/++ loop over a CODE-POINT class
     //!        (`klass_cp_loop_possessive`). Mirrors \ref run_cp_class_loop's decode/membership
-    //!        primitives (no O2r-1b GCC split here yet -- measure-first; not in this train's scope).
+    //!        primitives, except that the scan predicate is now split by compiler (see `in_class` below):
+    //!        clang/MSVC read the ASCII table directly, gcc keeps the width round trip. Both directions are
+    //!        measured, and gcc's is the counter-intuitive one.
     //!        See \ref run_possessive_loop_generic for the shared algorithm.
     template <typename OutSlots>
     constexpr bool run_possessive_cp_class_loop(std::string_view  text,
@@ -2384,7 +2604,32 @@ namespace real::detail {
                               const bool m {dc.cp < 0x80U ? asc[dc.cp] != 0U : member_hi(dc.cp)};
                               return m ? dc.length : 0;
                             };
+#if defined(__GNUC__) && !defined(__clang__)
+      // gcc keeps the width round trip. Measured, and it is not the shape one would guess: the
+      // ASCII-direct predicate below costs g++ 13.3 +37% on a scan with no member (145.0 -> 202.8 us over
+      // 64 KiB) and +15% on `\d++` with members, while REDUCING its instruction count 3.89% -- fewer
+      // instructions, more time, which is the same trap O2r-1b's own note documents for this loop family.
       const auto in_class = [&](std::size_t i) { return i < text.size() && cp_width(i) != 0; };
+#else
+      // Membership only, no width, for the leftmost scan -- the sibling byte-class runner's `in_class` is
+      // one table load, and this one went through `cp_width`: a three-field decode result, a `valid` test,
+      // a re-branch on `cp < 0x80` and a length mapped back to the bit `asc[lead]` already held.
+      // arm64/clang, find_iter over 64 KiB, each pattern ALONE in its TU (best of 25, three repeats):
+      // `\d++` 192.9 -> 123.3 us, `\w++` 504.0 -> 471.3 us; isolating the scan on a corpus with no member
+      // at all, 122.0 -> 61.2 us, which is exact parity with the greedy cp-class route.
+      //
+      // No bounds check, which is the sibling byte-class runner's contract too: every call site in
+      // run_possessive_loop_generic guards `< text.size()` before asking. Carrying one here cost 2% and
+      // was unreachable -- zero executions over the whole suite.
+      const auto in_class = [&](std::size_t i) -> bool {
+                              const auto lead {static_cast<std::uint8_t>(text[i])};
+                              if (lead < 0x80U) {
+                                return asc[lead] != 0U;
+                              }
+                              const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, i)};
+                              return dc.valid && member_hi(dc.cp);
+                            };
+#endif
       const auto scan_end = [&](std::size_t from) -> std::size_t {
                               std::size_t e {from};
                               while (e < text.size()) {
@@ -2729,6 +2974,100 @@ namespace real::detail {
         }
         else {
           break; // reached a trailing \b/\B or match
+        }
+      }
+    }
+
+    template <typename OutSlots>
+    /*!
+     * \brief Verifies a fixed code-point shape forward from \p s, filling capture slots as it goes.
+     *
+     * The shape is a sequence of code-point atoms and literal bytes with no loop
+     * (\ref pattern_hints::il_cp_shape_eligible), so one linear walk decides the whole match and every
+     * `save` lands on the position the walk has reached — no engine, and no separate capture pass.
+     * \param[in]  text      Subject.
+     * \param[in]  s         Candidate match start.
+     * \param[out] out_slots Receives the slots (untouched unless the walk succeeds).
+     * \return The match end, or \ref real::npos if the shape does not hold at \p s.
+     */
+    [[nodiscard]] constexpr std::size_t match_cp_shape(std::string_view text,
+                                                       std::size_t      s,
+                                                       OutSlots&        out_slots) const
+    {
+      std::size_t at {s};
+      for (std::size_t pc {0}; pc < prog_.code.size();) {
+        const instr& instruction {prog_.code[pc]};
+        if (instruction.op == opcode::save) {
+          out_slots[static_cast<std::size_t>(instruction.arg16)] = at;
+          ++pc;
+        }
+        else if (instruction.op == opcode::match) {
+          return at;
+        }
+        else if (at >= text.size()) {
+          return npos;
+        }
+        else if (instruction.op == opcode::byte) {
+          if (static_cast<std::uint8_t>(text[at]) != instruction.arg8) {
+            return npos;
+          }
+          ++at;
+          ++pc;
+        }
+        else if (instruction.op == opcode::klass) {
+          if (!prog_.classes[instruction.arg16].test(static_cast<std::uint8_t>(text[at]))) {
+            return npos;
+          }
+          ++at;
+          ++pc;
+        }
+        else { // klass_cp: one whole code point, then past the four-slot construct
+          const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, at)};
+          if (!dc.valid || !cp_class_holds(prog_.cp_classes[instruction.arg16], dc.cp)) {
+            return npos;
+          }
+          at += dc.length;
+          pc += 4;
+        }
+      }
+      return npos;
+    }
+
+    template <typename OutSlots>
+    /*!
+     * \brief Fills capture slots for a `class+ <literal> class+` match, by anchor rather than by offset.
+     *
+     * The two-run shape has no fixed widths, so \ref fill_fixed_saves's running offset does not apply — but
+     * every `save` in it still lands on one of four positions, and which one is decided by where the save
+     * sits relative to the two loops and the literal. Walking the program once per MATCH is the same trick
+     * \ref fill_fixed_saves uses, and the program is a dozen instructions.
+     * \param[in]  s        Match start (the prefix run's beginning).
+     * \param[in]  h        The literal's own start.
+     * \param[in]  lit_end  One past the literal.
+     * \param[in]  e        Match end (the suffix run's end).
+     * \param[out] out_slots Slots to fill.
+     */
+    constexpr void fill_two_run_saves(std::size_t s,
+                                      std::size_t h,
+                                      std::size_t lit_end,
+                                      std::size_t e,
+                                      OutSlots&   out_slots) const
+    {
+      if (prog_.slot_count <= 2) {
+        return;
+      }
+      std::size_t anchor        {s};
+      bool        after_literal {false};
+      for (const instr& instruction : prog_.code) {
+        if (instruction.op == opcode::save) {
+          out_slots[static_cast<std::size_t>(instruction.arg16)] = anchor;
+        }
+        else if (instruction.op == opcode::byte) {
+          anchor        = lit_end; // the literal's bytes; saves after them open at its end
+          after_literal = true;
+        }
+        else if (instruction.op == opcode::split) {
+          anchor = after_literal ? e : h; // a loop just closed: the prefix ends at h, the suffix at e
         }
       }
     }

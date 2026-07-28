@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RESharpPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             Loaded="UserControl_Loaded" d:DesignHeight="366.975" d:DesignWidth="484.47" >
+             Loaded="UserControl_Loaded" d:DesignHeight="208.241" d:DesignWidth="484.47" >
 
     <UserControl.Resources>
         <Style TargetType="ui:CheckboxWithNote">
@@ -24,7 +24,8 @@
         <Style TargetType="TextBlock" x:Key="note">
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-            <Setter Property="Opacity" Value="0.70"/>
+            <!--<Setter Property="Opacity" Value="0.77"/>-->
+            <Setter Property="FontStyle" Value="Italic"/>
             <Setter Property="Margin" Value="4 0"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>

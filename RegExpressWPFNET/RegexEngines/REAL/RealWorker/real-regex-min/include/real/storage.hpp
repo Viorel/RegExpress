@@ -26,6 +26,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include "real/frontend/ast.hpp"
 #include "real/frontend/compiler.hpp"
@@ -90,6 +91,22 @@ namespace real {
     class static_vec
     {
     public:
+
+      /*!
+       * \brief Value-initializes \ref data_ during constant evaluation only.
+       *
+       * MSVC's constant evaluator refuses an object with an indeterminate subobject even when nothing
+       * reads it: `static_regex`'s compile-time `static_assert`s failed with C2131 (`expression did not
+       * evaluate to a constant`) when this storage was left trivially initialized everywhere. clang and
+       * gcc accept it (C++20 P1331R2), so the runtime path — where the whole point is not paying for the
+       * clear — keeps the trivial initialization on every toolchain.
+       */
+      constexpr static_vec() noexcept
+      {
+        if (std::is_constant_evaluated()) {
+          data_ = {};
+        }
+      }
 
       /*!
        * \brief Appends \p value.
@@ -209,7 +226,21 @@ namespace real {
 
     private:
 
-      std::array<T, Cap> data_ {}; //!< Inline element storage.
+      /*!
+       * \brief Inline element storage, deliberately NOT value-initialized at run time.
+       *
+       * `static_regex` is stateless (`sizeof` 1), so a `search()` builds a fresh state on the stack every
+       * call, and value-initializing here zeroed the whole worst-case capacity each time -- a cost the
+       * dynamic storage does not pay, since its state lives in the regex object and is reused. Nothing
+       * reads above \ref size_, which starts at 0, so the zeros were never observed. C++20 permits the
+       * trivial default initialization even in a constant expression (P1331R2); reading an element before
+       * writing it would be diagnosed there rather than silently returning garbage.
+       *
+       * Measured, single `search()` on an 81-byte subject, arm64/clang: `[^,]+` 262.0 -> 168.7 ns (which
+       * turns that row from losing to the dynamic regex into beating it), `dog` 39.8 -> 18.3, `[0-9]+`
+       * 192.6 -> 163.0.
+       */
+      std::array<T, Cap> data_;
       std::size_t        size_ {}; //!< Number of elements in use.
     };
 
@@ -932,6 +963,49 @@ namespace real {
       static constexpr std::size_t max_blocks {(5 * code_size) + 8};
 
       /*!
+       * \brief IL: the per-haystack guard fields the inner-literal route needs.
+       *
+       * Scalars only — no `il_prefix_rev`, because this storage has no per-regex immutables and so never
+       * builds a reverse DFA: the reverse-confirm sub-case declines and hands back to the core VM, while a
+       * candidate-free (no-match) sweep stays on memmem. Their presence in \ref state_type is also what
+       * admits this storage to the route at all (the `requires` gate in \ref pike_vm::run).
+       */
+      struct il_guard_fields
+      {
+        const void*   il_text           {nullptr}; //!< IL: the haystack \ref il_abandoned refers to.
+        bool          il_abandoned      {false};   //!< IL: a guard tripped on this haystack — stay on the core.
+        std::uint32_t il_density_cands  {};        //!< O1: IL candidates seen on this haystack.
+        std::size_t   il_density_origin {npos};    //!< O1: first IL candidate byte offset this haystack.
+      };
+
+      //! \brief No IL fields: the route is not compiled for this pattern (see \ref wants_inner_literal).
+      struct no_il_guard_fields
+      {};
+
+      /*!
+       * \brief Whether the inner-literal route is worth compiling into this pattern's `run()`.
+       *
+       * A required literal at offset >= 1 is necessary but not sufficient. `fixed_shape` means the core
+       * already has an arithmetic-width scan for the whole pattern, and then memmem has nothing to add;
+       * without it the core falls to the general VM, which is what the literal sweep rescues. Measured
+       * over a 64 KiB corpus, this storage with the route compiled in vs kept out:
+       *
+       *     pattern                     fixed | no match: out -> in | matches: out -> in
+       *     [a-z]+@[a-z]+                   0 |  1619.67 -> 1.33 us |  1063.54 -> 1053.92 us
+       *     \w+-\w+                         0 |  1585.38 -> 1.38 us |  1679.04 -> 1677.92 us
+       *     \d+\.\d+                        0 |    29.42 -> 1.33 us |   592.75 ->  586.00 us
+       *     \d{4}-\d{2}-\d{2}               0 |    29.50 -> 1.46 us |   629.08 ->  629.08 us
+       *     [0-9]{4}-[0-9]{2}-[0-9]{2}      1 |     1.42 -> 1.42 us |    29.50 ->   35.38 us
+       *
+       * Every non-fixed-shape pattern gains 20x-1218x with no match and is neutral or better with them;
+       * the fixed-shape one gains nothing and pays 20%. Excluding it here rather than at run time is what
+       * keeps the cost off patterns that do not use the route — compiling the block into `run()` at all
+       * cost `[^,]+` 5.2% (28.25 -> 29.71 us) although it has no inner literal and never entered.
+       */
+      static constexpr bool wants_inner_literal {hints.inner_literal_len > 0 && hints.inner_literal_prefix >= 1
+                                                 && !hints.fixed_shape};
+
+      /*!
        * \brief VM scratch state, all fixed-capacity (zero heap).
        *
        * The epsilon DFS stack is bounded because each pc is processed once and
@@ -943,7 +1017,8 @@ namespace real {
                             basic_thread_list<static_vec<std::int32_t, code_size>,
                                               static_vec<std::size_t, code_size>,
                                               static_vec<std::uint64_t, code_size>>,
-                            static_vec<eps_entry, (3 * code_size) + 4>>
+                            static_vec<eps_entry, (3 * code_size) + 4>>,
+                          std::conditional_t<wants_inner_literal, il_guard_fields, no_il_guard_fields>
       {
         basic_capture_pool<static_vec<std::size_t, max_blocks * slot_count>,
                            static_vec<std::int32_t, max_blocks>,
@@ -961,7 +1036,11 @@ namespace real {
                 .lookarounds       = {}, // static_regex rejects lookarounds at compile (always empty)
                 .cp_classes        = cp_classes,
                 .cp_ranges         = cp_ranges,
-                .prefix_code       = {}, // IL: static storage builds no prefix program (the route is dynamic-only)
+                                         // IL: no prefix sub-program. This storage never runs the reverse confirm (that needs the
+                                         // per-regex immutables it has none of), and a second compile inside a constant expression
+                                         // is what the budget cannot afford -- it pushed tests/frontend/test_constexpr.cpp's
+                                         // flag_cases() past clang's step limit. See \ref wants_inner_literal.
+                .prefix_code       = {},
                 .prefix_classes    = {},
                 .prefix_cp_classes = {},
                 .prefix_cp_ranges  = {},

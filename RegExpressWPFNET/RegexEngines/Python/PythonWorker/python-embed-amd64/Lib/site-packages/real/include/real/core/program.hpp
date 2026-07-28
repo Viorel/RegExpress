@@ -586,6 +586,60 @@ namespace real {
       std::uint8_t fs_pair_b_hi0 {};
       std::uint8_t fs_pair_b_lo1 {1};
       std::uint8_t fs_pair_b_hi1 {};
+
+      // The six IL fields below are APPENDED LAST, and that placement is the change rather than a detail:
+      // inserting them mid-struct (after il_fused_prefix_width) reflowed every field after them and moved
+      // the class-loop fast path's own hot fields across a cache line. Measured through the Rust crate's
+      // criterion bench, same bench file both sides: `find/literal` (`dog`) 16.33 -> 21.23 us and
+      // `find/word_bound` (`\b\w+\b`) 325.5 -> 415.8 us, a pure layout effect on patterns that read none
+      // of these. Same fault the small_set note above records for the 4->8 cap raise.
+      /*!
+       * \brief IL reverse-by-class: set when the inner-literal PREFIX is exactly one greedy class loop
+       *        (`[a-z]+@…`, `\w+-…`, `\d+\.…`), so the match start for a candidate literal at `h` is the
+       *        start of the class run ending at `h` — a backward scan, no automaton.
+       *
+       * This is the middle case between \ref il_fused_eligible (the whole pattern is fixed-width, so the
+       * start is arithmetic) and the general reverse pass (a reverse DFA over the prefix sub-program, which
+       * lives in the per-regex immutables). It needs neither: no sub-program, no DFA, no allocation, so a
+       * storage with no immutables — `static_regex` — can run it, which is the point. Leftmost semantics
+       * hold because the run's beginning IS the leftmost start for that candidate, and `confirm_at` verifies
+       * forward regardless, so a rejected candidate costs an advance and never a wrong match.
+       *
+       * -1 when the prefix is not that shape (a fixed repeat count has no `split`, so `\d{4}-…` is excluded
+       * here and stays on the general path).
+       */
+      std::int32_t il_rev_class {-1};
+      bool         il_rev_is_cp {}; //!< \ref il_rev_class indexes `cp_classes` (a `klass_cp` loop) rather than `classes`.
+
+      /*!
+       * \brief IL two-run confirm: set when the WHOLE pattern is `class+ <literal> class+` (capture groups
+       *        around either run are transparent), so a confirmed candidate needs no match engine at all.
+       *
+       * With \ref il_rev_class placing the start by walking the prefix class back from the literal, the rest
+       * of the match is the suffix class run forward from the literal's end — and every capture slot is one
+       * of four positions (`s`, the literal's start, the literal's end, `e`). Profiling the row this serves,
+       * `[a-z]+@[a-z]+` over a 64 KiB corpus of matches: 74% of `static_regex`'s instructions were the Pike
+       * VM (`add_thread` 33%, `step` 21%, `run_general` 13%, the copy-on-write capture pool 6% — on a pattern
+       * with no capture groups at all), against a dynamic regex that confirms through its lazy DFA and
+       * one-pass table. This shape needs neither, so a storage with no per-regex cache stops paying for one.
+       *
+       * -1 when the suffix is not a single greedy class loop reaching the end of the pattern.
+       */
+      std::int32_t il_fwd_class {-1};
+      bool         il_fwd_is_cp {}; //!< \ref il_fwd_class indexes `cp_classes` rather than `classes`.
+
+      /*!
+       * \brief IL fixed code-point shape: the whole pattern is a fixed SEQUENCE of code-point atoms and
+       *        literal bytes — `\d{4}-\d{2}-\d{2}` and its kin — with no loop anywhere.
+       *
+       * \ref il_fused_eligible already covers the case where that sequence is fixed-width in BYTES, which a
+       * `klass_cp` never is (a Unicode `\d` matches multi-byte digits). But the code-point COUNT is fixed,
+       * so the match start is still arithmetic: step \ref il_cp_prefix_cps code points back from the
+       * candidate literal, then one forward walk verifies every atom and fills every capture. No loop means
+       * no reverse walk to bound and no engine to run.
+       */
+      bool         il_cp_shape_eligible {};
+      std::uint8_t il_cp_prefix_cps     {}; //!< Code points before the literal in \ref il_cp_shape_eligible.
     };
 
     /*!
