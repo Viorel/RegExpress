@@ -180,7 +180,7 @@ namespace RustPlugin
             Engine engine_regress_uv = new( ) { Options = new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } }; // currently 'ignore_whitespace' not supported
             Engine engine_resharp = new( ) { Options = new Options { crate = CrateEnum.resharp, UnicodeMode = UnicodeModeEnum.Full } };
             Engine engine_anre = new( ) { Options = new Options { crate = CrateEnum.anre } };
-            Engine engine_real = new( ) { Options = new Options { crate = CrateEnum.real_regex, @struct = StructEnum.RegexBuilder, unicode = false } };
+            //Engine engine_real = new( ) { Options = new Options { crate = CrateEnum.real_regex, @struct = StructEnum.RegexBuilder, unicode = false } };
             Engine engine_real_u = new( ) { Options = new Options { crate = CrateEnum.real_regex, @struct = StructEnum.RegexBuilder, unicode = true } };
             Engine engine_java_regex_uU = new( ) { Options = new Options { crate = CrateEnum.java_regex, unicode = true, unicode_sets = true, d = false, l = false } };
 
@@ -192,7 +192,7 @@ namespace RustPlugin
                     new FeatureMatrixVariant("regress (“uv” flags)", engine_regress_uv),
                     new FeatureMatrixVariant("resharp (“Full” mode)", engine_resharp),
                     new FeatureMatrixVariant("anre", engine_anre),
-                    new FeatureMatrixVariant("real-regex", engine_real),
+                    //new FeatureMatrixVariant("real-regex", engine_real),
                     new FeatureMatrixVariant("real-regex (“u” flag)", engine_real_u),
                     new FeatureMatrixVariant("java_regex (“uU” flags)", engine_java_regex_uU),
                 ];

@@ -27,13 +27,22 @@ namespace RustPlugin
         RegexBuilder,
     }
 
-    enum UnicodeModeEnum // ('resharp'-specific)
+    enum UnicodeModeEnum // ('resharp')
     {
         None,
         Default,
         Ascii,
         Full,
         Javascript,
+    }
+
+    enum BytesModeEnum // ('fancy')
+    {
+        None,
+        Default,
+        Unicode,
+        Ascii,
+        UnicodeBytes,
     }
 
     internal class Options
@@ -48,15 +57,20 @@ namespace RustPlugin
         public bool ignore_whitespace { get; set; }
         public bool unicode { get; set; } = true;
         public bool octal { get; set; }
-        public bool crlf { get; set; } // ('regex', 'regex-lite', 'fancy-regex' specific, the (?R) flag)
-        public bool no_opt { get; set; } // ('regress' specific)
-        public bool unicode_sets { get; set; } // ('regress', 'java_regex' specific)
-        public bool oniguruma_mode { get; set; } // ('fancy-regex' specific)
-        public bool find_not_empty { get; set; } // ('fancy-regex' specific)
-        public bool ignore_numbered_groups_when_named_groups_exist { get; set; } // ('fancy-regex' specific)
-        public bool hardened { get; set; } // ('resharp' specific)
-        public bool unbounded_size { get; set; } // ('resharp' specific)
-        public UnicodeModeEnum UnicodeMode { get; set; } = UnicodeModeEnum.Default; // ('resharp' specific)
+        public bool crlf { get; set; } // ('regex', 'regex-lite', 'fancy-regex' ((?R) flag))
+        public bool no_opt { get; set; } // ('regress')
+        public bool unicode_sets { get; set; } // ('regress', 'java_regex')
+        public bool oniguruma_mode { get; set; } // ('fancy-regex')
+        public bool find_not_empty { get; set; } // ('fancy-regex')
+        public bool ignore_numbered_groups_when_named_groups_exist { get; set; } // ('fancy-regex')
+        public bool seek { get; set; } // ('fancy-regex')
+        public bool disallow_empty_match_at_eof_after_newline { get; set; } // ('fancy-regex')
+        public bool allow_input_assertion_overrides { get; set; } // ('fancy-regex')
+        public bool start_text { get; set; } // ('fancy-regex')
+        public bool end_text { get; set; } // ('fancy-regex')
+        public bool hardened { get; set; } // ('resharp')
+        public bool unbounded_size { get; set; } // ('resharp')
+        public UnicodeModeEnum UnicodeMode { get; set; } = UnicodeModeEnum.Default; // ('resharp')
 
         // Regex and Regex-lite
 
@@ -66,6 +80,7 @@ namespace RustPlugin
 
         // Fancy-regex
 
+        public BytesModeEnum bytes_mode { get; set; } = BytesModeEnum.Default;
         public string? backtrack_limit { get; set; }
         public string? delegate_size_limit { get; set; }
         public string? delegate_dfa_size_limit { get; set; }

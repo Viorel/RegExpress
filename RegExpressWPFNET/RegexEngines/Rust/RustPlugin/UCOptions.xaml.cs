@@ -72,6 +72,11 @@ namespace RustPlugin
             Notify( preferImmediateReaction: true );
         }
 
+        private void cbxBytesMode_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
         private void tb_TextChanged( object sender, TextChangedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
@@ -157,6 +162,11 @@ namespace RustPlugin
                 chbx_oniguruma_mode.Display( is_fancy );
                 chbx_find_not_empty.Display( is_fancy );
                 chbx_ignore_numbered_groups_when_named_groups_exist.Display( is_fancy );
+                chbx_seek.Display( is_fancy );
+                chbx_disallow_empty_match_at_eof_after_newline.Display( is_fancy );
+                chbx_allow_input_assertion_overrides.Display( is_fancy );
+                chbx_start_text.Display( is_fancy );
+                chbx_end_text.Display( is_fancy );
                 chbx_fallback.Display( is_real );
 
                 pnlJavaRegexOptions.Display( is_java_regex );

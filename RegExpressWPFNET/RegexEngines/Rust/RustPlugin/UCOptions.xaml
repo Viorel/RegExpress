@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="709.355" d:DesignWidth="779.929" 
+             d:DesignHeight="864.155" d:DesignWidth="779.929" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -76,6 +76,11 @@
                 <ui:CheckboxWithNote x:Name="chbx_oniguruma_mode" Prop="oniguruma_mode" Note="do not treat “\&lt;” and “\&gt;” as left and right word-bounds"/>
                 <ui:CheckboxWithNote x:Name="chbx_find_not_empty" Prop="find_not_empty" Note="require that matches are non-empty"/>
                 <ui:CheckboxWithNote x:Name="chbx_ignore_numbered_groups_when_named_groups_exist" Prop="ignore_numbered_groups_when_named_groups_exist" Note="treat unnamed capture groups as non-capturing when named groups exist"/>
+                <ui:CheckboxWithNote x:Name="chbx_seek" Prop="seek" Note="(experimental) enable the Seek pre-filter optimization for hard (backtracking) patterns"/>
+                <ui:CheckboxWithNote x:Name="chbx_disallow_empty_match_at_eof_after_newline" Prop="disallow_empty_match_at_eof_after_newline" Note="reject empty matches at the end of the haystack following a trailing newline"/>
+                <ui:CheckboxWithNote x:Name="chbx_allow_input_assertion_overrides" Prop="allow_input_assertion_overrides" Note="allow RegexInput assertion suppression overrides at runtime"/>
+                <ui:CheckboxWithNote x:Name="chbx_start_text" Prop="start_text" Note="preserves the ^ and \A assertions (if allow_input_assertion_overrides)"/>
+                <ui:CheckboxWithNote x:Name="chbx_end_text" Prop="end_text" Note="preserves the $ and \z assertions (if allow_input_assertion_overrides)"/>
                 <ui:CheckboxWithNote x:Name="chbx_fallback" Prop="fallback" Note="delegate pattern to regex crate if REAL cannot run it linearly; forfeits the linear-time guarantee"/>
 
                 <StackPanel Orientation="Vertical">
@@ -125,26 +130,36 @@
                         </Grid.LayoutTransform>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="44"/>
+                            <ColumnDefinition Width="100"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=bl}">backtrack__limit:</Label>
-                        <TextBox x:Name="bl" Grid.Column="1" Grid.Row="0" Text="{Binding backtrack_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                        <TextBlock Grid.Column="2" Grid.Row="0" Text="– limit for how many times backtracking should be attempted" Style="{StaticResource note}" />
+                        <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=bm}">bytes__mode:</Label>
+                        <ComboBox x:Name="bm" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding bytes_mode, FallbackValue='Default'}" VerticalAlignment="Center" SelectionChanged="cbxBytesMode_SelectionChanged" >
+                            <ComboBoxItem Tag ="Default"        Content="Default" IsSelected="True" />
+                            <ComboBoxItem Tag ="Unicode"        Content="Unicode" />
+                            <ComboBoxItem Tag ="Ascii"          Content="Ascii" />
+                            <ComboBoxItem Tag ="UnicodeBytes"   Content="UnicodeBytes" />
+                        </ComboBox>
+                        <TextBlock Grid.Column="2" Grid.Row="0" Text="– input encoding mode" Style="{StaticResource note}" />
 
-                        <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=delsl}">delegate__size__limit:</Label>
-                        <TextBox x:Name="delsl" Grid.Column="1" Grid.Row="1" Text="{Binding delegate_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                        <TextBlock Grid.Column="2" Grid.Row="1" Text="– approximate size limit of compiled regular expression" Style="{StaticResource note}" />
+                        <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=bl}">backtrack__limit:</Label>
+                        <TextBox x:Name="bl" Grid.Column="1" Grid.Row="1" Text="{Binding backtrack_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                        <TextBlock Grid.Column="2" Grid.Row="1" Text="– limit for how many times backtracking should be attempted" Style="{StaticResource note}" />
 
-                        <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=deldsl}">delegate__dfa__size__limit:</Label>
-                        <TextBox x:Name="deldsl" Grid.Column="1" Grid.Row="2" Text="{Binding delegate_dfa_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                        <TextBlock Grid.Column="2" Grid.Row="2" Text="– approximate size of cache used by DFA" Style="{StaticResource note}" />
+                        <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=delsl}">delegate__size__limit:</Label>
+                        <TextBox x:Name="delsl" Grid.Column="1" Grid.Row="2" Text="{Binding delegate_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                        <TextBlock Grid.Column="2" Grid.Row="2" Text="– approximate size limit of compiled regular expression" Style="{StaticResource note}" />
+
+                        <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=deldsl}">delegate__dfa__size__limit:</Label>
+                        <TextBox x:Name="deldsl" Grid.Column="1" Grid.Row="3" Text="{Binding delegate_dfa_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                        <TextBlock Grid.Column="2" Grid.Row="3" Text="– approximate size of cache used by DFA" Style="{StaticResource note}" />
 
                     </Grid>
 

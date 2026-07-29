@@ -48,9 +48,15 @@ namespace RustPlugin
                     options.oniguruma_mode,
                     options.find_not_empty,
                     options.ignore_numbered_groups_when_named_groups_exist,
-                    bl = is_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
-                    dsl = is_builder ? ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ) : null,
-                    ddsl = is_builder ? ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ) : null,
+                    options.seek,
+                    options.disallow_empty_match_at_eof_after_newline,
+                    options.allow_input_assertion_overrides,
+                    options.start_text,
+                    options.end_text,
+                    bytes_mode = options.bytes_mode.ToString(),
+                    backtrack_limit = is_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
+                    delegate_size_limit = is_builder ? ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ) : null,
+                    delegate_dfa_size_limit = is_builder ? ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ) : null,
                 }
             };
 

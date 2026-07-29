@@ -72,20 +72,36 @@ fn main()
         reb.oniguruma_mode(options["oniguruma_mode"].as_bool().unwrap_or(false));
         reb.find_not_empty(options["find_not_empty"].as_bool().unwrap_or(false));
         reb.ignore_numbered_groups_when_named_groups_exist(options["ignore_numbered_groups_when_named_groups_exist"].as_bool().unwrap_or(false));
+        reb.seek(options["seek"].as_bool().unwrap_or(false));
+        reb.disallow_empty_match_at_eof_after_newline(options["disallow_empty_match_at_eof_after_newline"].as_bool().unwrap_or(false));
+        reb.allow_input_assertion_overrides(options["allow_input_assertion_overrides"].as_bool().unwrap_or(false));
 
-        let n = options["bl"].as_usize();
+        let bytes_modes = options["bytes_mode"].as_str().unwrap_or("Default");
+
+        if bytes_modes != "Default"
+        {
+            reb.bytes_mode( match bytes_modes
+            {
+                "Unicode" => fancy_regex::BytesMode::Unicode,
+                "Ascii" => fancy_regex::BytesMode::Ascii,
+                "UnicodeBytes" => fancy_regex::BytesMode::UnicodeBytes,
+                _ => panic!()
+            });
+        }
+
+        let n = options["backtrack_limit"].as_usize();
         if n.is_some()
         {
             reb.backtrack_limit( n.unwrap());
         } 
 
-        let n = options["dsl"].as_usize();
+        let n = options["delegate_size_limit"].as_usize();
         if n.is_some()
         {
             reb.delegate_size_limit( n.unwrap());
         } 
 
-        let n = options["ddsl"].as_usize();
+        let n = options["delegate_dfa_size_limit"].as_usize();
         if n.is_some()
         {
             reb.delegate_dfa_size_limit( n.unwrap());
@@ -110,6 +126,9 @@ fn main()
         return;
     }
 
+    let start_text = options["start_text"].as_bool().unwrap_or(true);
+    let end_text = options["end_text"].as_bool().unwrap_or(true);
+
     let re = re.unwrap();
 
     let mut names = json::JsonValue::new_array();
@@ -120,7 +139,7 @@ fn main()
         names.push(name.unwrap_or("")).unwrap();
     }
 
-    for cap0 in re.captures_iter(text) 
+    for cap0 in re.captures_iter_input(fancy_regex::RegexInput::new(text).start_text(start_text).end_text(end_text)) 
     {
         if cap0.is_err()
         {
