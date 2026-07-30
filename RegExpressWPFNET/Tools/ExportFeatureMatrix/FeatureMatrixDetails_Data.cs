@@ -38,8 +38,8 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"[#comment]", @"Comment inside […]", (e, fm) => fm.InsideSets_XModeComments)
                     .IgnorePatternWhitespace()
                     .Test( "a[b#comment\nz]y", "azy", "acy")
-                    .Test( "a(?x)[b#comment\nz]y", "azy", "acy")
-                    .Test( "a(?xx)[b#comment\nz]y", "azy", "acy"),
+                    .Test( "(?x)a[b#comment\nz]y", "azy", "acy")
+                    .Test( "(?xx)a[b#comment\nz]y", "azy", "acy"),
 
                 new FeatureMatrixDetails( @"(?flags)", @"Inline options", (e, fm) => fm.Flags).IgnoreCase( false )
                     .Test( @"(?i)x", "X", null ),

@@ -19,6 +19,7 @@
 
 #include "real/version.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -478,6 +479,16 @@ namespace real::detail {
      */
     std::int32_t                   cp_page_class {-1};
     std::array<std::uint64_t, 30>  cp_page;         //!< 1 where the code point (U+0080..U+07FF) is a member (filled on a cp_page_table miss).
+    // Appended LAST, and it must stay that way -- same rule, and same reason, as pattern_hints states for
+    // its own trailing fields. Placed next to `table` where they belong by meaning, these three shift every
+    // field after them and cost `\b\w+\b` +28 % to +32 % through the crate, on a pattern that reads none of
+    // them. Only the C ABI path sees it: it crosses per match, where the C++ harnesses call the engine
+    // directly and measure the same change as neutral.
+    //! \brief Program whose membership rows this state has already verified as filled. Lets a walk skip
+    //!        the two acquire loads `class_table` would otherwise do once per `run()` — see there.
+    const void*                    rows_verified_for {nullptr};
+    const std::uint8_t*            row_ptr           {nullptr}; //!< The verified byte row, cached so the hot path returns it without re-deriving the address.
+    const std::uint64_t*           page_ptr          {nullptr}; //!< As \ref row_ptr, for the two-byte page bitmap.
   };
 
   /*!
@@ -503,19 +514,21 @@ namespace real::detail {
    */
   struct pike_state : basic_pike_state<thread_list, std::vector<eps_entry>>
   {
-    lookaround_scratch          lookaround;                    //!< Isolated sub-scratch for bounded lookaround evaluation.
-    capture_pool                pool;                          //!< copy-on-write capture blocks (heap-backed).
-    std::optional<lazy_dfa>     fwd_dfa;                       //!< Fallback when immut is null; prefer shared_fwd_dfa.
-    std::optional<reverse_dfa>  rev_dfa;                       //!< Fallback reverse; prefer shared_rev_dfa.
-    const void *                dfa_program         {nullptr}; //!< Program the per-state DFAs were built for (fallback).
-    std::optional<reverse_dfa>  il_prefix_rev;                 //!< Fallback IL prefix reverse; prefer shared_il_prefix_rev.
-    const void *                il_prefix_for       {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
-    const void *                il_text             {nullptr}; //!< IL: the haystack \ref il_abandoned refers to (reset the flag when it changes).
-    bool                        il_abandoned        {false};   //!< IL: a linearity/density guard tripped on this haystack — stay on the core.
-    std::uint32_t               il_density_cands    {};        //!< O1: IL candidates seen on this haystack (density sample).
-    std::size_t                 il_density_origin   {npos};    //!< O1: byte offset of the first IL candidate this haystack.
-    const void *                rare_disc_text      {nullptr}; //!< Rare-disc: haystack \ref rare_disc_abandoned refers to.
-    bool                        rare_disc_abandoned {false};   //!< Rare-disc density guard: stay on prefix for this haystack.
+    //! \brief Isolated sub-scratch for bounded lookaround evaluation, built on first use — see
+    //!        \ref real::detail::dynamic_storage::state_type for the measurement that made it lazy.
+    std::optional<lookaround_scratch> lookaround;
+    capture_pool                      pool;                          //!< copy-on-write capture blocks (heap-backed).
+    std::optional<lazy_dfa>           fwd_dfa;                       //!< Fallback when immut is null; prefer shared_fwd_dfa.
+    std::optional<reverse_dfa>        rev_dfa;                       //!< Fallback reverse; prefer shared_rev_dfa.
+    const void       *                dfa_program         {nullptr}; //!< Program the per-state DFAs were built for (fallback).
+    std::optional<reverse_dfa>        il_prefix_rev;                 //!< Fallback IL prefix reverse; prefer shared_il_prefix_rev.
+    const void       *                il_prefix_for       {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
+    const void       *                il_text             {nullptr}; //!< IL: the haystack \ref il_abandoned refers to (reset the flag when it changes).
+    bool                              il_abandoned        {false};   //!< IL: a linearity/density guard tripped on this haystack — stay on the core.
+    std::uint32_t                     il_density_cands    {};        //!< O1: IL candidates seen on this haystack (density sample).
+    std::size_t                       il_density_origin   {npos};    //!< O1: byte offset of the first IL candidate this haystack.
+    const void       *                rare_disc_text      {nullptr}; //!< Rare-disc: haystack \ref rare_disc_abandoned refers to.
+    bool                              rare_disc_abandoned {false};   //!< Rare-disc density guard: stay on prefix for this haystack.
     // AC fields placed LAST (own reason as pattern_hints::alternation_branch_count): inserting
     // here right after il_prefix_for would shift il_text/
     // il_abandoned/il_density_cands/il_density_origin (the inner-literal density-gate fields, read
@@ -531,9 +544,16 @@ namespace real::detail {
   /*!
    * \brief The Pike VM, generic over the scratch-state container policy.
    * \tparam State A \ref basic_pike_state instantiation (vector- or static-backed).
+   * \tparam StateBoundToProgram The caller guarantees this state is never used with a second program —
+   *         it is either freshly constructed for this search or owned by a walk over one regex. The
+   *         membership-row accessors then need no program-identity compare: a fresh state's
+   *         `table_class` is already -1, so a row key matching is proof on its own. That compare is per
+   *         `run()`, and `run()` is per MATCH on a walk (11 327 times over 64 KiB on `[a-z]+`), which
+   *         measured 2.9 points of that walk. Defaults to \c false: an embedder holding a state across
+   *         regexes (the Python binding, the meta-seam harness) must keep the compare.
    */
 
-  template <typename State>
+  template <typename State, bool StateBoundToProgram = false>
   class pike_vm
   {
   public:
@@ -1512,18 +1532,70 @@ namespace real::detail {
     using pool_type = std::remove_reference_t<decltype(std::declval<State&>().pool)>;
 
     /*!
-     * \brief Returns a flat 256-byte membership table for class \p class_index.
+     * \brief Is the state's cached row key stale for \p want?
      *
-     * Materializes the class bitmap into a byte-indexed table the first time it
-     * is requested, caching it in the shared scratch so a `find_all`-style walk
-     * builds it once. In a tight per-byte scan, `table[b]` (one load) replaces
-     * the bitmap's shift-and-mask — the byte-classification trick of DFA/JIT
-     * engines, measured ~2x faster on the class-scanning fast paths.
-     *
-     * \param[in] class_index Index into the program's interned classes.
-     * \return Pointer to a 256-entry table: 1 where the byte is in the class.
+     * \c StateBoundToProgram is the whole point: when the caller guarantees this state never meets a
+     * second program, a matching key is proof on its own and the program-identity compare — a pointer
+     * chase through the view, per `run()`, so per MATCH on a walk — disappears entirely at compile time.
+     * Without the guarantee it is still required: a state carried across regexes would otherwise answer
+     * from the previous program's rows.
+     * \param[in] have The key the state last verified (\c table_class or \c cp_page_class).
+     * \param[in] want The key wanted now.
+     * \return \c true if the row must be re-verified.
      */
-    constexpr const std::uint8_t* class_table(std::size_t class_index)
+    [[nodiscard]] constexpr bool row_key_stale(std::int32_t have,
+                                               std::int32_t want) const
+    {
+      if constexpr (StateBoundToProgram) {
+        return have != want;
+      }
+      else {
+        return have != want || state_.rows_verified_for != static_cast<const void*>(prog_.code.data());
+      }
+    }
+
+    /*!
+     * \brief Verifies (and if needed fills) the byte row for \p class_index, then caches it in the state.
+     *
+     * Must stay outlined: `class_table` has to remain small enough to inline into
+     * `basic_match_iterator::advance`, and this body inline is what pushes it over. Emitted out of line
+     * there instead, it costs 10.2 % of the instructions of a 64 KiB `[a-z]+` walk.
+     * \param[in,out] cache       The per-regex immutables.
+     * \param[in]     class_index Index into the program's interned byte classes.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
+    void verify_class_row(detail::regex_immutables& cache,
+                          std::size_t               class_index)
+    {
+      if (cache.rows_for.load(std::memory_order_acquire) != static_cast<const void*>(prog_.code.data())) {
+        ensure_membership_rows(cache);
+      }
+      if (!cache.row_ready(class_index)) {
+        fill_class_row(cache, class_index);
+      }
+      state_.table_class       = static_cast<std::int32_t>(class_index);
+      state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
+      state_.row_ptr           = cache.class_rows.data() + (class_index * 256);
+    }
+
+    /*!
+     * \brief Derives the byte row into the VM state — the constant-evaluation path, where no per-regex
+     *        cache exists.
+     *
+     * The attribute is load-bearing, for the same reason as \ref verify_class_row and more so: this is the
+     * body that holds the 256-iteration loop, so inlined back into \ref class_table it is what makes that
+     * accessor too large to enter `basic_match_iterator::advance`. Splitting the function out without the
+     * attribute buys nothing — the compiler simply undoes it, and `class_table` is emitted out of line at
+     * 6.2 M instructions against 0.85 M inlined on a 64 KiB `[a-z]+` walk.
+     * \param[in] class_index Index into the program's interned byte classes.
+     * \return The state's table.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
+    constexpr const std::uint8_t* derive_class_table(std::size_t class_index)
     {
       if (state_.table_class != static_cast<std::int32_t>(class_index)) {
         const char_class& klass {prog_.classes[class_index]};
@@ -1536,6 +1608,156 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Sizes the per-regex membership rows for this program, if they are not already.
+     *
+     * Outlined and cold: it runs once per regex, behind an acquire load on the hot path.
+     * \param[in,out] cache The per-regex immutables.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline, cold))
+#endif
+    void ensure_membership_rows(detail::regex_immutables& cache) const
+    {
+      const std::lock_guard<std::mutex> lock {detail::immut_build_mu(&cache)};
+      const void* const                 want {static_cast<const void*>(prog_.code.data())};
+      if (cache.rows_for.load(std::memory_order_relaxed) == want) {
+        return; // another thread sized them while we waited
+      }
+      cache.class_rows.assign(prog_.classes.size() * 256, 0);
+      cache.cp_ascii_rows.assign(prog_.cp_classes.size() * 256, 0);
+      cache.cp_page_rows.assign(prog_.cp_classes.size() * 30, 0);
+      // Value-initialized, so every flag starts clear; assigning a fresh vector moves the buffer and
+      // never moves an atomic.
+      cache.cp_ascii_ready_at = prog_.classes.size();
+      cache.cp_page_ready_at  = cache.cp_ascii_ready_at + prog_.cp_classes.size();
+      const std::size_t flags {cache.cp_page_ready_at + prog_.cp_classes.size()};
+      cache.row_ready_bits.store(0, std::memory_order_relaxed);
+      cache.row_ready_overflow = flags > detail::regex_immutables::row_ready_bit_capacity
+                                   ? std::vector<std::atomic<char>>(flags - detail::regex_immutables::row_ready_bit_capacity)
+                                   : std::vector<std::atomic<char>>();
+      cache.rows_for.store(want, std::memory_order_release);
+    }
+
+    /*!
+     * \brief Fills one byte-class row of the per-regex cache, once.
+     * \param[in,out] cache       The per-regex immutables.
+     * \param[in]     class_index Index into the program's interned byte classes.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline, cold))
+#endif
+    void fill_class_row(detail::regex_immutables& cache,
+                        std::size_t               class_index) const
+    {
+      const std::lock_guard<std::mutex> lock {detail::immut_build_mu(&cache)};
+      if (cache.row_ready(class_index)) {
+        return; // filled while we waited
+      }
+      const char_class& klass {prog_.classes[class_index]};
+      for (std::size_t b {0}; b < 256; ++b) {
+        cache.class_rows[(class_index * 256) + b] = klass.test(static_cast<std::uint8_t>(b)) ? 1U : 0U;
+      }
+      cache.set_row_ready(class_index);
+    }
+
+    /*!
+     * \brief Fills one code-point-class ASCII row of the per-regex cache, once.
+     * \param[in,out] cache    The per-regex immutables.
+     * \param[in]     cp_index Index into the program's code-point classes.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline, cold))
+#endif
+    void fill_cp_ascii_row(detail::regex_immutables& cache,
+                           std::size_t               cp_index) const
+    {
+      const std::lock_guard<std::mutex> lock {detail::immut_build_mu(&cache)};
+      if (cache.row_ready(cache.cp_ascii_ready_at + cp_index)) {
+        return;
+      }
+      const char_class& klass {prog_.cp_classes[cp_index].ascii};
+      for (std::size_t b {0}; b < 256; ++b) {
+        cache.cp_ascii_rows[(cp_index * 256) + b] = klass.test(static_cast<std::uint8_t>(b)) ? 1U : 0U;
+      }
+      cache.set_row_ready(cache.cp_ascii_ready_at + cp_index);
+    }
+
+    /*!
+     * \brief Fills one U+0080..U+07FF membership bitmap of the per-regex cache, once.
+     * \param[in,out] cache    The per-regex immutables.
+     * \param[in]     cp_index Index into the program's code-point classes.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline, cold))
+#endif
+    void fill_cp_page_row(detail::regex_immutables& cache,
+                          std::size_t               cp_index) const
+    {
+      const std::lock_guard<std::mutex> lock {detail::immut_build_mu(&cache)};
+      if (cache.row_ready(cache.cp_page_ready_at + cp_index)) {
+        return;
+      }
+      std::uint64_t* const    row {cache.cp_page_rows.data() + (cp_index * 30)};
+      const detail::cp_class& cc  {prog_.cp_classes[cp_index]};
+      for (std::size_t w {0}; w < 30; ++w) {
+        row[w] = 0;
+      }
+      for (std::uint32_t k {0}; k < cc.range_count; ++k) {
+        const detail::code_range& r {prog_.cp_ranges[cc.range_begin + k]};
+        if (r.lo > cp_page_max) {
+          break; // ranges are sorted: nothing more falls in the page
+        }
+        const std::uint32_t lo {r.lo < 0x80U ? 0x80U : r.lo};
+        const std::uint32_t hi {r.hi > cp_page_max ? cp_page_max : r.hi};
+        for (std::uint32_t c {lo}; c <= hi; ++c) {
+          const std::uint32_t bit {c - 0x80U};
+          row[bit >> 6U] |= std::uint64_t {1} << (bit & 63U);
+        }
+      }
+      cache.set_row_ready(cache.cp_page_ready_at + cp_index);
+    }
+
+    /*!
+     * \brief Returns a flat 256-byte membership table for class \p class_index.
+     *
+     * Materializes the class bitmap into a byte-indexed table the first time it
+     * is requested, caching it in the shared scratch so a `find_all`-style walk
+     * builds it once. In a tight per-byte scan, `table[b]` (one load) replaces
+     * the bitmap's shift-and-mask — the byte-classification trick of DFA/JIT
+     * engines, measured ~2x faster on the class-scanning fast paths.
+     *
+     * \param[in] class_index Index into the program's interned classes.
+     * \return Pointer to a 256-entry table: 1 where the byte is in the class.
+     *
+     * Forced inline, and the attribute is load-bearing: left to its own judgement the compiler emits this
+     * out of line, where the call frame alone costs more than the whole accessor does inlined — 6.2 M
+     * instructions against 0.85 M on a 64 KiB `[a-z]+` walk. It only fits once \ref derive_class_table is
+     * kept out of it, which is what that function's own attribute is for.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((always_inline))
+#endif
+    constexpr const std::uint8_t* class_table(std::size_t class_index)
+    {
+      if constexpr (requires { State::ct_class_tables; }) {
+        return State::ct_class_tables + (class_index * 256); // link-time constant address
+      }
+      else if (!std::is_constant_evaluated() && prog_.immut != nullptr) {
+        detail::regex_immutables& cache {*prog_.immut};
+        // Two acquire loads here would be per-`run()`, and `run()` is per MATCH on a walk — 11 327 times
+        // over 64 KiB on `[a-z]+`. The state is single-threaded by construction, so it remembers which row
+        // it last verified, so a walk that stays on one class pays one compare.
+        if (row_key_stale(state_.table_class, static_cast<std::int32_t>(class_index))) {
+          verify_class_row(cache, class_index);
+        }
+        return state_.row_ptr;
+      }
+      else {
+        return derive_class_table(class_index);
+      }
+    }
+
+    /*!
      * \brief Byte-indexed membership table for a `cp_class`'s ASCII bitmap — the same one-load trick
      *        as \ref class_table, for the `klass_cp` scan-loop fast path. Keyed negatively so it never
      *        collides with a `class_table` key (a whole-pattern shorthand has no byte-NFA classes, so
@@ -1543,17 +1765,41 @@ namespace real::detail {
      * \param[in] cp_index Index into the program's `cp_classes`.
      * \return Pointer to a 256-entry table: 1 where the byte (< 0x80) is a member.
      */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((always_inline))
+#endif
     constexpr const std::uint8_t* cp_ascii_table(std::size_t cp_index)
     {
-      const std::int32_t key {-2 - static_cast<std::int32_t>(cp_index)};
-      if (state_.table_class != key) {
-        const char_class& klass {prog_.cp_classes[cp_index].ascii};
-        for (std::size_t b {0}; b < 256; ++b) {
-          state_.table[b] = klass.test(static_cast<std::uint8_t>(b)) ? 1U : 0U;
-        }
-        state_.table_class = key;
+      if constexpr (requires { State::ct_cp_ascii_tables; }) {
+        return State::ct_cp_ascii_tables + (cp_index * 256); // link-time constant address
       }
-      return state_.table.data();
+      else if (!std::is_constant_evaluated() && prog_.immut != nullptr) {
+        detail::regex_immutables& cache {*prog_.immut};
+        const std::int32_t        key {-2 - static_cast<std::int32_t>(cp_index)};
+        if (row_key_stale(state_.table_class, key)) { // see class_table
+          if (cache.rows_for.load(std::memory_order_acquire) != static_cast<const void*>(prog_.code.data())) {
+            ensure_membership_rows(cache);
+          }
+          if (!cache.row_ready(cache.cp_ascii_ready_at + cp_index)) {
+            fill_cp_ascii_row(cache, cp_index);
+          }
+          state_.table_class       = key;
+          state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
+          state_.row_ptr           = cache.cp_ascii_rows.data() + (cp_index * 256);
+        }
+        return state_.row_ptr;
+      }
+      else { // constant evaluation -- see class_table
+        const std::int32_t key {-2 - static_cast<std::int32_t>(cp_index)};
+        if (state_.table_class != key) {
+          const char_class& klass {prog_.cp_classes[cp_index].ascii};
+          for (std::size_t b {0}; b < 256; ++b) {
+            state_.table[b] = klass.test(static_cast<std::uint8_t>(b)) ? 1U : 0U;
+          }
+          state_.table_class = key;
+        }
+        return state_.table.data();
+      }
     }
 
     /*!
@@ -1610,27 +1856,51 @@ namespace real::detail {
      * \param[in] cp_index Index into the program's `cp_classes`.
      * \return Pointer to the 30-word bitmap (bit `cp - 0x80`).
      */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((always_inline))
+#endif
     constexpr const std::uint64_t* cp_page_table(std::size_t cp_index)
     {
-      const std::int32_t key {-2 - static_cast<std::int32_t>(cp_index)};
-      if (state_.cp_page_class != key) {
-        state_.cp_page.fill(0);
-        const detail::cp_class& cc {prog_.cp_classes[cp_index]};
-        for (std::uint32_t k {0}; k < cc.range_count; ++k) {
-          const detail::code_range& r {prog_.cp_ranges[cc.range_begin + k]};
-          if (r.lo > cp_page_max) {
-            break; // ranges are sorted: nothing more falls in the page
-          }
-          const std::uint32_t lo {r.lo < 0x80U ? 0x80U : r.lo};
-          const std::uint32_t hi {r.hi > cp_page_max ? cp_page_max : r.hi};
-          for (std::uint32_t c {lo}; c <= hi; ++c) {
-            const std::uint32_t bit {c - 0x80U};
-            state_.cp_page[bit >> 6U] |= std::uint64_t {1} << (bit & 63U);
-          }
-        }
-        state_.cp_page_class = key;
+      if constexpr (requires { State::ct_cp_page_tables; }) {
+        return State::ct_cp_page_tables + (cp_index * 30); // link-time constant address
       }
-      return state_.cp_page.data();
+      else if (!std::is_constant_evaluated() && prog_.immut != nullptr) {
+        detail::regex_immutables& cache {*prog_.immut};
+        const std::int32_t        key {-2 - static_cast<std::int32_t>(cp_index)};
+        if (row_key_stale(state_.cp_page_class, key)) { // see class_table
+          if (cache.rows_for.load(std::memory_order_acquire) != static_cast<const void*>(prog_.code.data())) {
+            ensure_membership_rows(cache);
+          }
+          if (!cache.row_ready(cache.cp_page_ready_at + cp_index)) {
+            fill_cp_page_row(cache, cp_index);
+          }
+          state_.cp_page_class     = key;
+          state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
+          state_.page_ptr          = cache.cp_page_rows.data() + (cp_index * 30);
+        }
+        return state_.page_ptr;
+      }
+      else { // constant evaluation -- see class_table
+        const std::int32_t key {-2 - static_cast<std::int32_t>(cp_index)};
+        if (state_.cp_page_class != key) {
+          state_.cp_page.fill(0);
+          const detail::cp_class& cc {prog_.cp_classes[cp_index]};
+          for (std::uint32_t k {0}; k < cc.range_count; ++k) {
+            const detail::code_range& r {prog_.cp_ranges[cc.range_begin + k]};
+            if (r.lo > cp_page_max) {
+              break;
+            }
+            const std::uint32_t lo {r.lo < 0x80U ? 0x80U : r.lo};
+            const std::uint32_t hi {r.hi > cp_page_max ? cp_page_max : r.hi};
+            for (std::uint32_t c {lo}; c <= hi; ++c) {
+              const std::uint32_t bit {c - 0x80U};
+              state_.cp_page[bit >> 6U] |= std::uint64_t {1} << (bit & 63U);
+            }
+          }
+          state_.cp_page_class = key;
+        }
+        return state_.cp_page.data();
+      }
     }
 
     //! \brief Cache entry for \ref cp_hi_cached (thread-local, not on \ref basic_pike_state).
@@ -2009,6 +2279,24 @@ namespace real::detail {
   public:
 
     /*!
+     * \brief The lookaround sub-scratch, built on first use.
+     *
+     * Two thread lists and an epsilon stack with their own containers. A `search()` builds a fresh state,
+     * so constructing and destroying all of that landed on every search — for every pattern, including the
+     * overwhelming majority with no lookaround at all. Measured -5.4 % to -7.4 % on a dynamic single search
+     * once it became lazy, with a pattern that DOES use lookarounds unchanged (1895.7 -> 1897.1 us over a
+     * 64 KiB walk: the emplace happens once per state, not once per evaluation).
+     * \return The scratch, engaged.
+     */
+    lookaround_scratch& lookaround_state()
+    {
+      if (!state_.lookaround.has_value()) {
+        state_.lookaround.emplace();
+      }
+      return *state_.lookaround;
+    }
+
+    /*!
      * \brief Trailing-lookaround class+: body scan + longest end where lookaround holds.
      *
      * Cold, noinline: must not share a function body or inlining unit with
@@ -2204,6 +2492,30 @@ namespace real::detail {
                                 std::size_t match_end {match_start + first};
                                 if (prog_.hints.greedy_cp_class_plus) {
                                   while (match_end < text.size()) {
+                                    const auto lead {static_cast<std::uint8_t>(text[match_end])};
+                                    if (lead < 0x80U) {
+                                      if (asc[lead] == 0U) {
+                                        break;
+                                      }
+                                      ++match_end;
+                                      continue;
+                                    }
+                                    const detail::decoded_codepoint dc {
+                                      detail::decode_codepoint_strict(text, match_end)};
+                                    if (!dc.valid || !member_hi(dc.cp)) {
+                                      break;
+                                    }
+                                    match_end += dc.length;
+                                  }
+                                }
+                                // A COUNTED repeat is mutually exclusive with the greedy loop -- `X{k}`
+                                // emits no self-loop -- so it sits in the `else` and the test above stays
+                                // exactly the one that was there. Tested FIRST instead, it cost `\w+` and
+                                // `\b\w+\b` 2.3 % of their instructions on gcc/x86-64, measured, on
+                                // patterns that can never reach it.
+                                else if (const std::size_t max_len {prog_.hints.greedy_cp_class_max};
+                                         max_len != 0) {
+                                  for (std::size_t n {1}; n < max_len && match_end < text.size(); ++n) {
                                     const auto lead {static_cast<std::uint8_t>(text[match_end])};
                                     if (lead < 0x80U) {
                                       if (asc[lead] == 0U) {
@@ -4199,8 +4511,8 @@ namespace real::detail {
                                                    std::size_t           pos)
     {
       const std::size_t code_size {prog_.code.size()};
-      thread_list*      clist     {&state_.lookaround.lists[0]};
-      thread_list*      nlist     {&state_.lookaround.lists[1]};
+      thread_list*      clist     {&lookaround_state().lists[0]};
+      thread_list*      nlist     {&lookaround_state().lists[1]};
       clist->reset(code_size);
       nlist->reset(code_size);
       bool matched            {};
@@ -4276,8 +4588,8 @@ namespace real::detail {
                                                       std::size_t  pos)
     {
       const std::size_t code_size {prog_.code.size()};
-      thread_list*      clist     {&state_.lookaround.lists[0]};
-      thread_list*      nlist     {&state_.lookaround.lists[1]};
+      thread_list*      clist     {&lookaround_state().lists[0]};
+      thread_list*      nlist     {&lookaround_state().lists[1]};
       clist->reset(code_size);
       nlist->reset(code_size);
       bool here {false};
@@ -4328,7 +4640,7 @@ namespace real::detail {
      * Parks consuming (`byte`/`klass`) program counters in \p list and sets \p matched on
      * reaching the sub's `match`. A capture-free sub emits no `save` (handled defensively as
      * epsilon) and no `assert_lookaround` (nesting is rejected at compile time). Touches only
-     * `state_.lookaround.stack`, never the main `state_`. Linearity: `mark_seen` dedups
+     * `state_.lookaround->stack`, never the main `state_`. Linearity: `mark_seen` dedups
      * epsilon threads within a generation; once `p` advances, the same (pc,p) cannot recur,
      * so each `assert_lookaround` is evaluated at most once per position → O(n·k·L). No memo
      * table is needed (it would be redundant and break constexpr).
@@ -4343,7 +4655,7 @@ namespace real::detail {
                                   std::size_t  pos,
                                   bool&        matched)
     {
-      auto& stack {state_.lookaround.stack};
+      auto& stack {lookaround_state().stack};
       stack.clear();
       stack.push_back({.pc = pc0, .block = 0});
       while (!stack.empty()) {

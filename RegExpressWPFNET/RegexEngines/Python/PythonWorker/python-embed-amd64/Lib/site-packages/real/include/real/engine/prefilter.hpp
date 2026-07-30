@@ -999,10 +999,20 @@ namespace real::detail {
             ok = true;
           }
           const shape_close close {ok ? parse_shape_close(code, q) : shape_close {}};
-          // k > 1 without a trailing self-loop is `X{k}` (exact count, no MIN-only run to bound a
-          // search against) -- not this recognizer's shape; only arm when the loop is present
-          // (the {k,} shape) or k == 1 (the original bare-atom/optional-`+` shape).
-          if (ok && close.ok && (plus || k == 1) && cp_idx >= 0
+          // Three shapes reach the route now. `X` and `X+` (k == 1) and `X{k,}` (k copies then a
+          // self-loop) are unbounded above and leave the max at 0. `X{k}` -- k copies and NO self-loop --
+          // is bounded at k, which is the whole reason it can be accepted: the route extends greedily and
+          // used to bound the result only from below, and an exact count needs it stopped from above,
+          // since `\w{8}` over a nine-letter word matches the first eight and not the nine.
+          const std::uint16_t cp_max {plus || k == 1 ? std::uint16_t {0} : static_cast<std::uint16_t>(k)};
+          // A counted run declines a word boundary. Both retry loops in run_cp_class_loop advance by the
+          // whole run when a candidate fails, which is right for a MAXIMAL run -- its end IS the boundary,
+          // so no shorter start inside it can end on one -- and wrong for a bounded one: `\w{4}\b` over
+          // "abcdefghi" fails at 0 and matches at 5, and skipping to 4 loses it. Caught by differencing
+          // this route against the general VM, which is the only reason the shape is narrowed here rather
+          // than shipped wrong; lifting it means teaching those loops to step by one code point.
+          const bool counted_wb {cp_max != 0 && (lead.wb_lead != 0 || close.wb_trail != 0)};
+          if (ok && close.ok && !counted_wb && cp_idx >= 0
               && static_cast<std::size_t>(cp_idx) < cp_classes.size() && k <= 65535) {
             const bool has_wb {lead.wb_lead != 0 || close.wb_trail != 0};
             // Bare path: no Unicode table walk (keeps constexpr light for static_regex).
@@ -1010,6 +1020,7 @@ namespace real::detail {
               hints.greedy_cp_class      = cp_idx;
               hints.greedy_cp_class_plus = plus;
               hints.greedy_cp_class_min  = static_cast<std::uint16_t>(k);
+              hints.greedy_cp_class_max  = cp_max;
               hints.greedy_group_start   = gs;
               hints.greedy_group_end     = ge;
               hints.wb_lead              = 0;
@@ -1028,6 +1039,7 @@ namespace real::detail {
                 hints.greedy_cp_class      = cp_idx;
                 hints.greedy_cp_class_plus = plus;
                 hints.greedy_cp_class_min  = static_cast<std::uint16_t>(k);
+                hints.greedy_cp_class_max  = cp_max;
                 hints.greedy_group_start   = gs;
                 hints.greedy_group_end     = ge;
                 hints.wb_lead              = out_lead;

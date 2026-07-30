@@ -2980,6 +2980,26 @@ namespace real::detail {
   //! \brief Number of entries in \ref unicode_fold_table.
   inline constexpr std::size_t unicode_fold_table_size {2940};
 
+  //! \brief Index of the first entry whose code point is at or after \p cp, or
+  //!        \ref unicode_fold_table_size if none is. The seek half of \ref find_fold_index,
+  //!        exposed on its own so a caller holding a RANGE enters the table once and walks
+  //!        forward instead of scanning it whole -- see \c real::detail::unicode_casefold.
+  constexpr std::size_t find_fold_lower_bound(std::uint32_t cp)
+  {
+    std::size_t lo {0};
+    std::size_t hi {unicode_fold_table_size};
+    while (lo < hi) {
+      const std::size_t mid {lo + ((hi - lo) / 2)};
+      if (unicode_fold_table[mid].cp < cp) {
+        lo = mid + 1;
+      }
+      else {
+        hi = mid;
+      }
+    }
+    return lo;
+  }
+
   //! \brief Binary-searches \ref unicode_fold_table for \p cp; returns its index, or
   //!        \ref unicode_fold_table_size if \p cp is not cased. An index (not a pointer into
   //!        the table) keeps this usable in a constant expression on every compiler — g++

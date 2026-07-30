@@ -807,21 +807,30 @@ namespace real {
                                               std::vector<std::uint64_t>>,
                             small_vec<eps_entry, 32>>
       {
-        lookaround_scratch          lookaround;                    //!< Isolated sub-scratch for bounded lookaround evaluation.
-        capture_pool                pool;                          //!< copy-on-write capture blocks (heap-backed).
-        std::optional<lazy_dfa>     fwd_dfa;                       //!< Fallback when immut is null; prefer shared_fwd_dfa.
-        std::optional<reverse_dfa>  rev_dfa;                       //!< Fallback reverse; prefer shared_rev_dfa.
-        const void *                dfa_program         {nullptr}; //!< Program the per-state DFAs were built for (fallback).
-        std::optional<reverse_dfa>  il_prefix_rev;                 //!< Fallback IL prefix reverse; prefer shared_il_prefix_rev.
-        const void *                il_prefix_for       {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
-        const void *                il_text             {nullptr}; //!< IL: the haystack \ref il_abandoned refers to.
-        bool                        il_abandoned        {false};   //!< IL: a linearity/density guard tripped on this haystack.
-        std::uint32_t               il_density_cands    {};        //!< O1: IL candidates seen on this haystack.
-        std::size_t                 il_density_origin   {npos};    //!< O1: first IL candidate byte offset this haystack.
-        const void *                rare_disc_text      {nullptr}; //!< Rare-disc: haystack \ref rare_disc_abandoned refers to.
-        bool                        rare_disc_abandoned {false};   //!< Rare-disc density guard: stay on prefix for this haystack.
-        std::optional<ac_automaton> ac_state;                      //!< The multi-literal automaton (built once per program).
-        const void*                 ac_state_for        {nullptr}; //!< the program \ref ac_state was built for.
+        /*!
+         * \brief Isolated sub-scratch for bounded lookaround evaluation, built on first use.
+         *
+         * Two thread lists and an epsilon stack, each with their own containers. A `search()` builds a
+         * fresh state, so constructing and destroying all of that landed on every search — for the
+         * overwhelming majority of patterns, which have no lookaround at all. Lazy: the `requires` gates
+         * that gate the lookaround routes still see the member, and the sub-VM emplaces it when it first
+         * actually runs.
+         */
+        std::optional<lookaround_scratch> lookaround;
+        capture_pool                      pool;                          //!< copy-on-write capture blocks (heap-backed).
+        std::optional<lazy_dfa>           fwd_dfa;                       //!< Fallback when immut is null; prefer shared_fwd_dfa.
+        std::optional<reverse_dfa>        rev_dfa;                       //!< Fallback reverse; prefer shared_rev_dfa.
+        const void       *                dfa_program         {nullptr}; //!< Program the per-state DFAs were built for (fallback).
+        std::optional<reverse_dfa>        il_prefix_rev;                 //!< Fallback IL prefix reverse; prefer shared_il_prefix_rev.
+        const void       *                il_prefix_for       {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
+        const void       *                il_text             {nullptr}; //!< IL: the haystack \ref il_abandoned refers to.
+        bool                              il_abandoned        {false};   //!< IL: a linearity/density guard tripped on this haystack.
+        std::uint32_t                     il_density_cands    {};        //!< O1: IL candidates seen on this haystack.
+        std::size_t                       il_density_origin   {npos};    //!< O1: first IL candidate byte offset this haystack.
+        const void       *                rare_disc_text      {nullptr}; //!< Rare-disc: haystack \ref rare_disc_abandoned refers to.
+        bool                              rare_disc_abandoned {false};   //!< Rare-disc density guard: stay on prefix for this haystack.
+        std::optional<ac_automaton>       ac_state;                      //!< The multi-literal automaton (built once per program).
+        const void      *                 ac_state_for        {nullptr}; //!< the program \ref ac_state was built for.
       };
 
       std::string     pattern_text;                  //!< The original pattern text.
@@ -956,6 +965,54 @@ namespace real {
       /*!
        * \brief Capture-slot container: fixed-capacity, no heap.
        */
+
+      //! \brief Flat byte-class membership tables, built at compile time: `class_tables[i*256 + b]`.
+      //!        Reuses the \ref classes member rather than calling \ref build again — an extra `build()` per
+      //!        table pushes the whole instantiation past clang's constexpr step budget.
+      static constexpr std::array < std::uint8_t, (class_count == 0 ? 1 : class_count) * 256 > class_tables {[] {
+                                                                                                               std::array < std::uint8_t, (class_count == 0 ? 1 : class_count) * 256 > t {};
+                                                                                                               for (std::size_t i = 0; i < class_count; ++i) {
+                                                                                                                 for (std::size_t b = 0; b < 256; ++b) {
+                                                                                                                   t[(i * 256) + b] = classes[i].test(static_cast<std::uint8_t>(b)) ? std::uint8_t {1} : std::uint8_t {0};
+                                                                                                                 }
+                                                                                                               }
+                                                                                                               return t;
+                                                                                                             }()};
+
+      //! \brief Flat ASCII tables for the code-point classes: `cp_ascii_tables[i*256 + b]`.
+      static constexpr std::array < std::uint8_t, (cp_class_count == 0 ? 1 : cp_class_count) * 256 >
+      cp_ascii_tables {[] {
+                         std::array < std::uint8_t, (cp_class_count == 0 ? 1 : cp_class_count) * 256 > t {};
+                         for (std::size_t i = 0; i < cp_class_count; ++i) {
+                           for (std::size_t b = 0; b < 256; ++b) {
+                             t[(i * 256) + b] = cp_classes[i].ascii.test(static_cast<std::uint8_t>(b)) ? std::uint8_t {1}
+                                                                                       : std::uint8_t {0};
+                           }
+                         }
+                         return t;
+                       }()};
+
+      //! \brief Two-byte-range membership bitmaps (U+0080..U+07FF) for the code-point classes, 30 words each.
+      static constexpr std::array < std::uint64_t, (cp_class_count == 0 ? 1 : cp_class_count) * 30 >
+      cp_page_tables {[] {
+                        std::array < std::uint64_t, (cp_class_count == 0 ? 1 : cp_class_count) * 30 > t {};
+                        for (std::size_t i = 0; i < cp_class_count; ++i) {
+                          for (std::uint32_t k = 0; k < cp_classes[i].range_count; ++k) {
+                            const code_range& r {cp_ranges[cp_classes[i].range_begin + k]};
+                            if (r.lo > 0x7FFU) {
+                              break; // sorted: nothing more falls in the page
+                            }
+                            const std::uint32_t lo {r.lo < 0x80U ? 0x80U : r.lo};
+                            const std::uint32_t hi {r.hi > 0x7FFU ? 0x7FFU : r.hi};
+                            for (std::uint32_t c = lo; c <= hi; ++c) {
+                              const std::uint32_t bit {c - 0x80U};
+                              t[(i * 30) + (bit >> 6U)] |= std::uint64_t {1} << (bit & 63U);
+                            }
+                          }
+                        }
+                        return t;
+                      }()};
+
       using slot_storage = static_vec<std::size_t, slot_count>;
       // worst-case live capture blocks — every reference (a DFS stack frame or a thread in either
       // list) could point to a distinct block; freed blocks recycle through the pool's free list, so the
@@ -1023,32 +1080,52 @@ namespace real {
         basic_capture_pool<static_vec<std::size_t, max_blocks * slot_count>,
                            static_vec<std::int32_t, max_blocks>,
                            static_vec<std::uint32_t, max_blocks>> pool; //!< COW capture blocks (zero heap).
+
+        //! \brief The compile-time byte-class tables, reachable from the VM through the STATE type so the
+        //!         address is a link-time constant rather than a span loaded from the program view.
+        static constexpr const std::uint8_t * ct_class_tables    {static_storage::class_tables.data()};
+        static constexpr const std::uint8_t*  ct_cp_ascii_tables {static_storage::cp_ascii_tables.data()}; //!< \ref static_storage::cp_ascii_tables.
+        static constexpr const std::uint64_t* ct_cp_page_tables  {static_storage::cp_page_tables.data()};  //!< \ref static_storage::cp_page_tables.
       };
 
       /*!
-       * \brief Returns a non-owning view of the compile-time program.
+       * \brief Returns a non-owning view of the compile-time program, by reference.
+       *
+       * Every field is a compile-time constant here — the spans point at `static constexpr` arrays and
+       * `immut` is null — so the whole view is one too, and handing back a reference costs nothing where
+       * returning by value copied 408 bytes per call. 232 of those bytes are \ref pattern_hints, and
+       * `view()` is called once per `search()`: line-level profiling of a single `[a-z]+` search put that
+       * one aggregate initialiser at 93 of the ~325 instructions the call spends, against 17 for the class
+       * scan itself.
        */
-      [[nodiscard]] constexpr program_view view() const
+      [[nodiscard]] constexpr const program_view& view() const
       {
-        return {.code              = code,
-                .classes           = classes,
-                .names             = names,
-                .lookarounds       = {}, // static_regex rejects lookarounds at compile (always empty)
-                .cp_classes        = cp_classes,
-                .cp_ranges         = cp_ranges,
-                                         // IL: no prefix sub-program. This storage never runs the reverse confirm (that needs the
-                                         // per-regex immutables it has none of), and a second compile inside a constant expression
-                                         // is what the budget cannot afford -- it pushed tests/frontend/test_constexpr.cpp's
-                                         // flag_cases() past clang's step limit. See \ref wants_inner_literal.
-                .prefix_code       = {},
-                .prefix_classes    = {},
-                .prefix_cp_classes = {},
-                .prefix_cp_ranges  = {},
-                .slot_count        = slot_count,
-                .byte_mode         = has_flag(effective_flags, flags::bytes),
-                .unicode_word      = !has_flag(effective_flags, flags::bytes) && !has_flag(effective_flags, flags::ascii),
-                .hints             = hints};
+        return view_;
       }
+
+    private:
+
+      //! \brief The view itself, materialised once at compile time. See \ref view.
+      static constexpr program_view view_ {.code = code,
+                                           .classes           = classes,
+                                           .names             = names,
+                                           .lookarounds       = {}, // static_regex rejects lookarounds at compile (always empty)
+                                           .cp_classes        = cp_classes,
+                                           .cp_ranges         = cp_ranges,
+                                                                    // IL: no prefix sub-program. This storage never runs the reverse confirm (that needs the
+                                                                    // per-regex immutables it has none of), and a second compile inside a constant expression
+                                                                    // is what the budget cannot afford -- it pushed tests/frontend/test_constexpr.cpp's
+                                                                    // flag_cases() past clang's step limit. See \ref wants_inner_literal.
+                                           .prefix_code       = {},
+                                           .prefix_classes    = {},
+                                           .prefix_cp_classes = {},
+                                           .prefix_cp_ranges  = {},
+                                           .slot_count        = slot_count,
+                                           .byte_mode         = has_flag(effective_flags, flags::bytes),
+                                           .unicode_word      = !has_flag(effective_flags, flags::bytes) && !has_flag(effective_flags, flags::ascii),
+                                           .hints             = hints};
+
+    public:
 
       /*!
        * \brief Returns the pattern text.

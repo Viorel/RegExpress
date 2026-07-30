@@ -23,6 +23,7 @@
 #include "real/version.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -86,10 +87,22 @@ namespace real::detail {
         }
       }
     }
-    for (std::size_t i = 0; i < unicode_fold_table_size; ++i) {
-      const fold_entry& entry {unicode_fold_table[i]};
-      if (std::ranges::any_of(in.ranges,
-                              [&entry](const code_range& r) { return entry.cp >= r.lo && entry.cp <= r.hi; })) {
+    // Walk the fold table PER RANGE, not the whole table per class. The table is sorted by code point
+    // (\ref find_fold_index binary-searches it), so each range seeks its first entry and walks forward
+    // while the entry is still inside. Scanning the whole table and asking `any_of` over the ranges cost
+    // O(table x ranges) instead -- `\w` carries 771 ranges against ~1400 entries, so a single icase `\w`
+    // was over a million comparisons, and `\w{500}` folds the same class once per repeat: 326 ms to
+    // COMPILE that pattern, which CI's fuzzer reached as a 10-second timeout under sanitizers.
+    //
+    // The accepted set is unchanged. Overlapping input ranges can now visit one entry more than once
+    // where `any_of` short-circuited, which only pushes a duplicate degenerate {p, p} that
+    // `coalesce_ranges` below already merges.
+    for (const code_range& r : in.ranges) {
+      for (std::size_t i {find_fold_lower_bound(r.lo)}; i < unicode_fold_table_size; ++i) {
+        const fold_entry& entry {unicode_fold_table[i]};
+        if (entry.cp > r.hi) {
+          break;
+        }
         for (std::uint8_t k = 0; k < entry.count; ++k) {
           add_partner(entry.partner[k]);
         }
@@ -249,6 +262,28 @@ namespace real::detail {
       : tree_(tree),
         flags_(compile_flags)
     {}
+
+  private:
+
+    //! \brief Ways in the case-fold cache \ref effective_class keeps. Four is enough for a repeat to hit
+    //!        its own way every time; a pattern alternating more distinct folded classes than this simply
+    //!        misses, which is what every pattern did before.
+    static constexpr std::size_t fold_cache_ways {4};
+
+    //! \brief Cache tag per way: the (class index, fold mode, negated) key held there, or -1 for empty.
+    //!
+    //!        `mutable` because the emit path reaches \ref effective_class through const member functions,
+    //!        and WRITTEN ONLY outside constant evaluation. MSVC's constant evaluator has already broken
+    //!        this header once over an object whose shape it merely disliked (C2131 on an indeterminate
+    //!        subobject, v2026.7.57), and a `static_regex` gains nothing here: its budget problem is the
+    //!        fold's step count, not its repetition.
+    mutable std::array<std::int32_t, fold_cache_ways> fold_key_ {-1, -1, -1, -1};
+
+    //! \brief Cached FINISHED class per way -- folded, coalesced and negated. Default-constructed, so an
+    //!        unused way holds an empty \ref class_def and costs no allocation.
+    mutable std::array<class_def, fold_cache_ways> fold_val_ {};
+
+  public:
 
     /*!
      * \brief Emits the full NFA program for the bound AST.
@@ -720,15 +755,66 @@ namespace real::detail {
       // stack), so a scoped (?i:...) / (?a:...) folds and picks tables per scope. bytes is not scopable
       // and stays global.
       const flags node_flags {static_cast<flags>(node.effective_flags)};
-      class_def   folded     {tree_.classes[static_cast<std::size_t>(node.klass)]};
+      const auto  klass_idx  {static_cast<std::size_t>(node.klass)};
+
+      // Fold mode: 0 none, 1 ASCII-only, 2 full Unicode. It is a function of the node's scope, so the
+      // same class under the same scope always folds to the same thing.
+      std::size_t mode {0};
       if (has_flag(node_flags, flags::icase)) {
-        if (has_flag(flags_, flags::bytes) || has_flag(node_flags, flags::ascii)) {
+        mode = (has_flag(flags_, flags::bytes) || has_flag(node_flags, flags::ascii)) ? 1U : 2U;
+      }
+
+      // A bounded repeat holds ONE class node and emits it once per REPETITION, so `\w{500}` asked for
+      // the same fold 500 times. Mode 2 walks the fold table per range of the class -- `\w` carries 771 --
+      // and that repetition was the whole of the cost.
+      //
+      // Four ways, direct-mapped, in a fixed array: a repeat hits the same way every time and nothing is
+      // allocated. A vector sized by the class table was tried first and cost 5 % to 19 % on patterns that
+      // fold once -- they paid its allocation and never read it. Keyed by (class index, mode) because a
+      // scoped `(?i:...)` can fold one class two ways in one pattern.
+      if (mode != 0 && !std::is_constant_evaluated()) {
+        // The FINISHED class is what is cached, negation included -- a repeat's copies share one node, so
+        // they share its negation too. Caching only the fold left `finish_class`'s `coalesce_ranges` sort
+        // running per repetition, which is why `[a-z]` with icase still cost 24x its plain marginal per
+        // repetition when the fold alone was memoized.
+        const auto        key {static_cast<std::int32_t>((klass_idx * 6U) + (mode * 2U) + (node.negated ? 1U : 0U))};
+        const std::size_t way {static_cast<std::size_t>(key) % fold_cache_ways};
+        if (fold_key_[way] == key) {
+          return fold_val_[way];
+        }
+        class_def folded {tree_.classes[klass_idx]};
+        if (mode == 1) {
           fold_ascii_case(folded.ascii);     // bytes / ASCII mode (re.A): ASCII-only fold, no Unicode partners
         }
         else {
           folded = unicode_casefold(folded); // text: full Unicode fold of the whole class, both directions
         }
+        fold_key_[way] = key;
+        fold_val_[way] = finish_class(node, std::move(folded));
+        return fold_val_[way];
       }
+      class_def folded {tree_.classes[klass_idx]};
+      if (mode == 1) {
+        fold_ascii_case(folded.ascii);
+      }
+      else if (mode == 2) {
+        folded = unicode_casefold(folded);
+      }
+      return finish_class(node, std::move(folded));
+    }
+
+    /*!
+     * \brief Applies negation (and its mode-dependent complement) to an already-folded class.
+     *
+     * Split out of \ref effective_class so the fold can be memoized while this stays per node: negation is
+     * a property of the node, the fold a property of (class, scope).
+     * \param[in] node   The class node being emitted.
+     * \param[in] folded Its class after any case fold.
+     * \return The class as the node means it.
+     */
+    [[nodiscard]] constexpr class_def finish_class(const ast_node& node,
+                                                   class_def       folded) const
+    {
       // The fold is applied BEFORE negation (Python order): [^k] under icase is the complement of
       // {k, K, Kelvin}, so it rejects Kelvin.
       if (!node.negated) {
@@ -795,7 +881,23 @@ namespace real::detail {
               emit_any_codepoint_class(prog, eff.ascii);
               break;
             }
-            emit_class_codepoints(prog, eff.ascii, eff.ranges);
+            // An ASCII bitmap with a FEW non-ASCII members -- what an icase fold makes of an ASCII class,
+            // since `[a-z]` gains the long s and the Kelvin sign -- is a code-point class, and emitting it
+            // as one is what lets the class-loop route take it. Expanded to a byte-level alternation
+            // instead (one branch for the bitmap, one per UTF-8 sequence), `(?i)[a-z]+` compiled to 8 byte
+            // classes and 18 instructions, matched no route at all and fell to the lazy DFA: 545 us over a
+            // 64 KiB corpus against 126 for its unfolded form. As one `klass_cp` it is 8 instructions and
+            // 230 us. Two rare fold partners were costing the route.
+            //
+            // One-pass eligibility does not suffer and in places improves: `klass_cp` reaches
+            // build_utf8_trie, whose disjoint per-node transitions are what make a Unicode class one-pass,
+            // so `(?i)[àé]+` goes from "byte-class conflict" to one-pass. `real::dfa` builds these too --
+            // dfa_flatten expands `klass_cp` through the same byte program the lazy DFA uses, which is
+            // what this change required and which widened that API rather than narrowing it.
+            //
+            // The `.`-family above keeps its own emission: it has a dedicated hint and route
+            // (codepoint_class_ascii), which this shape has not.
+            emit_klass_cp(prog, eff);
             break;
           }
         case node_kind::any:

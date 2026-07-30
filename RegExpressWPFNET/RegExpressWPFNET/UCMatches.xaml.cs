@@ -201,11 +201,7 @@ namespace RegExpressWPFNET
 
         public void ShowMatchingInProgress( bool yes )
         {
-#if DEBUG
             pnlHourglass.Visibility = yes ? Visibility.Visible : Visibility.Hidden;
-#else
-            pnlHourglass.Visibility = Visibility.Hidden;
-#endif
         }
 
 

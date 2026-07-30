@@ -16,8 +16,5 @@ namespace RegExpressLibrary.SyntaxColouring
 
 		public Segment LeftBracket = Segment.Empty;
 		public Segment RightBracket = Segment.Empty;
-
-		public Segment LeftCurlyBrace = Segment.Empty;
-		public Segment RightCurlyBrace = Segment.Empty;
 	}
 }

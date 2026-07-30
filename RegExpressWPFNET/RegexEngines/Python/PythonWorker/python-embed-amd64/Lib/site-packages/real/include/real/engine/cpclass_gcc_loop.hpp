@@ -45,5 +45,25 @@ const auto extend_run = [&](std::size_t match_start) -> std::size_t {
                               match_end += w;
                             }
                           }
+                          // A COUNTED repeat sits in the `else`; see the same split in pike.hpp's own
+                          // extend_run for the 2.3 % that ordering it the other way cost right here.
+                          else if (const std::size_t max_len {prog_.hints.greedy_cp_class_max};
+                                   max_len != 0) {
+                            for (std::size_t n {1}; n < max_len && match_end < text.size(); ++n) {
+                              const auto lead {static_cast<std::uint8_t>(text[match_end])};
+                              if (lead < 0x80U) {
+                                if (asc[lead] == 0U) {
+                                  break;
+                                }
+                                ++match_end;
+                                continue;
+                              }
+                              const std::size_t w {cp_class_hi_width(text, match_end, cp_index)};
+                              if (w == 0) {
+                                break;
+                              }
+                              match_end += w;
+                            }
+                          }
                           return match_end;
                         };

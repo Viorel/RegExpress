@@ -75,8 +75,7 @@ namespace RegExpressLibrary.Matches.Simple
 
         public SimpleGroup AddSucceededGroup( int nativeIndex, int nativeLength, int charIndex, int charLength, string name )
         {
-            Debug.Assert( charIndex >= 0 );
-            Debug.Assert( charLength >= 0 );
+            TextGetter.ThrowIfInvalid( charIndex, charLength );
 
             SimpleGroup group = new( nativeIndex, nativeLength, charIndex, charLength, true, name, TextGetter );
             mGroups.Add( group );

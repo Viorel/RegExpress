@@ -105,20 +105,74 @@ namespace real {
      * \throws real::dfa_error if any program holds an assertion other than a head text_start,
      *         a lookaround, a code-point class, or a possessive/atomic construct.
      */
+    /*!
+     * \brief Cap on a pattern's expanded byte program before subset construction runs on it.
+     *
+     * \ref max_dfa_states bounds the RESULT; nothing bounded the work to reach it, and subset construction
+     * is superlinear in the input. Measured on this machine, release build, construction time against
+     * expanded size: a case-folded ASCII class is 7-69 instructions and 0.04-0.06 ms, `\p{Han}+` 210 and
+     * 1.23 ms, `\d+` 261 and 1.88 ms -- and text-mode `\w+` is **3434 and 418 ms**, which under the fuzzer's
+     * sanitized build is a 12-second timeout. Thirteen times the size for two hundred times the time.
+     *
+     * 512 sits above every shape that builds in about a millisecond and below the one that does not. A
+     * pattern past it declines with a message, exactly as `\w` did before `klass_cp` became expandable
+     * here -- so this is the previous behaviour for the wide classes and a widening for everything else.
+     */
+    inline constexpr std::size_t max_dfa_byte_program {512};
+
     inline dfa_nfa dfa_flatten(std::span<const program_view> programs)
     {
       dfa_nfa nfa;
       nfa.rule_count = programs.size();
       for (std::size_t r = 0; r < programs.size(); ++r) {
-        const program_view& prog  {programs[r]};
-        const std::size_t   base  {nfa.code.size()};
-        const std::size_t   cbase {nfa.classes.size()};
+        const program_view& prog {programs[r]};
+
+        // The AUDIT runs over the pattern's own program, so every message names what the user wrote.
+        // A `klass_cp` is no longer among the refusals: it is expanded below.
+        for (const instr& in : prog.code) {
+          if (in.op == opcode::assert_position && in.arg8 != static_cast<std::uint8_t>(assert_kind::text_start)) {
+            // text_start (`\A`/`^`) is handled as a conditional ε in the closure (true at the cursor,
+            // false after any byte — exactly its anchored meaning). Any other assertion ($, \b, \B,
+            // multiline ^/$, …) cannot be a pure DFA.
+            throw dfa_error("pattern has a zero-width assertion that no DFA can represent "
+                            "(only \\A/^ is allowed)");
+          }
+          if (in.op == opcode::assert_lookaround) {
+            throw dfa_error("pattern has a lookaround, which no DFA can represent");
+          }
+          if (in.op == opcode::byte_loop_possessive || in.op == opcode::klass_loop_possessive ||
+              in.op == opcode::klass_cp_loop_possessive) {
+            // A Tier 1 possessive loop's on-no-match transition is an in-place, same-position epsilon
+            // splice resolved by the Pike VM's step() (see pike.hpp) -- not a pure byte transition a DFA
+            // state machine can represent, and its primary_target is a capture-slot index, not a branch
+            // pc (copying it unremapped would corrupt the DFA).
+            throw dfa_error("pattern has a possessive quantifier or atomic group, which no DFA can represent");
+          }
+        }
+
+        // A code-point class matches a whole code point, which is not a byte transition -- so it is
+        // replaced by the deterministic UTF-8 trie that recognises the same set, exactly as the lazy DFA
+        // has always done. This is the same `build_byte_program` the byte automata run on, targets remapped
+        // and all; refusing `klass_cp` outright was a limit of this entry point, not of the DFA. Text-mode
+        // `\w`/`\d`/`\s` and any case-folded ASCII class now build here.
+        //
+        // `keep_assertions`: the audit above already accepted only a head `\A`/`^`, and the closure below
+        // resolves it. Stripping assertions here instead would silently drop that anchor.
+        const byte_program bp {build_byte_program(prog, true, max_dfa_byte_program)};
+        if (!bp.eligible) {
+          throw dfa_error("pattern's byte expansion is too large for a DFA (a wide code-point class such "
+                          "as text-mode \\w, or one repeated many times), or holds a construct the byte "
+                          "automata decline");
+        }
+
+        const std::size_t base  {nfa.code.size()};
+        const std::size_t cbase {nfa.classes.size()};
         nfa.entry.push_back(base);
-        for (const char_class& cls : prog.classes) {
+        for (const char_class& cls : bp.classes) {
           nfa.classes.push_back(cls);
         }
-        for (std::size_t i = 0; i < prog.code.size(); ++i) {
-          const instr& in  {prog.code[i]};
+        for (std::size_t i = 0; i < bp.code.size(); ++i) {
+          const instr& in  {bp.code[i]};
           dfa_instr    out {.op = in.op, .arg8 = in.arg8};
           if (in.op == opcode::klass) {
             out.klass = static_cast<std::uint32_t>(cbase + in.arg16);
@@ -129,31 +183,6 @@ namespace real {
           }
           else if (in.op == opcode::jump) {
             out.primary = in.primary_target + static_cast<std::int64_t>(base);
-          }
-          else if (in.op == opcode::assert_position
-                   && in.arg8 != static_cast<std::uint8_t>(assert_kind::text_start)) {
-            // text_start (`\A`/`^`) is handled as a conditional ε in the closure (true
-            // at the cursor, false after any byte — exactly its anchored meaning). Any
-            // other assertion ($, \b, \B, multiline ^/$, …) cannot be a pure DFA.
-            throw dfa_error("pattern has a zero-width assertion that no DFA can represent "
-                            "(only \\A/^ is allowed)");
-          }
-          else if (in.op == opcode::assert_lookaround) {
-            throw dfa_error("pattern has a lookaround, which no DFA can represent");
-          }
-          else if (in.op == opcode::klass_cp) {
-            // A code-point predicate matches whole code points via a decode + range search, not a
-            // byte transition, so it has no place in a byte-transition DFA.
-            throw dfa_error("pattern has a Unicode code-point class (\\w/\\d/\\s in text mode), "
-                            "which no DFA can represent");
-          }
-          else if (in.op == opcode::byte_loop_possessive || in.op == opcode::klass_loop_possessive ||
-                   in.op == opcode::klass_cp_loop_possessive) {
-            // A Tier 1 possessive loop's on-no-match transition is an in-place, same-position
-            // epsilon splice resolved by the Pike VM's step() (see pike.hpp) -- not a pure byte
-            // transition a DFA state machine can represent, and its primary_target is a
-            // capture-slot index, not a branch pc (copying it unremapped would corrupt the DFA).
-            throw dfa_error("pattern has a possessive quantifier or atomic group, which no DFA can represent");
           }
           nfa.code.push_back(out);
           nfa.accept_rule.push_back(in.op == opcode::match ? static_cast<std::int64_t>(r) : -1);

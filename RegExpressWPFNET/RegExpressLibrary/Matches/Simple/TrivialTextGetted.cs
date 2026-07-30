@@ -19,7 +19,7 @@ namespace RegExpressLibrary.Matches.Simple
 
         public void ThrowIfInvalid( int index, int length )
         {
-            if( length != mValue.Length ) throw new ArgumentException( $"Invalid length: {length}" );
+            if( length != mValue.Length ) throw new ArgumentException( $"Invalid length: {length}, expected: {mValue.Length}" );
         }
 
         public string GetText( int index, int length )

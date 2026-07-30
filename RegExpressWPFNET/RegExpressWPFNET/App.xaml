@@ -191,12 +191,6 @@
             <Setter Property="FontWeight" Value="Bold"/>
         </Style>
 
-        <Style x:Key="PatternCurlyBraceHighlight" TargetType="TextBlock" PresentationOptions:Freeze="True">
-            <Setter Property="Foreground" Value="Fuchsia"/>
-            <Setter Property="Background" Value="#99FAEBD7"/>
-            <Setter Property="FontWeight" Value="Normal"/>
-        </Style>
-
         <Style x:Key="PatternCharacterEscape" TargetType="TextBlock" PresentationOptions:Freeze="True">
             <Setter Property="Foreground" Value="#9E5BA2"/>
             <Setter Property="Background" Value="White"/>

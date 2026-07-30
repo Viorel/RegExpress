@@ -7,7 +7,7 @@ HOW IT'S MADE
         - install MSYS2
         - install toolchain (see https://www.msys2.org/: pacman -S mingw-w64-ucrt-x86_64-gcc)
         (NOTE. We are using UCRT, not MINGW environment)
-        - Modify PATH (add path to "<msys64 location>\ucrt64\bin"
+        - Modify PATH (add path of "<msys64 location>\ucrt64\bin"
         - restart consoles
 
     This is also required for GCC C++.

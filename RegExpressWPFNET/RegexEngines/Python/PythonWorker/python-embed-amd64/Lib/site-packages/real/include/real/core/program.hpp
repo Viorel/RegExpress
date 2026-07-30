@@ -640,6 +640,21 @@ namespace real {
        */
       bool         il_cp_shape_eligible {};
       std::uint8_t il_cp_prefix_cps     {}; //!< Code points before the literal in \ref il_cp_shape_eligible.
+
+      /*!
+       * \brief Upper bound, in CODE POINTS, on \ref greedy_cp_class's run, or 0 for unbounded.
+       *
+       * `\w+` and `\w{8,}` are unbounded and leave this 0; `\w{8}` sets it to 8, which is what lets the
+       * route accept a counted repeat at all. Without it the recognizer had to decline `X{k}` — the route
+       * knew how to extend greedily and bound the result from BELOW, and an exact count needs the run
+       * stopped from above, since `\w{8}` over a nine-letter word matches the first eight and not the nine.
+       *
+       * APPENDED LAST, and that placement is the change rather than a detail: this struct's hot fields are
+       * read per call on the class-loop path, and inserting a field mid-struct has twice cost this project
+       * double-digit regressions on patterns that read none of it (see \ref alternation_branch_count and
+       * the six IL fields above).
+       */
+      std::uint16_t greedy_cp_class_max {};
     };
 
     /*!
@@ -703,7 +718,6 @@ namespace real {
       bool                        byte_mode    {};   //!< \ref flags::bytes mode.
       bool                        unicode_word {};   //!< `\b \B \< \>` use Unicode word-ness (text mode).
       pattern_hints               hints;             //!< Search-acceleration hints.
-
       // Codepoint-class marker, set by `emit_any_codepoint_class` at emission so the
       // prefilter need not reverse-engineer the emitted block's bytecode shape (its
       // instruction count is not fixed -- it grows with however many lead-byte

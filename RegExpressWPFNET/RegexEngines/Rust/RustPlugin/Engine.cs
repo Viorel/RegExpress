@@ -677,7 +677,7 @@ namespace RustPlugin
 
                 InlineComments = true,
                 XModeComments = true,
-                InsideSets_XModeComments = true,
+                InsideSets_XModeComments = false,
 
                 Flags = true,
                 ScopedFlags = true,

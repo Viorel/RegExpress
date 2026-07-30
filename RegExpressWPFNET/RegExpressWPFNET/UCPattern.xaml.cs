@@ -53,14 +53,11 @@ namespace RegExpressWPFNET
         readonly StyleInfo PatternParaHighlightStyleInfo;
         readonly StyleInfo PatternCharClassBracketStyleInfo;
         readonly StyleInfo PatternCharClassBracketHighlightStyleInfo;
-        readonly StyleInfo PatternRangeCurlyBraceHighlightStyleInfo;
 
         Segment LeftHighlightedParenthesis = Segment.Empty;
         Segment RightHighlightedParenthesis = Segment.Empty;
         Segment LeftHighlightedBracket = Segment.Empty;
         Segment RightHighlightedBracket = Segment.Empty;
-        Segment LeftHighlightedCurlyBrace = Segment.Empty;
-        Segment RightHighlightedCurlyBrace = Segment.Empty;
 
         IRegexEngine? mRegexEngine;
         string? mEol;
@@ -89,7 +86,6 @@ namespace RegExpressWPFNET
             PatternSymbolsStyleInfo = new StyleInfo( "PatternSymbol" );
             PatternCharClassBracketStyleInfo = new StyleInfo( "PatternCharacterClassBracket" );
             PatternCharClassBracketHighlightStyleInfo = new StyleInfo( "PatternCharacterClassBracketHighlight" );
-            PatternRangeCurlyBraceHighlightStyleInfo = new StyleInfo( "PatternCurlyBraceHighlight" );
             PatternCommentStyleInfo = new StyleInfo( "PatternComment" );
 
             RecolouringLoop = new ResumableLoop( "Pattern Colour", RecolouringThreadProc, 222, 444 );
@@ -229,8 +225,6 @@ namespace RegExpressWPFNET
             RightHighlightedParenthesis = Segment.Empty;
             LeftHighlightedBracket = Segment.Empty;
             RightHighlightedBracket = Segment.Empty;
-            LeftHighlightedCurlyBrace = Segment.Empty;
-            RightHighlightedCurlyBrace = Segment.Empty;
 
             RecolouringLoop.SignalWaitAndExecute( );
             HighlightingLoop.SignalWaitAndExecute( );
@@ -470,12 +464,12 @@ namespace RegExpressWPFNET
             {
                 Segment.Except( uncovered_segments, LeftHighlightedParenthesis );
                 Segment.Except( uncovered_segments, RightHighlightedParenthesis );
-                Segment.Except( uncovered_segments, LeftHighlightedBracket );
                 if( cnc.IsCancellationRequested ) return;
+                Segment.Except( uncovered_segments, LeftHighlightedBracket );
                 Segment.Except( uncovered_segments, RightHighlightedBracket );
-                Segment.Except( uncovered_segments, LeftHighlightedCurlyBrace );
-                Segment.Except( uncovered_segments, RightHighlightedCurlyBrace );
             }
+
+            if( cnc.IsCancellationRequested ) return;
 
             //
             //var segments_to_uncolour =
@@ -590,12 +584,6 @@ namespace RegExpressWPFNET
                     if( cnc.IsCancellationRequested ) return;
 
                     TryHighlight( ref RightHighlightedBracket, highlights?.RightBracket ?? Segment.Empty, td, PatternCharClassBracketHighlightStyleInfo, PatternCharClassBracketStyleInfo );
-                    if( cnc.IsCancellationRequested ) return;
-
-                    TryHighlight( ref LeftHighlightedCurlyBrace, highlights?.LeftCurlyBrace ?? Segment.Empty, td, PatternRangeCurlyBraceHighlightStyleInfo, PatternQuantifierStyleInfo );
-                    if( cnc.IsCancellationRequested ) return;
-
-                    TryHighlight( ref RightHighlightedCurlyBrace, highlights?.RightCurlyBrace ?? Segment.Empty, td, PatternRangeCurlyBraceHighlightStyleInfo, PatternQuantifierStyleInfo );
                     if( cnc.IsCancellationRequested ) return;
                 }
             } );

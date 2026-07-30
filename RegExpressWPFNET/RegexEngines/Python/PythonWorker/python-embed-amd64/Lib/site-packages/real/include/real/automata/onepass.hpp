@@ -396,38 +396,88 @@ namespace real::detail {
       // `(\d+)@(\d+)` gives 42 against 202. Even the widest node measured (64 assigned) is 260, so
       // the encoding never loses.
       //
-      // Row at `row_at[i]`, `row_at[i + 1] - row_at[i]` words:
-      //   [0] cls[i]                                  <- per round
-      //   [1..3] matches, match_cap_mask, match_assert_mask
-      //   then per assigned class, in class order:
-      //   [+0] class index   [+1] cls[edge.next] + 1   <- per round
-      //   [+2] cap_mask      [+3] assert_mask
+      // Rows are split by WHAT VARIES. Only `cls[i]` and the `cls[edge.next]` of each assigned class
+      // change between rounds; the class indices and the capture/assert masks are fixed for the whole
+      // call. Those invariants are therefore grouped ONCE, into an `inv_id`, and a round's signature is
+      // `(inv_id, cls[i], nexts...)` -- 2 + assigned words against 4 + 4 x assigned. On `(\w+)@(\w+)`
+      // that is 41 words a round instead of 162, and every round hashes and compares the narrow form.
       //
-      // The assigned set never changes between rounds -- only the partition ids do -- so the layout
-      // and every invariant word are written ONCE here, and a round rewrites just 1 + assigned words
-      // per node rather than the whole row.
+      // The partition is unchanged, at every round and not merely at the fixpoint: `inv_id` is a
+      // bijection onto the invariant tuple, so grouping by it groups exactly what grouping by the raw
+      // invariant words did. Ids are still minted in node order, so the numbering is identical too.
+      //
+      // Invariant row at `inv_at[i]`:
+      //   [0..2] matches, match_cap_mask, match_assert_mask
+      //   then per assigned class, in class order: [+0] class index [+1] cap_mask [+2] assert_mask
+      // Round row at `row_at[i]`:
+      //   [0] inv_id[i]   [1] cls[i]   then per assigned class, in class order: cls[edge.next] + 1
       std::vector<std::size_t> row_at(n + 1, 0);
+      std::vector<std::size_t> inv_at(n + 1, 0);
       for (std::size_t i = 0; i < n; ++i) {
-        std::size_t w {4};
+        std::size_t assigned {0};
         for (const onepass_edge& e : nodes_[i].edge) {
-          w += e.assigned ? 4U : 0U;
+          assigned += e.assigned ? 1U : 0U;
         }
-        row_at[i + 1] = row_at[i] + w;
+        row_at[i + 1] = row_at[i] + 2U + assigned;
+        inv_at[i + 1] = inv_at[i] + 3U + (3U * assigned);
       }
-      std::vector<std::uint64_t> sigs(row_at[n], 0);
+
+      // The invariant half, written once and then collapsed to one id per distinct tuple.
+      std::vector<std::uint64_t> inv(inv_at[n], 0);
       for (std::size_t i = 0; i < n; ++i) {
-        std::uint64_t* s {sigs.data() + row_at[i]};
-        s[1] = nodes_[i].matches ? 1U : 0U;
-        s[2] = nodes_[i].match_cap_mask;
-        s[3] = nodes_[i].match_assert_mask;
-        std::size_t w {4};
+        std::uint64_t* v {inv.data() + inv_at[i]};
+        v[0] = nodes_[i].matches ? 1U : 0U;
+        v[1] = nodes_[i].match_cap_mask;
+        v[2] = nodes_[i].match_assert_mask;
+        std::size_t w {3};
         for (std::size_t c = 0; c < nodes_[i].edge.size(); ++c) {
           const onepass_edge& e {nodes_[i].edge[c]};
           if (e.assigned) {
-            s[w]     = c;
-            s[w + 2] = e.cap_mask;
-            s[w + 3] = e.assert_mask;
-            w       += 4;
+            v[w]     = c;
+            v[w + 1] = e.cap_mask;
+            v[w + 2] = e.assert_mask;
+            w       += 3;
+          }
+        }
+      }
+      std::vector<std::uint64_t> inv_id(n, 0);
+      {
+        std::vector<std::uint32_t> inv_head(minimize_buckets, no_node);
+        std::vector<std::uint32_t> inv_next(n, no_node);
+        std::uint64_t              inv_count {0};
+        for (std::size_t i = 0; i < n; ++i) {
+          const std::span<const std::uint64_t> row   {inv.data() + inv_at[i], inv_at[i + 1] - inv_at[i]};
+          std::uint32_t&                       head  {inv_head[sig_hash(row) % minimize_buckets]};
+          bool                                 found {false};
+          for (std::uint32_t j = head; j != no_node; j = inv_next[j]) {
+            const std::span<const std::uint64_t> other {inv.data() + inv_at[j], inv_at[j + 1] - inv_at[j]};
+            if (std::equal(row.begin(), row.end(), other.begin(), other.end())) {
+              inv_id[i] = inv_id[j];
+              found     = true;
+              break;
+            }
+          }
+          if (!found) {
+            inv_id[i]   = inv_count++;
+            inv_next[i] = head;
+            head        = static_cast<std::uint32_t>(i);
+          }
+        }
+      }
+
+      std::vector<std::uint64_t> sigs(row_at[n], 0);
+      // The assigned edges' TARGETS, gathered once at the offsets their signature words occupy. A round
+      // then reads a packed run of node indices instead of walking every class's `onepass_edge` to test
+      // `assigned`: 39.4 entries against 103 for `(\w+)@(\w+)`, over a 4-byte stride rather than the
+      // edge struct's. The assigned set is fixed for the call, so this is built once.
+      std::vector<std::uint32_t> nexts(row_at[n], 0);
+      for (std::size_t i = 0; i < n; ++i) {
+        sigs[row_at[i]] = inv_id[i];
+        std::size_t w {row_at[i] + 2U};
+        for (const onepass_edge& e : nodes_[i].edge) {
+          if (e.assigned) {
+            nexts[w] = e.next;
+            ++w;
           }
         }
       }
@@ -444,14 +494,12 @@ namespace real::detail {
         }
         work_done += round_work;
         for (std::size_t i = 0; i < n; ++i) {
-          std::uint64_t* s {sigs.data() + row_at[i]};
-          s[0] = cls[i];
-          std::size_t w    {5};
-          for (const onepass_edge& e : nodes_[i].edge) {
-            if (e.assigned) {
-              s[w] = static_cast<std::uint64_t>(cls[e.next]) + 1U;
-              w   += 4;
-            }
+          const std::size_t base {row_at[i]};
+          const std::size_t stop {row_at[i + 1]};
+          std::uint64_t*    s    {sigs.data() + base};
+          s[1] = cls[i]; // s[0] is inv_id, written once above
+          for (std::size_t w {base + 2U}; w < stop; ++w) {
+            s[w - base] = static_cast<std::uint64_t>(cls[nexts[w]]) + 1U;
           }
         }
         next_cls.assign(n, 0);
@@ -675,20 +723,87 @@ namespace real::detail {
     std::optional<onepass> op_table;           //!< one-pass extractor, present iff the pattern is one-pass.
     byte_program           il_prefix_prog;     //!< IL: the inner-literal prefix's byte program (ineligible until built). Per-regex so the reverse DFA that spans it is a cheap shared wrapper, not a per-find_iter rebuild.
     std::size_t            il_min_haystack {}; //!< IL cold floor: first candidate-scan on this regex only fires at or above this size when the haystack HAS a match (0 = always). Warm scans use \ref il_warm_floor (shared reverse DFA in \ref shared_dfa_slot). Checked ONLY after the first memmem hit — no-match is never gated. Scaled by prefix byte-program size; see \ref pike_vm::run_inner_literal.
+    /*!
+     * \brief Byte-indexed membership rows, filled ON FIRST USE of each class and kept for the regex's life.
+     *
+     * `class_table` derived a 256-entry row into the VM state, and a `search()` builds a fresh state — so
+     * that walk landed on every short search: 2562 of the 3849 instructions one `[a-z]+` search spent.
+     * Filling every row with the program instead traded it for a cost `first_use` sees in full, since
+     * `[^,]+` interns fourteen classes and a short search touches one: +82 % there, +98 % on compile. Per
+     * class, on demand, cached per regex is the only arrangement that pays for neither — measured against
+     * both alternatives on compile, first use, repeated search and a 64 KiB walk.
+     *
+     * THREAD SAFETY. \ref rows_for identifies the program the rows were sized for, exactly as \ref built_for
+     * does for the rest of this cache, so a copied or reassigned regex re-sizes rather than reading a
+     * stale table. A row's flag is release-stored after the row is filled under \ref immut_build_mu and
+     * acquire-loaded before the row is read; only the lock holder that observed the flag clear ever writes
+     * a row, so a published row is immutable and readers race with no one.
+     */
+    std::vector<std::uint8_t>            class_rows;
+    std::vector<std::uint8_t>            cp_ascii_rows;
+    std::vector<std::uint64_t>           cp_page_rows;
+    /*!
+     * \brief "This row is filled" flags: one bit per row, three runs packed into one word, plus an
+     *        overflow vector for the runs that do not fit.
+     *
+     * A fresh `real::regex` pays this whole block per construction, so the bit word matters more than it
+     * looks: as three separate `std::vector<std::atomic<char>>` a pattern with no cp_class still allocated
+     * two one-element vectors, and arm64 first use measured +10.8 % on `[a-z]+`. Bits cover the runs that
+     * fit in one word and allocate nothing; \ref row_ready_overflow carries the rest. The check is not on
+     * a hot path — the VM state remembers its last verified row, so this is read on a miss, not per call.
+     *
+     * A `std::vector` of atomics rather than a `unique_ptr` array: `unique_ptr`'s destructor is not
+     * constexpr, and this struct must stay a literal type for `real::regex` to be usable in a constant
+     * expression. `std::atomic_ref` over a plain vector would say it more directly but is absent from this
+     * clang's libc++.
+     */
+    std::atomic<std::uint64_t>     row_ready_bits    {0};
+    std::vector<std::atomic<char>> row_ready_overflow;    //!< Flags for row indices at or past \ref row_ready_bit_capacity.
+    std::size_t                    cp_ascii_ready_at {0}; //!< Where the cp_ascii run starts in the flag index space.
+    std::size_t                    cp_page_ready_at  {0}; //!< As \ref cp_ascii_ready_at, for cp_page.
+    //! \brief \c prog.code.data() the rows above were SIZED for, or null. Same identity discipline as
+    //!        \ref built_for, and independent of it: the rows are needed by scan routes that never build
+    //!        the DFA caches.
+    std::atomic<const void*> rows_for {nullptr};
+
     //! \brief \c prog.code.data() this cache was built for, or null if never built / invalidated.
     //!        Hot path: one atomic load. Not \c once_flag — assignment reuses this object under a new
     //!        program; a spent once_flag would never rebuild (silent wrong matches).
     std::atomic<const void*> built_for {nullptr};
 
+    //! \brief How many flag indices \ref row_ready_bits covers; the rest live in \ref row_ready_overflow.
+    static constexpr std::size_t row_ready_bit_capacity {64};
+
+    //! \brief Reads the "filled" flag for flag index \p i, acquiring what the filling thread released.
+    [[nodiscard]] bool row_ready(std::size_t i) const noexcept
+    {
+      if (i < row_ready_bit_capacity) {
+        return ((row_ready_bits.load(std::memory_order_acquire) >> i) & 1ULL) != 0ULL;
+      }
+      return row_ready_overflow[i - row_ready_bit_capacity].load(std::memory_order_acquire) != 0;
+    }
+
+    //! \brief Publishes the "filled" flag for flag index \p i. Called only by the thread holding
+    //!        \ref immut_build_mu, so the read-modify-write on the bit word cannot race another writer.
+    void set_row_ready(std::size_t i) noexcept
+    {
+      if (i < row_ready_bit_capacity) {
+        row_ready_bits.fetch_or(1ULL << i, std::memory_order_release);
+      }
+      else {
+        row_ready_overflow[i - row_ready_bit_capacity].store(1, std::memory_order_release);
+      }
+    }
+
     // A copied regex is an independent regex: fresh unbuilt cache (built_for null). Copy/move of the
     // cache body is never transferred — pure runtime accelerator, cheap to rebuild.
     regex_immutables() = default;
     regex_immutables(const regex_immutables& /*other*/) noexcept
-      : built_for {nullptr}
+      : rows_for {nullptr}, built_for {nullptr}
     {}
 
     regex_immutables(regex_immutables&& /*other*/) noexcept
-      : built_for {nullptr}
+      : rows_for {nullptr}, built_for {nullptr}
     {}
 
     // Assignment keeps this object's cache storage but marks it invalid — the destination's program
@@ -699,6 +814,7 @@ namespace real::detail {
     regex_immutables& operator=(const regex_immutables& /*other*/) noexcept
     {
       built_for.store(nullptr, std::memory_order_relaxed);
+      rows_for.store(nullptr, std::memory_order_relaxed);
       return *this;
     }
 
@@ -706,6 +822,7 @@ namespace real::detail {
     regex_immutables& operator=(regex_immutables&& /*other*/) noexcept
     {
       built_for.store(nullptr, std::memory_order_relaxed);
+      rows_for.store(nullptr, std::memory_order_relaxed);
       return *this;
     }
 

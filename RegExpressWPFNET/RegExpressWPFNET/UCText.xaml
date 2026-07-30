@@ -30,7 +30,7 @@
 
                 <FlowDocument>
                     <Paragraph>
-                        <Run Text=""/>
+                        <Run Text="" d:Text="RichTextBox" />
                     </Paragraph>
                 </FlowDocument>
             </local_controls:MyRichTextBox>

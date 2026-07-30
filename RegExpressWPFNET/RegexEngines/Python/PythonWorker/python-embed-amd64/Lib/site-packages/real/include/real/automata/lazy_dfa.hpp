@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -166,14 +167,21 @@ namespace real::detail {
   constexpr utf8_trie build_utf8_trie(const cp_class&             cc,
                                       std::span<const code_range> cp_ranges)
   {
-    std::vector<std::vector<utf8_byte_range>> seqs;
+    // Sequences land in ONE buffer with an offset per sequence, not in a vector of vectors. Each sequence
+    // is 1 to 4 ranges and was its own vector growing from empty, so it re-allocated at 1, 2 and 4: over a
+    // `(\w+)@(\w+)` build those inner vectors were the single largest source of allocations, 164 220
+    // blocks holding 755 KB -- an average block of 4.6 bytes. Spans are taken only once the pool is
+    // complete, so no growth can invalidate one.
+    std::vector<utf8_byte_range> seq_pool;
+    std::vector<std::size_t>     seq_at {0};
     for (int b = 0; b < 0x80;) { // ASCII: each contiguous run of set bits is a one-byte sequence
       if (cc.ascii.test(static_cast<std::uint8_t>(b))) {
         const int lo {b};
         while (b < 0x80 && cc.ascii.test(static_cast<std::uint8_t>(b))) {
           ++b;
         }
-        seqs.push_back({utf8_byte_range {.lo = static_cast<std::uint8_t>(lo), .hi = static_cast<std::uint8_t>(b - 1)}});
+        seq_pool.push_back({.lo = static_cast<std::uint8_t>(lo), .hi = static_cast<std::uint8_t>(b - 1)});
+        seq_at.push_back(seq_pool.size());
       }
       else {
         ++b;
@@ -182,16 +190,15 @@ namespace real::detail {
     for (std::uint32_t k = 0; k < cc.range_count; ++k) { // non-ASCII: canonical byte-range sequences
       const code_range& r {cp_ranges[cc.range_begin + k]};
       for (const utf8_byte_seq& s : utf8_range_sequences(r.lo, r.hi)) {
-        std::vector<utf8_byte_range> seq;
         for (std::size_t j = 0; j < s.length; ++j) {
-          seq.push_back(s.parts[j]);
+          seq_pool.push_back(s.parts[j]);
         }
-        seqs.push_back(std::move(seq));
+        seq_at.push_back(seq_pool.size());
       }
     }
 
     utf8_trie trie;
-    if (seqs.empty()) {
+    if (seq_at.size() == 1) {
       return trie;
     }
     //! \brief A sequence's remaining byte ranges, as a view. The sequences in `seqs` outlive the whole
@@ -239,9 +246,15 @@ namespace real::detail {
         return true;
       }
 
-      constexpr std::int32_t build(const std::vector<seq_view>& in) // all non-empty sequences
+      // Takes a span, not a vector: the recursive call then hands its child a prefix of its OWN `tails`
+      // rather than filling a second vector with the non-empty subset. Both vectors are also sized up
+      // front -- neither can exceed a bound known on entry -- so a level allocates twice and never
+      // re-allocates, against a growth series per interval per level. The trie's own vectors were the
+      // build's second-largest allocation source after the sequence pool.
+      constexpr std::int32_t build(std::span<const seq_view> in) // all non-empty sequences
       {
         std::vector<int> bounds;
+        bounds.reserve(in.size() * 2U);
         for (const seq_view& s : in) {
           bounds.push_back(s[0].lo);
           bounds.push_back(s[0].hi + 1);
@@ -249,12 +262,14 @@ namespace real::detail {
         std::sort(bounds.begin(), bounds.end());
         bounds.erase(std::unique(bounds.begin(), bounds.end()), bounds.end());
 
-        utf8_trie_node node;
+        utf8_trie_node        node;
+        std::vector<seq_view> tails;
+        tails.reserve(in.size());
         for (std::size_t i = 0; i + 1 < bounds.size(); ++i) {
-          const int                                 lo        {bounds[i]};
-          const int                                 hi        {bounds[i + 1] - 1};
-          std::vector<seq_view>                     tails;
-          bool                                      all_empty {true};
+          const int lo   {bounds[i]};
+          const int hi   {bounds[i + 1] - 1};
+          tails.clear();
+          bool all_empty {true};
           for (const seq_view& s : in) {
             if (s[0].lo <= lo && hi <= s[0].hi) { // this disjoint interval sits inside sequence s's first range
               const seq_view tail {s.subspan(1)};
@@ -267,13 +282,16 @@ namespace real::detail {
           }
           std::int32_t child {-1};
           if (!all_empty) { // UTF-8 is prefix-free, so within one interval the tails share a length
-            std::vector<seq_view> nonempty;
+            // Compact the non-empty tails to the front, order preserved, and recurse on that prefix.
+            // The child builds its own `tails`, so it never aliases this one.
+            std::size_t kept {0};
             for (const seq_view& t : tails) {
               if (!t.empty()) {
-                nonempty.push_back(t);
+                tails[kept] = t;
+                ++kept;
               }
             }
-            child = build(nonempty);
+            child = build(std::span<const seq_view> {tails.data(), kept});
           }
           node.trans.emplace_back(utf8_byte_range {.lo = static_cast<std::uint8_t>(lo), .hi = static_cast<std::uint8_t>(hi)}, child);
         }
@@ -295,11 +313,12 @@ namespace real::detail {
     constexpr std::size_t     trie_memo_buckets {1024}; // chained buckets, sized for the bounded trie
     std::vector<std::int32_t> memo_head(trie_memo_buckets, -1);
     std::vector<std::int32_t> memo_next;
-    memo_next.reserve(seqs.size());
+    const std::size_t         seq_count {seq_at.size() - 1};
+    memo_next.reserve(seq_count);
     std::vector<seq_view>     roots;
-    roots.reserve(seqs.size());
-    for (const std::vector<utf8_byte_range>& s : seqs) {
-      roots.emplace_back(s);
+    roots.reserve(seq_count);
+    for (std::size_t i = 0; i < seq_count; ++i) {
+      roots.emplace_back(seq_pool.data() + seq_at[i], seq_at[i + 1] - seq_at[i]);
     }
     builder b {trie.nodes, memo_head, memo_next};
     trie.root = b.build(roots);
@@ -654,33 +673,71 @@ namespace real::detail {
         }
       }
     }
-    const auto sig_equal {[&](unsigned a, unsigned b) {
-                            for (const char_class& cc : class_preds) {
-                              if (cc.test(static_cast<std::uint8_t>(a)) != cc.test(static_cast<std::uint8_t>(b))) {
-                                return false;
-                              }
-                            }
-                            for (const std::uint16_t lit : literal_preds) {
-                              if ((a == lit) != (b == lit)) {
-                                return false;
-                              }
-                            }
-                            return true;
-                          }};
-    lazy_byte_alphabet            alpha;
-    std::array<std::uint8_t, 256> rep {};
-    for (unsigned b = 0; b < 256U; ++b) {
-      bool assigned {false};
-      for (std::uint16_t c = 0; c < alpha.count; ++c) {
-        if (sig_equal(b, rep[c])) {
-          alpha.of[b] = static_cast<std::uint8_t>(c);
+    // A byte's signature -- which predicates hold it -- does not depend on the classes formed so far, so
+    // it is built ONCE per byte and then grouped. Comparing each byte against every open class instead
+    // re-walked all the predicates per (byte, class) pair: O(256 * classes * predicates) with a whole
+    // char_class scan inside, 9.2 M instructions per call on `(\w+)@(\w+)`'s 475 predicates. Building the
+    // table is O(256 * predicates) and reads each class's bitmap directly.
+    //
+    // Class ids come out identical to the pairwise form: both walk bytes 0..255 in order and mint a new id
+    // the first time a signature appears, and signature equality IS the old `sig_equal`. Downstream reads
+    // `alpha.of` by value, so that identity is load-bearing, not incidental.
+    const std::size_t          pred_count {class_preds.size() + literal_preds.size()};
+    const std::size_t          sig_words  {((pred_count + 63U) / 64U) + 1U};
+    std::vector<std::uint64_t> sig(256U * sig_words, 0);
+    for (std::size_t p {0}; p < class_preds.size(); ++p) {
+      const char_class&   cc {class_preds[p]};
+      const std::size_t   w  {p >> 6U};
+      const std::uint64_t m  {std::uint64_t {1} << (p & 63U)};
+      // Only the bytes the class HOLDS, read straight off its bitmap, rather than asking `test` for all
+      // 256. A `\w` predicate holds 63 of them, so this is 63 scatters against 256 tested branches per
+      // predicate -- and `(\w+)@(\w+)` carries 475 predicates.
+      for (std::size_t word {0}; word < cc.bits.size(); ++word) {
+        for (std::uint64_t rest {cc.bits[word]}; rest != 0; rest &= rest - 1U) {
+          const std::size_t b {(word * 64U) + static_cast<std::size_t>(std::countr_zero(rest))};
+          sig[(b * sig_words) + w] |= m;
+        }
+      }
+    }
+    for (std::size_t i {0}; i < literal_preds.size(); ++i) {
+      // A literal predicate holds exactly its own byte, so it sets one bit in one row.
+      const std::size_t p {class_preds.size() + i};
+      sig[(static_cast<std::size_t>(literal_preds[i]) * sig_words) + (p >> 6U)] |= std::uint64_t {1} << (p & 63U);
+    }
+
+    lazy_byte_alphabet        alpha;
+    constexpr std::size_t     sig_buckets {512};
+    std::vector<std::int32_t> sig_head(sig_buckets, -1);
+    std::vector<std::int32_t> sig_next;  // parallel to `rep`, indexed by class id
+    std::vector<std::uint8_t> rep;       // representative byte of each class id
+    for (unsigned b {0}; b < 256U; ++b) {
+      std::uint64_t h {1469598103934665603ULL};
+      for (std::size_t w {0}; w < sig_words; ++w) {
+        h = (h ^ sig[(b * sig_words) + w]) * 1099511628211ULL;
+      }
+      std::int32_t& head     {sig_head[static_cast<std::size_t>(h) % sig_buckets]};
+      bool          assigned {false};
+      for (std::int32_t i2 {head}; i2 >= 0; i2 = sig_next[static_cast<std::size_t>(i2)]) {
+        const std::size_t other {rep[static_cast<std::size_t>(i2)]};
+        bool              same  {true};
+        for (std::size_t w {0}; w < sig_words; ++w) {
+          if (sig[(b * sig_words) + w] != sig[(other * sig_words) + w]) {
+            same = false;
+            break;
+          }
+        }
+        if (same) {
+          alpha.of[b] = static_cast<std::uint8_t>(i2);
           assigned    = true;
           break;
         }
       }
       if (!assigned) {
-        rep[alpha.count] = static_cast<std::uint8_t>(b);
-        alpha.of[b]      = static_cast<std::uint8_t>(alpha.count);
+        const auto id {static_cast<std::int32_t>(alpha.count)};
+        rep.push_back(static_cast<std::uint8_t>(b));
+        sig_next.push_back(head);
+        head        = id;
+        alpha.of[b] = static_cast<std::uint8_t>(alpha.count);
         ++alpha.count;
       }
     }
