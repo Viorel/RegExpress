@@ -54,8 +54,10 @@ namespace real {
     ungreedy = 512,       //!< Ungreedy mode (RE2 `(?U)`): swap the default quantifier greediness — a bare quantifier becomes lazy and the explicit `?` suffix re-inverts back to greedy (`(?U)a+` matches minimally, `(?U)a+?` maximally). Resolved entirely at parse time into each repeat node's `lazy` bit (the compiler and VM never read this flag), and scoped like the other inline letters: `(?U:…)`, `(?-U:…)` and the constructor flag all work through the flag-scope stack.
   };
 
-  //! \brief Which match a search returns among those starting at the leftmost position (an experimental,
-  //!        opt-in, off-by-default engine mode — the default is unchanged).
+  /*!
+   * \brief Which match a search returns among those starting at the leftmost position (an experimental,
+   *        opt-in, off-by-default engine mode — the default is unchanged).
+   */
   enum class match_semantics : std::uint8_t
   {
     first   = 0, //!< Leftmost-first (Perl / Python `re` / the crate): source-order thread priority decides. Default.
@@ -87,6 +89,27 @@ namespace real {
   }
 
   /*!
+   * \brief \p value with every flag in \p removed cleared -- the `(?flags-flags)` removal.
+   *
+   * There is no `operator~` for \ref flags on purpose: complementing a 16-bit enum would set every
+   * unassigned bit, and the result would be a flag set naming flags that do not exist. This states the
+   * whole operation instead. The intermediate width is `unsigned`, so the complement happens before the
+   * narrowing cast -- doing it in `std::uint16_t` would drop \ref flags::ungreedy (512) on a
+   * `std::uint8_t`-width intermediate, which is the exact bug the parser's own helper was written to
+   * avoid.
+   *
+   * \param[in] value   The flag set to clear from.
+   * \param[in] removed The flags to clear.
+   * \return \p value without \p removed.
+   */
+  constexpr flags flags_without(flags value,
+                                flags removed)
+  {
+    return static_cast<flags>(
+      static_cast<std::uint16_t>(static_cast<unsigned>(value) & ~static_cast<unsigned>(removed)));
+  }
+
+  /*!
    * \brief Tests whether \p flag is set in \p value.
    * \param[in] value The flag set to query.
    * \param[in] flag  The single flag to look for.
@@ -99,20 +122,20 @@ namespace real {
   }
 
   /*!
-   * \brief Exception thrown for an invalid pattern (or one exceeding a limit).
-   *
-   * In a constexpr context (`static_regex`), reaching the throw is a
-   * compile-time error, with the message appearing in the diagnostic trace.
+   * \brief Whether a rejected pattern is malformed (`syntax`) or well-formed but beyond REAL's linear engine
+   *        (`unsupported`: a backreference, `\p{…}`, a nested/unbounded lookaround). The distinction is a
+   *        stable, machine-readable classification the C ABI exposes so a binding never has to grep `what()`.
    */
-  //! \brief Whether a rejected pattern is malformed (`syntax`) or well-formed but beyond REAL's linear engine
-  //!        (`unsupported`: a backreference, `\p{…}`, a nested/unbounded lookaround). The distinction is a
-  //!        stable, machine-readable classification the C ABI exposes so a binding never has to grep `what()`.
   enum class error_kind : std::uint8_t
   {
     syntax,
     unsupported,
   };
 
+  //! \brief The exception every rejected pattern throws: a message with the pattern offset it was found at,
+  //!        plus an \ref error_kind a caller can branch on without parsing \ref what. In a constexpr context
+  //!        (`static_regex`) reaching the throw is a compile-time error, the message appearing in the
+  //!        diagnostic trace.
   class regex_error : public std::exception
   {
   public:
@@ -133,6 +156,7 @@ namespace real {
 
     /*!
      * \brief Whether the pattern is malformed (`syntax`) or well-formed but unsupported by REAL.
+     * \return The classification.
      */
     [[nodiscard]] error_kind kind() const noexcept
     {
@@ -141,6 +165,7 @@ namespace real {
 
     /*!
      * \brief Returns the formatted error message (with position).
+     * \return The message, valid for this object's lifetime.
      */
     [[nodiscard]] const char* what() const noexcept override
     {
@@ -149,6 +174,7 @@ namespace real {
 
     /*!
      * \brief Returns the byte offset in the pattern where the error was found.
+     * \return The offset into the pattern text.
      */
     [[nodiscard]] std::size_t position() const noexcept
     {
@@ -190,9 +216,15 @@ namespace real {
       std::uint64_t fingerprint {};
     };
 
-    //! \brief FNV-1a 64-bit content fingerprint of an ASCII bitmap + a contiguous range span.
-    //!        Used once at `intern_cp_class` (compile time / first intern); match time only reads
-    //!        \ref cp_class::fingerprint. Constexpr so `static_regex` stays happy.
+    /*!
+     * \brief FNV-1a 64-bit content fingerprint of an ASCII bitmap + a contiguous range span.
+     *        Used once at `intern_cp_class` (compile time / first intern); match time only reads
+     *        \ref cp_class::fingerprint. Constexpr so `static_regex` stays happy.
+     * \param[in] ascii       The class's ASCII bitmap.
+     * \param[in] ranges      Pointer to its first non-ASCII range.
+     * \param[in] range_count Ranges belonging to it.
+     * \return The content hash, equal for two classes holding the same code points.
+     */
     [[nodiscard]] constexpr std::uint64_t fingerprint_cp_class_content(
       const char_class&                     ascii,
       const code_range*                     ranges,
@@ -317,9 +349,11 @@ namespace real {
       std::int32_t  secondary_target {}; //!< Secondary branch target (split).
     };
 
-    //! \brief Which operand space a `class_ref` indexes: `byte_loop_possessive`'s own literal
-    //!        byte value (not a table at all), `classes[]` (`klass_loop_possessive`), or
-    //!        `cp_classes[]` (`klass_cp_loop_possessive`). `none` = unarmed.
+    /*!
+     * \brief Which operand space a `class_ref` indexes: `byte_loop_possessive`'s own literal
+     *        byte value (not a table at all), `classes[]` (`klass_loop_possessive`), or
+     *        `cp_classes[]` (`klass_cp_loop_possessive`). `none` = unarmed.
+     */
     enum class class_kind : std::uint8_t
     {
       none,
@@ -341,14 +375,19 @@ namespace real {
      */
     struct class_ref
     {
-      class_kind    kind  {class_kind::none};
-      std::uint16_t index {}; //!< classes[]/cp_classes[] index (kind == klass/klass_cp), or the literal byte value 0-255 (kind == byte).
+      class_kind    kind  {class_kind::none}; //!< Which table \ref index refers to; `none` means unarmed.
+      std::uint16_t index {};                 //!< classes[]/cp_classes[] index (kind == klass/klass_cp), or the literal byte value 0-255 (kind == byte).
 
+      /*!
+       * \brief Whether this reference names anything at all.
+       * \return False while \ref kind is \c class_kind::none.
+       */
       [[nodiscard]] constexpr bool armed() const noexcept
       {
         return kind != class_kind::none;
       }
 
+      //! \brief Equality, comparing \ref kind first so two different tables' indices never collide.
       friend constexpr bool operator==(const class_ref&,
                                        const class_ref&) noexcept = default;
     };
@@ -436,19 +475,19 @@ namespace real {
       //!        `inner_literal_prefix == 0` = the literal is at the head (reverse is the identity), `-1` = it
       //!        is nested with no clean prefix boundary. Filled at compile from the AST (raw bytes, so \ref
       //!        pattern_hints — a core type — need not know the frontend literal type). Not yet routed on.
-      std::array<std::uint8_t, 16> inner_literal        {};
-      std::uint8_t                 inner_literal_len    {};
-      std::int32_t                 inner_literal_prefix {-1};
+      std::array<std::uint8_t, 16> inner_literal        {};   //!< The literal's bytes, the first \ref inner_literal_len of which are meaningful.
+      std::uint8_t                 inner_literal_len    {};   //!< Bytes held in \ref inner_literal; 0 means the pattern has no required inner literal.
+      std::int32_t                 inner_literal_prefix {-1}; //!< Top-level children before the literal; 0 = at the head, -1 = nested with no clean boundary.
 
       //! \brief For a \ref fixed_shape run that is also HOMOGENEOUS -- every position accepts the
       //!        identical byte set, itself expressible as <= 2 contiguous ranges (`[0-9a-f]{8}`,
       //!        `\d{4}`) -- the shared range bounds and run length, driving the SIMD scan+verify
       //!        (SSE2/NEON) in `run_fixed_shape`. \ref fixed_shape_simd_len is 0 when not eligible
       //!        (mixed-class shapes, a run > 16 bytes, or a class needing > 2 ranges stay scalar).
-      std::uint8_t fixed_shape_lo0      {};
-      std::uint8_t fixed_shape_hi0      {};
+      std::uint8_t fixed_shape_lo0      {};  //!< First range's low byte.
+      std::uint8_t fixed_shape_hi0      {};  //!< First range's high byte.
       std::uint8_t fixed_shape_lo1      {1}; //!< lo1 > hi1 (default 1 > 0) encodes "no second range".
-      std::uint8_t fixed_shape_hi1      {};
+      std::uint8_t fixed_shape_hi1      {};  //!< Second range's high byte, when one is present.
       std::uint8_t fixed_shape_simd_len {};  //!< The run length (1..16) when eligible, else 0.
 
       //! \brief IL-fusion (`run_inner_literal`): when the inner-literal route applies
@@ -459,8 +498,8 @@ namespace real {
       //!        no reverse DFA, no forward DFA, no one-pass extraction. \ref il_fused_eligible is false
       //!        (prefix width unset) for a variable-width neighbor, a `klass_cp`, or an oversized run --
       //!        the existing reverse-DFA/forward-DFA/one-pass route stays exactly as it was for those.
-      bool         il_fused_eligible     {};
-      std::uint8_t il_fused_prefix_width {};
+      bool         il_fused_eligible     {}; //!< Whether \ref il_fused_prefix_width is set and the fused route applies.
+      std::uint8_t il_fused_prefix_width {}; //!< Byte width of everything before the literal; subtracted from a memmem hit to get the match start.
 
       //! \brief Trailing lookaround on a groupless greedy `class+` body (`[a-z]+(?=[a-z])`,
       //!        `[0-9]+(?![0-9])`, …). Index into lookarounds; -1 = not this shape.
@@ -484,9 +523,9 @@ namespace real {
       //!        rather than quadratic on adversarial input (`id=[a-z0-9]*+;` fails this and stays general --
       //!        alphanumeric prefix bytes are members of the loop's own class).
       std::array<char, 8>   possessive_prefix       {};   //!< Required literal BEFORE the loop (0 len = none; the delimited/"quoted" shape).
-      std::uint8_t          possessive_prefix_size  {};
+      std::uint8_t          possessive_prefix_size  {};   //!< Meaningful bytes of \ref possessive_prefix; 0 selects the bare/suffixed shape, non-zero the delimited one.
       std::array<char, 8>   possessive_suffix       {};   //!< Required literal AFTER the loop (0 len = none; e.g. the 'x' in `\d++x`).
-      std::uint8_t          possessive_suffix_size  {};
+      std::uint8_t          possessive_suffix_size  {};   //!< Meaningful bytes of \ref possessive_suffix; 0 means the loop has no required suffix.
       class_ref             possessive_class        {};   //!< The loop body's class, typed by opcode.
       std::int16_t          possessive_group_start  {-1}; //!< Enveloping single capture group's start slot (mirrors \ref greedy_group_start), -1 = none.
       std::int16_t          possessive_group_end    {-1}; //!< The enveloping group's end slot.
@@ -496,8 +535,8 @@ namespace real {
       //!        exact_literal. 0 = none; 1 = `\b` (\ref assert_kind::word_boundary);
       //!        2 = `\B` (\ref assert_kind::not_word_boundary). Verified in O(1) at the match
       //!        start/end after the body fast-path accepts a candidate.
-      std::uint8_t wb_lead  {};
-      std::uint8_t wb_trail {};
+      std::uint8_t wb_lead  {}; //!< Leading wrap: 0 none, 1 `\b`, 2 `\B` — asserted at the match start.
+      std::uint8_t wb_trail {}; //!< Trailing wrap, same encoding as \ref wb_lead — asserted at the match end.
       //! \brief True when a genuine leading `\b` was dropped by the B-1 optimization (a maximal
       //!        greedy/possessive run can only legitimately START where the preceding character
       //!        is non-word, so the runtime check is redundant -- \ref resolve_class_wb_hints).
@@ -575,17 +614,17 @@ namespace real {
       //! path already has its own, better, fused scan), the width is 2..16, and every position resolved
       //! to 1..2 ranges. `lo1 > hi1` encodes "no second range", the same convention as \ref
       //! fixed_shape_lo1. Appended last (same placement rule as \ref alternation_branch_count).
-      std::uint8_t fs_pair_width {};
-      std::uint8_t fs_pair_off_a {};
-      std::uint8_t fs_pair_off_b {};
-      std::uint8_t fs_pair_a_lo0 {};
-      std::uint8_t fs_pair_a_hi0 {};
-      std::uint8_t fs_pair_a_lo1 {1};
-      std::uint8_t fs_pair_a_hi1 {};
-      std::uint8_t fs_pair_b_lo0 {};
-      std::uint8_t fs_pair_b_hi0 {};
-      std::uint8_t fs_pair_b_lo1 {1};
-      std::uint8_t fs_pair_b_hi1 {};
+      std::uint8_t fs_pair_width {};  //!< The shape's byte width (2..16); 0 when the pair filter is ineligible.
+      std::uint8_t fs_pair_off_a {};  //!< Offset of the first probed position within the shape.
+      std::uint8_t fs_pair_off_b {};  //!< Offset of the second probed position.
+      std::uint8_t fs_pair_a_lo0 {};  //!< Position A, first range's low byte.
+      std::uint8_t fs_pair_a_hi0 {};  //!< Position A, first range's high byte.
+      std::uint8_t fs_pair_a_lo1 {1}; //!< Position A, second range's low byte; `lo1 > hi1` encodes "no second range".
+      std::uint8_t fs_pair_a_hi1 {};  //!< Position A, second range's high byte.
+      std::uint8_t fs_pair_b_lo0 {};  //!< Position B, first range's low byte.
+      std::uint8_t fs_pair_b_hi0 {};  //!< Position B, first range's high byte.
+      std::uint8_t fs_pair_b_lo1 {1}; //!< Position B, second range's low byte; same "no second range" convention.
+      std::uint8_t fs_pair_b_hi1 {};  //!< Position B, second range's high byte.
 
       // The six IL fields below are APPENDED LAST, and that placement is the change rather than a detail:
       // inserting them mid-struct (after il_fused_prefix_width) reflowed every field after them and moved
@@ -670,16 +709,14 @@ namespace real {
       std::int32_t end   {}; //!< End offset (exclusive) of the name.
     };
 
-    /*!
-     * \brief Non-owning view of a compiled program — what the engine executes.
-     *
-     * The spans point into storage that must outlive the view (the owning regex
-     * object). Both the dynamic and static storage policies expose one of these.
-     */
     //! \brief The per-regex immutable lazy-DFA/one-pass cache (defined in onepass.hpp; a forward declaration
     //!        keeps this low-level header independent of it). A dynamic storage owns one and points its view
     //!        at it, so the byte-program and one-pass table are built once per regex, not per find_iter.
     struct regex_immutables;
+    //! \brief A non-owning view of everything the engine needs to run one compiled pattern: the borrowed
+    //!        spans, the slot count, the mode flags, the search hints, and the per-regex cache. Both storages
+    //!        hand one of these to the VM, which is why the engine is storage-agnostic. Valid only as long as
+    //!        the program it views is alive.
     struct program_view
     {
       std::span<const instr>          code;                   //!< The instruction stream (main + lookaround regions).
@@ -728,6 +765,7 @@ namespace real {
 
       /*!
        * \brief Returns a non-owning \ref program_view over this program.
+       * \return The view; valid as long as this program is alive and unmodified.
        */
       [[nodiscard]] constexpr program_view view() const
       {

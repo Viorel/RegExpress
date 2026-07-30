@@ -25,8 +25,14 @@
 
 namespace real::detail {
 
-  //! \brief Word-ness of the code point **ending at** \p pos — the left side of a boundary. False at the text
-  //!        start or on a malformed sequence; ASCII / bytes / `re.A` (\p ascii_word) stay byte-level.
+  /*!
+   * \brief Word-ness of the code point **ending at** \p pos — the left side of a boundary. False at the text
+   *        start or on a malformed sequence; ASCII / bytes / `re.A` (\p ascii_word) stay byte-level.
+   * \param[in] text       Subject.
+   * \param[in] pos        Boundary position.
+   * \param[in] ascii_word Restrict word-ness to ASCII.
+   * \return Whether the preceding code point is a word character.
+   */
   [[nodiscard]] constexpr bool word_before(std::string_view text,
                                            std::size_t      pos,
                                            bool             ascii_word)
@@ -53,8 +59,14 @@ namespace real::detail {
     return is_word_cp(dc.cp);
   }
 
-  //! \brief Word-ness of the code point **starting at** \p pos — the right side of a boundary. False at the
-  //!        text end or on a malformed sequence; ASCII / bytes / `re.A` stay byte-level.
+  /*!
+   * \brief Word-ness of the code point **starting at** \p pos — the right side of a boundary. False at the
+   *        text end or on a malformed sequence; ASCII / bytes / `re.A` stay byte-level.
+   * \param[in] text       Subject.
+   * \param[in] pos        Boundary position.
+   * \param[in] ascii_word Restrict word-ness to ASCII.
+   * \return Whether the following code point is a word character.
+   */
   [[nodiscard]] constexpr bool word_after(std::string_view text,
                                           std::size_t      pos,
                                           bool             ascii_word)

@@ -22,17 +22,27 @@
 
 namespace real::detail {
 
-  //! \brief The match start for a literal candidate at \p h: reverse-match the prefix (the first \p count
-  //!        top-level children) ending at \p h, bounded below by \p min_start. \p count == 0 means the literal
-  //!        is at the head, so the reverse is the identity (the match starts at the candidate). Returns \ref
-  //!        npos when the prefix cannot reach a start (an orphan candidate). Runtime only — the reverse DFA is
-  //!        not constexpr; a static_regex would keep the inner-literal path dynamic.
-  //!
-  //! The prefix is compiled through the normal path: its capturing groups become `save` ops, which \ref
-  //! build_byte_program drops as zero-width, so the byte program (and the reverse over it) is capture-free by
-  //! construction — no separate capture-free compile is needed. Top-level `\b`/`\B` are peeled before the
-  //! prefix is built (D1a, \ref extract_inner_literal / \ref build_prefix_ast with skip); other anchors and
-  //! lookarounds still decline extraction, so an extracted pattern's prefix stays byte-program eligible.
+  /*!
+   * \brief The match start for a literal candidate at \p h: reverse-match the prefix (the first \p count
+   *        top-level children) ending at \p h, bounded below by \p min_start. \p count == 0 means the literal
+   *        is at the head, so the reverse is the identity (the match starts at the candidate). Returns \ref
+   *        npos when the prefix cannot reach a start (an orphan candidate). Runtime only — the reverse DFA is
+   *        not constexpr; a static_regex would keep the inner-literal path dynamic.
+   *
+   * The prefix is compiled through the normal path: its capturing groups become `save` ops, which \ref
+   * build_byte_program drops as zero-width, so the byte program (and the reverse over it) is capture-free by
+   * construction — no separate capture-free compile is needed. Top-level `\b`/`\B` are peeled before the
+   * prefix is built (D1a, \ref extract_inner_literal / \ref build_prefix_ast with skip); other anchors and
+   * lookarounds still decline extraction, so an extracted pattern's prefix stays byte-program eligible.
+   *
+   * \param[in] tree          The pattern's AST, which the prefix is rebuilt from.
+   * \param[in] count         Top-level children forming the prefix; 0 means the literal is at the head.
+   * \param[in] compile_flags Flags to compile the prefix with, matching the whole pattern's.
+   * \param[in] text          Subject.
+   * \param[in] h             Offset of the literal candidate (the prefix must end here).
+   * \param[in] min_start     Lower bound the reverse walk will not cross.
+   * \return The match start, or \ref real::npos when the prefix cannot reach one.
+   */
   inline std::size_t prefix_reverse_start(const ast&       tree,
                                           std::int32_t     count,
                                           flags            compile_flags,

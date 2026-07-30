@@ -122,7 +122,7 @@ begin
             Ada.Text_IO.Put_Line( "");
          end loop;
 
-         if matches(0).Last < start then -- (for example, whem pattern is ".?", the last result looks abnormal')
+         if matches(0).Last < start then -- (for example, when pattern is ".?", the last result looks abnormal')
             start := start + 1;
          else
             start := matches(0).Last + 1;

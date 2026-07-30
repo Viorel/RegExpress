@@ -247,9 +247,14 @@ namespace real::detail {
 
     static constexpr std::uint32_t npos_block {0}; //!< Canonical all-`npos` block, shared by every seed.
 
-    //! \brief Reset for a new match run: block 0 = all-`npos`, held by a permanent sentinel ref. The
-    //!        storage grows by \ref allocate (heap for dynamic; a compile-sized static_vec for static,
-    //!        whose capacity bounds the live-block count and so is never exceeded).
+    /*!
+     * \brief Reset for a new match run: block 0 = all-`npos`, held by a permanent sentinel ref.
+     *
+     * The storage grows by \ref allocate (heap for dynamic; a compile-sized static_vec for static,
+     * whose capacity bounds the live-block count and so is never exceeded).
+     *
+     * \param[in] slot_count Slots per block, i.e. the program's capture-slot count.
+     */
     constexpr void reset(std::uint16_t slot_count)
     {
       width = slot_count;
@@ -258,13 +263,20 @@ namespace real::detail {
       free_list.clear();
     }
 
-    //! \brief Pointer to block \p b's `width` slots. Invalidated by any \ref allocate that grows `data`.
+    /*!
+     * \brief Pointer to block \p b's `width` slots. Invalidated by any \ref allocate that grows `data`.
+     * \param[in] b Block index.
+     * \return Pointer to the block's first slot.
+     */
     [[nodiscard]] constexpr std::size_t* slots(std::uint32_t b)
     {
       return &data[static_cast<std::size_t>(b) * width];
     }
 
-    //! \brief A fresh block with refcount 1 (a recycled index if available, else a grown one).
+    /*!
+     * \brief A fresh block with refcount 1 (a recycled index if available, else a grown one).
+     * \return Index of the new block; its slots hold whatever the recycled block last held.
+     */
     [[nodiscard]] constexpr std::uint32_t allocate()
     {
       if (!free_list.empty()) {
@@ -281,11 +293,19 @@ namespace real::detail {
       return b;
     }
 
+    /*!
+     * \brief Take a reference on block \p b (each closure seeded into the next list holds its own).
+     * \param[in] b Block index.
+     */
     constexpr void incref(std::uint32_t b)
     {
       ++refcount[b];
     }
 
+    /*!
+     * \brief Drop a reference on block \p b, recycling it into the free list at zero.
+     * \param[in] b Block index.
+     */
     constexpr void decref(std::uint32_t b)
     {
       if (--refcount[b] == 0) {
@@ -293,8 +313,14 @@ namespace real::detail {
       }
     }
 
-    //! \brief Write `slots(b)[slot] = value`, detaching first if \p b is shared. Returns the block that now
-    //!        holds the write (a fresh private copy when shared, else \p b). The one place a block mutates.
+    /*!
+     * \brief Write `slots(b)[slot] = value`, detaching first if \p b is shared. The one place a block mutates.
+     *
+     * \param[in] b     Block to write through.
+     * \param[in] slot  Slot index within the block.
+     * \param[in] value Value to store.
+     * \return The block that now holds the write: a fresh private copy when \p b was shared, else \p b.
+     */
     [[nodiscard]] constexpr std::uint32_t cow_write(std::uint32_t b,
                                                     std::uint16_t slot,
                                                     std::size_t   value)
@@ -314,8 +340,11 @@ namespace real::detail {
       return b;
     }
 
-    //! \brief Sum of all live refcounts — the debug Σ-invariant checks this equals the references the VM
-    //!        actually holds (list blocks + stack frames), catching a leaked or double-freed block.
+    /*!
+     * \brief Sum of all live refcounts — the debug Σ-invariant checks this equals the references the VM
+     *        actually holds (list blocks + stack frames), catching a leaked or double-freed block.
+     * \return The sum, including the sentinel block's permanent reference.
+     */
     [[nodiscard]] constexpr long long total_refs() const
     {
       long long sum {0};
@@ -392,6 +421,12 @@ namespace real::detail {
     std::vector<std::uint16_t>                 page_of;         //!< page_of[cp>>8] → index into \ref blocks, or \ref empty.
     std::vector<std::array<std::uint8_t, 32>>  blocks;          //!< Non-empty 256-bit pages only.
 
+    /*!
+     * \brief Two-stage membership probe: page index, then bit test inside that page's 256-bit block.
+     *
+     * \param[in] cp Code point to test.
+     * \return True when \p cp is a member; false for any code point above the built range.
+     */
     [[nodiscard]] bool contains(char32_t cp) const noexcept
     {
       const std::uint32_t u    {static_cast<std::uint32_t>(cp)};
@@ -788,7 +823,7 @@ namespace real::detail {
         // a single pass over that window; extract returns false (and we fall to the VM) if it does not one-pass
         // or the span does not in fact match there. Only the immutables are needed, so no DFA build is paid.
         if (!std::is_constant_evaluated() && !lazy_dfa_route_disabled() && mode == run_mode::full) {
-          ensure_immutables();
+          ensure_op_table();
           if (prog_.immut != nullptr && prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()
               && prog_.immut->op_table->extract(text, start, text.size(), out_slots)) {
             prof::tick_route(prof::route::onepass_full);
@@ -822,6 +857,14 @@ namespace real::detail {
     /*!
      * \brief The general Pike VM search loop (the match semantics), factored so the lazy-DFA routing can run
      *        it on the `[s, e]` window a two-pass DFA has located, and so the direct path can call it too.
+     *
+     * \param[in]  text         Subject.
+     * \param[in]  start        Byte offset to begin at.
+     * \param[in]  mode         Anchoring: full, prefix or search.
+     * \param[out] out_slots    Capture slots, filled on a match.
+     * \param[out] forward_stop When non-null, receives how far the forward scan reached — the
+     *                          inner-literal route's linearity backstop.
+     * \return True on a match.
      */
     template <bool Cascade = false, typename OutSlots>
     constexpr bool run_general(std::string_view text,
@@ -898,8 +941,13 @@ namespace real::detail {
      *        one-pass table — the same fast laddering the lazy-DFA route uses (§7.6/7.7), so the inner-literal
      *        confirm is not a raw Pike pass. Falls back to the anchored Pike when the pattern is not
      *        DFA/one-pass eligible, or when the forward DFA's leftmost match does not in fact begin at \p s
-     *        (then the anchored Pike returns false and the caller advances). \p stop reports how far the confirm
-     *        reached, for the linearity backstop. Returns true and fills \p out_slots on a match at \p s.
+     *        (then the anchored Pike returns false and the caller advances).
+     *
+     * \param[in]  text      Subject.
+     * \param[in]  s         Candidate match start to confirm.
+     * \param[out] out_slots Capture slots, filled on a match.
+     * \param[out] stop      How far the confirm reached, for the linearity backstop.
+     * \return True when a match begins exactly at \p s.
      */
     template <typename OutSlots>
     bool confirm_at(std::string_view text,
@@ -933,7 +981,7 @@ namespace real::detail {
             }
             const std::size_t e {match_end};
             stop = e;
-            ensure_immutables();
+            ensure_op_table();
             if (prog_.immut != nullptr && prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()
                 && prog_.immut->op_table->extract(text, s, e, out_slots)) {
               return true;
@@ -947,12 +995,18 @@ namespace real::detail {
 
     /*!
      * \brief The inner-literal search: memmem a required literal, reverse-match the prefix to the match start,
-     *        forward-confirm — the reverse-inner protocol (regex-automata's `ReverseInner`). On a match fills
-     *        `out_slots` and returns true; on none returns false. Sets \p abandon (and returns false) when a
-     *        linearity guard trips, so the caller retries the whole search on the core VM. Search mode only,
-     *        runtime only (the reverse DFA is not constexpr). Two guards keep it linear: the reverse is bounded
-     *        below by `min_match_start` (the previous literal's end), and a literal starting before
-     *        `min_pre_start` (the last confirm's forward reach) abandons the scan.
+     *        forward-confirm — the reverse-inner protocol (regex-automata's `ReverseInner`).
+     *
+     * Search mode only, runtime only (the reverse DFA is not constexpr). Two guards keep it linear: the
+     * reverse is bounded below by `min_match_start` (the previous literal's end), and a literal starting
+     * before `min_pre_start` (the last confirm's forward reach) abandons the scan.
+     *
+     * \param[in]  text      Subject.
+     * \param[in]  start     Byte offset to begin the scan at.
+     * \param[out] out_slots Capture slots, filled on a match.
+     * \param[out] abandon   Set when a linearity guard trips, so the caller retries the whole search
+     *                       on the core VM.
+     * \return True on a match; false on none, and false with \p abandon set when the route gave up.
      */
     template <typename OutSlots>
     bool run_inner_literal(std::string_view text,
@@ -1255,19 +1309,17 @@ namespace real::detail {
      * across the haystack (sticky on \ref pike_state::il_density_cands).
      */
     static constexpr std::uint32_t il_density_probe_candidates {8};
-    static constexpr std::size_t   il_density_milli_threshold  {60};
+    static constexpr std::size_t   il_density_milli_threshold  {60}; //!< Candidate density, in candidates per 1000 bytes, at or above which the IL route yields to the DFA.
 
-    //! \brief Build the forward/reverse DFAs into the reusable state on first eligible use, or rebuild them
-    //!        if the state is now bound to a different program (its `code` pointer changed). The cache then
-    //!        persists across a whole find_iter (where it pays), and forward_end resets its per-search thrash
-    //!        flag itself. Instantiated only for the dynamic state (the one carrying the optionals).
-    //! \brief Build (or rebuild) the per-regex immutables, race-free: the Tier-A byte-program the DFAs
-    //!        run over (and its shared alphabet), plus the one-pass extractor. Invalidation is by
-    //!        program identity (\ref regex_immutables::built_for == \c prog_.code.data()) — same pattern
-    //!        as \c state_type::dfa_program / \c il_prefix_for. Hot path is one atomic load; a spent
-    //!        \c once_flag would never rebuild after assign-onto-warmed (silent 0 matches). The
-    //!        extractor is Tier-B (assertions kept), so one table serves the search window and anchored
-    //!        match/fullmatch. Needs no DFA, so the anchored path can call this without the DFA build.
+    /*!
+     * \brief Build (or rebuild) the per-regex immutables, race-free: the Tier-A byte-program the DFAs
+     *        run over (and its shared alphabet), plus the one-pass extractor. Invalidation is by
+     *        program identity (\ref regex_immutables::built_for == \c prog_.code.data()) — same pattern
+     *        as \c state_type::dfa_program / \c il_prefix_for. Hot path is one atomic load; a spent
+     *        \c once_flag would never rebuild after assign-onto-warmed (silent 0 matches). The
+     *        extractor is Tier-B (assertions kept), so one table serves the search window and anchored
+     *        match/fullmatch. Needs no DFA, so the anchored path can call this without the DFA build.
+     */
     void ensure_immutables()
     {
       detail::regex_immutables* const immut {prog_.immut};
@@ -1289,32 +1341,14 @@ namespace real::detail {
       // op_table pointing at a freed buffer. Nothing dereferences it in that window today; closing the
       // window costs one statement and removes the need to know that.
       immut->op_table.reset();
-      immut->byte_prog = build_byte_program(prog_); // Tier-A: ineligible if assert/lookaround
+      immut->op_table_for.store(nullptr, std::memory_order_relaxed); // the extractor is gone with it
+      immut->byte_prog = build_byte_program(prog_);                  // Tier-A: ineligible if assert/lookaround
       if (immut->byte_prog.eligible) {
         immut->alphabet =
           compute_lazy_alphabet(immut->byte_prog.code, immut->byte_prog.classes); // shared by both DFAs
       }
       else {
         immut->alphabet = {};
-      }
-      // Tier-B differs from Tier-A ONLY at `assert_position`: build_byte_program reads keep_assertions
-      // nowhere else, and every other ineligibility (assert_lookaround, a Tier 1 possessive loop) is
-      // decided identically either way. So a program with no `assert_position` yields a byte-for-byte
-      // identical expansion, and rebuilding it means expanding every Unicode class's UTF-8 trie a second
-      // time -- measured, that was 2 of the 5 trie builds per regex, plus a second full
-      // compute_lazy_alphabet over the same input.
-      //
-      // Reusing immut->byte_prog is also the sounder lifetime: onepass keeps `code_` / `classes_` as spans
-      // over the program it was built from, and the Tier-B local died at the end of this block.
-      if (std::any_of(prog_.code.begin(), prog_.code.end(),
-                      [](const instr& in) { return in.op == opcode::assert_position; })) {
-        const byte_program tier_b {build_byte_program(prog_, /*keep_assertions=*/ true)};
-        if (tier_b.eligible) {
-          immut->op_table.emplace(tier_b); // one-pass extractor: Tier-A window + Tier-B anchored
-        }
-      }
-      else if (immut->byte_prog.eligible) {
-        immut->op_table.emplace(immut->byte_prog);
       }
       immut->il_prefix_prog  = {};
       immut->il_min_haystack = 0;
@@ -1341,7 +1375,67 @@ namespace real::detail {
       immut->built_for.store(want, std::memory_order_release);
     }
 
-    //! \brief Warm shared search DFAs for \p immut into \p slot (caller holds \p slot.mu).
+    /*!
+     * \brief Build (or rebuild) the one-pass capture extractor, on top of \ref ensure_immutables.
+     *
+     * Split out of \ref ensure_immutables because it is the expensive half and only some callers need it.
+     * Measured on a first `(\w+)@(\w+)` search: 884 us here against 331 for the byte program and 117 for
+     * the lazy DFA. Bundled, every route that wanted only the byte program paid all of it -- including a
+     * capture-free pattern, since `\w+@\w+` (2 slots, nothing to extract) measured the same 1487 us as its
+     * 6-slot twin. So the split is not a micro-optimisation: it stops a search from building a capture
+     * extractor it cannot consult.
+     *
+     * Guarded by its own \ref regex_immutables::op_table_for, exactly as the membership rows are guarded by
+     * \c rows_for and for the same reason -- an identity independent of \c built_for, because this is needed
+     * by a different subset of routes. \ref ensure_immutables clears both the extractor and this flag when
+     * it rebuilds, so a reassigned regex cannot read one built for the previous program.
+     */
+    void ensure_op_table()
+    {
+      ensure_immutables();
+      detail::regex_immutables* const immut {prog_.immut};
+      if (immut == nullptr) {
+        return;
+      }
+      const void* const want {prog_.code.data()};
+      if (immut->op_table_for.load(std::memory_order_acquire) == want) {
+        return; // hot path: one acquire load, no mutex
+      }
+      const std::lock_guard<std::mutex> lock {detail::immut_build_mu(immut)};
+      if (immut->op_table_for.load(std::memory_order_relaxed) == want) {
+        return; // double-check
+      }
+      // Tier-B differs from Tier-A ONLY at `assert_position`: build_byte_program reads keep_assertions
+      // nowhere else, and every other ineligibility (assert_lookaround, a Tier 1 possessive loop) is
+      // decided identically either way. So a program with no `assert_position` yields a byte-for-byte
+      // identical expansion, and rebuilding it means expanding every Unicode class's UTF-8 trie a second
+      // time -- measured, that was 2 of the 5 trie builds per regex, plus a second full
+      // compute_lazy_alphabet over the same input.
+      //
+      // Reusing immut->byte_prog is also the sounder lifetime: onepass keeps `code_` / `classes_` as spans
+      // over the program it was built from, and the Tier-B local dies at the end of this block. Those spans
+      // are read only by the constructor (build / minimize / build_edges / follow_jumps, all private), and
+      // `extract` touches the node table alone -- so the Tier-B spans dangle without ever being
+      // dereferenced. Latent, not live, and stated here because the next reader of `code_` would make it
+      // live.
+      if (std::any_of(prog_.code.begin(), prog_.code.end(),
+                      [](const instr& in) { return in.op == opcode::assert_position; })) {
+        const byte_program tier_b {build_byte_program(prog_, /*keep_assertions=*/ true)};
+        if (tier_b.eligible) {
+          immut->op_table.emplace(tier_b); // one-pass extractor: Tier-A window + Tier-B anchored
+        }
+      }
+      else if (immut->byte_prog.eligible) {
+        immut->op_table.emplace(immut->byte_prog);
+      }
+      immut->op_table_for.store(want, std::memory_order_release);
+    }
+
+    /*!
+     * \brief Warm shared search DFAs for \p immut into \p slot (caller holds \p slot.mu).
+     * \param[in]     immut Per-regex immutables naming the program to build for.
+     * \param[in,out] slot  Process-wide DFA slot to populate.
+     */
     void ensure_slot_search_dfas_unlocked(detail::regex_immutables& immut,
                                           shared_dfa_slot&          slot)
     {
@@ -1354,7 +1448,11 @@ namespace real::detail {
       }
     }
 
-    //! \brief Warm shared IL-prefix reverse DFA (caller holds \p slot.mu).
+    /*!
+     * \brief Warm shared IL-prefix reverse DFA (caller holds \p slot.mu).
+     * \param[in]     immut Per-regex immutables naming the program to build for.
+     * \param[in,out] slot  Process-wide DFA slot to populate.
+     */
     void ensure_slot_il_prefix_rev_unlocked(detail::regex_immutables& immut,
                                             shared_dfa_slot&          slot)
     {
@@ -1366,8 +1464,11 @@ namespace real::detail {
       }
     }
 
-    //! \brief Run \p fn with the shared search DFAs under the slot lock.
-    //!        Returns false when the route must stay on the Pike VM (no immut / ineligible).
+    /*!
+     * \brief Run \p fn with the shared search DFAs under the slot lock.
+     * \param[in] fn Callable taking `(lazy_dfa& fwd, reverse_dfa& rev)`.
+     * \return True when \p fn ran; false when the route must stay on the Pike VM (no immut / ineligible).
+     */
     template <typename Fn>
     bool with_search_dfas(Fn&& fn)
     {
@@ -1375,7 +1476,11 @@ namespace real::detail {
       if (immut == nullptr) {
         return false; // no cache → no DFA route, same contract as the per-regex design
       }
-      ensure_immutables();
+      // ensure_op_table, not ensure_immutables: \p fn is try_shared_lazy_dfa_search, whose confirm steps
+      // DO extract through op_table. It must be built BEFORE slot.mu is taken -- ensure_op_table locks
+      // immut_build_mu, and reset_shared_dfas walks immut_build_mu -> map_mu/slot.mu, so building it inside
+      // the lambda would invert that order.
+      ensure_op_table();
       shared_dfa_slot&                  slot {shared_dfa_for(immut)};
       const std::lock_guard<std::mutex> lock {slot.mu};
       ensure_slot_search_dfas_unlocked(*immut, slot);
@@ -1391,9 +1496,15 @@ namespace real::detail {
       return true;
     }
 
-    //! \brief Lazy-DFA search route on the shared confirm DFAs. \c noinline so its body cannot
-    //!        inflate \ref run (x86 class-loop codegen neighbor — same shape as \ref ensure_ac_automaton).
-    //! \return matched / no-match when the route handled the search; empty when the caller must fall to Pike.
+    /*!
+     * \brief Lazy-DFA search route on the shared confirm DFAs. \c noinline so its body cannot
+     *        inflate \ref run (x86 class-loop codegen neighbor — same shape as \ref ensure_ac_automaton).
+     * \param[in]  text      Subject.
+     * \param[in]  start     Byte offset to begin at.
+     * \param[in]  mode      Anchoring: full, prefix or search.
+     * \param[out] out_slots Capture slots, filled on a match.
+     * \return matched / no-match when the route handled the search; empty when the caller must fall to Pike.
+     */
     template <bool Cascade, typename OutSlots>
 #if defined(__GNUC__) || defined(__clang__)
     __attribute__((noinline))
@@ -1494,24 +1605,26 @@ namespace real::detail {
     //!        there against the standalone POC — inside the closed-gap target of <=~1.5x).
     static constexpr std::uint16_t ac_branch_threshold {12};
 
-    //! \brief Build (or rebuild, on a program change) this iterator's Aho-Corasick automaton for a
-    //!        `fixed_alternation` program whose branch count has reached \ref ac_branch_threshold.
-    //!        Declines (leaves \ref pike_state::ac_state unset) if any branch's icase-fold
-    //!        expansion would exceed \ref ac_max_branch_expansion — the caller falls back to the
-    //!        existing \ref run_alternation, zero behavior change. Runs once per iterator/program,
-    //!        off the hot path, mirroring \ref with_search_dfas's cache-by-program-pointer contract.
-    //!
-    //!        `noinline`, deliberately NOT `cold` (round-2 x86 isolation A/B: neither the
-    //!        pattern_hints field alone nor the pike_state size growth alone regressed the
-    //!        non-alternation hot-corpus witnesses, isolating the cause to code called directly
-    //!        from `run()`'s own dispatch chain — a codegen-neighbor/inlining-bloat effect on
-    //!        `run_class_loop`, which shares the same translation unit and physically returns
-    //!        before ever reaching this call at runtime, so it's presence, not execution, doing the
-    //!        damage). `cold` would additionally deprioritize this function's OWN optimization —
-    //!        wrong here, since it (unlike the actual construction work in aho_corasick.hpp,
-    //!        already marked `cold`) is called on every AC-eligible search, not just once per
-    //!        program. `noinline` alone keeps it fully optimized while stopping the compiler from
-    //!        folding its body into `run()`'s.
+    /*!
+     * \brief Build (or rebuild, on a program change) this iterator's Aho-Corasick automaton for a
+     *        `fixed_alternation` program whose branch count has reached \ref ac_branch_threshold.
+     *        Declines (leaves \ref pike_state::ac_state unset) if any branch's icase-fold
+     *        expansion would exceed \ref ac_max_branch_expansion — the caller falls back to the
+     *        existing \ref run_alternation, zero behavior change. Runs once per iterator/program,
+     *        off the hot path, mirroring \ref with_search_dfas's cache-by-program-pointer contract.
+     *
+     *        `noinline`, deliberately NOT `cold` (round-2 x86 isolation A/B: neither the
+     *        pattern_hints field alone nor the pike_state size growth alone regressed the
+     *        non-alternation hot-corpus witnesses, isolating the cause to code called directly
+     *        from `run()`'s own dispatch chain — a codegen-neighbor/inlining-bloat effect on
+     *        `run_class_loop`, which shares the same translation unit and physically returns
+     *        before ever reaching this call at runtime, so it's presence, not execution, doing the
+     *        damage). `cold` would additionally deprioritize this function's OWN optimization —
+     *        wrong here, since it (unlike the actual construction work in aho_corasick.hpp,
+     *        already marked `cold`) is called on every AC-eligible search, not just once per
+     *        program. `noinline` alone keeps it fully optimized while stopping the compiler from
+     *        folding its body into `run()`'s.
+     */
 #if defined(__GNUC__) || defined(__clang__)
     __attribute__((noinline))
 #endif
@@ -1837,8 +1950,7 @@ namespace real::detail {
       return false;
     }
 
-    //! \brief Highest code point covered by the `cp_page` bitmap (the 2-byte UTF-8 range).
-    static constexpr std::uint32_t cp_page_max {0x7FFU};
+    static constexpr std::uint32_t cp_page_max {0x7FFU}; //!< Highest code point covered by the `cp_page` bitmap (the 2-byte UTF-8 range).
 
     //! \brief Cap on how far a jump chain is followed to a loop head (empty-iteration exit routing);
     //!        a loop join reaches its split in one hop, so this is a generous bound, never a hot cost.
@@ -1903,21 +2015,32 @@ namespace real::detail {
       }
     }
 
-    //! \brief Cache entry for \ref cp_hi_cached (thread-local, not on \ref basic_pike_state).
-    //!        Keyed by a content fingerprint of the class (never a pointer into a program):
-    //!        programs die while this cache lives for the thread, and the allocator can recycle
-    //!        the same `cp_ranges` address for a *different* class — a pointer key then returns
-    //!        the wrong sparse table (false membership, e.g. emoji matching `[\w€]` after a prior
-    //!        high-range class was destroyed). Seen as a deterministic wrong-match on macos-clang
-    //!        CI after a long test binary has churned many classes (find_iter euro empty-alt pin).
+    /*!
+     * \brief Cache entry for \ref cp_hi_cached (thread-local, not on \ref basic_pike_state).
+     *        Keyed by a content fingerprint of the class (never a pointer into a program):
+     *        programs die while this cache lives for the thread, and the allocator can recycle
+     *        the same `cp_ranges` address for a *different* class — a pointer key then returns
+     *        the wrong sparse table (false membership, e.g. emoji matching `[\w€]` after a prior
+     *        high-range class was destroyed). Seen as a deterministic wrong-match on macos-clang
+     *        CI after a long test binary has churned many classes (find_iter euro empty-alt pin).
+     */
     struct cp_hi_cache_entry
     {
-      std::uint64_t                key_fp {0};
-      std::unique_ptr<cp_hi_table> table;
+      std::uint64_t                key_fp {0}; //!< The class's content fingerprint; 0 marks the entry unused.
+      std::unique_ptr<cp_hi_table> table;      //!< The sparse table built for that class, owned by the cache.
     };
 
-    //! \brief Cold path: build a sparse hi table and install it in the thread-local cache.
-    //!        Outlined so the hot membership check never inlines the range-walk builder.
+    /*!
+     * \brief Cold path: build a sparse hi table and install it in the thread-local cache.
+     *        Outlined so the hot membership check never inlines the range-walk builder.
+     * \param[in]     prog     Program owning the class.
+     * \param[in]     cp_index Index of the code-point class in \c prog.cp_classes.
+     * \param[in]     key_fp   The class's content fingerprint, the cache key.
+     * \param[in,out] cache    Thread-local entries, one of which is overwritten.
+     * \param[out]    last_tab Sticky last-hit table pointer, set to the built table.
+     * \param[out]    last_fp  Sticky last-hit fingerprint, set to \p key_fp.
+     * \return The installed table, owned by \p cache.
+     */
     [[nodiscard]]
 #if defined(__GNUC__) || defined(__clang__)
     __attribute__((noinline, cold))
@@ -1986,9 +2109,14 @@ namespace real::detail {
       return slot->table.get();
     }
 
-    //! \brief Thread-local sparse hi tables, keyed by \ref cp_class::fingerprint (set once at intern).
-    //!        Hot path: load `uint64` + sticky compare (cheap, like the pre-poisoning pointer key) —
-    //!        never re-hash ranges per codepoint. Keeps \ref basic_pike_state sizeof unchanged.
+    /*!
+     * \brief Thread-local sparse hi tables, keyed by \ref cp_class::fingerprint (set once at intern).
+     *        Hot path: load `uint64` + sticky compare (cheap, like the pre-poisoning pointer key) —
+     *        never re-hash ranges per codepoint. Keeps \ref basic_pike_state sizeof unchanged.
+     * \param[in] prog     Program owning the class.
+     * \param[in] cp_index Index of the code-point class in \c prog.cp_classes.
+     * \return The class's sparse table, built on first use for this thread.
+     */
     [[nodiscard]] static const cp_hi_table* cp_hi_cached(const program_view& prog,
                                                          std::size_t         cp_index)
     {
@@ -2019,8 +2147,13 @@ namespace real::detail {
     //!        classes (L=675, w=767, N=143).
     static constexpr std::uint32_t cp_hi_range_threshold {32U};
 
-    //! \brief Page-bitmap membership for U+0080..U+07FF. Kept separate so class-loop lambdas can
-    //!        inline it without pulling the sparse-hi path into the European hot stream (`\p{N}`, accented).
+    /*!
+     * \brief Page-bitmap membership for U+0080..U+07FF. Kept separate so class-loop lambdas can
+     *        inline it without pulling the sparse-hi path into the European hot stream (`\p{N}`, accented).
+     * \param[in] cp_index Index of the code-point class.
+     * \param[in] cp       Code point in U+0080..U+07FF; outside that range the bit index is meaningless.
+     * \return True when \p cp is a member.
+     */
     [[nodiscard]] constexpr bool cp_member_page(std::size_t cp_index,
                                                 char32_t    cp)
     {
@@ -2029,8 +2162,13 @@ namespace real::detail {
       return ((page[bit >> 6U] >> (bit & 63U)) & std::uint64_t {1}) != 0U;
     }
 
-    //! \brief Membership for cp > U+07FF: sparse 2-stage hi table, else bsearch (small classes / constexpr).
-    //!        The table *build* is cold-outlined; the per-cp probe is last-hit + bit test.
+    /*!
+     * \brief Membership for cp > U+07FF: sparse 2-stage hi table, else bsearch (small classes / constexpr).
+     *        The table *build* is cold-outlined; the per-cp probe is last-hit + bit test.
+     * \param[in] cp_index Index of the code-point class.
+     * \param[in] cp       Code point above \ref cp_page_max.
+     * \return True when \p cp is a member.
+     */
     [[nodiscard]] constexpr bool cp_member_high(std::size_t cp_index,
                                                 char32_t    cp)
     {
@@ -2052,7 +2190,12 @@ namespace real::detail {
       return cp_class_matches(prog_.cp_classes[cp_index], cp);
     }
 
-    //! \brief Non-ASCII membership: European page bitmap, then sparse 2-stage hi / bsearch.
+    /*!
+     * \brief Non-ASCII membership: European page bitmap, then sparse 2-stage hi / bsearch.
+     * \param[in] cp_index Index of the code-point class.
+     * \param[in] cp       Code point at or above U+0080.
+     * \return True when \p cp is a member.
+     */
     [[nodiscard]] constexpr bool cp_member_hi(std::size_t cp_index,
                                               char32_t    cp)
     {
@@ -2067,6 +2210,9 @@ namespace real::detail {
      *
      * Production storage has \c ensure_size; seam tests pass \c std::vector (resize is enough —
      * it does not re-fill existing elements).
+     *
+     * \param[in,out] out Slot storage to grow.
+     * \param[in]     n   Minimum size required; \p out is never shrunk.
      */
     template <typename OutSlots>
     static constexpr void ensure_slot_size(OutSlots&   out,
@@ -2089,6 +2235,10 @@ namespace real::detail {
      * \c ensure_slot_size only (no \c npos fill). For no-capture and single greedy-group shapes
      * this writer covers every slot the program has; a prior \c assign(slot_count, npos) was dead
      * work on every find_iter match after the first (slots already sized, values overwritten).
+     *
+     * \param[out] out_slots   Capture slots to write.
+     * \param[in]  match_start Whole-match start offset.
+     * \param[in]  match_end   Whole-match end offset.
      */
     // always_inline, guarded as profile.hpp guards its own tick helpers. This writer is four stores and a
     // branch, yet it was emitted OUT OF LINE and cost 31 instructions a match -- most of it the call frame.
@@ -2112,10 +2262,15 @@ namespace real::detail {
       }
     }
 
-    //! \brief OPT-C run tail: the next stop byte at or after \p from, or the text end. Kept in its own
-    //!        function so the memchr-cascade never inlines into \ref run_class_loop's hot per-byte loop
-    //!        (that bloat measurably slowed stop-dense short runs). Reached only once a run has already
-    //!        passed \ref cascade_run_threshold accepted bytes, so the out-of-line call is free.
+    /*!
+     * \brief OPT-C run tail: the next stop byte at or after \p from, or the text end. Kept in its own
+     *        function so the memchr-cascade never inlines into \ref run_class_loop's hot per-byte loop
+     *        (that bloat measurably slowed stop-dense short runs). Reached only once a run has already
+     *        passed \ref cascade_run_threshold accepted bytes, so the out-of-line call is free.
+     * \param[in] text Subject.
+     * \param[in] from Offset to search from.
+     * \return Offset of the next stop byte, or `text.size()` when none remains.
+     */
     [[nodiscard]] constexpr std::size_t run_cascade_stop(std::string_view text,
                                                          std::size_t      from) const
     {
@@ -2302,6 +2457,12 @@ namespace real::detail {
      * Cold, noinline: must not share a function body or inlining unit with
      * \ref run_class_loop (the daily [a-z]+ path). Invoked from real.hpp / find_iter
      * **outside** \ref run so pure class-loop run() stays pre-P3c-sized. Dynamic-only.
+     *
+     * \param[in]  text      Subject.
+     * \param[in]  start     Byte offset to begin at.
+     * \param[in]  mode      Anchoring: full, prefix or search.
+     * \param[out] out_slots Capture slots, filled on a match.
+     * \return True on a match.
      */
     template <bool Cascade, typename OutSlots>
 #if defined(__GNUC__) || defined(__clang__)
@@ -2463,13 +2624,13 @@ namespace real::detail {
       /*!
        * \brief Whether a class member starts at \p i — membership only, no width.
        *
-       * The leftmost scan below needs one bit per byte, and asking \ref width for it built a three-field
+       * The leftmost scan below needs one bit per byte, and asking \c width for it built a three-field
        * decode result, tested `valid`, re-branched on `cp < 0x80` and mapped a length back to the bit
        * `asc[lead]` already held. A strict decode of a byte below 0x80 is exactly
        * `{cp = lead, length = 1, valid = true}`, so that table entry IS the answer — the same shape
        * \ref run_class_loop's own `in_class` has, which is why its scan costs a fraction of this one.
        *
-       * Kept separate from \ref width rather than folded into it: `extend_run` needs the length, and one
+       * Kept separate from \c width rather than folded into it: `extend_run` needs the length, and one
        * lambda returning a width cannot narrow to a bool for the scan. Measured on a 64 KiB corpus,
        * find_iter, each pattern ALONE in its translation unit (arm64/clang, best of 25, two repeats):
        * `\d+` 179.0 -> 114.4 us, `\w+` 338.0 -> 319.8 us, and `[a-z]+` / `[0-9]+` / `[^,]+` / `dog`
@@ -2670,6 +2831,15 @@ namespace real::detail {
      *                    byte-class body, a backward UTF-8 decode for a code-point-class body (see
      *                    \ref codepoint_retreat). Only ever called with \p end strictly greater than
      *                    the run's own start, so there is always at least one atom to measure.
+     *
+     * \param[in]  text       Subject.
+     * \param[in]  start      Byte offset to begin at.
+     * \param[in]  mode       Anchoring: full, prefix or search.
+     * \param[out] out_slots  Capture slots, filled on a match.
+     * \param[in]  in_class   Membership test, per \c InClass.
+     * \param[in]  scan_end   Maximal-run scanner, per \c ScanEnd.
+     * \param[in]  last_width Last-atom width, per \c LastWidth.
+     * \return True on a match.
      */
     template <typename OutSlots, typename InClass, typename ScanEnd, typename LastWidth>
     constexpr bool run_possessive_loop_generic(std::string_view    text,
@@ -2830,11 +3000,18 @@ namespace real::detail {
       return fail();
     }
 
-    //! \brief R2 (phase Raffinement): possessive literal-byte +/++ loop (`byte_loop_possessive`,
-    //!        e.g. `a++`) -- the asymmetry class_ref's typing made natural to close: this opcode was
-    //!        already emitted and executed by the general VM, but had no dedicated recognizer or
-    //!        runner, so `a++` fell back to the general VM despite the class/cp-class family
-    //!        already having one. See \ref run_possessive_loop_generic for the shared algorithm.
+    /*!
+     * \brief R2 (phase Raffinement): possessive literal-byte +/++ loop (`byte_loop_possessive`,
+     *        e.g. `a++`) -- the asymmetry class_ref's typing made natural to close: this opcode was
+     *        already emitted and executed by the general VM, but had no dedicated recognizer or
+     *        runner, so `a++` fell back to the general VM despite the class/cp-class family
+     *        already having one. See \ref run_possessive_loop_generic for the shared algorithm.
+     * \param[in]  text      Subject.
+     * \param[in]  start     Byte offset to begin at.
+     * \param[in]  mode      Anchoring: full, prefix or search.
+     * \param[out] out_slots Capture slots, filled on a match.
+     * \return True on a match.
+     */
     template <typename OutSlots>
     constexpr bool run_possessive_byte_loop(std::string_view  text,
                                             std::size_t       start,
@@ -2859,8 +3036,15 @@ namespace real::detail {
       return run_possessive_loop_generic(text, start, mode, out_slots, in_class, scan_end, last_width);
     }
 
-    //! \brief Possessive class+/++ loop over a BYTE class (`klass_loop_possessive`).
-    //!        See \ref run_possessive_loop_generic for the shared algorithm.
+    /*!
+     * \brief Possessive class+/++ loop over a BYTE class (`klass_loop_possessive`).
+     *        See \ref run_possessive_loop_generic for the shared algorithm.
+     * \param[in]  text      Subject.
+     * \param[in]  start     Byte offset to begin at.
+     * \param[in]  mode      Anchoring: full, prefix or search.
+     * \param[out] out_slots Capture slots, filled on a match.
+     * \return True on a match.
+     */
     template <typename OutSlots>
     constexpr bool run_possessive_class_loop(std::string_view  text,
                                              std::size_t       start,
@@ -2886,12 +3070,19 @@ namespace real::detail {
       return run_possessive_loop_generic(text, start, mode, out_slots, in_class, scan_end, last_width);
     }
 
-    //! \brief Possessive class+/++ loop over a CODE-POINT class
-    //!        (`klass_cp_loop_possessive`). Mirrors \ref run_cp_class_loop's decode/membership
-    //!        primitives, except that the scan predicate is now split by compiler (see `in_class` below):
-    //!        clang/MSVC read the ASCII table directly, gcc keeps the width round trip. Both directions are
-    //!        measured, and gcc's is the counter-intuitive one.
-    //!        See \ref run_possessive_loop_generic for the shared algorithm.
+    /*!
+     * \brief Possessive class+/++ loop over a CODE-POINT class
+     *        (`klass_cp_loop_possessive`). Mirrors \ref run_cp_class_loop's decode/membership
+     *        primitives, except that the scan predicate is now split by compiler (see `in_class` below):
+     *        clang/MSVC read the ASCII table directly, gcc keeps the width round trip. Both directions are
+     *        measured, and gcc's is the counter-intuitive one.
+     *        See \ref run_possessive_loop_generic for the shared algorithm.
+     * \param[in]  text      Subject.
+     * \param[in]  start     Byte offset to begin at.
+     * \param[in]  mode      Anchoring: full, prefix or search.
+     * \param[out] out_slots Capture slots, filled on a match.
+     * \return True on a match.
+     */
     template <typename OutSlots>
     constexpr bool run_possessive_cp_class_loop(std::string_view  text,
                                                 std::size_t       start,
@@ -3037,7 +3228,13 @@ namespace real::detail {
       return true;
     }
 
-    //! \brief Fixed-shape body match from \ref pattern_hints::body_pc, then B1 `\b`/`\B` wrap.
+    /*!
+     * \brief Fixed-shape body match from \ref pattern_hints::body_pc, then B1 `\b`/`\B` wrap.
+     * \tparam SkipSaves Skip capture writes when the caller only needs the span.
+     * \param[in] text Subject.
+     * \param[in] s    Candidate match start.
+     * \return Match end offset, or \ref npos when the body or the boundary wrap fails.
+     */
     template <bool SkipSaves>
     [[nodiscard]] constexpr std::size_t match_fixed_body_wb(std::string_view text,
                                                             std::size_t      s) const
@@ -4011,6 +4208,10 @@ namespace real::detail {
      *        (up to three continuation bytes to the lead) and requires the sequence to end exactly at
      *        \p pos, so a malformed or misaligned run reads as non-word; bytes / `re.A` stay byte-level.
      *        This is the shared frontier notion (the same decode that codepoint alignment uses).
+     *
+     * \param[in] pos        Boundary position.
+     * \param[in] ascii_word Restrict word-ness to ASCII (`re.A` / bytes mode).
+     * \return `true` when the preceding code point is a word character.
      */
     [[nodiscard]] constexpr bool word_before(std::size_t pos,
                                              bool        ascii_word) const
@@ -4018,8 +4219,13 @@ namespace real::detail {
       return real::detail::word_before(text_, pos, ascii_word); // shared free function (assert_eval.hpp)
     }
 
-    //! \brief Word-ness of the code point **starting at** \p pos — the right side of a boundary. False
-    //!        at the text end or on a malformed sequence; bytes / `re.A` stay byte-level.
+    /*!
+     * \brief Word-ness of the code point **starting at** \p pos — the right side of a boundary. False
+     *        at the text end or on a malformed sequence; bytes / `re.A` stay byte-level.
+     * \param[in] pos        Boundary position.
+     * \param[in] ascii_word Restrict word-ness to ASCII (`re.A` / bytes mode).
+     * \return `true` when the following code point is a word character.
+     */
     [[nodiscard]] constexpr bool word_after(std::size_t pos,
                                             bool        ascii_word) const
     {
@@ -4199,6 +4405,12 @@ namespace real::detail {
      * \brief Advances thread \p i of \p clist by one consumed byte, seeding its continuation's closure into
      *        \p nlist (COW). The closure takes its own reference on the thread's capture block — no slot
      *        copy; the block is shared until a `save` copies it on write.
+     *
+     * \param[in]     clist    Current list, holding the thread to advance.
+     * \param[in,out] nlist    Next list, receiving the continuation's closure.
+     * \param[in]     i        Thread index within \p clist.
+     * \param[in]     next_pc  Program counter the thread continues at.
+     * \param[in]     next_pos Text position the thread continues at.
      */
     constexpr void advance_thread(list_type&   clist,
                                   list_type&   nlist,
@@ -4214,6 +4426,10 @@ namespace real::detail {
     /*!
      * \brief Pointer to thread \p i's `slot_count` capture values — its COW block's slots (COW). Used by
      *        the `match` case to read out the winner.
+     *
+     * \param[in] clist List holding the thread.
+     * \param[in] i     Thread index within \p clist.
+     * \return Pointer to the thread's first capture slot.
      */
     [[nodiscard]] constexpr const std::size_t* thread_slots(list_type&  clist,
                                                             std::size_t i)
@@ -4222,17 +4438,13 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Tests a decoded code point against a `klass_cp` class: ASCII bitmap below 0x80, a binary
-     *        search of the class's range slice above. The class is already the effective set, so this
-     *        is a plain positive membership test.
+     * \brief Tests a decoded code point against a `klass_cp` class: ASCII bitmap below 0x80; above,
+     *        \ref cp_member_hi when a class index is known at runtime (page + sparse hi table), else
+     *        pure binary search of the class's range slice (constexpr / const paths). The class is
+     *        already the effective set, so this is a plain positive membership test.
      * \param[in] cc The code-point class (from `prog_.cp_classes`).
      * \param[in] cp The decoded code point.
      * \return Whether \p cp is a member.
-     */
-    /*!
-     * \brief Tests a decoded code point against a `klass_cp` class: ASCII bitmap below 0x80; above,
-     *        \ref cp_member_hi when a class index is known at runtime (page + sparse hi table), else
-     *        pure binary search of the class's range slice (constexpr / const paths).
      */
     [[nodiscard]] constexpr bool cp_class_matches(const detail::cp_class& cc,
                                                   char32_t                cp) const
@@ -4255,7 +4467,12 @@ namespace real::detail {
              cp >= prog_.cp_ranges[lo].lo && cp <= prog_.cp_ranges[lo].hi;
     }
 
-    //! \brief Membership by class index (ASCII + European page + sparse hi / bsearch).
+    /*!
+     * \brief Membership by class index (ASCII + European page + sparse hi / bsearch).
+     * \param[in] cp_index Index of the code-point class.
+     * \param[in] cp       The decoded code point.
+     * \return Whether \p cp is a member.
+     */
     [[nodiscard]] constexpr bool cp_class_matches_idx(std::size_t cp_index,
                                                       char32_t    cp)
     {
@@ -4419,6 +4636,8 @@ namespace real::detail {
      * \brief Releases the block references a list's threads hold (COW), before the list is reset or the
      *        run returns. This is the one decref site paired with the incref at each step→closure boundary
      *        — the classic double-free locus, kept single.
+     *
+     * \param[in] list List whose threads' block references are dropped.
      */
     constexpr void cow_release_blocks(list_type& list)
     {
@@ -4463,8 +4682,13 @@ namespace real::detail {
       return sub.negative ? !matched : matched;
     }
 
-    //! \brief L1 peephole — does the single consuming op \p body match the code point / byte AT \p pos (ahead)?
-    //!        Mirrors the per-op logic of \ref lookahead_matches for a one-instruction sub-program.
+    /*!
+     * \brief L1 peephole — does the single consuming op \p body match the code point / byte AT \p pos (ahead)?
+     *        Mirrors the per-op logic of \ref lookahead_matches for a one-instruction sub-program.
+     * \param[in] body The sub-program's single consuming instruction.
+     * \param[in] pos  Position the lookaround is evaluated at.
+     * \return True when \p body accepts what starts at \p pos; false at the text end.
+     */
     [[nodiscard]] constexpr bool single_class_ahead(const instr& body,
                                                     std::size_t  pos)
     {
@@ -4479,9 +4703,14 @@ namespace real::detail {
       return body.op == opcode::byte ? b == body.arg8 : prog_.classes[body.arg16].test(b);
     }
 
-    //! \brief L1 peephole — does \p body match the code point / byte ending EXACTLY at \p pos (behind)?
-    //!        The defining lookbehind trap: the match must END at \p pos, so the code point is the one whose
-    //!        aligned start s gives `s + length == pos` (byte mode: `pos - 1`).
+    /*!
+     * \brief L1 peephole — does \p body match the code point / byte ending EXACTLY at \p pos (behind)?
+     *        The defining lookbehind trap: the match must END at \p pos, so the code point is the one whose
+     *        aligned start s gives `s + length == pos` (byte mode: `pos - 1`).
+     * \param[in] body The sub-program's single consuming instruction.
+     * \param[in] pos  Position the lookaround is evaluated at.
+     * \return True when \p body accepts the atom ending at \p pos; false at the text start.
+     */
     [[nodiscard]] constexpr bool single_class_behind(const instr& body,
                                                      std::size_t  pos)
     {
@@ -4506,6 +4735,10 @@ namespace real::detail {
      *
      * Forward Pike simulation from \p pos, bounded to `l_max` bytes, stopping at the first
      * `match` (the sub is capture-free, so any reached `match` is a witness).
+     *
+     * \param[in] sub The lookaround sub-program.
+     * \param[in] pos Position the lookaround is evaluated at.
+     * \return True when the sub matches somewhere in the forward window.
      */
     [[nodiscard]] constexpr bool lookahead_matches(const lookaround_sub& sub,
                                                    std::size_t           pos)
@@ -4555,6 +4788,10 @@ namespace real::detail {
      * to `pos - l_max` (bytes, A1); in non-bytes mode a start may not fall on a UTF-8
      * continuation byte, which would split a codepoint (A9). The first start whose sub-pattern
      * fullmatches `[s, pos)` is a witness.
+     *
+     * \param[in] sub The lookaround sub-program.
+     * \param[in] pos Position the sub must end exactly at.
+     * \return True when some candidate start in the window fullmatches up to \p pos.
      */
     [[nodiscard]] constexpr bool lookbehind_matches(const lookaround_sub& sub,
                                                     std::size_t           pos)
@@ -4582,6 +4819,11 @@ namespace real::detail {
      *
      * A `match` reached before \p pos (a shorter window) is deliberately discarded — lookbehind
      * requires the sub to end at \p pos. Touches only `state_.lookaround`.
+     *
+     * \param[in] code_offset Entry program counter of the sub-program.
+     * \param[in] start       Candidate start offset.
+     * \param[in] pos         Offset the sub must end exactly at.
+     * \return True when the sub matches `[start, pos)` exactly.
      */
     [[nodiscard]] constexpr bool sub_fullmatch_window(std::int32_t code_offset,
                                                       std::size_t  start,

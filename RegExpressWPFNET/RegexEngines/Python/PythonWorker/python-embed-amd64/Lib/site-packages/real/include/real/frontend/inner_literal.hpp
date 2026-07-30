@@ -19,59 +19,79 @@
 #include <real/engine/prefilter.hpp> // byte_frequency (a lower tier — frontend may use the runtime)
 #include <real/frontend/ast.hpp>
 
+//! \brief REAL's internal implementation. Not a stable API: anything here may change between releases.
 namespace real::detail {
 
-  //! \brief The best required inner literal of a pattern (the memmem candidate). `len == 0` means the pattern
-  //!        declined: a non-literal alternation, an optional (`?`/`*`/`{0,n}`), a lookaround or a non-wb
-  //!        anchor at the level walked, or simply no literal run — anything that would make a required
-  //!        literal unsound. Top-level `\b`/`\B` are peeled (D1a): they set #wb_lead / #wb_trail and
-  //!        #prefix_skip so the reverse-prefix excludes them (asserts are not byte-DFA-eligible) while
-  //!        `confirm_at` still runs the full program (boundaries checked there).
-  //!
-  //!        Prefilter skip-filler: a **pure-literal alternation** (`info|error|warn`) no
-  //!        longer aborts the whole walk — flush and continue so a later required run (`req=`) can arm.
-  //!        Branch bytes are never appended. Mono-byte optionals (`s?`) stay declined (P0.2 dropped after
-  //!        x86 A/B: IL on `://` regressed vs a strong first-byte/`http` baseline).
+  /*!
+   * \brief The best required inner literal of a pattern (the memmem candidate).
+   *
+   * `len == 0` means the pattern declined: a non-literal alternation, an optional (`?`/`*`/`{0,n}`), a
+   * lookaround or a non-wb anchor at the level walked, or simply no literal run — anything that would make a
+   * required literal unsound. Top-level `\b`/`\B` are peeled (D1a): they set \ref wb_lead / \ref wb_trail and
+   * \ref prefix_skip so the reverse-prefix excludes them (asserts are not byte-DFA-eligible) while
+   * `confirm_at` still runs the full program (boundaries checked there).
+   *
+   * Prefilter skip-filler: a **pure-literal alternation** (`info|error|warn`) no longer aborts the whole
+   * walk — flush and continue so a later required run (`req=`) can arm. Branch bytes are never appended.
+   * Mono-byte optionals (`s?`) stay declined (P0.2 dropped after x86 A/B: IL on `://` regressed vs a strong
+   * first-byte/`http` baseline).
+   */
   struct inner_literal
   {
+    //! \brief The literal's bytes, the first \ref len of which are meaningful. Fixed capacity, so an
+    //!        \ref inner_literal is copyable and needs no allocation; \ref inner_literal_max is that bound.
     std::array<std::uint8_t, 16> bytes              {};
-    std::uint8_t                 len                {0};
+    std::uint8_t                 len                {0};  //!< Bytes held in \ref bytes; 0 means the pattern declined.
     std::uint32_t                score              {0};  //!< Selectivity: higher = rarer/longer = fewer memmem candidates.
-    std::int32_t                 prefix_child_count {-1}; //!< Top-level concat children BEFORE the literal — the
-    //!< sub-pattern IL.1 reverse-matches from a candidate to find the match start. 0 = the literal is at the
-    //!< head (reverse is the identity: start = candidate). -1 = the literal is nested in a group/repeat, so no
-    //!< clean top-level prefix boundary exists (the prefix-reverse does not apply; the memmem candidate still does).
+    //! \brief Top-level concat children BEFORE the literal — the sub-pattern IL.1 reverse-matches from a
+    //!        candidate to find the match start. 0 = the literal is at the head (reverse is the identity:
+    //!        start = candidate). -1 = the literal is nested in a group/repeat, so no clean top-level prefix
+    //!        boundary exists (the prefix-reverse does not apply; the memmem candidate still does).
+    std::int32_t                 prefix_child_count {-1};
+
     //! \brief Leading top-level children to skip when building the reverse-prefix (peeled lead `\b`/`\B`).
-    //!        #prefix_child_count is counted from the first non-peeled body child, so the reverse program
-    //!        is `children[prefix_skip .. prefix_skip + prefix_child_count)`.
+    //!        \ref prefix_child_count is counted from the first non-peeled body child, so the reverse
+    //!        program is `children[prefix_skip .. prefix_skip + prefix_child_count)`.
     std::int32_t                 prefix_skip        {0};
     std::uint8_t                 wb_lead            {0}; //!< 0/1/2 — peeled lead `\b`/`\B` (informational; confirm checks).
     std::uint8_t                 wb_trail           {0}; //!< 0/1/2 — peeled trail `\b`/`\B`.
 
+    /*!
+     * \brief Whether an inner literal was found at all.
+     * \return `true` if \ref len is non-zero, i.e. the pattern did not decline.
+     */
     [[nodiscard]] constexpr bool found() const
     {
       return len > 0;
     }
   };
 
-  //! \brief The most bytes an inner literal keeps (a longer memmem target is diminishing returns and storage).
-  inline constexpr std::size_t inner_literal_max {16};
+  inline constexpr std::size_t inner_literal_max {16}; //!< The most bytes an inner literal keeps (a longer memmem target is diminishing returns and storage).
 
+  //! \brief Helpers for \ref real::detail::extract_inner_literal; not part of any interface.
   namespace inner_literal_detail {
 
-    //! \brief Extraction state threaded through the walk: the growing byte run, the best literal so far, and
-    //!        the top-level concat child each run began at (so the winner carries its prefix boundary).
+    /*!
+     * \brief Extraction state threaded through the walk: the growing byte run, the best literal so far, and
+     *        the top-level concat child each run began at (so the winner carries its prefix boundary).
+     */
     struct walk_state
     {
-      std::vector<std::uint8_t> run;
-      inner_literal             best;
+      std::vector<std::uint8_t> run;           //!< Literal bytes accumulated since the last \ref flush.
+      inner_literal             best;          //!< Best run scored so far; `best.len == 0` until one is kept.
       std::int32_t              run_top  {-1}; //!< Top-level child where the current run began (-1 = nested).
       std::int32_t              best_top {-1}; //!< Top-level child where the winning run began.
     };
 
-    //! \brief Selectivity of a byte run: the sum of per-byte rarity (`2000 - byte_frequency`). A sum (rather
-    //!        than the rarest byte alone) approximates the product of per-byte match probabilities, so it
-    //!        rewards both a rare byte and a longer literal — the two things that shrink the candidate count.
+    /*!
+     * \brief Selectivity of a byte run.
+     *
+     * The sum of per-byte rarity (`2000 - byte_frequency`). A sum (rather than the rarest byte alone)
+     * approximates the product of per-byte match probabilities, so it rewards both a rare byte and a longer
+     * literal — the two things that shrink the candidate count.
+     * \param[in] run The bytes to score.
+     * \return The run's selectivity; higher is rarer and therefore better.
+     */
     constexpr std::uint32_t score_run(std::span<const std::uint8_t> run)
     {
       std::uint32_t s {0};
@@ -81,13 +101,15 @@ namespace real::detail {
       return s;
     }
 
-    //! \brief Score the current byte run and keep it (with its prefix boundary) if it beats `best`, then clear
-    //!        it (capped at \ref inner_literal_max).
-    //!
-    //!        Prefer a true *inner* run (`run_top >= 1`) over a *head* run (`run_top == 0`) even with a
-    //!        slightly lower score: the head is already filtered by \c extract_prefix / \c find_prefix, and
-    //!        the IL route only fires for `prefix_child_count >= 1`. Among same-kind candidates, higher
-    //!        \ref score_run still wins.
+    /*!
+     * \brief Score the current byte run and keep it (with its prefix boundary) if it beats `best`, then clear
+     *        it (capped at \ref inner_literal_max).
+     *
+     * Prefer a true *inner* run (`run_top >= 1`) over a *head* run (`run_top == 0`) even with a slightly
+     * lower score: the head is already filtered by \c extract_prefix / \c find_prefix, and the IL route only
+     * fires for `prefix_child_count >= 1`. Among same-kind candidates, higher \ref score_run still wins.
+     * \param[in,out] st The walk state whose \ref walk_state::run is scored and then cleared.
+     */
     constexpr void flush(walk_state& st)
     {
       if (!st.run.empty()) {
@@ -110,11 +132,17 @@ namespace real::detail {
       }
     }
 
-    //! \brief True if \p idx is a pure fixed byte run: only `byte` / nested concat / group of the same.
-    //!        Used to decide whether an alternation may be skipped (flush+continue) without appending
-    //!        any branch bytes — every branch is fixed-width literal text, so the reverse-prefix can
-    //!        still represent the alt as a deterministic byte DFA. Anything else (klass, repeat, nested
-    //!        alt, lookaround, …) keeps the conservative decline.
+    /*!
+     * \brief Whether \p idx is a pure fixed byte run: only `byte` / nested concat / group of the same.
+     *
+     * Used to decide whether an alternation may be skipped (flush+continue) without appending any branch
+     * bytes — every branch is fixed-width literal text, so the reverse-prefix can still represent the alt as
+     * a deterministic byte DFA. Anything else (klass, repeat, nested alt, lookaround, …) keeps the
+     * conservative decline.
+     * \param[in] tree The AST holding the node.
+     * \param[in] idx  Node index; a negative index is the empty subtree and counts as pure.
+     * \return `true` if every node in the subtree is a fixed byte, a concat of such, or a group of such.
+     */
     [[nodiscard]] constexpr bool is_pure_byte_run(const ast&   tree,
                                                   std::int32_t idx) noexcept
     {
@@ -146,15 +174,21 @@ namespace real::detail {
       return false;
     }
 
-    //! \brief Walk one node, appending guaranteed-present literal bytes to `st.run`. `top_child` is the
-    //!        top-level concat child index this node belongs to (-1 when nested in a group/repeat, so any run
-    //!        it starts has no clean top-level prefix boundary). Returns `false` to DECLINE the whole
-    //!        extraction — a non-literal alternation, an optional (`repeat` min 0), a lookaround or an anchor
-    //!        would make a required inner literal unsound (a path could bypass it). Every byte appended is
-    //!        present in *every* match; the confirming scan then verifies the surrounding context.
-    //!
-    //!        Pure-literal alternations \c flush and continue (no branch bytes) so a later
-    //!        unconditional run can still arm. Optionals stay declined (conservative v1 / P0.2 dropped).
+    /*!
+     * \brief Walk one node, appending guaranteed-present literal bytes to \ref walk_state::run.
+     *
+     * Every byte appended is present in *every* match; the confirming scan then verifies the surrounding
+     * context. Pure-literal alternations \ref flush and continue (no branch bytes) so a later unconditional
+     * run can still arm. Optionals stay declined (conservative v1 / P0.2 dropped).
+     * \param[in]     tree      The AST holding the node.
+     * \param[in]     idx       Node index; a negative index is the empty subtree and succeeds trivially.
+     * \param[in,out] st        Walk state the run accumulates into.
+     * \param[in]     top_child The top-level concat child index this node belongs to, or -1 when nested in a
+     *                          group/repeat — a run starting there has no clean top-level prefix boundary.
+     * \return `false` to DECLINE the whole extraction: a non-literal alternation, an optional (`repeat` with
+     *         min 0), a lookaround or an anchor would make a required inner literal unsound, since a path
+     *         could bypass it.
+     */
     constexpr bool walk(const ast&   tree,
                         std::int32_t idx,
                         walk_state&  st,
@@ -223,7 +257,12 @@ namespace real::detail {
       return false;
     }
 
-    //! \brief True if \p idx is a top-level `\b` or `\B` anchor (D1a peel candidate).
+    /*!
+     * \brief Whether \p idx is a top-level `\b` or `\B` anchor (D1a peel candidate).
+     * \param[in] tree The AST holding the node.
+     * \param[in] idx  Node index; a negative index is not an anchor.
+     * \return `true` for a word-boundary or not-word-boundary anchor node.
+     */
     [[nodiscard]] constexpr bool is_top_wb_anchor(const ast&   tree,
                                                   std::int32_t idx) noexcept
     {
@@ -235,6 +274,12 @@ namespace real::detail {
              && (n.anchor == anchor_kind::word_boundary || n.anchor == anchor_kind::not_word_boundary);
     }
 
+    /*!
+     * \brief Encodes a peeled word-boundary anchor as the hint value \ref inner_literal::wb_lead and
+     *        \ref inner_literal::wb_trail carry.
+     * \param[in] k The anchor kind that was peeled.
+     * \return 1 for `\b`, 2 for `\B`, 0 for any other anchor (nothing peeled).
+     */
     [[nodiscard]] constexpr std::uint8_t wb_hint_from_anchor(anchor_kind k) noexcept
     {
       if (k == anchor_kind::word_boundary) {
@@ -247,14 +292,18 @@ namespace real::detail {
     }
   } // namespace inner_literal_detail
 
-  //! \brief Extract the best required inner literal from a pattern's AST (a pure function on the node pool).
-  //!        Returns an empty \ref inner_literal when the pattern declines; routed on by \ref pike_vm::run
-  //!        (search mode) via \ref pike_vm::run_inner_literal.
-  //!
-  //!        D1a: leading/trailing top-level `\b`/`\B` are peeled (recorded in
-  //!        \ref inner_literal::wb_lead / \ref inner_literal::wb_trail /
-  //!        \ref inner_literal::prefix_skip) so `\b\w+@\w+\b` keeps the `@` IL route; a mid-body wb
-  //!        anchor still declines. `confirm_at` on the full program re-checks the boundaries.
+  /*!
+   * \brief Extract the best required inner literal from a pattern's AST (a pure function on the node pool).
+   *
+   * Routed on by `pike_vm::run` in search mode, via its `run_inner_literal`.
+   *
+   * D1a: leading/trailing top-level `\b`/`\B` are peeled (recorded in \ref inner_literal::wb_lead /
+   * \ref inner_literal::wb_trail / \ref inner_literal::prefix_skip) so `\b\w+@\w+\b` keeps the `@` IL
+   * route; a mid-body wb anchor still declines. `confirm_at` on the full program re-checks the boundaries.
+   * \param[in] tree The parsed pattern.
+   * \return The best required literal, or a default-constructed \ref inner_literal (`len == 0`) when the
+   *         pattern declines.
+   */
   constexpr inner_literal extract_inner_literal(const ast& tree)
   {
     inner_literal_detail::walk_state st;
@@ -316,11 +365,17 @@ namespace real::detail {
     return st.best;
   }
 
-  //! \brief Build the prefix sub-AST: \p count top-level concat children starting after \p skip lead
-  //!        children (\p count >= 1). Copies the tree, re-roots the concat chain at the skip-th child,
-  //!        and truncates after \p count body children — later siblings (literal + suffix + trail wb)
-  //!        become unreferenced. \p skip is the D1a peeled-lead count (\ref inner_literal::prefix_skip);
-  //!        0 preserves the pre-D1a behaviour (prefix = first \p count children).
+  /*!
+   * \brief Build the prefix sub-AST: \p count top-level concat children starting after \p skip lead children.
+   *
+   * Copies the tree, re-roots the concat chain at the skip-th child, and truncates after \p count body
+   * children — later siblings (literal + suffix + trail wb) become unreferenced.
+   * \param[in] tree  The pattern whose prefix is wanted.
+   * \param[in] count How many body children the prefix keeps; must be >= 1.
+   * \param[in] skip  The D1a peeled-lead count (\ref inner_literal::prefix_skip); 0 preserves the pre-D1a
+   *                  behaviour, where the prefix is the first \p count children.
+   * \return A copy of \p tree re-rooted and truncated to that prefix.
+   */
   inline ast build_prefix_ast(const ast&   tree,
                               std::int32_t count,
                               std::int32_t skip = 0)

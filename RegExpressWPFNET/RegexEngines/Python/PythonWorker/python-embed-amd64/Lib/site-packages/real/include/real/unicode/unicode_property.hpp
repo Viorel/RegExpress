@@ -27,8 +27,7 @@
 
 namespace real::detail {
 
-  //! \brief The Unicode data version these tables were generated from (16.0.0).
-  inline constexpr const char* unicode_property_unidata_version {"16.0.0"};
+  inline constexpr const char* unicode_property_unidata_version {"16.0.0"}; //!< The Unicode data version these tables were generated from.
 
   //! \brief `\p{Lu}` — 651 ranges, 1858 code points.
   inline constexpr code_range gc_Lu_ranges[] {
@@ -6593,7 +6592,9 @@ namespace real::detail {
     {0xE01F0, 0x10FFFF},
   };
 
-  //! \brief A Unicode General_Category property: the 29 assignable categories then the 7 groups.
+  /*!
+   * \brief A Unicode General_Category property: the 29 assignable categories then the 7 groups.
+   */
   enum class gc_property : std::uint8_t {
     Lu,
     Ll,
@@ -6674,14 +6675,23 @@ namespace real::detail {
     gc_C_ranges,
   };
 
-  //! \brief Whether \p cp is in the General_Category property \p prop (== the UCD).
+  /*!
+   * \brief Whether \p cp is in the General_Category property \p prop (== the UCD).
+   * \param[in] prop The General_Category to test for.
+   * \param[in] cp   The code point to test.
+   * \return Whether \p cp is in \p prop.
+   */
   constexpr bool is_gc_cp(gc_property prop, char32_t cp)
   {
     return cp_in_ranges(gc_property_ranges[static_cast<std::size_t>(prop)], cp);
   }
 
   //! \brief A loose-normalized (lowercase, no _/-/space) General_Category name and its property.
-  struct gc_alias_entry { std::string_view name; gc_property prop; };
+  struct gc_alias_entry
+  {
+    std::string_view name; //!< The loose-normalized name (short code or long name).
+    gc_property      prop; //!< The property it names.
+  };
 
   //! \brief Short codes (`Lu`) and long names (`Uppercase_Letter`), loose-keyed; for the `\p{...}` parser.
   inline constexpr gc_alias_entry gc_aliases[] {
@@ -6759,7 +6769,11 @@ namespace real::detail {
     {"zs", gc_property::Zs},
   };
 
-  //! \brief Resolve a loose-normalized General_Category name to its property, or `count` if unknown.
+  /*!
+   * \brief Resolve a loose-normalized General_Category name to its property, or `count` if unknown.
+   * \param[in] loose A name already put through the parser's loose normalization.
+   * \return The property, or `gc_property::count` when no alias matches.
+   */
   constexpr gc_property resolve_gc(std::string_view loose)
   {
     for (const gc_alias_entry& a : gc_aliases) {

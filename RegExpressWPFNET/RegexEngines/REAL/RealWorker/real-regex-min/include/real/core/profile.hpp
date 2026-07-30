@@ -22,9 +22,12 @@
 #include <cstdint>
 #include <type_traits>
 
+//! \brief Opt-in route/work counters, compiled out unless the profiling build flag is set.
 namespace real::detail::prof {
 
-  //! \brief Named once-per-dispatch routes (Tier 1). Always visible so tick call sites compile OFF.
+  /*!
+   * \brief Named once-per-dispatch routes (Tier 1). Always visible so tick call sites compile OFF.
+   */
   enum class route : std::uint8_t
   {
     class_loop = 0,
@@ -50,7 +53,9 @@ namespace real::detail::prof {
     count_
   };
 
-  //! \brief Secondary events (prefilter / Arc B / abandon).
+  /*!
+   * \brief Secondary events (prefilter / Arc B / abandon).
+   */
   enum class event : std::uint8_t
   {
     first_byte_skip = 0,
@@ -167,6 +172,10 @@ namespace real::detail::prof {
 #if defined(__GNUC__) || defined(__clang__)
   __attribute__((always_inline))
 #endif
+  /*!
+   * \brief Bill one dispatch to route \p r. Erased entirely unless \c REAL_PROFILE is defined.
+   * \param[in] r The route that handled the search.
+   */
   constexpr void tick_route(route r) noexcept
   {
 #if defined(REAL_PROFILE)
@@ -181,6 +190,10 @@ namespace real::detail::prof {
 #if defined(__GNUC__) || defined(__clang__)
   __attribute__((always_inline))
 #endif
+  /*!
+   * \brief Bill one occurrence of \p e. Erased entirely unless \c REAL_PROFILE is defined.
+   * \param[in] e The event to count.
+   */
   constexpr void tick_event(event e) noexcept
   {
 #if defined(REAL_PROFILE)
@@ -195,6 +208,10 @@ namespace real::detail::prof {
 #if defined(__GNUC__) || defined(__clang__)
   __attribute__((always_inline))
 #endif
+  /*!
+   * \brief Bill \p n scanned bytes. Erased entirely unless \c REAL_PROFILE is defined.
+   * \param[in] n Bytes the caller just consumed.
+   */
   constexpr void tick_bytes(std::uint64_t n) noexcept
   {
 #if defined(REAL_PROFILE)
@@ -209,6 +226,10 @@ namespace real::detail::prof {
 #if defined(__GNUC__) || defined(__clang__)
   __attribute__((always_inline))
 #endif
+  /*!
+   * \brief Record a run of \p n accepted units. Erased entirely unless \c REAL_PROFILE is defined.
+   * \param[in] n The run's length.
+   */
   constexpr void tick_run_len(std::size_t n) noexcept
   {
 #if defined(REAL_PROFILE)

@@ -94,192 +94,261 @@ namespace real::compat::re2 {
     {
     public:
 
-      //! \brief Pattern/text encoding — `real::compat::re2` supports `EncodingUTF8` only.
+      /*!
+       * \brief Pattern/text encoding — `real::compat::re2` supports `EncodingUTF8` only.
+       */
       enum Encoding : std::uint8_t
       {
         EncodingUTF8,  //!< UTF-8 (the default, and the only encoding this layer honors).
         EncodingLatin1 //!< Latin-1 — accepted for API shape, rejected at `RE2` construction.
       };
 
-      //! \brief Default options: UTF-8, leftmost-first, case-sensitive, every RE2 default kept.
+      /*!
+       * \brief Default options: UTF-8, leftmost-first, case-sensitive, every RE2 default kept.
+       */
       Options() = default;
 
-      //! \brief Approximate memory budget RE2 uses for its compiled program/DFA cache. Stored for API
-      //!        shape; REAL has its own, unrelated internal budget knobs and does not consult this.
+      /*!
+       * \brief Approximate memory budget RE2 uses for its compiled program/DFA cache. Stored for API
+       *        shape; REAL has its own, unrelated internal budget knobs and does not consult this.
+       * \return The stored budget, in bytes.
+       */
       [[nodiscard]] std::int64_t max_mem() const noexcept
       {
         return max_mem_;
       }
 
-      //! \brief Sets `max_mem`.
-      //! \param[in] value The new budget, in bytes.
+      /*!
+       * \brief Sets `max_mem`.
+       * \param[in] value The new budget, in bytes.
+       */
       void set_max_mem(std::int64_t value) noexcept
       {
         max_mem_ = value;
       }
 
-      //! \brief The pattern/text encoding.
+      /*!
+       * \brief The pattern/text encoding.
+       * \return The configured encoding.
+       */
       [[nodiscard]] Encoding encoding() const noexcept
       {
         return encoding_;
       }
 
-      //! \brief Sets `encoding`. `EncodingLatin1` makes the owning `RE2` reject at construction.
-      //! \param[in] value The new encoding.
+      /*!
+       * \brief Sets `encoding`. `EncodingLatin1` makes the owning `RE2` reject at construction.
+       * \param[in] value The new encoding.
+       */
       void set_encoding(Encoding value) noexcept
       {
         encoding_ = value;
       }
 
-      //! \brief Whether the pattern is restricted to POSIX egrep syntax. Always rejected here (no
-      //!        REAL-side equivalent grammar mode) if set to `true`.
+      /*!
+       * \brief Whether the pattern is restricted to POSIX egrep syntax. Always rejected here (no
+       *        REAL-side equivalent grammar mode) if set to `true`.
+       * \return Whether POSIX-ERE syntax is selected.
+       */
       [[nodiscard]] bool posix_syntax() const noexcept
       {
         return posix_syntax_;
       }
 
-      //! \brief Sets `posix_syntax`.
-      //! \param[in] value `true` makes the owning `RE2` reject at construction.
+      /*!
+       * \brief Sets `posix_syntax`.
+       * \param[in] value `true` makes the owning `RE2` reject at construction.
+       */
       void set_posix_syntax(bool value) noexcept
       {
         posix_syntax_ = value;
       }
 
-      //! \brief Whether to search for the longest match instead of the first. Honored for
-      //!        `PartialMatch` (via `real::regex::search_longest()`); see the file-level doc comment.
+      /*!
+       * \brief Whether to search for the longest match instead of the first. Honored for
+       *        `PartialMatch` (via `real::regex::search_longest()`); see the file-level doc comment.
+       * \return Whether leftmost-longest semantics are selected.
+       */
       [[nodiscard]] bool longest_match() const noexcept
       {
         return longest_match_;
       }
 
-      //! \brief Sets `longest_match`.
-      //! \param[in] value The new setting.
+      /*!
+       * \brief Sets `longest_match`.
+       * \param[in] value The new setting.
+       */
       void set_longest_match(bool value) noexcept
       {
         longest_match_ = value;
       }
 
-      //! \brief Whether to log syntax/execution errors. Stored for API shape; this layer reports
-      //!        errors through `RE2::error()` regardless, never a logging side-channel.
+      /*!
+       * \brief Whether to log syntax/execution errors. Stored for API shape; this layer reports
+       *        errors through `RE2::error()` regardless, never a logging side-channel.
+       * \return Whether construction failures are logged.
+       */
       [[nodiscard]] bool log_errors() const noexcept
       {
         return log_errors_;
       }
 
-      //! \brief Sets `log_errors`.
-      //! \param[in] value The new setting.
+      /*!
+       * \brief Sets `log_errors`.
+       * \param[in] value The new setting.
+       */
       void set_log_errors(bool value) noexcept
       {
         log_errors_ = value;
       }
 
-      //! \brief Whether the pattern is matched as a literal string rather than parsed as a regex.
-      //!        Honored by escaping the pattern (`QuoteMeta`) before compiling.
+      /*!
+       * \brief Whether the pattern is matched as a literal string rather than parsed as a regex.
+       *        Honored by escaping the pattern (`QuoteMeta`) before compiling.
+       * \return Whether the pattern is treated as a literal string.
+       */
       [[nodiscard]] bool literal() const noexcept
       {
         return literal_;
       }
 
-      //! \brief Sets `literal`.
-      //! \param[in] value The new setting.
+      /*!
+       * \brief Sets `literal`.
+       * \param[in] value The new setting.
+       */
       void set_literal(bool value) noexcept
       {
         literal_ = value;
       }
 
-      //! \brief Whether the pattern must never match `\n`, even where the pattern text says it
-      //!        should. Always rejected here (no REAL-side equivalent) if set to `true`.
+      /*!
+       * \brief Whether the pattern must never match `\n`, even where the pattern text says it
+       *        should. Always rejected here (no REAL-side equivalent) if set to `true`.
+       * \return Whether `.` and negated classes are barred from matching a newline.
+       */
       [[nodiscard]] bool never_nl() const noexcept
       {
         return never_nl_;
       }
 
-      //! \brief Sets `never_nl`.
-      //! \param[in] value `true` makes the owning `RE2` reject at construction.
+      /*!
+       * \brief Sets `never_nl`.
+       * \param[in] value `true` makes the owning `RE2` reject at construction.
+       */
       void set_never_nl(bool value) noexcept
       {
         never_nl_ = value;
       }
 
-      //! \brief Whether `.` also matches `\n`. Honored via `flags::dotall`.
+      /*!
+       * \brief Whether `.` also matches `\n`. Honored via `flags::dotall`.
+       * \return Whether `.` matches a newline.
+       */
       [[nodiscard]] bool dot_nl() const noexcept
       {
         return dot_nl_;
       }
 
-      //! \brief Sets `dot_nl`.
-      //! \param[in] value The new setting.
+      /*!
+       * \brief Sets `dot_nl`.
+       * \param[in] value The new setting.
+       */
       void set_dot_nl(bool value) noexcept
       {
         dot_nl_ = value;
       }
 
-      //! \brief Whether every `(...)` parses as non-capturing. Always rejected here (this layer
-      //!        always captures every group; honoring `true` silently would change
-      //!        `NumberOfCapturingGroups()` and which `Arg` extractions succeed) if set to `true`.
+      /*!
+       * \brief Whether every `(...)` parses as non-capturing. Always rejected here (this layer
+       *        always captures every group; honoring `true` silently would change
+       *        `NumberOfCapturingGroups()` and which `Arg` extractions succeed) if set to `true`.
+       * \return Whether capturing groups are demoted to non-capturing.
+       */
       [[nodiscard]] bool never_capture() const noexcept
       {
         return never_capture_;
       }
 
-      //! \brief Sets `never_capture`.
-      //! \param[in] value `true` makes the owning `RE2` reject at construction.
+      /*!
+       * \brief Sets `never_capture`.
+       * \param[in] value `true` makes the owning `RE2` reject at construction.
+       */
       void set_never_capture(bool value) noexcept
       {
         never_capture_ = value;
       }
 
-      //! \brief Whether matching is case-sensitive by default (overridable per-pattern with `(?i)`,
-      //!        same interaction RE2 itself documents). Honored via `flags::icase` when `false`.
+      /*!
+       * \brief Whether matching is case-sensitive by default (overridable per-pattern with `(?i)`,
+       *        same interaction RE2 itself documents). Honored via `flags::icase` when `false`.
+       * \return Whether matching is case-sensitive.
+       */
       [[nodiscard]] bool case_sensitive() const noexcept
       {
         return case_sensitive_;
       }
 
-      //! \brief Sets `case_sensitive`.
-      //! \param[in] value The new setting.
+      /*!
+       * \brief Sets `case_sensitive`.
+       * \param[in] value The new setting.
+       */
       void set_case_sensitive(bool value) noexcept
       {
         case_sensitive_ = value;
       }
 
-      //! \brief Only consulted by real RE2 under `posix_syntax`, which this layer rejects — inert
-      //!        here for the same reason it is inert in real RE2 outside `posix_syntax` mode.
+      /*!
+       * \brief Only consulted by real RE2 under `posix_syntax`, which this layer rejects — inert
+       *        here for the same reason it is inert in real RE2 outside `posix_syntax` mode.
+       * \return Whether Perl classes (`\\d`, `\\s`, `\\w`) are enabled.
+       */
       [[nodiscard]] bool perl_classes() const noexcept
       {
         return perl_classes_;
       }
 
-      //! \brief Sets `perl_classes` (inert; see the getter).
-      //! \param[in] value Stored, not consulted.
+      /*!
+       * \brief Sets `perl_classes` (inert; see the getter).
+       * \param[in] value Stored, not consulted.
+       */
       void set_perl_classes(bool value) noexcept
       {
         perl_classes_ = value;
       }
 
-      //! \brief Only consulted by real RE2 under `posix_syntax`, which this layer rejects — inert
-      //!        here for the same reason it is inert in real RE2 outside `posix_syntax` mode.
+      /*!
+       * \brief Only consulted by real RE2 under `posix_syntax`, which this layer rejects — inert
+       *        here for the same reason it is inert in real RE2 outside `posix_syntax` mode.
+       * \return Whether `\\b` and `\\B` are enabled.
+       */
       [[nodiscard]] bool word_boundary() const noexcept
       {
         return word_boundary_;
       }
 
-      //! \brief Sets `word_boundary` (inert; see the getter).
-      //! \param[in] value Stored, not consulted.
+      /*!
+       * \brief Sets `word_boundary` (inert; see the getter).
+       * \param[in] value Stored, not consulted.
+       */
       void set_word_boundary(bool value) noexcept
       {
         word_boundary_ = value;
       }
 
-      //! \brief Only consulted by real RE2 under `posix_syntax`, which this layer rejects — inert
-      //!        here for the same reason it is inert in real RE2 outside `posix_syntax` mode.
+      /*!
+       * \brief Only consulted by real RE2 under `posix_syntax`, which this layer rejects — inert
+       *        here for the same reason it is inert in real RE2 outside `posix_syntax` mode.
+       * \return Whether `^`/`$` match only at the text edges.
+       */
       [[nodiscard]] bool one_line() const noexcept
       {
         return one_line_;
       }
 
-      //! \brief Sets `one_line` (inert; see the getter).
-      //! \param[in] value Stored, not consulted.
+      /*!
+       * \brief Sets `one_line` (inert; see the getter).
+       * \param[in] value Stored, not consulted.
+       */
       void set_one_line(bool value) noexcept
       {
         one_line_ = value;
@@ -302,9 +371,11 @@ namespace real::compat::re2 {
       bool          one_line_      {false};        //!< POSIX-mode-only; inert here.
     };
 
-    //! \brief A coarse error taxonomy — this layer does not reproduce RE2's fine-grained,
-    //!        14-value `ErrorCode` (REAL's own parser has a different internal classification);
-    //!        `error()` always carries the human-readable detail.
+    /*!
+     * \brief A coarse error taxonomy — this layer does not reproduce RE2's fine-grained,
+     *        14-value `ErrorCode` (REAL's own parser has a different internal classification);
+     *        `error()` always carries the human-readable detail.
+     */
     enum class ErrorCode : std::uint8_t
     {
       NoError,          //!< `ok() == true`.
@@ -312,7 +383,9 @@ namespace real::compat::re2 {
       ErrorUnsupported, //!< Well-formed, but outside this layer's supported subset (see `error()`).
     };
 
-    //! \brief Where a `Set` member (or the primitive `Match`, not exposed here) is anchored.
+    /*!
+     * \brief Where a `Set` member (or the primitive `Match`, not exposed here) is anchored.
+     */
     enum class Anchor : std::uint8_t
     {
       UNANCHORED,   //!< Match anywhere in the text.
@@ -487,37 +560,55 @@ namespace real::compat::re2 {
       init(pattern, options);
     }
 
-    //! \brief Whether construction succeeded (`error_code() == ErrorCode::NoError`).
+    /*!
+     * \brief Whether construction succeeded (`error_code() == ErrorCode::NoError`).
+     * \return Whether the pattern compiled.
+     */
     [[nodiscard]] bool ok() const noexcept
     {
       return error_code_ == ErrorCode::NoError;
     }
 
-    //! \brief The pattern text this `RE2` was built from.
+    /*!
+     * \brief The pattern text this `RE2` was built from.
+     * \return The pattern, valid as long as this object is alive.
+     */
     [[nodiscard]] const std::string& pattern() const noexcept
     {
       return pattern_;
     }
 
-    //! \brief The rejection reason, or an empty string if `ok()`.
+    /*!
+     * \brief The rejection reason, or an empty string if `ok()`.
+     * \return The message, empty when construction succeeded.
+     */
     [[nodiscard]] const std::string& error() const noexcept
     {
       return error_;
     }
 
-    //! \brief The coarse rejection category, or `ErrorCode::NoError` if `ok()`.
+    /*!
+     * \brief The coarse rejection category, or `ErrorCode::NoError` if `ok()`.
+     * \return The category, `ErrorCode::NoError` when construction succeeded.
+     */
     [[nodiscard]] ErrorCode error_code() const noexcept
     {
       return error_code_;
     }
 
-    //! \brief The construction options this `RE2` was built with.
+    /*!
+     * \brief The construction options this `RE2` was built with.
+     * \return The options, valid as long as this object is alive.
+     */
     [[nodiscard]] const Options& options() const noexcept
     {
       return options_;
     }
 
-    //! \brief The number of capturing groups (excluding group 0), or `0` if `!ok()`.
+    /*!
+     * \brief The number of capturing groups (excluding group 0), or `0` if `!ok()`.
+     * \return The capturing-group count.
+     */
     [[nodiscard]] int NumberOfCapturingGroups() const noexcept
     {
       return num_captures_;

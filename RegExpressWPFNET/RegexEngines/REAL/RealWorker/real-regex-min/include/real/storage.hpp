@@ -66,6 +66,7 @@ namespace real {
 
     /*!
      * \brief Returns a view of the string, excluding the trailing NUL.
+     * \return A view of the \c N-1 pattern characters.
      */
     [[nodiscard]] constexpr std::string_view view() const
     {
@@ -73,6 +74,7 @@ namespace real {
     }
   };
 
+  //! \brief Storage-policy internals shared by \ref real::regex and \ref real::static_regex.
   namespace detail {
 
     /*!
@@ -172,6 +174,7 @@ namespace real {
 
       /*!
        * \brief Returns the number of elements.
+       * \return The element count.
        */
       [[nodiscard]] constexpr std::size_t size() const
       {
@@ -180,6 +183,7 @@ namespace real {
 
       /*!
        * \brief Returns `true` if empty.
+       * \return Whether the vector holds no elements.
        */
       [[nodiscard]] constexpr bool empty() const
       {
@@ -208,6 +212,7 @@ namespace real {
 
       /*!
        * \brief Returns reference to the last element. Precondition: the vector is non-empty.
+       * \return A reference to the last element.
        */
       [[nodiscard]] constexpr T& back()
       {
@@ -290,9 +295,6 @@ namespace real {
       std::size_t capacity_ {InlineCapacity}; //!< Current capacity.
       bool        is_heap_  {};               //!< True once spilled to the heap.
 
-      /*!
-       * \brief Active member (inline buffer or heap pointer) per \ref is_heap_ state.
-       */
       //! \brief Inline element block. A struct (not a bare C array) so the union ctor can
       //!        activate it as a whole with \c construct_at in a constant expression, while
       //!        \ref inline_data still indexes a plain C array — which the static analyzer can
@@ -300,23 +302,28 @@ namespace real {
       //!        out-of-bounds on \ref transfer_range).
       struct inline_block
       {
-        T elems[InlineCapacity];
+        T elems[InlineCapacity]; //!< The inline elements, as a plain C array the analyzer can bound.
       };
+
+      //! \brief The either-or storage: the inline buffer, or a pointer to the heap block once the
+      //!        vector has spilled. \ref is_heap_ says which member is active.
       union Storage
       {
         inline_block inline_buffer; //!< Inline storage (when not heap).
         T*           heap_ptr;      //!< Heap storage (when \ref is_heap_).
 
-        //! \brief Starts in the inline state.
-        //!
-        //! At **run time** the inline buffer is left UNINITIALIZED: small_vec writes every
-        //! element through \c std::construct_at (placement-new) before any read (push_back and
-        //! assign), so the value-init was pure overhead — ~30 % of the instruction count on a
-        //! findall tokenizing workload (a fresh slot buffer per match, of which ~2 slots serve).
-        //! At **compile time** the member must be active and initialized for the constexpr
-        //! matching path (which assigns through \ref inline_data), so it is value-initialized
-        //! there via \c construct_at on the whole \ref inline_block — activating a class-type
-        //! member is what a constexpr union allows (an element-wise or bare C-array activation is not).
+        /*!
+         * \brief Starts in the inline state.
+         *
+         * At **run time** the inline buffer is left UNINITIALIZED: small_vec writes every
+         * element through \c std::construct_at (placement-new) before any read (push_back and
+         * assign), so the value-init was pure overhead — ~30 % of the instruction count on a
+         * findall tokenizing workload (a fresh slot buffer per match, of which ~2 slots serve).
+         * At **compile time** the member must be active and initialized for the constexpr
+         * matching path (which assigns through \ref inline_data), so it is value-initialized
+         * there via \c construct_at on the whole \ref inline_block — activating a class-type
+         * member is what a constexpr union allows (an element-wise or bare C-array activation is not).
+         */
         constexpr Storage() noexcept
         {
           if (std::is_constant_evaluated()) {
@@ -335,7 +342,7 @@ namespace real {
         Storage& operator=(const Storage&)  = delete;
         Storage(Storage &&)                 = delete;
         Storage& operator=(Storage&&)       = delete;
-      } storage_ {};
+      } storage_ {}; //!< The active storage, inline or heap.
 
       // Run-time cache of the active storage base (inline buffer or heap block), refreshed on
       // every state change via \ref refresh_data. The hot accessors (operator[], back, push_back)
@@ -344,9 +351,11 @@ namespace real {
       // *this is not a usable constant across copies, so the constexpr path keeps the is_heap_
       // branch (guarded by std::is_constant_evaluated). static_regex uses static_vec, not
       // small_vec, so this never participates in compile-time matching.
-      T* data_ {};
+      T* data_ {}; //!< Cached base of the active storage; see the note above, and \ref refresh_data.
 
-      //! \brief Refreshes \ref data_ to the active storage base (run time only).
+      /*!
+       * \brief Refreshes \ref data_ to the active storage base (run time only).
+       */
       constexpr void refresh_data() noexcept
       {
         if (!std::is_constant_evaluated()) {
@@ -356,6 +365,7 @@ namespace real {
 
       /*!
        * \brief Returns pointer to the inline buffer.
+       * \return A pointer to its first element, whether or not the inline state is active.
        */
       [[nodiscard]] constexpr T* inline_data() noexcept
       {
@@ -364,6 +374,7 @@ namespace real {
 
       /*!
        * \brief Returns const pointer to the inline buffer.
+       * \return A const pointer to its first element, whether or not the inline state is active.
        */
       [[nodiscard]] constexpr const T* inline_data() const noexcept
       {
@@ -577,6 +588,7 @@ namespace real {
 
       /*!
        * \brief Returns the number of elements.
+       * \return The element count.
        */
       [[nodiscard]] constexpr std::size_t size() const noexcept
       {
@@ -585,6 +597,7 @@ namespace real {
 
       /*!
        * \brief Returns `true` if empty.
+       * \return Whether the vector holds no elements.
        */
       [[nodiscard]] constexpr bool empty() const noexcept
       {
@@ -627,6 +640,7 @@ namespace real {
 
       /*!
        * \brief Returns reference to the last element. Precondition: the vector is non-empty.
+       * \return A reference to the last element.
        */
       [[nodiscard]] constexpr T& back() noexcept
       {
@@ -639,6 +653,7 @@ namespace real {
 
       /*!
        * \brief Returns const reference to the last element. Precondition: the vector is non-empty.
+       * \return A const reference to the last element.
        */
       [[nodiscard]] constexpr const T& back() const noexcept
       {
@@ -688,6 +703,7 @@ namespace real {
 
       /*!
        * \brief Move constructor: steals \p other's heap block or moves inline elements.
+       * \param[in,out] other The vector to move from; left empty and inline.
        */
       constexpr small_vec(small_vec&& other) noexcept
         : size_(other.size_),
@@ -738,6 +754,7 @@ namespace real {
 
       /*!
        * \brief Copy constructor (needed for `vector<match_result>` in find_all).
+       * \param[in] other The vector to copy.
        */
       constexpr small_vec(const small_vec& other)
         : size_(other.size_),
@@ -835,7 +852,7 @@ namespace real {
 
       std::string     pattern_text;                  //!< The original pattern text.
       dynamic_program program;                       //!< The compiled program.
-      flags           effective_flags {flags::none}; //!< Constructor flags merged with any (?ims).
+      flags           effective_flags {flags::none}; //!< Constructor flags merged with any leading `(?imsxaU)` group.
 
       //! \brief Per-regex lazy-DFA/one-pass cache, built under program-identity invalidation (thread-safe)
       //!        and shared by every search on this regex — not rebuilt per find_iter. `mutable`: a const
@@ -846,7 +863,7 @@ namespace real {
       /*!
        * \brief Parses and compiles \p pattern with flags \p compile_flags.
        * \param[in] pattern       The pattern text.
-       * \param[in] compile_flags The requested flags (merged with a leading (?ims)).
+       * \param[in] compile_flags The requested flags (merged with a leading `(?imsxaU)` / `(?flags-flags)` group).
        * \return A populated storage object.
        * \throws real::regex_error on an invalid or over-limit pattern.
        */
@@ -855,13 +872,19 @@ namespace real {
       {
         const ast   tree      {detail::parse(pattern, compile_flags)};
         const flags effective {compile_flags | tree.inline_flags};
+        // What the COMPILER is handed stays `effective` (added only) -- deliberately not the
+        // removal-adjusted set. The parser already applied any `(?-flags)` removal to its own base scope,
+        // so every folding and tokenization decision was made under the right flags; narrowing what
+        // `compile` sees here would change a behaviour that is already correct. What is REPORTED is the
+        // set in force, so the accessor and the engine agree on a global removal.
         return {.pattern_text    = std::string(pattern),
                 .program         = detail::compile(tree, effective),
-                .effective_flags = effective};
+                .effective_flags = flags_without(effective, tree.inline_removed)};
       }
 
       /*!
        * \brief Returns a non-owning view of the compiled program.
+       * \return The view; valid as long as this storage is alive.
        */
       [[nodiscard]] constexpr program_view view() const
       {
@@ -872,6 +895,7 @@ namespace real {
 
       /*!
        * \brief Returns the original pattern text.
+       * \return The pattern, valid as long as this storage is alive.
        */
       [[nodiscard]] constexpr std::string_view pattern() const
       {
@@ -879,7 +903,9 @@ namespace real {
       }
 
       /*!
-       * \brief Returns the effective flags (constructor flags merged with (?ims)).
+       * \brief Returns the flag set in force: constructor flags, plus a leading global-flags group's
+       *        additions, minus its `-removal` -- see \ref real::basic_regex::compile_flags.
+       * \return The effective flag set.
        */
       [[nodiscard]] constexpr flags compiled_flags() const
       {
@@ -910,6 +936,8 @@ namespace real {
        * Runs only at compile time (a `static_regex` instantiation), so it is invisible to the
        * runtime coverage report; it is exercised by the constexpr `static_assert`s in
        * tests/test_static.cpp and tests/test_constexpr.cpp.
+       *
+       * \return The compiled program.
        */
       static constexpr dynamic_program build()
       {
@@ -943,7 +971,11 @@ namespace real {
 
     public:
 
-      static constexpr flags         effective_flags            {F | detail::parse(Pat.view(), F).inline_flags}; //!< Flags merged with (?ims).
+      //! \brief The flag set in force: \c F plus what a leading `(?imsxaU)` group added, minus what a
+      //!        `(?flags-flags)` removal cleared. Mirrors \ref dynamic_storage::compile, so the two
+      //!        storages report the same thing for the same pattern.
+      static constexpr flags         effective_flags            {flags_without(F | detail::parse(Pat.view(), F).inline_flags,
+                                                                               detail::parse(Pat.view(), F).inline_removed)};
       static constexpr pattern_hints hints                      {build().hints};                                 //!< Search hints.
       static constexpr std::size_t   code_size                  {build().code.size()};                           //!< Instruction count.
       static constexpr std::size_t   class_count                {build().classes.size()};                        //!< Distinct class count.
@@ -961,10 +993,6 @@ namespace real {
         take<cp_class, cp_class_count>(build().cp_classes);                                                      //!< Code-point classes.
       static constexpr std::array<code_range, cp_range_count> cp_ranges =
         take<code_range, cp_range_count>(build().cp_ranges);                                                     //!< Flat range buffer.
-
-      /*!
-       * \brief Capture-slot container: fixed-capacity, no heap.
-       */
 
       //! \brief Flat byte-class membership tables, built at compile time: `class_tables[i*256 + b]`.
       //!        Reuses the \ref classes member rather than calling \ref build again — an extra `build()` per
@@ -1013,11 +1041,12 @@ namespace real {
                         return t;
                       }()};
 
+      //! \brief Capture-slot storage, sized exactly to the program's slot count (no heap).
       using slot_storage = static_vec<std::size_t, slot_count>;
       // worst-case live capture blocks — every reference (a DFS stack frame or a thread in either
       // list) could point to a distinct block; freed blocks recycle through the pool's free list, so the
       // pool never grows past this. The stack is (3*code_size)+4, each list up to code_size threads.
-      static constexpr std::size_t max_blocks {(5 * code_size) + 8};
+      static constexpr std::size_t max_blocks {(5 * code_size) + 8}; //!< Worst-case live capture blocks, per the bound derived above.
 
       /*!
        * \brief IL: the per-haystack guard fields the inner-literal route needs.
@@ -1097,6 +1126,8 @@ namespace real {
        * `view()` is called once per `search()`: line-level profiling of a single `[a-z]+` search put that
        * one aggregate initialiser at 93 of the ~325 instructions the call spends, against 17 for the class
        * scan itself.
+       *
+       * \return A reference to the single compile-time view; it outlives every caller.
        */
       [[nodiscard]] constexpr const program_view& view() const
       {
@@ -1129,6 +1160,7 @@ namespace real {
 
       /*!
        * \brief Returns the pattern text.
+       * \return A view of the compile-time pattern string.
        */
       [[nodiscard]] constexpr std::string_view pattern() const
       {
@@ -1136,7 +1168,9 @@ namespace real {
       }
 
       /*!
-       * \brief Returns the effective flags.
+       * \brief Returns the flag set in force: constructor flags, plus a leading global-flags group's
+       *        additions, minus its `-removal` -- see \ref real::basic_regex::compile_flags.
+       * \return The effective flag set.
        */
       [[nodiscard]] constexpr flags compiled_flags() const
       {

@@ -13,6 +13,9 @@
 
 #include <iterator>
 
+//! \brief Drop-in replacements for `<regex>`: \c basic_regex, \c regex_search / \c regex_match /
+//!        \c regex_replace and the iterator types -- backed by REAL's linear-time engine where it can
+//!        serve the pattern, and by `std::regex` otherwise, never by a silent divergence.
 namespace real::compat {
   /*!
    * \brief Iterates the non-overlapping matches of a pattern in a sequence (`std::regex_iterator`).
@@ -39,12 +42,20 @@ namespace real::compat {
     using iterator_category = std::forward_iterator_tag;  //!< std::regex_iterator parity.
     using regex_type        = basic_regex<CharT, Traits>; //!< The pattern type.
 
-    //! \brief Constructs the end sentinel.
+    /*!
+     * \brief Constructs the end sentinel.
+     */
     regex_iterator() = default;
 
-    //! \brief Constructs a begin iterator over `[first, last)` and finds the first match.
-    //!        A constraining match flag (see \ref detail::real_honors) routes to the std backend,
-    //!        which carries the flags through the wrapped `std::regex_iterator`.
+    /*!
+     * \brief Constructs a begin iterator over `[first, last)` and finds the first match.
+     *        A constraining match flag (see \ref detail::real_honors) routes to the std backend,
+     *        which carries the flags through the wrapped `std::regex_iterator`.
+     * \param[in] first Start of the character sequence.
+     * \param[in] last  End of the character sequence.
+     * \param[in] re    The pattern; it must outlive this iterator.
+     * \param[in] flags Match flags, defaulting to \c regex_constants::match_default.
+     */
     regex_iterator(BidirIt                          first,
                    BidirIt                          last,
                    const regex_type&                re,
@@ -64,22 +75,36 @@ namespace real::compat {
       sync_std();
     }
 
-    //! \brief Constructing from a temporary regex would dangle (std::regex_iterator parity).
+    /*!
+     * \brief Constructing from a temporary regex would dangle (std::regex_iterator parity).
+     */
     regex_iterator(BidirIt                          first,
                    BidirIt                          last,
                    const regex_type&&               re,
                    regex_constants::match_flag_type flags = regex_constants::match_default) = delete;
 
+    /*!
+     * \brief The current match.
+     * \return A reference to it, valid until the next increment.
+     */
     [[nodiscard]] reference operator*() const
     {
       return match_;
     }
 
+    /*!
+     * \brief The current match.
+     * \return A pointer to it, valid until the next increment.
+     */
     [[nodiscard]] pointer   operator->() const
     {
       return &match_;
     }
 
+    /*!
+     * \brief Advances to the next match, becoming the end sentinel when there is none.
+     * \return `*this`.
+     */
     regex_iterator& operator++()
     {
       if (at_end_) {
@@ -98,6 +123,10 @@ namespace real::compat {
       return *this;
     }
 
+    /*!
+     * \brief Advances to the next match, returning the previous position.
+     * \return A copy of `*this` as it was before the increment.
+     */
     regex_iterator operator++(int)
     {
       regex_iterator previous {*this};
@@ -105,6 +134,12 @@ namespace real::compat {
       return previous;
     }
 
+    /*!
+     * \brief Equality. Two non-end iterators compare equal only for the same regex, sequence, flags
+     *        and current match — not for a coincidental same position across different patterns.
+     * \param[in] other The iterator to compare against.
+     * \return Whether the two denote the same iteration position.
+     */
     [[nodiscard]] bool operator==(const regex_iterator& other) const
     {
       if (at_end_ || other.at_end_) {
@@ -117,6 +152,11 @@ namespace real::compat {
              && match_.length(0) == other.match_.length(0);
     }
 
+    /*!
+     * \brief Inequality, the negation of \ref operator==.
+     * \param[in] other The iterator to compare against.
+     * \return Whether the two denote different iteration positions.
+     */
     [[nodiscard]] bool operator!=(const regex_iterator& other) const
     {
       return !(*this == other);
@@ -124,22 +164,25 @@ namespace real::compat {
 
   private:
 
-    BidirIt                                     begin_     {};
-    BidirIt                                     end_       {};
-    const regex_type*                           re_        {nullptr};
-    regex_constants::match_flag_type            flags_     {regex_constants::match_default};
-    bool                                        real_path_ {false};
-    std::size_t                                 real_pos_  {};
-    std::optional<std::regex_iterator<BidirIt>> std_it_;
-    value_type                                  match_;
-    bool                                        at_end_ {true};
+    BidirIt                                     begin_     {};                                //!< Start of the sequence.
+    BidirIt                                     end_       {};                                //!< End of the sequence.
+    const regex_type*                           re_        {nullptr};                         //!< The pattern, borrowed.
+    regex_constants::match_flag_type            flags_     {regex_constants::match_default};  //!< Match flags this iteration was built with.
+    bool                                        real_path_ {false};                           //!< Whether the REAL engine drives the traversal rather than the std backend.
+    std::size_t                                 real_pos_  {};                                //!< REAL path: byte offset the next region search starts at.
+    std::optional<std::regex_iterator<BidirIt>> std_it_;                                      //!< std path: the wrapped iterator (engaged only off the REAL path).
+    value_type                                  match_;                                       //!< The current match, refilled by each increment.
+    bool                                        at_end_ {true};                               //!< Whether this is the end sentinel.
 
-    //! \brief Advances the real path: next region search from \ref real_pos_.
+    /*!
+     * \brief Advances the real path: next region search from \ref real_pos_.
+     */
     void next_real()
     {
       const std::string_view sv     {std::to_address(begin_),
                                      static_cast<std::size_t>(std::distance(begin_, end_))};
-      // POSIX ERE drives the iteration with leftmost-longest bounds; the ECMAScript default keeps first.
+      // A POSIX grammar on REAL drives the iteration with leftmost-longest bounds; the ECMAScript
+      // default keeps leftmost-first.
       const real::regex&     engine {std::get<real::regex>(re_->engine())};
       const auto             result {re_->posix_longest() ? engine.search_longest(sv, real_pos_)
                                      : engine.search(sv, real_pos_)};
@@ -155,7 +198,9 @@ namespace real::compat {
       at_end_   = false;
     }
 
-    //! \brief Syncs the std path from the wrapped std::regex_iterator.
+    /*!
+     * \brief Syncs the std path from the wrapped std::regex_iterator.
+     */
     void sync_std()
     {
       if (*std_it_ == std::regex_iterator<BidirIt> {}) {
@@ -202,10 +247,19 @@ namespace real::compat {
     using reference         = const value_type&;          //!< Dereference type.
     using iterator_category = std::forward_iterator_tag;  //!< std::regex_token_iterator parity.
 
-    //! \brief Constructs the end sentinel.
+    /*!
+     * \brief Constructs the end sentinel.
+     */
     regex_token_iterator() = default;
 
-    //! \brief Selects a single sub-match field (`0` = whole match, `N` = group N, `-1` = split).
+    /*!
+     * \brief Selects a single sub-match field (`0` = whole match, `N` = group N, `-1` = split).
+     * \param[in] first    Start of the character sequence.
+     * \param[in] last     End of the character sequence.
+     * \param[in] re       The pattern; it must outlive this iterator.
+     * \param[in] submatch The field to yield per match.
+     * \param[in] flags    Match flags, defaulting to \c regex_constants::match_default.
+     */
     regex_token_iterator(BidirIt                          first,
                          BidirIt                          last,
                          const regex_type&                re,
@@ -218,8 +272,15 @@ namespace real::compat {
                              flags)
     {}
 
-    //! \brief Selects a list of fields, cycled per match (e.g. `{1, 2}`, `{-1}`). The match flags are
-    //!        forwarded to the wrapped `regex_iterator`, so the nullable/honors routing is inherited.
+    /*!
+     * \brief Selects a list of fields, cycled per match (e.g. `{1, 2}`, `{-1}`). The match flags are
+     *        forwarded to the wrapped `regex_iterator`, so the nullable/honors routing is inherited.
+     * \param[in] first      Start of the character sequence.
+     * \param[in] last       End of the character sequence.
+     * \param[in] re         The pattern; it must outlive this iterator.
+     * \param[in] submatches The fields to cycle through; an empty list is treated as `{0}`.
+     * \param[in] flags      Match flags, defaulting to \c regex_constants::match_default.
+     */
     regex_token_iterator(BidirIt                          first,
                          BidirIt                          last,
                          const regex_type&                re,
@@ -239,7 +300,14 @@ namespace real::compat {
       init(first, last);
     }
 
-    //! \brief Selects a list of fields from a braced list (e.g. `{-1}`).
+    /*!
+     * \brief Selects a list of fields from a braced list (e.g. `{-1}`).
+     * \param[in] first      Start of the character sequence.
+     * \param[in] last       End of the character sequence.
+     * \param[in] re         The pattern; it must outlive this iterator.
+     * \param[in] submatches The fields to cycle through.
+     * \param[in] flags      Match flags, defaulting to \c regex_constants::match_default.
+     */
     regex_token_iterator(BidirIt                          first,
                          BidirIt                          last,
                          const regex_type&                re,
@@ -252,7 +320,9 @@ namespace real::compat {
                              flags)
     {}
 
-    //! \brief Constructing from a temporary regex would dangle (std::regex_token_iterator parity).
+    /*!
+     * \brief Constructing from a temporary regex would dangle (std::regex_token_iterator parity).
+     */
     regex_token_iterator(BidirIt                          first,
                          BidirIt                          last,
                          const regex_type&&               re,
@@ -264,16 +334,28 @@ namespace real::compat {
                          const std::vector<int>&          submatches,
                          regex_constants::match_flag_type flags = regex_constants::match_default) = delete; //!< \overload
 
+    /*!
+     * \brief The current token.
+     * \return A reference to it, valid until the next increment.
+     */
     [[nodiscard]] reference operator*() const
     {
       return current_;
     }
 
+    /*!
+     * \brief The current token.
+     * \return A pointer to it, valid until the next increment.
+     */
     [[nodiscard]] pointer   operator->() const
     {
       return &current_;
     }
 
+    /*!
+     * \brief Advances to the next token, becoming the end sentinel when the fields are exhausted.
+     * \return `*this`.
+     */
     regex_token_iterator& operator++()
     {
       if (at_end_) {
@@ -305,6 +387,10 @@ namespace real::compat {
       return *this;
     }
 
+    /*!
+     * \brief Advances to the next token, returning the previous position.
+     * \return A copy of `*this` as it was before the increment.
+     */
     regex_token_iterator operator++(int)
     {
       regex_token_iterator previous {*this};
@@ -312,6 +398,12 @@ namespace real::compat {
       return previous;
     }
 
+    /*!
+     * \brief Equality. Two non-end iterators compare equal only for the same underlying walk, field
+     *        selectors, field index, suffix state and current token.
+     * \param[in] other The iterator to compare against.
+     * \return Whether the two denote the same iteration position.
+     */
     [[nodiscard]] bool operator==(const regex_token_iterator& other) const
     {
       if (at_end_ || other.at_end_) {
@@ -324,6 +416,11 @@ namespace real::compat {
              && current_.second == other.current_.second;
     }
 
+    /*!
+     * \brief Inequality, the negation of \ref operator==.
+     * \param[in] other The iterator to compare against.
+     * \return Whether the two denote different iteration positions.
+     */
     [[nodiscard]] bool operator!=(const regex_token_iterator& other) const
     {
       return !(*this == other);
@@ -339,13 +436,19 @@ namespace real::compat {
     bool                                   suffix_mode_ {false}; //!< Emitting the trailing split suffix.
     bool                                   at_end_      {true};  //!< End-of-sequence.
 
-    //! \brief Computes the current token from the current match and `subs_[n_]`.
+    /*!
+     * \brief Computes the current token from the current match and `subs_[n_]`.
+     */
     void set_field()
     {
       current_ = (subs_[n_] == -1) ? position_->prefix() : (*position_)[subs_[n_]];
     }
 
-    //! \brief Establishes the first token (or the whole-sequence token when there is no match).
+    /*!
+     * \brief Establishes the first token (or the whole-sequence token when there is no match).
+     * \param[in] first Start of the character sequence.
+     * \param[in] last  End of the character sequence.
+     */
     void init(BidirIt first,
               BidirIt last)
     {

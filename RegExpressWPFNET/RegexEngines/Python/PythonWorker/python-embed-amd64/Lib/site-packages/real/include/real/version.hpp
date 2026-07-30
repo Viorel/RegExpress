@@ -36,14 +36,16 @@
 //! \brief Minor version (the calendar month).
 #define REAL_VERSION_MINOR 7
 //! \brief Patch version (the release count within the month).
-#define REAL_VERSION_PATCH 61
+#define REAL_VERSION_PATCH 62
 // NOLINTEND(cppcoreguidelines-macro-to-enum,modernize-macro-to-enum,cppcoreguidelines-macro-usage)
 
 // Two-level stringize so the macro *values* (not their names) are pasted into the string.
 // Stringization (#x) is a preprocessor-only operation — the suggested constexpr template cannot
 // express it — so macro-usage's advice does not apply here.
 // NOLINTBEGIN(cppcoreguidelines-macro-usage)
+//! \brief Inner half of the two-level stringize: turns its argument into a string literal.
 #define REAL_STRINGIZE_IMPL(x) #x
+//! \brief Stringizes the *expansion* of \p x, which the extra level is what makes possible.
 #define REAL_STRINGIZE(x)      REAL_STRINGIZE_IMPL(x)
 // NOLINTEND(cppcoreguidelines-macro-usage)
 

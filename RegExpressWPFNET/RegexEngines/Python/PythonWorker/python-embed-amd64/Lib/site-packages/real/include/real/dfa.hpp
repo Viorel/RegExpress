@@ -78,13 +78,14 @@ namespace real {
     std::size_t   length;     //!< Byte length of the (non-empty) match.
   };
 
+  //! \brief DFA construction internals: subset construction over a flattened NFA. Not a stable API.
   namespace detail {
 
     //! \brief A flattened NFA instruction (global PCs, global class index).
     struct dfa_instr
     {
-      opcode        op        {};
-      std::uint8_t  arg8      {};
+      opcode        op        {};   //!< The instruction's opcode.
+      std::uint8_t  arg8      {};   //!< Literal byte (op == byte).
       std::uint32_t klass     {0};  //!< Global class index (op == klass).
       std::int64_t  primary   {-1}; //!< Global target (split/jump).
       std::int64_t  secondary {-1}; //!< Global secondary target (split).
@@ -93,18 +94,13 @@ namespace real {
     //! \brief The union NFA over all the patterns, flattened into one address space.
     struct dfa_nfa
     {
-      std::vector<dfa_instr>    code;
-      std::vector<char_class>   classes;
-      std::vector<std::int64_t> accept_rule; //!< accept_rule[pc] = rule index if match, else -1.
-      std::vector<std::size_t>  entry;       //!< entry[rule] = global pc of its pc 0.
-      std::size_t               rule_count {0};
+      std::vector<dfa_instr>    code;           //!< Every rule's instructions, concatenated.
+      std::vector<char_class>   classes;        //!< Every rule's byte classes, concatenated.
+      std::vector<std::int64_t> accept_rule;    //!< accept_rule[pc] = rule index if match, else -1.
+      std::vector<std::size_t>  entry;          //!< entry[rule] = global pc of its pc 0.
+      std::size_t               rule_count {0}; //!< Rules flattened in, i.e. patterns handed to \ref dfa_flatten.
     };
 
-    /*!
-     * \brief Flattens \p programs into one union NFA, auditing DFA-ability.
-     * \throws real::dfa_error if any program holds an assertion other than a head text_start,
-     *         a lookaround, a code-point class, or a possessive/atomic construct.
-     */
     /*!
      * \brief Cap on a pattern's expanded byte program before subset construction runs on it.
      *
@@ -120,6 +116,14 @@ namespace real {
      */
     inline constexpr std::size_t max_dfa_byte_program {512};
 
+    /*!
+     * \brief Flattens \p programs into one union NFA, auditing DFA-ability.
+     *
+     * \param[in] programs The compiled patterns, one per rule, in rule order.
+     * \return The union NFA in one address space.
+     * \throws real::dfa_error if any program holds an assertion other than a head text_start,
+     *         a lookaround, a code-point class, or a possessive/atomic construct.
+     */
     inline dfa_nfa dfa_flatten(std::span<const program_view> programs)
     {
       dfa_nfa nfa;
@@ -194,6 +198,11 @@ namespace real {
     //! \brief A set of NFA PCs as a bitset (one per DFA state during construction).
     using dfa_set = std::vector<std::uint64_t>;
 
+    /*!
+     * \brief Set bit \p i in \p s. Indices past the set's size are ignored (it is sized to fit).
+     * \param[in,out] s The PC bitset.
+     * \param[in]     i The PC to mark present.
+     */
     inline void dfa_set_bit(dfa_set&    s,
                             std::size_t i)
     {
@@ -203,6 +212,12 @@ namespace real {
       }
     }
 
+    /*!
+     * \brief Whether bit \p i is set in \p s.
+     * \param[in] s The PC bitset.
+     * \param[in] i The PC to test.
+     * \return True when present; false for any index beyond the set.
+     */
     inline bool dfa_test_bit(const dfa_set& s,
                              std::size_t    i)
     {
@@ -210,8 +225,14 @@ namespace real {
       return word < s.size() && ((s[word] >> (i & 63U)) & 1U) != 0; // beyond the set ⇒ absent
     }
 
-    //! \brief The epsilon-closure of \p seeds (a PC list), as a canonical PC bitset.
-    //!        \p at_start follows a text_start assertion (true only at offset 0).
+    /*!
+     * \brief The epsilon-closure of \p seeds (a PC list), as a canonical PC bitset.
+     *        \p at_start follows a text_start assertion (true only at offset 0).
+     * \param[in] nfa      The union NFA.
+     * \param[in] seeds    PCs to close over.
+     * \param[in] at_start Whether a head text_start assertion may be crossed.
+     * \return The closure as a canonical bitset.
+     */
     inline dfa_set dfa_closure(const dfa_nfa&                    nfa,
                                const std::vector<std::uint32_t>& seeds,
                                bool                              at_start)
@@ -256,8 +277,14 @@ namespace real {
       return present;
     }
 
-    //! \brief The move on the byte \p rep: ε-closure of the successors of every PC
-    //!        in \p set that consumes \p rep.
+    /*!
+     * \brief The move on the byte \p rep: ε-closure of the successors of every PC
+     *        in \p set that consumes \p rep.
+     * \param[in] nfa The union NFA.
+     * \param[in] set The source state's PC set.
+     * \param[in] rep The representative byte of the class being stepped over.
+     * \return The successor state's PC set.
+     */
     inline dfa_set dfa_move(const dfa_nfa& nfa,
                             const dfa_set& set,
                             std::uint8_t   rep)
@@ -277,8 +304,13 @@ namespace real {
       return dfa_closure(nfa, seeds, false); // post-consumption: text_start is false here
     }
 
-    //! \brief The accepting rule of a state set: the SMALLEST rule index among its
-    //!        match PCs (the order tie-break), or -1 if none accept.
+    /*!
+     * \brief The accepting rule of a state set: the SMALLEST rule index among its
+     *        match PCs (the order tie-break), or -1 if none accept.
+     * \param[in] nfa The union NFA.
+     * \param[in] set The state's PC set.
+     * \return The winning rule index, or -1 when the state does not accept.
+     */
     inline std::int64_t dfa_accept_of(const dfa_nfa& nfa,
                                       const dfa_set& set)
     {
@@ -292,14 +324,23 @@ namespace real {
       return best;
     }
 
-    //! \brief Word count for a which-matched bitset over \p rule_count rules.
+    /*!
+     * \brief Word count for a which-matched bitset over \p rule_count rules.
+     * \param[in] rule_count Rules the bitset must hold.
+     * \return 64-bit words needed.
+     */
     [[nodiscard]] inline std::size_t dfa_mask_words(std::size_t rule_count) noexcept
     {
       return (rule_count + 63U) / 64U;
     }
 
-    //! \brief Bitset of ALL accepting rule indices in \p set (which-matched; word-packed).
-    //!        Empty vector when no rule accepts (or rule_count == 0).
+    /*!
+     * \brief Bitset of ALL accepting rule indices in \p set (which-matched; word-packed).
+     *        Empty vector when no rule accepts (or rule_count == 0).
+     * \param[in] nfa The union NFA.
+     * \param[in] set The state's PC set.
+     * \return The word-packed mask, or an empty vector when nothing accepts.
+     */
     inline std::vector<std::uint64_t> dfa_accept_mask_of(const dfa_nfa& nfa,
                                                          const dfa_set& set)
     {
@@ -316,7 +357,11 @@ namespace real {
       return mask;
     }
 
-    //! \brief Smallest rule index set in \p mask, or -1 if empty (munch tag derivation).
+    /*!
+     * \brief Smallest rule index set in \p mask, or -1 if empty (munch tag derivation).
+     * \param[in] mask A word-packed which-matched bitset.
+     * \return The lowest rule index present, or -1 for an empty mask.
+     */
     inline std::int64_t dfa_mask_min_rule(const std::vector<std::uint64_t>& mask)
     {
       for (std::size_t w = 0; w < mask.size(); ++w) {
@@ -340,11 +385,16 @@ namespace real {
     //!        literal). Reduces the alphabet so the DFA is built over classes, not 256.
     struct dfa_byte_classes
     {
-      std::array<std::uint8_t, 256> of    {};
-      std::array<std::uint8_t, 256> rep   {};
-      std::size_t                   count {0};
+      std::array<std::uint8_t, 256> of    {};   //!< byte -> class index.
+      std::array<std::uint8_t, 256> rep   {};   //!< class index -> one representative byte of it.
+      std::size_t                   count {0};  //!< Distinct classes, i.e. the reduced alphabet's size.
     };
 
+    /*!
+     * \brief Partition 0..255 by the union NFA's consuming predicates.
+     * \param[in] nfa The union NFA.
+     * \return The byte-to-class map, its representatives and their count.
+     */
     inline dfa_byte_classes dfa_compute_classes(const dfa_nfa& nfa)
     {
       // Predicates as VALUES (the char_class itself, and byte literals), deduped —
@@ -402,17 +452,16 @@ namespace real {
     //! \brief The baked DFA tables produced by \ref dfa_build.
     struct dfa_tables
     {
-      std::array<std::uint8_t, 256> byte_class  {};
-      std::size_t                   num_classes {0};
-      std::vector<std::uint32_t>    trans;          //!< [state*num_classes + cls] -> next state (0 = dead).
-      std::vector<std::uint32_t>    accept;         //!< accept[state] = rule index, or NO_RULE (munch).
-      //! accept_mask[state * mask_words + w] — full which-matched bitset per state (word-packed).
-      std::vector<std::uint64_t>    accept_mask;
-      std::vector<std::uint8_t>     any_accept;     //!< any_accept[state] != 0 if mask has any bit (skip mask-OR).
-      std::size_t                   mask_words {0}; //!< Words per state in accept_mask.
-      std::uint32_t                 start      {0};
-      std::size_t                   num_states {0};
-      std::size_t                   rule_count {0};
+      std::array<std::uint8_t, 256> byte_class  {};     //!< byte -> class index; the row stride's key.
+      std::size_t                   num_classes {0};    //!< Reduced alphabet size, i.e. one \ref trans row's width.
+      std::vector<std::uint32_t>    trans;              //!< [state*num_classes + cls] -> next state (0 = dead).
+      std::vector<std::uint32_t>    accept;             //!< accept[state] = rule index, or NO_RULE (munch).
+      std::vector<std::uint64_t>    accept_mask;        //!< accept_mask[state * mask_words + w] — full which-matched bitset per state (word-packed).
+      std::vector<std::uint8_t>     any_accept;         //!< any_accept[state] != 0 if mask has any bit (skip mask-OR).
+      std::size_t                   mask_words {0};     //!< Words per state in accept_mask.
+      std::uint32_t                 start      {0};     //!< The state a walk begins in.
+      std::size_t                   num_states {0};     //!< States in the minimized machine, including the dead state 0.
+      std::size_t                   rule_count {0};     //!< Rules the tables were built for.
       bool                          unanchored {false}; //!< Built for which-matched mid-stream restart.
       //! Set-level first-byte skip for \ref dfa::which_matched -- union of each rule's
       //! \c first_bytes. Disabled if any rule has \c first_bytes_valid == false (empty match /
@@ -424,18 +473,23 @@ namespace real {
       std::uint8_t                  skip_small_set_size {0};  //!< 0, or 2..4.
     };
 
-    inline constexpr std::uint32_t dfa_no_rule {std::numeric_limits<std::uint32_t>::max()};
+    inline constexpr std::uint32_t dfa_no_rule {std::numeric_limits<std::uint32_t>::max()}; //!< \ref dfa_tables::accept's "this state does not accept" marker.
 
-    //! \brief Subset construction over byte-classes, then Moore minimization.
-    //!
-    //! Initial partition keys on the **full accept mask** (which-matched), not only the
-    //! min-rule munch tag — two states with the same earliest rule but different accept
-    //! sets must not merge. \p unanchored unions mid-stream pattern starts into every
-    //! post-move set (self-restart) so a single scan can discover matches at any offset.
-    //!
-    //! \param[in] programs   The flattened NFA programs.
-    //! \param[in] state_cap  Maximum DFA states before \ref dfa_error.
-    //! \param[in] unanchored Mid-stream restart for which-matched (Stage-2); munch uses false.
+    /*!
+     * \brief Subset construction over byte-classes, then Moore minimization.
+     *
+     * Initial partition keys on the **full accept mask** (which-matched), not only the
+     * min-rule munch tag — two states with the same earliest rule but different accept
+     * sets must not merge. \p unanchored unions mid-stream pattern starts into every
+     * post-move set (self-restart) so a single scan can discover matches at any offset.
+     *
+     * \param[in] programs   The flattened NFA programs.
+     * \param[in] state_cap  Maximum DFA states before \ref dfa_error.
+     * \param[in] unanchored Mid-stream restart for which-matched (Stage-2); munch uses false.
+     * \return The baked tables.
+     * \throws real::dfa_error when construction exceeds \p state_cap, or when \ref dfa_flatten refuses a
+     *         pattern.
+     */
     inline dfa_tables dfa_build(std::span<const program_view> programs,
                                 std::size_t                   state_cap  = max_dfa_states,
                                 bool                          unanchored = false)
@@ -713,6 +767,7 @@ namespace real {
      * \param[in] first_byte_skip When true (default), fast-forward over bytes that cannot
      *                            start any rule while the walk is in the start state (a pure
      *                            optimization). Pass false to disable for equivalence tests.
+     * \return One bool per rule, in construction order, true where that pattern matched.
      */
     [[nodiscard]] std::vector<bool> which_matched(std::string_view text,
                                                   bool             first_byte_skip = true) const
@@ -807,31 +862,46 @@ namespace real {
       return hit;
     }
 
-    //! \brief True if set-level first-byte skip is armed for which_matched.
+    /*!
+     * \brief True if set-level first-byte skip is armed for which_matched.
+     * \return Whether every rule contributed a valid first-byte set at build time.
+     */
     [[nodiscard]] bool has_first_byte_skip() const noexcept
     {
       return tables_.skip_first_enabled;
     }
 
-    //! \brief True if this DFA was built with mid-stream restart (which-matched mode).
+    /*!
+     * \brief True if this DFA was built with mid-stream restart (which-matched mode).
+     * \return Whether the tables carry self-restart transitions.
+     */
     [[nodiscard]] bool is_unanchored() const noexcept
     {
       return tables_.unanchored;
     }
 
-    //! \brief The number of states in the minimized automaton (includes the dead state).
+    /*!
+     * \brief The number of states in the minimized automaton (includes the dead state).
+     * \return The state count.
+     */
     [[nodiscard]] std::size_t state_count() const noexcept
     {
       return tables_.num_states;
     }
 
-    //! \brief The number of patterns the DFA was built from.
+    /*!
+     * \brief The number of patterns the DFA was built from.
+     * \return The rule count, which is also the width of \ref which_matched's answer.
+     */
     [[nodiscard]] std::size_t rule_count() const noexcept
     {
       return tables_.rule_count;
     }
 
-    //! \brief The number of byte-equivalence classes (the reduced alphabet width).
+    /*!
+     * \brief The number of byte-equivalence classes (the reduced alphabet width).
+     * \return The class count.
+     */
     [[nodiscard]] std::size_t class_count() const noexcept
     {
       return tables_.num_classes;
@@ -839,7 +909,11 @@ namespace real {
 
   private:
 
-    //! \brief Materializes program views from \p patterns (helper for the regex ctor).
+    /*!
+     * \brief Materializes program views from \p patterns (helper for the regex ctor).
+     * \param[in] patterns The compiled regexes, which must outlive the views.
+     * \return One view per pattern, in the same order.
+     */
     static std::vector<detail::program_view> views_of(std::span<const regex> patterns)
     {
       std::vector<detail::program_view> views;

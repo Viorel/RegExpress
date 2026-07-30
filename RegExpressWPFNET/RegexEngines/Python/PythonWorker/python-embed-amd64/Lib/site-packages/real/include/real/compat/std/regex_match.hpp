@@ -42,25 +42,36 @@ namespace real::compat {
     BidirIt second  {};                                                              //!< One past the end of the sub-match.
     bool    matched {false};                                                         //!< Whether this sub-expression participated.
 
-    //! \brief Length of the sub-match (0 if it did not participate).
+    /*!
+     * \brief Length of the sub-match (0 if it did not participate).
+     * \return `second - first`, or 0 when \ref matched is `false`.
+     */
     [[nodiscard]] difference_type length() const
     {
       return matched ? std::distance(first, second) : difference_type {0};
     }
 
-    //! \brief The matched text as an owned string (empty if it did not participate).
+    /*!
+     * \brief The matched text as an owned string (empty if it did not participate).
+     * \return A copy of `[first, second)`, or an empty string when \ref matched is `false`.
+     */
     [[nodiscard]] string_type str() const
     {
       return matched ? string_type(first, second) : string_type {};
     }
 
-    //! \brief Implicit conversion to the owned string (std::sub_match parity).
+    /*!
+     * \brief Implicit conversion to the owned string (std::sub_match parity).
+     */
     operator string_type() const // NOLINT(google-explicit-constructor,hicpp-explicit-conversions)
     {
       return str();
     }
 
-    //! \brief A non-owning view of the matched text.
+    /*!
+     * \brief A non-owning view of the matched text. REAL's addition; `std::sub_match` has no such member.
+     * \return A view over `[first, second)`, or an empty view when \ref matched is `false`.
+     */
     [[nodiscard]] std::basic_string_view<value_type> view() const
     {
       return matched ? std::basic_string_view<value_type>(std::to_address(first),
@@ -68,19 +79,33 @@ namespace real::compat {
                      : std::basic_string_view<value_type> {};
     }
 
-    //! \brief Three-way length/lexicographic comparison against a string (std::sub_match::compare).
+    /*!
+     * \brief Three-way length/lexicographic comparison against a string (`std::sub_match::compare`).
+     * \param[in] other The string to compare against.
+     * \return Negative, zero or positive as `str()` orders before, equal to, or after \p other.
+     */
     [[nodiscard]] int compare(const string_type& other) const
     {
       return str().compare(other);
     }
 
+    /*!
+     * \brief Three-way comparison against another sub-match, by matched text.
+     * \param[in] other The sub-match to compare against.
+     * \return Negative, zero or positive as `str()` orders before, equal to, or after `other.str()`.
+     */
     [[nodiscard]] int compare(const sub_match& other) const
     {
       return str().compare(other.str());
     }
   };
 
-  //! \brief Equality against an owned string (the common std::sub_match comparison).
+  /*!
+   * \brief Equality against an owned string (the common `std::sub_match` comparison).
+   * \param[in] lhs The sub-match.
+   * \param[in] rhs The string to compare its text against.
+   * \return `true` if they hold the same characters.
+   */
   template <typename BidirIt>
   bool operator==(const sub_match<BidirIt>&                       lhs,
                   const typename sub_match<BidirIt>::string_type& rhs)
@@ -88,6 +113,12 @@ namespace real::compat {
     return lhs.str() == rhs;
   }
 
+  /*!
+   * \brief Equality with the string on the left, for `std::sub_match` parity.
+   * \param[in] lhs The string.
+   * \param[in] rhs The sub-match whose text is compared.
+   * \return `true` if they hold the same characters.
+   */
   template <typename BidirIt>
   bool operator==(const typename sub_match<BidirIt>::string_type& lhs,
                   const sub_match<BidirIt>&                       rhs)
@@ -95,6 +126,12 @@ namespace real::compat {
     return lhs == rhs.str();
   }
 
+  /*!
+   * \brief Equality between two sub-matches, by matched text.
+   * \param[in] lhs The left sub-match.
+   * \param[in] rhs The right sub-match.
+   * \return `true` if they hold the same characters.
+   */
   template <typename BidirIt>
   bool operator==(const sub_match<BidirIt>& lhs,
                   const sub_match<BidirIt>& rhs)
@@ -127,79 +164,127 @@ namespace real::compat {
     using char_type       = typename std::iterator_traits<BidirIt>::value_type;      //!< Character type.
     using string_type     = std::basic_string<char_type>;                            //!< Owning string type.
 
-    //! \brief Whether a successful match has been stored.
+    /*!
+     * \brief Whether a successful match has been stored.
+     * \return `true` once a search or match has filled this object.
+     */
     [[nodiscard]] bool ready() const noexcept
     {
       return ready_;
     }
 
-    //! \brief Number of marks (groups), including group 0; 0 when there was no match.
+    /*!
+     * \brief Number of marks (groups), including group 0; 0 when there was no match.
+     * \return The sub-match count.
+     */
     [[nodiscard]] size_type size() const noexcept
     {
       return groups_.size();
     }
 
+    /*!
+     * \brief Whether there are no marks at all.
+     * \return `true` when \ref size is 0, i.e. no match was stored.
+     */
     [[nodiscard]] bool      empty() const noexcept
     {
       return groups_.empty();
     }
 
-    //! \brief The sub-match for group \p n (group 0 is the whole match). Out-of-range `n` returns a
-    //!        reference to an unmatched sub_match anchored at the sequence end `{last_, last_, false}`,
-    //!        exactly like `std::match_results::operator[]` (verified on libc++ and libstdc++) — never
-    //!        out-of-bounds. A token selector `{2}`/`{5}` or a negative field relies on this.
+    /*!
+     * \brief The sub-match for group \p n (group 0 is the whole match). Out-of-range `n` returns a
+     *        reference to an unmatched sub_match anchored at the sequence end `{last_, last_, false}`,
+     *        exactly like `std::match_results::operator[]` (verified on libc++ and libstdc++) — never
+     *        out-of-bounds. A token selector `{2}`/`{5}` or a negative field relies on this.
+     * \param[in] n Group index; 0 is the whole match.
+     * \return That group's sub-match, or the end-anchored unmatched one when \p n is out of range.
+     */
     const_reference operator[](size_type n) const
     {
       return n < groups_.size() ? groups_[n] : unmatched_;
     }
 
-    //! \brief Start offset of group \p n from the sequence start. For an out-of-range group `std`
-    //!        anchors the sub_match at the end, so the offset is the full sequence length.
+    /*!
+     * \brief Start offset of group \p n from the sequence start. For an out-of-range group `std`
+     *        anchors the sub_match at the end, so the offset is the full sequence length.
+     * \param[in] n Group index; 0 is the whole match.
+     * \return Its start offset from the sequence start.
+     */
     [[nodiscard]] difference_type position(size_type n = 0) const
     {
       return n < groups_.size() ? std::distance(first_, groups_[n].first)
                                 : std::distance(first_, last_);
     }
 
-    //! \brief Length of group \p n (0 if out of range or unmatched).
+    /*!
+     * \brief Length of group \p n (0 if out of range or unmatched).
+     * \param[in] n Group index; 0 is the whole match.
+     * \return Its length in characters.
+     */
     [[nodiscard]] difference_type length(size_type n = 0) const
     {
       return n < groups_.size() ? groups_[n].length() : difference_type {0};
     }
 
-    //! \brief Matched text of group \p n (empty if out of range or unmatched).
+    /*!
+     * \brief Matched text of group \p n (empty if out of range or unmatched).
+     * \param[in] n Group index; 0 is the whole match.
+     * \return An owned copy of its text.
+     */
     [[nodiscard]] string_type str(size_type n = 0) const
     {
       return (*this)[n].str();
     }
 
-    //! \brief The unmatched prefix (sequence start up to the whole match).
+    /*!
+     * \brief The unmatched prefix (sequence start up to the whole match).
+     * \return The prefix sub-match; see \ref rebase_prefix for what it means during iteration.
+     */
     [[nodiscard]] const value_type& prefix() const
     {
       return prefix_;
     }
 
-    //! \brief The unmatched suffix (whole match end to sequence end).
+    /*!
+     * \brief The unmatched suffix (whole match end to sequence end).
+     * \return The suffix sub-match.
+     */
     [[nodiscard]] const value_type& suffix() const
     {
       return suffix_;
     }
 
+    /*!
+     * \brief Iteration over the marks, group 0 first.
+     * \return An iterator to the first sub-match. Iterators are const, as in `std::match_results`.
+     */
     [[nodiscard]] const_iterator begin() const
     {
       return groups_.begin();
     }
 
+    /*!
+     * \brief End of the mark range.
+     * \return One past the last sub-match.
+     */
     [[nodiscard]] const_iterator end() const
     {
       return groups_.end();
     }
 
+    /*!
+     * \brief Same as \ref begin; the marks are const either way.
+     * \return An iterator to the first sub-match.
+     */
     [[nodiscard]] const_iterator cbegin() const
     {
       return groups_.begin();
     }
 
+    /*!
+     * \brief Same as \ref end.
+     * \return One past the last sub-match.
+     */
     [[nodiscard]] const_iterator cend() const
     {
       return groups_.end();
@@ -207,7 +292,11 @@ namespace real::compat {
 
     // --- engine-facing fill helpers (used by the free functions) ---------------------------
 
-    //! \brief Resets to the not-ready (no-match) state over the sequence `[first, last)`.
+    /*!
+     * \brief Resets to the not-ready (no-match) state over the sequence `[first, last)`.
+     * \param[in] first Start of the sequence this result will describe.
+     * \param[in] last  One past its end; kept so \ref suffix and lengths stay exact.
+     */
     void reset(BidirIt first,
                BidirIt last)
     {
@@ -219,26 +308,34 @@ namespace real::compat {
       ready_            = false;
     }
 
-    //! \brief Marks a *ready but unmatched* result — after a failed search/match `std` leaves
-    //!        `ready() == true` with `size() == 0` (a not-ready result would be a divergence).
+    /*!
+     * \brief Marks a *ready but unmatched* result — after a failed search/match `std` leaves
+     *        `ready() == true` with `size() == 0` (a not-ready result would be a divergence).
+     */
     void set_ready_no_match()
     {
       groups_.clear();
       ready_ = true;
     }
 
-    //! \brief Re-bases the unmatched prefix to start at `first` — for iteration, where a match's
-    //!        prefix runs from the *previous* match's end (not the sequence start). The std path
-    //!        already gets this from the wrapped `std::regex_iterator`; the real path needs it.
+    /*!
+     * \brief Re-bases the unmatched prefix to start at `first` — for iteration, where a match's
+     *        prefix runs from the *previous* match's end (not the sequence start). The std path
+     *        already gets this from the wrapped `std::regex_iterator`; the real path needs it.
+     * \param[in] first Where the prefix should now start — the previous match's end.
+     */
     void rebase_prefix(BidirIt first)
     {
       prefix_.first   = first;
       prefix_.matched = first != prefix_.second;
     }
 
-    //! \brief Fills from real's byte offsets over the sequence `[first_, last_)`.
-    //!        Templated on the match type — `real::regex::search` returns an SBO-backed result,
-    //!        not the `std::vector`-backed `real::match_result` alias.
+    /*!
+     * \brief Fills from real's byte offsets over the sequence `[first_, last_)`.
+     *        Templated on the match type — `real::regex::search` returns an SBO-backed result,
+     *        not the `std::vector`-backed `real::match_result` alias.
+     * \param[in] match The engine's result, whose group offsets are byte offsets into the sequence.
+     */
     template <typename RealMatch>
     void fill_from_real(const RealMatch& match)
     {
@@ -268,7 +365,10 @@ namespace real::compat {
       ready_ = true;
     }
 
-    //! \brief Copies from a std::match_results (the fallback path) over the same sequence.
+    /*!
+     * \brief Copies from a `std::match_results` (the fallback path) over the same sequence.
+     * \param[in] match The standard library's result to copy marks, prefix and suffix from.
+     */
     template <typename StdMatch>
     void fill_from_std(const StdMatch& match)
     {
@@ -307,16 +407,22 @@ namespace real::compat {
 
   // --- free functions ----------------------------------------------------------------------
 
+  //! \brief Backend routing and format expansion for the compat layer. Not a stable API.
   namespace detail {
 
-    //! \brief Whether `real` can honor the requested match flags, so the operation may stay on it.
-    //!
-    //! Only `match_default` and the non-constraining `match_any` hint stay on `real` (which satisfies
-    //! `match_any` by returning the leftmost match, so ignoring it is sound). *Any* constraining bit —
-    //! `not_bol`, `not_eol`, `not_bow`, `not_eow`, `not_null`, `match_continuous`, `match_prev_avail` —
-    //! is not expressible through `real`'s API, so the operation routes to `std` (§0: a constraining
-    //! flag is never accepted-then-ignored). Affining this (e.g. `continuous`→`real.match(pos)`) is a
-    //! measured optimization for later, not a hand-coded partition the fuzzer would have to police.
+    /*!
+     * \brief Whether `real` can honor the requested match flags, so the operation may stay on it.
+     *
+     * Only `match_default` and the non-constraining `match_any` hint stay on `real` (which satisfies
+     * `match_any` by returning the leftmost match, so ignoring it is sound). *Any* constraining bit —
+     * `not_bol`, `not_eol`, `not_bow`, `not_eow`, `not_null`, `match_continuous`, `match_prev_avail` —
+     * is not expressible through `real`'s API, so the operation routes to `std` (§0: a constraining
+     * flag is never accepted-then-ignored). Affining this (e.g. `continuous`→`real.match(pos)`) is a
+     * measured optimization for later, not a hand-coded partition the fuzzer would have to police.
+     * \param[in] mf The match flags the caller passed.
+     * \return `true` if every flag in \p mf is expressible through REAL's API, so the operation may stay
+     *         on the real backend.
+     */
     [[nodiscard]] inline bool real_honors(regex_constants::match_flag_type mf) noexcept
     {
       constexpr unsigned non_constraining {static_cast<unsigned>(regex_constants::match_default)
@@ -324,11 +430,15 @@ namespace real::compat {
       return (static_cast<unsigned>(mf) & ~non_constraining) == 0U;
     }
 
-    //! \brief Whether `regex_replace` can run its substitution on `real`. The real expander honors
-    //!        only `format_first_only` / `format_no_copy` (plus the `match_any` hint); ANY other bit —
-    //!        a constraining match flag (`not_bol`, `continuous`, …) OR `format_sed` (POSIX syntax) —
-    //!        would be silently ignored by the ECMAScript expander, so the whole substitution routes
-    //!        to `std`. (This subsumes the explicit `format_sed` screen; `$0` stays content-based.)
+    /*!
+     * \brief Whether `regex_replace` can run its substitution on `real`. The real expander honors
+     *        only `format_first_only` / `format_no_copy` (plus the `match_any` hint); ANY other bit —
+     *        a constraining match flag (`not_bol`, `continuous`, …) OR `format_sed` (POSIX syntax) —
+     *        would be silently ignored by the ECMAScript expander, so the whole substitution routes
+     *        to `std`. (This subsumes the explicit `format_sed` screen; `$0` stays content-based.)
+     * \param[in] f The match/format flags the caller passed to `regex_replace`.
+     * \return `true` if the real expander honors all of them, so the replace may stay on the real backend.
+     */
     [[nodiscard]] inline bool replace_stays_real(regex_constants::match_flag_type f) noexcept
     {
       using namespace regex_constants;
@@ -344,6 +454,10 @@ namespace real::compat {
     //! is exactly the divergence §0 forbids. Both the match-control flags (search/match/iterate) and
     //! the format flags (replace) are mapped here.
     [[nodiscard]] inline std::regex_constants::match_flag_type
+    /*!
+     * \param[in] f The compat flags to translate.
+     * \return The equivalent `std::regex_constants::match_flag_type`.
+     */
     to_std_match(regex_constants::match_flag_type f) noexcept
     {
       namespace sc = std::regex_constants;
@@ -363,9 +477,18 @@ namespace real::compat {
       return s;
     }
 
-    //! \brief Runs the active backend over `[first, last)` and fills \p m. \p anchored selects
-    //!        whole-sequence match (regex_match) vs leftmost search (regex_search). A constraining
-    //!        match flag (see \ref real_honors) routes to `std` even for a real-backed pattern.
+    /*!
+     * \brief Runs the active backend over `[first, last)` and fills \p m. \p anchored selects
+     *        whole-sequence match (regex_match) vs leftmost search (regex_search). A constraining
+     *        match flag (see \ref real_honors) routes to `std` even for a real-backed pattern.
+     * \param[in]  first    Start of the sequence to run over.
+     * \param[in]  last     One past its end.
+     * \param[out] m        Result filled on success; left ready-but-unmatched on failure.
+     * \param[in]  re       The pattern, whose backend decides which engine runs.
+     * \param[in]  anchored Whole-sequence match (`regex_match`) rather than leftmost search.
+     * \param[in]  mf       Match flags; a constraining one routes to `std` even for a real-backed pattern.
+     * \return `true` if a match was found and \p m filled.
+     */
     template <typename BidirIt, typename CharT, typename Traits>
     bool run(BidirIt                           first,
              BidirIt                           last,
@@ -380,8 +503,9 @@ namespace real::compat {
           const std::string_view sv     {std::to_address(first),
                                          static_cast<std::size_t>(std::distance(first, last))};
           const real::regex&     engine {std::get<real::regex>(re.engine())};
-          // POSIX ERE routes an unanchored search to leftmost-LONGEST bounds (re.posix_longest()); a whole-
-          // sequence match (fullmatch) has one candidate, so longest == first there.
+          // A POSIX grammar on REAL routes an unanchored search to leftmost-LONGEST bounds
+          // (re.posix_longest()); a whole-sequence match (fullmatch) has one candidate, so longest ==
+          // first there.
           const auto             result {anchored ? engine.fullmatch(sv)
                                          : (re.posix_longest() ? engine.search_longest(sv) : engine.search(sv))};
           if (!result.matched()) {
@@ -405,7 +529,15 @@ namespace real::compat {
       return true;
     }
 
-    //! \brief Backend run without capturing (no match_results to fill).
+    /*!
+     * \brief Backend run without capturing (no \ref match_results to fill).
+     * \param[in] first    Start of the sequence to run over.
+     * \param[in] last     One past its end.
+     * \param[in] re       The pattern, whose backend decides which engine runs.
+     * \param[in] anchored Whole-sequence match rather than leftmost search.
+     * \param[in] mf       Match flags; a constraining one routes to `std`.
+     * \return `true` if a match exists.
+     */
     template <typename BidirIt, typename CharT, typename Traits>
     bool run_nocapture(BidirIt                           first,
                        BidirIt                           last,
@@ -429,7 +561,17 @@ namespace real::compat {
     }
   } // namespace detail
 
-  //! \brief Leftmost search of `[first, last)` (Python `re.search` / `std::regex_search`).
+  /*!
+   * \brief Leftmost search of `[first, last)` (Python `re.search` / `std::regex_search`).
+   *
+   *        The other overloads forward here; those taking no \ref match_results skip capture filling.
+   * \param[in]  first Start of the sequence to search.
+   * \param[in]  last  One past its end.
+   * \param[out] m     Result filled on success; ready-but-unmatched on failure, as `std` leaves it.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags; a constraining one routes to `std`.
+   * \return `true` if a match was found.
+   */
   template <typename BidirIt, typename CharT, typename Traits>
   bool regex_search(BidirIt                           first,
                     BidirIt                           last,
@@ -440,6 +582,14 @@ namespace real::compat {
     return detail::run(first, last, m, re, /*anchored=*/ false, flags);
   }
 
+  /*!
+   * \brief Leftmost search over a `std::basic_string`; forwards to the primary overload.
+   * \param[in]  s     The subject.
+   * \param[out] m     Result filled on success.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags.
+   * \return `true` if a match was found.
+   */
   template <typename CharT, typename Traits>
   bool regex_search(const std::basic_string<CharT>&                                   s,
                     match_results<typename std::basic_string<CharT>::const_iterator>& m,
@@ -449,6 +599,14 @@ namespace real::compat {
     return detail::run(s.begin(), s.end(), m, re, false, flags);
   }
 
+  /*!
+   * \brief Leftmost search over a C string; forwards to the primary overload.
+   * \param[in]  s     The subject.
+   * \param[out] m     Result filled on success.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags.
+   * \return `true` if a match was found.
+   */
   template <typename CharT, typename Traits>
   bool regex_search(const CharT                     * s,
                     match_results<const CharT*>&      m,
@@ -458,6 +616,14 @@ namespace real::compat {
     return detail::run(s, s + std::char_traits<CharT>::length(s), m, re, false, flags);
   }
 
+  /*!
+   * \brief Leftmost search over `[first, last)`, without capturing; forwards to the primary overload.
+   * \param[in]  first Start of the sequence.
+   * \param[in]  last  One past its end.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags.
+   * \return `true` if a match was found.
+   */
   template <typename BidirIt, typename CharT, typename Traits>
   bool regex_search(BidirIt                           first,
                     BidirIt                           last,
@@ -467,6 +633,13 @@ namespace real::compat {
     return detail::run_nocapture(first, last, re, false, flags);
   }
 
+  /*!
+   * \brief Leftmost search over a `std::basic_string`, without capturing; forwards to the primary overload.
+   * \param[in]  s     The subject.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags.
+   * \return `true` if a match was found.
+   */
   template <typename CharT, typename Traits>
   bool regex_search(const std::basic_string<CharT>&   s,
                     const basic_regex<CharT, Traits>& re,
@@ -475,6 +648,13 @@ namespace real::compat {
     return detail::run_nocapture(s.begin(), s.end(), re, false, flags);
   }
 
+  /*!
+   * \brief Leftmost search over a C string, without capturing; forwards to the primary overload.
+   * \param[in]  s     The subject.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags.
+   * \return `true` if a match was found.
+   */
   template <typename CharT, typename Traits>
   bool regex_search(const CharT                     * s,
                     const basic_regex<CharT, Traits>& re,
@@ -483,7 +663,17 @@ namespace real::compat {
     return detail::run_nocapture(s, s + std::char_traits<CharT>::length(s), re, false, flags);
   }
 
-  //! \brief Match of the entire `[first, last)` (Python `re.fullmatch` / `std::regex_match`).
+  /*!
+   * \brief Match of the entire `[first, last)` (Python `re.fullmatch` / `std::regex_match`).
+   *
+   *        The other overloads forward here; those taking no \ref match_results skip capture filling.
+   * \param[in]  first Start of the sequence that must match in full.
+   * \param[in]  last  One past its end.
+   * \param[out] m     Result filled on success; ready-but-unmatched on failure.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags; a constraining one routes to `std`.
+   * \return `true` if the whole sequence matched.
+   */
   template <typename BidirIt, typename CharT, typename Traits>
   bool regex_match(BidirIt                           first,
                    BidirIt                           last,
@@ -494,6 +684,14 @@ namespace real::compat {
     return detail::run(first, last, m, re, /*anchored=*/ true, flags);
   }
 
+  /*!
+   * \brief Whole-sequence match over a `std::basic_string`; forwards to the primary overload.
+   * \param[in]  s     The subject.
+   * \param[out] m     Result filled on success.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags.
+   * \return `true` if the whole sequence matched.
+   */
   template <typename CharT, typename Traits>
   bool regex_match(const std::basic_string<CharT>&                                   s,
                    match_results<typename std::basic_string<CharT>::const_iterator>& m,
@@ -503,6 +701,14 @@ namespace real::compat {
     return detail::run(s.begin(), s.end(), m, re, true, flags);
   }
 
+  /*!
+   * \brief Whole-sequence match over a C string; forwards to the primary overload.
+   * \param[in]  s     The subject.
+   * \param[out] m     Result filled on success.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags.
+   * \return `true` if the whole sequence matched.
+   */
   template <typename CharT, typename Traits>
   bool regex_match(const CharT                     * s,
                    match_results<const CharT*>&      m,
@@ -512,6 +718,14 @@ namespace real::compat {
     return detail::run(s, s + std::char_traits<CharT>::length(s), m, re, true, flags);
   }
 
+  /*!
+   * \brief Whole-sequence match over `[first, last)`, without capturing; forwards to the primary overload.
+   * \param[in]  first Start of the sequence.
+   * \param[in]  last  One past its end.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags.
+   * \return `true` if the whole sequence matched.
+   */
   template <typename BidirIt, typename CharT, typename Traits>
   bool regex_match(BidirIt                           first,
                    BidirIt                           last,
@@ -521,6 +735,13 @@ namespace real::compat {
     return detail::run_nocapture(first, last, re, true, flags);
   }
 
+  /*!
+   * \brief Whole-sequence match over a `std::basic_string`, without capturing; forwards to the primary overload.
+   * \param[in]  s     The subject.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags.
+   * \return `true` if the whole sequence matched.
+   */
   template <typename CharT, typename Traits>
   bool regex_match(const std::basic_string<CharT>&   s,
                    const basic_regex<CharT, Traits>& re,
@@ -529,6 +750,13 @@ namespace real::compat {
     return detail::run_nocapture(s.begin(), s.end(), re, true, flags);
   }
 
+  /*!
+   * \brief Whole-sequence match over a C string, without capturing; forwards to the primary overload.
+   * \param[in]  s     The subject.
+   * \param[in]  re    The pattern.
+   * \param[in]  flags Match flags.
+   * \return `true` if the whole sequence matched.
+   */
   template <typename CharT, typename Traits>
   bool regex_match(const CharT                     * s,
                    const basic_regex<CharT, Traits>& re,
@@ -563,14 +791,21 @@ namespace real::compat {
 
   namespace detail {
 
-    //! \brief Appends one match's ECMAScript-expanded replacement.
-    //!
-    //! The ECMAScript replacement references: dollar-dollar to a literal `$`, dollar-ampersand to the
-    //! whole match, dollar-backtick to the prefix, dollar-quote to the suffix, and `$N`/`$NN` to a
-    //! group. Offsets come from the match's group spans relative to \p text. The prefix is the
-    //! unmatched text *since the previous match* (`[prefix_start, start)`) and the suffix runs to the
-    //! end — matching `std::regex_replace` (which uses `match_results` prefix/suffix), the parity
-    //! oracle. A `$N`/`$NN` for a non-participating group inserts nothing; an invalid `$` is literal.
+    /*!
+     * \brief Appends one match's ECMAScript-expanded replacement.
+     *
+     * The ECMAScript replacement references: dollar-dollar to a literal `$`, dollar-ampersand to the
+     * whole match, dollar-backtick to the prefix, dollar-quote to the suffix, and `$N`/`$NN` to a
+     * group. Offsets come from the match's group spans relative to \p text. The prefix is the
+     * unmatched text *since the previous match* (`[prefix_start, start)`) and the suffix runs to the
+     * end — matching `std::regex_replace` (which uses `match_results` prefix/suffix), the parity
+     * oracle. A `$N`/`$NN` for a non-participating group inserts nothing; an invalid `$` is literal.
+     * \param[in,out] out          Destination the expansion is appended to.
+     * \param[in]     m            The match whose groups `$N` refers to.
+     * \param[in]     fmt          The replacement format string.
+     * \param[in]     text         The full subject the match's offsets index into.
+     * \param[in]     prefix_start Where the unmatched prefix begins — the previous match's end.
+     */
     template <typename RealMatch>
     void expand_format(std::string&     out,
                        const RealMatch& m,
@@ -635,7 +870,14 @@ namespace real::compat {
    *
    * Real-backed, non-nullable patterns run the substitution on `real` (linear, ReDoS-safe); the
    * std backend and nullable real-backed patterns route to `std::regex_replace` (the empty-match
-   * traversal differs between Python `real` and ECMAScript, see \ref basic_regex::nullable).
+   * traversal differs between Python `real` and ECMAScript, see `basic_regex::nullable`).
+   *
+   * The other overloads forward here.
+   * \param[in] s     The subject.
+   * \param[in] re    The pattern whose matches are replaced.
+   * \param[in] fmt   ECMAScript replacement format; `$N` refers to a group, `$&` to the whole match.
+   * \param[in] flags Match/format flags; one the real expander does not honor routes to `std`.
+   * \return The subject with every match replaced.
    */
   template <typename CharT, typename Traits>
   std::basic_string<CharT> regex_replace(const std::basic_string<CharT>&   s,
@@ -663,8 +905,9 @@ namespace real::compat {
       const bool             no_copy    {(flags & regex_constants::format_no_copy) != 0U};
       std::size_t            last_end   {0};
       bool                   done       {false};
-      // POSIX ERE iterates with leftmost-longest bounds (find_iter_longest); the ECMAScript default keeps
-      // leftmost-first. Both yield the same match type, so the range-for binds either.
+      // A POSIX grammar on REAL iterates with leftmost-longest bounds (find_iter_longest); the
+      // ECMAScript default keeps leftmost-first. Both yield the same match type, so the range-for
+      // binds either.
       const auto matches {re.posix_longest() ? engine.find_iter_longest(text) : engine.find_iter(text)};
       for (const auto& match : matches) {
         if (done) {
@@ -687,7 +930,14 @@ namespace real::compat {
     }
   }
 
-  //! \brief `regex_replace` overload for a C-string format.
+  /*!
+   * \brief `regex_replace` overload for a C-string format.
+   * \param[in] s     The subject.
+   * \param[in] re    The pattern whose matches are replaced.
+   * \param[in] fmt   ECMAScript replacement format, as a C string.
+   * \param[in] flags Match/format flags.
+   * \return The subject with every match replaced.
+   */
   template <typename CharT, typename Traits>
   std::basic_string<CharT> regex_replace(const std::basic_string<CharT>&   s,
                                          const basic_regex<CharT, Traits>& re,
@@ -697,7 +947,16 @@ namespace real::compat {
     return regex_replace(s, re, std::basic_string<CharT>(fmt), flags);
   }
 
-  //! \brief `regex_replace` writing to an output iterator (std parity).
+  /*!
+   * \brief `regex_replace` writing to an output iterator (std parity).
+   * \param[out] out   Destination the result is written through.
+   * \param[in]  first Start of the subject sequence.
+   * \param[in]  last  One past its end.
+   * \param[in]  re    The pattern whose matches are replaced.
+   * \param[in]  fmt   ECMAScript replacement format.
+   * \param[in]  flags Match/format flags.
+   * \return \p out advanced past what was written.
+   */
   template <typename OutputIt, typename BidirIt, typename CharT, typename Traits>
   OutputIt regex_replace(OutputIt                          out,
                          BidirIt                           first,
@@ -710,8 +969,17 @@ namespace real::compat {
     return std::copy(result.begin(), result.end(), out);
   }
 
-  //! \brief `regex_replace` to an output iterator with a C-string format (std parity).
-  //!        Mirrors the string+`const CharT*` overload — a bare literal `"+"` decays to `const CharT*`.
+  /*!
+   * \brief `regex_replace` to an output iterator with a C-string format (std parity).
+   *        Mirrors the string+`const CharT*` overload — a bare literal `"+"` decays to `const CharT*`.
+   * \param[out] out   Destination the result is written through.
+   * \param[in]  first Start of the subject sequence.
+   * \param[in]  last  One past its end.
+   * \param[in]  re    The pattern whose matches are replaced.
+   * \param[in]  fmt   ECMAScript replacement format, as a C string.
+   * \param[in]  flags Match/format flags.
+   * \return \p out advanced past what was written.
+   */
   template <typename OutputIt, typename BidirIt, typename CharT, typename Traits>
   OutputIt regex_replace(OutputIt                          out,
                          BidirIt                           first,

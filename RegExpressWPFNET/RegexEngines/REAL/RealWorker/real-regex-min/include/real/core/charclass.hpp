@@ -119,6 +119,10 @@ namespace real::detail {
       return (bits[0] | bits[1] | bits[2] | bits[3]) == 0;
     }
 
+    /*!
+     * \brief Equality: the two bitmaps accept exactly the same byte set.
+     * \return Whether every one of the 256 bits agrees.
+     */
     constexpr bool operator==(const char_class&) const = default;
   };
 
@@ -282,8 +286,11 @@ namespace real::detail {
     std::uint8_t hi {}; //!< Highest valid first-continuation byte for this lead (inclusive).
   };
 
-  //! \brief Builds \ref utf8_second_byte_bounds_table (a plain function so the 256-entry table is
-  //!        four lines of exceptions, not a 256-line literal).
+  /*!
+   * \brief Builds \ref utf8_second_byte_bounds_table (a plain function so the 256-entry table is
+   *        four lines of exceptions, not a 256-line literal).
+   * \return The table, indexed by lead byte.
+   */
   constexpr std::array<utf8_second_byte_bounds, 256> make_utf8_second_byte_bounds_table()
   {
     std::array<utf8_second_byte_bounds, 256> table {};

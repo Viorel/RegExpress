@@ -96,14 +96,16 @@ namespace real::detail {
     //! few hundred ms instead of seconds-to-unbounded. Larger declines to the VM, same as the other caps here.
     static constexpr std::uint64_t max_minimize_work {100'000'000ULL};
 
-    //! \param[in] bp        The byte-program to classify.
-    //! \param[in] max_bytes Table-memory cap; larger tables decline. Defaults to \ref max_table_bytes; a
-    //!                      smaller value is a test hook to exercise the cap without a huge pattern.
-    //! \param[in] node_cap  Node-count cap (see \ref max_nodes). Defaults to \ref max_nodes; a smaller
-    //!                      value is a test hook to exercise the cap without a 65000-node pattern.
-    //! \param[in] work_cap  Moore-refinement work cap (see \ref max_minimize_work). Defaults to \ref
-    //!                      max_minimize_work; a smaller value is a test hook to exercise the cap without a
-    //!                      pattern that takes hundreds of milliseconds to build.
+    /*!
+     * \param[in] bp        The byte-program to classify.
+     * \param[in] max_bytes Table-memory cap; larger tables decline. Defaults to \ref max_table_bytes; a
+     *                      smaller value is a test hook to exercise the cap without a huge pattern.
+     * \param[in] node_cap  Node-count cap (see \ref max_nodes). Defaults to \ref max_nodes; a smaller
+     *                      value is a test hook to exercise the cap without a 65000-node pattern.
+     * \param[in] work_cap  Moore-refinement work cap (see \ref max_minimize_work). Defaults to \ref
+     *                      max_minimize_work; a smaller value is a test hook to exercise the cap without a
+     *                      pattern that takes hundreds of milliseconds to build.
+     */
     explicit constexpr onepass(const byte_program&  bp,
                                std::size_t          max_bytes = max_table_bytes,
                                std::size_t          node_cap  = max_nodes,
@@ -118,38 +120,65 @@ namespace real::detail {
       build(bp);
     }
 
+    /*!
+     * \brief Whether the table was built and may be used.
+     * \return `false` when the pattern is not one-pass or a cap was exceeded; \ref bail_reason then says why.
+     */
     [[nodiscard]] bool eligible() const
     {
       return eligible_;
     }
 
+    /*!
+     * \brief Why the build declined, when it did.
+     * \return The reason \ref bail recorded, or an empty string if \ref eligible is `true`.
+     */
     [[nodiscard]] const std::string& bail_reason() const
     {
       return bail_reason_;
     }
 
+    /*!
+     * \brief Size of the built table.
+     * \return Node count after minimization, or 0 if the build declined.
+     */
     [[nodiscard]] std::size_t node_count() const
     {
       return nodes_.size();
     }
 
+    /*!
+     * \brief Width of each node's edge row.
+     * \return The number of byte-equivalence classes the alphabet collapsed to.
+     */
     [[nodiscard]] std::uint16_t num_classes() const
     {
       return alpha_.count;
     }
 
+    /*!
+     * \brief The table itself, for a runtime that walks it (and for tests that pin its shape).
+     * \return The nodes, indexed by node id; node 0 is the start.
+     */
     [[nodiscard]] const std::vector<onepass_node>& nodes() const
     {
       return nodes_;
     }
 
-    //! \brief The byte-class of \p byte, for a runtime that walks this table.
+    /*!
+     * \brief The byte-class of \p byte, for a runtime that walks this table.
+     * \param[in] byte The subject byte to classify.
+     * \return Its index into a node's edge row, below \ref num_classes.
+     */
     [[nodiscard]] std::uint8_t class_of(std::uint8_t byte) const
     {
       return alpha_.of[byte];
     }
 
-    //! \brief The number of capture slots (group 0 start/end plus each group's).
+    /*!
+     * \brief The number of capture slots (group 0 start/end plus each group's).
+     * \return Twice the group count plus two.
+     */
     [[nodiscard]] std::size_t slot_count() const
     {
       return slot_count_;
@@ -168,6 +197,7 @@ namespace real::detail {
      * \param[in]  s    Match start (anchor).
      * \param[in]  e    Match end (the run must accept here).
      * \param[out] out  Capture slots, sized to \ref slot_count.
+     * \return `true` on a successful extraction; `false` leaves \p out unspecified.
      */
     template <typename OutSlots>
     [[nodiscard]] bool extract(std::string_view text,
@@ -206,7 +236,13 @@ namespace real::detail {
       return true;
     }
 
-    //! \brief Whether every assertion in \p mask (a set of \ref assert_kind bits) holds at \p pos in \p text.
+    /*!
+     * \brief Whether every assertion in \p mask (a set of \ref assert_kind bits) holds at \p pos in \p text.
+     * \param[in] mask The assertions an edge carries; an empty mask holds trivially.
+     * \param[in] text The full subject the position is inside.
+     * \param[in] pos  Byte offset to test the assertions at.
+     * \return `true` if all of them hold.
+     */
     [[nodiscard]] bool asserts_hold(std::uint32_t    mask,
                                     std::string_view text,
                                     std::size_t      pos) const
@@ -222,9 +258,16 @@ namespace real::detail {
 
   private:
 
-    //! \brief Reject as not one-pass, recording a category and the offending node / byte-class / pc (kept as
-    //!        integers rather than formatted into the string so the whole builder stays constexpr — a
-    //!        constexpr `real::regex` embeds an (empty) one-pass table in its literal state).
+    /*!
+     * \brief Reject as not one-pass, recording a category and the offending node / byte-class / pc.
+     *
+     * The locations are kept as integers rather than formatted into the string so the whole builder stays
+     * constexpr — a constexpr `real::regex` embeds an (empty) one-pass table in its literal state.
+     * \param[in] reason Category, surfaced by \ref bail_reason.
+     * \param[in] node   Offending node id, or -1 when not applicable.
+     * \param[in] klass  Offending byte-class, or -1.
+     * \param[in] pc     Offending program counter, or -1.
+     */
     constexpr void bail(const char*  reason,
                         std::int32_t node  = -1,
                         std::int32_t klass = -1,
@@ -268,7 +311,12 @@ namespace real::detail {
       return pc;
     }
 
-    //! \brief Get-or-create the node whose entry pc is \p pc, enqueueing a fresh one for the flood.
+    /*!
+     * \brief Get-or-create the node whose entry pc is \p pc, enqueueing a fresh one for the flood.
+     * \param[in]     pc    Entry program counter the node stands for.
+     * \param[in,out] queue Work list a newly created node is appended to.
+     * \return The node's id, existing or just created.
+     */
     constexpr std::uint32_t node_of(std::int32_t               pc,
                                     std::vector<std::int32_t>& queue)
     {
@@ -283,6 +331,12 @@ namespace real::detail {
       return id;
     }
 
+    /*!
+     * \brief Builds the table: flood the byte program into nodes, write their edges, then minimize.
+     *
+     * Declines by calling \ref bail, which leaves \ref eligible false and \ref bail_reason set.
+     * \param[in] bp The klass_cp-expanded byte program to compile.
+     */
     constexpr void build(const byte_program& bp)
     {
       code_    = bp.code;
@@ -353,12 +407,14 @@ namespace real::detail {
       }
     }
 
-    //! \brief Moore partition refinement of the one-pass automaton: merge nodes that are behaviourally
-    //!        identical (same accept + match captures, and for every byte-class the same edge — target
-    //!        partition AND capture mask). The one-pass graph has cycles (`\w+` loops), so bottom-up
-    //!        hash-consing is not enough; refinement to a fixpoint is. Merged nodes have identical capture
-    //!        masks by construction, so captures are unchanged. The dense per-node edge table is preserved,
-    //!        so `extract`'s O(1) lookup is unchanged — the whole point of not going sparse.
+    /*!
+     * \brief Moore partition refinement of the one-pass automaton: merge nodes that are behaviourally
+     *        identical (same accept + match captures, and for every byte-class the same edge — target
+     *        partition AND capture mask). The one-pass graph has cycles (`\w+` loops), so bottom-up
+     *        hash-consing is not enough; refinement to a fixpoint is. Merged nodes have identical capture
+     *        masks by construction, so captures are unchanged. The dense per-node edge table is preserved,
+     *        so `extract`'s O(1) lookup is unchanged — the whole point of not going sparse.
+     */
     constexpr void minimize()
     {
       const std::size_t          n       {nodes_.size()};
@@ -567,9 +623,14 @@ namespace real::detail {
       nodes_ = std::move(merged);
     }
 
-    //! \brief FNV-1a hash of a partition signature (for the constexpr-friendly bucket dedup). Accumulates in
-    //!        a fixed 64-bit width and truncates only at the return, so a 32-bit `size_t` (Win32) never sees
-    //!        a narrowing brace-init of the 64-bit offset basis.
+    /*!
+     * \brief FNV-1a hash of a partition signature, for the constexpr-friendly bucket dedup.
+     *
+     * Accumulates in a fixed 64-bit width and truncates only at the return, so a 32-bit `size_t` (Win32)
+     * never sees a narrowing brace-init of the 64-bit offset basis.
+     * \param[in] v The signature words to hash.
+     * \return The hash, truncated to `size_t`.
+     */
     static constexpr std::size_t sig_hash(std::span<const std::uint64_t> v)
     {
       std::uint64_t h {1469598103934665603ULL};
@@ -579,8 +640,15 @@ namespace real::detail {
       return static_cast<std::size_t>(h);
     }
 
-    //! \brief Walk the epsilon-closure from \p pc, writing this node's edges. \p on_path detects epsilon
-    //!        cycles (a nullable loop => not one-pass). \p cap_mask accumulates the slots crossed so far.
+    /*!
+     * \brief Walk the epsilon-closure from \p pc, writing this node's edges.
+     * \param[in]     pc       Program counter to walk from.
+     * \param[in]     cap_mask Capture slots crossed on the way here; accumulates down the closure.
+     * \param[in]     assert_mask Assertions crossed on the way here, as \ref assert_kind bits.
+     * \param[in,out] on_path     Per-pc marks detecting an epsilon CYCLE — a nullable loop is not one-pass.
+     * \param[in]     node_id     The node whose edge row is being written.
+     * \param[in,out] queue    Work list new nodes are appended to.
+     */
     constexpr void build_edges(std::int32_t               pc,
                                std::uint64_t              cap_mask,
                                std::uint32_t              assert_mask,
@@ -683,22 +751,28 @@ namespace real::detail {
       on_path[static_cast<std::size_t>(pc)] = 0; // backtrack: only a cycle bails, a diamond is fine
     }
 
-    std::span<const instr>                  code_;
-    std::span<const char_class>             classes_;
-    lazy_byte_alphabet                      alpha_;
-    std::vector<std::vector<std::uint16_t>> class_cover_; //!< char-class index -> the byte-classes it consumes.
-    std::vector<std::uint32_t>              pc_to_node_;  //!< pc -> node id (or no_node).
-    std::vector<onepass_node>               nodes_;
-    std::size_t                             slot_count_ {0};
+    std::span<const instr>                  code_;           //!< The byte program being compiled; borrowed, not owned.
+    std::span<const char_class>             classes_;        //!< Its interned byte classes; borrowed alongside \ref code_.
+    lazy_byte_alphabet                      alpha_;          //!< Byte-equivalence classes: what \ref class_of answers with.
+    std::vector<std::vector<std::uint16_t>> class_cover_;    //!< char-class index -> the byte-classes it consumes.
+    std::vector<std::uint32_t>              pc_to_node_;     //!< pc -> node id (or no_node).
+    std::vector<onepass_node>               nodes_;          //!< The table, node 0 being the start; empty until built.
+    std::size_t                             slot_count_ {0}; //!< Capture slots the program uses (\ref slot_count).
+
+    //! \brief Table-memory cap; a larger table declines. Constructor parameter, so a test can exercise the
+    //!        cap without a pattern big enough to reach \ref max_table_bytes.
     std::size_t                             max_bytes_  {max_table_bytes};
-    std::size_t                             node_cap_   {max_nodes};
-    std::uint64_t                           work_cap_   {max_minimize_work};
+    std::size_t                             node_cap_   {max_nodes};         //!< Node-count cap; same test-hook role.
+    std::uint64_t                           work_cap_   {max_minimize_work}; //!< Moore-refinement work cap; same role.
+
+    //! \brief Word-ness mode for `\b \B \< \>` in edge conditions (Tier-B): ASCII when the byte program
+    //!        carries no Unicode word-ness, which is what `byte_program::unicode_word` reports.
     bool                                    ascii_word_ {true};
-    std::int32_t                            bail_node_  {-1};
-    std::int32_t                            bail_class_ {-1};
-    std::int32_t                            bail_pc_    {-1};
-    bool                                    eligible_   {true};
-    std::string                             bail_reason_;
+    std::int32_t                            bail_node_  {-1};   //!< Node the decline was found at, or -1. Diagnostic only.
+    std::int32_t                            bail_class_ {-1};   //!< Byte-class involved in the decline, or -1.
+    std::int32_t                            bail_pc_    {-1};   //!< Program counter involved in the decline, or -1.
+    bool                                    eligible_   {true}; //!< Cleared by \ref bail; read through \ref eligible.
+    std::string                             bail_reason_;       //!< Human-readable decline reason (\ref bail_reason).
   };
 
   //! \brief The per-regex immutable cache the router shares across every find_iter on a regex: the byte-
@@ -718,11 +792,11 @@ namespace real::detail {
   //!        entry so match-time caches do not outlive the regex.
   struct regex_immutables
   {
-    byte_program           byte_prog;          //!< klass_cp-expanded byte program (empty until built).
-    lazy_byte_alphabet     alphabet;           //!< byte-class alphabet of byte_prog (shared by both DFAs, else recomputed per scan).
-    std::optional<onepass> op_table;           //!< one-pass extractor, present iff the pattern is one-pass.
-    byte_program           il_prefix_prog;     //!< IL: the inner-literal prefix's byte program (ineligible until built). Per-regex so the reverse DFA that spans it is a cheap shared wrapper, not a per-find_iter rebuild.
-    std::size_t            il_min_haystack {}; //!< IL cold floor: first candidate-scan on this regex only fires at or above this size when the haystack HAS a match (0 = always). Warm scans use \ref il_warm_floor (shared reverse DFA in \ref shared_dfa_slot). Checked ONLY after the first memmem hit — no-match is never gated. Scaled by prefix byte-program size; see \ref pike_vm::run_inner_literal.
+    byte_program           byte_prog;                     //!< klass_cp-expanded byte program (empty until built).
+    lazy_byte_alphabet     alphabet;                      //!< byte-class alphabet of byte_prog (shared by both DFAs, else recomputed per scan).
+    std::optional<onepass> op_table;                      //!< one-pass extractor, present iff the pattern is one-pass.
+    byte_program           il_prefix_prog;                //!< IL: the inner-literal prefix's byte program (ineligible until built). Per-regex so the reverse DFA that spans it is a cheap shared wrapper, not a per-find_iter rebuild.
+    std::size_t            il_min_haystack {};            //!< IL cold floor: first candidate-scan on this regex only fires at or above this size when the haystack HAS a match (0 = always). Warm scans use \ref il_warm_floor (shared reverse DFA in \ref shared_dfa_slot). Checked ONLY after the first memmem hit — no-match is never gated. Scaled by prefix byte-program size; see \ref pike_vm::run_inner_literal.
     /*!
      * \brief Byte-indexed membership rows, filled ON FIRST USE of each class and kept for the regex's life.
      *
@@ -739,9 +813,9 @@ namespace real::detail {
      * acquire-loaded before the row is read; only the lock holder that observed the flag clear ever writes
      * a row, so a published row is immutable and readers race with no one.
      */
-    std::vector<std::uint8_t>            class_rows;
-    std::vector<std::uint8_t>            cp_ascii_rows;
-    std::vector<std::uint64_t>           cp_page_rows;
+    std::vector<std::uint8_t>            class_rows;      //!< One 256-byte row per interned BYTE class.
+    std::vector<std::uint8_t>            cp_ascii_rows;   //!< One 256-byte row per cp_class: its ASCII half.
+    std::vector<std::uint64_t>           cp_page_rows;    //!< One 30-word bitmap per cp_class: `[U+0080, U+07FF]`.
     /*!
      * \brief "This row is filled" flags: one bit per row, three runs packed into one word, plus an
      *        overflow vector for the runs that do not fit.
@@ -766,15 +840,27 @@ namespace real::detail {
     //!        the DFA caches.
     std::atomic<const void*> rows_for {nullptr};
 
+    //! \brief \c prog.code.data() \ref op_table was built for, or null. Same identity discipline as
+    //!        \ref rows_for and for the same reason: the extractor is needed only by the routes that
+    //!        actually fill captures through it, and it is by far the most expensive thing this cache
+    //!        holds -- 884 of the 1494 us a first `(\w+)@(\w+)` search spent, measured, against 331 for
+    //!        the byte program and 117 for the lazy DFA. Bundling it with \ref built_for made every route
+    //!        that needs only the byte program pay for it, including a 2-slot pattern with no capture to
+    //!        extract at all (`\w+@\w+` measured the same 1487 us as its 6-slot twin).
+    std::atomic<const void*> op_table_for {nullptr};
+
     //! \brief \c prog.code.data() this cache was built for, or null if never built / invalidated.
     //!        Hot path: one atomic load. Not \c once_flag — assignment reuses this object under a new
     //!        program; a spent once_flag would never rebuild (silent wrong matches).
-    std::atomic<const void*> built_for {nullptr};
+    std::atomic<const void*> built_for                  {nullptr};
 
-    //! \brief How many flag indices \ref row_ready_bits covers; the rest live in \ref row_ready_overflow.
-    static constexpr std::size_t row_ready_bit_capacity {64};
+    static constexpr std::size_t row_ready_bit_capacity {64}; //!< How many flag indices \ref row_ready_bits covers; the rest live in \ref row_ready_overflow.
 
-    //! \brief Reads the "filled" flag for flag index \p i, acquiring what the filling thread released.
+    /*!
+     * \brief Reads the "filled" flag for flag index \p i, acquiring what the filling thread released.
+     * \param[in] i Flag index: a class row, or a cp_ascii / cp_page row at its own run's offset.
+     * \return `true` once the row's contents are visible to this thread.
+     */
     [[nodiscard]] bool row_ready(std::size_t i) const noexcept
     {
       if (i < row_ready_bit_capacity) {
@@ -783,8 +869,13 @@ namespace real::detail {
       return row_ready_overflow[i - row_ready_bit_capacity].load(std::memory_order_acquire) != 0;
     }
 
-    //! \brief Publishes the "filled" flag for flag index \p i. Called only by the thread holding
-    //!        \ref immut_build_mu, so the read-modify-write on the bit word cannot race another writer.
+    /*!
+     * \brief Publishes the "filled" flag for flag index \p i.
+     *
+     * Called only by the thread holding \ref immut_build_mu, so the read-modify-write on the bit word cannot
+     * race another writer.
+     * \param[in] i Flag index, in the same space \ref row_ready reads.
+     */
     void set_row_ready(std::size_t i) noexcept
     {
       if (i < row_ready_bit_capacity) {
@@ -795,22 +886,34 @@ namespace real::detail {
       }
     }
 
-    // A copied regex is an independent regex: fresh unbuilt cache (built_for null). Copy/move of the
-    // cache body is never transferred — pure runtime accelerator, cheap to rebuild.
     regex_immutables() = default;
+
+    /*!
+     * \brief Copies as an EMPTY cache: a copied regex is an independent regex.
+     *
+     * The cache body is never transferred — it is a pure runtime accelerator and cheap to rebuild — so the
+     * copy starts with \ref built_for and \ref rows_for null and rebuilds on its own first routed search.
+     */
     regex_immutables(const regex_immutables& /*other*/) noexcept
       : rows_for {nullptr}, built_for {nullptr}
     {}
 
+    /*!
+     * \brief Moves as an empty cache, for the same reason as the copy constructor.
+     */
     regex_immutables(regex_immutables&& /*other*/) noexcept
       : rows_for {nullptr}, built_for {nullptr}
     {}
 
-    // Assignment keeps this object's cache storage but marks it invalid — the destination's program
-    // is already the new one by the time storage assignment reaches here; we cannot rebuild from
-    // the source's program (and must not inherit its built state). built_for=null forces
-    // ensure_immutables to rebuild. Self-assignment-safe. NOLINT: deliberate non-copy of members.
-    // NOLINTNEXTLINE(cert-oop54-cpp)
+    /*!
+     * \brief Keeps this object's cache STORAGE but marks it invalid.
+     *
+     * The destination's program is already the new one by the time storage assignment reaches here, so this
+     * cannot rebuild from the source's program and must not inherit its built state: clearing
+     * \ref built_for forces `pike_vm`'s `ensure_immutables` to rebuild. Self-assignment-safe.
+     * \return `*this`.
+     */
+    // NOLINTNEXTLINE(cert-oop54-cpp): deliberate non-copy of members, per the note above.
     regex_immutables& operator=(const regex_immutables& /*other*/) noexcept
     {
       built_for.store(nullptr, std::memory_order_relaxed);
@@ -818,6 +921,8 @@ namespace real::detail {
       return *this;
     }
 
+    //! \brief Invalidates as the copy assignment does, and for the same reason.
+    //! \return `*this`.
     // NOLINTNEXTLINE(cert-oop54-cpp)
     regex_immutables& operator=(regex_immutables&& /*other*/) noexcept
     {
@@ -826,8 +931,11 @@ namespace real::detail {
       return *this;
     }
 
-    // Runtime erase of this regex's shared DFA slot (reclaims match-time caches). Constexpr paths
-    // skip the map entirely — \c is_constant_evaluated so dynamic_storage::compile / static_assert stay valid.
+    /*!
+     * \brief Runtime erase of this regex's shared DFA slot (reclaims match-time caches). Constexpr paths
+     *        skip the map entirely — \c is_constant_evaluated so dynamic_storage::compile / static_assert
+     *        stay valid.
+     */
     constexpr ~regex_immutables()
     {
       if (!std::is_constant_evaluated()) {
@@ -836,9 +944,13 @@ namespace real::detail {
     }
   };
 
-  //! \brief Striped rebuild lock for \ref pike_vm::ensure_immutables (not on \ref regex_immutables —
-  //!        layout isolation). Distinct from \ref shared_dfa_map_mu / slot.mu so \ref reset_shared_dfas
-  //!        cannot self-deadlock. Different immutables rarely share a stripe.
+  /*!
+   * \brief Striped rebuild lock for \ref pike_vm::ensure_immutables (not on \ref regex_immutables —
+   *        layout isolation). Distinct from \ref shared_dfa_map_mu / slot.mu so \ref reset_shared_dfas
+   *        cannot self-deadlock. Different immutables rarely share a stripe.
+   * \param[in] immut The cache whose stripe is wanted; hashed by address, never dereferenced.
+   * \return The stripe guarding that cache's build.
+   */
   [[nodiscard]] inline std::mutex& immut_build_mu(const regex_immutables* immut)
   {
     static std::array<std::mutex, 64> stripes {};
@@ -852,10 +964,10 @@ namespace real::detail {
   //!        thread is still scanning — the slot dies when the last holder (map or TLS cache) releases.
   struct shared_dfa_slot
   {
-    std::mutex                 mu;
-    std::optional<lazy_dfa>    fwd;
-    std::optional<reverse_dfa> rev;
-    std::optional<reverse_dfa> il_prefix_rev;
+    std::mutex                 mu;            //!< Guards every DFA below: warm-up and scan alike.
+    std::optional<lazy_dfa>    fwd;           //!< Forward lazy DFA, absent until a route first needs it.
+    std::optional<reverse_dfa> rev;           //!< Reverse lazy DFA, for finding a match start from its end.
+    std::optional<reverse_dfa> il_prefix_rev; //!< Reverse DFA over the inner-literal PREFIX sub-program only.
     //! \brief True after this regex has been IL-candidate-scanned at least once (any size).
     //!        Cold first scan keeps the high \ref regex_immutables::il_min_haystack floor; warm
     //!        scans use \ref il_warm_floor. Not "il_prefix_rev is built" — a always-<floor corpus
@@ -878,17 +990,26 @@ namespace real::detail {
   //!        still uses \ref regex_immutables::il_min_haystack (~94 KB email).
   inline constexpr std::size_t il_warm_floor {4UL * 1024};
 
+  /*!
+   * \brief The mutex guarding insert/erase on the process-wide \ref shared_dfa_slot map.
+   *
+   *        Distinct from \ref shared_dfa_slot::mu, which guards a slot's DFAs: holding a slot never
+   *        requires holding the map, which is what lets \ref erase_shared_dfas run without deadlocking
+   *        a thread mid-scan.
+   * \return The process-wide map mutex.
+   */
   inline std::mutex& shared_dfa_map_mu()
   {
     static std::mutex m;
     return m;
   }
 
-  //! \brief Bumped on every \ref erase_shared_dfas so a TLS last-hit cache never serves a destroyed
-  //!        regex's slot to a new immutables that reuses the same address.
-  //! \brief Process-wide map. Intentionally never destroyed (leaky singleton): a static map would
-  //!        tear down at exit while other statics' \c ~regex_immutables still call \ref erase_shared_dfas.
-  //!        The OS reclaims the map at process exit — not an accumulating leak; entries are erased on dtor.
+  /*!
+   * \brief Process-wide map. Intentionally never destroyed (leaky singleton): a static map would
+   *        tear down at exit while other statics' \c ~regex_immutables still call \ref erase_shared_dfas.
+   *        The OS reclaims the map at process exit — not an accumulating leak; entries are erased on dtor.
+   * \return The map, keyed by \ref regex_immutables address.
+   */
   inline std::unordered_map<const regex_immutables*, std::shared_ptr<shared_dfa_slot>>& shared_dfa_map()
   {
     static auto* m {
@@ -896,16 +1017,19 @@ namespace real::detail {
     return *m;
   }
 
-  //! \brief Retire this regex's slot (called from \c ~regex_immutables). Concurrent scans that still hold
-  //!        a \c shared_ptr via TLS keep the slot object alive until they release; clearing
-  //!        \ref shared_dfa_slot::owner is what makes their cached copy stop matching, so a new regex
-  //!        landing on this address can never be served the retired slot.
-  //!
-  //! The owner store is release and \ref shared_dfa_for's check is acquire. That pairing is what a new
-  //! regex at a REUSED address relies on: the allocator handing the address out again orders this
-  //! erase before that construction, and a thread can only reach the new regex through some
-  //! synchronization with its constructor, so the null is visible by the time it asks.
-  //! The map entry drops under the lock; the last \c shared_ptr reference is released outside it.
+  /*!
+   * \brief Retire this regex's slot (called from \c ~regex_immutables). Concurrent scans that still hold
+   *        a \c shared_ptr via TLS keep the slot object alive until they release; clearing
+   *        \ref shared_dfa_slot::owner is what makes their cached copy stop matching, so a new regex
+   *        landing on this address can never be served the retired slot.
+   *
+   * The owner store is release and \ref shared_dfa_for's check is acquire. That pairing is what a new
+   * regex at a REUSED address relies on: the allocator handing the address out again orders this
+   * erase before that construction, and a thread can only reach the new regex through some
+   * synchronization with its constructor, so the null is visible by the time it asks.
+   * The map entry drops under the lock; the last \c shared_ptr reference is released outside it.
+   * \param[in] immut The regex being destroyed, whose slot is retired.
+   */
   inline void erase_shared_dfas(const regex_immutables* immut)
   {
     std::shared_ptr<shared_dfa_slot> retired;
@@ -921,12 +1045,16 @@ namespace real::detail {
     retired->owner.store(nullptr, std::memory_order_release);
   }
 
-  //! \brief Resolve the process-wide DFA slot for this regex (map insert under \ref shared_dfa_map_mu).
-  //!        Thread-local last-hit cache: dense IL was paying map_mu per candidate without it; the cache
-  //!        is not on \ref regex_immutables (layout isolation — x86 class-loop +6% suspect). Holds a
-  //!        \c shared_ptr (not a raw pointer) so erase cannot UAF a live scan, and validates it against
-  //!        the slot's own \ref shared_dfa_slot::owner — so an unrelated regex's destruction no longer
-  //!        invalidates this thread's cache (the process-wide epoch counter it replaced did).
+  /*!
+   * \param[in] immut The regex whose slot is wanted.
+   * \return Its slot, created on first use; never null.
+   * \brief Resolve the process-wide DFA slot for this regex (map insert under \ref shared_dfa_map_mu).
+   *        Thread-local last-hit cache: dense IL was paying map_mu per candidate without it; the cache
+   *        is not on \ref regex_immutables (layout isolation — x86 class-loop +6% suspect). Holds a
+   *        \c shared_ptr (not a raw pointer) so erase cannot UAF a live scan, and validates it against
+   *        the slot's own \ref shared_dfa_slot::owner — so an unrelated regex's destruction no longer
+   *        invalidates this thread's cache (the process-wide epoch counter it replaced did).
+   */
   [[nodiscard]] inline shared_dfa_slot& shared_dfa_for(regex_immutables* immut)
   {
     thread_local std::shared_ptr<shared_dfa_slot> cached_slot {};
@@ -945,9 +1073,12 @@ namespace real::detail {
     return *slot;
   }
 
-  //! \brief Drop any DFAs cached for \p immut (caller holds nothing; takes map + slot locks).
-  //!        Invoked from \ref pike_vm::ensure_immutables rebuild so a reused immutables address — or
-  //!        the same address under a new program — cannot keep a previous pattern's DFAs.
+  /*!
+   * \brief Drop any DFAs cached for \p immut (caller holds nothing; takes map + slot locks).
+   *        Invoked from `pike_vm`'s `ensure_immutables` rebuild so a reused immutables address — or
+   *        the same address under a new program — cannot keep a previous pattern's DFAs.
+   * \param[in] immut The regex whose cached DFAs are dropped.
+   */
   inline void reset_shared_dfas(regex_immutables* immut)
   {
     shared_dfa_slot&                  slot {shared_dfa_for(immut)};
@@ -958,7 +1089,10 @@ namespace real::detail {
     slot.il_warmed.store(false, std::memory_order_relaxed);
   }
 
-  //! \brief Test/audit: number of live shared-DFA map entries (process-wide). Not for production.
+  /*!
+   * \brief Test/audit: number of live shared-DFA map entries (process-wide). Not for production.
+   * \return The live entry count.
+   */
   [[nodiscard]] inline std::size_t shared_dfa_map_size_for_test()
   {
     const std::lock_guard<std::mutex> lock {shared_dfa_map_mu()};

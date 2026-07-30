@@ -105,8 +105,12 @@ namespace real::detail {
     bool                    codepoint_predicate {};   //!< Emit as a match-time `klass_cp` (a Unicode shorthand `\w`/`\d`/`\s` in text mode), not the byte-NFA.
   };
 
-  //! \brief Sorts \p ranges and merges overlapping / adjacent ones into a minimal, sorted set (the
-  //!        same set of code points, the fewest ranges). Used to keep folded / property classes compact.
+  /*!
+   * \brief Sorts \p ranges and merges overlapping / adjacent ones into a minimal, sorted set (the
+   *        same set of code points, the fewest ranges). Used to keep folded / property classes compact.
+   * \param[in] ranges The ranges to normalise; may be unsorted and overlapping.
+   * \return The minimal sorted equivalent.
+   */
   constexpr std::vector<code_range> coalesce_ranges(std::vector<code_range> ranges)
   {
     // Fast path: already sorted and disjoint (no overlap, no adjacency). The shorthand / property tables come
@@ -138,8 +142,12 @@ namespace real::detail {
     return merged;
   }
 
-  //! \brief Complements a set of code-point ranges within `[0x80, 0x10FFFF]` (used by negated classes
-  //!        and by an in-class `\W`/`\D`/`\S`). Input may be unsorted/overlapping; the gaps come sorted.
+  /*!
+   * \brief Complements a set of code-point ranges within `[0x80, 0x10FFFF]` (used by negated classes
+   *        and by an in-class `\W`/`\D`/`\S`). Input may be unsorted/overlapping; the gaps come sorted.
+   * \param[in] ranges The ranges to complement.
+   * \return The gaps between them within `[0x80, 0x10FFFF]`, sorted.
+   */
   constexpr std::vector<code_range> complement_code_ranges(std::vector<code_range> ranges)
   {
     const std::vector<code_range> merged {coalesce_ranges(std::move(ranges))};
@@ -166,15 +174,18 @@ namespace real::detail {
    */
   struct ast
   {
-    std::vector<ast_node>    nodes;                      //!< The node pool; \ref root indexes it.
-    std::vector<class_def>   classes;                    //!< Character classes as written, before negation.
-    std::vector<named_group> names;                      //!< Named capture groups.
-    flags                    inline_flags {flags::none}; //!< Flags from a leading `(?ims)`.
-    std::int32_t             group_count  {};            //!< Number of capturing groups.
-    std::int32_t             root         {-1};          //!< Index of the root node.
+    std::vector<ast_node>    nodes;                        //!< The node pool; \ref root indexes it.
+    std::vector<class_def>   classes;                      //!< Character classes as written, before negation.
+    std::vector<named_group> names;                        //!< Named capture groups.
+    flags                    inline_flags   {flags::none}; //!< Flags a leading `(?imsxaU)` group ADDED (OR-only, hence the companion below).
+    flags                    inline_removed {flags::none}; //!< Flags a leading `(?flags-flags)` group REMOVED; the caller clears these after OR-ing \ref inline_flags.
+    std::int32_t             group_count    {};            //!< Number of capturing groups.
+    std::int32_t             root           {-1};          //!< Index of the root node.
   };
 
-  //! \brief What a `\<digit>` escape decoded to (see decode_digit_escape()).
+  /*!
+   * \brief What a `\<digit>` escape decoded to (see decode_digit_escape()).
+   */
   enum class digit_escape_kind : std::uint8_t
   {
     octal,          //!< An octal byte escape; `value` is the byte (0-255).
@@ -288,34 +299,49 @@ namespace real::detail {
     bool               bytes_         {}; //!< In \ref flags::bytes mode, rejects code-point escapes (`\u`/`\U`).
     bool               ecma_          {}; //!< ECMAScript grammar: `\A \Z \< \>` are identity-escape literals, not anchors.
 
-    //! \brief The flag set in force at the current nesting level (the scope-stack top).
+    /*!
+     * \brief The flag set in force at the current nesting level (the scope-stack top).
+     * \return The active flags.
+     */
     [[nodiscard]] constexpr flags current_flags() const
     {
       return flag_scopes_.back();
     }
 
-    //! \brief True when verbose mode (`re.X`) is in force here — read from the scope stack, so a
-    //!        scoped `(?x:...)` is honoured without a global flag read.
+    /*!
+     * \brief True when verbose mode (`re.X`) is in force here — read from the scope stack, so a
+     *        scoped `(?x:...)` is honoured without a global flag read.
+     * \return Whether \ref flags::verbose is active here.
+     */
     [[nodiscard]] constexpr bool is_verbose() const
     {
       return has_flag(current_flags(), flags::verbose);
     }
 
-    //! \brief True in the ECMAScript grammar. `flags::ecma` is not scopable, so the scope-stack
-    //!        base always carries it; reading it here keeps the flag-scope ratchet's global-read
-    //!        count at its terminal state (no new `ecma_` member reads).
+    /*!
+     * \brief True in the ECMAScript grammar. `flags::ecma` is not scopable, so the scope-stack
+     *        base always carries it; reading it here keeps the flag-scope ratchet's global-read
+     *        count at its terminal state (no new `ecma_` member reads).
+     * \return Whether \ref flags::ecma is active.
+     */
     [[nodiscard]] constexpr bool is_ecma() const
     {
       return has_flag(current_flags(), flags::ecma);
     }
 
-    //! \brief True when icase (`re.I`) is in force at the current scope (a scoped `(?i:...)` honoured).
+    /*!
+     * \brief True when icase (`re.I`) is in force at the current scope (a scoped `(?i:...)` honoured).
+     * \return Whether \ref flags::icase is active here.
+     */
     [[nodiscard]] constexpr bool is_icase() const
     {
       return has_flag(current_flags(), flags::icase);
     }
 
-    //! \brief True when ascii (`re.A`) is in force at the current scope (a scoped `(?a:...)` honoured).
+    /*!
+     * \brief True when ascii (`re.A`) is in force at the current scope (a scoped `(?a:...)` honoured).
+     * \return Whether \ref flags::ascii is active here.
+     */
     [[nodiscard]] constexpr bool is_ascii_mode() const
     {
       return has_flag(current_flags(), flags::ascii);
@@ -366,9 +392,12 @@ namespace real::detail {
       throw Error(message, pos_);
     }
 
-    //! \brief Like \ref fail, but tags the error as `unsupported` (well-formed but beyond REAL's linear
-    //!        engine — a backreference, `\p{…}`, a nested lookaround) so a binding can classify it without
-    //!        matching on the message text. Templated like \ref fail so it stays a valid `constexpr`.
+    /*!
+     * \brief Like \ref fail, but tags the error as `unsupported` (well-formed but beyond REAL's linear
+     *        engine — a backreference, `\p{…}`, a nested lookaround) so a binding can classify it without
+     *        matching on the message text. Templated like \ref fail so it stays a valid `constexpr`.
+     * \param[in] message The diagnostic text, reported at the current read offset.
+     */
     template <typename = void>
     [[noreturn]] constexpr void fail_unsupported(const char* message) const
     {
@@ -377,6 +406,7 @@ namespace real::detail {
 
     /*!
      * \brief Returns `true` if the read offset is at or past the end of the pattern.
+     * \return Whether the pattern is exhausted.
      */
     [[nodiscard]] constexpr bool eof() const
     {
@@ -385,6 +415,7 @@ namespace real::detail {
 
     /*!
      * \brief Returns the current character without consuming it (undefined at eof()).
+     * \return The character at the read offset.
      */
     [[nodiscard]] constexpr char peek() const
     {
@@ -453,12 +484,10 @@ namespace real::detail {
     }
 
     /*!
-     * \brief The non-ASCII (>= 0x80) code-point ranges of a Unicode property table (`\d`/`\s`/`\w`),
-     *        for a text-mode shorthand. In bytes or ASCII mode (`flags::ascii` == `re.A`) the shorthand
-     *        stays ASCII-only, so this returns nothing and the ASCII bitmap alone is used.
+     * \brief Whether a shorthand (`\d \w \s`) should be a text-mode Unicode code-point predicate:
+     *        true in the default text mode, false in bytes mode or under `flags::ascii` (`re.A`).
+     * \return Whether the shorthand compiles as a code-point predicate rather than a byte class.
      */
-    //! \brief Whether a shorthand (`\d \w \s`) should be a text-mode Unicode code-point predicate:
-    //!        true in the default text mode, false in bytes mode or under `flags::ascii` (`re.A`).
     [[nodiscard]] constexpr bool text_shorthand() const
     {
       return !bytes_ && !is_ascii_mode();
@@ -469,6 +498,13 @@ namespace real::detail {
      *        built: its ASCII bitmap (or the complement, negated) plus, in text mode, its non-ASCII
      *        ranges (or their complement). Sets \p property_derived so the class is emitted as a
      *        match-time `klass_cp` (text mode only). In bytes / ASCII mode it stays a byte class.
+     *
+     * \param[in,out] klass            The class being built, receiving the ASCII bitmap.
+     * \param[in,out] ranges           The class's non-ASCII ranges, appended to in text mode.
+     * \param[in]     prop_ascii       The shorthand's ASCII bitmap.
+     * \param[in]     table            The shorthand's full Unicode range table.
+     * \param[in]     negated          True for the uppercase form (`\W \D \S`).
+     * \param[out]    property_derived Set when the class must be emitted as a `klass_cp`.
      */
     constexpr void merge_property(char_class&                 klass,
                                   std::vector<code_range>&    ranges,
@@ -499,6 +535,12 @@ namespace real::detail {
       property_derived = property_derived || text_shorthand();
     }
 
+    /*!
+     * \brief The non-ASCII part of a shorthand's range table, or nothing in bytes / ASCII mode.
+     *        Wholly-ASCII ranges are dropped: the bitmap already covers them.
+     * \param[in] table The shorthand's full Unicode range table.
+     * \return Its ranges clipped to `>= 0x80`; empty when the shorthand stays ASCII-only.
+     */
     [[nodiscard]] constexpr std::vector<code_range> shorthand_ranges(std::span<const code_range> table) const
     {
       std::vector<code_range> out;
@@ -523,17 +565,20 @@ namespace real::detail {
       bool                        negated; //!< True for the uppercase form (`\D \W \S`).
     };
 
-    //! \brief `\s`'s ASCII-range (< 0x80) component for TEXT mode: `space_set()` (the ASCII-MODE set,
-    //!        `[ \t\n\r\f\v]`) plus `U+001C`-`U+001F` (FS/GS/RS/US). Needed because `shorthand_ranges`
-    //!        deliberately omits any wholly-ASCII range from `.ranges` ("already covered by the
-    //!        bitmap") — so for text mode, where `re`'s own `\s` DOES include FS/GS/RS/US (verified:
-    //!        `re.match(r"\s", "\x1c")` matches; `str.isspace()` agrees) but ASCII-mode `\s` does not
-    //!        (`re.match(r"(?a)\s", "\x1c")` does not match), the bitmap that "already covers" the
-    //!        ASCII range must itself differ by mode — `space_set()` alone is only correct for the
-    //!        ASCII-mode case. Found live by differential fuzzing (ASCII mode wrongly matching FS/GS/
-    //!        RS/US) and fixed once at `space_set()` itself before this second bug (text mode then
-    //!        losing them entirely) surfaced immediately in `test_classes.cpp`'s own regression suite —
-    //!        the two modes generate genuinely different ASCII bitmaps, not one shared one.
+    /*!
+     * \brief `\s`'s ASCII-range (< 0x80) component for TEXT mode: `space_set()` (the ASCII-MODE set,
+     *        `[ \t\n\r\f\v]`) plus `U+001C`-`U+001F` (FS/GS/RS/US). Needed because `shorthand_ranges`
+     *        deliberately omits any wholly-ASCII range from `.ranges` ("already covered by the
+     *        bitmap") — so for text mode, where `re`'s own `\s` DOES include FS/GS/RS/US (verified:
+     *        `re.match(r"\s", "\x1c")` matches; `str.isspace()` agrees) but ASCII-mode `\s` does not
+     *        (`re.match(r"(?a)\s", "\x1c")` does not match), the bitmap that "already covers" the
+     *        ASCII range must itself differ by mode — `space_set()` alone is only correct for the
+     *        ASCII-mode case. Found live by differential fuzzing (ASCII mode wrongly matching FS/GS/
+     *        RS/US) and fixed once at `space_set()` itself before this second bug (text mode then
+     *        losing them entirely) surfaced immediately in `test_classes.cpp`'s own regression suite —
+     *        the two modes generate genuinely different ASCII bitmaps, not one shared one.
+     * \return The text-mode ASCII bitmap for `\s`.
+     */
     [[nodiscard]] static constexpr char_class space_set_text_ascii_component()
     {
       char_class result {space_set()};
@@ -544,17 +589,20 @@ namespace real::detail {
       return result;
     }
 
-    //! \brief Maps a shorthand letter to its \ref shorthand_spec. The single place the
-    //!        letter -> (set, range table, negation) fact lives; the atom ladder (parse_escape) and the
-    //!        class ladder (parse_class_item) share it, then each consumes the spec its own way (emit a
-    //!        class node vs merge into a class) -- the same shared-decode / divergent-use split as
-    //!        \ref decode_digit_escape.
-    //! \param[in] letter    The shorthand letter (`d D w W s S`).
-    //! \param[in] text_mode Whether this shorthand compiles as a text-mode code-point predicate (the
-    //!                      caller's own \ref text_shorthand) — only `\s`/`\S` need it: the ASCII-range
-    //!                      component of `\s` legitimately differs between ASCII mode (`[ \t\n\r\f\v]`)
-    //!                      and text mode (the same set plus `U+001C`-`U+001F`); `\w`/`\d` do not have
-    //!                      this divergence, so they ignore the parameter.
+    /*!
+     * \brief Maps a shorthand letter to its \ref shorthand_spec. The single place the
+     *        letter -> (set, range table, negation) fact lives; the atom ladder (parse_escape) and the
+     *        class ladder (parse_class_item) share it, then each consumes the spec its own way (emit a
+     *        class node vs merge into a class) -- the same shared-decode / divergent-use split as
+     *        \ref decode_digit_escape.
+     * \param[in] letter    The shorthand letter (`d D w W s S`).
+     * \param[in] text_mode Whether this shorthand compiles as a text-mode code-point predicate (the
+     *                      caller's own \ref text_shorthand) — only `\s`/`\S` need it: the ASCII-range
+     *                      component of `\s` legitimately differs between ASCII mode (`[ \t\n\r\f\v]`)
+     *                      and text mode (the same set plus `U+001C`-`U+001F`); `\w`/`\d` do not have
+     *                      this divergence, so they ignore the parameter.
+     * \return The shorthand's bitmap, range table and negation flag.
+     */
     [[nodiscard]] static constexpr shorthand_spec shorthand_class(char letter,
                                                                   bool text_mode)
     {
@@ -580,14 +628,24 @@ namespace real::detail {
     //!        heap or `<string>` is needed at parse time. A name longer than the buffer simply fails to match.
     struct loose_buf
     {
-      std::array<char, 64> data {};
-      std::size_t          len  {};
+      std::array<char, 64> data {}; //!< The normalised bytes, the first \ref len of which are meaningful.
+      std::size_t          len  {}; //!< Bytes held in \ref data; a longer name is truncated and so matches nothing.
+
+      /*!
+       * \brief The normalised key as a view into \ref data.
+       * \return A view valid for this buffer's lifetime.
+       */
       [[nodiscard]] constexpr std::string_view view() const
       {
         return {data.data(), len};
       }
     };
 
+    /*!
+     * \brief Loose-matches a property name (UAX44-LM3): drops `_`, `-` and spaces, lowercases the rest.
+     * \param[in] s The name as written in the pattern.
+     * \return The normalised key, truncated to the buffer's capacity.
+     */
     [[nodiscard]] static constexpr loose_buf loose_key(std::string_view s)
     {
       loose_buf b;
@@ -613,6 +671,9 @@ namespace real::detail {
      *        NOT partitions -- a code point can satisfy several). The alias resolvers are the generated,
      *        loose-keyed `resolve_gc` / `resolve_script` (shared by `sc=` and `scx=` -- same script names,
      *        long or short UAX24 code) / `resolve_binprop`.
+     *
+     * \param[in] name The property name as written, prefix and all.
+     * \return Its code-point ranges.
      */
     [[nodiscard]] constexpr std::vector<code_range> resolve_property(std::string_view name) const
     {
@@ -698,10 +759,13 @@ namespace real::detail {
       bool                     caret;  //!< True when a leading `^` (native dialects only) was stripped from the name.
     };
 
-    //! \brief Rejects bytes mode, consumes the `p`/`P` and the `{Name}` (or single letter), strips a leading
-    //!        `^` caret-negation (native dialects only), and resolves the remaining name to the property's
-    //!        code-point ranges. Shared by the out-of-class atom and the in-class merge. On entry `pos_` is on
-    //!        the `p`/`P`; on return it is just past the name (caret and all).
+    /*!
+     * \brief Rejects bytes mode, consumes the `p`/`P` and the `{Name}` (or single letter), strips a leading
+     *        `^` caret-negation (native dialects only), and resolves the remaining name to the property's
+     *        code-point ranges. Shared by the out-of-class atom and the in-class merge. On entry `pos_` is on
+     *        the `p`/`P`; on return it is just past the name (caret and all).
+     * \return The resolved ranges and whether a caret-negation was stripped.
+     */
     constexpr property_table_result parse_property_table()
     {
       // Read bytes-mode from the scope stack, not the global `bytes_` member (the flag-scope ratchet): bytes is
@@ -747,9 +811,14 @@ namespace real::detail {
       return {.ranges = resolve_property(name), .caret = caret};
     }
 
-    //! \brief Splits a property's ranges into its ASCII bitmap (< 0x80) and its non-ASCII ranges. Unconditional:
-    //!        unlike `\w`, `flags::ascii` (`re.A`) does not restrict a Unicode property, so both parts are always
-    //!        used (bytes mode having already been rejected).
+    /*!
+     * \brief Splits a property's ranges into its ASCII bitmap (< 0x80) and its non-ASCII ranges. Unconditional:
+     *        unlike `\w`, `flags::ascii` (`re.A`) does not restrict a Unicode property, so both parts are always
+     *        used (bytes mode having already been rejected).
+     * \param[in]  table The property's full range table.
+     * \param[out] ascii Bitmap receiving its members below 0x80.
+     * \param[out] high  Ranges receiving its members at or above 0x80.
+     */
     constexpr void property_ascii_high(const std::vector<code_range>& table,
                                        char_class&                    ascii,
                                        std::vector<code_range>&       high) const
@@ -773,6 +842,10 @@ namespace real::detail {
      *        `\W`, XORed with a caret-negation `\p{^Name}` stripped by \ref parse_property_table (so
      *        `\P{^L}` negates twice back to `\p{L}`, same as `\P{...}` on an already-negated property would).
      *        `pos_` is on the letter after `\`; `negated` distinguishes `\P` from `\p`.
+     *
+     * \param[in,out] out     The AST the class node is added to.
+     * \param[in]     negated True for `\P`, false for `\p`.
+     * \return The new node's index.
      */
     constexpr std::int32_t parse_unicode_property(ast& out,
                                                   bool negated)
@@ -792,6 +865,12 @@ namespace real::detail {
      *        plus the gaps between the non-ASCII ranges), exactly as `\W` negates in a class; an enclosing
      *        `[^...]` then negates the whole class on top (so `[^\P{L}]` == `[\p{L}]`). bytes mode is already
      *        rejected by \ref parse_property_table.
+     *
+     * \param[in,out] klass            The class being built, receiving the ASCII bitmap.
+     * \param[in,out] ranges           The class's non-ASCII ranges, appended to.
+     * \param[in]     table            The property's full range table.
+     * \param[in]     negated          True for `\P{...}`, merging the complement.
+     * \param[out]    property_derived Set so the class is emitted as a `klass_cp`.
      */
     constexpr void merge_unicode_property(char_class&                    klass,
                                           std::vector<code_range>&       ranges,
@@ -1227,18 +1306,23 @@ namespace real::detail {
              letter == 'U';
     }
 
-    //! \brief \p value with \p bit cleared. The intermediate cast matches the enum's
-    //!        `std::uint16_t` underlying type — a `std::uint8_t` here (the pre-widening
-    //!        vestige) would silently drop `flags::ungreedy` (512) from every scope.
+    /*!
+     * \brief \p value with \p bit cleared. The intermediate cast matches the enum's
+     *        `std::uint16_t` underlying type — a `std::uint8_t` here (the pre-widening
+     *        vestige) would silently drop `flags::ungreedy` (512) from every scope.
+     * \param[in] value The flag set to clear from.
+     * \param[in] bit   The flag to clear.
+     * \return \p value without \p bit.
+     */
     static constexpr flags without(flags value,
                                    flags bit)
     {
-      return static_cast<flags>(
-        static_cast<std::uint16_t>(static_cast<unsigned>(value) & ~static_cast<unsigned>(bit)));
+      return flags_without(value, bit); // one implementation of the width rule, in program.hpp
     }
 
     /*!
-     * \brief Consumes a leading `(?ims)` or `(?ims-ims)` global-flags group, if present.
+     * \brief Consumes a leading global-flags group -- `(?imsxaU)`, or `(?flags-flags)` with a removal
+     *        suffix -- if present. The accepted letters are `i m s x a U` (\ref is_flag_letter).
      *
      * Like Python (3.11+), global flags are only legal at the very start of the
      * pattern; later occurrences are rejected in \ref parse_group. RE2 additionally
@@ -1247,10 +1331,10 @@ namespace real::detail {
      * the added/`-`/removed parse in \ref parse_group's scoped-flags branch
      * (`(?flags-flags:...)`), minus its trailing `:` (a global prefix has none).
      *
-     * \param[in,out] out Receives the added letters into \ref ast::inline_flags — same
-     *                    convention as the pre-existing add-only path; the removed set
-     *                    only ever clears bits on the scope stack (see \ref ast::inline_flags
-     *                    itself, which is OR-only and cannot represent a removal).
+     * \param[in,out] out Receives the added letters into \ref ast::inline_flags and the removed ones
+     *                    into \ref ast::inline_removed. Two fields rather than one net set because
+     *                    \ref ast::inline_flags is OR-ed across calls and so cannot carry a removal;
+     *                    the caller applies them in order, adding then clearing.
      * \return `true` if a flags group was consumed (position advanced), else
      *         `false` (position restored, for \ref parse_group to handle).
      */
@@ -1289,7 +1373,8 @@ namespace real::detail {
         pos_ = saved_pos; // some other (?...) construct, or a scoped (?flags-flags:...): let parse_group decide
         return false;
       }
-      out.inline_flags = out.inline_flags | found;
+      out.inline_flags   = out.inline_flags | found;
+      out.inline_removed = out.inline_removed | removed;
       // A leading (?flags) group sets the base scope, so the rest of the pattern is parsed under it —
       // verbose affects tokenization, icase/ascii affect literal folding and the \w\d\s tables. This
       // mirrors the constructor flags, which seed the same base scope. The optional -removed clears
@@ -1859,6 +1944,10 @@ namespace real::detail {
      * mode; a non-ASCII code point folds only in text mode (a bytes class carries no ranges). A
      * non-cased literal, or no `icase`, keeps the zero-overhead byte / UTF-8 path. `\\xHH` has byte
      * provenance and never routes here, so it is never folded — the deliberate provenance split.
+     *
+     * \param[in,out] out The AST the node is added to.
+     * \param[in]     cp  The literal's code point.
+     * \return The new node's index: a literal, or a foldable singleton class under `icase`.
      */
     constexpr std::int32_t emit_literal_codepoint(ast&         out,
                                                   std::int32_t cp)

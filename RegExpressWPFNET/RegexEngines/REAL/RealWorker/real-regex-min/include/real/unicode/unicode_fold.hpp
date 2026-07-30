@@ -22,8 +22,7 @@
 
 namespace real::detail {
 
-  //! \brief The Unicode data version these orbits were generated from (16.0.0).
-  inline constexpr const char* unicode_fold_unidata_version {"16.0.0"};
+  inline constexpr const char* unicode_fold_unidata_version {"16.0.0"}; //!< The Unicode data version these orbits were generated from.
 
   //! \brief A code point and the other members of its case-fold orbit (up to 3; orbits <= 4).
   struct fold_entry
@@ -2977,13 +2976,16 @@ namespace real::detail {
     {0x1E943, {0x1E921, 0x0000, 0x0000}, 1},
   };
 
-  //! \brief Number of entries in \ref unicode_fold_table.
-  inline constexpr std::size_t unicode_fold_table_size {2940};
+  inline constexpr std::size_t unicode_fold_table_size {2940}; //!< Number of entries in \ref unicode_fold_table.
 
-  //! \brief Index of the first entry whose code point is at or after \p cp, or
-  //!        \ref unicode_fold_table_size if none is. The seek half of \ref find_fold_index,
-  //!        exposed on its own so a caller holding a RANGE enters the table once and walks
-  //!        forward instead of scanning it whole -- see \c real::detail::unicode_casefold.
+  /*!
+   * \brief Index of the first entry whose code point is at or after \p cp, or
+   *        \ref unicode_fold_table_size if none is. The seek half of \ref find_fold_index,
+   *        exposed on its own so a caller holding a RANGE enters the table once and walks
+   *        forward instead of scanning it whole -- see \c real::detail::unicode_casefold.
+   * \param[in] cp The code point to seek.
+   * \return The index of the first entry at or after \p cp; \ref unicode_fold_table_size when none is.
+   */
   constexpr std::size_t find_fold_lower_bound(std::uint32_t cp)
   {
     std::size_t lo {0};
@@ -3000,11 +3002,15 @@ namespace real::detail {
     return lo;
   }
 
-  //! \brief Binary-searches \ref unicode_fold_table for \p cp; returns its index, or
-  //!        \ref unicode_fold_table_size if \p cp is not cased. An index (not a pointer into
-  //!        the table) keeps this usable in a constant expression on every compiler — g++
-  //!        rejects a `&table[i] != nullptr` comparison inside a `static_regex`.
-  //!        Shared by the parser (is a literal cased?) and the compiler (its fold partners).
+  /*!
+   * \brief Binary-searches \ref unicode_fold_table for \p cp; returns its index, or
+   *        \ref unicode_fold_table_size if \p cp is not cased. An index (not a pointer into
+   *        the table) keeps this usable in a constant expression on every compiler — g++
+   *        rejects a `&table[i] != nullptr` comparison inside a `static_regex`.
+   *        Shared by the parser (is a literal cased?) and the compiler (its fold partners).
+   * \param[in] cp The code point to look up.
+   * \return Its index in \ref unicode_fold_table, or \ref unicode_fold_table_size when uncased.
+   */
   constexpr std::size_t find_fold_index(std::uint32_t cp)
   {
     std::size_t lo {0};

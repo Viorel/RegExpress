@@ -12,17 +12,20 @@
  * Contract: behave identically to `std::regex` (ECMAScript) where `real` can prove it, and
  * fall back to `std::regex` everywhere else — never a silent divergence. A pattern is run on
  * `real` (linear-time, ReDoS-safe) when possible; backreferences, unbounded/oversized
- * lookarounds, POSIX classes, non-ASCII inside `[...]`, and the non-ECMAScript grammars route
- * to `std::regex` via a compile-time screen plus a compile-failure catch.
+ * lookarounds, POSIX classes and non-ASCII inside `[...]` route to `std::regex` via a
+ * compile-time screen plus a compile-failure catch. The five POSIX grammars are NOT among them:
+ * each is translated to its ECMAScript equivalent and run on `real` with leftmost-longest bounds
+ * when the pattern translates, falling back to `std::regex` only when it does not.
  *
  * `real` is always built with `flags::bytes | flags::ecma` so its byte-oriented, ECMAScript-`$`,
  * ECMAScript-`.` semantics align with `std::basic_regex<char>` (validated by a differential).
  *
  * Surface: `basic_regex` / `sub_match` / `match_results` / `regex_error`, `regex_search`,
  * `regex_match`, `regex_replace`, `regex_iterator` / `regex_token_iterator`, the full
- * `match_flag_type`, and `wregex` + POSIX grammars + `nosubs`. `real` runs only
- * the `char` / default-traits / ECMAScript / every-group path (see `detail::real_eligible`); wide
- * `CharT`, custom traits, POSIX/`collate`, and `nosubs` are always `std`. `regex_replace`/iterators
+ * `match_flag_type`, and `wregex` + POSIX grammars + `nosubs`. `real` runs the `char` /
+ * default-traits / every-group path (see `detail::real_eligible`), under ECMAScript or under a
+ * translated POSIX grammar; wide `CharT`, custom traits, `collate` and `nosubs` are always `std`,
+ * as is any POSIX pattern translation declined. `regex_replace`/iterators
  * route nullable patterns to `std::regex` (the empty-match traversal differs from ECMAScript, see
  * `basic_regex::nullable`), and a constraining `match_flag` routes that operation to `std`.
  *

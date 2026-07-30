@@ -54,11 +54,15 @@ namespace real::detail {
   struct ac_node
   {
     std::array<std::int32_t, 256> goto_       {};   //!< Trie edge (build) / total DFA transition (post-build).
-    std::int32_t                  fail        {0};
+    std::int32_t                  fail        {0};  //!< Fail link: the longest proper suffix of this state that is also a trie prefix.
     std::int32_t                  pattern_id  {-1}; //!< Smallest branch id ending here, or -1.
-    std::int32_t                  pattern_len {0};
+    std::int32_t                  pattern_len {0};  //!< Byte length of the pattern ending here; 0 when none does.
     std::int32_t                  output_link {-1}; //!< Next (strictly shorter) pattern-ending state on the fail chain.
 
+    /*!
+     * \brief A trie node with no edges yet: every \ref goto_ entry is -1 until \ref ac_automaton::build
+     *        makes the row total.
+     */
     ac_node()
     {
       goto_.fill(-1);
@@ -85,6 +89,9 @@ namespace real::detail {
      * that op accepts, all sharing the branch's single id — the smallest-id-wins tie-break in
      * \ref search then treats every expansion of one branch as equally (and correctly) that one
      * branch's priority, regardless of which concrete spelling matched.
+     *
+     * \param[in] bytes One concrete byte string the branch accepts.
+     * \param[in] id    The branch's declaration order.
      */
 #if defined(__GNUC__) || defined(__clang__)
     __attribute__((cold)) // construction-only (once per program): keep this out of the hot TU
@@ -165,10 +172,10 @@ namespace real::detail {
     //! \brief One AC search outcome: whether/where/which branch matched.
     struct match_result
     {
-      bool         matched    {};
-      std::size_t  start      {};
-      std::size_t  end        {};
-      std::int32_t pattern_id {};
+      bool         matched    {}; //!< Whether anything matched; the other fields are meaningful only then.
+      std::size_t  start      {}; //!< Match start offset.
+      std::size_t  end        {}; //!< Match end offset.
+      std::int32_t pattern_id {}; //!< Declaration order of the winning branch.
     };
 
     /*!
@@ -188,6 +195,11 @@ namespace real::detail {
      * per candidate, walking deeper into the chain only when the shallower one fails it; when
      * \p wb_ok is trivially true (the common, unwrapped case) this still costs one check and
      * stops at the first (shallowest) hit, same as the unconstrained walk.
+     *
+     * \param[in] text  Subject.
+     * \param[in] start Byte offset to begin scanning at.
+     * \param[in] wb_ok The caller's word-boundary check, per \c WbOk.
+     * \return The leftmost-first match, or a result whose \ref match_result::matched is false.
      */
     template <typename WbOk>
     [[nodiscard]] match_result search(std::string_view text,
@@ -247,6 +259,10 @@ namespace real::detail {
               .pattern_id  = best_id};
     }
 
+    /*!
+     * \brief States in the automaton, root included.
+     * \return The node count.
+     */
     [[nodiscard]] std::size_t node_count() const
     {
       return nodes_.size();
@@ -255,7 +271,7 @@ namespace real::detail {
   private:
 
     std::vector<ac_node>  nodes_           {ac_node {}}; //!< Pool storage; root at index 0. No raw new/delete.
-    std::int32_t          max_pattern_len_ {1};
+    std::int32_t          max_pattern_len_ {1};          //!< Longest literal added, bounding how far back a match can start.
   };
 
   //! \brief Maximum concrete literal strings a single branch may expand into (icase klass
@@ -277,6 +293,10 @@ namespace real::detail {
    * \return The built automaton, or `std::nullopt` if any branch's icase-fold expansion would
    *         exceed \ref ac_max_branch_expansion (caller falls back to the general alternation
    *         route — a pathological input, not a correctness concern).
+   *
+   * \param[in] code    The program's instruction stream.
+   * \param[in] classes Its byte classes.
+   * \param[in] body_pc The first branch/split pc, per \ref pattern_hints::body_pc.
    */
   [[nodiscard]]
 #if defined(__GNUC__) || defined(__clang__)

@@ -41,8 +41,12 @@ namespace real::detail {
   // The code-point-range → UTF-8 byte-range algorithm (utf8_byte_seq, utf8_range_sequences,
   // encode_utf8_bytes) now lives in utf8_ranges.hpp, shared with the lazy DFA's klass_cp expansion.
 
-  //! \brief Whether \p ranges is exactly the whole non-ASCII space `[U+0080, U+10FFFF]` — the
-  //!        "any non-ASCII code point" shape emitted by \ref compiler::emit_any_codepoint_class.
+  /*!
+   * \brief Whether \p ranges is exactly the whole non-ASCII space `[U+0080, U+10FFFF]` — the
+   *        "any non-ASCII code point" shape emitted by \ref compiler::emit_any_codepoint_class.
+   * \param[in] ranges The class's non-ASCII ranges.
+   * \return Whether they are exactly the one range covering all of non-ASCII.
+   */
   constexpr bool is_any_non_ascii(const std::vector<code_range>& ranges)
   {
     return ranges.size() == 1 && ranges[0].lo == 0x80U && ranges[0].hi == 0x10FFFFU;
@@ -62,6 +66,9 @@ namespace real::detail {
    *
    * Idempotent on ASCII-only orbits (`[a]`↦`{a, A}`, no non-ASCII contamination). Partners that are
    * already present are harmlessly re-added (the compiler tolerates redundant ranges).
+   *
+   * \param[in] in The class as written.
+   * \return Its case-fold closure: the folded ASCII bitmap plus the coalesced non-ASCII ranges.
    */
   constexpr class_def unicode_casefold(const class_def& in)
   {
@@ -115,14 +122,19 @@ namespace real::detail {
     return out;
   }
 
-  //! \brief True if the AST subtree rooted at \p idx can match the empty string. `concat`: every
-  //!        child nullable; `alternation`: some branch nullable; `group`: its body nullable;
-  //!        `repeat`: `min == 0` or its body nullable; `byte`/`klass`/`any`: never (they always
-  //!        consume exactly one unit). `empty`/`anchor`/`lookaround` are always zero-width by
-  //!        construction — never consuming input as part of the surrounding match — so they are
-  //!        always nullable here; not an approximation for those three, the exact contribution of
-  //!        those node kinds to the enclosing match's width. Used by \ref
-  //!        ast_has_nullable_captured_repeat to decide whether a capturing group's body is nullable.
+  /*!
+   * \brief True if the AST subtree rooted at \p idx can match the empty string. `concat`: every
+   *        child nullable; `alternation`: some branch nullable; `group`: its body nullable;
+   *        `repeat`: `min == 0` or its body nullable; `byte`/`klass`/`any`: never (they always
+   *        consume exactly one unit). `empty`/`anchor`/`lookaround` are always zero-width by
+   *        construction — never consuming input as part of the surrounding match — so they are
+   *        always nullable here; not an approximation for those three, the exact contribution of
+   *        those node kinds to the enclosing match's width. Used by \ref
+   *        ast_has_nullable_captured_repeat to decide whether a capturing group's body is nullable.
+   * \param[in] tree The AST.
+   * \param[in] idx  Root of the subtree; a negative index reads as nullable (an absent body).
+   * \return Whether the subtree can match the empty string.
+   */
   constexpr bool node_nullable(const ast&   tree,
                                std::int32_t idx)
   {
@@ -161,12 +173,17 @@ namespace real::detail {
     return true;
   }
 
-  //! \brief True if the AST subtree rooted at \p idx contains a CAPTURING group (`group >= 0`, i.e.
-  //!        not `(?:...)`) whose own body is nullable (\ref node_nullable). Descends through every
-  //!        node kind that can nest a group (including a further `repeat`/`lookaround`) so a group
-  //!        need not be the direct child of the `repeat` this is called from — only transitively
-  //!        underneath it. Used only from \ref ast_has_nullable_captured_repeat, on a `repeat`
-  //!        node's subtree.
+  /*!
+   * \brief True if the AST subtree rooted at \p idx contains a CAPTURING group (`group >= 0`, i.e.
+   *        not `(?:...)`) whose own body is nullable (\ref node_nullable). Descends through every
+   *        node kind that can nest a group (including a further `repeat`/`lookaround`) so a group
+   *        need not be the direct child of the `repeat` this is called from — only transitively
+   *        underneath it. Used only from \ref ast_has_nullable_captured_repeat, on a `repeat`
+   *        node's subtree.
+   * \param[in] tree The AST.
+   * \param[in] idx  Root of the subtree.
+   * \return Whether a capturing group with a nullable body sits anywhere underneath.
+   */
   constexpr bool subtree_has_nullable_capturing_group(const ast&   tree,
                                                       std::int32_t idx)
   {
@@ -201,16 +218,21 @@ namespace real::detail {
     return false;
   }
 
-  //! \brief True if the AST rooted at \p idx contains a capturing group with a nullable body,
-  //!        transitively under a quantifier (any quantifier, `?` included) — the frontend source of
-  //!        \ref pattern_hints::nullable_captured_repeat (compiler::compile() reads this after
-  //!        `analyze_program`, the same AST-derived-hint slot as the inner-literal fields below).
-  //!        At each `repeat` node, checks its whole subtree for a nullable capturing group (\ref
-  //!        subtree_has_nullable_capturing_group) — the group need not be the repeat's immediate
-  //!        child — and independently keeps walking for any other `repeat` elsewhere in the tree.
-  //!        Safe over-approximation: it does not prove the loop's empty iteration actually surfaces
-  //!        a divergent capture, only that the shape can (e.g. `(\b|x)+` counts: `\b` is nullable by
-  //!        \ref node_nullable, conservatively, same posture as `empty_match_possible`).
+  /*!
+   * \brief True if the AST rooted at \p idx contains a capturing group with a nullable body,
+   *        transitively under a quantifier (any quantifier, `?` included) — the frontend source of
+   *        \ref pattern_hints::nullable_captured_repeat (compiler::compile() reads this after
+   *        `analyze_program`, the same AST-derived-hint slot as the inner-literal fields below).
+   *        At each `repeat` node, checks its whole subtree for a nullable capturing group (\ref
+   *        subtree_has_nullable_capturing_group) — the group need not be the repeat's immediate
+   *        child — and independently keeps walking for any other `repeat` elsewhere in the tree.
+   *        Safe over-approximation: it does not prove the loop's empty iteration actually surfaces
+   *        a divergent capture, only that the shape can (e.g. `(\b|x)+` counts: `\b` is nullable by
+   *        \ref node_nullable, conservatively, same posture as `empty_match_possible`).
+   * \param[in] tree The AST.
+   * \param[in] idx  Root to walk from.
+   * \return Whether some quantifier in the tree has a nullable capturing group under it.
+   */
   constexpr bool ast_has_nullable_captured_repeat(const ast&   tree,
                                                   std::int32_t idx)
   {
@@ -487,7 +509,8 @@ namespace real::detail {
 
     /*!
      * \brief Emits a `split` with placeholder targets.
-     * \return Its instruction index.
+     * \param[in,out] prog The program being built.
+     * \return Its instruction index, for the caller to patch.
      */
     static constexpr std::int32_t emit_split(dynamic_program& prog)
     {
@@ -497,7 +520,8 @@ namespace real::detail {
 
     /*!
      * \brief Emits a `jump` with a placeholder target.
-     * \return Its instruction index.
+     * \param[in,out] prog The program being built.
+     * \return Its instruction index, for the caller to patch.
      */
     static constexpr std::int32_t emit_jump(dynamic_program& prog)
     {
@@ -532,18 +556,17 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Emits a `klass` instruction, interning \p klass.
+     * \brief Interns \p klass into `prog.classes` (deduplicating), returning its index.
      *
-     * Identical bitmaps share one slot, so the UTF-8 continuation class is
-     * stored once however often it is emitted.
+     * Factored out of \ref emit_klass so Tier 1's `klass_loop_possessive` can share the exact same
+     * interning without emitting the ordinary single-consume opcode. Identical bitmaps share one
+     * slot, so the UTF-8 continuation class is stored once however often it is emitted.
      *
-     * \param[in,out] prog The program being built.
-     * \param[in]     klass   The class bitmap to match.
+     * \param[in,out] prog  The program being built.
+     * \param[in]     klass The class bitmap to intern.
+     * \return Its index in `prog.classes`.
      * \throws real::regex_error if more than 65536 distinct classes are needed.
      */
-    //! \brief Interns \p klass into `prog.classes` (deduplicating), returning its index.
-    //!        Factored out of \ref emit_klass so Tier 1's `klass_loop_possessive` can share
-    //!        the exact same interning without emitting the ordinary single-consume opcode.
     static constexpr std::uint16_t intern_class(dynamic_program&  prog,
                                                 const char_class& klass)
     {
@@ -563,6 +586,13 @@ namespace real::detail {
       return static_cast<std::uint16_t>(index);
     }
 
+    /*!
+     * \brief Emits a `klass` instruction, interning \p klass through \ref intern_class.
+     *
+     * \param[in,out] prog  The program being built.
+     * \param[in]     klass The class bitmap to match.
+     * \throws real::regex_error if more than 65536 distinct classes are needed.
+     */
     static constexpr void emit_klass(dynamic_program&  prog,
                                      const char_class& klass)
     {
@@ -570,21 +600,16 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Emits a match-time code-point predicate for a Unicode shorthand (`\w \d \s` and their
-     *        negations) in text mode: a `klass_cp` over the interned code-point class, followed by a
-     *        three-instruction continuation chain (`klass utf8_cont` ×3). At match time `klass_cp`
-     *        decodes one code point and, on membership, enters the chain at a computed skip so the
-     *        remaining continuation bytes are walked one per step — see pike.hpp. The class is the
-     *        already-effective set (the fold and any external negation were materialised by
-     *        \ref effective_class), so membership is a plain positive test.
+     * \brief Interns \p cd into `prog.cp_classes`/`prog.cp_ranges` (deduplicating), returning its index.
+     *
+     * Factored out of \ref emit_klass_cp so Tier 1's `klass_cp_loop_possessive` can share the exact
+     * same interning for ANY effective class (predicate or not, negated or not, `.` included) without
+     * emitting the ordinary opcode or its continuation chain.
      *
      * \param[in,out] prog The program being built.
      * \param[in]     cd   The effective code-point class (ASCII bitmap + non-ASCII ranges).
+     * \return Its index in `prog.cp_classes`.
      */
-    //! \brief Interns \p cd into `prog.cp_classes`/`prog.cp_ranges` (deduplicating), returning its
-    //!        index. Factored out of \ref emit_klass_cp so Tier 1's `klass_cp_loop_possessive` can
-    //!        share the exact same interning for ANY effective class (predicate or not, negated or
-    //!        not, `.` included) without emitting the ordinary opcode or its continuation chain.
     static constexpr std::uint16_t intern_cp_class(dynamic_program& prog,
                                                    const class_def& cd)
     {
@@ -632,6 +657,18 @@ namespace real::detail {
       return static_cast<std::uint16_t>(index);
     }
 
+    /*!
+     * \brief Emits a match-time code-point predicate for a Unicode shorthand (`\w \d \s` and their
+     *        negations) in text mode: a `klass_cp` over the interned code-point class, followed by a
+     *        three-instruction continuation chain (`klass utf8_cont` ×3). At match time `klass_cp`
+     *        decodes one code point and, on membership, enters the chain at a computed skip so the
+     *        remaining continuation bytes are walked one per step — see pike.hpp. The class is the
+     *        already-effective set (the fold and any external negation were materialised by
+     *        \ref effective_class), so membership is a plain positive test.
+     *
+     * \param[in,out] prog The program being built.
+     * \param[in]     cd   The effective code-point class (ASCII bitmap + non-ASCII ranges).
+     */
     static constexpr void emit_klass_cp(dynamic_program& prog,
                                         const class_def& cd)
     {
@@ -686,6 +723,9 @@ namespace real::detail {
      *        \ref emit_class_codepoints (used for both `\p{...}`-style specific code-point ranges
      *        and, via \ref emit_any_codepoint_class, the single `[U+0080, U+10FFFF]` "any non-ASCII"
      *        range `.`/negated-ASCII-only classes need).
+     *
+     * \param[in,out] prog     The program being built.
+     * \param[in]     branches One byte-range chain per branch, tried in order.
      */
     constexpr void emit_byte_sequences(dynamic_program&                            prog,
                                        const std::vector<std::vector<char_class>>& branches) const
@@ -713,6 +753,10 @@ namespace real::detail {
      * \brief Emits a code-point class: the ASCII bitmap (one byte, if any) OR the canonical UTF-8
      *        byte sequences of each code-point range. \ref emit_any_codepoint_class is a thin
      *        wrapper over this for the specific `[U+0080, U+10FFFF]` "any non-ASCII" range.
+     *
+     * \param[in,out] prog   The program being built.
+     * \param[in]     ascii  The class's ASCII bitmap; skipped when empty.
+     * \param[in]     ranges Its non-ASCII code-point ranges.
      */
     constexpr void emit_class_codepoints(dynamic_program&               prog,
                                          const char_class&              ascii,
@@ -748,6 +792,9 @@ namespace real::detail {
      *        \ref emit_node and \ref l_max_bytes, so what is emitted and its measured width can never
      *        disagree. Positive: as written. Negated: the ASCII complement plus, in code-point mode,
      *        the code-point complement over `[U+0080, U+10FFFF]` minus surrogates.
+     *
+     * \param[in] node The `node_kind::klass` node.
+     * \return The set it accepts, after negation, folding and the bytes/code-point split.
      */
     [[nodiscard]] constexpr class_def effective_class(const ast_node& node) const
     {
@@ -1318,16 +1365,24 @@ namespace real::detail {
              is_single_atom(node.child);
     }
 
-    //! \brief The bare atom Tier 1 should test: \p index itself, or its single captured child
-    //!        when \p index is a capturing-group wrapper. \ref is_tier1_body must hold.
+    /*!
+     * \brief The bare atom Tier 1 should test: \p index itself, or its single captured child
+     *        when \p index is a capturing-group wrapper. \ref is_tier1_body must hold.
+     * \param[in] index The loop body's node index.
+     * \return The bare atom's node index.
+     */
     [[nodiscard]] constexpr std::int32_t tier1_atom(std::int32_t index) const
     {
       const ast_node& node {tree_.nodes[static_cast<std::size_t>(index)]};
       return node.kind == node_kind::group ? node.child : index;
     }
 
-    //! \brief The capture group number Tier 1 should wrap the loop in, or -1 for none.
-    //!        \ref is_tier1_body must hold.
+    /*!
+     * \brief The capture group number Tier 1 should wrap the loop in, or -1 for none.
+     *        \ref is_tier1_body must hold.
+     * \param[in] index The loop body's node index.
+     * \return The enveloping group's number, or -1 when the body is not wrapped in one.
+     */
     [[nodiscard]] constexpr std::int32_t tier1_capture_group(std::int32_t index) const
     {
       const ast_node& node {tree_.nodes[static_cast<std::size_t>(index)]};

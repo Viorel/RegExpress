@@ -32,7 +32,9 @@ namespace real::compat {
    */
   namespace regex_constants {
 
-    //! \brief Grammar / option flags (own bit values; mapped to real::flags or std at construction).
+    /*!
+     * \brief Grammar / option flags (own bit values; mapped to real::flags or std at construction).
+     */
     enum syntax_option_type : unsigned
     {
       ECMAScript = 0,        //!< The default grammar.
@@ -41,26 +43,40 @@ namespace real::compat {
       optimize   = 1U << 2U, //!< Hint to favour matching speed; honoured as a no-op.
       collate    = 1U << 3U, //!< Locale-sensitive ranges; forces the std backend.
       multiline  = 1U << 4U, //!< `^`/`$` match at line boundaries.
-      basic      = 1U << 5U, //!< POSIX basic — std backend.
-      extended   = 1U << 6U, //!< POSIX extended — std backend.
-      awk        = 1U << 7U, //!< awk grammar — std backend.
-      grep       = 1U << 8U, //!< grep grammar — std backend.
-      egrep      = 1U << 9U, //!< egrep grammar — std backend.
+      basic      = 1U << 5U, //!< POSIX BRE — translated onto REAL when the pattern translates, else the std backend.
+      extended   = 1U << 6U, //!< POSIX ERE — translated onto REAL when the pattern translates, else the std backend.
+      awk        = 1U << 7U, //!< awk grammar (ERE + C escapes) — translated onto REAL when it translates, else std.
+      grep       = 1U << 8U, //!< grep grammar (BRE, lines joined by `|`) — translated onto REAL when it translates, else std.
+      egrep      = 1U << 9U, //!< egrep grammar (ERE, lines joined by `|`) — translated onto REAL when it translates, else std.
     };
 
+    /*!
+     * \brief Bitwise OR of two syntax options, so `ECMAScript | icase` stays typed.
+     * \param[in] a Left operand.
+     * \param[in] b Right operand.
+     * \return Their union.
+     */
     constexpr syntax_option_type operator|(syntax_option_type a,
                                            syntax_option_type b) noexcept
     {
       return static_cast<syntax_option_type>(static_cast<unsigned>(a) | static_cast<unsigned>(b));
     }
 
+    /*!
+     * \brief Bitwise AND of two syntax options, for testing a bit.
+     * \param[in] a Left operand.
+     * \param[in] b Right operand.
+     * \return Their intersection.
+     */
     constexpr syntax_option_type operator&(syntax_option_type a,
                                            syntax_option_type b) noexcept
     {
       return static_cast<syntax_option_type>(static_cast<unsigned>(a) & static_cast<unsigned>(b));
     }
 
-    //! \brief Match-control flags: the common subset.
+    /*!
+     * \brief Match-control flags: the common subset.
+     */
     enum match_flag_type : unsigned
     {
       match_default    = 0,
@@ -78,18 +94,35 @@ namespace real::compat {
       format_first_only = 1U << 10U, //!< Replace only the first match.
     };
 
+    /*!
+     * \brief Bitwise OR of two match flags.
+     * \param[in] a Left operand.
+     * \param[in] b Right operand.
+     * \return Their union.
+     */
     constexpr match_flag_type operator|(match_flag_type a,
                                         match_flag_type b) noexcept
     {
       return static_cast<match_flag_type>(static_cast<unsigned>(a) | static_cast<unsigned>(b));
     }
 
+    /*!
+     * \brief Bitwise AND of two match flags, for testing a bit.
+     * \param[in] a Left operand.
+     * \param[in] b Right operand.
+     * \return Their intersection.
+     */
     constexpr match_flag_type operator&(match_flag_type a,
                                         match_flag_type b) noexcept
     {
       return static_cast<match_flag_type>(static_cast<unsigned>(a) & static_cast<unsigned>(b));
     }
 
+    /*!
+     * \brief Bitwise complement of a match-flag set, for masking bits off.
+     * \param[in] a The flags to complement.
+     * \return Every bit of the underlying type that \p a does not hold.
+     */
     constexpr match_flag_type operator~(match_flag_type a) noexcept
     {
       return static_cast<match_flag_type>(~static_cast<unsigned>(a));
@@ -114,20 +147,31 @@ namespace real::compat {
   {
   public:
 
-    //! \brief From a std backend error (the fallback path); keeps std's exact code.
+    /*!
+     * \brief From a std backend error (the fallback path); keeps std's exact code.
+     * \param[in] error The standard library error to adopt.
+     */
     explicit regex_error(const std::regex_error& error)
       : std::regex_error(error.code()),
         message_(error.what())
     {}
 
-    //! \brief With an explicit code and message — the strict-policy rejection of a pattern REAL cannot
-    //!        represent linearly (`error_complexity`), carrying a REAL-identifiable message.
+    /*!
+     * \brief With an explicit code and message — the strict-policy rejection of a pattern REAL cannot
+     *        represent linearly (`error_complexity`), carrying a REAL-identifiable message.
+     * \param[in] code    The `std::regex_constants::error_type` to report.
+     * \param[in] message The text \ref what returns.
+     */
     regex_error(std::regex_constants::error_type code,
                 std::string                      message)
       : std::regex_error(code),
         message_(std::move(message))
     {}
 
+    /*!
+     * \brief The message, which for a strict-policy rejection identifies REAL as the source.
+     * \return A NUL-terminated message valid for this object's lifetime.
+     */
     [[nodiscard]] const char* what() const noexcept override
     {
       return message_.c_str();
@@ -138,12 +182,14 @@ namespace real::compat {
     std::string message_; //!< The originating error's detailed message.
   };
 
-  //! \brief The drop-in policy for a pattern the linear engine cannot represent (backreferences, an
-  //!        unbounded lookaround, a POSIX class, …). `strict` (the default) rejects it, so every accepted
-  //!        pattern executes each `regex_search`/`regex_match` in time linear in the input — the ReDoS-safety
-  //!        guarantee (replace/iterate compose O(n) such operations: quadratic worst-case on any linear
-  //!        engine, never exponential); `fallback` delegates it to `std::regex`, which may accept it but
-  //!        **forfeits the guarantee** for that pattern.
+  /*!
+   * \brief The drop-in policy for a pattern the linear engine cannot represent (backreferences, an
+   *        unbounded lookaround, a POSIX class, …). `strict` (the default) rejects it, so every accepted
+   *        pattern executes each `regex_search`/`regex_match` in time linear in the input — the ReDoS-safety
+   *        guarantee (replace/iterate compose O(n) such operations: quadratic worst-case on any linear
+   *        engine, never exponential); `fallback` delegates it to `std::regex`, which may accept it but
+   *        **forfeits the guarantee** for that pattern.
+   */
   enum class policy : std::uint8_t
   {
     strict,   //!< Reject an ineligible pattern (throws `regex_error` with `error_complexity`). The default.
@@ -160,9 +206,19 @@ namespace real::compat {
     inline constexpr bool real_eligible =
       std::is_same_v<CharT, char> && std::is_same_v<Traits, std::regex_traits<char>>;
 
-    //! \brief Grammars/options that force the std backend (real implements default-traits ECMAScript,
-    //!        reporting every group — so `nosubs`, which std answers by exposing only group 0, also
-    //!        routes to std to avoid a structural both-accept divergence).
+    /*!
+     * \brief Options that still force the std backend AFTER the POSIX translation attempt has declined.
+     *
+     * Order matters, and this predicate is only half the story on its own: the constructor first tries
+     * \ref translate_posix, which routes any of the five POSIX grammars onto REAL when the pattern
+     * translates. Only a pattern that translation refused reaches this filter, where the grammar bits
+     * then do force `std`. `collate` and `nosubs` force it unconditionally — real implements
+     * default-traits ECMAScript and reports every group, while std answers `nosubs` by exposing only
+     * group 0, so routing it avoids a structural both-accept divergence.
+     *
+     * \param[in] f The syntax options requested.
+     * \return `true` if, translation having declined, these options cannot be served by REAL.
+     */
     inline bool grammar_forces_std(regex_constants::syntax_option_type f) noexcept
     {
       using namespace regex_constants;
@@ -171,24 +227,28 @@ namespace real::compat {
              || (f & nosubs) != ECMAScript;
     }
 
-    //! \brief Pattern text that real *accepts* but matches differently from libstdc++ — a both-accept
-    //!        silent divergence, so it must route to std up front (real's accept hides it otherwise).
-    //!
-    //! `\0` followed by a digit: `real` reads it as a legacy octal escape (Annex B, e.g. `\012` →
-    //! newline) while libstdc++ reads `\0` as NUL then a literal digit. Strict ECMAScript makes `\0`+
-    //! digit a syntax error (no valid production), so neither is "the" spec answer — routing to std
-    //! keeps compat ≡ its secondary oracle and the contract (never a silent divergence). The fuzzer
-    //! found this. (`\1`-`\9` already route to std via real's backreference rejection.)
-    //!
-    //! `\C` (RE2's raw-byte escape): `real` accepts it here because `real::compat` always
-    //! compiles its internal engine with `flags::bytes` (for byte-per-`std::regex`-char alignment, see
-    //! the file header), which is the ONLY gate `\C` itself checks — an internal implementation detail
-    //! leaking through as accidental, unintended public surface. `\C` is not ECMAScript at all (an
-    //! RE2/real-only extension outside this layer's std::regex contract), and libstdc++ does not accept
-    //! it either — a genuine both-behavior mismatch (real: matches one byte; std: rejects, or accepts
-    //! it as some other escape and matches differently), not a case where routing to std even yields
-    //! agreement. Route to std up front so compat never exposes it. The fuzzer found this (the exact
-    //! seed corpus added for `\C`'s own coverage, replayed here since `fuzz/corpus` is shared).
+    /*!
+     * \brief Pattern text that real *accepts* but matches differently from libstdc++ — a both-accept
+     *        silent divergence, so it must route to std up front (real's accept hides it otherwise).
+     *
+     * `\0` followed by a digit: `real` reads it as a legacy octal escape (Annex B, e.g. `\012` →
+     * newline) while libstdc++ reads `\0` as NUL then a literal digit. Strict ECMAScript makes `\0`+
+     * digit a syntax error (no valid production), so neither is "the" spec answer — routing to std
+     * keeps compat ≡ its secondary oracle and the contract (never a silent divergence). The fuzzer
+     * found this. (`\1`-`\9` already route to std via real's backreference rejection.)
+     *
+     * `\C` (RE2's raw-byte escape): `real` accepts it here because `real::compat` always
+     * compiles its internal engine with `flags::bytes` (for byte-per-`std::regex`-char alignment, see
+     * the file header), which is the ONLY gate `\C` itself checks — an internal implementation detail
+     * leaking through as accidental, unintended public surface. `\C` is not ECMAScript at all (an
+     * RE2/real-only extension outside this layer's std::regex contract), and libstdc++ does not accept
+     * it either — a genuine both-behavior mismatch (real: matches one byte; std: rejects, or accepts
+     * it as some other escape and matches differently), not a case where routing to std even yields
+     * agreement. Route to std up front so compat never exposes it. The fuzzer found this (the exact
+     * seed corpus added for `\C`'s own coverage, replayed here since `fuzz/corpus` is shared).
+     * \param[in] p The pattern text.
+     * \return `true` if it holds a construct only the `std` backend can serve.
+     */
     [[nodiscard]] inline bool pattern_forces_std(std::string_view p) noexcept
     {
       const auto is_flag_or_dash = [](char c) {
@@ -219,10 +279,14 @@ namespace real::compat {
       return false;
     }
 
-    //! \brief Replacement format text that must route to std: `$0`. `$0` is platform-variant
-    //!        (libstdc++ = the whole match, strict-ECMAScript/MSVC = a literal), so real cannot
-    //!        pick one without risking a silent divergence — route to std, which is authoritative
-    //!        for its own platform. `$$` is skipped (an escaped literal `$`).
+    /*!
+     * \brief Replacement format text that must route to std: `$0`. `$0` is platform-variant
+     *        (libstdc++ = the whole match, strict-ECMAScript/MSVC = a literal), so real cannot
+     *        pick one without risking a silent divergence — route to std, which is authoritative
+     *        for its own platform. `$$` is skipped (an escaped literal `$`).
+     * \param[in] fmt The replacement format.
+     * \return `true` if it holds a construct whose meaning is platform-variant, so the replace routes to `std`.
+     */
     [[nodiscard]] inline bool format_forces_std(std::string_view fmt) noexcept
     {
       for (std::size_t i = 0; i < fmt.size(); ++i) {
@@ -238,8 +302,12 @@ namespace real::compat {
       return false;
     }
 
-    //! \brief A POSIX bracket-class name to its ASCII (C-locale) range content, appended inside a `[...]` during
-    //!        ERE translation. Empty for an unknown name (the caller then falls back to std).
+    /*!
+     * \brief A POSIX bracket-class name to its ASCII (C-locale) range content, appended inside a `[...]` during
+     *        ERE translation. Empty for an unknown name (the caller then falls back to std).
+     * \param[in] name A POSIX class name without its brackets, e.g. `alpha`.
+     * \return The equivalent range text for a bracket expression, or empty if the name is unknown.
+     */
     inline std::string posix_class_ranges(std::string_view name)
     {
       if (name == "alpha") { return "A-Za-z"; }
@@ -257,11 +325,17 @@ namespace real::compat {
       return {};
     }
 
-    //! \brief Translates a POSIX bracket expression `[...]` — identical syntax in BRE and ERE, so shared by both
-    //!        translators. POSIX classes (`[[:alpha:]]`) become ASCII ranges; other members pass through. \p i
-    //!        must point at the opening `[`; on success it advances past the `]` and appends the class to \p out.
-    //!        Returns false (the caller then declines to std) on an unterminated class or an unknown / collating
-    //!        `[[:foo:]]` / `[.x.]` / `[=x=]`.
+    /*!
+     * \brief Translates a POSIX bracket expression `[...]` — identical syntax in BRE and ERE, so shared by both
+     *        translators. POSIX classes (`[[:alpha:]]`) become ASCII ranges; other members pass through. \p i
+     *        must point at the opening `[`; on success it advances past the `]` and appends the class to \p out.
+     *        Returns false (the caller then declines to std) on an unterminated class or an unknown / collating
+     *        `[[:foo:]]` / `[.x.]` / `[=x=]`.
+     * \param[in]     p   The pattern being translated.
+     * \param[in,out] i   Cursor at the opening bracket; advanced past the expression on success.
+     * \param[in,out] out Destination the translated bracket is appended to.
+     * \return `false` if the bracket expression cannot be translated, leaving \p out unspecified.
+     */
     [[nodiscard]] inline bool translate_bracket(std::string_view p,
                                                 std::size_t&     i,
                                                 std::string&     out)
@@ -296,11 +370,17 @@ namespace real::compat {
       return true;
     }
 
-    //! \brief Appends the REAL translation of an awk C-escape at \p i (which points at the backslash),
-    //!        advancing \p i; returns false to decline (→ std). awk's escapes beyond ERE: `\b` is BACKSPACE
-    //!        (0x08) — **not** a word boundary, the inverse of the ERE decline — `\a`=BEL, `\n\t\r\f\v` the usual
-    //!        controls, `\/` and `\"` literals, and a 1-to-3-digit octal `\ddd` (both std libraries agree; an
-    //!        overflow > 0377 declines). Emitted as `\xHH` so REAL matches the exact byte.
+    /*!
+     * \brief Appends the REAL translation of an awk C-escape at \p i (which points at the backslash),
+     *        advancing \p i; returns false to decline (→ std). awk's escapes beyond ERE: `\b` is BACKSPACE
+     *        (0x08) — **not** a word boundary, the inverse of the ERE decline — `\a`=BEL, `\n\t\r\f\v` the usual
+     *        controls, `\/` and `\"` literals, and a 1-to-3-digit octal `\ddd` (both std libraries agree; an
+     *        overflow > 0377 declines). Emitted as `\xHH` so REAL matches the exact byte.
+     * \param[in]     p   The pattern being translated.
+     * \param[in,out] i   Cursor at the backslash; advanced past the escape on success.
+     * \param[in,out] out Destination the translated escape is appended to.
+     * \return `false` if the escape is not one awk defines.
+     */
     [[nodiscard]] inline bool append_awk_escape(std::string_view p,
                                                 std::size_t&     i,
                                                 std::string&     out)
@@ -342,13 +422,18 @@ namespace real::compat {
       return false; // `\d` `\w` `\s` … — no awk meaning; decline
     }
 
-    //! \brief Whether \p p has an **empty alternation branch** — a `|` with nothing on one side: `(|`, `|)`,
-    //!        `||`, or a `|` at the pattern start or end. Two reasons this matters: (a) `std::regex` **rejects**
-    //!        these in the POSIX grammars, so translating one would make compat over-accept vs std; (b) REAL's
-    //!        leftmost-first star semantics over an empty-first branch (`(|a)*`) diverge from re / std on
-    //!        repetition. Conservative — a `|` merely adjacent to a group boundary or the pattern edge counts,
-    //!        an escaped `\|` or a `|` inside a class does not — because a false positive only costs linear
-    //!        coverage (safe) while a false negative is a silent divergence (forbidden).
+    /*!
+     * \brief Whether \p p has an **empty alternation branch** — a `|` with nothing on one side: `(|`, `|)`,
+     *        `||`, or a `|` at the pattern start or end. Two reasons this matters: (a) `std::regex` **rejects**
+     *        these in the POSIX grammars, so translating one would make compat over-accept vs std; (b) REAL's
+     *        leftmost-first star semantics over an empty-first branch (`(|a)*`) diverge from re / std on
+     *        repetition. Conservative — a `|` merely adjacent to a group boundary or the pattern edge counts,
+     *        an escaped `\|` or a `|` inside a class does not — because a false positive only costs linear
+     *        coverage (safe) while a false negative is a silent divergence (forbidden).
+     * \param[in] p The pattern text.
+     * \return `true` if some alternation branch is empty — which POSIX grammars reject, so REAL declines
+     *         to stay equivalent to `std`.
+     */
     [[nodiscard]] inline bool has_empty_alternation_branch(std::string_view p)
     {
       bool in_class {false};
@@ -369,12 +454,17 @@ namespace real::compat {
       return false;
     }
 
-    //! \brief Translates a POSIX **extended** (ERE) — or, with \p awk, an **awk** — pattern to an equivalent REAL
-    //!        pattern, or `nullopt` when it uses a construct the two grammars read differently (an ECMAScript
-    //!        shorthand `\d\w\s` — undefined/literal in ERE; an ambiguous `{`; an unknown/collating `[[:…:]]`;
-    //!        an empty alternation branch, which std rejects — see \ref has_empty_alternation_branch).
-    //!        awk adds the C-escapes (see \ref append_awk_escape). POSIX classes become ASCII ranges (C locale);
-    //!        the common productions pass through, since REAL reads them like ERE. Validated by a bounds differential.
+    /*!
+     * \brief Translates a POSIX **extended** (ERE) — or, with \p awk, an **awk** — pattern to an equivalent REAL
+     *        pattern, or `nullopt` when it uses a construct the two grammars read differently (an ECMAScript
+     *        shorthand `\d\w\s` — undefined/literal in ERE; an ambiguous `{`; an unknown/collating `[[:…:]]`;
+     *        an empty alternation branch, which std rejects — see \ref has_empty_alternation_branch).
+     *        awk adds the C-escapes (see \ref append_awk_escape). POSIX classes become ASCII ranges (C locale);
+     *        the common productions pass through, since REAL reads them like ERE. Validated by a bounds differential.
+     * \param[in] p   The ERE pattern.
+     * \param[in] awk Whether awk's extra escapes are in scope.
+     * \return The ECMAScript equivalent, or `std::nullopt` when the pattern cannot be translated.
+     */
     [[nodiscard]] inline std::optional<std::string> translate_ere(std::string_view p,
                                                                   bool             awk = false)
     {
@@ -427,11 +517,15 @@ namespace real::compat {
       return out;
     }
 
-    //! \brief Translates a POSIX **basic** (BRE) pattern to an equivalent REAL pattern, or `nullopt`. BRE differs
-    //!        from ERE: `\(` `\)` group and `\{n\}` quantify, while bare `( ) { } | + ?` are LITERALS (escaped for
-    //!        REAL); `*` at an expression start and `^`/`$` off the ends are literals too. Declines (→ std) on a
-    //!        backreference `\1`-`\9` (std's residual value), an ECMAScript-ism, a non-strict `\{`, an unknown /
-    //!        collating class, or a POSIX-undefined corner (`^`/`$`/`*` at a subexpression boundary).
+    /*!
+     * \brief Translates a POSIX **basic** (BRE) pattern to an equivalent REAL pattern, or `nullopt`. BRE differs
+     *        from ERE: `\(` `\)` group and `\{n\}` quantify, while bare `( ) { } | + ?` are LITERALS (escaped for
+     *        REAL); `*` at an expression start and `^`/`$` off the ends are literals too. Declines (→ std) on a
+     *        backreference `\1`-`\9` (std's residual value), an ECMAScript-ism, a non-strict `\{`, an unknown /
+     *        collating class, or a POSIX-undefined corner (`^`/`$`/`*` at a subexpression boundary).
+     * \param[in] p The BRE pattern.
+     * \return The ECMAScript equivalent, or `std::nullopt` when it cannot be translated.
+     */
     [[nodiscard]] inline std::optional<std::string> translate_bre(std::string_view p)
     {
       std::string       out;
@@ -512,6 +606,11 @@ namespace real::compat {
     //!        branch-relative. A line that declines, or an empty line (a blank branch — a std edge best left to
     //!        std), declines the whole pattern.
     template <typename LineFn>
+    /*!
+     * \param[in] p              The pattern, whose newlines separate alternatives (grep/egrep).
+     * \param[in] translate_line Applied to each line; its `std::nullopt` fails the whole translation.
+     * \return The joined ECMAScript alternation, or `std::nullopt` if any line failed.
+     */
     [[nodiscard]] inline std::optional<std::string> translate_newline_alt(std::string_view p,
                                                                           LineFn           translate_line)
     {
@@ -533,9 +632,14 @@ namespace real::compat {
       return out;
     }
 
-    //! \brief Dispatches a single POSIX grammar to its translator, or `nullopt` (→ std). Exactly one grammar bit
-    //!        must be set, and neither `collate` nor `nosubs` (which force std). `extended` → ERE, `basic` → BRE,
-    //!        `awk` → ERE + C-escapes, `grep` → BRE lines joined by `|`, `egrep` → ERE lines joined by `|`.
+    /*!
+     * \brief Dispatches a single POSIX grammar to its translator, or `nullopt` (→ std). Exactly one grammar bit
+     *        must be set, and neither `collate` nor `nosubs` (which force std). `extended` → ERE, `basic` → BRE,
+     *        `awk` → ERE + C-escapes, `grep` → BRE lines joined by `|`, `egrep` → ERE lines joined by `|`.
+     * \param[in] p The pattern text.
+     * \param[in] f The syntax options, which select the POSIX grammar to translate from.
+     * \return The ECMAScript equivalent, or `std::nullopt` when the options or pattern decline.
+     */
     [[nodiscard]] inline std::optional<std::string> translate_posix(std::string_view                    p,
                                                                     regex_constants::syntax_option_type f)
     {
@@ -555,7 +659,11 @@ namespace real::compat {
       return translate_newline_alt(p, [](std::string_view l) { return translate_ere(l); }); // egrep
     }
 
-    //! \brief Maps compat options to real::flags (always with bytes|ecma for std-char alignment).
+    /*!
+     * \brief Maps compat options to real::flags (always with bytes|ecma for std-char alignment).
+     * \param[in] f The compat syntax options.
+     * \return The equivalent \ref real::flags.
+     */
     inline real::flags to_real(regex_constants::syntax_option_type f) noexcept
     {
       real::flags r {real::flags::bytes | real::flags::ecma};
@@ -564,7 +672,11 @@ namespace real::compat {
       return r;
     }
 
-    //! \brief Maps compat options to std::regex syntax flags (the fallback path).
+    /*!
+     * \brief Maps compat options to std::regex syntax flags (the fallback path).
+     * \param[in] f The compat syntax options.
+     * \return The equivalent `std::regex_constants::syntax_option_type`.
+     */
     inline std::regex_constants::syntax_option_type to_std(regex_constants::syntax_option_type f) noexcept
     {
       namespace sc = std::regex_constants;
@@ -602,6 +714,13 @@ namespace real::compat {
 
     basic_regex() = default;                                 // the variant default-constructs to an empty std regex
 
+    /*!
+     * \brief Compiles \p pattern from a C string.
+     * \param[in] pattern NUL-terminated pattern text.
+     * \param[in] f       Syntax options; the grammar they select may route the pattern to `std`.
+     * \param[in] pol     Strict rejects a pattern REAL cannot represent linearly; fallback routes it to `std`.
+     * \throws real::compat::regex_error on an invalid pattern, or on a strict-policy rejection.
+     */
     explicit basic_regex(const CharT* pattern,
                          flag_type    f   = regex_constants::ECMAScript,
                          policy       pol = policy::strict)
@@ -610,6 +729,13 @@ namespace real::compat {
       assign(std::basic_string_view<CharT>(pattern), f);
     }
 
+    /*!
+     * \brief Compiles \p pattern from an owned string.
+     * \param[in] pattern The pattern text.
+     * \param[in] f       Syntax options.
+     * \param[in] pol     Rejection policy; see the C-string overload.
+     * \throws real::compat::regex_error on an invalid pattern, or on a strict-policy rejection.
+     */
     explicit basic_regex(const string_type& pattern,
                          flag_type          f   = regex_constants::ECMAScript,
                          policy             pol = policy::strict)
@@ -618,6 +744,14 @@ namespace real::compat {
       assign(std::basic_string_view<CharT>(pattern), f);
     }
 
+    /*!
+     * \brief Compiles the first \p len characters of \p pattern, which need not be NUL-terminated.
+     * \param[in] pattern Pattern text.
+     * \param[in] len     Its length in characters.
+     * \param[in] f       Syntax options.
+     * \param[in] pol     Rejection policy.
+     * \throws real::compat::regex_error on an invalid pattern, or on a strict-policy rejection.
+     */
     basic_regex(const CharT* pattern,
                 std::size_t  len,
                 flag_type    f   = regex_constants::ECMAScript,
@@ -627,6 +761,14 @@ namespace real::compat {
       assign(std::basic_string_view<CharT>(pattern, len), f);
     }
 
+    /*!
+     * \brief Compiles the pattern in `[begin, end)`.
+     * \param[in] begin Start of the pattern text.
+     * \param[in] end   One past its end.
+     * \param[in] f     Syntax options.
+     * \param[in] pol   Rejection policy.
+     * \throws real::compat::regex_error on an invalid pattern, or on a strict-policy rejection.
+     */
     template <typename It>
     basic_regex(It        begin,
                 It        end,
@@ -638,18 +780,28 @@ namespace real::compat {
       assign(std::basic_string_view<CharT>(pattern), f);
     }
 
-    //! \brief Number of marked sub-expressions (excluding group 0), as `std::basic_regex`.
+    /*!
+     * \brief Number of marked sub-expressions (excluding group 0), as `std::basic_regex`.
+     * \return The group count.
+     */
     [[nodiscard]] std::size_t mark_count() const noexcept
     {
       return mark_count_;
     }
 
-    //! \brief The flags this regex was built with.
+    /*!
+     * \brief The flags this regex was built with.
+     * \return Those flags.
+     */
     [[nodiscard]] flag_type flags() const noexcept
     {
       return flags_;
     }
 
+    /*!
+     * \brief Exchanges engines, flags, policy and cached state with \p other.
+     * \param[in,out] other The regex to swap with.
+     */
     void swap(basic_regex& other) noexcept
     {
       engine_.swap(other.engine_);
@@ -663,73 +815,100 @@ namespace real::compat {
       std::swap(policy_, other.policy_);
     }
 
-    //! \brief True if this regex is backed by the `real` engine (vs the std fallback).
+    /*!
+     * \brief True if this regex is backed by the `real` engine (vs the std fallback).
+     * \return `true` if REAL's linear engine holds it.
+     */
     [[nodiscard]] bool uses_real() const noexcept
     {
       return std::holds_alternative<real::regex>(engine_);
     }
 
-    //! \brief True if this regex fell back to `std::regex` (a `policy::fallback` regex on an ineligible
-    //!        pattern) — so this pattern is *not* linear-time / ReDoS-safe. Always false under `strict`.
+    /*!
+     * \brief True if this regex fell back to `std::regex` (a `policy::fallback` regex on an ineligible
+     *        pattern) — so this pattern is *not* linear-time / ReDoS-safe. Always false under `strict`.
+     * \return `true` if `std::basic_regex` holds it — in which case the linear-time guarantee does not apply.
+     */
     [[nodiscard]] bool uses_fallback() const noexcept
     {
       return !uses_real();
     }
 
-    //! \brief The drop-in policy this regex was constructed with.
+    /*!
+     * \brief The drop-in policy this regex was constructed with.
+     * \return Strict or fallback.
+     */
     [[nodiscard]] compat::policy policy() const noexcept
     {
       return policy_;
     }
 
-    //! \brief Access the active backend (engine-facing; used by the free functions).
+    /*!
+     * \brief Access the active backend (engine-facing; used by the free functions).
+     * \return The variant holding whichever backend compiled this pattern.
+     */
     [[nodiscard]] const std::variant<std::basic_regex<CharT, Traits>, real::regex>& engine() const noexcept
     {
       return engine_;
     }
 
-    //! \brief Whether the pattern can match the empty string (real's `empty_match_possible` hint).
-    //!
-    //! Empty-match *traversal* (replace / iterate) follows Python's advance rules in `real`, which
-    //! differ from ECMAScript. So a nullable real-backed pattern routes those operations to a lazily
-    //! built `std::regex` (\ref std_engine) — per operation, not at construction, so `search`/`match`
-    //! keep `real`'s linear-time guarantee even on nullable-ReDoS patterns like `(a*)*`.
+    /*!
+     * \brief Whether the pattern can match the empty string (real's `empty_match_possible` hint).
+     *
+     * Empty-match *traversal* (replace / iterate) follows Python's advance rules in `real`, which
+     * differ from ECMAScript. So a nullable real-backed pattern routes those operations to a lazily
+     * built `std::regex` (\ref std_engine) — per operation, not at construction, so `search`/`match`
+     * keep `real`'s linear-time guarantee even on nullable-ReDoS patterns like `(a*)*`.
+     * \return `true` if it is nullable; `regex_replace` then routes to `std`, whose empty-match
+     *         traversal differs from REAL's Python-lineage one.
+     */
     [[nodiscard]] bool nullable() const noexcept
     {
       return nullable_;
     }
 
-    //! \brief Whether this is a POSIX-ERE pattern routed to REAL: `search`/`match` must use leftmost-**longest**
-    //!        bounds (the POSIX semantics), not the default leftmost-first. Set only for a translated `extended`.
+    /*!
+     * \brief Whether this is a POSIX pattern routed to REAL: `search`/`match` must use leftmost-**longest**
+     *        bounds (the POSIX semantics), not the default leftmost-first. Set for any of the five POSIX
+     *        grammars once \ref detail::translate_posix has translated it onto REAL; a pattern that stays
+     *        on the std backend leaves it false, since std applies POSIX semantics itself.
+     * \return `true` under a POSIX grammar that REAL is running.
+     */
     [[nodiscard]] bool posix_longest() const noexcept
     {
       return posix_longest_;
     }
 
-    //! \brief Whether replace/iterate run on the `real` traversal (real-backed AND non-nullable AND no
-    //!        nullable captured-repeat group). A nullable pattern delegates replace/iterate to std (the
-    //!        empty-match traversal differs; and iterating a nullable pattern whose per-position match
-    //!        cost is O(n) is O(n²) on any linear engine, so routing it buys correctness but not a linear
-    //!        guarantee — see the nullable note in COMPATIBILITY.md). A pattern with a capturing group
-    //!        that is nullable under a quantifier (`(ab|)+a`) is itself non-nullable as a whole, but
-    //!        real's last-consuming-iteration capture (RE2/Rust/Go lineage) diverges from an ECMAScript
-    //!        backtracker's extra empty final iteration on that GROUP's span — so it routes too, for the
-    //!        same reason: `regex_search`/`match` are unaffected (see the nullable-loop group-capture
-    //!        section of COMPATIBILITY.md — the search residue is intentional, not an oversight).
+    /*!
+     * \brief Whether replace/iterate run on the `real` traversal (real-backed AND non-nullable AND no
+     *        nullable captured-repeat group). A nullable pattern delegates replace/iterate to std (the
+     *        empty-match traversal differs; and iterating a nullable pattern whose per-position match
+     *        cost is O(n) is O(n²) on any linear engine, so routing it buys correctness but not a linear
+     *        guarantee — see the nullable note in COMPATIBILITY.md). A pattern with a capturing group
+     *        that is nullable under a quantifier (`(ab|)+a`) is itself non-nullable as a whole, but
+     *        real's last-consuming-iteration capture (RE2/Rust/Go lineage) diverges from an ECMAScript
+     *        backtracker's extra empty final iteration on that GROUP's span — so it routes too, for the
+     *        same reason: `regex_search`/`match` are unaffected (see the nullable-loop group-capture
+     *        section of COMPATIBILITY.md — the search residue is intentional, not an oversight).
+     * \return `true` for a real-backed, non-nullable pattern.
+     */
     [[nodiscard]] bool uses_real_traversal() const noexcept
     {
       return uses_real() && !nullable_ && !nullable_captured_repeat_;
     }
 
-    //! \brief The `std::regex` for the std / lazy-std path (built once on demand for a real-backed
-    //!        pattern reached via a constraining flag / nullable replace-iterate / `$0`/sed replace).
-    //!
-    //! Thread-safe: `std::regex` guarantees concurrent `const` operations on one object are safe, but
-    //! this builds `lazy_std_` (a `mutable` member) on demand. A function-local static build mutex
-    //! serialises the build (and the read is taken under the same lock), so the guarantee holds for
-    //! nullable AND non-nullable real-backed patterns. `std::once_flag` would be lighter but is
-    //! non-copyable, and `basic_regex` must stay copyable (`std::regex` is); a static mutex keeps the
-    //! value semantics defaulted. The build is per operation, cold relative to matching.
+    /*!
+     * \brief The `std::regex` for the std / lazy-std path (built once on demand for a real-backed
+     *        pattern reached via a constraining flag / nullable replace-iterate / `$0`/sed replace).
+     *
+     * Thread-safe: `std::regex` guarantees concurrent `const` operations on one object are safe, but
+     * this builds `lazy_std_` (a `mutable` member) on demand. A function-local static build mutex
+     * serialises the build (and the read is taken under the same lock), so the guarantee holds for
+     * nullable AND non-nullable real-backed patterns. `std::once_flag` would be lighter but is
+     * non-copyable, and `basic_regex` must stay copyable (`std::regex` is); a static mutex keeps the
+     * value semantics defaulted. The build is per operation, cold relative to matching.
+     * \return The wrapped `std::basic_regex`; compiling one on demand if this pattern is real-backed.
+     */
     [[nodiscard]] const std::basic_regex<CharT, Traits>& std_engine() const
     {
       if (std::holds_alternative<std::basic_regex<CharT, Traits>>(engine_)) {
@@ -754,16 +933,22 @@ namespace real::compat {
   private:
 
     // std backend first so the variant is default-constructible (real::regex has no default ctor).
-    std::variant<std::basic_regex<CharT, Traits>, real::regex>           engine_;
-    string_type                                                          pattern_;                                   //!< Original pattern (for the lazy std build).
-    flag_type                                                            flags_                    {regex_constants::ECMAScript};
-    std::size_t                                                          mark_count_               {};
-    bool                                                                 nullable_                 {};               //!< empty_match_possible (real-backed).
-    bool                                                                 nullable_captured_repeat_ {};               //!< nullable_captured_repeat (real-backed) — a nullable capturing group under a quantifier; see \ref uses_real_traversal.
-    bool                                                                 posix_longest_            {};               //!< POSIX ERE on REAL: search uses leftmost-longest bounds.
-    mutable std::optional<std::basic_regex<CharT, Traits>>               lazy_std_;                                  //!< Lazy std for nullable replace/iterate.
-    compat::policy                                                       policy_                   {policy::strict}; //!< strict rejects ineligible, fallback delegates to std.
+    std::variant<std::basic_regex<CharT, Traits>, real::regex>           engine_;                                                 //!< Whichever backend compiled this pattern; see \ref uses_real and \ref uses_fallback.
+    string_type                                                          pattern_;                                                //!< Original pattern (for the lazy std build).
+    flag_type                                                            flags_                    {regex_constants::ECMAScript}; //!< Syntax options it was compiled with (\ref flags).
+    std::size_t                                                          mark_count_               {};                            //!< Capturing groups excluding the whole match (\ref mark_count).
+    bool                                                                 nullable_                 {};                            //!< empty_match_possible (real-backed).
+    bool                                                                 nullable_captured_repeat_ {};                            //!< nullable_captured_repeat (real-backed) — a nullable capturing group under a quantifier; see \ref uses_real_traversal.
+    bool                                                                 posix_longest_            {};                            //!< A POSIX grammar translated onto REAL: search uses leftmost-longest bounds.
+    mutable std::optional<std::basic_regex<CharT, Traits>>               lazy_std_;                                               //!< Lazy std for nullable replace/iterate.
+    compat::policy                                                       policy_                   {policy::strict};              //!< strict rejects ineligible, fallback delegates to std.
 
+    /*!
+     * \brief Compiles \p pattern into this object, replacing whatever it held.
+     * \param[in] pattern The pattern text.
+     * \param[in] f       Syntax options.
+     * \throws real::compat::regex_error on an invalid pattern, or on a strict-policy rejection.
+     */
     void assign(std::basic_string_view<CharT> pattern,
                 flag_type                     f)
     {
@@ -775,7 +960,8 @@ namespace real::compat {
       posix_longest_            = false;
       if constexpr (detail::real_eligible<CharT, Traits>) {
         const std::string_view sv {pattern.data(), pattern.size()};
-        // PX1a/PX1b: a single POSIX grammar (extended -> ERE, basic -> BRE; awk/grep/egrep next) on the linear
+        // PX1a/PX1b: a single POSIX grammar (extended/egrep -> ERE, basic/grep -> BRE, awk -> ERE + C
+        // escapes; grep/egrep additionally join their lines with `|`) on the linear
         // engine when the pattern translates — run it on REAL with leftmost-LONGEST bounds (the POSIX semantics,
         // via search_longest / find_iter_longest) instead of delegating to std's backtracker. A `nullopt` (a
         // wrong grammar mix, or an untranslatable construct) or a real reject falls through to the std path below;
@@ -835,9 +1021,15 @@ namespace real::compat {
       }
     }
 
-    //! \brief The policy branch for a pattern the linear engine cannot represent: `strict` throws
-    //!        `regex_error` with `error_complexity` and a REAL-identifiable message; `fallback` delegates
-    //!        it to `std::regex`.
+    /*!
+     * \brief The policy branch for a pattern the linear engine cannot represent: `strict` throws
+     *        `regex_error` with `error_complexity` and a REAL-identifiable message; `fallback` delegates
+     *        it to `std::regex`.
+     * \param[in] sv     The pattern text.
+     * \param[in] f      Syntax options.
+     * \param[in] reason Message carried by the thrown \ref regex_error under strict policy.
+     * \throws real::compat::regex_error under `policy::strict`; compiles on `std` under `policy::fallback`.
+     */
     void reject_or_fallback(std::string_view   sv,
                             flag_type          f,
                             const std::string& reason)
@@ -863,6 +1055,11 @@ namespace real::compat {
       emplace_std(sv, f);
     }
 
+    /*!
+     * \brief Compiles \p sv on the standard-library backend and stores it.
+     * \param[in] sv The pattern text.
+     * \param[in] f  Syntax options, translated by \ref detail::to_std.
+     */
     void emplace_std(std::string_view sv,
                      flag_type        f)
     {

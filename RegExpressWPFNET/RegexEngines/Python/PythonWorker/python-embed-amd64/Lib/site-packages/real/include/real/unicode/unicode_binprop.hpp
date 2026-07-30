@@ -29,8 +29,7 @@
 
 namespace real::detail {
 
-  //! \brief The Unicode data version these tables were generated from (16.0.0).
-  inline constexpr const char* unicode_binprop_unidata_version {"16.0.0"};
+  inline constexpr const char* unicode_binprop_unidata_version {"16.0.0"}; //!< The Unicode data version these tables were generated from.
 
   //! \brief `\p{ASCII_Hex_Digit}` — 3 ranges, 22 code points.
   inline constexpr code_range binprop_ASCII_Hex_Digit_ranges[] {
@@ -11625,7 +11624,9 @@ namespace real::detail {
     {0x31350, 0x323AF},
   };
 
-  //! \brief A Unicode binary property: the 63 standard yes/no properties this build knows.
+  /*!
+   * \brief A Unicode binary property: the 63 standard yes/no properties this build knows.
+   */
   enum class binprop : std::uint8_t {
     ASCII_Hex_Digit,
     Alphabetic,
@@ -11760,14 +11761,23 @@ namespace real::detail {
     binprop_XID_Start_ranges,
   };
 
-  //! \brief Whether \p cp has the binary property \p prop (== the UCD).
+  /*!
+   * \brief Whether \p cp has the binary property \p prop (== the UCD).
+   * \param[in] prop The property to test for.
+   * \param[in] cp   The code point to test.
+   * \return Whether \p cp has \p prop.
+   */
   constexpr bool is_binprop_cp(binprop prop, char32_t cp)
   {
     return cp_in_ranges(binprop_ranges[static_cast<std::size_t>(prop)], cp);
   }
 
   //! \brief A loose-normalized (lowercase, no _/-/space) binary-property name and its value.
-  struct binprop_alias_entry { std::string_view name; binprop prop; };
+  struct binprop_alias_entry
+  {
+    std::string_view name; //!< The loose-normalized name.
+    binprop          prop; //!< The property it names.
+  };
 
   //! \brief Binary-property names, loose-keyed; for the `\p{...}` parser (no namespace prefix,
   //!        same as PCRE2: `\p{Alphabetic}`, not `\p{bp=Alphabetic}`).
@@ -11837,7 +11847,11 @@ namespace real::detail {
     {"xidstart", binprop::XID_Start},
   };
 
-  //! \brief Resolve a loose-normalized binary-property name to its value, or `count` if unknown.
+  /*!
+   * \brief Resolve a loose-normalized binary-property name to its value, or `count` if unknown.
+   * \param[in] loose A name already put through the parser's loose normalization.
+   * \return The property, or `binprop::count` when no alias matches.
+   */
   constexpr binprop resolve_binprop(std::string_view loose)
   {
     for (const binprop_alias_entry& a : binprop_aliases) {

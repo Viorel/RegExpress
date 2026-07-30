@@ -33,15 +33,23 @@
 
 namespace real::detail {
 
-  //! \brief Prefilter work counter for the O(n) vs O(n²) smoke test.
-  //!        Always declared (clang-tidy / tests see the symbol). Billing is a no-op unless
-  //!        \c REAL_TEST_INSTRUMENT is defined on the test binary — wheel/prod pay nothing.
+  /*!
+   * \brief Prefilter work counter for the O(n) vs O(n²) smoke test.
+   *        Always declared (clang-tidy / tests see the symbol). Billing is a no-op unless
+   *        \c REAL_TEST_INSTRUMENT is defined on the test binary — wheel/prod pay nothing.
+   * \return A reference to the process-wide counter.
+   */
   inline std::uint64_t& prefilter_work_units() noexcept
   {
     static std::uint64_t units {0};
     return units;
   }
 
+  /*!
+   * \brief Bill \p n scanned bytes to \ref prefilter_work_units. A no-op unless the test binary
+   *        defines \c REAL_TEST_INSTRUMENT.
+   * \param[in] n Bytes the caller just scanned.
+   */
   inline void prefilter_note_scan(std::size_t n) noexcept
   {
 #if defined(REAL_TEST_INSTRUMENT)
@@ -54,6 +62,7 @@ namespace real::detail {
   /*!
    * \brief True if \p kind is `\b` or `\B` (the only position asserts B1 wraps on fast paths).
    * \param[in] kind Assertion kind from `assert_position`.
+   * \return Whether it is a word-boundary assertion.
    */
   [[nodiscard]] constexpr bool is_word_boundary_kind(assert_kind kind) noexcept
   {
@@ -63,6 +72,7 @@ namespace real::detail {
   /*!
    * \brief Encodes \p kind as a wb_lead/wb_trail hint value (1 = `\b`, 2 = `\B`); 0 if not a word boundary.
    * \param[in] kind Assertion kind from `assert_position`.
+   * \return 1 for `\b`, 2 for `\B`, 0 for anything else.
    */
   [[nodiscard]] constexpr std::uint8_t wb_hint_of(assert_kind kind) noexcept
   {
@@ -140,6 +150,11 @@ namespace real::detail {
     bool         ok         {}; //!< false: no leading `save 0`, or a non-wb lead assert disqualifies.
   };
 
+  /*!
+   * \brief Peels a fixed shape's `save 0` and its optional lead `\b`/`\B`.
+   * \param[in] code The program's instruction stream.
+   * \return Where the body begins and which lead wrap was found; \c ok false when the shape disqualifies.
+   */
   [[nodiscard]] constexpr shape_lead parse_shape_lead(std::span<const instr> code) noexcept
   {
     if (code.empty() || code[0].op != opcode::save || code[0].arg16 != 0) {
@@ -162,6 +177,12 @@ namespace real::detail {
     bool         ok       {}; //!< false: not exactly `save 1`, `match` at the end after peeling.
   };
 
+  /*!
+   * \brief Peels a fixed shape's optional trail `\b`/`\B`, then its `save 1` and `match`.
+   * \param[in] code The program's instruction stream.
+   * \param[in] from Program counter just past the body.
+   * \return Which trail wrap was found; \c ok false when the tail is not exactly `save 1`, `match`.
+   */
   [[nodiscard]] constexpr shape_close parse_shape_close(std::span<const instr> code,
                                                         std::size_t            from) noexcept
   {
@@ -176,7 +197,11 @@ namespace real::detail {
     return {};
   }
 
-  //! \brief True if \p cls is exactly the ASCII word set `[0-9A-Za-z_]` (`\w` under bytes/`re.A`).
+  /*!
+   * \brief True if \p cls is exactly the ASCII word set `[0-9A-Za-z_]` (`\w` under bytes/`re.A`).
+   * \param[in] cls The byte class under test.
+   * \return Whether it is exactly `\w`, neither a subset nor a superset.
+   */
   [[nodiscard]] constexpr bool is_full_ascii_word_class(const char_class& cls) noexcept
   {
     for (unsigned b = 0; b < 128U; ++b) {
@@ -192,7 +217,11 @@ namespace real::detail {
     return true;
   }
 
-  //! \brief True if every member of \p cls is an ASCII word byte (subset of `\w` under bytes/`re.A`).
+  /*!
+   * \brief True if every member of \p cls is an ASCII word byte (subset of `\w` under bytes/`re.A`).
+   * \param[in] cls The byte class under test.
+   * \return Whether it is non-empty and every member is an ASCII word byte.
+   */
   [[nodiscard]] constexpr bool is_ascii_word_subset_class(const char_class& cls) noexcept
   {
     bool any {false};
@@ -218,6 +247,7 @@ namespace real::detail {
    *
    * \param[in] cc         The code-point class under test.
    * \param[in] all_ranges Program flat range buffer (\p cc indexes a slice of it).
+   * \return Whether \p cc is exactly Unicode `\w`.
    */
   [[nodiscard]] constexpr bool is_full_unicode_word_cp_class(const cp_class&             cc,
                                                              std::span<const code_range> all_ranges) noexcept
@@ -254,14 +284,19 @@ namespace real::detail {
     return true;
   }
 
-  //! \brief Arc B-1: `\b` next to a full-`\w` MAXIMAL run is redundant (`\B` never is).
-  //!        Only sound when the match is a greedy `+` run: a maximal run of `\w` can only ever
-  //!        START where the character before it is non-word (or absent) -- that IS `\b` (or the
-  //!        text edge), so checking it again is redundant. A SINGLE code point (no `+`) has no
-  //!        such guarantee: `\b\w` may legally start mid-run (any word code point qualifies as a
-  //!        candidate start), so dropping the boundary there is unsound, not just conservative.
-  //!        The caller is responsible for only calling this when \p lead / \p trail came from a
-  //!        provably maximal-run shape (see \ref resolve_class_wb_hints's \p maximal_run).
+  /*!
+   * \brief Arc B-1: `\b` next to a full-`\w` MAXIMAL run is redundant (`\B` never is).
+   *        Only sound when the match is a greedy `+` run: a maximal run of `\w` can only ever
+   *        START where the character before it is non-word (or absent) -- that IS `\b` (or the
+   *        text edge), so checking it again is redundant. A SINGLE code point (no `+`) has no
+   *        such guarantee: `\b\w` may legally start mid-run (any word code point qualifies as a
+   *        candidate start), so dropping the boundary there is unsound, not just conservative.
+   *        The caller is responsible for only calling this when \p lead / \p trail came from a
+   *        provably maximal-run shape (see \ref resolve_class_wb_hints's \p maximal_run).
+   * \param[in] lead  The lead wrap hint (0/1/2, see \ref wb_hint_of).
+   * \param[in] trail The trail wrap hint, same encoding.
+   * \return True when at least one side is `\b` and neither is `\B`, so both may be dropped.
+   */
   [[nodiscard]] constexpr bool wb_redundant_for_full_word(std::uint8_t lead,
                                                           std::uint8_t trail) noexcept
   {
@@ -373,8 +408,13 @@ namespace real::detail {
     return true;
   }
 
-  //! \brief True if every code point in [\p lo, \p hi] is a Unicode word char (covered by \ref
-  //!        word_ranges). Standalone form of \ref word_ranges_cover_interval_from.
+  /*!
+   * \brief True if every code point in [\p lo, \p hi] is a Unicode word char (covered by \ref
+   *        word_ranges). Standalone form of \ref word_ranges_cover_interval_from.
+   * \param[in] lo First code point of the interval.
+   * \param[in] hi Last code point of the interval, inclusive.
+   * \return Whether every code point in it is a Unicode word character.
+   */
   [[nodiscard]] constexpr bool word_ranges_cover_interval(char32_t lo,
                                                           char32_t hi) noexcept
   {
@@ -387,6 +427,10 @@ namespace real::detail {
    *
    * Supersets like `[\w😀]` must NOT take B-2: a maximal class run can start on a non-word member
    * and skip over a later word-bounded sub-run.
+   *
+   * \param[in] cc         The code-point class under test.
+   * \param[in] all_ranges Program flat range buffer (\p cc indexes a slice of it).
+   * \return Whether \p cc is non-empty and wholly inside Unicode `\w`.
    */
   [[nodiscard]] constexpr bool is_unicode_word_subset_cp_class(const cp_class&             cc,
                                                                std::span<const code_range> all_ranges) noexcept
@@ -419,12 +463,17 @@ namespace real::detail {
     return any || cc.range_count > 0;
   }
 
-  //! \brief safety check: true if the ASCII byte \p b could be a member of code-point
-  //!        class \p cc — used only to test whether a single-byte delimiter (a "quoted"-shape prefix or
-  //!        suffix) could hide inside a `klass_cp_loop_possessive` body, in which case the delimited
-  //!        fast path must decline (see \ref pattern_hints::possessive_prefix). A non-ASCII \p b (>=
-  //!        0x80) is conservatively treated as a member (unsafe, declines) — this shape's corpus is
-  //!        single-byte ASCII delimiters (`"`, `;`, …), so a multi-byte delimiter simply stays general.
+  /*!
+   * \brief safety check: true if the ASCII byte \p b could be a member of code-point
+   *        class \p cc — used only to test whether a single-byte delimiter (a "quoted"-shape prefix or
+   *        suffix) could hide inside a `klass_cp_loop_possessive` body, in which case the delimited
+   *        fast path must decline (see \ref pattern_hints::possessive_prefix). A non-ASCII \p b (>=
+   *        0x80) is conservatively treated as a member (unsafe, declines) — this shape's corpus is
+   *        single-byte ASCII delimiters (`"`, `;`, …), so a multi-byte delimiter simply stays general.
+   * \param[in] cc The loop body's code-point class.
+   * \param[in] b  The candidate delimiter byte.
+   * \return True when \p b could be a member — including for any \p b >= 0x80, conservatively.
+   */
   [[nodiscard]] constexpr bool cp_class_may_contain_ascii_byte(const cp_class& cc,
                                                                std::uint8_t    b) noexcept
   {
@@ -533,6 +582,9 @@ namespace real::detail {
   /*!
    * \brief Records start anchoring: the first non-save instruction tells whether every
    *        match must begin at position 0 (`\A`/`^` non-multiline) or at a line start.
+   *
+   * \param[in]     code  The program's instruction stream.
+   * \param[in,out] hints Hints to record the anchoring in.
    */
   constexpr void extract_anchoring(std::span<const instr> code,
                                    pattern_hints&         hints)
@@ -557,6 +609,9 @@ namespace real::detail {
    * fires when those bytes ARE the whole match — no assertion appears after the first byte up
    * to `match` (only saves may be crossed). Trailing/inter assertions ($, \b after, …) are
    * post-filters that must go through the normal VM; leading assertions are fine.
+   *
+   * \param[in]     code  The program's instruction stream.
+   * \param[in,out] hints Hints to record the prefix and the exact-literal length in.
    */
   constexpr void extract_prefix(std::span<const instr> code,
                                 pattern_hints&         hints)
@@ -637,6 +692,11 @@ namespace real::detail {
    * Assertions are crossed conservatively (they constrain positions, not bytes; a lookaround
    * yields a sound SUPERSET so ⑤ never wrongly rejects a valid start). If `match` is reachable
    * without consuming, an empty match is possible and no byte-based skipping is sound.
+   *
+   * \param[in]     code       The program's instruction stream.
+   * \param[in]     classes    Its byte classes.
+   * \param[in]     cp_classes Its code-point classes.
+   * \param[in,out] hints      Hints to record the first-byte set in.
    */
   constexpr void compute_first_bytes(std::span<const instr>      code,
                                      std::span<const char_class> classes,
@@ -1536,6 +1596,9 @@ namespace real::detail {
    *        against one another. Punctuation like `-` `@` `.` is far rarer than any letter, digit or space,
    *        which is the whole point: a required rare byte makes a far more selective `memchr` target than a
    *        common first-byte class.
+   *
+   * \param[in] b The byte to rank.
+   * \return Its approximate frequency, in occurrences per 10000.
    */
   constexpr std::uint16_t byte_frequency(std::uint8_t b)
   {
@@ -1584,6 +1647,9 @@ namespace real::detail {
    * are not fixed), `split`, `jump`, `match`. The chosen byte must be below an absolute rarity threshold
    * and several times rarer than the first-byte set, or the existing first-byte scan already suffices. The
    * hint only filters candidate starts; the VM still verifies, so it is always sound.
+   *
+   * \param[in]     code  The program's instruction stream.
+   * \param[in,out] hints Hints to record the rare byte and its offset in.
    */
   constexpr void extract_rare_byte(std::span<const instr> code,
                                    pattern_hints&         hints)
@@ -1650,6 +1716,9 @@ namespace real::detail {
    * changes it). Search memchr's the disc and back-verifies the optional shape — never memmem.
    * Supersedes a weak literal-prefix scan when the disc is several times rarer than the first byte.
    * Always sound: only filters candidates; the VM confirms.
+   *
+   * \param[in]     code  The program's instruction stream.
+   * \param[in,out] hints Hints to record the discriminant and its surrounding shape in.
    */
   constexpr void extract_rare_discriminant(std::span<const instr> code,
                                            pattern_hints&         hints)
@@ -1988,8 +2057,10 @@ namespace real::detail {
     return npos;
   }
 
-  //! \brief Consecutive disc hits that fail back-verify before the density gate trips.
-  //!        Dense `:` filler (e.g. `a:b:c:d…`) makes memchr+verify lose to a selective `http` prefix.
+  /*!
+   * \brief Consecutive disc hits that fail back-verify before the density gate trips.
+   *        Dense `:` filler (e.g. `a:b:c:d…`) makes memchr+verify lose to a selective `http` prefix.
+   */
   inline constexpr std::uint32_t rare_disc_fail_abandon {32};
 
   /*!
@@ -2001,6 +2072,12 @@ namespace real::detail {
    * Density abandon: when the disc is dense (many hits that fail back-verify), sets
    * \p density_abandon and returns npos so the caller can sticky-switch to the prefix path
    * for the rest of the haystack (same contract as the IL density gate — never miss a match).
+   *
+   * \param[in]  text            Subject.
+   * \param[in]  pos             Lower bound on the returned start.
+   * \param[in]  hints           The armed hints, read for the discriminant and its shape.
+   * \param[out] density_abandon When non-null, set if the disc proved too dense to be worth scanning.
+   * \return The verified candidate start, or \ref real::npos when there is none.
    */
   constexpr std::size_t find_rare_disc_candidate(std::string_view     text,
                                                  std::size_t          pos,
