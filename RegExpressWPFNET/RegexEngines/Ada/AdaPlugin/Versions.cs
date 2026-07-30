@@ -8,6 +8,6 @@ namespace AdaPlugin
 {
     internal class Versions
     {
-        public static string Ada { get; } = "15.2.0";
+        public static string Ada { get; } = "26.0.0";
     }
 }

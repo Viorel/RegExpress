@@ -4,7 +4,7 @@ HOW IT'S MADE
 - Install MSYS2 according to https://code.visualstudio.com/docs/cpp/config-mingw. 
 
     In short:
-        - install MSYS2
+        - install MSYS2, start ucrt64.exe.
         - install toolchain (see https://www.msys2.org/: pacman -S mingw-w64-ucrt-x86_64-gcc)
         (NOTE. We are using UCRT, not MINGW environment)
         - Modify PATH (add path of "<msys64 location>\ucrt64\bin"
