@@ -582,7 +582,7 @@ namespace RegExpressWPFNET
 
                         if( match.CharLength == 0 )
                         {
-                            value_inline = new Run( "(empty)", span.ContentEnd ); //
+                            value_inline = new Run( "empty", span.ContentEnd ); //
                             value_inline.Style( MatchNormalStyleInfo, LocationStyleInfo );
                         }
                         else
@@ -719,12 +719,12 @@ namespace RegExpressWPFNET
 
                         if( !group.Success )
                         {
-                            value_inline = new Run( "(fail)", span.ContentEnd );
+                            value_inline = new Run( "failed", span.ContentEnd );
                             value_inline.Style( GroupFailedStyleInfo );
                         }
                         else if( group.CharLength == 0 )
                         {
-                            value_inline = new Run( no_group_success_flag ? "(empty or failed)" : "(empty)", span.ContentEnd );
+                            value_inline = new Run( no_group_success_flag ? "empty or failed" : "empty", span.ContentEnd );
                             value_inline.Style( LocationStyleInfo );
                         }
                         else
@@ -965,7 +965,7 @@ namespace RegExpressWPFNET
 
                 if( capture.CharLength == 0 )
                 {
-                    value_inline = new Run( "(empty)", span.ContentEnd );
+                    value_inline = new Run( "empty", span.ContentEnd );
                     value_inline.Style( MatchNormalStyleInfo, LocationStyleInfo );
                 }
                 else

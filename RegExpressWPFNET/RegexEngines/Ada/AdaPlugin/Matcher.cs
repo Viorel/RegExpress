@@ -94,10 +94,17 @@ namespace AdaPlugin
                             throw new Exception( $"Invalid output: {line}" );
                         }
 
-                        // to 0... and exclusive end
-                        --native_start;
-                        --native_end;
-                        if( native_end < native_start ) native_end = native_start + 1; else ++native_end; // 'end < start' in case of empty matches
+                        // to 0... and exclusive end; 
+                        if( native_end < native_start  ) // 'end < start' in case of empty matches
+                        {
+                            --native_start;
+                            native_end = native_start;
+                        }
+                        else
+                        {
+                            --native_start;
+                        }
+
                         int native_length = native_end - native_start;
 
                         (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
