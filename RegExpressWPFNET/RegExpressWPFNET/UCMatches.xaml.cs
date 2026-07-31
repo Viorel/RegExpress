@@ -651,7 +651,7 @@ namespace RegExpressWPFNET
                     bool too_far_to_left = false;
                     bool too_far_to_right = false;
 
-                    if( !group.Success || no_group_index )
+                    if( !group.Success || no_group_index || group.ValueOnly )
                     {
                         left_space_for_group = left_space_for_match;
                     }
@@ -733,7 +733,7 @@ namespace RegExpressWPFNET
                             string middle;
                             string right;
 
-                            if( no_group_index )
+                            if( no_group_index || group.ValueOnly )
                             {
                                 left = "";
                                 middle = group.Value;
@@ -777,7 +777,7 @@ namespace RegExpressWPFNET
 
                         if( group.Success )
                         {
-                            if( !no_group_index )
+                            if( !no_group_index && !group.ValueOnly )
                             {
                                 run = new Run( $"\x200E  （{group.CharIndex}, {group.CharLength}）", span.ContentEnd );
                                 run.Style( MatchNormalStyleInfo, LocationStyleInfo );
@@ -788,7 +788,7 @@ namespace RegExpressWPFNET
                         _ = new LineBreak( span.ElementEnd ); // (after span)
 
                         var group_info = new GroupInfo( parent: match_info!, isSuccess: group.Success, groupSegment: new Segment( group.CharIndex, group.CharLength ), span: span, valueInline: value_inline,
-                            noGroupIndex: no_group_index, noGroupSuccessFlag: no_group_success_flag );
+                            noGroupIndex: no_group_index || group.ValueOnly, noGroupSuccessFlag: no_group_success_flag );
 
                         span.Tag = group_info;
 
@@ -796,7 +796,7 @@ namespace RegExpressWPFNET
 
                         // captures
 
-                        if( show_captures && !no_group_index )
+                        if( show_captures && !no_group_index && !group.ValueOnly )
                         {
                             AppendCaptures( cnc, group_info, para, left_width, left_space_for_match,
                                 MaxMatchLeftOutdent, MaxMatchLength, MaxMatchRightOutdent,
@@ -1089,7 +1089,7 @@ namespace RegExpressWPFNET
                         inlines_to_underline.Add( mi.ValueInline );
                         break;
                     case GroupInfo gi:
-                        if( gi.IsSuccess ) inlines_to_underline.Add( gi.ValueInline );
+                        if( gi.IsSuccess && !gi.NoGroupIndex ) inlines_to_underline.Add( gi.ValueInline );
                         break;
                     case CaptureInfo ci:
                         inlines_to_underline.Add( ci.ValueInline );
@@ -1163,6 +1163,7 @@ namespace RegExpressWPFNET
                             }
 
                             if( gi == null ) break;
+                            if( gi.NoGroupIndex ) continue;
 
                             if( segments.Contains( gi.GroupSegment ) )
                             {

@@ -19,6 +19,17 @@ void main() async
     final String text = jsonMap["text"];
     final Map<String, dynamic>? options = jsonMap["options"];
 
+    final List<String> possible_names = [];
+
+    for( final OnigMatch m in OnigRegex.compile("<(\\w+?)>|'(\\w+?)'").allMatches(pattern))
+    {
+      final String? n = m.group(1) ?? m.group(2); 
+      if( n != null && !possible_names.contains(n) )
+      {
+        possible_names.add(n);
+      }
+    }
+
     //print( "Pattern: '$pattern'");
     //print( "Text: '$text'");
 
@@ -92,6 +103,25 @@ void main() async
       }
 
       one_match["g"] = all_groups;
+
+      final List<Map<String, String>> named_values = [];
+
+      for( final String possible_name in possible_names)
+      {
+        final String? value = m.namedGroup(possible_name);
+
+        if( value != null)
+        {
+          final Map<String, String> p = <String, String>{};
+
+          p["n"] = possible_name;
+          p["v"] = value;
+
+          named_values.add(p);
+        }
+      }
+
+      one_match["nv"] = named_values;
 
       output_matches.add(one_match);
     }

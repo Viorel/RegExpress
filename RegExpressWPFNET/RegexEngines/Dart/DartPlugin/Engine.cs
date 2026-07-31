@@ -132,7 +132,7 @@ namespace DartPlugin
             return new SyntaxOptions
             {
                 Literal = false,
-                XLevel = XLevelEnum.none,
+                XLevel = fm.XModeComments && options.extend ? XLevelEnum.x : XLevelEnum.none,
                 FeatureMatrix = fm,
             };
         }

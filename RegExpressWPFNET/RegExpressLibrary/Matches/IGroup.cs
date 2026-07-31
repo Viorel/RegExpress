@@ -10,6 +10,8 @@ namespace RegExpressLibrary.Matches
 
 		string Name { get; }
 
+		bool ValueOnly { get; }
+
 		IEnumerable<ICapture> Captures { get; }
 	}
 

@@ -29,6 +29,7 @@ namespace DartPlugin
             public int s { get; set; }
             public int e { get; set; }
             public G[]? g { get; set; }
+            public NV[]? nv { get; set; }
         }
 
         public class G
@@ -37,6 +38,11 @@ namespace DartPlugin
             public int e { get; set; }
         }
 
+        public class NV
+        {
+            public string n { get; set; }
+            public string v { get; set; }
+        }
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
@@ -146,6 +152,13 @@ namespace DartPlugin
 
                                 match.AddSucceededGroup( native_start, native_length, name );
                             }
+                        }
+
+                        // named values
+
+                        foreach( var nv in m.nv! )
+                        {
+                            match.AddSucceededNoDetailsGroup( nv.n, nv.v );
                         }
                     }
 

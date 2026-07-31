@@ -53,6 +53,16 @@ namespace RegExpressLibrary.Matches.Simple
             }
         }
 
+        public bool ValueOnly
+        {
+            get
+            {
+                // Not expected to be called.
+
+                throw new InvalidOperationException( );
+            }
+        }
+
         #endregion IGroup
 
         public SimpleGroup AddDefaultGroup( )
@@ -80,13 +90,15 @@ namespace RegExpressLibrary.Matches.Simple
             SimpleGroup group = new( nativeIndex, nativeLength, charIndex, charLength, true, name, TextGetter );
             mGroups.Add( group );
 
-            return group;
+            return group; 
         }
 
         public SimpleGroup AddSucceededNoDetailsGroup( string name, string value )
         {
             SimpleGroup group = new( NativeIndex, NativeLength, CharIndex, value.Length, true, name, new TrivialTextGetter( value ) );
+            group.SetValueOnly( );
             mGroups.Add( group );
+
 
             return group;
         }
