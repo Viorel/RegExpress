@@ -26,7 +26,7 @@ The following engines are included:
 * [**RE2**](https://github.com/google/re2) Library 2025-08-12 from Google (in C++).
 * [**Oniguruma**](https://github.com/kkos/oniguruma) Regular Expression Library 6.9.10 (in C++).
 * [**SubReg**](https://github.com/mattbucknall/subreg) 2024-08-11 (in C).
-* **JavaScript** [**RegExp**](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp)
+* **JavaScript** [**RegExp**](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp):
   * Microsoft Edge [_WebView2_](https://docs.microsoft.com/en-us/microsoft-edge/webview2/), 
   * _V8_ \(via [Node.js](https://nodejs.org)\) 14.1.146,
   * [_QuickJs_](https://bellard.org/quickjs/) 2026-06-04,
@@ -38,7 +38,7 @@ The following engines are included:
 * [**Hyperscan**](https://github.com/intel/hyperscan) 5.4.2 from Intel (in C).
 * [**Chimera**](http://intel.github.io/hyperscan/dev-reference/chimera.html), a hybrid of Hyperscan and PCRE 8.41 (in C).
 * [**ICU Regular Expressions**](https://icu.unicode.org/) 77.1 (in C++).
-* **Rust** 1.97.1 crates:
+* **Rust** 1.97.1:
   * [_regex_](https://crates.io/crates/regex) 1.13.1,
   * [_regex-lite_](https://crates.io/crates/regex-lite) 0.1.9,
   * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.19.0, 
@@ -47,12 +47,12 @@ The following engines are included:
   * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
   * [_real-regex_](https://crates.io/crates/real-regex) 2026.7.62,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0.
-* [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2 packages:
+* [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2:
   * _java.util.regex_,
   * [_RE2/J_](https://github.com/google/re2j) 1.8,
   * [_SafeRE_](https://github.com/eaftan/safere) 0.10.0,
   * [_Reggie_](https://github.com/DataDog/java-reggie) 0.3.0.
-* [**Python**](https://www.python.org/) 3.14.6 modules:
+* [**Python**](https://www.python.org/) 3.14.6:
   * _re_,
   * [_regex_](https://pypi.org/project/regex) 2026.6.28,
   * [_real-regex_](https://pypi.org/project/real-regex/) 2026.7.62.
@@ -66,17 +66,19 @@ The following engines are included:
 * [**QRegularExpression**](https://doc.qt.io/qt-6/qregularexpression.html) class (based on PCRE2) from Qt 6.9.3 (in C++).
 * [**compile-time-regular-expressions (CTRE)**](https://github.com/hanickadot/compile-time-regular-expressions)[^2] 3.11.0  (in C++).
 * **GRETA** 2.6.4 (in C++).
-* **Zig** 0.16.0 libraries:
+* **Zig** 0.16.0:
   * [_zig-regex_](https://github.com/zig-utils/zig-regex) v0.2.0, 
   * [_mvzr_](https://github.com/mnemnion/mvzr) v0.3.12,
   * _PZRE_ v0.2.2.
 * [**RE#**](https://github.com/ieviev/resharp-dotnet) 1.0.5 (for F#, C#, VB).
-* **Go** 1.26.5 packages:
+* **Go** 1.26.5:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.5,
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.5.2,
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
   * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.22.
-* **Dart** 3.12.2 [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html).
+* **Dart** 3.12.2:
+  * [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html),
+  * [_oniguruma\_dart_](https://pub.dev/packages/oniguruma_dart) 1.0.1.
 * [**REAL**](https://github.com/RECHE23/real-regex) 2026.7.62 (in C++).
 
 ## Running the playground

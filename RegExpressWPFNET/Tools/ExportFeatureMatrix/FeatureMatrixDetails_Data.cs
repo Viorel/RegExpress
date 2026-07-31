@@ -289,12 +289,12 @@ partial class FeatureMatrixDetails
             new ( @"Operators inside […] sets",
             [
                 new FeatureMatrixDetails( @"[[…] op […]]", @"Using operators for nested groups", (e, fm) => fm.InsideSets_Operators)
-                    .Test( @"[[ab]&[bc]]", "b", "&")
-                    .Test( @"[[ab]&&[bc]]", "b", "&"),
+                    .Test( @"[[ab]&[bc]]", "b", "a&c")
+                    .Test( @"[[ab]&&[bc]]", "b", "a&c"),
                 new FeatureMatrixDetails( @"(?[[…] op […]])", @"Using operators for nested groups", (e, fm) => fm.InsideSets_OperatorsExtended)
                     .Test( @"(?[[ab]&[bc]])", "b", "&"),
                 new FeatureMatrixDetails( @"[…] & […]", @"Intersection", (e, fm) => fm.InsideSets_Operator_Ampersand)
-                    .Test( @"[[ab]&[bc]]", "b", "&")
+                    .Test( @"[[ab]&[bc]]", "b", "a")
                     .Test( @"(?[[ab]&[bc]])", "b", "&"),
                 new FeatureMatrixDetails( @"[…] + […]", @"Union", (e, fm) => fm.InsideSets_Operator_Plus)
                     .Test( @"[[a]+[b]]", "a", "+")
@@ -312,7 +312,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a(?[![b]])y", "axy", null )
                     .Test( @"a[![b]]y", "axy", null ),
                 new FeatureMatrixDetails( @"[…] && […]", @"Intersection", (e, fm) => fm.InsideSets_Operator_DoubleAmpersand)
-                    .Test( @"[[ab]&&[bc]]", "b", null ),
+                    .Test( @"[[ab]&&[bc]]", "b", "a&c" ),
                 new FeatureMatrixDetails( @"[…] || […]", @"Union", (e, fm) => fm.InsideSets_Operator_DoubleVerticalLine)
                     .Test( @"[[a]||[b]]", "b", "]|["),
                 new FeatureMatrixDetails( @"[…] -- […]", @"Difference", (e, fm) => fm.InsideSets_Operator_DoubleMinus)
@@ -444,25 +444,27 @@ partial class FeatureMatrixDetails
                     .Test( @"a\(?:x\)y", "axy", null ),
                 new FeatureMatrixDetails( @"(?=…)", @"Positive lookahead ", (e, fm) => fm.PositiveLookahead)
                     .Test( @"a(?=xz).z", "axz", "atz" )
-                    .Test( @"a\(?=x\)x", "ax", "az" ),
+                    .Test( @"a\(?=xz\).z", "axz", "atz" ),
                 new FeatureMatrixDetails( @"(?!…)", @"Negative lookahead ", (e, fm) => fm.NegativeLookahead)
                     .Test( @"a(?!x).y", "azy", @"axy" )
-                    .Test( @"a\(?!x\)y", "ay", "ax" ),
+                    .Test( @"a\(?!x\).y", "azy", @"axy" ),
                 new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind, fixed-length", (e, fm) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @"x.(?<=xy)a", "xya", "xta" )
-                    .Test( @"\(?<=x\)a", "xa", "za" ),
+                    .Test( @"x.\(?<=xy\)a", "xya", "xta" ),
                 new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind, bounded-length", (e, fm) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @"x..(?<=x{2,3}y)a", "xxya", "xtta" )
-                    .Test( @"\(?<=x|yz\)a", "xa", "ta" ),
+                    .Test( @"x..\(?<=x{2,3}y\)a", "xxya", "xtta" )
+                    .Test( @"x..\(?<=xx?x?y\)a", "xxya", "xtta" ),
                 new FeatureMatrixDetails( @"(?<=…)", @"Positive lookbehind, variable-length", (e, fm) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @"x.(?<=x+y)a", "xxxxya", "xta" )
-                    .Test( @"\(?<=x.+\)a", "x123a", "t123a" ),
+                    .Test( @"x.\(?<=x+y\)a", "xxxxya", "xta" ),
                 new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, fixed-length", (e, fm) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @".(?<!xy)a", "ya", "xya" )
-                    .Test( @"\(?<!x\)a", "ya", "xa" ),
+                    .Test( @".\(?<!xy\)a", "ya", "xya" ),
                 new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, bounded-length", (e, fm) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @".(?<!x{2,7})a", "xa", "xxa" )
-                    .Test( @"\(?<!x{2,7}\)a", "xa", "xxa" ),
+                    .Test( @"\(?<!x{2,7}\)a", "xa", "xxa" )
+                    .Test( @"\(?<!xxx?x?\)a", "xa", "xxa" ),
                 new FeatureMatrixDetails( @"(?<!…)", @"Negative lookbehind, variable-length", (e, fm) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @".(?<!x.*)a", "ya", "xa" )
                     .Test( @"\(?<!x.*\)a", "ya", "xa" ),

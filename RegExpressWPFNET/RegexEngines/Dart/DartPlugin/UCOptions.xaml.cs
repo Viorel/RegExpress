@@ -85,6 +85,13 @@ namespace DartPlugin
             {
                 ++ChangeCounter;
 
+                bool is_regexp = Options.package == PackageEnum.RegExp;
+                bool is_oniguruma = Options.package == PackageEnum.OnigurumaDart;
+
+                pnlRegExp.Display( is_regexp );
+                pnlOnigurumaDart.Display( is_oniguruma );
+                lblOnigurumaSyntax.Display( is_oniguruma );
+                cbxOnigurumaSyntax.Display( is_oniguruma );
             }
             finally
             {
@@ -93,6 +100,13 @@ namespace DartPlugin
         }
 
         private void cbxPackage_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateUI( );
+
+            Notify( preferImmediateReaction: true );
+        }
+
+        private void cbxOnigurumaSyntax_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             UpdateUI( );
 

@@ -1,0 +1,1 @@
+dart compile exe --target-os windows --target-arch x64 -o "OnigurumaDartWorker.exe" ".\bin\oniguruma_dart_worker.dart"
