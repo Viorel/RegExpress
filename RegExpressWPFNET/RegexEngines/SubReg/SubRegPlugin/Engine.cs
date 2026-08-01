@@ -361,6 +361,7 @@ namespace SubRegPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = false,
+                ßSS = false,
 
                 Ext_Class_Not = true,
             };

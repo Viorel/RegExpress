@@ -1209,7 +1209,7 @@ namespace real {
       const std::size_t              end {endpos < text.size() ? endpos : text.size()};
       typename Storage::state_type   state;
       typename Storage::slot_storage slots;
-      // Reference, not a copy: `program_view` is 408 bytes and this line runs once per search.
+      // Reference, not a copy: `program_view` is 432 bytes and this line runs once per search.
       // Binding to a const reference also covers the dynamic storage, whose view() still returns by
       // value -- the temporary's lifetime extends to this reference's scope.
       const detail::program_view&    prog    {program_.view()};

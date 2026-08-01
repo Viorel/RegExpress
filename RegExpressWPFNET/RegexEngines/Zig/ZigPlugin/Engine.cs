@@ -395,6 +395,7 @@ namespace ZigPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = false,
+                ßSS = false,
             };
         }
 
@@ -614,6 +615,7 @@ namespace ZigPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+                ßSS = false,
             };
         }
 
@@ -833,6 +835,7 @@ namespace ZigPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+                ßSS = false,
             };
         }
     }

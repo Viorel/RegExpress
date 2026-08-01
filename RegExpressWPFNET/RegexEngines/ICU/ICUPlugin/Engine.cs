@@ -366,6 +366,7 @@ namespace ICUPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+                ßSS = true,
 
                 Ext_Class_Name = true,
             };

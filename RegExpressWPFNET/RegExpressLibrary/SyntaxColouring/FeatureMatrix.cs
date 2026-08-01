@@ -286,6 +286,7 @@ namespace RegExpressLibrary.SyntaxColouring
 
         public bool Σσς { get; init; }                                      // match letters that have multiple uppercase and lowercase variants,
                                                                             // such as uppercase “Σ” and lowercase “σ” (inside words) and “ς” (at end of words)
+        public bool ßSS { get; init; }                                      // match “ß ↔ ss” and “ß ↔ SS” in case-insensitive mode. 
 
 
         // Special features used only by specific engines.

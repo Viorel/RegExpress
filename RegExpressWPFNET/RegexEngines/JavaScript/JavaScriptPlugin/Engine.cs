@@ -438,6 +438,7 @@ namespace JavaScriptPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+                ßSS = false,
             };
         }
 
@@ -656,6 +657,7 @@ namespace JavaScriptPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+                ßSS = false,
             };
         }
 
@@ -874,6 +876,7 @@ namespace JavaScriptPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+                ßSS = false,
             };
         }
 
@@ -1092,6 +1095,7 @@ namespace JavaScriptPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,
+                ßSS = false,
             };
         }
 
@@ -1311,6 +1315,7 @@ namespace JavaScriptPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,
+                ßSS = false,
             };
         }
 
@@ -1529,6 +1534,7 @@ namespace JavaScriptPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+                ßSS = false,
             };
         }
     }

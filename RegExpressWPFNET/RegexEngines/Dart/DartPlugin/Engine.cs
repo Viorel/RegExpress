@@ -401,6 +401,7 @@ namespace DartPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+                ßSS = false,
             };
         }
 
@@ -651,7 +652,8 @@ namespace DartPlugin
                 KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
-                Σσς = true,
+                Σσς = true, // if not 'ignoreCaseIsAscii'
+                ßSS = true, // if not 'ignoreCaseIsAscii'
             };
         }
     }

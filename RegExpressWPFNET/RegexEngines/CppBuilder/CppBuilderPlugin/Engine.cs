@@ -362,6 +362,7 @@ namespace CppBuilderPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,
+                ßSS = false,
             };
         }
     }

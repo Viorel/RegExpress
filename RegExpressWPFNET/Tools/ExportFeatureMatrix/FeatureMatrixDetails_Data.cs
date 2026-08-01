@@ -292,10 +292,10 @@ partial class FeatureMatrixDetails
                     .Test( @"[[ab]&[bc]]", "b", "a&c")
                     .Test( @"[[ab]&&[bc]]", "b", "a&c"),
                 new FeatureMatrixDetails( @"(?[[…] op […]])", @"Using operators for nested groups", (e, fm) => fm.InsideSets_OperatorsExtended)
-                    .Test( @"(?[[ab]&[bc]])", "b", "&"),
+                    .Test( @"(?[[ab]&[bc]])", "b", "a&c"),
                 new FeatureMatrixDetails( @"[…] & […]", @"Intersection", (e, fm) => fm.InsideSets_Operator_Ampersand)
-                    .Test( @"[[ab]&[bc]]", "b", "a")
-                    .Test( @"(?[[ab]&[bc]])", "b", "&"),
+                    .Test( @"[[ab]&[bc]]", "b", "a&c")
+                    .Test( @"(?[[ab]&[bc]])", "b", "a&c"),
                 new FeatureMatrixDetails( @"[…] + […]", @"Union", (e, fm) => fm.InsideSets_Operator_Plus)
                     .Test( @"[[a]+[b]]", "a", "+")
                     .Test( @"(?[[a]+[b]])", "a", "+" ),
@@ -558,13 +558,28 @@ partial class FeatureMatrixDetails
                     .Test( @"X\w\w\w\w\wY", "XăîșțâY", null ),
                 new FeatureMatrixDetails( @"[Unicode]", @"Support Unicode characters inside sets", (e, fm) => fm.InsideSets_Unicode )
                     .Test( @"X[é]Y", "XéY", null, "XéY" ),
+                new FeatureMatrixDetails( @"Surrogates", @"“.” matches surrogate pairs as one entity (no split)", (e, fm) => fm.Unicode_Class_Dot && fm.KeepSurrogatePairs )
+                    .Test( @"X.Y", "X💕Y", null ),
                 new FeatureMatrixDetails( @"é=É", @"Support Unicode case folding", (e, fm) => fm.UnicodeCaseFolding )
                     .IgnoreCase()
                     .Test( @"XéY", "XÉY", null, "XÉY" )
                     .Test( @"(?i)XéY", "XÉY", null, "XÉY" )
                     .Test( @"(?i:XéY)", "XÉY", null, "XÉY" ),
-                new FeatureMatrixDetails( @"Surrogates", @"“.” matches surrogate pairs as one entity (no split)", (e, fm) => fm.Unicode_Class_Dot && fm.KeepSurrogatePairs )
-                    .Test( @"X.Y", "X💕Y", null ),
+                new FeatureMatrixDetails( "Σσς", "Match letters that have multiple uppercase and lowercase variants", (e, fm) => fm.Σσς )
+                    .IgnoreCase()
+                    .Test( @"ΣΣΣ", "Σσς", null)
+                    .Test( @"(?i)ΣΣΣ", "Σσς", null),
+                new FeatureMatrixDetails( "ß=SS", "Match “ß ↔ ss” and “ß ↔ SS” in case-insensitive mode", (e, fm) => fm.ßSS )
+                    .IgnoreCase()
+                    .Test( @"aßb", "aSSb", "aSb")
+                    .Test( @"(?i)aßb", "aSSb", "aSb"),
+                /*
+                 * find defect
+                new FeatureMatrixDetails( "ß=S", "", (e, fm) => false )
+                    .IgnoreCase()
+                    .Test( @"ß", "s S", null)
+                    .Test( @"(?i)ß", "s S", null),
+                */
 
                 new FeatureMatrixDetails( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", (e, fm) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams)
                     .Test( @"(test){i}", "teXst", null )
@@ -575,10 +590,6 @@ partial class FeatureMatrixDetails
                     .Test( (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Passed ),
                 new FeatureMatrixDetails( "Reject ReDoS", "Give error on possible ReDoS", (e, fm) => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Reject )
                     .Test( (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Error ),
-                new FeatureMatrixDetails( "Σσς", "Match letters that have multiple uppercase and lowercase variants", (e, fm) => fm.Σσς )
-                    .IgnoreCase()
-                    .Test( @"ΣΣΣ", "Σσς", null)
-                    .Test( @"(?i)ΣΣΣ", "Σσς", null),
             ] ),
 
         new ( @"Specific extensions",

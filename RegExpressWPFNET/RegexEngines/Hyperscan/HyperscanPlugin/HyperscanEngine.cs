@@ -366,6 +366,7 @@ namespace HyperscanPlugin
                 FuzzyMatchingParams = true,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,
+                ßSS = false,
             };
         }
     }

@@ -366,6 +366,7 @@ namespace RealPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = !isAscii,
+                ßSS = false,
             };
         }
     }

@@ -118,6 +118,17 @@ namespace real::detail {
         return;
       }
       build(bp);
+      // Drop the borrowed spans the moment the build that needed them is over. \ref code_ and
+      // \ref classes_ view \p bp, and one caller -- the Tier-B branch of pike_vm::ensure_op_table --
+      // passes a byte_program LOCAL to its own block, so those spans dangle from the closing brace.
+      // Nothing dereferences them: every reader (build, minimize, build_edges, follow_jumps, node_of)
+      // is private and runs above, and \ref extract answers from \ref nodes_ alone. That made the
+      // hazard latent rather than live, but it made it true by AUDIT -- the next member that reads
+      // code_ after construction turns it into a use-after-free with nothing to catch it.
+      // Emptying them here makes it true by CONSTRUCTION: such a read becomes an empty span, which
+      // is deterministic and debuggable, not undefined.
+      code_    = {};
+      classes_ = {};
     }
 
     /*!

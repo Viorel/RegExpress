@@ -396,12 +396,12 @@ namespace PythonPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+                ßSS = false,
             };
         }
 
         static FeatureMatrix BuildFeatureMatrix_Regex( bool isPosix, bool isVersion1 )
         {
-
             return new FeatureMatrix
             {
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,
@@ -616,6 +616,7 @@ namespace PythonPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,
+                ßSS = isVersion1,
             };
         }
 
@@ -835,6 +836,7 @@ namespace PythonPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = !isAscii,
+                ßSS = false,
             };
         }
     }

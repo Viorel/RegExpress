@@ -409,6 +409,7 @@ namespace JavaPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = isUnicodeCase,
+                ßSS = false,
             };
         }
 
@@ -628,6 +629,7 @@ namespace JavaPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,
+                ßSS = false,
             };
         }
 
@@ -847,6 +849,7 @@ namespace JavaPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = isUnicodeCase,
+                ßSS = false,
             };
         }
 
@@ -1066,6 +1069,7 @@ namespace JavaPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+                ßSS = false,
             };
         }
     }

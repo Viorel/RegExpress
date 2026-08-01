@@ -358,6 +358,7 @@ namespace CompileTimeRegexPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+                ßSS = false,
             };
         }
     }

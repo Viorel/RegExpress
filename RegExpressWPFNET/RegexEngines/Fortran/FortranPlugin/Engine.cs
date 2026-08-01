@@ -381,6 +381,7 @@ namespace FortranPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+                ßSS = false,
             };
         }
 
@@ -600,6 +601,7 @@ namespace FortranPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,
+                ßSS = false,
             };
         }
 
@@ -819,6 +821,7 @@ namespace FortranPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+                ßSS = false,
 
                 Ext_AnomalousInlineComments = true,
             };

@@ -393,6 +393,7 @@ namespace GoPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = !isPosix,
+                ßSS = false,
             };
         }
 
@@ -612,6 +613,7 @@ namespace GoPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+                ßSS = false,
             };
         }
 
@@ -831,6 +833,7 @@ namespace GoPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+                ßSS = false,
             };
         }
 
@@ -1050,6 +1053,7 @@ namespace GoPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,
+                ßSS = false,
             };
         }
     }

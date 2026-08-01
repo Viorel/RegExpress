@@ -439,6 +439,7 @@ namespace RustPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = isUnicode,
+                ßSS = false,
             };
         }
 
@@ -658,6 +659,7 @@ namespace RustPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+                ßSS = false,
             };
         }
 
@@ -879,6 +881,7 @@ namespace RustPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = isUnicode,
+                ßSS = false,
             };
         }
 
@@ -1098,6 +1101,7 @@ namespace RustPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = true,
+                ßSS = false,
             };
         }
 
@@ -1319,6 +1323,7 @@ namespace RustPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,
+                ßSS = false,
 
                 Ext_UniversalWildcard = true,
                 Ext_Operator_Intersection = true,
@@ -1542,6 +1547,7 @@ namespace RustPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,
+                ßSS = false,
 
                 Ext_AlternativeLanguage = true,
             };
@@ -1763,6 +1769,7 @@ namespace RustPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = isUnicode,
+                ßSS = false,
             };
         }
 
@@ -1982,6 +1989,7 @@ namespace RustPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = u,
+                ßSS = false,
             };
         }
     }

@@ -491,6 +491,7 @@ namespace OnigurumaPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = true,
+                ßSS = true,
 
                 Ext_NamedGroup_AtApos = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,
                 Ext_NamedGroup_AtLtGt = details.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY,

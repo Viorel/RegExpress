@@ -422,6 +422,7 @@ namespace BoostPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
                 Σσς = false,
+                ßSS = false,
             };
         }
     }

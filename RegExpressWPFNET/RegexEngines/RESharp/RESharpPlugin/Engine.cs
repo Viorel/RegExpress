@@ -358,6 +358,7 @@ namespace RESharpPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = false,
+                ßSS = false,
 
                 Ext_UniversalWildcard = true,
                 Ext_Operator_Intersection = true,

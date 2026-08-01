@@ -884,6 +884,29 @@ namespace real {
 
       /*!
        * \brief Returns a non-owning view of the compiled program.
+       *
+       * \note **Returning by value here is deliberate, and the alternatives are priced.** The
+       *       compile-time storage hands back a reference and explains why; this one builds 432 bytes per
+       *       call, and `view()` runs once per `search()`. Two ways to remove that were prototyped and
+       *       measured against the compile-time storage on the same pattern:
+       *       - *Materialise the view* behind an identity guard, so the construction happens once per
+       *         program: a 6-byte search goes 37.3 → 32.9 ns (−11.8 %), a 256-byte one 139.2 → 136.3
+       *         (−2.1 %). It costs **440 bytes per regex** — `sizeof(real::regex)` 1512 → 1952 — which is
+       *         the wrong direction for anyone holding many patterns, and it needs a guard that tests
+       *         `view_.immut != &immut_` as well as the program's identity: a MOVE leaves
+       *         `program.code.data()` unchanged, so the obvious one-condition guard validates a view
+       *         pointing into the moved-from object. That shape aborted the existing lifetime tests
+       *         immediately, as a double free.
+       *       - *Carry `pattern_hints` by pointer* instead of copying its 232 bytes into the view, which
+       *         would shrink the construction rather than remove it. Refused on arithmetic, not on taste:
+       *         removing the construction **entirely** is worth 4.4 ns, so shrinking it by 54 % is worth
+       *         at most ~2.4, against an indirection on every hot hint read and a 269-site change.
+       *
+       *       So the whole prize here is **4.4 ns per search**, and both standing proposals were competing
+       *       for that same budget without anyone having measured it. Recorded so the next reader gets the
+       *       number instead of re-deriving it. The dynamic path's real gap to the compile-time one is
+       *       ~25 ns on a short subject *after* materialising, so ~85 % of it is somewhere else entirely.
+       *
        * \return The view; valid as long as this storage is alive.
        */
       [[nodiscard]] constexpr program_view view() const
@@ -911,6 +934,91 @@ namespace real {
       {
         return effective_flags;
       }
+    };
+
+    /*!
+     * \brief IL: the per-haystack guard fields the inner-literal route needs, for a compile-time storage.
+     *
+     * Scalars only — no `il_prefix_rev`, because that storage has no per-regex immutables and so never
+     * builds a reverse DFA: the reverse-confirm sub-case declines and hands back to the core VM, while a
+     * candidate-free (no-match) sweep stays on memmem. Their presence in the scratch type is also what
+     * admits the storage to the route at all (the `requires` gate in \ref pike_vm::run).
+     */
+    struct static_il_guard_fields
+    {
+      const void*   il_text           {nullptr}; //!< IL: the haystack \ref il_abandoned refers to.
+      bool          il_abandoned      {false};   //!< IL: a guard tripped on this haystack — stay on the core.
+      std::uint32_t il_density_cands  {};        //!< O1: IL candidates seen on this haystack.
+      std::size_t   il_density_origin {npos};    //!< O1: first IL candidate byte offset this haystack.
+    };
+
+    //! \brief No IL fields: the route is not compiled for this pattern.
+    struct static_no_il_guard_fields
+    {};
+
+    /*!
+     * \brief Rounds a program length up to the scratch capacity tier it shares with its neighbours.
+     *
+     * Sharing \ref static_pike_scratch is by exact template arguments, so keying it on the measured
+     * `code_size` means two patterns one instruction apart still instantiate every Pike VM route twice.
+     * Rounding to powers of two collapses neighbours onto one type while keeping the over-allocation
+     * small: on an 18-pattern sample spanning 5..47 instructions this yields four groups instead of
+     * eighteen, and the smallest pattern's scratch grows 1.6x rather than the 6.4x a coarse 32/64 ladder
+     * would cost. The floor of 8 keeps the ladder from splintering at the bottom, where the groups are
+     * densest and the absolute sizes smallest.
+     *
+     * Rounding UP only: every capacity derived from this is a bound the exact size must not exceed, so a
+     * tier is always safe where the measured value was.
+     *
+     * \param[in] code_size The program's exact instruction count.
+     * \return The tier capacity, a power of two and at least 8.
+     */
+    [[nodiscard]] constexpr std::size_t scratch_code_tier(std::size_t code_size)
+    {
+      std::size_t tier {8};
+      while (tier < code_size) {
+        tier <<= 1U;
+      }
+      return tier;
+    }
+
+    /*!
+     * \brief Compile-time-storage VM scratch, all fixed-capacity (zero heap), keyed on DIMENSIONS ONLY.
+     *
+     * The epsilon DFS stack is bounded because each pc is processed once and pushes at most two explore
+     * entries plus one restore entry. Capture slots live in a copy-on-write \ref basic_capture_pool (a
+     * thread carries one block index, not a slot run), sized for the worst-case block count — the same
+     * zero-heap, compile-sized discipline.
+     *
+     * \note Deliberately parameterised on sizes rather than on the pattern, so two patterns of the same
+     *       shape can share one instantiation. Anything that depends on the pattern's *value* belongs in
+     *       the thin per-pattern type deriving from this, not here — see \ref g_inlinebudget for what the
+     *       distinction costs when it is not maintained.
+     *
+     * \tparam CodeSize  Scratch capacity in instructions — a TIER (see \ref scratch_code_tier), not the
+     *                   exact program length, so neighbouring shapes share one instantiation.
+     * \tparam SlotCount Capture slots.
+     * \tparam WantsIL   Whether the inner-literal route is compiled in.
+     */
+    template <std::size_t CodeSize, std::size_t SlotCount, bool WantsIL>
+    struct static_pike_scratch : basic_pike_state<
+                                   basic_thread_list<static_vec<std::int32_t, CodeSize>,
+                                                     static_vec<std::size_t, CodeSize>,
+                                                     static_vec<std::uint64_t, CodeSize>>,
+                                   static_vec<eps_entry, (3 * CodeSize) + 4>>,
+                                 std::conditional_t<WantsIL, static_il_guard_fields, static_no_il_guard_fields>
+    {
+      //! \brief Worst-case live capture blocks: every reference (a DFS stack frame or a thread in either
+      //!        list) could point at a distinct block, and the stack is `(3*CodeSize)+4` with each list
+      //!        holding up to `CodeSize` threads. Freed blocks recycle through the pool's free list, so
+      //!        the pool never grows past this. Derived from `CodeSize` HERE rather than passed in, so it
+      //!        cannot disagree with the tier: a bound computed from the exact program length would vary
+      //!        between two patterns sharing a tier and split them back into separate types.
+      static constexpr std::size_t max_blocks {(5 * CodeSize) + 8};
+
+      basic_capture_pool<static_vec<std::size_t, max_blocks * SlotCount>,
+                         static_vec<std::int32_t, max_blocks>,
+                         static_vec<std::uint32_t, max_blocks>> pool; //!< COW capture blocks (zero heap).
     };
 
     /*!
@@ -1043,30 +1151,12 @@ namespace real {
 
       //! \brief Capture-slot storage, sized exactly to the program's slot count (no heap).
       using slot_storage = static_vec<std::size_t, slot_count>;
-      // worst-case live capture blocks — every reference (a DFS stack frame or a thread in either
-      // list) could point to a distinct block; freed blocks recycle through the pool's free list, so the
-      // pool never grows past this. The stack is (3*code_size)+4, each list up to code_size threads.
-      static constexpr std::size_t max_blocks {(5 * code_size) + 8}; //!< Worst-case live capture blocks, per the bound derived above.
-
-      /*!
-       * \brief IL: the per-haystack guard fields the inner-literal route needs.
-       *
-       * Scalars only — no `il_prefix_rev`, because this storage has no per-regex immutables and so never
-       * builds a reverse DFA: the reverse-confirm sub-case declines and hands back to the core VM, while a
-       * candidate-free (no-match) sweep stays on memmem. Their presence in \ref state_type is also what
-       * admits this storage to the route at all (the `requires` gate in \ref pike_vm::run).
-       */
-      struct il_guard_fields
-      {
-        const void*   il_text           {nullptr}; //!< IL: the haystack \ref il_abandoned refers to.
-        bool          il_abandoned      {false};   //!< IL: a guard tripped on this haystack — stay on the core.
-        std::uint32_t il_density_cands  {};        //!< O1: IL candidates seen on this haystack.
-        std::size_t   il_density_origin {npos};    //!< O1: first IL candidate byte offset this haystack.
-      };
+      //! \brief IL guard fields for this storage — lifted to \ref static_il_guard_fields, which carries
+      //!        the rationale; kept as a name here because \ref wants_inner_literal reads next to it.
+      using il_guard_fields = static_il_guard_fields;
 
       //! \brief No IL fields: the route is not compiled for this pattern (see \ref wants_inner_literal).
-      struct no_il_guard_fields
-      {};
+      using no_il_guard_fields = static_no_il_guard_fields;
 
       /*!
        * \brief Whether the inner-literal route is worth compiling into this pattern's `run()`.
@@ -1092,40 +1182,28 @@ namespace real {
                                                  && !hints.fixed_shape};
 
       /*!
-       * \brief VM scratch state, all fixed-capacity (zero heap).
+       * \brief This pattern's VM scratch — nothing but \ref static_pike_scratch at this pattern's
+       *        dimensions, so two patterns of the same shape name the same type.
        *
-       * The epsilon DFS stack is bounded because each pc is processed once and
-       * pushes at most two explore entries plus one restore entry. capture slots live in a
-       * copy-on-write \ref basic_capture_pool (a thread carries one block index, not a slot run), sized
-       * for the worst-case block count above — the same zero-heap, compile-sized discipline.
+       * Nothing here depends on the pattern's *value* any more. The three byte-class table addresses that
+       * used to live in this type now travel in \ref real::detail::program_view, which is where runtime
+       * program data belongs; they remain `static constexpr` arrays, so a constant-folding compiler still
+       * reaches them without a load. What that buys, and what it cost to establish, is in
+       * \ref g_inlinebudget.
        */
-      struct state_type : basic_pike_state<
-                            basic_thread_list<static_vec<std::int32_t, code_size>,
-                                              static_vec<std::size_t, code_size>,
-                                              static_vec<std::uint64_t, code_size>>,
-                            static_vec<eps_entry, (3 * code_size) + 4>>,
-                          std::conditional_t<wants_inner_literal, il_guard_fields, no_il_guard_fields>
-      {
-        basic_capture_pool<static_vec<std::size_t, max_blocks * slot_count>,
-                           static_vec<std::int32_t, max_blocks>,
-                           static_vec<std::uint32_t, max_blocks>> pool; //!< COW capture blocks (zero heap).
-
-        //! \brief The compile-time byte-class tables, reachable from the VM through the STATE type so the
-        //!         address is a link-time constant rather than a span loaded from the program view.
-        static constexpr const std::uint8_t * ct_class_tables    {static_storage::class_tables.data()};
-        static constexpr const std::uint8_t*  ct_cp_ascii_tables {static_storage::cp_ascii_tables.data()}; //!< \ref static_storage::cp_ascii_tables.
-        static constexpr const std::uint64_t* ct_cp_page_tables  {static_storage::cp_page_tables.data()};  //!< \ref static_storage::cp_page_tables.
-      };
+      using state_type = static_pike_scratch<scratch_code_tier (code_size), slot_count, wants_inner_literal>;
 
       /*!
        * \brief Returns a non-owning view of the compile-time program, by reference.
        *
        * Every field is a compile-time constant here — the spans point at `static constexpr` arrays and
        * `immut` is null — so the whole view is one too, and handing back a reference costs nothing where
-       * returning by value copied 408 bytes per call. 232 of those bytes are \ref pattern_hints, and
-       * `view()` is called once per `search()`: line-level profiling of a single `[a-z]+` search put that
-       * one aggregate initialiser at 93 of the ~325 instructions the call spends, against 17 for the class
-       * scan itself.
+       * returning by value copied the whole thing per call. 232 of its 432 bytes are \ref pattern_hints,
+       * and `view()` is called once per `search()`: line-level profiling of a single `[a-z]+` search put
+       * that one aggregate initialiser at 93 of the ~325 instructions the call spends, against 17 for the
+       * class scan itself. The measurement was taken at 408 bytes, before the three table bases moved into
+       * the view; the dynamic storage still returns by value and so still pays a construction of that size
+       * once per search — the one place this reasoning has not been applied.
        *
        * \return A reference to the single compile-time view; it outlives every caller.
        */
@@ -1154,7 +1232,15 @@ namespace real {
                                            .slot_count        = slot_count,
                                            .byte_mode         = has_flag(effective_flags, flags::bytes),
                                            .unicode_word      = !has_flag(effective_flags, flags::bytes) && !has_flag(effective_flags, flags::ascii),
-                                           .hints             = hints};
+                                           .hints             = hints,
+                                           .immut             = nullptr,
+                                           // The three table bases travel in the VIEW, not in the state type: a state
+                                           // naming this pattern's arrays cannot be shared, and every route is then
+                                           // instantiated per pattern. These stay `static constexpr` addresses, so a
+                                           // constant-folding compiler still reaches them without a load.
+                                           .class_tables      = class_tables.data(),
+                                           .cp_ascii_tables   = cp_ascii_tables.data(),
+                                           .cp_page_tables    = cp_page_tables.data()};
 
     public:
 

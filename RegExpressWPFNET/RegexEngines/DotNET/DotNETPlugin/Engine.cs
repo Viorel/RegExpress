@@ -378,6 +378,7 @@ namespace DotNETPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,
+                ßSS = false,
             };
         }
 
@@ -597,6 +598,7 @@ namespace DotNETPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
                 Σσς = false,
+                ßSS = false,
             };
         }
     }
