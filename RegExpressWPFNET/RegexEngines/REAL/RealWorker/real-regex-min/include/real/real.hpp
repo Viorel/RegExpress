@@ -409,6 +409,21 @@ namespace real {
     }
 
     /*!
+     * \brief Whether the walk is over, without materialising an end sentinel to compare against.
+     *
+     * `it == basic_match_iterator{}` answers the same question and reads naturally, but a
+     * default-constructed iterator carries a whole \c state_type -- 8232 bytes with heap-backed
+     * members -- so writing it in a loop condition builds and destroys one per iteration. The compat
+     * `regex_iterator` did exactly that for one round and paid 2.4x for the privilege.
+     *
+     * \return `true` once no further match will be produced.
+     */
+    [[nodiscard]] constexpr bool exhausted() const noexcept
+    {
+      return done_;
+    }
+
+    /*!
      * \brief Returns `true` if both denote the same position/end.
      * \param[in] other Another iterator.
      * \return `true` if both denote the same position/end.
@@ -1081,10 +1096,46 @@ namespace real {
     named_groups() const
     {
       std::vector<std::pair<std::string_view, std::size_t>> result;
+      result.reserve(program_.view().names.size());
       for (const detail::named_group& named_group : program_.view().names) {
         result.emplace_back(name_of(named_group), static_cast<std::size_t>(named_group.group));
       }
       return result;
+    }
+
+    /*!
+     * \brief How many named groups the pattern declares.
+     *
+     * With \ref named_group_at, this is the allocation-free way to enumerate them. \ref named_groups
+     * materialises a `vector` on every call, so a caller walking the names one at a time — which is what
+     * a name-by-number ABI does — paid a fresh vector per name. Reading the program's own span instead
+     * measures **0.10 → 0.01 µs at 4 names, 1.13 → 0.07 at 16, 6.53 → 1.11 at 64**: a 6–15× constant
+     * factor.
+     *
+     * \note It is a constant factor and **not** a complexity fix, which is worth being precise about:
+     *       resolving N names through an interface keyed by group NUMBER is N scans of N either way.
+     *       Making that linear needs an index-keyed entry point at the ABI, not a cheaper accessor here.
+     *
+     * \return The number of named groups.
+     */
+    [[nodiscard]] constexpr std::size_t named_group_count() const
+    {
+      return program_.view().names.size();
+    }
+
+    /*!
+     * \brief The \p index-th named group, in declaration order.
+     * \param[in] index Position in `[0, named_group_count())`; out of range is undefined, as for any
+     *                  indexed accessor on this class.
+     * \return Its name (a view into the pattern text) and its capture-group number.
+     */
+    [[nodiscard]] constexpr std::pair<std::string_view, std::size_t> named_group_at(std::size_t index) const
+    {
+      // By VALUE, not by reference: the dynamic storage's view() returns a prvalue, and binding a
+      // reference into its span trips gcc's -Wdangling-reference even though the span's target outlives
+      // the temporary. `named_group` is three int32s, so the copy costs nothing to avoid the argument.
+      const detail::named_group named_group {program_.view().names[index]};
+      return {name_of(named_group), static_cast<std::size_t>(named_group.group)};
     }
 
   private:
@@ -1207,6 +1258,22 @@ namespace real {
                                             match_semantics         sem = match_semantics::first) const
     {
       const std::size_t              end {endpos < text.size() ? endpos : text.size()};
+      // FRESH PER SEARCH, and reusing it across searches was measured and refused rather than
+      // overlooked. Constructing plus destroying this state costs 9.5 ns -- 21 % of a short literal
+      // search (47.4 ns), 27 % of a short class search (36.8), 10 % of a 24-branch alternation
+      // (98.4), and 1.4 % once captures dominate (704.8). No single member accounts for it: the
+      // parts measure 0.3-0.9 ns each, so there is no lazy-init lever to pull, only reuse.
+      //
+      // Reuse is safe WITHIN one regex -- \ref basic_match_iterator already holds one state for a
+      // whole walk, which is where the compat regex_iterator's 1.5-4.5x came from. Reuse ACROSS
+      // regexes is not: a `static thread_local` state shared by two patterns segfaults on the first
+      // search with the second, and AddressSanitizer names it a heap-use-after-free through the
+      // class-table pointer `tbl` in run_class_loop (pike.hpp). The state carries program-derived
+      // pointers whose invalidation is not built for switching programs; which one is not
+      // established here and the note does not guess.
+      //
+      // So the only safe granularity is per regex per thread, and a lookup keyed that way costs more
+      // than the 9.5 ns it would save. Callers who want the saving already have it: `find_iter`.
       typename Storage::state_type   state;
       typename Storage::slot_storage slots;
       // Reference, not a copy: `program_view` is 432 bytes and this line runs once per search.

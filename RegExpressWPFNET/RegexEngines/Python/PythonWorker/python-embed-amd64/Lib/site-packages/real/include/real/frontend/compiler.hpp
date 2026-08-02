@@ -290,6 +290,10 @@ namespace real::detail {
     //! \brief Ways in the case-fold cache \ref effective_class keeps. Four is enough for a repeat to hit
     //!        its own way every time; a pattern alternating more distinct folded classes than this simply
     //!        misses, which is what every pattern did before.
+    // SIZING, not behaviour: a cache width whose MISS is already the documented fallback (see
+    // above -- a pattern alternating more distinct folded classes than this simply misses,
+    // which is what every pattern did before the cache). Unguarded by the sabotage sweep for
+    // that reason, and rightly.
     static constexpr std::size_t fold_cache_ways {4};
 
     //! \brief Cache tag per way: the (class index, fold mode, negated) key held there, or -1 for empty.

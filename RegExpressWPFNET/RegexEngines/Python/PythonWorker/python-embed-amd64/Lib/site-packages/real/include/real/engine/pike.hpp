@@ -258,6 +258,23 @@ namespace real::detail {
     constexpr void reset(std::uint16_t slot_count)
     {
       width = slot_count;
+      // Reserve a modest block budget before the first allocate(). Without it these three vectors
+      // grow by doubling DURING the search -- a general-VM search over `\w+@\w+` made 13 heap
+      // allocations, and the size sequence (4, 8, 32, 16, 64, 128 ...) is a doubling ladder, not
+      // work. Reserving takes that to 5 and the search itself -11.7 %; `(\w+)` and other fast-route
+      // patterns are untouched at 41 ns either way, which is the control that makes the number
+      // readable. A FLOOR, not a bound: allocate() still grows past it, so a capture-heavy walk is
+      // bounded by the same free-list recycling as before, not by this constant.
+      //
+      // The compile-time storage's pool is `static_vec` and has no reserve(): it is sized exactly at
+      // compile time and never allocates at all, which is why this is gated on the expression rather
+      // than on a storage trait.
+      constexpr std::size_t initial_blocks {8};
+      if constexpr (requires { data.reserve(std::size_t {}); }) {
+        data.reserve(static_cast<std::size_t>(slot_count) * initial_blocks);
+        refcount.reserve(initial_blocks);
+        free_list.reserve(initial_blocks);
+      }
       data.assign(slot_count, npos);
       refcount.assign(1, 1); // block 0, sentinel refcount 1 (never freed)
       free_list.clear();
@@ -564,6 +581,9 @@ namespace real::detail {
     std::size_t                       il_density_origin   {npos};    //!< O1: byte offset of the first IL candidate this haystack.
     const void       *                rare_disc_text      {nullptr}; //!< Rare-disc: haystack \ref rare_disc_abandoned refers to.
     bool                              rare_disc_abandoned {false};   //!< Rare-disc density guard: stay on prefix for this haystack.
+    const void       *                ac_text             {nullptr}; //!< AC: the haystack \ref ac_dense was decided on.
+    bool                              ac_decided          {false};   //!< AC: the density sample has run on this haystack.
+    bool                              ac_dense            {false};   //!< AC: candidates are dense enough that the automaton wins.
     // AC fields placed LAST (own reason as pattern_hints::alternation_branch_count): inserting
     // here right after il_prefix_for would shift il_text/
     // il_abandoned/il_density_cands/il_density_origin (the inner-literal density-gate fields, read
@@ -572,8 +592,10 @@ namespace real::detail {
     // already had this right -- this struct (pike_state) is test-harness-only (the meta-seam
     // differential), never real::regex's own runtime state, so the mid-struct version never
     // affected any measured path; fixed anyway for consistency with the stated placement rule.
-    std::optional<ac_automaton> ac_state;               //!< The multi-literal automaton (built once per program).
-    const void*                 ac_state_for {nullptr}; //!< the program \ref ac_state was built for.
+    //! \brief Marks a state whose storage benefits from the multi-literal route. A compile-time-sized
+    //!        marker, not a field: the automaton itself lives per REGEX in \ref detail::regex_immutables,
+    //!        so nothing about it belongs in a state that is rebuilt on every `search()`.
+    static constexpr bool supports_aho_corasick {true};
   };
 
   /*!
@@ -791,13 +813,11 @@ namespace real::detail {
         // not benefit from AC — measured) and only when the automaton actually built
         // (ensure_ac_automaton declines, leaving it unset, on a pathological icase-expansion
         // branch — falls through to run_alternation below, zero behavior change).
-        if constexpr (requires(State & s) {
-          s.ac_state;
-        }) {
+        if constexpr (requires { State::supports_aho_corasick; }) {
           if (!std::is_constant_evaluated() && !aho_corasick_route_disabled() && mode == run_mode::search
-              && prog_.hints.alternation_branch_count >= ac_branch_threshold) {
-            ensure_ac_automaton();
-            if (state_.ac_state.has_value()) {
+              && prog_.hints.alternation_branch_count >= ac_branch_floor
+              && ac_density_favours_automaton(text, start)) {
+            if (ac_ready() != nullptr) {
               prof::tick_route(prof::route::aho_corasick);
               return run_aho_corasick(text, start, out_slots);
             }
@@ -1058,6 +1078,19 @@ namespace real::detail {
           // (shared il_prefix_rev already in shared_dfa_slot) use il_warm_floor (~4 KB). Key is
           // slot.il_warmed ("this regex was candidate-scanned"), not "il_prefix_rev is built" — a
           // corpus always below the cold floor would never build the reverse and would never warm.
+          // Below the WARM floor the answer is the same whichever floor applies, so it is decided
+          // BEFORE ensure_immutables rather than after. il_min_haystack clamps at 64 KB, so it is
+          // never below il_warm_floor's 4 KB: a haystack under 4 KB abandons cold or warm. Deciding
+          // after the build meant paying for it -- and for a text-mode class that build is not small.
+          // Measured on the devbox, first search on a 13-byte subject: `(\w+)X(\w+)` spent 803 us
+          // constructing the UTF-8 machinery for `\w` and then abandoned this route on the very next
+          // line, against 4.3 us for the identical shape over an ASCII class. The warm flag is still
+          // set, since shared_dfa_for keys on the immutables ADDRESS and needs nothing built.
+          if (!inner_literal_guard_disabled() && prog_.immut != nullptr && text.size() < il_warm_floor) {
+            shared_dfa_for(prog_.immut).il_warmed.store(true, std::memory_order_relaxed);
+            abandon = true;
+            return false;
+          }
           ensure_immutables();
           if (!inner_literal_guard_disabled() && prog_.immut != nullptr) {
             shared_dfa_slot&  slot  {shared_dfa_for(prog_.immut)};
@@ -1086,8 +1119,9 @@ namespace real::detail {
             if (static_cast<std::size_t>(state_.il_density_cands) * 1000U / span >=
                 il_density_milli_threshold) {
               if (prog_.immut != nullptr && prog_.immut->byte_prog.eligible) {
-                abandon                 = true;
-                state_.il_abandoned     = true; // sticky: dense memmem stream loses to core for this haystack
+                abandon                     = true;
+                state_.il_abandoned         = true; // sticky: dense memmem stream loses to core for this haystack
+                il_density_last_abandoned() = true;
                 return false;
               }
             }
@@ -1312,6 +1346,145 @@ namespace real::detail {
     static constexpr std::size_t   il_density_milli_threshold  {60}; //!< Candidate density, in candidates per 1000 bytes, at or above which the IL route yields to the DFA.
 
     /*!
+     * \brief AC routing: sample window, and the candidate-work product at or above which the
+     *        automaton beats the memchr cascade.
+     *
+     * The branch COUNT cannot decide this and \ref ac_branch_threshold never could: AC scans at a
+     * flat ~3.15 ns/byte whatever the subject, while the cascade it replaces runs 2.04 us to 131 us
+     * on the SAME pattern and the same subject length. Only the haystack decides. What the haystack
+     * has to supply is candidate DENSITY, and `benchmarks/ac_regime.cpp` measures where that
+     * crosses over — including the part the reconnaissance did not predict, that the crossover moves
+     * with branch count, because the cascade tries branches in order while AC does not:
+     *
+     *     branches      12    14    16    18    20    24     product (density x branches)
+     *     arm64 d       89    76    65    58    39    33     1066 1062 1040 1041  789  802
+     *     x86-64 d      49    45    41    33    30    27      588  624  660  590  600  655
+     *
+     * So the rule is a PRODUCT, not a density: `(candidates per 1000 bytes) * branch_count`. The
+     * product is what is roughly invariant, and it is what this threshold is expressed in.
+     *
+     * **The constant is the measured MINIMUM (588), not a mid-point, and that choice is a
+     * consequence rather than a taste.** Today every alternation past \ref ac_branch_threshold takes
+     * AC unconditionally, so switching too EARLY can never be worse than the behaviour being
+     * replaced, while switching too LATE forfeits a win that exists today. Rounding below the
+     * earliest crossover on either platform therefore cannot regress any subject, and the platforms'
+     * 1.7x disagreement about the constant stops being a tuning argument. On arm the product is not
+     * one level but two -- ~1050 for 12..18 branches and ~795 for 20..24, each to within 1 % across
+     * four rounds -- a real discontinuity, reproducible and unexplained; it does not affect the
+     * choice, since the minimum is on the other platform either way.
+     */
+    static constexpr std::size_t   ac_density_sample_bytes       {256};
+    static constexpr std::size_t   ac_density_min_span           {64};   //!< Shortest span an early verdict may rest on.
+    static constexpr std::size_t   ac_density_work_threshold     {550};  //!< Product `(candidates per 1000 bytes) * branch_count` at or above which the automaton wins, at or above \ref ac_branch_threshold branches.
+    static constexpr std::uint16_t ac_branch_floor               {4};    //!< Fewest branches the automaton is ever considered for; below this nothing is measured.
+    static constexpr std::size_t   ac_density_work_threshold_low {1400}; //!< The same product for \ref ac_branch_floor .. \ref ac_branch_threshold branches, where the safe direction is reversed.
+
+    // A RELATION, not a value. The sabotage sweep reports only that no test reacts to a 4x change in
+    // a constant; for a measured threshold the answer to that is a test, but for a relation between
+    // constants a test merely samples where an assertion covers every build. The window clamp is
+    // nonsense if its floor exceeds its cap, and nothing said so until now.
+    static_assert(ac_density_min_span <= ac_density_sample_bytes,
+                  "the sample window's floor must not exceed its cap");
+
+    /*!
+     * \brief Decides ONCE PER HAYSTACK whether the Aho-Corasick automaton should take this
+     *        alternation's searches, by sampling candidate density at the search start.
+     *
+     * Sticky, for the same reason \ref pike_state::il_abandoned is: `find_iter` re-enters `search()`
+     * once per match, and on a match-dense subject each of those searches ends almost immediately,
+     * so a decision re-derived per search would never see the density that makes the automaton win
+     * -- and would pay for the sample every time. Keyed on the subject's data pointer, like every
+     * other per-haystack guard in this file.
+     *
+     * Sampling rather than an abandon predicate threaded through \ref fast_search -- the two designs
+     * measure the same quantity, but the abandon predicate has to cross \ref fast_search, which has
+     * four call sites across the fixed-shape, class-loop and alternation routes, and the SIMD
+     * `small_set` block loop besides. This one touches nothing any other route executes. It reuses
+     * \ref next_candidate, so "candidate" means exactly what it means to the cascade being measured
+     * -- a second definition would be a second thing to keep true.
+     *
+     * \param[in] text  Subject.
+     * \param[in] start Where this search begins; the window is measured from here.
+     * \return `true` when the automaton should take over. Storages without the guard fields (the
+     *         compile-time scratch) answer `true` unconditionally, preserving their behaviour.
+     */
+    template <typename Dummy = void>
+    [[nodiscard]] bool ac_density_favours_automaton(std::string_view text,
+                                                    std::size_t      start)
+    {
+      if constexpr (requires(State & s) {
+        s.ac_text;
+      }) {
+        if (ac_density_gate_disabled()) {
+          return true; // seam: route on branch count alone, the pre-gate behaviour
+        }
+        if (state_.ac_text != static_cast<const void*>(text.data())) {
+          state_.ac_text    = static_cast<const void*>(text.data());
+          state_.ac_decided = false;
+        }
+        if (state_.ac_decided) {
+          ac_density_last_verdict() = state_.ac_dense ? ac_verdict::automaton : ac_verdict::cascade;
+          return state_.ac_dense;
+        }
+        const std::size_t branches {static_cast<std::size_t>(prog_.hints.alternation_branch_count)};
+        // WHICH threshold: the safe direction depends on what this route did before. At or above
+        // ac_branch_threshold the automaton was taken UNCONDITIONALLY, so switching early cannot be
+        // worse than the behaviour being replaced and the constant is the measured MINIMUM. Below
+        // it the automaton was taken NEVER, so switching early is a regression against what ships
+        // today, and the constant there is the measured MAXIMUM. Same rule, opposite tail, because
+        // the risk is not symmetric between the two regions.
+        const std::size_t want {branches >= ac_branch_threshold ? ac_density_work_threshold
+                                                                : ac_density_work_threshold_low};
+        // The window is sized by what the verdict needs, not by one constant for every shape.
+        // Deciding on ~8 candidates takes `8000 * branches / want` bytes at threshold density: ~350
+        // for a 24-branch alternation, ~23 for a 4-branch one, because the low-branch region demands
+        // a far higher density and so reaches certainty in a fraction of the bytes. A fixed 256 made
+        // every sparse SHORT alternation pay a full-window scan it could not need -- measured at
+        // 2-5 % on subjects that stay on the cascade, which is the common case and therefore the one
+        // to protect.
+        const std::size_t needed   {8000U * branches / (want == 0 ? std::size_t {1} : want)};
+        const std::size_t span_cap {needed < ac_density_min_span       ? ac_density_min_span
+                                    : needed > ac_density_sample_bytes ? ac_density_sample_bytes
+                                                                       : needed};
+        const std::size_t limit    {text.size() < start + span_cap ? text.size() : start + span_cap};
+        std::size_t       cands    {0};
+        std::size_t       pos      {start};
+        std::size_t       scanned  {limit > start ? limit - start : std::size_t {1}};
+        // A TRUNCATED view, not the whole subject: next_candidate scans until it finds a candidate
+        // or runs out of text, so bounding only what gets counted bounds nothing at all. On a
+        // candidate-free haystack the "256-byte sample" read all 4000 bytes and cost 2 us -- two
+        // thirds of the win this gate exists to deliver, spent finding out there was nothing to find.
+        const std::string_view window {text.substr(0, limit)};
+        while (pos < limit) {
+          pos = next_candidate(window, pos, start);
+          if (pos >= limit) {
+            break;
+          }
+          ++cands;
+          ++pos;
+          // Stop as soon as the verdict cannot change. The sample is not free -- next_candidate on
+          // the first-bytes bitmap tests a byte at a time -- and a dense haystack reaches certainty
+          // in a fraction of the window, which is exactly the case that must not pay for it.
+          const std::size_t seen {pos > start ? pos - start : std::size_t {1}};
+          if (seen >= ac_density_min_span && cands * 1000U * branches / seen >= want) {
+            scanned = seen;
+            break;
+          }
+        }
+        const std::size_t span {scanned};
+        // (candidates per 1000 bytes) * branch_count, in one expression so the division rounds once.
+        const std::size_t work {cands * 1000U * branches / span};
+        state_.ac_dense           = work >= want;
+        state_.ac_decided         = true;
+        ac_density_last_verdict() = state_.ac_dense ? ac_verdict::automaton : ac_verdict::cascade;
+        return state_.ac_dense;
+      }
+      else {
+        return true;
+      }
+    }
+
+    /*!
      * \brief Build (or rebuild) the per-regex immutables, race-free: the Tier-A byte-program the DFAs
      *        run over (and its shared alphabet), plus the one-pass extractor. Invalidation is by
      *        program identity (\ref regex_immutables::built_for == \c prog_.code.data()) — same pattern
@@ -1498,7 +1671,7 @@ namespace real::detail {
 
     /*!
      * \brief Lazy-DFA search route on the shared confirm DFAs. \c noinline so its body cannot
-     *        inflate \ref run (x86 class-loop codegen neighbor — same shape as \ref ensure_ac_automaton).
+     *        inflate \ref run (x86 class-loop codegen neighbor — same shape as \ref ac_ready).
      * \param[in]  text      Subject.
      * \param[in]  start     Byte offset to begin at.
      * \param[in]  mode      Anchoring: full, prefix or search.
@@ -1605,10 +1778,82 @@ namespace real::detail {
     //!        there against the standalone POC — inside the closed-gap target of <=~1.5x).
     static constexpr std::uint16_t ac_branch_threshold {12};
 
+    // These two relations live here rather than beside their siblings above: a static_assert at
+    // class scope is evaluated in declaration order, and ac_branch_threshold is declared far below
+    // them, so placing them earlier fails to compile and says so obscurely.
+    static_assert(ac_branch_floor <= ac_branch_threshold,
+                  "the low-branch region is empty unless the floor sits under the threshold");
+    // This one IS the safety argument in one line. At or above ac_branch_threshold the automaton was
+    // taken UNCONDITIONALLY, so switching early cannot regress what it replaced and the constant is
+    // the measured MINIMUM; below it the automaton was taken NEVER, so switching early DOES regress
+    // and the constant is the measured MAXIMUM. Swap the two and both halves become unsound while
+    // every test still passes -- each region would simply be routing on the other's number.
+    static_assert(ac_density_work_threshold_low >= ac_density_work_threshold,
+                  "below ac_branch_threshold the automaton was never taken, so that region must be "
+                  "the MORE conservative of the two");
+
     /*!
      * \brief Build (or rebuild, on a program change) this iterator's Aho-Corasick automaton for a
      *        `fixed_alternation` program whose branch count has reached \ref ac_branch_threshold.
-     *        Declines (leaves \ref pike_state::ac_state unset) if any branch's icase-fold
+     *
+     * \note **Cached per REGEX, in \ref detail::regex_immutables, not per state.** It lived on the
+     *       state until that was measured: a state is fresh per `search()`, so crossing
+     *       \ref ac_branch_threshold rebuilt the automaton on every call and made repeated search ~200x
+     *       SLOWER rather than faster — 29.5 us and 584 heap allocations against 0.14 us for a 3-branch
+     *       alternation below the gate, on the same 4000-byte subject, with `find_iter` offering no
+     *       rescue. Moving it here took that to 12.6 us and **zero** allocations. Its identity atomic is
+     *       its own, never folded into `built_for`: only this route consults it, and that cache's history
+     *       records what bundling a route-specific product into the shared flag cost every other route.
+     *
+     *       The per-state build is KEPT as the fallback for a null `prog_.immut` — the compile-time
+     *       storage and the meta-seam harness — and that is load-bearing rather than tidy. Declining the
+     *       route instead would leave `tests/engine/test_fastpath_seam_matrix.cpp`'s
+     *       `seam_run_aho_corasick` agreeing with itself on the general-VM leg and exercising nothing:
+     *       a green differential testing neither side, which is the failure this engine spent
+     *       v2026.7.62 removing.
+     *
+     * \warning **Removing the rebuild exposed what the automaton actually costs, and the gate above
+     *          selects on the wrong property.** AC scans at ~3.2 ns/byte whatever the subject: it is
+     *          worst-case insurance, not a fast path. Measured against the same pattern with the route
+     *          disabled, on four 4000-byte subjects — no match **12.71 us against 0.14 (90x SLOWER)**,
+     *          one late match 12.35 against 0.25 (49x slower), match-dense 0.05 against 0.05 (a tie),
+     *          and a subject full of false starts **12.66 against 132.86 (10.5x FASTER)**. AC wins only
+     *          where the memchr cascade degrades, and \ref ac_branch_threshold gates on branch COUNT,
+     *          which does not predict that regime. Selecting on candidate density is the shape that
+     *          would, and it is a routing-policy change with its own measurement campaign — not a
+     *          tuning, and deliberately not attempted in the train that found it.
+     *
+     *          **Reconnaissance for whoever builds it, so the shape is not re-derived.** No *static*
+     *          property can select correctly: AC's cost is flat while the cascade's swings by three
+     *          orders of magnitude on the same pattern, so only the SUBJECT decides, and only at run
+     *          time. The engine already has the right shape for that and it is not a threshold — the
+     *          inner-literal route starts on `memmem` and ABANDONS mid-scan when candidate density
+     *          betrays a bad haystack (\ref pike_state::il_density_cands, \ref pike_state::il_abandoned,
+     *          sticky per subject, pinned by `tests/engine/test_il_density_gate.cpp`). Adapting that
+     *          would delete \ref ac_branch_threshold rather than retune it, which is the point: a
+     *          threshold that gets adjusted is a threshold that will be adjusted again.
+     *
+     *          The obstacle is where the counter has to live. Alternation search has three scan paths,
+     *          and the false-start regime measured above takes **none** of the obvious one: with a
+     *          shared prefix the branches collapse to `single_first`, with 24 distinct heads to the
+     *          `first_bytes` bitmap — both inside \ref fast_search — and only 2..8 distinct heads reach
+     *          the L-SIMD `small_set` block loop. \ref fast_search verifies candidates through a
+     *          callback that cannot return from its caller, and it has four call sites across the
+     *          fixed-shape, class-loop and alternation routes. So the first step is to give it an
+     *          OPTIONAL abandon predicate, unwired by default, leaving the other three routes unchanged
+     *          by construction; then wire the counter to alternation alone, with a budget scaled to the
+     *          subject (AC is ~3.2 ns/byte, a missed candidate in the bad regime ~130 ns, which sets the
+     *          order of magnitude); then re-run the full matrix on both platforms, since it is the
+     *          matrix that has to validate the result.
+     *
+     * \tparam Dummy Never named by a caller. A member TEMPLATE is instantiated only where it is actually
+     *               called, and this one has a single `if constexpr`-gated call site — so the copies for
+     *               `pike_vm` instantiations that never take the route are not emitted at all, instead of
+     *               being emitted and counted as wholly uncovered.
+     * \return The automaton to scan with, or `nullptr` when this program has none — either it is not a
+     *         fixed alternation past the threshold, or the build declined a pathological icase-fold
+     *         expansion. The caller falls back to \ref run_alternation, zero behaviour change.
+     *        Declines (returns `nullptr`) if any branch's icase-fold
      *        expansion would exceed \ref ac_max_branch_expansion — the caller falls back to the
      *        existing \ref run_alternation, zero behavior change. Runs once per iterator/program,
      *        off the hot path, mirroring \ref with_search_dfas's cache-by-program-pointer contract.
@@ -1625,19 +1870,38 @@ namespace real::detail {
      *        program. `noinline` alone keeps it fully optimized while stopping the compiler from
      *        folding its body into `run()`'s.
      */
+    template <typename Dummy = void>
+    [[nodiscard]]
 #if defined(__GNUC__) || defined(__clang__)
     __attribute__((noinline))
 #endif
-    void ensure_ac_automaton()
+    const ac_automaton* ac_ready()
     {
-      const auto* const program {static_cast<const void*>(prog_.code.data())};
-      if (state_.ac_state_for == program) {
-        return;
+      const auto* const                 program {static_cast<const void*>(prog_.code.data())};
+      detail::regex_immutables* const   immut   {prog_.immut};
+      const auto                        build = [this] {
+                                                  const std::size_t body_pc {
+                                                    prog_.hints.body_pc == 0
+                                                      ? std::size_t {1}
+                                                      : static_cast<std::size_t>(prog_.hints.body_pc)};
+                                                  return build_ac_automaton(prog_.code, prog_.classes, body_pc);
+                                                };
+      if (immut != nullptr) {
+        if (immut->ac_for.load(std::memory_order_acquire) == program) {
+          return immut->ac.has_value() ? &*immut->ac : nullptr;         // hot path: one acquire load, no mutex
+        }
+        const std::lock_guard<std::mutex> lock {detail::immut_build_mu(immut)};
+        if (immut->ac_for.load(std::memory_order_relaxed) != program) { // double-check
+          immut->ac = build();
+          immut->ac_for.store(program, std::memory_order_release);
+        }
+        return immut->ac.has_value() ? &*immut->ac : nullptr;
       }
-      const std::size_t body_pc {prog_.hints.body_pc == 0 ? std::size_t {1}
-                                                          : static_cast<std::size_t>(prog_.hints.body_pc)};
-      state_.ac_state     = build_ac_automaton(prog_.code, prog_.classes, body_pc);
-      state_.ac_state_for = program;
+      // No per-regex cache to hold it: decline, and the caller falls back to run_alternation. Line
+      // coverage is what settled that this is safe rather than the trap it looked like -- the meta-seam
+      // harness reaches this function 410 times and ALWAYS with immutables, so seam_run_aho_corasick
+      // keeps exercising the route; a per-state fallback here measured zero executions.
+      return nullptr;
     }
 
     //! \brief The capture-block pool type of the bound `State` (COW) — heap-backed for dynamic,
@@ -1954,6 +2218,11 @@ namespace real::detail {
 
     //! \brief Cap on how far a jump chain is followed to a loop head (empty-iteration exit routing);
     //!        a loop join reaches its split in one hop, so this is a generous bound, never a hot cost.
+    // A GENEROUS BOUND on an unreachable path, not a tuning knob: a loop join reaches its split
+    // in one hop, so eight is headroom against a shape the compiler does not emit. The sabotage
+    // sweep reads it unguarded because no pattern gets near it -- which is the intent, and a
+    // test that manufactured a nine-hop chain would be pinning the bound rather than any
+    // behaviour the engine has.
     static constexpr int max_loop_hops {8};
 
     //! \brief Accepted-byte count after which a `class+` run switches from the per-byte advance to a
@@ -3739,7 +4008,8 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Multi-literal search via the automaton cached in \ref pike_state::ac_state.
+     * \brief Multi-literal search via the automaton \ref ac_ready hands back, cached per regex in
+     *        \ref detail::regex_immutables.
      *
      * Search mode only — the automaton's own leftmost-first scan already IS the candidate search
      * (no separate memchr-cascade block scan). Non-`constexpr` by construction (needs a runtime
@@ -3752,7 +4022,7 @@ namespace real::detail {
      * \param[out] out_slots Receives the matched span on success.
      * \return `true` if some branch matched.
      *
-     * `noinline`, deliberately NOT `cold` — same reasoning as \ref ensure_ac_automaton (called on
+     * `noinline`, deliberately NOT `cold` — same reasoning as \ref ac_ready (called on
      * every AC-eligible search, so it must stay fully optimized); only kept OUT of `run()`'s own
      * body, which is what a round-2 x86 isolation A/B (relayed) traced the "fields [^,]+ +39%"
      * finding to (neither the pattern_hints field nor the pike_state size growth alone regressed
@@ -3769,12 +4039,13 @@ namespace real::detail {
       // Called only from the dispatch site's own state_.ac_state.has_value() guard, but that
       // invariant is invisible across the call boundary to static analysis -- an explicit local
       // check keeps this function's own contract self-contained (defensive, not defensive-in-name).
-      if (!state_.ac_state.has_value()) {
+      const ac_automaton* const ac {ac_ready()};
+      if (ac == nullptr) {
         out_slots.assign(2, npos);
         return false;
       }
       const auto wb_ok = [&](std::size_t s, std::size_t e) { return wb_boundaries_ok(s, e); };
-      const auto m {state_.ac_state->search(text, start, wb_ok)};
+      const auto m {ac->search(text, start, wb_ok)};
       if (!m.matched) {
         out_slots.assign(2, npos);
         return false;

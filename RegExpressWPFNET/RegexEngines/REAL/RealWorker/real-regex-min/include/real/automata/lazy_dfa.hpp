@@ -150,6 +150,75 @@ namespace real::detail {
     return disabled;
   }
 
+  /*!
+   * \brief Test seam : take the Aho-Corasick DENSITY gate out, so the route is chosen on branch
+   *        count alone — the behaviour that shipped before the gate existed.
+   *
+   * Distinct from \ref aho_corasick_route_disabled, and both are needed to say anything about the
+   * gate: that one answers "cascade or automaton", this one answers "who decided". Without it a
+   * harness setting `aho_corasick_route_disabled() = false` is not forcing the automaton at all, it
+   * is merely declining to forbid it, and the gate then routes the subject wherever it likes — so a
+   * column labelled "AC on" silently becomes a column measuring the gate. That happened, and the
+   * numbers looked like a regression in the automaton rather than a mislabelled arm.
+   *
+   * \return Reference to the process-wide seam flag; set it to true to route on branch count alone.
+   */
+  inline bool& ac_density_gate_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
+  /*!
+   * \brief Test observability : whether the inner-literal density gate last abandoned the route.
+   *
+   * The gate decides only which of two routes runs, and both produce identical spans by contract --
+   * which is what leaves `tests/engine/test_il_density_gate.cpp` unable to see it at all. That file
+   * pins semantic transparency, correctly and thoroughly, and therefore cannot react to
+   * \ref real::detail::pike_vm::il_density_milli_threshold moving: the spans are equal whichever way
+   * the gate goes. The sabotage sweep reported that constant unguarded for exactly this reason.
+   *
+   * One store, on a path that already writes two sticky fields beside it.
+   *
+   * \return Reference to the process-wide flag; clear it before a search to arm it.
+   */
+  inline bool& il_density_last_abandoned()
+  {
+    static bool abandoned {false};
+    return abandoned;
+  }
+
+  /*!
+   * \brief What the AC density gate last decided; `ac_density_last_verdict()` below reports it.
+   */
+  enum class ac_verdict : std::uint8_t
+  {
+    not_consulted = 0, //!< The gate has not run since the last reset.
+    cascade,           //!< Candidates too sparse: keep the memchr cascade.
+    automaton          //!< Candidates dense enough: take the Aho-Corasick walk.
+  };
+
+  /*!
+   * \brief Test observability : the AC density gate's most recent verdict.
+   *
+   * The gate decides only which of two routes runs, and both produce identical spans by contract --
+   * which is exactly what makes it untestable from the outside. The obvious substitute, asserting
+   * that the guarded run is much faster than the forced one, is not portable across build
+   * configurations: the margin is ~5.9x optimised and 1.4x under ASan/UBSan, because sanitizer
+   * overhead is additive per operation and so dilutes the advantage of a route whose whole merit is
+   * SKIPPING bytes. That assertion turned the sanitize leg red while the engine was correct. Timing
+   * belongs in `benchmarks/ac_regime.cpp`; a test asserts the decision.
+   *
+   * One store per haystack, on the same path as the guard fields it reports on.
+   *
+   * \return Reference to the process-wide verdict; assign \ref ac_verdict::not_consulted to arm it.
+   */
+  inline ac_verdict& ac_density_last_verdict()
+  {
+    static ac_verdict verdict {ac_verdict::not_consulted};
+    return verdict;
+  }
+
   //! \brief A byte-level program derived from a Pike program for the DFA passes: every `klass_cp` construct
   //!        is expanded into UTF-8 byte-range split/klass chains, so the whole thing is byte-transition-only
   //!        and a forward DFA can represent it. The Pike program itself is untouched (byte-identity); this
@@ -565,6 +634,24 @@ namespace real::detail {
    *                            seconds to build.
    * \return The expanded program, with \ref byte_program::eligible false when it declined.
    */
+  // THE EXPANSION IS BLIND TO THE SUBJECT, AND THAT IS WHERE THE COST IS. A text-mode class is
+  // expanded here in full -- every code point it can match, as a UTF-8 trie -- before anything has
+  // looked at what will be searched. Measured on the devbox (g++ 13.3), first search and first
+  // fullmatch, against the strict-ASCII equivalent of the same class:
+  //
+  //     \w   803.35 us / 1556.37      [A-Za-z0-9_]  4.31 / 6.53     186x
+  //     \d    57.23    /  146.08      [0-9]         2.75 / 6.90      21x
+  //     \s    11.12    /   26.82      [ \t\n]       2.93 / 6.62       3.8x
+  //
+  // For `\w` that is over 99 % of the cost, paid to recognise code points a pure-ASCII subject can
+  // never contain. The general Pike VM needs none of it -- `\w+` on its own costs 0.6 us because it
+  // takes a route with no byte program at all; this expansion exists only to feed the lazy DFA and
+  // the one-pass extractor.
+  //
+  // The shape that would fix it is an ASCII-first expansion upgraded on demand, since the subject IS
+  // known at search time and its ASCII-ness is a cheap scan. That is an architectural change to when
+  // the immutables are built, not a tweak here, and it is not attempted in this train -- but the
+  // measurement is recorded so the next person does not have to re-derive the size of the prize.
   constexpr byte_program build_byte_program(const program_view& prog,
                                             bool                keep_assertions = false,
                                             std::size_t         max_size        = max_byte_program_size)
@@ -607,13 +694,37 @@ namespace real::detail {
 
     const std::size_t         n {prog.code.size()};
     std::vector<std::int32_t> map(n + 1, 0);                     // old pc -> new pc (n = the one-past end)
-    std::vector<utf8_trie>    tries(n);                          // the trie for each klass_cp pc (built once, reused when emitting)
-    std::size_t               cur {0};
+    // A trie PER CLASS, not per occurrence, and pointers into it per pc. A trie is a pure function of
+    // its code-point class, so `(\w+)X(\w+)` was building the identical structure twice. Devbox
+    // callgrind put build_utf8_trie at 4.6 % of a capture-pattern profile, and the wall clock puts
+    // that pattern's FIRST search at 1064 us against 3.9 for its byte-class twin `([a-z]+)X([a-z]+)`
+    // -- the cost is the lazy table build, not construction (15.8 us) and not steady-state (1.6 us).
+    // Deduplicating within the build takes it to 897 us, and `(\d+)X(\d+)` from 75.2 to 60.1.
+    // `by_class` is sized up front and never grows, so the pointers cannot dangle.
+    //
+    // NOT shared across the program's TWO expansions -- Tier-A through ensure_immutables and Tier-B
+    // through ensure_op_table, which calls it, so one cache on the latter's stack would cover both
+    // with nothing outliving the build. That was written, wired and measured, and it does not pay:
+    // anchored first-match on the devbox went 167.3 -> 153.6 us for `(\d+)X(\d+)` but 1584.0 ->
+    // 1615.5 for `(\w+)X(\w+)`, against a byte-class gauge that did not move. Holding `\w`'s large
+    // tries alive across both builds costs more than rebuilding them, and the large classes are
+    // exactly the case worth fixing. Reverted; the earlier note that called this unreachable for a
+    // DIFFERENT reason (kilobytes kept in regex_immutables) was wrong about the mechanism and right
+    // about the conclusion.
+    std::vector<utf8_trie>        by_class(prog.cp_classes.size());
+    std::vector<bool>             class_built(prog.cp_classes.size(), false);
+    std::vector<const utf8_trie*> tries(n, nullptr);              // the trie for each klass_cp pc
+    std::size_t                   cur {0};
     for (std::size_t pc = 0; pc < n; ++pc) {
       map[pc] = static_cast<std::int32_t>(cur);
       if (prog.code[pc].op == opcode::klass_cp) {
-        tries[pc]   = build_utf8_trie(prog.cp_classes[prog.code[pc].arg16], prog.cp_ranges);
-        cur        += utf8_trie_emit_size(tries[pc]);
+        const std::size_t ci {static_cast<std::size_t>(prog.code[pc].arg16)};
+        if (!class_built[ci]) {
+          by_class[ci]    = build_utf8_trie(prog.cp_classes[ci], prog.cp_ranges);
+          class_built[ci] = true;
+        }
+        tries[pc]   = &by_class[ci];
+        cur        += utf8_trie_emit_size(*tries[pc]);
         if (cur > max_size) {
           bp.eligible = false; // a large repeated class (e.g. `\w{k}` for a big k): decline before building
           return bp;           // any further trie -- the general Pike VM needs no byte-program expansion.
@@ -637,7 +748,7 @@ namespace real::detail {
     for (std::size_t pc = 0; pc < n; ++pc) {
       const instr& in {prog.code[pc]};
       if (in.op == opcode::klass_cp) {
-        emit_utf8_trie(bp, tries[pc], map[pc + 4], range_intern);
+        emit_utf8_trie(bp, *tries[pc], map[pc + 4], range_intern);
         pc += 3;
       }
       else {
@@ -812,6 +923,9 @@ namespace real::detail {
    */
   struct pc_set_cache
   {
+    // SIZING, not behaviour: chaining absorbs any load factor, so no answer and no route
+    // depends on this number -- only speed. The sabotage sweep will always read it as
+    // unguarded, and correctly: there is nothing here for a test to hold.
     static constexpr std::size_t   bucket_count {2048};        //!< Fixed bucket count; chaining absorbs the load.
     static constexpr std::uint32_t not_found    {0xFFFFFFFFU}; //!< \ref find's miss answer (never a valid state id).
 

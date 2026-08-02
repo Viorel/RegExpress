@@ -40,6 +40,7 @@
 #include <string_view>
 #include <vector>
 
+#include "real/engine/aho_corasick.hpp"
 #include "real/engine/assert_eval.hpp"
 #include "real/automata/lazy_dfa.hpp"
 #include "real/core/program.hpp"
@@ -84,6 +85,8 @@ namespace real::detail {
     static constexpr std::uint32_t no_node          {0xFFFFFFFFU};  //!< "No node yet" sentinel in the pc->node map.
     static constexpr std::size_t   max_nodes        {65000};        //!< Node cap (RE2's), a memory/DoS bound.
     static constexpr std::size_t   max_slots        {10};           //!< Slot-pointer cap: group 0 + four user groups.
+    // SIZING, not behaviour: a dedup hash width. Collisions cost time, never correctness, so
+    // the sabotage sweep reads it unguarded and there is nothing for a test to pin.
     static constexpr std::size_t   minimize_buckets {4096};         //!< Hash buckets for the Moore-refinement dedup.
     static constexpr std::size_t   max_table_bytes  {8U << 20};     //!< Table-memory cap (~8 MB): larger declines to the VM.
     //! Moore-refinement work cap (rounds x nodes x per-node signature width). A repeated large class (e.g.
@@ -851,6 +854,20 @@ namespace real::detail {
     //!        the DFA caches.
     std::atomic<const void*> rows_for {nullptr};
 
+    //! \brief The multi-literal automaton for a `fixed_alternation` past the branch threshold, or empty
+    //!        when never built or declined (a pathological icase-fold expansion). Per REGEX, not per
+    //!        state: it lived on the state until it was measured, and a state is fresh per `search()`,
+    //!        so crossing the threshold rebuilt it on every call and cost 29.5 us and 584 allocations
+    //!        where a 3-branch alternation below the gate cost 0.14 -- a fast path that was ~200x slower
+    //!        than not taking it.
+    std::optional<ac_automaton> ac;
+
+    //! \brief \c prog.code.data() \ref ac was built for, or null. Its OWN identity atomic, deliberately
+    //!        not folded into \ref built_for — only the alternation route consults the automaton, and this
+    //!        cache's own history records what bundling a route-specific product into the shared flag
+    //!        cost every other route (see \ref op_table_for).
+    std::atomic<const void*> ac_for {nullptr};
+
     //! \brief \c prog.code.data() \ref op_table was built for, or null. Same identity discipline as
     //!        \ref rows_for and for the same reason: the extractor is needed only by the routes that
     //!        actually fill captures through it, and it is by far the most expensive thing this cache
@@ -866,6 +883,16 @@ namespace real::detail {
     std::atomic<const void*> built_for                  {nullptr};
 
     static constexpr std::size_t row_ready_bit_capacity {64}; //!< How many flag indices \ref row_ready_bits covers; the rest live in \ref row_ready_overflow.
+
+    // A RELATION, not a tuning knob: this is the WIDTH of the word above, and \ref row_ready shifts
+    // by `1ULL << i` for every index under it. Raise it without widening the type and the shift is
+    // undefined behaviour for i >= 64 while \ref row_ready_overflow is indexed from the wrong base --
+    // two silent faults, no diagnostic, and a suite that stays green because the overflow path is
+    // rarely reached. The sabotage sweep reported this constant unguarded, which is how it was
+    // looked at; a test could only ever sample one value of it, so the guard belongs here.
+    static_assert(row_ready_bit_capacity
+                  == sizeof(decltype(row_ready_bits)::value_type) * 8U,
+                  "row_ready_bit_capacity must be exactly the bit width of row_ready_bits");
 
     /*!
      * \brief Reads the "filled" flag for flag index \p i, acquiring what the filling thread released.

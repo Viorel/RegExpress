@@ -288,6 +288,14 @@ namespace real {
       if (members_.empty()) {
         return;
       }
+      // No set smaller than the threshold can ever reach it, because the eligible subset is at most
+      // the whole set -- so the partition below cannot change the outcome, and every DFA it builds
+      // would be discarded by the `else` branch at the end of this function. It was: a 40-pattern set
+      // spent 447 us building and throwing away one full munch DFA per member before concluding what
+      // its own size already said. Measured 11.2 us per pattern, all of it, for every set under 56.
+      if (members_.size() < fused_min_eligible) {
+        return; // eligible_orig_/ineligible_orig_ stay empty: every member uses N-walks
+      }
       // Partition DFA-eligible vs ineligible (try single-pattern munch DFA).
       std::vector<regex> eligible_rx;
       eligible_rx.reserve(members_.size());
