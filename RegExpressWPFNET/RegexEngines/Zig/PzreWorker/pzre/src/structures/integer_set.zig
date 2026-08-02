@@ -64,8 +64,8 @@ pub fn IntegerSet(comptime T: type) type {
     }
 
     /// Init, but dupes the ranges using allocator
-    pub fn initDuped(gpa: Allocator, ranges: []const Range) Self {
-      const duped = try gpa.dupe(Range, .{ .ranges = ranges });
+    pub fn initDuped(gpa: Allocator, ranges: []const Range) Allocator.Error!Self {
+      const duped = try gpa.dupe(Range, ranges);
       return .init(duped);
     }
 

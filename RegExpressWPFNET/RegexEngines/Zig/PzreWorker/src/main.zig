@@ -62,10 +62,7 @@ pub fn main1(init: std.process.Init) !void {
     const config = pzre.compile.Config{};
 
     var re = try pzre.regex.compile(arch, config, allocator, input_object.pattern);
-    defer re.deinit(allocator);
-
     var ctx = try re.initContext(allocator);
-    defer ctx.deinit(allocator);
 
     var matches_arr: std.ArrayList(MATCH) = .empty;
 

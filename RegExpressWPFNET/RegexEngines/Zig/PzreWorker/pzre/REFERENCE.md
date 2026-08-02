@@ -94,9 +94,11 @@ try expect(re.matches(&ctx, "abc"));
 The first argument of the Regex type is a resolved architecture which is completely unambiguous from interpretation. Architectures can be partially defined (see [architecture resolution](#architecture-resolution)) which will make compilation fill in the undefined fields as best it can
 
 ```zig
-const re = comptime regex.compileComptime(.{
+const arch = Arch{
   .minimal_nfa = .{ .context = .compact_fixed },
-}, .{}, "^abc");
+};
+
+const re = comptime regex.compileComptime(arch, .{}, "^abc");
 
 const Expected = regex.Regex(.{
   .minimal_nfa = .{

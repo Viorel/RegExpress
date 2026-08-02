@@ -155,6 +155,18 @@ pub fn AnyRegex(
     pub const ArchUnion = DefineArchUnion();
     pub const IterUnion = DefineIterUnion(ArchUnion);
 
+    /// Duck typed between all API objects
+    const non_allocator_context = b: {
+      var has_dynamic_context = false;
+      for (std.meta.fields(ArchUnion)) |field| {
+        if (!field.type.non_allocator_context) {
+          has_dynamic_context = true;
+          break;
+        }
+      }
+      break :b !has_dynamic_context;
+    };
+
     const ctx_info = buildContextInfo(ArchUnion);
     pub const Context = context.ManyContext(ctx_info.unique_types);
     pub fn ContextCache() type {
@@ -294,9 +306,7 @@ pub fn AnyRegex(
     /// 
     pub fn initContextFixed(self: Self) Context {
       _ = self;
-      comptime for (std.meta.fields(ArchUnion)) |field| {
-        assert(field.type.non_allocator_context);
-      };
+      comptime assert(non_allocator_context);
       return Context.initFixed();
     }
 

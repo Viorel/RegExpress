@@ -720,6 +720,9 @@ test "Showcase: compileOptimal" {
 test "Showcase: Regex usage" {
   const gpa = std.testing.allocator;
 
+
+  {
+   
   const arch = ArchResolved{
     .minimal_nfa = .{
       .context = .{ .fixed = 64 },
@@ -728,8 +731,6 @@ test "Showcase: Regex usage" {
   };
  
   const Re = regex.Regex(arch, .{});
-
-  {
     var re = try Re.compile(.{}, gpa, "^abc");
     defer re.deinit(gpa);
    
@@ -742,9 +743,11 @@ test "Showcase: Regex usage" {
   }
 
   {
-    const re = comptime regex.compileComptime(.{
+    const arch = Arch{
       .minimal_nfa = .{ .context = .compact_fixed },
-    }, .{}, "^abc");
+    };
+   
+    const re = comptime regex.compileComptime(arch, .{}, "^abc");
    
     const Expected = regex.Regex(.{
       .minimal_nfa = .{
