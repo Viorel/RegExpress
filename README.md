@@ -37,7 +37,7 @@ The following engines are included:
 * **VBScript** [**RegExp**](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85)) object used in Publisher, Word, Excel, Access.
 * [**Hyperscan**](https://github.com/intel/hyperscan) 5.4.2 from Intel (in C).
 * [**Chimera**](http://intel.github.io/hyperscan/dev-reference/chimera.html), a hybrid of Hyperscan and PCRE 8.41 (in C).
-* [**ICU Regular Expressions**](https://icu.unicode.org/) 77.1 (in C++).
+* [**ICU Regular Expressions**](https://icu.unicode.org/) 78.3 (in C++).
 * **Rust** 1.97.1:
   * [_regex_](https://crates.io/crates/regex) 1.13.1,
   * [_regex-lite_](https://crates.io/crates/regex-lite) 0.1.9,

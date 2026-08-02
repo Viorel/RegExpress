@@ -8,6 +8,6 @@ namespace ICUPlugin
 {
     internal class Versions
     {
-        public static string ICU { get; } = "77.1";
+        public static string ICU { get; } = "78.3";
     }
 }
