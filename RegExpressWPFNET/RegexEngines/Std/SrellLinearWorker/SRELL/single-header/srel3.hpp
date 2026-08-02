@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) linear version 2026.00
+**  SRELL (std::regex-like library) linear version 2026.01
 **
 **  Copyright (c) 2026, Nozomu Katoo. All rights reserved.
 **
@@ -31,7 +31,7 @@
 */
 
 #ifndef SREL3_HPP_
-#define SREL3_HPP_ 202600
+#define SREL3_HPP_ 202601
 
 #define SRELL_LINEAR
 
@@ -46,11 +46,9 @@
 #include <cstddef>
 #include <new>
 #include <utility>
-#include <vector>
-#include <deque>
-#include <unordered_set>
-#include <iterator>
 #include <memory>
+#include <vector>
+#include <iterator>
 #include <algorithm>
 
 #if !defined(SIZE_MAX)
@@ -1563,6 +1561,220 @@ struct simple_stack : protected simple_array<char>
 	}	//  namespace re_detail
 
 //  ... "rei_memory.hpp"]
+//  ["rei_tdset.hpp" ...
+
+	namespace re_detail
+	{
+
+template <typename KeyT>
+struct rei_tdset
+{
+public:
+
+	typedef KeyT key_type;
+	typedef std::size_t size_type;
+
+	typedef std::pair<key_type, bool> insret_type;
+
+	rei_tdset() : used_(0), upper_(0)
+	{
+	}
+
+	void clear()
+	{
+		meta_.clear();
+		bucket_.clear();
+		used_ = 0;
+		upper_ = 0;
+	}
+
+	insret_type insert(const key_type key)
+	{
+		std::size_t hash = hash_(key);
+		const unsigned int lsb7 = static_cast<unsigned int>(hash & 0x7f) | 0x80;
+
+		hash >>= 7;
+
+		return meta_.size() ? search_pos_(hash, lsb7, key) : ins0_(hash, lsb7, key);
+	}
+
+	template <typename KeyType>
+	void free_if_not(const KeyType key)
+	{
+		for (meta_size i = 0; i < meta_.size(); ++i)
+			if ((meta_[i] & 0x80) && bucket_[i] != key)
+				std::free(bucket_[i]);
+	}
+
+private:
+
+	insret_type ins0_(std::size_t hash, const unsigned int lsb7, const key_type key)
+	{
+		const size_type initsize = 16;
+
+		meta_.resize(initsize);
+		bucket_.resize(initsize);
+		std::memset(&meta_[0], 0, initsize * sizeof meta_[0]);
+		std::memset(&bucket_[0], 0, initsize * sizeof bucket_[0]);
+		used_ = 1;
+		upper_ = 12;
+
+		hash %= initsize;
+
+		meta_[hash] = static_cast<unsigned char>(lsb7);
+		bucket_[hash] = key;
+
+		insret_type pair;
+		pair.first = key;
+		pair.second = true;
+		return pair;
+	}
+
+	insret_type search_pos_(const std::size_t hash, const unsigned int lsb7, const key_type key)
+	{
+		RESTART:
+		const meta_size begin = hash % meta_.size();
+//		unsigned int count = 0;
+		insret_type pair;
+
+		for (meta_size cur = begin;;)
+		{
+			if (cur == meta_.size())
+				cur = 0;
+
+			if (meta_[cur] == lsb7)
+			{
+				if (equal_(bucket_[cur], key))
+				{
+					pair.first = bucket_[cur];
+					pair.second = false;
+					break;
+				}
+			}
+			else if ((meta_[cur] & 0x80) == 0)
+			{
+				if (++used_ > upper_)
+				{
+					rehash_();
+					goto RESTART;
+				}
+				meta_[cur] = static_cast<unsigned char>(lsb7);
+				bucket_[cur] = key;
+
+				pair.first = key;
+				pair.second = true;
+				break;
+			}
+#if 0
+			if (++count == 256 || ++cur == begin)
+			{
+				rehash_();
+				goto RESTART;
+			}
+#else
+			++cur;
+#endif
+		}
+		return pair;
+	}
+
+	void rehash_()
+	{
+		const bucket_size nextsize = bucket_.size() << 1;
+
+		if (nextsize < bucket_.size())
+			throw std::bad_alloc();
+
+		meta_array newmeta;
+		bucket_array newbucket;
+
+		newmeta.resize(nextsize);
+		newbucket.resize(nextsize);
+		std::memset(&newmeta[0], 0, nextsize * sizeof newmeta[0]);
+		std::memset(&newbucket[0], 0, nextsize * sizeof newbucket[0]);
+		used_ = 0;
+
+		for (meta_size i = 0; i < meta_.size(); ++i)
+		{
+			if (meta_[i] & 0x80)
+			{
+				const key_type key = bucket_[i];
+				std::size_t hash = hash_(key);
+				const unsigned int lsb7 = static_cast<unsigned int>(hash & 0x7f) | 0x80;
+
+				hash >>= 7;
+				const meta_size begin = hash % nextsize;
+
+				for (meta_size cur = begin;; ++cur)
+				{
+					if (cur == newmeta.size())
+						cur = 0;
+
+					if ((newmeta[cur] & 0x80) == 0)
+					{
+						newmeta[cur] = static_cast<unsigned char>(lsb7);
+						newbucket[cur] = key;
+						break;
+					}
+				}
+				++used_;
+			}
+		}
+
+		meta_.swap(newmeta);
+		bucket_.swap(newbucket);
+		upper_ = (nextsize >> 1) + (nextsize >> 2);
+	}
+
+	std::size_t hash_(const key_type queue) const
+	{
+		const std::size_t prime = sizeof (std::size_t) < 8 ? 0x01000193 : 0x0100000001b3;
+		const key_type array = queue[0].ptr;
+		const ui_l32 num = queue[1].num;
+		std::size_t hval = (sizeof (std::size_t) < 8 ? 0x811c9dc5 : 0xcbf29ce484222325) | (queue[2].num << 16);
+
+		for (ui_l32 i = 0; i < num; ++i)
+		{
+			hval ^= array[i].num;
+			hval *= prime;
+		}
+		return hval;
+	}
+
+	bool equal_(const key_type left, const key_type right) const
+	{
+		if (left == right)
+			return true;
+
+		if (left[1].num != right[1].num || left[2].num != right[2].num)
+			return false;
+
+		const ui_l32 num = left[1].num;
+		const key_type larray = left[0].ptr;
+		const key_type rarray = right[0].ptr;
+
+		for (ui_l32 i = 0; i < num; ++i)
+			if (larray[i].num != rarray[i].num)
+				return false;
+
+		return true;
+	}
+
+	typedef simple_array<unsigned char> meta_array;
+	typedef simple_array<key_type> bucket_array;
+	typedef typename meta_array::size_type meta_size;
+	typedef typename bucket_array::size_type bucket_size;
+
+	meta_array meta_;
+	bucket_array bucket_;
+	size_type used_;
+	size_type upper_;
+};
+//  rei_tdset
+
+	}	//  namespace re_detail
+
+//  ... "rei_tdset.hpp"]
 //  ["rei_bitset.hpp" ...
 
 	namespace re_detail
@@ -16294,9 +16506,9 @@ public:
 
 	struct thread_helper : public thread_type
 	{
-		thread_helper(const ui_l32 s, const ui_l32 c)
+		thread_helper(const std::ptrdiff_t s, const ui_l32 c)
 		{
-			this->state = s;
+			this->state = static_cast<ui_l32>(s);
 			this->st_sm = c;
 		}
 	};
@@ -16361,9 +16573,9 @@ public:
 
 		pos_used_ = 0;
 
-		if (pos_size_ < 32)
+		if (pos_size_ < 16)
 		{
-			pos_size_ = 32;
+			pos_size_ = 16;
 			pos_tracker.resize(pos_size_ * num_of_positions);
 		}
 
@@ -16830,50 +17042,6 @@ private:
 template <typename charT, typename traits>
 struct re_object_core
 {
-private:
-
-	template <typename T>
-	struct hash_func_
-	{
-		std::size_t operator()(const T *const queue) const
-		{
-			const std::size_t prime = sizeof (std::size_t) < 8 ? 0x01000193 : 0x0100000001b3;
-			const T *const array = queue[0].ptr;
-			const ui_l32 num = queue[1].num;
-			std::size_t hval = (sizeof (std::size_t) < 8 ? 0x811c9dc5 : 0xcbf29ce484222325) | (queue[2].num << 16);
-
-			for (ui_l32 i = 0; i < num; ++i)
-			{
-				hval ^= array[i].num;
-				hval *= prime;
-			}
-			return hval;
-		}
-	};
-
-	template <typename T>
-	struct equal_func_
-	{
-		bool operator()(const T *const left, const T *const right) const
-		{
-			if (left == right)
-				return true;
-
-			if (left[1].num != right[1].num || left[2].num != right[2].num)
-				return false;
-
-			const ui_l32 num = left[1].num;
-			const T *const larray = left[0].ptr;
-			const T *const rarray = right[0].ptr;
-
-			for (ui_l32 i = 0; i < num; ++i)
-				if (larray[i].num != rarray[i].num)
-					return false;
-
-			return true;
-		}
-	};
-
 protected:
 
 	union cached_value_type
@@ -16883,10 +17051,10 @@ protected:
 	};
 	typedef simple_array<cached_value_type> dcache_start_type;
 	typedef typename dcache_start_type::size_type dcache_start_size;
-	typedef std::deque<cached_value_type *> dcache_mb_type;
+	typedef simple_array<cached_value_type *> dcache_mb_type;
 	typedef std::size_t dcache_size_type;
 
-	typedef std::unordered_set<cached_value_type *, hash_func_<cached_value_type>, equal_func_<cached_value_type> > dcache_state_set;
+	typedef rei_tdset<cached_value_type *> dcache_state_set;
 
 	static const ui_l32 group_max_ = 256;
 	u32array eqclass_;
@@ -17158,12 +17326,10 @@ protected:
 
 	void clear_dcache_()
 	{
-		for (typename dcache_state_set::const_iterator it = dcache_state_.begin(); it != dcache_state_.end(); ++it)
-			if (dcache_start_.size() == 0 || *it != &dcache_start_[0])
-				std::free(*it);
+		dcache_state_.free_if_not(dcache_start_.data());
 
-		for (typename dcache_mb_type::const_iterator it = dcache_mb_.begin(); it != dcache_mb_.end(); ++it)
-			std::free(*it);
+		for (typename dcache_mb_type::size_type i = 0; i < dcache_mb_.size(); ++i)
+			std::free(dcache_mb_[i]);
 
 		dcache_state_.clear();
 		dcache_mb_.clear();
@@ -18061,9 +18227,9 @@ private:
 			return true;
 
 		{
-			const ui_l32 maxlen = quantifier.is_infinity() ? (quantifier.atleast > 0 ? quantifier.atleast : 1) : quantifier.atmost;
+			const state_size_type mulsize = piece.size() * (quantifier.is_infinity() ? (quantifier.atleast + 1) : quantifier.atmost);
 
-			if (static_cast<state_size_type>(this->max_states_ / maxlen) < (piece.size() + 1))
+			if (mulsize >= this->max_states_ || mulsize < piece.size())
 				return this->set_error(regex_constants::error_manystates);
 		}
 
@@ -19682,7 +19848,6 @@ SRELL_NO_VCWARNING_END
 				state_type &bstate = this->NFA_states[bpos];
 				const state_size_type nextno = bpos + bstate.farnext();
 				const re_quantifier &bq = bstate.quantifier;
-				state_type orgcur(curstate);
 
 				if (curstate.type == st_character)
 				{
@@ -22216,7 +22381,7 @@ SRELL_NO_VCWARNING_END
 						if (curq != NULL)
 						{
 							std::memcpy(curq, nextq, addbyte);
-							const std::pair<typename dcache_state_set::iterator, bool> p = this->dcache_state_.insert(curq);
+							const typename dcache_state_set::insret_type p = this->dcache_state_.insert(curq);
 
 							if (p.second)
 							{
@@ -22225,7 +22390,7 @@ SRELL_NO_VCWARNING_END
 							else
 							{
 								std::free(curq);
-								curq = *p.first;
+								curq = p.first;
 								this->dcache_size_ -= nextqsize;
 							}
 							return 0;
@@ -22259,7 +22424,7 @@ SRELL_NO_VCWARNING_END
 					{
 						if (sstate.nextq_pushed[sscstate->next1] == 0)
 						{
-							nextq[0].ptr[nextq[1].num++].num = sscstate->next1;
+							nextq[0].ptr[nextq[1].num++].num = static_cast<ui_l32>(sscstate->next1);
 							sstate.nextq_pushed[sscstate->next1] = 1;
 							continue;
 						}
@@ -22279,7 +22444,7 @@ SRELL_NO_VCWARNING_END
 				{
 					if (sstate.nextq_pushed[sscstate->next1] == 0)
 					{
-						nextq[0].ptr[nextq[1].num++].num = sscstate->next1;
+						nextq[0].ptr[nextq[1].num++].num = static_cast<ui_l32>(sscstate->next1);
 						sstate.nextq_pushed[sscstate->next1] = 1;
 						continue;
 					}
@@ -22305,7 +22470,7 @@ SRELL_NO_VCWARNING_END
 					{
 						if (sstate.nextq_pushed[sscstate->next1] == 0)
 						{
-							nextq[0].ptr[nextq[1].num++].num = sscstate->next1;
+							nextq[0].ptr[nextq[1].num++].num = static_cast<ui_l32>(sscstate->next1);
 							sstate.nextq_pushed[sscstate->next1] = 1;
 							continue;
 						}
@@ -22323,7 +22488,7 @@ SRELL_NO_VCWARNING_END
 				if (sscstate->next2)
 #endif
 				{
-					sstate.lstack.push_back(sscstate->next2);
+					sstate.lstack.push_back(static_cast<ui_l32>(sscstate->next2));
 				}
 				sstate.lstack.push_back(static_cast<ui_l32>(sscstate->next1));
 				continue;
@@ -22401,7 +22566,9 @@ SRELL_NO_VCWARNING_END
 					}
 					else
 					{
+SRELL_NO_VCWARNING(4127)
 						if (reverse)
+SRELL_NO_VCWARNING_END
 						{
 							if ((curq[2].num & cc_mask) == cc_word)
 								is_matched = 1;
@@ -22422,7 +22589,9 @@ SRELL_NO_VCWARNING_END
 					}
 					else
 					{
+SRELL_NO_VCWARNING(4127)
 						if (!reverse)
+SRELL_NO_VCWARNING_END
 						{
 							if ((curq[2].num & cc_mask) == cc_word)
 								is_matched ^= 1;
