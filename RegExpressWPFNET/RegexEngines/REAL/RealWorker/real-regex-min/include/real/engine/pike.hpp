@@ -745,7 +745,26 @@ namespace real::detail {
         if (!std::is_constant_evaluated() && !inner_literal_route_disabled() && mode == run_mode::search
             && sem_ == match_semantics::first // longest semantics need the general loop (these routes are kFirstMatch)
             && prog_.hints.inner_literal_len > 0 && prog_.hints.inner_literal_prefix >= 1
+            && !prog_.hints.fixed_shape       // see the note below: IL never beats the fixed-shape route
             && (!confirms_by_reverse || !prog_.prefix_code.empty())) {
+          // NOT WHEN A FIXED-SHAPE ROUTE EXISTS. That route scans for the shape's own first-byte class
+          // and confirms a known width, and it is never slower than memmem-plus-reverse-confirm on the
+          // patterns that have both. Measured over 64 KB corpora, inner-literal against the same
+          // pattern with this route disabled:
+          //
+          //     [0-9]{4}-[0-9]{2}-[0-9]{2}   dense   0.859 -> 0.801 ns/B   IL 1.07x slower
+          //     [a-z]{3}-[0-9]{4}            dense   0.805 -> 0.718        IL 1.12x slower
+          //     [0-9]{3}[.][0-9]{3}                  0.554 -> 0.554        tie
+          //     [0-9]{4}-[0-9]{2}-[0-9]{2}   rare    0.022 -> 0.022        tie
+          //
+          // and across a density sweep on the date pattern the gap is widest where the OLD gate was
+          // most confident: 1.25x against fixed-shape at 33 candidates per 1000 bytes, well under the
+          // 60 that would have made il_density_milli_threshold abandon. The gate's threshold was
+          // calibrated against the DFA as the fallback; against fixed_shape the crossover is not
+          // merely elsewhere, it does not exist -- so the fix is a route condition, not a retune.
+          //
+          // Patterns the inner-literal route was built for are unaffected by construction: `\w+@\w+`
+          // and friends are variable-width and have no fixed_shape hint to trip this.
           // A required literal at offset 0 (a match that DOES begin with a literal) is a *prefix*, not an inner
           // literal — it keeps the faster find_prefix path. Only a genuine inner literal (offset >= 1, for which
           // the compiler built a `prefix_code` for the reverse-confirm) takes this route; the old
@@ -1341,6 +1360,24 @@ namespace real::detail {
      * (dens 0.06) sits conservatively above crossover so sparse IL wins (dens ≪ 0.01) stay on IL. Capture-free
      * only (\c slot_count ≤ 2): with groups, IL still beat forced DFA on dense (measured). Probe after K candidates
      * across the haystack (sticky on \ref pike_state::il_density_cands).
+     *
+     * \note **The threshold is calibrated against ONE alternative, and the crossover moves with which
+     *       route the gate is arbitrating against.** It was measured on `(?:\w+)_(?:\w+)`, whose
+     *       fallback is the DFA. `[0-9]{4}-[0-9]{2}-[0-9]{2}` falls back to \ref
+     *       pattern_hints::fixed_shape instead, which is far cheaper -- and on a date-dense corpus
+     *       that route is 1.15x faster than the inner-literal one (0.955 against 1.102 ns/byte, 64 KB)
+     *       while the gate never fires, because `-` at ~32 candidates per 1000 bytes sits under the
+     *       60 calibrated for the other shape. On a sparse corpus the two are equal, so the gate is
+     *       not wrong in general -- its single threshold is.
+     *
+     *       This is the same defect the Aho-Corasick gate had before 2026.8.0: one number where the
+     *       crossover depends on what is being compared against. The AC fix keyed on a PRODUCT once
+     *       the second variable was identified; the analogous variable here is the fallback route's
+     *       cost, not the branch count.
+     *
+     *       Worth chasing because it is on the engine's worst PUBLISHED row: §A's `date` reads 0.51x
+     *       against PCRE2-JIT on x86-64 and 0.59x on arm64, the largest gap in that table. 15 % does
+     *       not close it, but it is the part that is understood.
      */
     static constexpr std::uint32_t il_density_probe_candidates {8};
     static constexpr std::size_t   il_density_milli_threshold  {60}; //!< Candidate density, in candidates per 1000 bytes, at or above which the IL route yields to the DFA.
@@ -1653,7 +1690,17 @@ namespace real::detail {
       // DO extract through op_table. It must be built BEFORE slot.mu is taken -- ensure_op_table locks
       // immut_build_mu, and reset_shared_dfas walks immut_build_mu -> map_mu/slot.mu, so building it inside
       // the lambda would invert that order.
-      ensure_op_table();
+      // The extractor is built ONLY when there is something to extract. `fn`'s confirm step fills
+      // out_slots through op_table, but a 2-slot program has nothing but the span the DFA already
+      // found -- and when the table is absent the confirm falls to run_general, which is the same
+      // path it takes whenever the extractor declines. Building it anyway cost 3330 allocations and
+      // 4.57 MB on a first `\w+@\w+` search over 8 KB, for a table that could not be consulted.
+      if (prog_.slot_count > 2) {
+        ensure_op_table();
+      }
+      else {
+        ensure_immutables(); // the DFAs still need the byte program and the shared alphabet
+      }
       shared_dfa_slot&                  slot {shared_dfa_for(immut)};
       const std::lock_guard<std::mutex> lock {slot.mu};
       ensure_slot_search_dfas_unlocked(*immut, slot);
@@ -1981,6 +2028,15 @@ namespace real::detail {
         }
         state_.table_class = static_cast<std::int32_t>(class_index);
       }
+      // Runtime only, and it is what keeps \ref class_table's leading fast path sound: that path
+      // answers from `row_ptr` whenever the key matches, so every path that claims the key must leave
+      // `row_ptr` on the row it claimed. Reached at runtime only when neither storage kind is present;
+      // under constant evaluation nothing reads `row_ptr`, and the guard keeps the pointer out of the
+      // constexpr state entirely.
+      if (!std::is_constant_evaluated()) {
+        state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
+        state_.row_ptr           = state_.table.data();
+      }
       return state_.table.data();
     }
 
@@ -2116,17 +2172,49 @@ namespace real::detail {
 #endif
     constexpr const std::uint8_t* class_table(std::size_t class_index)
     {
+      const std::int32_t key {static_cast<std::int32_t>(class_index)};
+      // The row-key compare comes FIRST, ahead of both storage-mode tests. Two acquire loads here would
+      // be per-`run()`, and `run()` is per MATCH on a walk — 11 327 times over 64 KiB on `[a-z]+`; the
+      // state is single-threaded by construction, so it remembers which row it last verified and a walk
+      // that stays on one class pays one compare. The storage-mode tests are invariant for the whole
+      // walk while the key is not, so asking them first charged every match two branches that no
+      // compiler can hoist out of a per-match call — and being invariant is exactly why they must be
+      // asked last, not first. Every branch here answers the ONE question the caller asked; ordering is
+      // the whole optimisation.
+      if (!std::is_constant_evaluated() && !row_key_stale(state_.table_class, key)) {
+        return state_.row_ptr;
+      }
+      return resolve_class_table(class_index);
+    }
+
+    /*!
+     * \brief Cold half of \ref class_table — the storage-mode resolution, and the only path that writes
+     *        the state's row cache for a byte class.
+     *
+     * Outlined for the reason \ref class_table has an attribute of its own — what has to stay inlined is the
+     * row-key compare and the return, and every byte of resolution beside it competes for the budget
+     * that lets the accessor enter `basic_match_iterator::advance`. Inlined back in, it measured
+     * `[0-9]+` +7.2 % and `[^,]+` +3.9 % on gcc/x86-64 while helping the same rows on clang/arm64: the
+     * hot path was already right, and the cold path's SIZE was what decided the outcome.
+     * \param[in] class_index Index into the program's interned byte classes.
+     * \return Pointer to the 256-entry membership row, also cached in the state.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
+    constexpr const std::uint8_t* resolve_class_table(std::size_t class_index)
+    {
       if (!std::is_constant_evaluated() && prog_.class_tables != nullptr) {
-        return prog_.class_tables + (class_index * 256); // pre-built flat tables (compile-time storage)
+        // Compile-time storage. Recorded in the state like every other path so the fast path above
+        // answers for this storage too: the invariant this accessor rests on is that `table_class`
+        // names the row `row_ptr` points at, whichever path filled it.
+        state_.table_class       = static_cast<std::int32_t>(class_index);
+        state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
+        state_.row_ptr           = prog_.class_tables + (class_index * 256);
+        return state_.row_ptr;
       }
       else if (!std::is_constant_evaluated() && prog_.immut != nullptr) {
-        detail::regex_immutables& cache {*prog_.immut};
-        // Two acquire loads here would be per-`run()`, and `run()` is per MATCH on a walk — 11 327 times
-        // over 64 KiB on `[a-z]+`. The state is single-threaded by construction, so it remembers which row
-        // it last verified, so a walk that stays on one class pays one compare.
-        if (row_key_stale(state_.table_class, static_cast<std::int32_t>(class_index))) {
-          verify_class_row(cache, class_index);
-        }
+        verify_class_row(*prog_.immut, class_index);
         return state_.row_ptr;
       }
       else {
@@ -2147,33 +2235,45 @@ namespace real::detail {
 #endif
     constexpr const std::uint8_t* cp_ascii_table(std::size_t cp_index)
     {
+      // Key first, resolution outlined — see \ref class_table, whose shape this is exactly.
+      const std::int32_t key {-2 - static_cast<std::int32_t>(cp_index)};
+      if (!std::is_constant_evaluated() && !row_key_stale(state_.table_class, key)) {
+        return state_.row_ptr;
+      }
       if (!std::is_constant_evaluated() && prog_.cp_ascii_tables != nullptr) {
-        return prog_.cp_ascii_tables + (cp_index * 256); // pre-built flat tables (compile-time storage)
+        // Recorded in the state so the fast path above answers for compile-time storage too — the
+        // invariant is \ref class_table's: `table_class` names the row `row_ptr` points at.
+        state_.table_class       = key;
+        state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
+        state_.row_ptr           = prog_.cp_ascii_tables + (cp_index * 256);
+        return state_.row_ptr;
       }
       else if (!std::is_constant_evaluated() && prog_.immut != nullptr) {
         detail::regex_immutables& cache {*prog_.immut};
-        const std::int32_t        key {-2 - static_cast<std::int32_t>(cp_index)};
-        if (row_key_stale(state_.table_class, key)) { // see class_table
-          if (cache.rows_for.load(std::memory_order_acquire) != static_cast<const void*>(prog_.code.data())) {
-            ensure_membership_rows(cache);
-          }
-          if (!cache.row_ready(cache.cp_ascii_ready_at + cp_index)) {
-            fill_cp_ascii_row(cache, cp_index);
-          }
-          state_.table_class       = key;
-          state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
-          state_.row_ptr           = cache.cp_ascii_rows.data() + (cp_index * 256);
+        if (cache.rows_for.load(std::memory_order_acquire) != static_cast<const void*>(prog_.code.data())) {
+          ensure_membership_rows(cache);
         }
+        if (!cache.row_ready(cache.cp_ascii_ready_at + cp_index)) {
+          fill_cp_ascii_row(cache, cp_index);
+        }
+        state_.table_class       = key;
+        state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
+        state_.row_ptr           = cache.cp_ascii_rows.data() + (cp_index * 256);
         return state_.row_ptr;
       }
       else { // constant evaluation -- see class_table
-        const std::int32_t key {-2 - static_cast<std::int32_t>(cp_index)};
         if (state_.table_class != key) {
           const char_class& klass {prog_.cp_classes[cp_index].ascii};
           for (std::size_t b {0}; b < 256; ++b) {
             state_.table[b] = klass.test(static_cast<std::uint8_t>(b)) ? 1U : 0U;
           }
           state_.table_class = key;
+        }
+        // Runtime only, and only when neither storage kind is present: the fast path answers from
+        // `row_ptr`, so this path must leave it on the row it just claimed.
+        if (!std::is_constant_evaluated()) {
+          state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
+          state_.row_ptr           = state_.table.data();
         }
         return state_.table.data();
       }
@@ -2242,27 +2342,33 @@ namespace real::detail {
 #endif
     constexpr const std::uint64_t* cp_page_table(std::size_t cp_index)
     {
+      // Key first, resolution outlined — see \ref class_table, whose shape this is exactly.
+      const std::int32_t key {-2 - static_cast<std::int32_t>(cp_index)};
+      if (!std::is_constant_evaluated() && !row_key_stale(state_.cp_page_class, key)) {
+        return state_.page_ptr;
+      }
       if (!std::is_constant_evaluated() && prog_.cp_page_tables != nullptr) {
-        return prog_.cp_page_tables + (cp_index * 30); // pre-built flat tables (compile-time storage)
+        // Recorded in the state so the fast path above answers for compile-time storage too — the
+        // invariant is \ref class_table's, on this accessor's own pair of fields.
+        state_.cp_page_class     = key;
+        state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
+        state_.page_ptr          = prog_.cp_page_tables + (cp_index * 30);
+        return state_.page_ptr;
       }
       else if (!std::is_constant_evaluated() && prog_.immut != nullptr) {
         detail::regex_immutables& cache {*prog_.immut};
-        const std::int32_t        key {-2 - static_cast<std::int32_t>(cp_index)};
-        if (row_key_stale(state_.cp_page_class, key)) { // see class_table
-          if (cache.rows_for.load(std::memory_order_acquire) != static_cast<const void*>(prog_.code.data())) {
-            ensure_membership_rows(cache);
-          }
-          if (!cache.row_ready(cache.cp_page_ready_at + cp_index)) {
-            fill_cp_page_row(cache, cp_index);
-          }
-          state_.cp_page_class     = key;
-          state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
-          state_.page_ptr          = cache.cp_page_rows.data() + (cp_index * 30);
+        if (cache.rows_for.load(std::memory_order_acquire) != static_cast<const void*>(prog_.code.data())) {
+          ensure_membership_rows(cache);
         }
+        if (!cache.row_ready(cache.cp_page_ready_at + cp_index)) {
+          fill_cp_page_row(cache, cp_index);
+        }
+        state_.cp_page_class     = key;
+        state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
+        state_.page_ptr          = cache.cp_page_rows.data() + (cp_index * 30);
         return state_.page_ptr;
       }
       else { // constant evaluation -- see class_table
-        const std::int32_t key {-2 - static_cast<std::int32_t>(cp_index)};
         if (state_.cp_page_class != key) {
           state_.cp_page.fill(0);
           const detail::cp_class& cc {prog_.cp_classes[cp_index]};
@@ -2279,6 +2385,12 @@ namespace real::detail {
             }
           }
           state_.cp_page_class = key;
+        }
+        // Runtime only, and only when neither storage kind is present: the fast path answers from
+        // `page_ptr`, so this path must leave it on the page it just claimed.
+        if (!std::is_constant_evaluated()) {
+          state_.rows_verified_for = static_cast<const void*>(prog_.code.data());
+          state_.page_ptr          = state_.cp_page.data();
         }
         return state_.cp_page.data();
       }
@@ -2777,9 +2889,36 @@ namespace real::detail {
                               };
 
         const auto sub_id {static_cast<std::uint16_t>(prog_.hints.trailing_lookaround)};
+        // Resolve the lookaround ONCE for the whole walk. `lookaround_holds` re-derives, per call,
+        // things that cannot change between calls with the same sub_id: the sub lookup, its code
+        // length, and its body's opcode. Callgrind on `[a-z]+(?=[a-z])` over 64 KB of prose puts it at
+        // 26.6 % of the workload across 1 649 430 calls -- 35 instructions each, of which 22 are
+        // prologue and epilogue and ~10 are that invariant re-checking. Only the class test varies
+        // with the position. Hoisting leaves the loop calling a small inlinable predicate instead of
+        // an out-of-line function; it removes the work rather than moving it, which is what
+        // force-inlining would have done (and that was measured as a regression -- see
+        // basic_match_iterator::advance).
+        const lookaround_sub& la_sub    {prog_.lookarounds[sub_id]};
+        const instr*          la_simple {nullptr};
+        if (la_sub.code_length == 2) {
+          const instr& body {prog_.code[static_cast<std::size_t>(la_sub.code_offset)]};
+          if (body.op == opcode::byte || body.op == opcode::klass
+              || (body.op == opcode::klass_cp && !prog_.byte_mode)) {
+            la_simple = &body;
+          }
+        }
+        const auto la_at = [&](std::size_t e) {
+                             if (la_simple == nullptr) {
+                               return lookaround_holds(sub_id, e);
+                             }
+                             const bool matched {la_sub.direction == look_dir::behind
+                                                   ? single_class_behind(*la_simple, e)
+                                                   : single_class_ahead(*la_simple, e)};
+                             return matched != la_sub.negative;
+                           };
         const auto try_ends = [&](std::size_t ms, std::size_t me) -> bool {
                                 for (std::size_t e = me; e > ms; --e) {
-                                  if (lookaround_holds(sub_id, e)) {
+                                  if (la_at(e)) {
                                     fill_span_slots(out_slots, ms, e);
                                     return true;
                                   }
@@ -2793,7 +2932,7 @@ namespace real::detail {
             return false;
           }
           const std::size_t match_end {scan_end(start)};
-          if (match_end != text.size() || !lookaround_holds(sub_id, match_end)) {
+          if (match_end != text.size() || !la_at(match_end)) {
             out_slots.assign(prog_.slot_count, npos);
             return false;
           }

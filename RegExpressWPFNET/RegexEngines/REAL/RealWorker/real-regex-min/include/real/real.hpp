@@ -452,6 +452,23 @@ namespace real {
      * \c TrailingLA is fixed for the whole walk (constructor / range). Pure walks
      * (`TrailingLA = false`) contain zero trailing-LA symbols — required for x86
      * class-loop codegen (see pattern_hints::trailing_lookaround).
+     *
+     * \note **Not force-inlined, and that was measured rather than assumed.** Callgrind on a
+     *       steady-state `\w+` scan over 64 KB of prose puts this function at 25.2 % of the workload
+     *       -- 549 810 calls, 49 instructions each against 190 for the scan itself -- and roughly half
+     *       of its own cost is prologue and epilogue, 23 instructions of stack frame per match. The
+     *       obvious fix is `always_inline`.
+     *
+     *       It is a regression. On arm64 it reads -11.3 % on the target (3.467 -> 3.076 ns/B) with
+     *       gauges inside the +-3 % layout floor, which looks like a win. On x86-64 under g++ 13.3,
+     *       three identical rounds: the TARGET itself +9.4 % (4.661 -> 5.098), `[a-z]+` **+27 %**
+     *       (2.297 -> 2.923), `the|fox|dog` +12 %, `\d+` +5.8 %. Inlining this into its callers
+     *       bloats the translation unit past `--param inline-unit-growth` and the compiler starts
+     *       declining inlines that mattered more -- the cliff documented in docs/design.dox 10.1,
+     *       reproduced here in one experiment.
+     *
+     *       So the 23 instructions per match are real and stay. Removing them needs the frame to
+     *       shrink, not the call to disappear.
      */
     constexpr void advance()
     {
