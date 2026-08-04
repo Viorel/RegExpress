@@ -335,6 +335,7 @@ namespace BoostPlugin
                 Anchor_bB = is_perl || is_POSIX_extended || is_emacs,
                 Anchor_bg = false,
                 Anchor_bBBrace = false,
+                Anchor_PosixWB = true,
                 Anchor_K = is_perl,
                 Anchor_mM = false,
                 Anchor_LtGt = is_perl || is_POSIX_extended || is_emacs,

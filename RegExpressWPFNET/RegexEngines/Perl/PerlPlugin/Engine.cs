@@ -279,6 +279,7 @@ namespace PerlPlugin
                 Anchor_bB = true,
                 Anchor_bg = true,
                 Anchor_bBBrace = true,
+                Anchor_PosixWB = false,
                 Anchor_K = true,
                 Anchor_mM = false,
                 Anchor_LtGt = false,

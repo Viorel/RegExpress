@@ -7,7 +7,7 @@ partial class FeatureMatrixDetails
     internal static readonly FeatureMatrixGroup[] AllFeatureMatrixDetails =
         [
 
-            new ( @"General",
+        new ( @"General",
             [
                 new FeatureMatrixDetails( @"(…)", @"Grouping constructs", (e, fm) => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal)
                     .Test( @"(x)", "x", null ),
@@ -153,7 +153,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a\j", @"aj", @"a\j" ),
             ] ),
 
-            new ( @"Escapes inside […] sets",
+        new ( @"Escapes inside […] sets",
             [
                 new FeatureMatrixDetails( @"[\a]", @"Bell, \u0007", (e, fm) => fm.InsideSets_Esc_a)
                     .Test( @"[\a]", "\u0007", null ),
@@ -209,7 +209,7 @@ partial class FeatureMatrixDetails
                     .Test( @"[\j]", "j", @"\"),
             ] ),
 
-            new ( @"Classes",
+        new ( @"Classes",
             [
                 new FeatureMatrixDetails( @".", @"Any, including or excepting newline (\n)", (e, fm) => fm.Class_Dot)
                     .Test( @".", "x", null ),
@@ -249,7 +249,7 @@ partial class FeatureMatrixDetails
                     .Test( @"\p{L}\P{L}", "x9", null ),
             ] ),
 
-            new (@"Classes inside […] sets",
+        new (@"Classes inside […] sets",
             [
                 new FeatureMatrixDetails( @"[\d], [\D]", @"Digit", (e, fm) => fm.InsideSets_Class_dD)
                     .Test( @"a[\d]", "a9", null ),
@@ -286,7 +286,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a[[.comma.]]b", "a,b", null ), // STL seems to have a defect.
             ] ),
 
-            new ( @"Operators inside […] sets",
+        new ( @"Operators inside […] sets",
             [
                 new FeatureMatrixDetails( @"[[…] op […]]", @"Using operators for nested groups", (e, fm) => fm.InsideSets_Operators)
                     .Test( @"[[ab]&[bc]]", "b", "a&c")
@@ -321,7 +321,7 @@ partial class FeatureMatrixDetails
                     .Test( @"[[ab]~~[bca]]", "c", "ab][~"),
             ] ),
 
-            new ( @"Anchors",
+        new ( @"Anchors",
             [
                 new FeatureMatrixDetails( @"^", @"Beginning of string or line", (e, fm) => fm.Anchor_Circumflex)
                     .Test( @"^x", "x", null ),
@@ -340,9 +340,11 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"\b{g}", @"Unicode extended grapheme cluster boundary", (e, fm) => fm.Anchor_bg)
                     .Test( @"\b{g}x", "y x", null ),
                 new FeatureMatrixDetails( @"\b{…}, \B{…}", @"Typed boundary", (e, fm) => fm.Anchor_bBBrace)
-                    .Test( @"\b{wb}x", "y x", null ).Test( @"\b{start}x", "y x", null ),
-                new FeatureMatrixDetails( @"\K", @"Keep the stuff left of the \K", (e, fm) => fm.Anchor_K)
-                    .Test( @"a\Kb", "ab", "aKb", "b" ),
+                    .Test( @"\b{wb}x", "y x", null )
+                    .Test( @"\b{start}x", "y x", null )
+                    .Test( @"\b{start-half}x", "y x", null ),
+                new FeatureMatrixDetails( @"[[:<:]], [[:>:]]", @"POSIX word boundary", (e, fm) => fm.Anchor_PosixWB)
+                    .Test( @"[[:<:]]a[[:>:]]", "a", null ),
                 new FeatureMatrixDetails( @"\m, \M", @"Start of word, end of word", (e, fm) => fm.Anchor_mM)
                     .Test( @"\mword\M", "some word here", null ),
                 new FeatureMatrixDetails( @"\<, \>", @"Start of word, end of word", (e, fm) => fm.Anchor_LtGt)
@@ -351,9 +353,11 @@ partial class FeatureMatrixDetails
                     .Test( @"\`x\'", "x", null ),
                 new FeatureMatrixDetails( @"\y, \Y", @"Boundary between graphemes", (e, fm) => fm.Anchor_yY)
                     .Test( @"a\yb", "ab", null ),
+                new FeatureMatrixDetails( @"\K", @"Keep the stuff left of the \K", (e, fm) => fm.Anchor_K)
+                    .Test( @"a\Kb", "ab", "aKb", "b" ),
             ] ),
 
-            new ( @"Named groups, subroutines and backreferences",
+        new ( @"Named groups, subroutines and backreferences",
             [
                 new FeatureMatrixDetails( @"(?'name'…)", @"Named group", (e, fm) => fm.NamedGroup_Apos)
                     .Test( @"a(?'n'x)b", "axb", null )
@@ -506,7 +510,7 @@ partial class FeatureMatrixDetails
                     .Test( @"(?<a>A(?<b>.))(?&a(<b>))\k<b>", "ABACC", "ABACB"),
             ] ),
 
-            new ( @"Conditionals",
+        new ( @"Conditionals",
             [
                 new FeatureMatrixDetails( @"(?(number)…|…)", @"Conditionals by number, +number, -number", (e, fm) => fm.Conditional_BackrefByNumber)
                     .Test( @"(x)(?(1)y|z)", "xy", "bx"),
@@ -554,7 +558,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a[^][^][^]b", "ax\r\nb", "ab" ),
                 new FeatureMatrixDetails( @"Unicode “.”", @"“.” matches Unicode characters, not just ASCII", (e, fm) => fm.Unicode_Class_Dot )
                     .Test( @"X.....Y", "XăîșțâY", null ),
-                new FeatureMatrixDetails( @"Unicode “\w”", @"“\w” matches Unicode characters, not just ASCII", (e, fm) => fm.Unicode_Class_vW ) 
+                new FeatureMatrixDetails( @"Unicode “\w”", @"“\w” matches Unicode characters, not just ASCII", (e, fm) => fm.Unicode_Class_vW )
                     .Test( @"X\w\w\w\w\wY", "XăîșțâY", null ),
                 new FeatureMatrixDetails( @"[Unicode]", @"Support Unicode characters inside sets", (e, fm) => fm.InsideSets_Unicode )
                     .Test( @"X[é]Y", "XéY", null, "XéY" ),

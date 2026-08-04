@@ -311,6 +311,7 @@ namespace PCRE2Plugin
                 Anchor_bB = true,
                 Anchor_bg = false,
                 Anchor_bBBrace = false,
+                Anchor_PosixWB = true,
                 Anchor_K = true,
                 Anchor_mM = false,
                 Anchor_LtGt = false,

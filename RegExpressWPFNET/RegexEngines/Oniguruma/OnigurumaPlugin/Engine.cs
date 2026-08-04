@@ -406,6 +406,7 @@ namespace OnigurumaPlugin
                 Anchor_bB = details.ONIG_SYN_OP_ESC_B_WORD_BOUND,
                 Anchor_bg = false,
                 Anchor_bBBrace = false,
+                Anchor_PosixWB = false,
                 Anchor_K = details.ONIG_SYN_OP2_ESC_CAPITAL_K_KEEP,
                 Anchor_mM = false,
                 Anchor_LtGt = details.ONIG_SYN_OP_ESC_LTGT_WORD_BEGIN_END,
