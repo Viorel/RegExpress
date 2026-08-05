@@ -1,0 +1,162 @@
+#![allow(non_snake_case)]
+//#![allow(unused_imports)]
+//#![allow(unused_variables)]
+//#![allow(unreachable_code)]
+
+use std::io::Read;
+
+fn main() 
+{
+    let mut input = String::new();
+
+    let r = std::io::stdin().read_to_string( & mut input );
+
+    if r.is_err()
+    {
+        let err = r.unwrap_err();
+
+        eprintln!("Failed to read from 'stdin'");
+        eprintln!("{}", err);
+
+        return;
+    }
+
+    let input = input.trim();
+
+    let input_json = json::parse(&input);
+
+    if input_json.is_err()
+    {
+        let err = input_json.unwrap_err();
+
+        eprintln!("Failed to parse input: {}", err);
+        eprintln!("Input: '{}'", input);
+
+        return;
+    }
+
+    let input_json = input_json.unwrap();
+
+    if ! input_json.is_object()
+    {
+        eprintln!("Bad json: {}", input);
+
+        return;
+    }
+
+    let structure = input_json["structure"].as_str().unwrap_or("");
+    let pattern = input_json["pattern"].as_str().unwrap_or("");
+    let text = input_json["text"].as_str().unwrap_or("");
+    let options = &input_json["options"];
+
+    let re;
+
+    if structure == "Regex"
+    {
+        re = regexr::Regex::new(pattern);
+    }
+    else if structure == "RegexBuilder"
+    {
+        let jit = options["jit"].as_bool().unwrap_or(false);
+        let optimize_prefixes= options["optimize_prefixes"].as_bool().unwrap_or(false);
+
+        let reb = regexr::RegexBuilder::new(pattern)
+            .jit(jit)
+            .optimize_prefixes(optimize_prefixes)
+            ;
+
+        re = reb.build();
+    }
+    else
+    {
+        eprintln!("Invalid structure: {:?}", structure);
+
+        return;
+    }
+
+    if re.is_err()
+    {
+        let err = re.unwrap_err();
+
+        eprintln!("{}", err);
+
+        return;
+    }
+
+    let re = re.unwrap();
+
+    let mut names = json::array![];
+    let mut matches = json::array![];
+
+    for name in re.capture_names()
+    {
+        names.push(name).unwrap();
+    }
+
+    for cap in re.captures_iter(text) 
+    {
+        let mut groups = json::array![];
+
+        for i in 0..cap.len()
+        {
+            let g = cap.get( i );
+            let group;
+
+            if ! g.is_some()
+            {
+                group = json::array![ ];
+            }
+            else
+            {
+                let g = g.unwrap();
+                group = json::array![ g.start(), g.end() ];
+            }
+
+            groups.push(group).unwrap();
+        }
+
+        let mut named_groups = json::array![];
+
+        for name in re.capture_names()
+        {
+            let g = cap.name( name );
+
+            if ! g.is_some()
+            {
+                named_groups.push( json::object! 
+                    {
+                        n: name,
+                        g: json::array![ ]
+                    }).unwrap();
+            }
+            else
+            {
+                let g = g.unwrap();
+
+                named_groups.push( json::object! 
+                    {
+                        n: name,
+                        g: json::array![ g.start(), g.end() ]
+                    }).unwrap();
+            }
+        }
+
+        matches.push(json::object! 
+            {
+                g: groups,
+                ng: named_groups,
+            }).unwrap();
+
+    }
+
+    let output = json::object!
+    {
+        names: names,
+        matches: matches
+    };
+
+    let output_json = json::stringify(output);
+
+    println!("{}", output_json);
+
+}
