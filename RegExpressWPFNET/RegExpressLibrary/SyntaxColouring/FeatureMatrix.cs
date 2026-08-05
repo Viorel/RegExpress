@@ -102,7 +102,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Esc_UBrace { get; init; }                               // ex: \U{41}
         public bool Esc_c1 { get; init; }                                   // ex: \cM, which is \r, or \cZ, which is 0x1A
         public bool Esc_C1 { get; init; }                                   // same as Esc_c1
-        public bool Esc_CMinus { get; init; }                               // ex: \C-Z, which is 0x1A
+        public bool Esc_CMinus { get; init; }                               // ex: \C-M, which is \r, or \C-Z, which is 0x1A
         public bool Esc_NBrace { get; init; }                               // ex: \N{U+0041}, \N{LATIN CAPITAL LETTER A}, \N{COMMA} (some want \N{comma})
         public bool GenericEscape { get; init; }                            // \c, where c -- any character that does not have another meaning
 
@@ -276,7 +276,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Unicode_Class_Dot { get; init; }                        // “.” matches Unicode characters, not just ASCII
         public bool Unicode_Class_vW { get; init; }                         // “\w” matches Unicode characters, not just ASCII
         public bool InsideSets_Unicode { get; init; }                       // supports Unicode characters, not just ASCII, inside [...]
-        public bool UnicodeCaseFolding { get; init; }                       // for example, 'é' matches 'É' in case of case-insensitive matching
+        public bool UnicodeCaseFolding { get; init; }                       // for example, 'é' matches 'É' in case-insensitive matching
 
         public bool KeepSurrogatePairs { get; init; }                       // when the text contains a surrogate pair (e.g. “😎” U+1F60E), then “.” returns a single result (32-bit surrogate pair)
                                                                             // if it is 'false', then “.” matches two components separately: D83D and DE0E

@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="864.155" d:DesignWidth="779.929" 
+             d:DesignHeight="927.355" d:DesignWidth="869.529" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -33,21 +33,22 @@
     </UserControl.Resources>
 
     <Grid>
-        <StackPanel>
+        <StackPanel Orientation="Vertical">
             <StackPanel Orientation="Horizontal" Margin="0 0 0 4">
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
                 <Label Content="Crate:" Target="{Binding ElementName=cbxCrate}" Padding="0 2 4 2" MinWidth="40"/>
                 <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
-                    <ui:ComboBoxItemWithVersion Tag ="regex"       Text="regex"       Version="{Binding Regex, Source={StaticResource versions}}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag ="regex_lite"  Text="regex-lite"  Version="{Binding RegexLite, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="fancy_regex" Text="fancy-regex" Version="{Binding FancyRegex, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="regress"     Text="regress"     Version="{Binding Regress, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="resharp"     Text="resharp"     Version="{Binding Resharp, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="anre"        Text="regex-anre"  Version="{Binding Anre, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="real_regex"  Text="real-regex"  Version="{Binding RealRegex, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="java_regex"  Text="java_regex"  Version="{Binding JavaRegex, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="regex"        Text="regex"        Version="{Binding Regex,        Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag ="regex_lite"   Text="regex-lite"   Version="{Binding RegexLite,    Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="fancy_regex"  Text="fancy-regex"  Version="{Binding FancyRegex,   Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="regress"      Text="regress"      Version="{Binding Regress,      Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="resharp"      Text="resharp"      Version="{Binding Resharp,      Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="anre"         Text="regex-anre"   Version="{Binding Anre,         Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="real_regex"   Text="real-regex"   Version="{Binding RealRegex,    Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="java_regex"   Text="java_regex"   Version="{Binding JavaRegex,    Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="regexr"       Text="regexr"       Version="{Binding Regexr,       Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 
@@ -62,7 +63,7 @@
                 </ComboBox>
             </StackPanel>
 
-            <StackPanel x:Name="pnlRegexBuilderOptions">
+            <StackPanel x:Name="pnlRegexBuilderOptions" Orientation="Vertical" Visibility="Collapsed" d:Visibility="Visible">
 
                 <ui:CheckboxWithNote x:Name="chbx_case_insensitive" Prop="case_insensitive" Note="(i) match both upper case and lower case variants"/>
                 <ui:CheckboxWithNote x:Name="chbx_multi_line" Prop="multi_line" Note="(m) “^” matches the beginning of lines, “$” matches the end of lines"/>
@@ -222,12 +223,12 @@
                 </Grid>
 
             </StackPanel>
-            
+
             <StackPanel x:Name="pnlAnreOptions" Orientation="Vertical" Visibility="Collapsed" d:Visibility="Visible">
                 <ui:CheckboxWithNote Prop="anre_syntax" Text="ANRE" Note="use ANRE language"/>
             </StackPanel>
 
-            <StackPanel x:Name="pnlJavaRegexOptions">
+            <StackPanel x:Name="pnlJavaRegexOptions" Orientation="Vertical" Visibility="Collapsed" d:Visibility="Visible">
                 <ui:CheckboxWithNote Prop="case_insensitive" Text="i" Note="case-insensitive matching"/>
                 <ui:CheckboxWithNote Prop="multi_line" Text="m" Note="multiline mode (^ and $ match line boundaries)"/>
                 <ui:CheckboxWithNote Prop="dot_matches_new_line" Text="s" Note="dotall mode (. matches line terminators)"/>
@@ -237,7 +238,12 @@
                 <ui:CheckboxWithNote Prop="d" Text="d" Note="Unix lines mode (only \n is a line terminator)"/>
                 <ui:CheckboxWithNote Prop="l" Text="l" Note="literal mode (pattern is treated as a literal string)"/>
             </StackPanel>
-            
+
+            <StackPanel x:Name="pnlRegexrOptions" Orientation="Vertical" Visibility="Collapsed" d:Visibility="Visible">
+                <ui:CheckboxWithNote Prop="jit" Text="jit" Note="the regex will be compiled to native machine code for maximum performance"/>
+                <ui:CheckboxWithNote Prop="optimize_prefixes" Text="optimize_prefixes" Note="large alternations of literals (like (token1|token2|...|tokenN)) will be optimized by merging common prefixes into a trie structure"/>
+            </StackPanel>
+
         </StackPanel>
     </Grid>
 </UserControl>

@@ -18,6 +18,7 @@ namespace RustPlugin
         anre,
         real_regex,
         java_regex,
+        regexr,
     }
 
     enum StructEnum
@@ -86,18 +87,27 @@ namespace RustPlugin
         public string? delegate_dfa_size_limit { get; set; }
 
         // Resharp
+
         public string? max_dfa_capacity { get; set; }
         public string? lookahead_context_max { get; set; }
 
         // Regex-anre
+
         public bool anre_syntax { get; set; }
 
         // Real-regex
+
         public bool fallback { get; set; }
 
         // Java_regex
+
         public bool d { get; set; }
         public bool l { get; set; }
+
+        // Regexr
+
+        public bool jit { get; set; }
+        public bool optimize_prefixes { get; set; }
 
         public Options Clone( )
         {

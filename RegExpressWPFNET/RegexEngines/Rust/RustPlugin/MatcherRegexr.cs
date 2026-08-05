@@ -7,62 +7,65 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Interop;
 using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 
+
 namespace RustPlugin
 {
-    internal static class MatcherRegress
+    static class MatcherRegexr
     {
-        sealed class NamedGroupResponse
+        public class Rootobject
         {
-            [JsonPropertyName( "n" )]
-            public string? Name { get; set; }
-
-            [JsonPropertyName( "r" )]
-            public int[]? Range { get; set; }
+            public required string[] names { get; set; }
+            public required Match[] matches { get; set; }
         }
 
-        sealed class MatchResponse
+        public class Match
         {
-            [JsonPropertyName( "g" )]
-            public int[][]? Groups { get; set; }
-
-            [JsonPropertyName( "ng" )]
-            public NamedGroupResponse[]? NamedGroups { get; set; }
+            public required int[][] g { get; set; }
+            public required Ng[] ng { get; set; }
         }
+
+        public class Ng
+        {
+            public required string n { get; set; }
+            public required int[] g { get; set; }
+        }
+
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            Debug.Assert( options.crate == CrateEnum.regress );
+            Debug.Assert( options.crate == CrateEnum.regexr );
 
             if( options.@struct == StructEnum.None )
             {
                 throw new ApplicationException( "Invalid struct." );
             }
 
+            bool is_builder = options.@struct == StructEnum.RegexBuilder;
+
             var obj = new
             {
+                structure = options.@struct,
                 pattern = pattern,
                 text = text,
                 options = new
                 {
-                    options.case_insensitive,
-                    options.multi_line,
-                    options.dot_matches_new_line,
-                    options.unicode,
-                    options.unicode_sets,
-                    options.no_opt,
+                    options.jit,
+                    options.optimize_prefixes,
                 }
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
 
-            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.UTF8;
 
@@ -79,23 +82,27 @@ namespace RustPlugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            MatchResponse[]? response = JsonSerializer.Deserialize<MatchResponse[]>( ph.OutputStream );
+#if DEBUG
+            using StreamReader sr = new( ph.OutputStream );
+            string output = sr.ReadToEnd( );
+            Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( output );
+#else
+            Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( ph.OutputStream );
+#endif
 
-            if( response == null ) throw new Exception( "Null response" );
+            if( root_object == null || root_object.matches == null || root_object.names == null ) throw new Exception( "Null response" );
 
             List<IMatch> matches = [];
             SimpleTextGetter? stg = new( text );
             Utf8IndexConverter index_converter = new( text );
 
-            foreach( var m in response )
+            foreach( var m in root_object.matches )
             {
                 SimpleMatch? match = null;
 
-                List<string> assigned_names = [];
-
-                for( int group_index = 0; group_index < m.Groups!.Length; group_index++ )
+                for( int group_index = 0; group_index < m.g.Length; group_index++ )
                 {
-                    int[] g = m.Groups[group_index];
+                    int[] g = m.g[group_index];
                     bool success = g.Length == 2;
 
                     int native_start = success ? g[0] : 0;
@@ -114,17 +121,7 @@ namespace RustPlugin
 
                     Debug.Assert( match != null );
 
-                    string? name = null;
-                    if( success )
-                    {
-                        name = m.NamedGroups!
-                            .Where( ng => ng.Range?.Length == 2 && ng.Range[0] == g[0] && ng.Range[1] == g[1] )
-                            .Select( ng => ng.Name )
-                            .Where( n => !assigned_names.Contains( n! ) )
-                            .FirstOrDefault( );
-                        if( name != null ) assigned_names.Add( name );
-                    }
-                    if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
+                    string name = group_index.ToString( CultureInfo.InvariantCulture );
 
                     if( !success )
                     {
@@ -138,6 +135,26 @@ namespace RustPlugin
 
                 Debug.Assert( match != null );
 
+                foreach( var ng in m.ng )
+                {
+                    bool success = ng.g.Length == 2;
+
+                    if( !success )
+                    {
+                        match.AddFailedGroup( ng.n );
+                    }
+                    else
+                    {
+                        int native_start = ng.g[0];
+                        int native_end = ng.g[1];
+                        int native_length = native_end - native_start;
+
+                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                        match.AddSucceededGroup( native_start, native_length, char_start, char_length, ng.n );
+                    }
+                }
+
                 matches.Add( match );
             }
 
@@ -148,7 +165,7 @@ namespace RustPlugin
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string worker_exe = Path.Combine( assembly_dir, @"RustRegressWorker.bin" );
+            string worker_exe = Path.Combine( assembly_dir, @"RustRegexrWorker.bin" );
 
             return worker_exe;
         }
