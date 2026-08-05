@@ -63,6 +63,8 @@ Example of result:
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.Library == RegexLibraryEnum.Mvzr );
+
             var json_object = new
             {
                 pattern = pattern,
@@ -104,7 +106,7 @@ Example of result:
 
                 Debug.Assert( match == null );
 
-                match = SimpleMatch.Create(native_start, native_length, char_start, char_length, stg );
+                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
                 match.AddDefaultGroup( );
 
                 matches.Add( match );

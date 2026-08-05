@@ -25,6 +25,8 @@ namespace RustPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.crate == CrateEnum.fancy_regex );
+
             if( options.@struct == StructEnum.None )
             {
                 throw new ApplicationException( "Invalid struct." );

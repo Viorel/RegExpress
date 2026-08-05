@@ -49,6 +49,8 @@ namespace DotNETPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.Class == ClassEnum.RegexDotNetFramework );
+
             var data = new { cmd = "m", text, pattern, options };
             string json = JsonSerializer.Serialize( data );
 

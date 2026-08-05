@@ -21,6 +21,8 @@ namespace StdPlugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.Compiler == CompilerEnum.SRELL_LINEAR );
+
             UInt64? max_dfacache = ValidationUtilities.ParseUInt64( "max_dfacache", options.max_dfacache );
             UInt64? max_states = ValidationUtilities.ParseUInt64( "max_states", options.max_states );
 

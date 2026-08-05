@@ -46,6 +46,8 @@ namespace DartPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.package == PackageEnum.OnigurumaDart );
+
             var data = new
             {
                 syntax = Enum.GetName( options.OnigurumaSyntax ),

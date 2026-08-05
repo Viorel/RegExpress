@@ -28,6 +28,8 @@ namespace GoPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.Package == PackageEnum.rexa );
+
             var data = new
             {
                 pattern,

@@ -40,6 +40,8 @@ namespace JavaScriptPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.Runtime == RuntimeEnum.QuickJs );
+
             string flags = string.Concat(
                 options.i ? "i" : "",
                 options.m ? "m" : "",

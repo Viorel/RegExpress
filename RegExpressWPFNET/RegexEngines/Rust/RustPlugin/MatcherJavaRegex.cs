@@ -37,6 +37,8 @@ namespace RustPlugin
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.crate == CrateEnum.java_regex );
+
             bool is_builder = options.@struct == StructEnum.RegexBuilder;
 
             StringBuilder flags = new( );

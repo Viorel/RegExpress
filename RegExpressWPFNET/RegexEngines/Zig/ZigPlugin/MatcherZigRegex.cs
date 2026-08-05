@@ -144,6 +144,8 @@ Example of result:
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.Library == RegexLibraryEnum.ZigRegex );
+
             var json_object = new
             {
                 pattern = pattern,

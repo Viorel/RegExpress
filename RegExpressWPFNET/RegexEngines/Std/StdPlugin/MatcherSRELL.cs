@@ -21,6 +21,8 @@ namespace StdPlugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.Compiler == CompilerEnum.SRELL );
+
             UInt64? limit_counter = ValidationUtilities.ParseUInt64( "limit_counter", options.limit_counter );
 
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );

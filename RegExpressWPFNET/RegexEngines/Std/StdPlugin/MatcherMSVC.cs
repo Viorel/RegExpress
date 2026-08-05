@@ -21,6 +21,8 @@ namespace StdPlugin
     {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
+            Debug.Assert( options.Compiler == CompilerEnum.MSVC );
+
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.Unicode;
