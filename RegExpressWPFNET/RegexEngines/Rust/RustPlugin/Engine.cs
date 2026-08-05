@@ -40,6 +40,9 @@ namespace RustPlugin
         static readonly LazyData<(bool u, bool U), FeatureMatrix> LazyFeatureMatrix_JavaRegex =
             new( d => BuildFeatureMatrix_JavaRegex( d.u, d.U ) );
 
+        static readonly LazyData<bool /*ASCII*/, FeatureMatrix> LazyFeatureMatrix_ERegex =
+            new( d => BuildFeatureMatrix_ERegex( d ) );
+
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
 
@@ -84,6 +87,7 @@ namespace RustPlugin
             {
                 CrateEnum.regex => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.ScrollErrorsToEnd,
                 CrateEnum.resharp => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures,
+                CrateEnum.eregex => RegexEngineCapabilityEnum.None,
                 _ => RegexEngineCapabilityEnum.NoCaptures
             };
 
@@ -142,6 +146,7 @@ namespace RustPlugin
                 CrateEnum.anre => MatcherAnre.GetMatches( cnc, pattern, text, Options ),
                 CrateEnum.real_regex => MatcherRealRegex.GetMatches( cnc, pattern, text, Options ),
                 CrateEnum.java_regex => MatcherJavaRegex.GetMatches( cnc, pattern, text, Options ),
+                CrateEnum.eregex => MatcherERegex.GetMatches( cnc, pattern, text, Options ),
                 _ => throw new InvalidOperationException( )
             };
         }
@@ -158,6 +163,7 @@ namespace RustPlugin
                 CrateEnum.anre => LazyFeatureMatrix_Anre.GetValue( 0 ),
                 CrateEnum.real_regex => LazyFeatureMatrix_RealRegex.GetValue( (Options.@struct, Options.unicode) ),
                 CrateEnum.java_regex => LazyFeatureMatrix_JavaRegex.GetValue( (Options.unicode, Options.unicode_sets) ),
+                CrateEnum.eregex => LazyFeatureMatrix_ERegex.GetValue( Options.ASCII ),
                 _ => throw new InvalidOperationException( )
             };
 
@@ -183,6 +189,7 @@ namespace RustPlugin
             //Engine engine_real = new( ) { Options = new Options { crate = CrateEnum.real_regex, @struct = StructEnum.RegexBuilder, unicode = false } };
             Engine engine_real_u = new( ) { Options = new Options { crate = CrateEnum.real_regex, @struct = StructEnum.RegexBuilder, unicode = true } };
             Engine engine_java_regex_uU = new( ) { Options = new Options { crate = CrateEnum.java_regex, unicode = true, unicode_sets = true, d = false, l = false } };
+            Engine engine_eregex = new( ) { Options = new Options { crate = CrateEnum.eregex, ASCII = false, unicode = true, FULLCASE = true, VERSION0 = false, VERSION1 = true } };
 
             return
                 [
@@ -195,6 +202,7 @@ namespace RustPlugin
                     //new FeatureMatrixVariant("real-regex", engine_real),
                     new FeatureMatrixVariant("real-regex (“u” flag)", engine_real_u),
                     new FeatureMatrixVariant("java_regex (“uU” flags)", engine_java_regex_uU),
+                    new FeatureMatrixVariant("eregex", engine_eregex),
                 ];
         }
 
@@ -1997,6 +2005,227 @@ namespace RustPlugin
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
                 Σσς = u,
+                ßSS = false,
+            };
+        }
+
+        private static FeatureMatrix BuildFeatureMatrix_ERegex( bool isAscii )
+        {
+            return new FeatureMatrix
+            {
+                Parentheses = FeatureMatrix.PunctuationEnum.Normal,
+
+                Brackets = true,
+                ExtendedBrackets = false,
+
+                VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
+                AlternationOnSeparateLines = false,
+
+                InlineComments = true,
+                XModeComments = true,
+                InsideSets_XModeComments = false,
+
+                Flags = true,
+                ScopedFlags = true,
+                CircumflexFlags = false,
+                ScopedCircumflexFlags = false,
+                XFlag = true,
+                XXFlag = false,
+
+                Literal_QE = true,
+                InsideSets_Literal_QE = false,
+                InsideSets_Literal_qBrace = false,
+
+                Esc_a = true,
+                Esc_b = false,
+                Esc_e = true,
+                Esc_f = true,
+                Esc_n = true,
+                Esc_r = true,
+                Esc_t = true,
+                Esc_v = true,
+                Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
+                Esc_Octal0_1_3 = true,
+                Esc_oBrace = false,
+                Esc_x2 = true,
+                Esc_xBrace = true,
+                Esc_u4 = true,
+                Esc_U8 = true,
+                Esc_uBrace = false,
+                Esc_UBrace = false,
+                Esc_c1 = false,
+                Esc_C1 = false,
+                Esc_CMinus = false,
+                Esc_NBrace = false,
+                GenericEscape = true,
+
+                InsideSets_Esc_a = true,
+                InsideSets_Esc_b = true,
+                InsideSets_Esc_e = true,
+                InsideSets_Esc_f = true,
+                InsideSets_Esc_n = true,
+                InsideSets_Esc_r = true,
+                InsideSets_Esc_t = true,
+                InsideSets_Esc_v = true,
+                InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
+                InsideSets_Esc_Octal0_1_3 = true,
+                InsideSets_Esc_oBrace = false,
+                InsideSets_Esc_x2 = true,
+                InsideSets_Esc_xBrace = true,
+                InsideSets_Esc_u4 = true,
+                InsideSets_Esc_U8 = true,
+                InsideSets_Esc_uBrace = false,
+                InsideSets_Esc_UBrace = false,
+                InsideSets_Esc_c1 = false,
+                InsideSets_Esc_C1 = false,
+                InsideSets_Esc_CMinus = false,
+                InsideSets_Esc_NBrace = false,
+                InsideSets_GenericEscape = true,
+
+                Class_Dot = true,
+                Class_Cbyte = false,
+                Class_Ccp = false,
+                Class_dD = true,
+                Class_hHhexa = false,
+                Class_hHhorspace = false,
+                Class_lL = false,
+                Class_N = false,
+                Class_O = false,
+                Class_R = false,
+                Class_sS = true,
+                Class_sSx = false,
+                Class_uU = false,
+                Class_vV = false,
+                Class_wW = true,
+                Class_X = true,
+                Class_pP = false,
+                Class_pPBrace = true,
+
+                InsideSets_Class_dD = true,
+                InsideSets_Class_hHhexa = false,
+                InsideSets_Class_hHhorspace = false,
+                InsideSets_Class_lL = false,
+                InsideSets_Class_R = false,
+                InsideSets_Class_sS = true,
+                InsideSets_Class_sSx = false,
+                InsideSets_Class_uU = false,
+                InsideSets_Class_vV = false,
+                InsideSets_Class_wW = true,
+                InsideSets_Class_X = false,
+                InsideSets_Class_pP = false,
+                InsideSets_Class_pPBrace = true,
+                InsideSets_Class_Name = true,
+                InsideSets_Equivalence = false,
+                InsideSets_Collating = false,
+
+                InsideSets_Operators = false,
+                InsideSets_OperatorsExtended = false,
+                InsideSets_Operator_Ampersand = false,
+                InsideSets_Operator_Plus = false,
+                InsideSets_Operator_VerticalLine = false,
+                InsideSets_Operator_Minus = false,
+                InsideSets_Operator_Circumflex = false,
+                InsideSets_Operator_Exclamation = false,
+                InsideSets_Operator_DoubleAmpersand = false,
+                InsideSets_Operator_DoubleVerticalLine = false,
+                InsideSets_Operator_DoubleMinus = false,
+                InsideSets_Operator_DoubleTilde = false,
+
+                Anchor_Circumflex = true,
+                Anchor_Dollar = true,
+                Anchor_A = true,
+                Anchor_Z = true,
+                Anchor_z = true,
+                Anchor_G = false,
+                Anchor_bB = true,
+                Anchor_bg = false,
+                Anchor_bBBrace = false,
+                Anchor_PosixWB = false,
+                Anchor_K = false,
+                Anchor_mM = true,
+                Anchor_LtGt = false,
+                Anchor_GraveApos = false,
+                Anchor_yY = false,
+
+                NamedGroup_Apos = false,
+                NamedGroup_LtGt = true,
+                NamedGroup_PLtGt = true,
+                BalancingGroup = false,
+                CapturingGroup = false,
+                DuplicateGroupName = true,
+
+                NoncapturingGroup = true,
+                PositiveLookahead = true,
+                NegativeLookahead = true,
+                PositiveLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
+                NegativeLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
+                NestedLookaround = true,
+                AtomicGroup = true,
+                BranchReset = false,
+                NonatomicPositiveLookahead = false,
+                NonatomicPositiveLookbehind = false,
+                AbsentOperator = false,
+                AllowSpacesInGroups = false,
+
+                Backref_Num = FeatureMatrix.BackrefEnum.OneDigit,
+                Backref_kApos = false,
+                Backref_kLtGt = true,
+                Backref_kBrace = false,
+                Backref_kNum = false,
+                Backref_kNegNum = false,
+                Backref_gApos = FeatureMatrix.BackrefModeEnum.None,
+                Backref_gLtGt = FeatureMatrix.BackrefModeEnum.Value,
+                Backref_gNum = FeatureMatrix.BackrefModeEnum.None,
+                Backref_gNegNum = FeatureMatrix.BackrefModeEnum.None,
+                Backref_gBrace = FeatureMatrix.BackrefModeEnum.None,
+                Backref_PEqName = true,
+                AllowSpacesInBackref = false,
+
+                Recursive_Num = false,
+                Recursive_PlusMinusNum = false,
+                Recursive_R = false,
+                Recursive_Name = false,
+                Recursive_PGtName = false,
+                Recursive_ReturnGroups = false,
+
+                Quantifier_Asterisk = true,
+                Quantifier_Plus = FeatureMatrix.PunctuationEnum.Normal,
+                Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
+                Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
+                Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
+                Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+                Quantifier_LowAbbrev = true,
+                Quantifier_Lazy = true,
+                Quantifier_Possessive = true,
+
+                Conditional_BackrefByNumber = false,
+                Conditional_BackrefByName = false,
+                Conditional_Pattern = false,
+                Conditional_PatternOrBackrefByName = false,
+                Conditional_BackrefByName_Apos = false,
+                Conditional_BackrefByName_LtGt = false,
+                Conditional_R = false,
+                Conditional_RName = false,
+                Conditional_DEFINE = false,
+                Conditional_VERSION = false,
+
+                ControlVerbs = false,
+                ScriptRuns = false,
+                Callouts = false,
+
+                EmptyConstruct = true,
+                EmptyConstructX = false,
+                EmptySet = false,
+                EmptySetAny = false,
+
+                Unicode_Class_Dot = true,
+                Unicode_Class_vW = !isAscii,
+                InsideSets_Unicode = true,
+                UnicodeCaseFolding = !isAscii,
+                KeepSurrogatePairs = true,
+                FuzzyMatchingParams = false,
+                TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
+                Σσς = false,
                 ßSS = false,
             };
         }

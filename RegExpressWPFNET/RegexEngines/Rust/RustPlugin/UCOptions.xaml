@@ -40,14 +40,15 @@
                 </StackPanel.LayoutTransform>
                 <Label Content="Crate:" Target="{Binding ElementName=cbxCrate}" Padding="0 2 4 2" MinWidth="40"/>
                 <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
-                    <ui:ComboBoxItemWithVersion Tag ="regex"       Text="regex"       Version="{Binding Regex, Source={StaticResource versions}}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag ="regex_lite"  Text="regex-lite"  Version="{Binding RegexLite, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="fancy_regex" Text="fancy-regex" Version="{Binding FancyRegex, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="regress"     Text="regress"     Version="{Binding Regress, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="resharp"     Text="resharp"     Version="{Binding Resharp, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="anre"        Text="regex-anre"  Version="{Binding Anre, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="real_regex"  Text="real-regex"  Version="{Binding RealRegex, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="java_regex"  Text="java_regex"  Version="{Binding JavaRegex, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="regex"        Text="regex"        Version="{Binding Regex,        Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag ="regex_lite"   Text="regex-lite"   Version="{Binding RegexLite,    Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="fancy_regex"  Text="fancy-regex"  Version="{Binding FancyRegex,   Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="regress"      Text="regress"      Version="{Binding Regress,      Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="resharp"      Text="resharp"      Version="{Binding Resharp,      Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="anre"         Text="regex-anre"   Version="{Binding Anre,         Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="real_regex"   Text="real-regex"   Version="{Binding RealRegex,    Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="java_regex"   Text="java_regex"   Version="{Binding JavaRegex,    Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="eregex"       Text="eregex"       Version="{Binding Eregex,       Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 
@@ -237,7 +238,20 @@
                 <ui:CheckboxWithNote Prop="d" Text="d" Note="Unix lines mode (only \n is a line terminator)"/>
                 <ui:CheckboxWithNote Prop="l" Text="l" Note="literal mode (pattern is treated as a literal string)"/>
             </StackPanel>
-            
+
+            <StackPanel x:Name="pnlERegexOptions">
+                <ui:CheckboxWithNote Prop="case_insensitive" Text="IGNORECASE" Note=""/>
+                <ui:CheckboxWithNote Prop="multi_line" Text="MULTILINE" Note=""/>
+                <ui:CheckboxWithNote Prop="dot_matches_new_line" Text="DOTALL" Note=""/>
+                <ui:CheckboxWithNote Prop="unicode" Text="UNICODE" Note=""/>
+                <ui:CheckboxWithNote Prop="ASCII" Text="ASCII" Note=""/>
+                <ui:CheckboxWithNote Prop="ignore_whitespace" Text="VERBOSE" Note=""/>
+                <ui:CheckboxWithNote Prop="FULLCASE" Text="FULLCASE" Note=""/>
+                <ui:CheckboxWithNote Prop="WORD" Text="WORD" Note=""/>
+                <ui:CheckboxWithNote Prop="LOCALE" Text="LOCALE" Note=""/>
+                <ui:CheckboxWithNote Prop="VERSION0" Text="VERSION0" Note=""/>
+                <ui:CheckboxWithNote Prop="VERSION1" Text="VERSION1" Note=""/>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </UserControl>

@@ -106,6 +106,7 @@ namespace RustPlugin
                     "anre" => CrateEnum.anre,
                     "real_regex" => CrateEnum.real_regex,
                     "java_regex" => CrateEnum.java_regex,
+                    "eregex" => CrateEnum.eregex,
                     _ => CrateEnum.None,
                 };
 
@@ -125,6 +126,7 @@ namespace RustPlugin
                 bool is_anre = crate == CrateEnum.anre;
                 bool is_real = crate == CrateEnum.real_regex;
                 bool is_java_regex = crate == CrateEnum.java_regex;
+                bool is_eregex = crate == CrateEnum.eregex;
 
                 pnlStruct.Display( is_regex_or_regex_lite || is_fancy || is_real );
                 pnlRegexBuilderOptions.Display( is_regex_or_regex_lite || is_fancy || is_real );
@@ -170,6 +172,7 @@ namespace RustPlugin
                 chbx_fallback.Display( is_real );
 
                 pnlJavaRegexOptions.Display( is_java_regex );
+                pnlERegexOptions.Display( is_eregex );
             }
             finally
             {
@@ -207,6 +210,7 @@ namespace RustPlugin
                 CrateEnum.anre => "anre",
                 CrateEnum.real_regex => "real",
                 CrateEnum.java_regex => "java_regex",
+                CrateEnum.eregex => "eregex",
                 _ => "unknown"
             };
         }
