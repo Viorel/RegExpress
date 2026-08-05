@@ -145,9 +145,16 @@ namespace real::detail {
   //!        on a shape with no `\b`/`\B` support (e.g. a literal `byte` right after `save 0`).
   struct shape_lead
   {
-    std::size_t  body_start {}; //!< pc where the shape-specific body begins.
-    std::uint8_t wb_lead    {}; //!< 0/1/2, see \ref wb_hint_of.
-    bool         ok         {}; //!< false: no leading `save 0`, or a non-wb lead assert disqualifies.
+    std::size_t  body_start     {}; //!< pc where the shape-specific body begins.
+    std::uint8_t wb_lead        {}; //!< 0/1/2, see \ref wb_hint_of.
+    //! \brief A leading `\A`/`^` (NOT multiline `^`) was peeled — the shape may only match at 0.
+    //!
+    //! Reported rather than rejected, but every recognizer that does not itself honour the anchor
+    //! MUST refuse the shape when this is set -- arming a fast path that scans forward for a pattern
+    //! pinned to position 0 would return matches the program forbids. Only the class-loop recognizer
+    //! accepts it today, and the route it arms reads \ref pattern_hints::anchored_start.
+    bool         anchored_start {};
+    bool         ok             {}; //!< false: no leading `save 0`, or a non-wb lead assert disqualifies.
   };
 
   /*!
@@ -160,12 +167,22 @@ namespace real::detail {
     if (code.empty() || code[0].op != opcode::save || code[0].arg16 != 0) {
       return {};
     }
-    std::size_t  p       {1};
+    std::size_t p {1};
+    // A leading `\A`/`^` is PEELED and reported, not rejected. It pins the match to position 0, which
+    // is a mode rather than a shape: `^X` in search mode and `X` in prefix mode are the same question,
+    // and measured on 100 KB the second is 81x faster because only the second reaches the class loop.
+    // Multiline `^` (line_start) is a different assertion and stays disqualifying.
+    bool anchored {false};
+    if (p < code.size() && code[p].op == opcode::assert_position
+        && static_cast<assert_kind>(code[p].arg8) == assert_kind::text_start) {
+      anchored = true;
+      ++p;
+    }
     std::uint8_t wb_lead {0};
     if (!peel_optional_lead_wb(code, p, wb_lead)) {
       return {};
     }
-    return {.body_start = p, .wb_lead = wb_lead, .ok = true};
+    return {.body_start = p, .wb_lead = wb_lead, .anchored_start = anchored, .ok = true};
   }
 
   //! \brief The \ref shape_lead counterpart: optional trail `\b`/`\B` at \p from, then exactly
@@ -173,8 +190,14 @@ namespace real::detail {
   //!        caller's to supply -- only its shape-specific body walk knows where that is.
   struct shape_close
   {
-    std::uint8_t wb_trail {}; //!< 0/1/2, see \ref wb_hint_of.
-    bool         ok       {}; //!< false: not exactly `save 1`, `match` at the end after peeling.
+    std::uint8_t wb_trail   {}; //!< 0/1/2, see \ref wb_hint_of.
+    //! \brief A trailing end anchor was peeled — 0 none, 1 `\Z` (strict end), 2 `$` (end, or just
+    //!        before ONE final newline -- Python semantics, and the reason `^X$` is NOT `fullmatch(X)`).
+    //!
+    //! Same contract as the lead anchor above — reported, not rejected, and every recognizer
+    //! that does not itself honour it MUST refuse the shape.
+    std::uint8_t end_anchor {};
+    bool         ok         {}; //!< false: not exactly `save 1`, `match` at the end after peeling.
   };
 
   /*!
@@ -186,13 +209,35 @@ namespace real::detail {
   [[nodiscard]] constexpr shape_close parse_shape_close(std::span<const instr> code,
                                                         std::size_t            from) noexcept
   {
+    // Peeled inline rather than through peel_optional_trail_wb, which REFUSES any assertion that is
+    // not a word boundary -- so calling it first made the end-anchor peel below unreachable. The
+    // compiler emits the trail in this order (`X+\b$` -> klass, split, assert(\b), assert($)), and
+    // anything else that lands here simply fails the `save 1`/`match` check at the end.
     std::uint8_t wb_trail {0};
-    if (!peel_optional_trail_wb(code, from, wb_trail)) {
-      return {};
+    if (from < code.size() && code[from].op == opcode::assert_position
+        && is_word_boundary_kind(static_cast<assert_kind>(code[from].arg8))) {
+      wb_trail = wb_hint_of(static_cast<assert_kind>(code[from].arg8));
+      ++from;
+    }
+    // A trailing `\Z`/`$` pins where the match ENDS, which is a limit rather than a shape. Peeled and
+    // reported here for the same reason the lead anchor is: it lets the shape routes keep the pattern
+    // and honour the limit themselves. Multiline `$` (line_end) is a different assertion, is not
+    // peeled, and therefore still disqualifies the shape.
+    std::uint8_t end_anchor {0};
+    if (from < code.size() && code[from].op == opcode::assert_position) {
+      const auto kind {static_cast<assert_kind>(code[from].arg8)};
+      if (kind == assert_kind::text_end) {
+        end_anchor = 1;
+        ++from;
+      }
+      else if (kind == assert_kind::text_end_or_final_newline) {
+        end_anchor = 2;
+        ++from;
+      }
     }
     if (from + 1 < code.size() && code[from].op == opcode::save && code[from].arg16 == 1 &&
         code[from + 1].op == opcode::match && from + 2 == code.size()) {
-      return {.wb_trail = wb_trail, .ok = true};
+      return {.wb_trail = wb_trail, .end_anchor = end_anchor, .ok = true};
     }
     return {};
   }
@@ -948,7 +993,12 @@ namespace real::detail {
               ok = true;
             }
             const shape_close close {ok ? parse_shape_close(code, q) : shape_close {}};
-            if (ok && close.ok && cls >= 0 && static_cast<std::size_t>(cls) < classes.size()
+            // A `\b`/`\B` wrap and an end anchor together are REFUSED, never combined: the wrap takes its
+            // own branch in these routes (Arc B-2) and that branch never sees an end limit, while the
+            // assertion has already been peeled out of the program -- so nothing downstream could
+            // re-derive it. Both were measured as real divergences: `[a-z]+\b$` (trail) against the
+            // seam, and `\b(?>\w)$` (LEAD) against Python's re, by the binding's differential fuzz.
+            if (ok && close.ok && !(close.end_anchor != 0 && (lead.wb_lead != 0 || close.wb_trail != 0)) && cls >= 0 && static_cast<std::size_t>(cls) < classes.size()
                 && k <= 65535) {
               const char_class& cc        {classes[static_cast<std::size_t>(cls)]};
               std::uint8_t      out_lead  {0};
@@ -959,7 +1009,15 @@ namespace real::detail {
               if (resolve_class_wb_hints(is_full_ascii_word_class(cc), is_ascii_word_subset_class(cc),
                                          /*maximal_run=*/ true, lead.wb_lead, close.wb_trail, out_lead,
                                          out_trail)) {
+                // A `\b`/`\B` wrap and an end anchor together are REFUSED, not combined: the wrap takes
+                // its own branch in the route (Arc B-2), that branch never sees the limit, and the
+                // assertion has already been peeled out of the program -- so nothing downstream could
+                // re-derive it. Measured as a real divergence on `[a-z]+\b$` before this guard.
+                if (close.end_anchor != 0 && (lead.wb_lead != 0 || close.wb_trail != 0)) {
+                  return; // see the note above: the wrap branch cannot honour a peeled limit
+                }
                 hints.greedy_class_loop     = cls;
+                hints.greedy_class_loop_end = close.end_anchor;
                 hints.greedy_class_loop_min = static_cast<std::uint16_t>(k);
                 hints.greedy_group_start    = gs;
                 hints.greedy_group_end      = ge;
@@ -1072,12 +1130,25 @@ namespace real::detail {
           // this route against the general VM, which is the only reason the shape is narrowed here rather
           // than shipped wrong; lifting it means teaching those loops to step by one code point.
           const bool counted_wb {cp_max != 0 && (lead.wb_lead != 0 || close.wb_trail != 0)};
-          if (ok && close.ok && !counted_wb && cp_idx >= 0
+          // A `\b`/`\B` wrap and an end anchor together are REFUSED, never combined: the wrap takes its
+          // own branch in these routes (Arc B-2) and that branch never sees an end limit, while the
+          // assertion has already been peeled out of the program -- so nothing downstream could
+          // re-derive it. Both were measured as real divergences: `[a-z]+\b$` (trail) against the
+          // seam, and `\b(?>\w)$` (LEAD) against Python's re, by the binding's differential fuzz.
+          if (ok && close.ok && !(close.end_anchor != 0 && (lead.wb_lead != 0 || close.wb_trail != 0)) && !counted_wb && cp_idx >= 0
               && static_cast<std::size_t>(cp_idx) < cp_classes.size() && k <= 65535) {
             const bool has_wb {lead.wb_lead != 0 || close.wb_trail != 0};
             // Bare path: no Unicode table walk (keeps constexpr light for static_regex).
             if (!has_wb) {
+              // A `\b`/`\B` wrap and an end anchor together are REFUSED, not combined: the wrap takes
+              // its own branch in the route (Arc B-2), that branch never sees the limit, and the
+              // assertion has already been peeled out of the program -- so nothing downstream could
+              // re-derive it. Measured as a real divergence on `[a-z]+\b$` before this guard.
+              if (close.end_anchor != 0 && (lead.wb_lead != 0 || close.wb_trail != 0)) {
+                return; // see the note above: the wrap branch cannot honour a peeled limit
+              }
               hints.greedy_cp_class      = cp_idx;
+              hints.greedy_cp_class_end  = close.end_anchor;
               hints.greedy_cp_class_plus = plus;
               hints.greedy_cp_class_min  = static_cast<std::uint16_t>(k);
               hints.greedy_cp_class_max  = cp_max;
@@ -1131,9 +1202,9 @@ namespace real::detail {
       std::uint8_t       body_pc     {1};
       bool               saw_body    {}; // true once a consuming op has been seen (trail assert only after)
       const shape_lead   lead        {parse_shape_lead(code)};
-      std::size_t        i           {lead.ok ? lead.body_start : code.size()};
+      std::size_t        i           {lead.ok && !lead.anchored_start ? lead.body_start : code.size()};
       const std::uint8_t wb_lead     {lead.wb_lead};
-      if (lead.ok) {
+      if (lead.ok && !lead.anchored_start) {
         if (wb_lead != 0) {
           body_pc = static_cast<std::uint8_t>(i);
         }
@@ -1390,9 +1461,9 @@ namespace real::detail {
     // with an optional literal SUFFIX before save1+match, unlike \ref shape_close's immediate check.
     {
       const shape_lead   lead    {parse_shape_lead(code)};
-      const std::size_t  p       {lead.ok ? lead.body_start : code.size()};
+      const std::size_t  p       {lead.ok && !lead.anchored_start ? lead.body_start : code.size()};
       const std::uint8_t wb_lead {lead.wb_lead};
-      if (lead.ok) {
+      if (lead.ok && !lead.anchored_start) {
         const std::size_t mandatory_start {p};
         std::size_t       loop_pc         {mandatory_start};
         bool              has_mandatory   {false};
@@ -1632,8 +1703,37 @@ namespace real::detail {
       case '&':                          return 10;
       case '#': case '\\': case '$':     return 8;
       case '~': case '@': case '^': case '`': return 3;
-      default:                           return 1; // control and high bytes: assume very rare
+      default:                           break;
     }
+    // UTF-8 bytes are NOT rare, and ranking them at 1 picked the single most common byte of an
+    // accented corpus as the memchr target: `café`'s rarest-ranked byte was the 0xC3 that leads
+    // EVERY Latin-1 letter, one per ~6 bytes of French prose. Measured against an ASCII literal of
+    // the same match density in the same corpus, that cost 6.3x (1.761 vs 0.279 ns/B).
+    //
+    // The ranking that matters is not corpus frequency but SELECTIVITY: a lead byte stands for 64 or
+    // more distinct characters, so it can never discriminate like one ASCII byte. These values put
+    // the Latin-1 leads and every continuation byte above the absolute threshold below, so they are
+    // no longer chosen at all, while the rarer leads stay eligible for scripts whose text is made of
+    // nothing else (CJK picks its lead exactly as before).
+    if (b >= 0x80U && b <= 0xBFU) {
+      return 200;             // continuation: as common as whatever leads it, and shared by every script
+    }
+    switch (b) {
+      case 0xC3U: return 250; // the Latin-1 letters: ubiquitous in Western European text
+      case 0xC2U: return 120; // Latin-1 punctuation/symbols (nbsp, guillemets, degree)
+      case 0xE2U: return 60;  // general punctuation: dashes, curly quotes, arrows
+      default:    break;
+    }
+    if (b >= 0xC4U && b <= 0xDFU) {
+      return 40; // Latin Extended, Greek, Cyrillic, Hebrew, Arabic leads
+    }
+    if (b >= 0xE0U && b <= 0xEFU) {
+      return 30; // 3-byte leads: CJK, Indic, Hangul
+    }
+    if (b >= 0xF0U && b <= 0xF4U) {
+      return 10; // 4-byte leads: astral planes and emoji
+    }
+    return 1; // control bytes and the two never-valid UTF-8 bytes: genuinely rare
   }
 
   /*!

@@ -37,6 +37,40 @@ namespace real::detail {
    * covers the invalid lead bytes `0xC0`/`0xC1` and `0xF5`–`0xFF`). It is the pattern-side decoder for
    * raw UTF-8 literals; a rejection is a malformed pattern, not a silent literal.
    *
+   * \note The three mask tests below were replaced by a lead-byte lookup table and REVERTED, with the
+   *       numbers here so the next attempt starts from them. The table is sound and exactly
+   *       equivalent (a differential over every 1- and 2-byte sequence, comparing `cp`, `length` and
+   *       `valid`, found zero divergence), and in an isolated single-purpose binary it is a clear
+   *       win: `\p{sc=Han}` −13.3 % arm64, `\p{L}+` −12.6 %, `\p{N}+` −10.6 % x86-64. It does not
+   *       survive the published harness. At 256 entries it cost §A 4–13 % on x86-64 and 3–6 % on
+   *       arm64 — on ASCII rows that never call this function. Folded to 32 entries (`lead >> 3`,
+   *       since every length class is aligned to eight) §A recovers on x86-64, and §Unicode then
+   *       regresses on arm64 instead: `[à-ÿ]+` +15.8 %, `\p{L}+` +9.3 %, with the ASCII witness
+   *       +3.2 %. Neither variant is a net win where the figures are published.
+   *
+   *       What that says is bigger than this function: this header is included everywhere, the
+   *       translation unit sits at a codegen cliff (docs/design.dox §10.1), and a change here moves
+   *       unrelated rows by more than it moves its own. An isolated probe cannot see that — it
+   *       reported gains on both platforms for a change that loses on both. Measure any change to
+   *       this file in `make bench-engines`, never in a probe alone.
+   *
+   * \note And it cannot be moved out of the blast radius, which was the next thing tried. A dedicated
+   *       translation unit is foreclosed by design — this library is header-only — so the only lever
+   *       left is the inlining decision itself, and the two supported compilers want it in OPPOSITE
+   *       directions. Refusing inlining (`noinline`, table kept) costs clang/arm64 `\p{N}+` +44.4 %,
+   *       `\w+` +20.7 %, `\p{scx=Cyrl}` +20.3 %, `\p{L}+` +13.6 % and `\p{sc=Han}` +11.9 %, with the
+   *       ASCII witness flat at −0.3 %: on clang this decoder MUST be inlined into the code-point
+   *       loops. On gcc/x86-64 the same build reads §Unicode `\p{L}+` +12.4 % and `\p{N}+` +6.8 %,
+   *       so it does not even buy the other platform.
+   *
+   *       Note what that rules out: the attribute changed rows by 12 % on a build where this function
+   *       was ALREADY emitted out of line (the profile shows it as its own symbol at 30 % of Ir). So
+   *       the cost is not this function's own inlining — it is what the attribute does to the unit's
+   *       remaining budget. Three packagings have now been measured and refused (256-entry table,
+   *       32-entry table, either plus `noinline`). The 30 % this function costs the two slowest
+   *       Unicode rows is real and is NOT reachable by rewriting the function; reaching it needs the
+   *       header-only constraint relaxed, or the call sites specialised, and neither is a decode
+   *       problem.
    * \param[in] text A byte sequence.
    * \param[in] pos  Index of the lead byte; must be `< text.size()`.
    * \return The decoded code point with `valid == true`, or `valid == false` on any malformation.

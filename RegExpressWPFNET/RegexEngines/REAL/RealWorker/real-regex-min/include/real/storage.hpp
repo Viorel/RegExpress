@@ -23,6 +23,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -320,9 +321,11 @@ namespace real {
          * assign), so the value-init was pure overhead — ~30 % of the instruction count on a
          * findall tokenizing workload (a fresh slot buffer per match, of which ~2 slots serve).
          * At **compile time** the member must be active and initialized for the constexpr
-         * matching path (which assigns through \ref inline_data), so it is value-initialized
-         * there via \c construct_at on the whole \ref inline_block — activating a class-type
-         * member is what a constexpr union allows (an element-wise or bare C-array activation is not).
+         * matching path (which assigns through \ref inline_data while it is the active member), so
+         * it is value-initialized there via \c construct_at on the whole \ref inline_block —
+         * activating a class-type member is what a constexpr union allows (an element-wise or bare
+         * C-array activation is not). A constant-evaluated spill switches the active member to
+         * \ref Storage::heap_ptr through \ref adopt_heap, and \ref revert_to_inline switches back.
          */
         constexpr Storage() noexcept
         {
@@ -349,8 +352,9 @@ namespace real {
       // index through it, so they avoid the per-access `is_heap_` branch that the profile showed
       // dominating add_thread. NOT used during constant evaluation: a pointer to a subobject of
       // *this is not a usable constant across copies, so the constexpr path keeps the is_heap_
-      // branch (guarded by std::is_constant_evaluated). static_regex uses static_vec, not
-      // small_vec, so this never participates in compile-time matching.
+      // branch (guarded by std::is_constant_evaluated). A dynamic `real::regex` IS constant-
+      // evaluable and does use small_vec, heap spill included, so that branch is live rather than
+      // theoretical -- it is the compile-time path's only way to reach the elements.
       T* data_ {}; //!< Cached base of the active storage; see the note above, and \ref refresh_data.
 
       /*!
@@ -432,24 +436,88 @@ namespace real {
       }
 
       /*!
-       * \brief Frees the heap block, if any (run-time only). \p T is trivially
-       *        destructible (see the class `static_assert`), so no element destructors
-       *        run — and inline storage needs no cleanup at all.
+       * \brief Obtains storage for \p n elements, from whichever allocator the current regime allows.
+       *
+       * A raw allocation operator cannot be called in a constant expression, so constant evaluation
+       * goes through `std::allocator`, which C++20 makes usable there. Its blocks are *transient*:
+       * every one must be released before the evaluation ends, which \ref cleanup does.
+       *
+       * \param[in] n Element count.
+       * \return Uninitialized storage for \p n elements.
+       */
+      [[nodiscard]] static constexpr T* allocate_block(std::size_t n)
+      {
+        if (std::is_constant_evaluated()) {
+          return std::allocator<T> {}.allocate(n);
+        }
+        return static_cast<T*>(::operator new(n * sizeof(T)));
+      }
+
+      /*!
+       * \brief Releases a block from \ref allocate_block.
+       * \param[in] p Block base.
+       * \param[in] n The capacity it was allocated with — `std::allocator` requires the exact count.
+       */
+      static constexpr void deallocate_block(T         * p,
+                                             std::size_t n) noexcept
+      {
+        if (std::is_constant_evaluated()) {
+          std::allocator<T> {}.deallocate(p, n);
+          return;
+        }
+        (void) n;
+        ::operator delete(p);
+      }
+
+      /*!
+       * \brief Points the union at \p p, making \ref Storage::heap_ptr the active member.
+       *
+       * Constant evaluation has no inactive-member assignment: switching to the pointer requires
+       * beginning its lifetime, which ends the inline buffer's. The run-time statement is left as a
+       * plain assignment — it is on the spill path of every container in the VM.
+       *
+       * \param[in] p The heap block to adopt.
+       */
+      constexpr void adopt_heap(T* p) noexcept
+      {
+        if (std::is_constant_evaluated()) {
+          std::construct_at(&storage_.heap_ptr, p);
+          return;
+        }
+        storage_.heap_ptr = p;
+      }
+
+      /*!
+       * \brief Makes the inline buffer the active union member again, after the heap block is gone.
+       *
+       * The moved-from side of a move needs this: it is left inline, so a later constant-evaluated
+       * read through \ref inline_data would otherwise touch an inactive member.
+       */
+      constexpr void revert_to_inline() noexcept
+      {
+        if (std::is_constant_evaluated()) {
+          std::construct_at(&storage_.inline_buffer);
+          return;
+        }
+        storage_.heap_ptr = nullptr;
+      }
+
+      /*!
+       * \brief Frees the heap block, if any. \p T is trivially destructible (see the class
+       *        `static_assert`), so no element destructors run — and inline storage needs no
+       *        cleanup at all.
        */
       constexpr void cleanup() noexcept
       {
-        if (std::is_constant_evaluated()) {
-          return;
-        }
         if (is_heap_) {
-          ::operator delete(storage_.heap_ptr);
+          deallocate_block(storage_.heap_ptr, capacity_);
         }
       }
 
       /*!
        * \brief Doubles the capacity (saturating), spilling to the heap as needed.
        */
-      void extend_capacity()
+      constexpr void extend_capacity()
       {
         const std::size_t current {capacity_};
         const std::size_t new_cap {(current > (std::size_t)-1 / 2) ? (std::size_t)-1 : current * 2};
@@ -474,23 +542,18 @@ namespace real {
        */
       constexpr ~small_vec()
       {
-        if (!std::is_constant_evaluated()) {
-          cleanup();
-        }
+        // Unconditional: a constant-evaluated spill allocates a transient block, and leaving it
+        // unreleased makes the whole constant expression ill-formed.
+        cleanup();
       }
 
       /*!
        * \brief Appends \p value, growing to the heap if the inline buffer is full.
        * \param[in] value The element to append.
-       * \throws std::bad_alloc during constant evaluation if growth is needed
-       *         (constexpr use must stay within `InlineCapacity`).
        */
       constexpr void push_back(const T& value)
       {
         if (size_ >= capacity_) {
-          if (std::is_constant_evaluated()) {
-            throw std::bad_alloc {};
-          }
           extend_capacity();
         }
         if (std::is_constant_evaluated()) {
@@ -514,16 +577,12 @@ namespace real {
        * \brief Resizes to \p count copies of \p value.
        * \param[in] count Number of elements.
        * \param[in] value The value to fill with.
-       * \throws std::bad_alloc during constant evaluation if growth is needed.
        */
       constexpr void assign(std::size_t count,
                             const T&    value)
       {
         clear();
         if (count > capacity_) {
-          if (std::is_constant_evaluated()) {
-            throw std::bad_alloc {};
-          }
           reserve(count);
         }
         for (std::size_t i = 0; i < count; ++i) {
@@ -557,7 +616,6 @@ namespace real {
        * to \c slot_count before a span-only write of slots 0/1.
        *
        * \param[in] count Minimum size.
-       * \throws std::bad_alloc during constant evaluation if growth is needed.
        */
       constexpr void ensure_size(std::size_t count)
       {
@@ -565,9 +623,6 @@ namespace real {
           return;
         }
         if (count > capacity_) {
-          if (std::is_constant_evaluated()) {
-            throw std::bad_alloc {};
-          }
           reserve(count);
         }
         for (std::size_t i = size_; i < count; ++i) {
@@ -679,26 +734,22 @@ namespace real {
       /*!
        * \brief Ensures capacity for at least \p new_capacity elements (heap-backed).
        * \param[in] new_capacity Desired minimum capacity; smaller is a no-op.
-       * \throws std::bad_alloc during constant evaluation (constexpr stays inline).
        */
       constexpr void reserve(std::size_t new_capacity)
       {
         if (new_capacity <= capacity_) {
           return;
         }
-        if (std::is_constant_evaluated()) {
-          throw std::bad_alloc {};
-        }
-        T      * new_data {static_cast<T*>(::operator new(new_capacity * sizeof(T)))};
+        T      * new_data {allocate_block(new_capacity)};
         const T* old_data {is_heap_ ? storage_.heap_ptr : inline_data()};
         transfer_range<false>(old_data, size_, new_data);
         if (is_heap_) {
-          ::operator delete(storage_.heap_ptr);
+          deallocate_block(storage_.heap_ptr, capacity_);
         }
-        storage_.heap_ptr = new_data;
+        adopt_heap(new_data); // reads of old_data are done; this ends the inline buffer's lifetime
         capacity_         = new_capacity;
         is_heap_          = true;
-        refresh_data(); // run-time path only (constexpr threw above); data_ now points at the heap block
+        refresh_data();       // run-time path only (constexpr threw above); data_ now points at the heap block
       }
 
       /*!
@@ -711,8 +762,8 @@ namespace real {
           is_heap_(other.is_heap_)
       {
         if (is_heap_) {
-          storage_.heap_ptr       = other.storage_.heap_ptr;
-          other.storage_.heap_ptr = nullptr;
+          adopt_heap(other.storage_.heap_ptr);
+          other.revert_to_inline(); // the block is ours now; other is left inline and empty
           other.is_heap_          = false;
           other.size_             = 0;
           other.capacity_         = InlineCapacity;
@@ -732,18 +783,22 @@ namespace real {
       constexpr small_vec& operator=(small_vec&& other) noexcept
       {
         if (this != &other) {
+          const bool was_heap {is_heap_}; // read before the assignment below overwrites it
           cleanup();
           size_     = other.size_;
           capacity_ = other.capacity_;
           is_heap_  = other.is_heap_;
           if (is_heap_) {
-            storage_.heap_ptr       = other.storage_.heap_ptr;
-            other.storage_.heap_ptr = nullptr;
+            adopt_heap(other.storage_.heap_ptr);
+            other.revert_to_inline(); // the block is ours now; other is left inline and empty
             other.is_heap_          = false;
             other.size_             = 0;
             other.capacity_         = InlineCapacity;
           }
           else {
+            if (was_heap) {
+              revert_to_inline(); // cleanup() freed the block; reactivate the inline member
+            }
             transfer_inline_from<true>(other);
           }
           refresh_data();
@@ -761,10 +816,7 @@ namespace real {
           capacity_(other.capacity_)
       {
         if (other.is_heap_) {
-          if (std::is_constant_evaluated()) {
-            throw std::bad_alloc {}; // dynamic heap path not for constexpr (static_regex uses static_vec)
-          }
-          storage_.heap_ptr = static_cast<T*>(::operator new(other.capacity_ * sizeof(T)));
+          adopt_heap(allocate_block(other.capacity_));
           transfer_range<false>(other.storage_.heap_ptr, other.size_, storage_.heap_ptr);
           is_heap_  = true;
           capacity_ = other.capacity_;
@@ -786,12 +838,15 @@ namespace real {
           cleanup();
           size_ = other.size_;
           if (other.is_heap_) {
-            storage_.heap_ptr = static_cast<T*>(::operator new(other.capacity_ * sizeof(T)));
+            adopt_heap(allocate_block(other.capacity_));
             transfer_range<false>(other.storage_.heap_ptr, other.size_, storage_.heap_ptr);
             is_heap_  = true;
             capacity_ = other.capacity_;
           }
           else {
+            if (is_heap_) {
+              revert_to_inline(); // cleanup() freed the block; reactivate the inline member
+            }
             is_heap_  = false;
             capacity_ = InlineCapacity;
             transfer_inline_from<false>(other);
@@ -821,7 +876,16 @@ namespace real {
       struct state_type : basic_pike_state<
                             basic_thread_list<small_vec<std::int32_t, 64>,
                                               small_vec<std::size_t, 256>,
-                                              std::vector<std::uint64_t>>,
+                                              // SBO like its two siblings, and it was the last heap
+                                              // container in a thread list. What this buys is not
+                                              // the avoided allocation -- it shows up on searches
+                                              // that never allocate -- but keeping `std::vector`'s
+                                              // destructor out of a state that every standalone
+                                              // `search()` builds and tears down. The inline
+                                              // capacity is deliberately small: growing the state
+                                              // is what costs gcc/x86 its class-scan codegen, and
+                                              // the saving does not depend on the capacity.
+                                              small_vec<std::uint64_t, 8>>,
                             small_vec<eps_entry, 32>>
       {
         /*!

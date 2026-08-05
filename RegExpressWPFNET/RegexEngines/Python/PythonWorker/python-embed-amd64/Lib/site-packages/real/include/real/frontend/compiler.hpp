@@ -682,6 +682,101 @@ namespace real::detail {
       emit_klass(prog, utf8_cont_set());
     }
 
+    static constexpr std::size_t fixed_width_class_max_members {8}; //!< Most members a \ref try_emit_fixed_width_class candidate may have.
+
+    /*!
+     * \brief Emits a small non-ASCII class as FIXED-WIDTH bytes, when every member encodes to the
+     *        same length and they differ in exactly one byte position. Returns false otherwise.
+     *
+     * This is the shape an icase fold makes of an accented Latin letter: `é`/`É` are `C3 A9` and
+     * `C3 89` — two bytes, one shared lead, one differing continuation — so the class is really
+     * `byte C3` followed by a two-member BYTE class, which is fixed width. Sent through
+     * \ref emit_klass_cp instead it becomes variable width, and that is what stops the prefilter's
+     * fixed-offset walk and the literal routes behind it. Measured on 200 KB of accented Latin prose
+     * at equal match density: a pure literal `café` is 0.257 ns/B, `caf[éÉ]` as a code-point class
+     * 0.700, `(?i)café` 1.226.
+     *
+     * DELIBERATELY NARROW, because the neighbouring wide shape is already known to be a trap: an
+     * icase ASCII class like `(?i)[a-z]` gains the long s and the Kelvin sign, whose encodings are
+     * 2 and 3 bytes, so expressing it byte-wise needs an ALTERNATION — and that measured 545 µs
+     * against 230 for the `klass_cp` (see the emission site's note), with `caf(é|É)` reading 3.405
+     * ns/B here against 0.700 for the class. Requiring one common length AND a single varying
+     * position is exactly what excludes every alternation-shaped case: no branch is ever emitted,
+     * only a run of `byte` with one `klass` among them.
+     *
+     * \param[in,out] prog The program being built.
+     * \param[in]     eff  The effective class (ASCII bitmap + non-ASCII ranges).
+     * \return `true` if the class was emitted here; `false` if the caller must emit it otherwise.
+     */
+    static constexpr bool try_emit_fixed_width_class(dynamic_program& prog,
+                                                     const class_def& eff)
+    {
+      if (!eff.ascii.empty()) {
+        return false; // a mixed ASCII/non-ASCII class is variable width by construction
+      }
+      std::uint32_t cps[fixed_width_class_max_members] {};
+      std::size_t   n                                  {0};
+      for (const code_range& r : eff.ranges) {
+        for (std::uint32_t c = r.lo; c <= r.hi; ++c) {
+          if (n == fixed_width_class_max_members) {
+            return false; // too many members to be a fold pair or a small hand-written class
+          }
+          cps[n++] = c;
+          if (c == 0xFFFFFFFFU) {
+            break; // unreachable for a valid class; guards the ++c overflow
+          }
+        }
+      }
+      if (n == 0) {
+        return false;
+      }
+      std::uint8_t enc[fixed_width_class_max_members][4] {};
+      std::size_t  len                                   {0};
+      for (std::size_t i = 0; i < n; ++i) {
+        std::uint8_t      b[4] {};
+        const std::size_t l    {encode_utf8_bytes(cps[i], b)};
+        if (i == 0) {
+          len = l;
+        }
+        else if (l != len) {
+          return false; // mixed lengths: only an alternation could express this, and that loses
+        }
+        for (std::size_t k = 0; k < 4; ++k) {
+          enc[i][k] = b[k];
+        }
+      }
+      std::size_t varying {len}; // len == "no varying position seen yet"
+      for (std::size_t k = 0; k < len; ++k) {
+        bool same {true};
+        for (std::size_t i = 1; i < n; ++i) {
+          if (enc[i][k] != enc[0][k]) {
+            same = false;
+            break;
+          }
+        }
+        if (same) {
+          continue;
+        }
+        if (varying != len) {
+          return false; // two positions differ: a byte-wise form would need a branch
+        }
+        varying = k;
+      }
+      for (std::size_t k = 0; k < len; ++k) {
+        if (k == varying) {
+          char_class cc;
+          for (std::size_t i = 0; i < n; ++i) {
+            cc.set(enc[i][k]);
+          }
+          emit_klass(prog, cc);
+        }
+        else {
+          emit(prog, {.op = opcode::byte, .arg8 = enc[0][k]});
+        }
+      }
+      return true;
+    }
+
     // --- UTF-8 byte expansion --------------------------------------------
 
     /*!
@@ -948,6 +1043,14 @@ namespace real::detail {
             //
             // The `.`-family above keeps its own emission: it has a dedicated hint and route
             // (codepoint_class_ascii), which this shape has not.
+            //
+            // One shape IS better off byte-wise, and it is the one the paragraph above does not
+            // cover: members that all encode to the SAME length and differ in exactly ONE byte, so
+            // no alternation is needed at all. `(?i)é` is that -- `C3 A9` / `C3 89` -- and staying
+            // fixed-width there is what keeps the prefilter's fixed-offset walk alive.
+            if (try_emit_fixed_width_class(prog, eff)) {
+              break;
+            }
             emit_klass_cp(prog, eff);
             break;
           }
