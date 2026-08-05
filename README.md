@@ -54,7 +54,7 @@ The following engines are included:
   * [_Reggie_](https://github.com/DataDog/java-reggie) 0.3.0.
 * [**Python**](https://www.python.org/) 3.14.6:
   * _re_,
-  * [_regex_](https://pypi.org/project/regex) 2026.6.28,
+  * [_regex_](https://pypi.org/project/regex) 2026.7.19,
   * [_real-regex_](https://pypi.org/project/real-regex/) 2026.8.3.
 * [**D**](https://dlang.org/phobos/std_regex.html) 2.112.0 (*std.regex* module).
 * [**Perl**](https://perldoc.perl.org/perlreref) 5.40.2 (Strawberry Perl).
