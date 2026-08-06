@@ -1,1 +1,1 @@
-go build -v -buildmode=exe -ldflags "-w -s" CoregexWorker.go
+go build -v -buildmode=exe -ldflags "-w -s" -trimpath CoregexWorker.go

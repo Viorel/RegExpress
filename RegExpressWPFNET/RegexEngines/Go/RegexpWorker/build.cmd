@@ -1,1 +1,1 @@
-go build -v -buildmode=exe -ldflags "-w -s" RegexpWorker.go
+go build -v -buildmode=exe -ldflags "-w -s" -trimpath RegexpWorker.go

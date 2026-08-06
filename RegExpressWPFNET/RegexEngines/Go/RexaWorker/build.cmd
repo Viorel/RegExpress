@@ -1,1 +1,1 @@
-go build -v -buildmode=exe -ldflags "-w -s" RexaWorker.go
+go build -v -buildmode=exe -ldflags "-w -s" -trimpath RexaWorker.go
