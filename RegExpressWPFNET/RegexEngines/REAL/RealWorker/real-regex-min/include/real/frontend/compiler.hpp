@@ -312,6 +312,39 @@ namespace real::detail {
   public:
 
     /*!
+     * \brief True when the FULL inner literal starts at \p pc as consecutive `byte` ops.
+     *
+     * Both hint anchors below used to ask only whether `code[pc]` equalled `inner_literal[0]`, and a
+     * byte equal to the literal's FIRST byte is not the literal. `(?:a){2}ax` has the literal `ax` and
+     * two `a` bytes in front of it, so the prefix's own `a` was taken for the literal's start: the
+     * derived hint then described the wrong distance and the route walked back to the wrong place.
+     *
+     * The result was a SILENT FALSE NEGATIVE wherever the route actually runs — `static_regex` at any
+     * subject size, and a dynamic regex past the size floor. It is invisible on a short dynamic
+     * subject, because the small-haystack guard abandons to the core VM before the bad hint is used,
+     * which is why a probe on short subjects reports the pattern as fine.
+     *
+     * \param[in] prog The program being built.
+     * \param[in] pc   Index of the candidate first `byte` op.
+     * \return Whether the whole literal, all \ref pattern_hints::inner_literal_len bytes of it, is here.
+     */
+    static constexpr bool inner_literal_starts_at(const dynamic_program& prog,
+                                                  std::size_t            pc)
+    {
+      const std::size_t len {prog.hints.inner_literal_len};
+      if (len == 0 || pc + len > prog.code.size()) {
+        return false;
+      }
+      for (std::size_t k = 0; k < len; ++k) {
+        if (prog.code[pc + k].op != opcode::byte
+            || prog.code[pc + k].arg8 != prog.hints.inner_literal[k]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    /*!
      * \brief Emits the full NFA program for the bound AST.
      * \return The compiled \ref dynamic_program (code, classes, names, hints).
      * \throws real::regex_error if the program exceeds \ref max_program_size.
@@ -377,8 +410,7 @@ namespace real::detail {
           while (lit < prog.code.size() && prog.code[lit].op == opcode::save) {
             ++lit; // the group's closing save, and the next group's opening one
           }
-          if (lit < prog.code.size() && prog.code[lit].op == opcode::byte
-              && prog.code[lit].arg8 == prog.hints.inner_literal[0]) {
+          if (inner_literal_starts_at(prog, lit)) {
             prog.hints.il_rev_class = static_cast<std::int32_t>(prog.code[atom].arg16);
             prog.hints.il_rev_is_cp = is_cp;
 
@@ -444,9 +476,10 @@ namespace real::detail {
           }
           else if (op == opcode::byte) {
             if (!hit_literal) {
-              // The first literal byte must be the inner literal's own first byte, else the count above
-              // does not describe the distance the route will walk back from a candidate.
-              ok          = prog.code[pc].arg8 == prog.hints.inner_literal[0];
+              // The WHOLE literal must start here, not merely a byte equal to its first: a prefix
+              // that repeats that byte (`(?:a){2}ax`) would otherwise be mistaken for the literal and
+              // the count would not describe the distance the route walks back from a candidate.
+              ok          = inner_literal_starts_at(prog, pc);
               hit_literal = true;
             }
             ++pc;
@@ -1228,6 +1261,56 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Emits an UNBOUNDED quantifier's body, promoting a bare literal byte to a one-member
+     *        byte class so the shape routes can see it.
+     *
+     * `a+` compiled to a `byte` op, and the class-loop recognizer matches on `klass` only — so a
+     * quantifier over a single character had no fast route at all, while the semantically identical
+     * `[a]+` did. Over 100 000 bytes: `^a+$` **18.52 ns/B against 0.31** for `^[a]+$`, and `a+` 4.03
+     * against 0.31. A byte IS a one-member class; nothing but the opcode was in the way.
+     *
+     * Only for `max == -1` (`+`, `*`, `{n,}`), which is exactly what the class loop serves. A bounded
+     * form like `a{3}` keeps its bytes: those copies are a fixed literal run, and the literal routes
+     * that read them would not recognise three classes.
+     *
+     * \param[in,out] prog         The program being built.
+     * \param[in]     child        The quantifier's body node.
+     * \param[in]     capture_free Propagated to \ref emit_node.
+     */
+    constexpr void emit_unbounded_body(dynamic_program& prog,
+                                       std::int32_t     child,
+                                       bool             capture_free) const
+    {
+      // Peel transparent wrappers first. A NON-CAPTURING, non-atomic group changes nothing any route
+      // cares about -- there is no slot to save and no give-back rule to honour -- but it hid the atom
+      // from the promotion below: `(?:a)+` measured **1.368 ns/B against `a+`'s 0.460**, a 3x gap for a
+      // pair of parentheses. Scoped flags survive the peel because `effective_flags` is stamped on every
+      // node as it is parsed, so the child already carries the scope it was written in.
+      //
+      // `(?>...)` is excluded: `possessive` on a group means atomic, which is a real semantic.
+      std::int32_t atom {child};
+      while (atom >= 0) {
+        const ast_node& w {tree_.nodes[static_cast<std::size_t>(atom)]};
+        if (w.kind != node_kind::group || w.group >= 0 || w.possessive) {
+          break;
+        }
+        atom = w.child;
+      }
+      if (atom < 0) {
+        emit_node(prog, child, capture_free);
+        return;
+      }
+      const ast_node& c {tree_.nodes[static_cast<std::size_t>(atom)]};
+      if (c.kind == node_kind::byte && c.next < 0) {
+        char_class one;
+        one.set(c.byte);
+        emit_klass(prog, one);
+        return;
+      }
+      emit_node(prog, child, capture_free);
+    }
+
+    /*!
      * \brief Emits a quantifier (Thompson construction).
      *
      * Greedy prefers `split.primary_target` (enter the body); lazy swaps the branches.
@@ -1251,18 +1334,25 @@ namespace real::detail {
           // Last mandatory copy doubles as the loop body: e+ patterns
           // emit the body exactly once.
           const std::int32_t body {here(prog)};
-          emit_node(prog, node.child, capture_free);
+          emit_unbounded_body(prog, node.child, capture_free);
           const std::int32_t s    {emit_split(prog)};
           patch_primary(prog, s, node.lazy ? here(prog) : body);
           patch_secondary(prog, s, node.lazy ? body : here(prog));
           return;
         }
-        emit_node(prog, node.child, capture_free);
+        // `{k,}`'s mandatory copies must match the loop body's shape: the recognizer counts
+        // CONSECUTIVE identical `klass` ops to read the minimum off, so a byte here would hide it.
+        if (node.max == -1) {
+          emit_unbounded_body(prog, node.child, capture_free);
+        }
+        else {
+          emit_node(prog, node.child, capture_free);
+        }
       }
       if (node.max == -1) {                                  // min == 0: a star loop
         const std::int32_t s {emit_split(prog)};
         patch_primary(prog, s, node.lazy ? -1 : here(prog)); // body side set below
-        emit_node(prog, node.child, capture_free);
+        emit_unbounded_body(prog, node.child, capture_free);
         const std::int32_t j {emit_jump(prog)};
         patch_primary(prog, j, s);
         if (node.lazy) {
@@ -1320,6 +1410,13 @@ namespace real::detail {
         throw regex_error("lookaround sub-pattern too long", 0);
       }
       const std::size_t sub_id {prog.lookarounds.size()};
+      if (sub_id > 0xFFFF) {
+        // The instruction carries this index in a uint16. Truncating it silently retargets the
+        // assertion at a DIFFERENT sub-pattern: `(?=)`x65536 then `(?=b)a` matched "a", where the
+        // 'b' the pattern demands does not occur at all. Reachable under max_program_size because
+        // an empty lookaround costs only three instructions. Same guard as the class tables.
+        throw regex_error("too many lookarounds", 0);
+      }
       prog.lookarounds.push_back({});                  // placeholder, filled once the region is emitted
       emit(prog, {.op = opcode::assert_lookaround, .arg16 = static_cast<std::uint16_t>(sub_id)});
       const std::int32_t skip       {emit_jump(prog)}; // main flow jumps over the sub-region

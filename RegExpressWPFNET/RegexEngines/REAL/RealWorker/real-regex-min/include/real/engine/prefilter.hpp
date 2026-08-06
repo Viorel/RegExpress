@@ -946,6 +946,9 @@ namespace real::detail {
    * \param[in]     lookarounds    Bounded lookaround subs (for trailing-LA eligibility); may be empty.
    * \param[in,out] hints          Hint bag to fill (class-loop, fixed-shape, trailing-LA, …).
    */
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((cold)) // build-time only: see the note in prefilter.hpp's detect_fast_shapes
+#endif
   constexpr void detect_fast_shapes(std::span<const instr>          code,
                                     std::span<const char_class>     classes,
                                     std::span<const cp_class>       cp_classes,

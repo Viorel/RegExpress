@@ -28,6 +28,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <vector>
 
 #include "real/frontend/ast.hpp"
 #include "real/frontend/compiler.hpp"
@@ -858,6 +859,192 @@ namespace real {
     };
 
     /*!
+     * \brief The name-resolution context a result owns when it must outlive the regex it came from.
+     *
+     * A result resolves a group name by comparing it against the pattern text at the offsets its
+     * named-group table records, so it borrows BOTH from the regex. The borrow is free and correct
+     * while the regex is alive, which is the documented contract; on a temporary regex it is a read
+     * of freed memory. A result produced from an rvalue regex copies both here instead. The copy is
+     * shared, so copying such a result shares the context rather than duplicating it, and the cost
+     * lands only where a pattern was just compiled -- which allocates far more than this.
+     */
+    struct owned_name_context
+    {
+      std::string                    pattern; //!< Owned copy of the pattern text.
+      std::vector<named_group>       names;   //!< Owned copy of the named-group table.
+    };
+
+    /*!
+     * \brief A uniquely-owning, deep-copying box for \ref owned_name_context that survives constant
+     *        evaluation.
+     *
+     * `std::shared_ptr` is the obvious handle here and cannot be used: a `real::regex` is
+     * constant-evaluable, so the result type it yields must stay literal, and no standard smart
+     * pointer is. `std::allocator` is the only constexpr-usable source in C++20 -- the same reason
+     * \ref small_vec grows through it -- and its blocks are transient, so this releases
+     * unconditionally.
+     *
+     * Deep copy rather than shared: the box is null on every result that borrows, which is every
+     * result a walk or an lvalue regex produces, so nothing on the path that matters ever copies
+     * one. What the borrowing path pays is a pointer and a null test.
+     */
+    class name_context_box
+    {
+    public:
+
+      /*!
+       * \brief Constructs an empty box, owning nothing.
+       */
+      constexpr name_context_box() noexcept = default;
+
+      /*!
+       * \brief Deep-copies the other box's context, if it has one.
+       * \param[in] other The box to copy.
+       */
+      constexpr name_context_box(const name_context_box& other)
+      {
+        if (other.ptr_ != nullptr) [[unlikely]] {
+          adopt(*other.ptr_);
+        }
+      }
+
+      /*!
+       * \brief Takes over the other box's context, leaving it empty.
+       * \param[in,out] other The box to move from.
+       */
+      constexpr name_context_box(name_context_box&& other) noexcept
+        : ptr_(other.ptr_)
+      {
+        other.ptr_ = nullptr;
+      }
+
+      /*!
+       * \brief Deep-copy assignment.
+       * \param[in] other The box to copy.
+       * \return `*this`.
+       */
+      constexpr name_context_box& operator=(const name_context_box& other)
+      {
+        if (this != &other) {
+          reset();
+          if (other.ptr_ != nullptr) [[unlikely]] {
+            adopt(*other.ptr_);
+          }
+        }
+        return *this;
+      }
+
+      /*!
+       * \brief Move assignment.
+       * \param[in,out] other The box to move from.
+       * \return `*this`.
+       */
+      constexpr name_context_box& operator=(name_context_box&& other) noexcept
+      {
+        if (this != &other) {
+          reset();
+          ptr_       = other.ptr_;
+          other.ptr_ = nullptr;
+        }
+        return *this;
+      }
+
+      /*!
+       * \brief Releases the owned context, if any.
+       */
+      constexpr ~name_context_box()
+      {
+        reset();
+      }
+
+      /*!
+       * \brief Replaces the owned context with one built from \p pattern and \p names.
+       * \param[in] pattern The pattern text to own.
+       * \param[in] names   The named-group table to own.
+       */
+      constexpr void emplace(std::string              pattern,
+                             std::vector<named_group> names)
+      {
+        reset();
+        ptr_ = std::allocator<owned_name_context> {}.allocate(1);
+        std::construct_at(ptr_, owned_name_context {std::move(pattern), std::move(names)});
+      }
+
+      /*!
+       * \brief Returns the owned context, or `nullptr` when the box is empty.
+       * \return The owned context, or `nullptr`.
+       */
+      [[nodiscard]] constexpr const owned_name_context* get() const noexcept
+      {
+        return ptr_;
+      }
+
+    private:
+
+      /*!
+       * \brief Allocates and copy-constructs a context from \p src.
+       *
+       * Cold: only a result detached from a temporary regex ever owns a context, and only a copy of
+       * one ever reaches here. Left warm it bids for the translation unit's inline budget against
+       * the scan routes, which measured +5.6 % on `words` and its ASCII witness -- the same
+       * non-monotonic budget effect \ref build_byte_program is annotated for.
+       *
+       * \param[in] src The context to copy.
+       */
+      constexpr void adopt(const owned_name_context& src)
+      {
+        ptr_ = std::allocator<owned_name_context> {}.allocate(1);
+        std::construct_at(ptr_, src);
+      }
+
+      /*!
+       * \brief Releases the owned context. Precondition: the box owns one.
+       *
+       * Split out of \ref reset, and cold for the same reason as the copy path above: every result on the
+       * borrowing path runs the null test and nothing else.
+       */
+      constexpr void release() noexcept
+      {
+        std::destroy_at(ptr_);
+        std::allocator<owned_name_context> {}.deallocate(ptr_, 1);
+        ptr_ = nullptr;
+      }
+
+      /*!
+       * \brief Destroys and deallocates the owned context, if any.
+       */
+      constexpr void reset() noexcept
+      {
+        if (ptr_ != nullptr) [[unlikely]] {
+          release();
+        }
+      }
+
+      owned_name_context* ptr_ {nullptr}; //!< The owned context, or `nullptr`.
+    };
+
+    /*!
+     * \brief The compile-time policy's name owner: there is nothing to own.
+     *
+     * `static_storage` keeps its pattern and its named-group table in `static constexpr` objects,
+     * which outlive every result by construction, so a result from a temporary `static_regex`
+     * borrows safely and owns nothing. The type must also stay literal: a result is constructed
+     * during constant evaluation on this path, and `std::shared_ptr` cannot be.
+     */
+    struct borrowed_names
+    {
+      /*!
+       * \brief Always `nullptr`: this policy owns nothing, so a result always reads its borrowed
+       *        views. Constant, so the owning branch folds away entirely on this path.
+       * \return `nullptr`.
+       */
+      [[nodiscard]] static constexpr const owned_name_context* get() noexcept
+      {
+        return nullptr;
+      }
+    };
+
+    /*!
      * \brief Storage policy backing `real::regex`: heap, sized once at run time.
      *
      * Match scratch uses small-buffer-optimized containers, so the common
@@ -866,6 +1053,10 @@ namespace real {
     struct dynamic_storage
     {
       static constexpr bool is_compile_time {}; //!< Selects the runtime constructor.
+      /*!
+       * \brief Name-resolution owner: empty unless the result outlives the regex it came from.
+       */
+      using name_owner = name_context_box;
       /*!
        * \brief Capture-slot container: SBO, avoiding the heap for typical small group counts.
        */
@@ -1103,6 +1294,10 @@ namespace real {
     struct static_storage
     {
       static constexpr bool is_compile_time {true}; //!< Selects the default constructor.
+      /*!
+       * \brief Name-resolution owner: empty, the tables having static storage duration.
+       */
+      using name_owner = borrowed_names;
 
     private:
 

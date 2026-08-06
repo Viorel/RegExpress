@@ -31,13 +31,21 @@ namespace real {
    *
    * Group views point into the searched text, which must outlive the result —
    * the rvalue `std::string` overloads on the regex are deleted to catch the
-   * common dangling mistake at compile time. Named-group lookups reference the
-   * regex's name table, so the regex must outlive the result too.
+   * common dangling mistake at compile time.
+   *
+   * Named-group lookups need the regex's pattern text and name table. This type borrows both, which
+   * is free and correct while the regex is alive. A single attempt on a TEMPORARY regex yields
+   * \ref real::basic_regex::owning_result_type instead — the same class with an owning \p NameOwner
+   * — so that a result outliving the temporary it came from still resolves names. `find_iter` and
+   * `find_all` have no such twin: they are deleted on an rvalue regex outright.
    *
    * \tparam SlotStorage The capture-slot container (vector- or static-backed),
    *         supplied by the storage policy.
+   * \tparam NameOwner   The name-resolution owner, supplied by the same policy: an empty
+   *         `detail::borrowed_names` when the regex's tables outlive every result by construction,
+   *         or an owning box when they do not.
    */
-  template <typename SlotStorage>
+  template <typename SlotStorage, typename NameOwner = detail::borrowed_names>
   class basic_match_result
   {
   public:
@@ -66,6 +74,62 @@ namespace real {
         pattern_(pattern),
         names_(names)
     {}
+
+    /*!
+     * \brief Engine-internal: adopts the fields of the borrowing twin, to be detached next.
+     *
+     * A template, and constrained, so that it exists only for the owning specialisation -- the
+     * borrowing one is what every walk and every attempt on a live regex yields, and it must stay
+     * exactly the type it was.
+     *
+     * Taken by value: the caller hands over a prvalue, so nothing is copied, and the slots move out
+     * of the parameter rather than out of a subobject of a reference.
+     *
+     * \tparam OtherOwner The source's name owner, necessarily not this one's.
+     * \param[in] other The freshly run result to take over.
+     */
+    template <typename OtherOwner>
+    requires(!std::is_same_v<OtherOwner, NameOwner>)
+    constexpr explicit basic_match_result(basic_match_result<SlotStorage, OtherOwner> other)
+      : text_(other.text_),
+        slots_(std::move(other.slots_)),
+        matched_(other.matched_),
+        pattern_(other.pattern_),
+        names_(other.names_)
+    {}
+
+    //! The twin specialisation reads these fields to adopt them; nothing else does.
+    template <typename, typename>
+    friend class basic_match_result;
+
+    /*!
+     * \brief Engine-internal: stop borrowing the regex's name tables, because it is about to die.
+     *
+     * `search`, `match` and `fullmatch` are callable on a temporary regex, and must stay so -- the
+     * one-expression form (`real::regex{"a+"}.search(text).matched()`) is safe, since the temporary
+     * outlives the full-expression, and it is the shape most callers write. What is NOT safe is the
+     * result outliving that temporary: \ref group_index reads the pattern text and the named-group
+     * table, both of which the regex owns. This copies them into the result instead, so a result
+     * from an rvalue regex resolves names correctly for as long as it exists.
+     *
+     * The borrowed views are cleared either way: with named groups \ref owner_ becomes the source of
+     * truth (which is what keeps the implicit copy constructor correct -- a copy deep-copies the box
+     * and reads its OWN, rather than inheriting views into the original's), and without them there
+     * is nothing to copy, but a dangling view nobody dereferences would still be one.
+     *
+     * A no-op on the compile-time policy, whose tables have static storage duration.
+     */
+    constexpr void detach_from_regex()
+    {
+      if constexpr (!std::is_same_v<NameOwner, detail::borrowed_names>) {
+        if (!names_.empty()) {
+          owner_.emplace(std::string {pattern_},
+                         std::vector<detail::named_group> {names_.begin(), names_.end()});
+        }
+        pattern_ = {};
+        names_   = {};
+      }
+    }
 
     /*!
      * \brief Engine-internal: re-run the search into this result's OWN slot buffer, reusing its
@@ -245,10 +309,17 @@ namespace real {
      */
     [[nodiscard]] constexpr std::size_t group_index(std::string_view name) const
     {
-      for (const detail::named_group& named_group : names_) {
+      // Owned context first, borrowed views otherwise. On the compile-time policy `get()` is a
+      // constant `nullptr`, so this folds to the borrowed branch with nothing left to test.
+      const detail::owned_name_context       *   owned   {owner_.get()};
+      const std::string_view                     pattern {owned != nullptr ? std::string_view {owned->pattern} : pattern_};
+      const std::span<const detail::named_group> names   {owned != nullptr
+                                                          ? std::span<const detail::named_group> {owned->names}
+                                                          : names_};
+      for (const detail::named_group& named_group : names) {
         const auto begin  {static_cast<std::size_t>(named_group.begin)};
         const auto length {static_cast<std::size_t>(named_group.end - named_group.begin)};
-        if (pattern_.substr(begin, length) == name) {
+        if (pattern.substr(begin, length) == name) {
           return static_cast<std::size_t>(named_group.group);
         }
       }
@@ -320,13 +391,11 @@ namespace real {
     SlotStorage                          slots_;      //!< Flattened capture slots.
     bool                                 matched_ {}; //!< Whether a match occurred.
     std::string_view                     pattern_;    //!< Pattern text (for named lookups).
-    std::span<const detail::named_group> names_;      //!< Borrowed named-group table.
+    std::span<const detail::named_group> names_;      //!< Named-group table: borrowed, or owned via \ref owner_.
+    //! Owns what \ref pattern_ and \ref names_ point at, once \ref detach_from_regex has run; empty
+    //! (and zero-sized) on the compile-time policy, null on every result that borrows.
+    [[no_unique_address]] NameOwner      owner_ {};
   };
-
-  /*!
-   * \brief The result type of the default, runtime-compiled `real::regex`.
-   */
-  using match_result = basic_match_result<std::vector<std::size_t>>;
 
   /*!
    * \brief Forward iterator over the non-overlapping matches in a text.
@@ -687,6 +756,29 @@ namespace real {
   public:
 
     using result_type = basic_match_result<typename Storage::slot_storage>; //!< This regex's match-result type.
+    /*!
+     * \brief What a single attempt on a TEMPORARY regex yields: the same result, plus ownership of
+     *        the name context it would otherwise borrow from a regex that is about to die.
+     *
+     * A DISTINCT type, and deliberately so. Folding the owner into \ref result_type costs the
+     * borrowing path, which is every walk and every attempt on a live regex: measured on arm64,
+     * `words` +5.6 % and its ASCII witness +5.6 %, two instances of one pattern and therefore not
+     * layout noise. The class scans never touch the owner; giving the result a non-trivial
+     * destructor changed their codegen anyway. WHICH mechanism is not established here and this note
+     * does not guess: on arm64 it is not the per-unit inline budget of docs/design.dox 10.1, clang
+     * having none. Annotating the owner cold made it worse rather than better (+11.2 %), so whatever
+     * it is, it does not answer to that lever either. The borrowing path therefore keeps the type it
+     * had, byte for byte, and only the rvalue path pays.
+     *
+     * On the compile-time policy the two are THE SAME type: its tables are `static constexpr` and a
+     * result from a temporary `static_regex` borrows them safely, so there is nothing to own.
+     *
+     * Bind one with `auto`. Spelling \ref result_type (or `real::match_result`) for a temporary
+     * regex's result does not compile, which is the point: there is no conversion that could quietly
+     * drop the ownership and hand back the dangling views this type exists to prevent.
+     */
+    using owning_result_type = basic_match_result<typename Storage::slot_storage,
+                                                  typename Storage::name_owner>;
 
     /*!
      * \brief Compiles \p pattern at run time (the `real::regex` constructor).
@@ -713,7 +805,7 @@ namespace real {
      * \param[in] text The subject text (must outlive the result).
      * \return The match result (test with `matched()` / `operator` bool).
      */
-    [[nodiscard]] constexpr result_type match(std::string_view text) const
+    [[nodiscard]] constexpr result_type match(std::string_view text) const&
     {
       return run(text, detail::run_mode::prefix);
     }
@@ -723,7 +815,7 @@ namespace real {
      * \param[in] text The subject text (must outlive the result).
      * \return The match result.
      */
-    [[nodiscard]] constexpr result_type fullmatch(std::string_view text) const
+    [[nodiscard]] constexpr result_type fullmatch(std::string_view text) const&
     {
       return run(text, detail::run_mode::full);
     }
@@ -733,7 +825,7 @@ namespace real {
      * \param[in] text The subject text (must outlive the result).
      * \return The match result.
      */
-    [[nodiscard]] constexpr result_type search(std::string_view text) const
+    [[nodiscard]] constexpr result_type search(std::string_view text) const&
     {
       return run(text, detail::run_mode::search);
     }
@@ -750,7 +842,7 @@ namespace real {
      */
     [[nodiscard]] constexpr result_type match(std::string_view text,
                                               std::size_t      pos,
-                                              std::size_t      endpos = npos) const
+                                              std::size_t      endpos = npos) const&
     {
       return run(text, pos, endpos, detail::run_mode::prefix);
     }
@@ -765,7 +857,7 @@ namespace real {
      */
     [[nodiscard]] constexpr result_type fullmatch(std::string_view text,
                                                   std::size_t      pos,
-                                                  std::size_t      endpos = npos) const
+                                                  std::size_t      endpos = npos) const&
     {
       return run(text, pos, endpos, detail::run_mode::full);
     }
@@ -780,7 +872,7 @@ namespace real {
      */
     [[nodiscard]] constexpr result_type search(std::string_view text,
                                                std::size_t      pos,
-                                               std::size_t      endpos = npos) const
+                                               std::size_t      endpos = npos) const&
     {
       return run(text, pos, endpos, detail::run_mode::search);
     }
@@ -790,7 +882,7 @@ namespace real {
      * \param[in] text NUL-terminated text.
      * \return The result.
      */
-    [[nodiscard]] constexpr result_type match(const char* text) const
+    [[nodiscard]] constexpr result_type match(const char* text) const&
     {
       return match(std::string_view(text));
     }
@@ -800,7 +892,7 @@ namespace real {
      * \param[in] text NUL-terminated text.
      * \return The result.
      */
-    [[nodiscard]] constexpr result_type fullmatch(const char* text) const
+    [[nodiscard]] constexpr result_type fullmatch(const char* text) const&
     {
       return fullmatch(std::string_view(text));
     }
@@ -810,9 +902,130 @@ namespace real {
      * \param[in] text NUL-terminated text.
      * \return The result.
      */
-    [[nodiscard]] constexpr result_type search(const char* text) const
+    [[nodiscard]] constexpr result_type search(const char* text) const&
     {
       return search(std::string_view(text));
+    }
+
+    // Single attempts on a TEMPORARY regex. These stay callable, unlike find_iter and find_all: the
+    // one-expression form is safe (the temporary outlives the full-expression) and it is what most
+    // callers write -- this project's own suite alone has ~870 of them. The result may still be
+    // stored, though, and then a named lookup reads a pattern and a name table the regex took with
+    // it. So the result takes its own copy before this regex dies; see \ref
+    // basic_match_result::detach_from_regex, which is a no-op wherever those tables are static.
+    // Ref-qualification is all-or-nothing per parameter list, hence the `const&` on every twin
+    // above; the deleted `const std::string&&` text overloads have their own parameter lists and
+    // keep enforcing the separate rule that the SUBJECT must outlive the result.
+
+    /*!
+     * \brief `match` on a temporary regex; the result owns its name context.
+     * \param[in] text The subject text (must outlive the result).
+     * \return The match result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type match(std::string_view text) const&&
+    {
+      return detach(run(text, detail::run_mode::prefix));
+    }
+
+    /*!
+     * \brief `fullmatch` on a temporary regex; the result owns its name context.
+     * \param[in] text The subject text (must outlive the result).
+     * \return The match result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type fullmatch(std::string_view text) const&&
+    {
+      return detach(run(text, detail::run_mode::full));
+    }
+
+    /*!
+     * \brief `search` on a temporary regex; the result owns its name context.
+     * \param[in] text The subject text (must outlive the result).
+     * \return The match result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type search(std::string_view text) const&&
+    {
+      return detach(run(text, detail::run_mode::search));
+    }
+
+    /*!
+     * \brief Region-aware `match` on a temporary regex; the result owns its name context.
+     * \param[in] text   Subject.
+     * \param[in] pos    Byte offset the match must start at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The match result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type match(std::string_view text,
+                                       std::size_t      pos,
+                                       std::size_t      endpos = npos) const&&
+    {
+      return detach(run(text, pos, endpos, detail::run_mode::prefix));
+    }
+
+    /*!
+     * \brief Region-aware `fullmatch` on a temporary regex; the result owns its name context.
+     * \param[in] text   Subject.
+     * \param[in] pos    Byte offset the region starts at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The match result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type fullmatch(std::string_view text,
+                                           std::size_t      pos,
+                                           std::size_t      endpos = npos) const&&
+    {
+      return detach(run(text, pos, endpos, detail::run_mode::full));
+    }
+
+    /*!
+     * \brief Region-aware `search` on a temporary regex; the result owns its name context.
+     * \param[in] text   Subject.
+     * \param[in] pos    Byte offset the search starts at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The match result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type search(std::string_view text,
+                                        std::size_t      pos,
+                                        std::size_t      endpos = npos) const&&
+    {
+      return detach(run(text, pos, endpos, detail::run_mode::search));
+    }
+
+    /*!
+     * \brief `match` on a temporary regex, string-literal overload.
+     * \param[in] text NUL-terminated text.
+     * \return The result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type match(const char* text) const&&
+    {
+      return std::move(*this).match(std::string_view(text));
+    }
+
+    /*!
+     * \brief `fullmatch` on a temporary regex, string-literal overload.
+     * \param[in] text NUL-terminated text.
+     * \return The result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type fullmatch(const char* text) const&&
+    {
+      return std::move(*this).fullmatch(std::string_view(text));
+    }
+
+    /*!
+     * \brief `search` on a temporary regex, string-literal overload.
+     * \param[in] text NUL-terminated text.
+     * \return The result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type search(const char* text) const&&
+    {
+      return std::move(*this).search(std::string_view(text));
     }
 
     /*!
@@ -1309,6 +1522,13 @@ namespace real {
           std::size_t group {};
           while (i < replacement.size() && replacement[i] >= '0' &&
                  replacement[i] <= '9') {
+            // Unsigned overflow wraps, and a wrapped value can land back INSIDE the group range: the
+            // 20-digit `$18446744073709551616` is 2^64, which became group 0 and substituted the
+            // whole match, and the next integer up substituted group 1. Both silent, where Python
+            // raises. Guarding the multiply leaves every reference that fits untouched.
+            if (group > (npos - 9) / 10) {
+              throw regex_error("invalid group reference in replacement", i);
+            }
             group = (group * 10) + static_cast<std::size_t>(replacement[i] - '0');
             ++i;
           }
@@ -1337,6 +1557,29 @@ namespace real {
         else {
           throw regex_error("invalid $ escape in replacement", i);
         }
+      }
+    }
+
+    /*!
+     * \brief Hands a result the name context it will need after this regex is gone.
+     *
+     * Taken and returned by value so the prvalue from \ref run is constructed straight into the
+     * parameter and named-returned out: the rvalue overloads pay no move for going through here.
+     *
+     * \param[in] result The freshly run result.
+     * \return The same result, no longer borrowing from this regex.
+     */
+    [[nodiscard]]
+    static constexpr owning_result_type detach(result_type result)
+    {
+      // Same type wherever there is nothing to own (the compile-time policy): just hand it back.
+      if constexpr (std::is_same_v<owning_result_type, result_type>) {
+        return result;
+      }
+      else {
+        owning_result_type owning {std::move(result)};
+        owning.detach_from_regex();
+        return owning;
       }
     }
 
@@ -1467,6 +1710,25 @@ namespace real {
    * \brief The runtime-compiled regex type — the primary entry point.
    */
   using regex = basic_regex<detail::dynamic_storage>;
+
+  /*!
+   * \brief The result type of the default, runtime-compiled \ref real::regex.
+   *
+   * DERIVED, not re-spelled, and that is the whole point. Until v2026.8.8 this alias named
+   * `basic_match_result<std::vector<std::size_t>>` while the dynamic policy's slots are SBO-backed,
+   * so the type documented as "what `real::regex` returns" was not that type and declaring a
+   * variable with it did not compile. Nothing detected it because the alias RESTATED a type instead
+   * of asking for it; the restatement and the thing it restated were free to drift apart, and did,
+   * from the first commit. Deriving it makes that class of drift unrepresentable rather than merely
+   * detectable — the same reason \ref real::regex and \ref real::static_regex never drifted.
+   */
+  using match_result = regex::result_type;
+
+  /*!
+   * \brief What a single attempt on a TEMPORARY \ref real::regex returns, owning its name context
+   *        rather than borrowing it (see \ref real::basic_regex::owning_result_type).
+   */
+  using owning_match_result = regex::owning_result_type;
 
   /*!
    * \brief A fully compile-time regex.

@@ -2286,6 +2286,14 @@ namespace real::detail {
         const std::size_t  item_pos     {pos_};
         const std::int32_t range_start  {parse_class_item(klass, ranges, property_derived)};
         if (range_start < 0) {
+          // A set item cannot be a range ENDPOINT either. Falling through to the next iteration left
+          // the '-' to be read as a literal member, so `[\d-z]` quietly became `\d` plus '-' plus 'z'
+          // and matched "-" -- while the mirror case `[a-\d]` already failed below. Python raises on
+          // both; this half of the rule was simply missing. A trailing '-]' stays a literal, as there.
+          if (!eof() && peek() == '-' && pos_ + 1 < pattern_.size() && pattern_[pos_ + 1] != ']') {
+            pos_ = item_pos;
+            fail("bad character range");
+          }
           continue; // set item (e.g. \d): its bitmap and any Unicode ranges are already merged
         }
         // Possible range: 'x-y', where a trailing '-]' is a literal '-'.

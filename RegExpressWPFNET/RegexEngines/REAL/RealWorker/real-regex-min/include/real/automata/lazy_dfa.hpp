@@ -576,6 +576,9 @@ namespace real::detail {
    * \param[in]     after Program counter the accept edges jump to (the construct's successor).
    * \param[in,out] seen  Byte-range intern table, shared across every occurrence in one program.
    */
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((cold)) // build-time only: see the note in prefilter.hpp's detect_fast_shapes
+#endif
   constexpr void emit_utf8_trie(byte_program&        bp,
                                 const utf8_trie&     trie,
                                 std::int32_t         after,
@@ -706,6 +709,9 @@ namespace real::detail {
   // known at search time and its ASCII-ness is a cheap scan. That is an architectural change to when
   // the immutables are built, not a tweak here, and it is not attempted in this train -- but the
   // measurement is recorded so the next person does not have to re-derive the size of the prize.
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((cold)) // build-time only: see the note in prefilter.hpp's detect_fast_shapes
+#endif
   constexpr byte_program build_byte_program(const program_view& prog,
                                             bool                keep_assertions = false,
                                             std::size_t         max_size        = max_byte_program_size)
@@ -833,6 +839,9 @@ namespace real::detail {
    * \param[in] classes The byte classes it indexes.
    * \return The alphabet: a byte-to-class map plus the class count.
    */
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((cold)) // build-time only: see the note in prefilter.hpp's detect_fast_shapes
+#endif
   inline constexpr lazy_byte_alphabet compute_lazy_alphabet(std::span<const instr>      code,
                                                             std::span<const char_class> classes)
   {

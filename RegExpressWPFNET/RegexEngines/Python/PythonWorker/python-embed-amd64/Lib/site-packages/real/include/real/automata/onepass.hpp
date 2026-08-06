@@ -429,6 +429,9 @@ namespace real::detail {
      *        masks by construction, so captures are unchanged. The dense per-node edge table is preserved,
      *        so `extract`'s O(1) lookup is unchanged — the whole point of not going sparse.
      */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((cold)) // build-time only: see the note in prefilter.hpp's detect_fast_shapes
+#endif
     constexpr void minimize()
     {
       const std::size_t          n       {nodes_.size()};
@@ -944,6 +947,29 @@ namespace real::detail {
     {}
 
     /*!
+     * \brief Clears EVERY identity key, so nothing built for the old program survives an assignment.
+     *
+     * There are four, and the two assignment operators used to clear only two of them. `ac_for` was
+     * the one that bit: assigning onto a WARMED regex left the Aho-Corasick automaton keyed to the
+     * previous program, and because copy-assigning the program's vector reuses its buffer,
+     * `code.data()` is unchanged -- so the route's identity check passed and served the OLD
+     * automaton. Reproduced through the public API: after `a = b` with a dense alternation, `a`
+     * answered **3230 matches on a subject where `b` matches none, and 0 on a subject where `b`
+     * matches 3125**. Silent wrong answers in both directions, not a crash.
+     *
+     * `op_table_for` was equally unreset and is not currently reachable this way -- captures come out
+     * right after the same assignment -- but it is cleared here too, because the invariant is "an
+     * assignment invalidates every cache", not "every cache we have a reproducer for".
+     */
+    void invalidate_all() noexcept
+    {
+      built_for.store(nullptr, std::memory_order_relaxed);
+      rows_for.store(nullptr, std::memory_order_relaxed);
+      ac_for.store(nullptr, std::memory_order_relaxed);
+      op_table_for.store(nullptr, std::memory_order_relaxed);
+    }
+
+    /*!
      * \brief Keeps this object's cache STORAGE but marks it invalid.
      *
      * The destination's program is already the new one by the time storage assignment reaches here, so this
@@ -954,8 +980,7 @@ namespace real::detail {
     // NOLINTNEXTLINE(cert-oop54-cpp): deliberate non-copy of members, per the note above.
     regex_immutables& operator=(const regex_immutables& /*other*/) noexcept
     {
-      built_for.store(nullptr, std::memory_order_relaxed);
-      rows_for.store(nullptr, std::memory_order_relaxed);
+      invalidate_all();
       return *this;
     }
 
@@ -964,8 +989,7 @@ namespace real::detail {
     // NOLINTNEXTLINE(cert-oop54-cpp)
     regex_immutables& operator=(regex_immutables&& /*other*/) noexcept
     {
-      built_for.store(nullptr, std::memory_order_relaxed);
-      rows_for.store(nullptr, std::memory_order_relaxed);
+      invalidate_all();
       return *this;
     }
 

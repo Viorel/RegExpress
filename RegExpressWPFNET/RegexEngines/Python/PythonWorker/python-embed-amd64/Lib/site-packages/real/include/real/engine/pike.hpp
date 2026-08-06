@@ -551,6 +551,17 @@ namespace real::detail {
     const void*                    rows_verified_for {nullptr};
     const std::uint8_t*            row_ptr           {nullptr}; //!< The verified byte row, cached so the hot path returns it without re-deriving the address.
     const std::uint64_t*           page_ptr          {nullptr}; //!< As \ref row_ptr, for the two-byte page bitmap.
+    // Appended after those, for the same reason they were: anything inserted earlier shifts every
+    // field behind it. The sparse hi table is resolved once per (state, class) instead of once per
+    // CODE POINT: `cp_hi_cached`'s hot path is two thread_local reads plus a fingerprint compare, and
+    // callgrind put `cp_member_high` at 27.3 % of `\p{L}+`'s instructions, ~48 per code point for
+    // what is a two-load bit test once the table is in hand. Hoisting the same resolution into the
+    // span filler instead was measured and refused -- putting a TLS access in that function's body
+    // cost `\p{scx=Cyrl}` +53 % and `\p{N}+` +46 % on arm64 -- so it lives here, where the page
+    // bitmap's own cache already lives.
+    std::int32_t                   hi_class          {-1};      //!< Class \ref hi_ptr / \ref hi_never were resolved for; -1 while unresolved.
+    const cp_hi_table*             hi_ptr            {nullptr}; //!< The resolved sparse hi table for \ref hi_class, or null when it has none usable.
+    bool                           hi_never          {false};   //!< Set when \ref hi_class has no high ranges at all, so every cp past the page bitmap misses.
   };
 
   /*!
@@ -2696,19 +2707,49 @@ namespace real::detail {
       if (std::is_constant_evaluated()) {
         return cp_class_matches(prog_.cp_classes[cp_index], cp);
       }
-      // Small classes: bsearch is already O(log ~32) and avoids the sparse-table build/cache.
-      if (prog_.cp_classes[cp_index].range_count < cp_hi_range_threshold) {
-        return cp_class_matches(prog_.cp_classes[cp_index], cp);
+      // Resolved once per (state, class) rather than once per code point -- everything below the
+      // memo is invariant for a whole scan, since `cp_index` does not change within one. Same shape
+      // as \ref cp_page_table's own cache, and the same reason.
+      if (state_.hi_class != static_cast<std::int32_t>(cp_index)) [[unlikely]] {
+        resolve_hi(cp_index);
       }
-      const cp_hi_table* const hi {cp_hi_cached(prog_, cp_index)};
-      if (hi != nullptr && !hi->page_of.empty()) {
-        return hi->contains(cp);
+      if (state_.hi_ptr != nullptr) {
+        return state_.hi_ptr->contains(cp);
       }
-      // No high ranges (or empty table): every cp > cp_page_max is a non-member.
-      if (hi != nullptr && hi->page_of.empty()) {
-        return false;
+      if (state_.hi_never) {
+        return false; // no high ranges at all: every cp past the page bitmap is a non-member
       }
       return cp_class_matches(prog_.cp_classes[cp_index], cp);
+    }
+
+    /*!
+     * \brief Fills the state's sparse-hi memo for \p cp_index — the cold half of \ref cp_member_high.
+     *
+     * Outlined so the per-code-point path is a class-key compare and a bit test, with the threshold
+     * question, the fingerprint compare and `cp_hi_cached`'s two thread_local reads behind the miss.
+     *
+     * \param[in] cp_index Index of the code-point class to resolve.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
+    void resolve_hi(std::size_t cp_index)
+    {
+      state_.hi_ptr   = nullptr;
+      state_.hi_never = false;
+      // Small classes: bsearch is already O(log ~32) and avoids the sparse-table build/cache.
+      if (prog_.cp_classes[cp_index].range_count >= cp_hi_range_threshold) {
+        const cp_hi_table* const hi {cp_hi_cached(prog_, cp_index)};
+        if (hi != nullptr) {
+          if (hi->page_of.empty()) {
+            state_.hi_never = true;
+          }
+          else {
+            state_.hi_ptr = hi;
+          }
+        }
+      }
+      state_.hi_class = static_cast<std::int32_t>(cp_index);
     }
 
     /*!
