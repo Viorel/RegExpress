@@ -16,7 +16,7 @@ namespace RealPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly LazyData<bool /*ascii*/, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+        static readonly LazyData<(bool ecma, bool ascii), FeatureMatrix> LazyFeatureMatrix = new( d => BuildFeatureMatrix( d.ecma, d.ascii ) );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -112,7 +112,7 @@ namespace RealPlugin
             return new SyntaxOptions
             {
                 XLevel = Options.verbose ? XLevelEnum.x : XLevelEnum.none,
-                FeatureMatrix = LazyFeatureMatrix.GetValue( Options.ascii ),
+                FeatureMatrix = LazyFeatureMatrix.GetValue( (Options.ecma, Options.ascii) ),
             };
         }
 
@@ -150,7 +150,7 @@ namespace RealPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        private static FeatureMatrix BuildFeatureMatrix( bool isAscii )
+        private static FeatureMatrix BuildFeatureMatrix( bool ecma, bool ascii )
         {
             return new FeatureMatrix
             {
@@ -275,7 +275,7 @@ namespace RealPlugin
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = true,
-                Anchor_Z = false,
+                Anchor_Z = ecma ? FeatureMatrix.AnchorZModeEnum.None : FeatureMatrix.AnchorZModeEnum.Compatible,
                 Anchor_z = true,
                 Anchor_G = false,
                 Anchor_bB = true,
@@ -360,13 +360,13 @@ namespace RealPlugin
                 EmptySetAny = false,
 
                 Unicode_Class_Dot = true,
-                Unicode_Class_vW = !isAscii,
+                Unicode_Class_vW = !ascii,
                 InsideSets_Unicode = true,
-                UnicodeCaseFolding = !isAscii,
+                UnicodeCaseFolding = !ascii,
                 KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
-                Σσς = !isAscii,
+                Σσς = !ascii,
                 ßSS = false,
             };
         }

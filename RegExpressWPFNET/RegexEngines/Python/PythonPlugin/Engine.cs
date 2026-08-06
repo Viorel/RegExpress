@@ -305,7 +305,7 @@ namespace PythonPlugin
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = true,
-                Anchor_Z = true,
+                Anchor_Z = FeatureMatrix.AnchorZModeEnum.Compatible, // "the same as \z. For compatibility with old Python versions"
                 Anchor_z = true,
                 Anchor_G = false,
                 Anchor_bB = true,
@@ -526,7 +526,7 @@ namespace PythonPlugin
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = true,
-                Anchor_Z = true,
+                Anchor_Z = FeatureMatrix.AnchorZModeEnum.Compatible, // 
                 Anchor_z = true,
                 Anchor_G = true,
                 Anchor_bB = true,
@@ -747,7 +747,7 @@ namespace PythonPlugin
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = true,
-                Anchor_Z = false,
+                Anchor_Z = FeatureMatrix.AnchorZModeEnum.Compatible,
                 Anchor_z = true,
                 Anchor_G = false,
                 Anchor_bB = true,

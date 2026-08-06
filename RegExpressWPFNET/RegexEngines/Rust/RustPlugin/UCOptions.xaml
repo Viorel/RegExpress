@@ -242,6 +242,30 @@
             <StackPanel x:Name="pnlRegexrOptions" Orientation="Vertical" Visibility="Collapsed" d:Visibility="Visible">
                 <ui:CheckboxWithNote Prop="jit" Text="jit" Note="the regex will be compiled to native machine code for maximum performance"/>
                 <ui:CheckboxWithNote Prop="optimize_prefixes" Text="optimize_prefixes" Note="large alternations of literals (like (token1|token2|...|tokenN)) will be optimized by merging common prefixes into a trie structure"/>
+
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 6 0 0" >
+                    <Grid.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Grid.LayoutTransform>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=regexr_bl}">backtrack__limit:</Label>
+                    <TextBox x:Name="regexr_bl" Grid.Column="1" Grid.Row="1" Text="{Binding backtrack_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– how many steps a backreference search may take before giving up" Style="{StaticResource note}" />
+                </Grid>
+
             </StackPanel>
 
         </StackPanel>

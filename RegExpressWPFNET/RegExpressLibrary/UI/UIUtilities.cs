@@ -26,5 +26,9 @@ namespace RegExpressLibrary.UI
             }
         }
 
+        public static bool IsDisplayed( this FrameworkElement e )
+        {
+            return e.Visibility == Visibility.Visible;
+        }
     }
 }

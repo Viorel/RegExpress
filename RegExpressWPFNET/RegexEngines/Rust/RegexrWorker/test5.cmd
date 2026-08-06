@@ -1,0 +1,2 @@
+@echo { "structure" : "Regex",        "pattern" : "(.)\\1(\\1)\\2(\\2)\\3+", "text" : "XaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaY", "options" : { "jit" : false, "optimize_prefixes" : false, "backtrack_limit" : 1 } } | ".\target\release\RustRegexrWorker.exe"
+@echo { "structure" : "RegexBuilder", "pattern" : "(.)\\1(\\1)\\2(\\2)\\3+", "text" : "XaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaY", "options" : { "jit" : false, "optimize_prefixes" : false, "backtrack_limit" : 1 } } | ".\target\release\RustRegexrWorker.exe"

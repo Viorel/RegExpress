@@ -60,6 +60,13 @@ namespace RegExpressLibrary.SyntaxColouring
             AnyLength,      // fixed-, bounded- and unbounded-length are supported, such as "(?<=abc)", "(?<=a|xy)" and "(?<=a.*c)"
         }
 
+        public enum AnchorZModeEnum
+        {
+            None,           // \Z is not an anchor
+            Compatible,     // \Z is the same as \z ("For compatibility with old Python versions" -- https://docs.python.org/3/library/re.html).
+            Correct,        // \Z is end of string or before \n at end of string
+        }
+
         public PunctuationEnum Parentheses { get; init; }                   // (...) or \(...\)
 
         public bool Brackets { get; init; }                                 // [...]
@@ -181,7 +188,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Anchor_Circumflex { get; init; }                        // ^ -- beginning of string; in multiline mode: also beginning of line
         public bool Anchor_Dollar { get; init; }                            // $ -- end of the string or before \n at the end of the string; in multiline mode: also before \n at the end of the line
         public bool Anchor_A { get; init; }                                 // \A -- start of the string
-        public bool Anchor_Z { get; init; }                                 // \Z -- end of the string or before \n at the end of the string
+        public AnchorZModeEnum Anchor_Z { get; init; }                      // \Z -- end of the string or before \n at the end of the string
         public bool Anchor_z { get; init; }                                 // \z -- end of the string
         public bool Anchor_G { get; init; }                                 // \G -- end of previous match, or start of string
         public bool Anchor_bB { get; init; }                                // \b, \B -- boundary between \w and \W; see also Esc_b, InsideSets_Esc_b

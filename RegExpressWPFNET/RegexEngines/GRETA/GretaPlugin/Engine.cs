@@ -272,7 +272,7 @@ namespace GretaPlugin
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = true,
-                Anchor_Z = true,
+                Anchor_Z = FeatureMatrix.AnchorZModeEnum.Correct,
                 Anchor_z = true,
                 Anchor_G = false,
                 Anchor_bB = true,

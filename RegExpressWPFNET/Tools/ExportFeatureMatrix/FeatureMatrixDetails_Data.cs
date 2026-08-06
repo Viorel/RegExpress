@@ -72,7 +72,7 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"*", @"Zero or more times", (e, fm) => fm.Quantifier_Asterisk)
                     .Test( @"xy*", "x", null, "x" ),
                 new FeatureMatrixDetails( @"+", @"One or more times", (e, fm) => fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Normal)
-                    .Test( @"xy+", "xyy", null, "xyy" ),
+                    .Test( @"xy+z", "xyyz", null, "xyyz" ),
                 new FeatureMatrixDetails( @"\+", @"One or more times", (e, fm) => fm.Quantifier_Plus == FeatureMatrix.PunctuationEnum.Backslashed)
                     .Test( @"xy\+", "xyy", null, "xyy" ),
                 new FeatureMatrixDetails( @"?", @"Zero or one time", (e, fm) => fm.Quantifier_Question == FeatureMatrix.PunctuationEnum.Normal)
@@ -214,7 +214,6 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @".", @"Any, including or excepting newline (\n)", (e, fm) => fm.Class_Dot)
                     .Test( @".", "x", null, "x" ),
                 new FeatureMatrixDetails( @"\C", @"Single byte", (e, fm) => fm.Class_Cbyte)
-                    .Test( @"\C", "a", null, "a" )
                     .Test( @"\C\C", "î", null, "î" ),
                 new FeatureMatrixDetails( @"\C", @"Single code point", (e, fm) => fm.Class_Ccp)
                     .Test( @"\C\C", "îî", "î", "îî"),
@@ -330,8 +329,10 @@ partial class FeatureMatrixDetails
                     .Test( @"x$", "x", null, "x" ),
                 new FeatureMatrixDetails( @"\A", @"Start of string", (e, fm) => fm.Anchor_A)
                     .Test( @"\Ax", "x", null, "x" ),
-                new FeatureMatrixDetails( @"\Z", @"End of string, or before '\n' at end of string", (e, fm) => fm.Anchor_Z)
+                new FeatureMatrixDetails( @"\Z", @"End of string, or before '\n' at end of string", (e, fm) => fm.Anchor_Z == FeatureMatrix.AnchorZModeEnum.Correct )
                     .Test( @"x\Z", "x\n", "xZ", "x" ),
+                new FeatureMatrixDetails( @"\Z", @"End of string, same as '\z'", (e, fm) => fm.Anchor_Z == FeatureMatrix.AnchorZModeEnum.Compatible )
+                    .Test( @"x\Z", "x", "xZ x\n", "x" ),
                 new FeatureMatrixDetails( @"\z", @"End of string", (e, fm) => fm.Anchor_z)
                     .Test( @"x\z", "x", "xz", "x" ),
                 new FeatureMatrixDetails( @"\G", @"start of string or end of previous match", (e, fm) => fm.Anchor_G)

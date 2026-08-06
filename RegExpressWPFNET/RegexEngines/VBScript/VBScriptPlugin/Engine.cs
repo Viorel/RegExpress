@@ -287,7 +287,7 @@ namespace VBScriptPlugin
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = false,
-                Anchor_Z = false,
+                Anchor_Z = FeatureMatrix.AnchorZModeEnum.None,
                 Anchor_z = false,
                 Anchor_G = false,
                 Anchor_bB = true,

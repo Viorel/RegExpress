@@ -278,7 +278,7 @@ namespace RE2Plugin
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = !posix_syntax,
-                Anchor_Z = false,
+                Anchor_Z = FeatureMatrix.AnchorZModeEnum.None,
                 Anchor_z = !posix_syntax,
                 Anchor_G = false,
                 Anchor_bB = !posix_syntax || word_boundary,

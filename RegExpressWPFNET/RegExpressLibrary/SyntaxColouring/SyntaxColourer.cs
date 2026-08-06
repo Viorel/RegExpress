@@ -1427,7 +1427,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 {
                     pb.Add( @"\\A" );
                 }
-                if( fm.Anchor_Z )
+                if( fm.Anchor_Z == FeatureMatrix.AnchorZModeEnum.Compatible || fm.Anchor_Z == FeatureMatrix.AnchorZModeEnum.Correct )
                 {
                     pb.Add( @"\\Z" );
                 }

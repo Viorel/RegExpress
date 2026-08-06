@@ -82,7 +82,7 @@ namespace RustPlugin
         // Fancy-regex
 
         public BytesModeEnum bytes_mode { get; set; } = BytesModeEnum.Default;
-        public string? backtrack_limit { get; set; }
+        public string? backtrack_limit { get; set; } // also for 'regexr'
         public string? delegate_size_limit { get; set; }
         public string? delegate_dfa_size_limit { get; set; }
 

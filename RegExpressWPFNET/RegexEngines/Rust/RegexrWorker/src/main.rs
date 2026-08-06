@@ -60,10 +60,16 @@ fn main()
         let jit = options["jit"].as_bool().unwrap_or(false);
         let optimize_prefixes= options["optimize_prefixes"].as_bool().unwrap_or(false);
 
-        let reb = regexr::RegexBuilder::new(pattern)
+        let mut reb = regexr::RegexBuilder::new(pattern)
             .jit(jit)
             .optimize_prefixes(optimize_prefixes)
             ;
+
+        let n = options["backtrack_limit"].as_u64();
+        if n.is_some()
+        {
+            reb = reb.backtrack_limit( n.unwrap());
+        } 
 
         re = reb.build();
     }
@@ -93,7 +99,19 @@ fn main()
         names.push(name).unwrap();
     }
 
-    for cap in re.captures_iter(text) 
+    // detect "match limit exceeded"; ('captures_iter' does not seem to detect it)
+
+    let tried_captures = re.try_find(text);
+    if tried_captures.is_err()
+    {
+        let err = tried_captures.unwrap_err();
+
+        eprintln!("{}", err);
+
+        return;
+    }
+
+    for cap in re.captures_iter(text)
     {
         let mut groups = json::array![];
 

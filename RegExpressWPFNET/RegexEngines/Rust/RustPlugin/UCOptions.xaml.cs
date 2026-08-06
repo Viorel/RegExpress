@@ -128,34 +128,19 @@ namespace RustPlugin
                 bool is_java_regex = crate == CrateEnum.java_regex;
                 bool is_regexr = crate == CrateEnum.regexr;
 
-                pnlStruct.Display( is_regex_or_regex_lite || is_fancy || is_real );
+                bool is_builder = @struct == StructEnum.RegexBuilder;
+
+                pnlStruct.Display( is_regex_or_regex_lite || is_fancy || is_real || is_regexr );
                 pnlRegexBuilderOptions.Display( is_regex_or_regex_lite || is_fancy || is_real );
                 pnlRegressOptions.Display( is_regress );
                 pnlResharpOptions.Display( is_resharp );
                 pnlAnreOptions.Display( is_anre );
+                pnlJavaRegexOptions.Display( is_java_regex );
+                pnlFancyRegexCrateLimits.Display( is_fancy );
                 pnlRegexrOptions.Display( is_regexr );
-
-                if( pnlStruct.IsVisible )
-                {
-                    bool is_builder = @struct == StructEnum.RegexBuilder;
-
-                    pnlRegexBuilderOptions.IsEnabled = is_builder;
-                    pnlRegexBuilderOptions.Opacity = pnlRegexBuilderOptions.IsEnabled ? 1 : 0.75;
-
-                    if( is_builder )
-                    {
-                        pnlRegexBuilderOptions.ClearValue( DataContextProperty ); // (to use inherited context)
-                    }
-                    else
-                    {
-                        pnlRegexBuilderOptions.DataContext = new Options( ); // (to show defaults)
-                    }
-                }
 
                 pnlRegexCrateLimits.Display( is_regex_or_regex_lite );
                 dsl.IsEnabled = is_regex;
-
-                pnlFancyRegexCrateLimits.Display( is_fancy );
 
                 chbx_crlf.Display( is_regex_or_regex_lite || is_fancy );
                 chbx_swap_greed.Display( is_regex_or_regex_lite );
@@ -172,7 +157,26 @@ namespace RustPlugin
                 chbx_end_text.Display( is_fancy );
                 chbx_fallback.Display( is_real );
 
-                pnlJavaRegexOptions.Display( is_java_regex );
+                if( pnlStruct.IsDisplayed( ) )
+                {
+                    var pnls = new[] { pnlRegexBuilderOptions, pnlRegexrOptions };
+
+                    foreach( var pnl in pnls.Where( p => p.IsDisplayed( ) ) )
+                    {
+                        pnl.IsEnabled = is_builder;
+                        pnl.Opacity = pnlRegexBuilderOptions.IsEnabled ? 1 : 0.75;
+
+                        if( is_builder )
+                        {
+                            pnl.ClearValue( DataContextProperty ); // (to use inherited context)
+                        }
+                        else
+                        {
+                            pnl.DataContext = new Options( ); // (to show defaults)
+                        }
+                    }
+                }
+
             }
             finally
             {

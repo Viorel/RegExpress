@@ -268,7 +268,7 @@ namespace AdaPlugin
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = true,
-                Anchor_Z = false,
+                Anchor_Z = FeatureMatrix.AnchorZModeEnum.None,
                 Anchor_z = false,
                 Anchor_G = false, // (abnormal usage of '\G'; here it is 'the end of the string'; other engines use '\z' and 'Z')
                 Anchor_bB = true,

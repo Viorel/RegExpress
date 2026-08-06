@@ -329,7 +329,7 @@ namespace BoostPlugin
                 Anchor_Circumflex = true,
                 Anchor_Dollar = true,
                 Anchor_A = is_perl || is_POSIX_extended || is_emacs,
-                Anchor_Z = is_perl || is_POSIX_extended,
+                Anchor_Z = is_perl || is_POSIX_extended ? FeatureMatrix.AnchorZModeEnum.Correct : FeatureMatrix.AnchorZModeEnum.None,
                 Anchor_z = is_perl || is_POSIX_extended || is_emacs,
                 Anchor_G = is_perl || is_POSIX_extended,
                 Anchor_bB = is_perl || is_POSIX_extended || is_emacs,

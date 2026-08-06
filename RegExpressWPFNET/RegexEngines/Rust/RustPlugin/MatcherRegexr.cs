@@ -53,13 +53,14 @@ namespace RustPlugin
 
             var obj = new
             {
-                structure = options.@struct,
+                structure = Enum.GetName( options.@struct ),
                 pattern = pattern,
                 text = text,
                 options = new
                 {
                     options.jit,
                     options.optimize_prefixes,
+                    backtrack_limit = is_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
                 }
             };
 
