@@ -739,10 +739,16 @@ namespace real::detail {
      *
      * \param[in,out] prog The program being built.
      * \param[in]     eff  The effective class (ASCII bitmap + non-ASCII ranges).
-     * \return `true` if the class was emitted here; `false` if the caller must emit it otherwise.
+     * \param[in]     probe_only When `true`, answers whether the shape matches and emits nothing.
+     *                 \ref emit_unbounded_body needs the ANSWER without the emission -- under an
+     *                 unbounded quantifier this form is the wrong one, and asking here rather than
+     *                 restating the condition keeps one source of truth for the shape.
+     * \return `true` if the class was emitted here (or matches, when probing); `false` if the caller
+     *         must emit it otherwise.
      */
     static constexpr bool try_emit_fixed_width_class(dynamic_program& prog,
-                                                     const class_def& eff)
+                                                     const class_def& eff,
+                                                     bool             probe_only = false)
     {
       if (!eff.ascii.empty()) {
         return false; // a mixed ASCII/non-ASCII class is variable width by construction
@@ -794,6 +800,9 @@ namespace real::detail {
           return false; // two positions differ: a byte-wise form would need a branch
         }
         varying = k;
+      }
+      if (probe_only) {
+        return true; // the shape matches; the caller wants only the answer
       }
       for (std::size_t k = 0; k < len; ++k) {
         if (k == varying) {
@@ -1306,6 +1315,48 @@ namespace real::detail {
         one.set(c.byte);
         emit_klass(prog, one);
         return;
+      }
+      // A quantifier over a multi-byte literal CODE POINT has the same problem from the other
+      // direction, and the same answer. `é` in text mode is parsed to its UTF-8 bytes wrapped in a
+      // `concat` (emit_codepoint_utf8), so `é+` repeats the two-byte sequence `C3 A9` -- which no
+      // route recognises, and which dispatched `lazy_dfa_anchored` once per match. It is exactly
+      // `[é]+`, a one-member code-point class, and as one the cp-class route takes it. This is the
+      // bare-byte promotion just above, lifted from bytes to code points: same reasoning, one
+      // encoding wider.
+      //
+      // The strict decode is what keeps it honest, and it is why no separate length check is needed:
+      // a concat holding MORE than one code point (`(?:ab)+`, `(?:éé)+`) decodes shorter than the
+      // chain, so it is refused -- promoting it would change what the quantifier repeats.
+      if (c.next < 0 && !has_flag(flags_, flags::bytes)) {
+        const std::uint32_t cp {single_codepoint_atom(tree_, atom)};
+        if (cp != not_a_single_codepoint) {
+          class_def one;
+          one.ranges.push_back({.lo = cp, .hi = cp});
+          emit_klass_cp(prog, one);
+          return;
+        }
+      }
+      // A non-ASCII class that \ref try_emit_fixed_width_class would take must NOT take it here. That
+      // form is right for a bare class -- `(?i)é` becomes `byte C3` + a two-member byte class, which
+      // keeps the prefilter's fixed-offset walk and routes as an exact literal. Under an UNBOUNDED
+      // quantifier it is the wrong trade: `é+` becomes a repeat of a two-BYTE sequence, and no route
+      // recognises that, so it fell to the lazy DFA once per match. Measured with the route counters,
+      // which name it rather than timing it: `é+` / `[é]+` / `[éàèùç]+` dispatched
+      // `lazy_dfa_anchored` 18 896 times on a 180 KB corpus, while `[à-ÿ]+` -- a RANGE, which the
+      // fixed-width shape refuses -- stayed on the batch counting path with no per-match dispatch at
+      // all. The witness that settles the cause is `[éa]+`: one ASCII member breaks the common length,
+      // the fixed-width form declines, and the row is fast again. As one `klass_cp` the class reaches
+      // build_utf8_trie and the cp-class route, which is the same reason the fold-widened ASCII
+      // classes above are emitted that way.
+      if (c.kind == node_kind::klass && c.next < 0
+          && !has_flag(flags_, flags::bytes)
+          && !tree_.classes[static_cast<std::size_t>(c.klass)].codepoint_predicate) {
+        const class_def eff {effective_class(c)};
+        if (!eff.ranges.empty() && !is_any_non_ascii(eff.ranges)
+            && try_emit_fixed_width_class(prog, eff, /*probe_only=*/ true)) {
+          emit_klass_cp(prog, eff);
+          return;
+        }
       }
       emit_node(prog, child, capture_free);
     }

@@ -760,15 +760,20 @@ namespace real {
      * \brief What a single attempt on a TEMPORARY regex yields: the same result, plus ownership of
      *        the name context it would otherwise borrow from a regex that is about to die.
      *
-     * A DISTINCT type, and deliberately so. Folding the owner into \ref result_type costs the
-     * borrowing path, which is every walk and every attempt on a live regex: measured on arm64,
-     * `words` +5.6 % and its ASCII witness +5.6 %, two instances of one pattern and therefore not
-     * layout noise. The class scans never touch the owner; giving the result a non-trivial
-     * destructor changed their codegen anyway. WHICH mechanism is not established here and this note
-     * does not guess: on arm64 it is not the per-unit inline budget of docs/design.dox 10.1, clang
-     * having none. Annotating the owner cold made it worse rather than better (+11.2 %), so whatever
-     * it is, it does not answer to that lever either. The borrowing path therefore keeps the type it
-     * had, byte for byte, and only the rvalue path pays.
+     * A DISTINCT type, and deliberately so — but NOT for the reason first given here. Folding the
+     * owner into \ref result_type was measured at arm64 `words` +5.6 % when this was written, and
+     * that number does NOT reproduce: rebuilt on two independent builds it reads -0.01 % and
+     * +0.03 %, with its ASCII witness at +0.02 % and +0.03 %. The original was one build's code
+     * PLACEMENT, the effect docs/design.dox 10.1 now carries a discriminator for. The argument that
+     * it was "two instances of one pattern and therefore not layout noise" was simply wrong — two
+     * instances of one pattern share the same compiled code, so they move TOGETHER under a placement
+     * shift exactly as they would under a real cost.
+     *
+     * What stands on its own is the API: a distinct type means no conversion exists that could
+     * quietly drop the ownership and hand back the dangling views it exists to prevent, and the
+     * borrowing path — every walk, every attempt on a live regex — keeps a trivially destructible
+     * result rather than one carrying an owning box it can never use. That is the reason to read
+     * here; the benchmark number that was once given is retracted.
      *
      * On the compile-time policy the two are THE SAME type: its tables are `static constexpr` and a
      * result from a temporary `static_regex` borrows them safely, so there is nothing to own.

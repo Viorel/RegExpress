@@ -23,6 +23,7 @@
 
 #include "real/version.hpp"
 
+#include <array>
 #include <algorithm>
 #include <cstdint>
 #include <span>
@@ -182,6 +183,52 @@ namespace real::detail {
     std::int32_t             group_count    {};            //!< Number of capturing groups.
     std::int32_t             root           {-1};          //!< Index of the root node.
   };
+
+  inline constexpr std::uint32_t not_a_single_codepoint {0xFFFFFFFFU}; //!< Returned by \ref single_codepoint_atom when the node is not one code point's bytes.
+
+  /*!
+   * \brief The code point a node spells, when it is exactly one non-ASCII literal character.
+   *
+   * A non-ASCII literal in text mode is parsed to its UTF-8 bytes wrapped in a `concat`
+   * (`emit_codepoint_utf8`), so `é` is `concat(byte C3, byte A9)`. Two places need to recognise that
+   * shape and treat it as the single atom it is -- the parser, so a POSSESSIVE quantifier over it is
+   * Tier-1 eligible, and the compiler, so an UNBOUNDED one routes as a code-point class -- and they
+   * ask here rather than each restating the test.
+   *
+   * The strict decode is the whole guard: it must consume every byte the chain holds, so a concat of
+   * MORE than one code point (`(?:éé)`, `(?:ab)`) is refused. Treating those as one atom would change
+   * what a quantifier repeats.
+   *
+   * \param[in] tree  The AST holding \p index.
+   * \param[in] index The node to inspect.
+   * \return The code point, or \ref not_a_single_codepoint.
+   */
+  [[nodiscard]] constexpr std::uint32_t single_codepoint_atom(const ast&   tree,
+                                                              std::int32_t index)
+  {
+    if (index < 0) {
+      return not_a_single_codepoint;
+    }
+    const ast_node& node {tree.nodes[static_cast<std::size_t>(index)]};
+    if (node.kind != node_kind::concat) {
+      return not_a_single_codepoint;
+    }
+    std::array<char, 4> seq {};
+    std::size_t         len {0};
+    for (std::int32_t walk = node.child; walk >= 0;) {
+      const ast_node& w {tree.nodes[static_cast<std::size_t>(walk)]};
+      if (w.kind != node_kind::byte || len == seq.size()) {
+        return not_a_single_codepoint;
+      }
+      seq[len++] = static_cast<char>(w.byte);
+      walk       = w.next;
+    }
+    if (len < 2) {
+      return not_a_single_codepoint;
+    }
+    const decoded_codepoint dec {decode_codepoint_strict(std::string_view {seq.data(), len}, 0)};
+    return (dec.valid && dec.length == len) ? dec.cp : not_a_single_codepoint;
+  }
 
   /*!
    * \brief What a `\<digit>` escape decoded to (see decode_digit_escape()).
@@ -1195,12 +1242,32 @@ namespace real::detail {
           fail("multiple repeat");
         }
       }
+      // A POSSESSIVE quantifier over a non-ASCII literal was rejected outright -- `é++`, `あ++`,
+      // `é*+`, `é{2,}+` all threw "possessive/atomic over a compound body", while the SAME character
+      // written as a class (`[é]++`) compiled, and so did `(?i)é++`, since the fold already promotes
+      // the literal to a class here. The bodies are the same language; only their AST shape differed.
+      // Tier-1 eligibility is tested on the node KIND, and a non-ASCII literal is a concat of bytes,
+      // so it could never qualify. Promoted to the one-member code-point class it is equivalent to,
+      // it qualifies -- exactly the route `[é]++` already takes, reached by the same precedent the
+      // icase promotion set a few lines above.
+      //
+      // Scoped to possessive on purpose. An unbounded ordinary quantifier is handled in the compiler
+      // (emit_unbounded_body), and a BOUNDED one is deliberately left alone: `é{2}` emits bytes, which
+      // is what lets a literal run route as an exact literal.
+      std::int32_t body {atom};
+      if (possessive) {
+        const std::uint32_t cp {single_codepoint_atom(out, atom)};
+        if (cp != not_a_single_codepoint) {
+          const std::vector<code_range> single {{.lo = cp, .hi = cp}};
+          body = add_class_node(out, char_class {}, false, single);
+        }
+      }
       return add_node(out, {.kind       = node_kind::repeat,
                             .lazy       = lazy,
                             .possessive = possessive,
                             .min        = min,
                             .max        = max,
-                            .child      = atom});
+                            .child      = body});
     }
 
     /*!

@@ -8,6 +8,6 @@ namespace RealPlugin
 {
     internal class Versions
     {
-        public static string REAL { get; } = "2026.8.8";
+        public static string REAL { get; } = "2026.8.9";
     }
 }
