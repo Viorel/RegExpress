@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) linear version 2026.01
+**  SRELL (std::regex-like library) linear version 2026.02
 **
 **  Copyright (c) 2026, Nozomu Katoo. All rights reserved.
 **
@@ -31,7 +31,7 @@
 */
 
 #ifndef SREL3_HPP_
-#define SREL3_HPP_ 202601
+#define SREL3_HPP_ 202602
 
 #define SRELL_LINEAR
 
@@ -1574,8 +1574,6 @@ public:
 	typedef KeyT key_type;
 	typedef std::size_t size_type;
 
-	typedef std::pair<key_type, bool> insret_type;
-
 	rei_tdset() : used_(0), upper_(0)
 	{
 	}
@@ -1588,7 +1586,7 @@ public:
 		upper_ = 0;
 	}
 
-	insret_type insert(const key_type key)
+	key_type insert(const key_type key)
 	{
 		std::size_t hash = hash_(key);
 		const unsigned int lsb7 = static_cast<unsigned int>(hash & 0x7f) | 0x80;
@@ -1608,7 +1606,7 @@ public:
 
 private:
 
-	insret_type ins0_(std::size_t hash, const unsigned int lsb7, const key_type key)
+	key_type ins0_(std::size_t hash, const unsigned int lsb7, const key_type key)
 	{
 		const size_type initsize = 16;
 
@@ -1624,18 +1622,14 @@ private:
 		meta_[hash] = static_cast<unsigned char>(lsb7);
 		bucket_[hash] = key;
 
-		insret_type pair;
-		pair.first = key;
-		pair.second = true;
-		return pair;
+		return key;
 	}
 
-	insret_type search_pos_(const std::size_t hash, const unsigned int lsb7, const key_type key)
+	key_type search_pos_(const std::size_t hash, const unsigned int lsb7, const key_type key)
 	{
 		RESTART:
 		const meta_size begin = hash % meta_.size();
 //		unsigned int count = 0;
-		insret_type pair;
 
 		for (meta_size cur = begin;;)
 		{
@@ -1646,9 +1640,7 @@ private:
 			{
 				if (equal_(bucket_[cur], key))
 				{
-					pair.first = bucket_[cur];
-					pair.second = false;
-					break;
+					return bucket_[cur];
 				}
 			}
 			else if ((meta_[cur] & 0x80) == 0)
@@ -1661,9 +1653,7 @@ private:
 				meta_[cur] = static_cast<unsigned char>(lsb7);
 				bucket_[cur] = key;
 
-				pair.first = key;
-				pair.second = true;
-				break;
+				return key;
 			}
 #if 0
 			if (++count == 256 || ++cur == begin)
@@ -1675,7 +1665,6 @@ private:
 			++cur;
 #endif
 		}
-		return pair;
 	}
 
 	void rehash_()
@@ -20315,11 +20304,10 @@ SRELL_NO_VCWARNING_END
 
 		rwstate.reset(st_lookaround_pop, meta_char::mc_eq);
 		rwstate.quantifier.atmost = 0;
-		newNFAs.insert(0, rwstate);
 
 		rwstate.type = st_lookaround_open;
 		rwstate.next1 = static_cast<std::ptrdiff_t>(end + newNFAs.size() + 2) - 1;
-		rwstate.next2 = 1;
+		rwstate.next2 = static_cast<std::ptrdiff_t>(newNFAs.size()) + 2;
 		rwstate.quantifier.is_greedy = needs_rerun ? 3 : 2; //  Match point rewinder.
 			//  "singing" problem: /\w+ing/ against "singing" matches
 			//  the entire "singing". However, if altered into
@@ -20336,7 +20324,7 @@ SRELL_NO_VCWARNING_END
 		newNFAs.append(1, rwstate);
 
 //		this->NFA_states.insert(1, newNFAs);
-//		this->NFA_states[0].next2 = static_cast<std::ptrdiff_t>(newNFAs.size()) + 1;
+//		this->NFA_states[0].next2 += static_cast<std::ptrdiff_t>(newNFAs.size());
 
 		return true;
 	}
@@ -20368,11 +20356,8 @@ SRELL_NO_VCWARNING_END
 				break;
 
 			case st_roundbracket_open:
-				atomseq.clear();
-				atomseq.push_back(epsilon);
-				atomseq.push_back(epsilon);
-				revNFAs.insert(0, atomseq);
-				cur += 2;
+				revNFAs.insert(0, epsilon);
+				++cur;
 				continue;
 
 			case st_roundbracket_close:
@@ -20440,37 +20425,6 @@ SRELL_NO_VCWARNING_END
 						s.next1 = 1;
 						s.quantifier.is_greedy = 1u;
 					}
-#if 0
-					else if (s.char_num == epsilon_type::et_alt)
-					{
-
-						for (;;)
-						{
-							state_type &as = atomseq[pos];
-							const bool is_branch = as.type == st_epsilon && as.char_num == epsilon_type::et_alt;
-							const state_size_type altend = is_branch ? (pos + as.next2 - 1) : (pos - 1 + atomseq[pos - 1].next1);
-							if (is_branch)
-								++pos;
-
-							if (reverse_atoms(revgrp, atomseq, pos, altend, cvars))
-							{
-								atomseq.replace(pos, altend - pos, revgrp);
-								pos = altend;
-
-								if (!is_branch)
-								{
-									--pos;
-									break;
-								}
-
-								++pos;
-								continue;
-							}
-
-							return false;
-						}
-					}
-#endif
 					continue;
 
 				default:;
@@ -20524,8 +20478,6 @@ SRELL_NO_VCWARNING_END
 					}
 					else if (cst.char_num != epsilon_type::et_brnchend)
 						return cur + 1;
-					else if (cst.char_num == epsilon_type::et_brnchend)
-						return cur + 1;
 
 					return 0u;
 				}
@@ -20565,9 +20517,7 @@ SRELL_NO_VCWARNING_END
 			case st_bol:
 			case st_eol:
 			case st_boundary:
-				if (charatomseq_begin)
-					return charatomseq_endpos;
-				return cur + 1;
+				return 0;
 
 			case st_roundbracket_open:
 				if (charatomseq_begin)
@@ -20682,6 +20632,8 @@ SRELL_NO_VCWARNING_END
 				bp_cunum = cunum;
 				++charcount;
 				needs_rerun |= next_nr;
+				if (cunum == 1 && charcount == 1)
+					break;
 			}
 
 			if (has_obstacle == 1)
@@ -21858,7 +21810,8 @@ private:
 	{
 		if (this->NFA_states[0].char_num & static_cast<ui_l32>(utf_traits::ecmask))
 		{
-			return &re_object::search_nextpos1;
+			const rettype p = &re_object::search_nextpos1;
+			return p;
 		}
 
 #if 0
@@ -21870,7 +21823,10 @@ SRELL_NO_VCWARNING_END
 			const int numofranges = static_cast<int>(this->NFA_states[0].char_num >> 16) & 0x1e;
 
 			if (numofranges)
-				return &re_object::search_nextposs;
+			{
+				const rettype p = &re_object::search_nextposs;
+				return p;
+			}
 		}
 #endif	//  defined(SRELL_HAS_SSE42)
 #endif
@@ -22130,15 +22086,15 @@ SRELL_NO_VCWARNING(4127)
 SRELL_NO_VCWARNING_END
 				srchcurpos = (this->*snfunc)(srchcurpos, srchend);
 
-			prevpos = srchcurpos;
 			jmpentry = curq;
+			prevpos = srchcurpos;
 
 SRELL_NO_VCWARNING(4127)
 			if SRELL_IFCE (!reverse)
 SRELL_NO_VCWARNING_END
 			{
 				if (srchcurpos != srchend)
-					curchar = *srchcurpos++ & utf_traits::bitsetmask;
+					curchar = static_cast<ui_l32>(*srchcurpos++ & utf_traits::bitsetmask);
 				else
 				{
 					curchar = constants::textendchar;
@@ -22149,7 +22105,7 @@ SRELL_NO_VCWARNING_END
 			else	//  reverse == true.
 			{
 				if (srchcurpos != srchbegin)
-					curchar = *--srchcurpos & utf_traits::bitsetmask;
+					curchar = static_cast<ui_l32>(*--srchcurpos & utf_traits::bitsetmask);
 				else
 				{
 					curchar = constants::textendchar;
@@ -22337,6 +22293,7 @@ SRELL_NO_VCWARNING_END
 	) const
 	{
 		cached_value_type *const nextq = &this->dcache_start_[(this->groupno_maxp1_ + 4) * 40];
+		ui_l32 nextqnum = 0;
 
 		std::memset(nextq, 0, (3 + this->groupno_maxp1_) * sizeof (cached_value_type));
 		nextq[0].ptr = nextq + 3 + this->groupno_maxp1_;
@@ -22367,31 +22324,33 @@ SRELL_NO_VCWARNING(4127)
 					if (!reverse && !sstate.bracket[0].matched && sstate.nextq_pushed[entry_state_pos] == 0 && (nextq[2].num & 1) == 0 && curchar != constants::textendchar)
 SRELL_NO_VCWARNING_END
 					{
-						nextq[0].ptr[nextq[1].num++].num = entry_state_pos;
+						nextq[0].ptr[nextqnum++].num = entry_state_pos;
 					}
 
-					const dcache_size_type nextqsize = 3 + this->groupno_maxp1_ + nextq[1].num;
+					nextq[1].num = nextqnum;
+					nextqnum += 3 + this->groupno_maxp1_;
 
-					this->dcache_size_ += nextqsize;
+					this->dcache_size_ += nextqnum;
 					if (this->dcache_size_ <= this->dcache_limit_)
 					{
-						const std::size_t addbyte = nextqsize * sizeof (cached_value_type);
+						const std::size_t addbyte = nextqnum * sizeof (cached_value_type);
 
 						curq = static_cast<cached_value_type *>(std::malloc(addbyte));
 						if (curq != NULL)
 						{
 							std::memcpy(curq, nextq, addbyte);
-							const typename dcache_state_set::insret_type p = this->dcache_state_.insert(curq);
 
-							if (p.second)
+							cached_value_type *const curq0 = this->dcache_state_.insert(curq);
+
+							if (curq0 == curq)
 							{
 								curq[0].ptr = curq + 3 + this->groupno_maxp1_;
 							}
 							else
 							{
 								std::free(curq);
-								curq = p.first;
-								this->dcache_size_ -= nextqsize;
+								curq = curq0;
+								this->dcache_size_ -= nextqnum;
 							}
 							return 0;
 						}
@@ -22424,7 +22383,7 @@ SRELL_NO_VCWARNING_END
 					{
 						if (sstate.nextq_pushed[sscstate->next1] == 0)
 						{
-							nextq[0].ptr[nextq[1].num++].num = static_cast<ui_l32>(sscstate->next1);
+							nextq[0].ptr[nextqnum++].num = static_cast<ui_l32>(sscstate->next1);
 							sstate.nextq_pushed[sscstate->next1] = 1;
 							continue;
 						}
@@ -22444,7 +22403,7 @@ SRELL_NO_VCWARNING_END
 				{
 					if (sstate.nextq_pushed[sscstate->next1] == 0)
 					{
-						nextq[0].ptr[nextq[1].num++].num = static_cast<ui_l32>(sscstate->next1);
+						nextq[0].ptr[nextqnum++].num = static_cast<ui_l32>(sscstate->next1);
 						sstate.nextq_pushed[sscstate->next1] = 1;
 						continue;
 					}
@@ -22470,7 +22429,7 @@ SRELL_NO_VCWARNING_END
 					{
 						if (sstate.nextq_pushed[sscstate->next1] == 0)
 						{
-							nextq[0].ptr[nextq[1].num++].num = static_cast<ui_l32>(sscstate->next1);
+							nextq[0].ptr[nextqnum++].num = static_cast<ui_l32>(sscstate->next1);
 							sstate.nextq_pushed[sscstate->next1] = 1;
 							continue;
 						}
