@@ -17,6 +17,6 @@ namespace RustPlugin
         public static string Anre { get; } = "2.1.2";
         public static string RealRegex { get; } = "2026.8.9";
         public static string JavaRegex { get; } = "0.1.0";
-        public static string Regexr { get; } = "0.2.2";
+        public static string Regexr { get; } = "0.3.2";
     }
 }

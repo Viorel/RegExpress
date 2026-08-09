@@ -47,7 +47,7 @@ The following engines are included:
   * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
   * [_real-regex_](https://crates.io/crates/real-regex) 2026.8.9,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0.
-  * [_regexr_](https://crates.io/crates/regexr) 0.2.2.
+  * [_regexr_](https://crates.io/crates/regexr) 0.3.2.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2:
   * _java.util.regex_,
   * [_RE2/J_](https://github.com/google/re2j) 1.8,

@@ -71,6 +71,12 @@ fn main()
             reb = reb.backtrack_limit( n.unwrap());
         } 
 
+        let n = options["size_limit"].as_u32();
+        if n.is_some()
+        {
+            reb = reb.size_limit( n.unwrap());
+        } 
+
         re = reb.build();
     }
     else
