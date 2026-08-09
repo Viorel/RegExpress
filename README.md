@@ -74,9 +74,9 @@ The following engines are included:
 * [**RE#**](https://github.com/ieviev/resharp-dotnet) 1.0.5 (for F#, C#, VB).
 * **Go** 1.26.5:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.5,
-  * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.5.2,
+  * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.6.0,
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
-  * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.22.
+  * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.23.
 * **Dart** 3.12.2:
   * [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html),
   * [_oniguruma\_dart_](https://pub.dev/packages/oniguruma_dart) 1.0.1.

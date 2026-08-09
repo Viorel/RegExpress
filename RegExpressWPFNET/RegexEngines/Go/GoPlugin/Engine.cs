@@ -421,8 +421,8 @@ namespace GoPlugin
                 XFlag = true,
                 XXFlag = false,
 
-                Literal_QE = false,
-                InsideSets_Literal_QE = false,
+                Literal_QE = true,
+                InsideSets_Literal_QE = true,
                 InsideSets_Literal_qBrace = false,
 
                 Esc_a = true,
@@ -480,13 +480,13 @@ namespace GoPlugin
                 Class_lL = false,
                 Class_N = false,
                 Class_O = false,
-                Class_R = false,
+                Class_R = true,
                 Class_sS = true,
                 Class_sSx = false,
                 Class_uU = false,
                 Class_vV = false,
                 Class_wW = true,
-                Class_X = false,
+                Class_X = true,
                 Class_pP = true,
                 Class_pPBrace = true,
 
@@ -585,7 +585,7 @@ namespace GoPlugin
                 Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
                 Quantifier_LowAbbrev = false,
                 Quantifier_Lazy = true,
-                Quantifier_Possessive = false,
+                Quantifier_Possessive = true,
 
                 Conditional_BackrefByNumber = true,
                 Conditional_BackrefByName = true,
