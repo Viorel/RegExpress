@@ -44,18 +44,25 @@ fn main()
         return;
     }
 
-    let structure = input_json["structure"].as_str().unwrap_or("");
+    if ! input_json["use_builder"].is_boolean()
+    {
+        eprintln!("\"use_builder\" not specified");
+
+        return;
+    }
+
+    let use_builder = input_json["use_builder"].as_bool().unwrap_or(false);
     let pattern = input_json["pattern"].as_str().unwrap_or("");
     let text = input_json["text"].as_str().unwrap_or("");
     let options = &input_json["options"];
 
     let re;
 
-    if structure == "Regex"
+    if ! use_builder
     {
         re = regexr::Regex::new(pattern);
     }
-    else if structure == "RegexBuilder"
+    else
     {
         let jit = options["jit"].as_bool().unwrap_or(false);
         let optimize_prefixes= options["optimize_prefixes"].as_bool().unwrap_or(false);
@@ -78,12 +85,6 @@ fn main()
         } 
 
         re = reb.build();
-    }
-    else
-    {
-        eprintln!("Invalid structure: {:?}", structure);
-
-        return;
     }
 
     if re.is_err()

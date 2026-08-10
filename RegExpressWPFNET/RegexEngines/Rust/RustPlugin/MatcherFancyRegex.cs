@@ -27,16 +27,11 @@ namespace RustPlugin
         {
             Debug.Assert( options.crate == CrateEnum.fancy_regex );
 
-            if( options.@struct == StructEnum.None )
-            {
-                throw new ApplicationException( "Invalid struct." );
-            }
-
-            bool is_builder = options.@struct == StructEnum.RegexBuilder;
+            bool use_builder = options.UseBuilder;
 
             var obj = new
             {
-                @struct = options.@struct,
+                use_builder = use_builder,
                 pattern = pattern,
                 text = text,
                 options = new
@@ -56,9 +51,9 @@ namespace RustPlugin
                     options.start_text,
                     options.end_text,
                     bytes_mode = options.bytes_mode.ToString(),
-                    backtrack_limit = is_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
-                    delegate_size_limit = is_builder ? ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ) : null,
-                    delegate_dfa_size_limit = is_builder ? ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ) : null,
+                    backtrack_limit = use_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
+                    delegate_size_limit = use_builder ? ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ) : null,
+                    delegate_dfa_size_limit = use_builder ? ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ) : null,
                 }
             };
 

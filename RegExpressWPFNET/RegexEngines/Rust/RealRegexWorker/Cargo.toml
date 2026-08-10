@@ -3,6 +3,11 @@ name = "RustRealRegexWorker"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+
 [dependencies]
 json = "0.12.4"
 real-regex = { version = "2026.8.11", features = ["fallback"] }

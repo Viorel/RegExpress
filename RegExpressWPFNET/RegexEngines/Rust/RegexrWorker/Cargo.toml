@@ -3,6 +3,11 @@ name = "RustRegexrWorker"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+
 [dependencies]
 json = "0.12.4"
 regexr = { version = "0.3.2", features = ["full"] }

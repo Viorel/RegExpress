@@ -80,14 +80,7 @@ namespace JavaPlugin
             {
                 ++ChangeCounter;
 
-                PackageEnum package = ( (ComboBoxItem)cbxPackage.SelectedItem )?.Tag?.ToString( ) switch
-                {
-                    "regex" => PackageEnum.regex,
-                    "re2j" => PackageEnum.re2j,
-                    "safere" => PackageEnum.safere,
-                    "reggie" => PackageEnum.reggie,
-                    _ => PackageEnum.None,
-                };
+                PackageEnum package = Options.Package;
 
                 bool is_regex = package == PackageEnum.regex;
                 bool is_re2j = package == PackageEnum.re2j;

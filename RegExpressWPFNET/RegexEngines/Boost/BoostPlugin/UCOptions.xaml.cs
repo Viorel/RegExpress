@@ -42,9 +42,20 @@ namespace BoostPlugin
             IsFullyLoaded = true;
         }
 
-        public void UpdateUI( )
+        internal void UpdateUI( )
         {
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
 
+            try
+            {
+                ++ChangeCounter;
+
+            }
+            finally
+            {
+                --ChangeCounter;
+            }
         }
 
         void Notify( bool preferImmediateReaction )
@@ -76,7 +87,7 @@ namespace BoostPlugin
                 if( object.ReferenceEquals( options, Options ) ) DataContext = null;
                 Options = options;
                 DataContext = Options;
-                
+
                 UpdateUI( );
             }
             finally

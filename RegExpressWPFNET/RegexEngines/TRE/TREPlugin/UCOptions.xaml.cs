@@ -44,6 +44,18 @@ namespace TREPlugin
 
         void UpdateUI( )
         {
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
+
+            try
+            {
+                ++ChangeCounter;
+
+            }
+            finally
+            {
+                --ChangeCounter;
+            }
         }
 
         void Notify( bool preferImmediateReaction )

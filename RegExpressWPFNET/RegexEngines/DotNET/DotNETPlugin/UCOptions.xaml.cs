@@ -54,12 +54,7 @@ namespace DotNETPlugin
             {
                 ++ChangeCounter;
 
-                ClassEnum @class = ( (ComboBoxItem)cbxClass.SelectedItem )?.Tag?.ToString( ) switch
-                {
-                    "RegexDotNet" => ClassEnum.RegexDotNet,
-                    "RegexDotNetFramework" => ClassEnum.RegexDotNetFramework,
-                    _ => ClassEnum.None,
-                };
+                ClassEnum @class = Options.Class;
 
                 bool is_dotnet = @class == ClassEnum.RegexDotNet;
                 bool is_dotnet_framework = @class == ClassEnum.RegexDotNetFramework;

@@ -40,11 +40,6 @@ namespace RustPlugin
         {
             Debug.Assert( options.crate == CrateEnum.regress );
 
-            if( options.@struct == StructEnum.None )
-            {
-                throw new ApplicationException( "Invalid struct." );
-            }
-
             var obj = new
             {
                 pattern = pattern,

@@ -16,14 +16,14 @@ namespace RustPlugin
 {
     class Engine : IRegexEngine
     {
-        static readonly LazyData<(StructEnum @struct, bool isOctal, bool isUnicode), FeatureMatrix> LazyFeatureMatrix_Regex =
-            new( d => BuildFeatureMatrix_Regex( d.@struct, d.isOctal, d.isUnicode ) );
+        static readonly LazyData<(bool useBuilder, bool isOctal, bool isUnicode), FeatureMatrix> LazyFeatureMatrix_Regex =
+            new( d => BuildFeatureMatrix_Regex( d.useBuilder, d.isOctal, d.isUnicode ) );
 
-        static readonly LazyData<StructEnum, FeatureMatrix> LazyFeatureMatrix_RegexLite =
-            new( @struct => BuildFeatureMatrix_RegexLiteCrate( @struct ) );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_RegexLite =
+            new( BuildFeatureMatrix_RegexLiteCrate );
 
-        static readonly LazyData<(StructEnum @struct, bool isUnicode, bool isOniguruma), FeatureMatrix> LazyFeatureMatrix_FancyRegex =
-            new( d => BuildFeatureMatrix_FancyRegex( d.@struct, d.isUnicode, d.isOniguruma ) );
+        static readonly LazyData<(bool useBuilder, bool isUnicode, bool isOniguruma), FeatureMatrix> LazyFeatureMatrix_FancyRegex =
+            new( d => BuildFeatureMatrix_FancyRegex( d.useBuilder, d.isUnicode, d.isOniguruma ) );
 
         static readonly LazyData<(bool isUnicode, bool isUnicodeSets), FeatureMatrix> LazyFeatureMatrix_Regress =
             new( d => BuildFeatureMatrix_Regress( d.isUnicode, d.isUnicodeSets ) );
@@ -31,17 +31,17 @@ namespace RustPlugin
         static readonly LazyData<UnicodeModeEnum, FeatureMatrix> LazyFeatureMatrix_Resharp =
             new( unicodeMode => BuildFeatureMatrix_Resharp( unicodeMode ) );
 
-        static readonly LazyData<int /*unused yet*/, FeatureMatrix> LazyFeatureMatrix_Anre =
-            new( _ => BuildFeatureMatrix_Anre( ) );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_Anre =
+            new( BuildFeatureMatrix_Anre );
 
-        static readonly LazyData<(StructEnum @struct, bool isUnicode), FeatureMatrix> LazyFeatureMatrix_RealRegex =
-            new( d => BuildFeatureMatrix_RealRegex( d.@struct, d.isUnicode ) );
+        static readonly LazyData<(bool useBuilder, bool isUnicode), FeatureMatrix> LazyFeatureMatrix_RealRegex =
+            new( d => BuildFeatureMatrix_RealRegex( d.useBuilder, d.isUnicode ) );
 
         static readonly LazyData<(bool u, bool U), FeatureMatrix> LazyFeatureMatrix_JavaRegex =
             new( d => BuildFeatureMatrix_JavaRegex( d.u, d.U ) );
 
-        static readonly LazyData<(StructEnum @struct, int unused), FeatureMatrix> LazyFeatureMatrix_Regexr =
-            new( d => BuildFeatureMatrix_Regexr( d.@struct ) );
+        static readonly Lazy<FeatureMatrix> LazyFeatureMatrix_Regexr =
+            new( BuildFeatureMatrix_Regexr( ) );
 
         Options mOptions = new( );
         readonly Lazy<UCOptions> mOptionsControl;
@@ -154,15 +154,15 @@ namespace RustPlugin
         {
             FeatureMatrix fm = Options.crate switch
             {
-                CrateEnum.regex => LazyFeatureMatrix_Regex.GetValue( (Options.@struct, Options.octal, Options.unicode) ),
-                CrateEnum.regex_lite => LazyFeatureMatrix_RegexLite.GetValue( Options.@struct ),
-                CrateEnum.fancy_regex => LazyFeatureMatrix_FancyRegex.GetValue( (Options.@struct, Options.unicode, Options.oniguruma_mode) ),
+                CrateEnum.regex => LazyFeatureMatrix_Regex.GetValue( (Options.UseBuilder, Options.octal, Options.unicode) ),
+                CrateEnum.regex_lite => LazyFeatureMatrix_RegexLite.Value,
+                CrateEnum.fancy_regex => LazyFeatureMatrix_FancyRegex.GetValue( (Options.UseBuilder, Options.unicode, Options.oniguruma_mode) ),
                 CrateEnum.regress => LazyFeatureMatrix_Regress.GetValue( (Options.unicode, Options.unicode_sets) ),
                 CrateEnum.resharp => LazyFeatureMatrix_Resharp.GetValue( Options.UnicodeMode ),
-                CrateEnum.anre => LazyFeatureMatrix_Anre.GetValue( 0 ),
-                CrateEnum.real_regex => LazyFeatureMatrix_RealRegex.GetValue( (Options.@struct, Options.unicode) ),
+                CrateEnum.anre => LazyFeatureMatrix_Anre.Value,
+                CrateEnum.real_regex => LazyFeatureMatrix_RealRegex.GetValue( (Options.UseBuilder, Options.unicode) ),
                 CrateEnum.java_regex => LazyFeatureMatrix_JavaRegex.GetValue( (Options.unicode, Options.unicode_sets) ),
-                CrateEnum.regexr => LazyFeatureMatrix_Regexr.GetValue( (Options.@struct, 0) ),
+                CrateEnum.regexr => LazyFeatureMatrix_Regexr.Value,
                 _ => throw new InvalidOperationException( )
             };
 
@@ -179,16 +179,16 @@ namespace RustPlugin
 
         public IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
         {
-            Engine engine_regex = new( ) { Options = new Options { crate = CrateEnum.regex, @struct = StructEnum.RegexBuilder, unicode = true, octal = true } };
-            Engine engine_lite = new( ) { Options = new Options { crate = CrateEnum.regex_lite, @struct = StructEnum.RegexBuilder } };
-            Engine engine_fancy = new( ) { Options = new Options { crate = CrateEnum.fancy_regex, @struct = StructEnum.RegexBuilder, unicode = true } };
+            Engine engine_regex = new( ) { Options = new Options { crate = CrateEnum.regex, UseBuilder = true, unicode = true, octal = true } };
+            Engine engine_lite = new( ) { Options = new Options { crate = CrateEnum.regex_lite, UseBuilder = true } };
+            Engine engine_fancy = new( ) { Options = new Options { crate = CrateEnum.fancy_regex, UseBuilder = true, unicode = true } };
             Engine engine_regress_uv = new( ) { Options = new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } }; // currently 'ignore_whitespace' not supported
             Engine engine_resharp = new( ) { Options = new Options { crate = CrateEnum.resharp, UnicodeMode = UnicodeModeEnum.Full } };
             Engine engine_anre = new( ) { Options = new Options { crate = CrateEnum.anre } };
-            //Engine engine_real = new( ) { Options = new Options { crate = CrateEnum.real_regex, @struct = StructEnum.RegexBuilder, unicode = false } };
-            Engine engine_real_u = new( ) { Options = new Options { crate = CrateEnum.real_regex, @struct = StructEnum.RegexBuilder, unicode = true } };
+            //Engine engine_real = new( ) { Options = new Options { crate = CrateEnum.real_regex, UseRegexBuilder = true, unicode = false } };
+            Engine engine_real_u = new( ) { Options = new Options { crate = CrateEnum.real_regex, UseBuilder = true, unicode = true } };
             Engine engine_java_regex_uU = new( ) { Options = new Options { crate = CrateEnum.java_regex, unicode = true, unicode_sets = true, d = false, l = false } };
-            Engine engine_regexr = new( ) { Options = new Options { crate = CrateEnum.regexr, @struct = StructEnum.RegexBuilder } };
+            Engine engine_regexr = new( ) { Options = new Options { crate = CrateEnum.regexr, UseBuilder = true } };
 
             return
                 [
@@ -228,9 +228,10 @@ namespace RustPlugin
             OptionsChanged?.Invoke( this, args );
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_Regex( StructEnum @struct, bool isOctal, bool isUnicode )
+        private static FeatureMatrix BuildFeatureMatrix_Regex( bool useBuilder, bool isOctal, bool isUnicode )
         {
-            isOctal &= @struct == StructEnum.RegexBuilder;
+            isOctal &= useBuilder;
+            isUnicode |= !useBuilder;
 
             return new FeatureMatrix
             {
@@ -451,7 +452,7 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_RegexLiteCrate( StructEnum @struct )
+        private static FeatureMatrix BuildFeatureMatrix_RegexLiteCrate( )
         {
             return new FeatureMatrix
             {
@@ -672,9 +673,10 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_FancyRegex( StructEnum @struct, bool isUnicode, bool isOniguruma )
+        private static FeatureMatrix BuildFeatureMatrix_FancyRegex( bool useBuilder, bool isUnicode, bool isOniguruma )
         {
-            isOniguruma &= @struct == StructEnum.RegexBuilder;
+            isUnicode |= !useBuilder;
+            isOniguruma &= useBuilder;
 
             return new FeatureMatrix
             {
@@ -1566,8 +1568,10 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_RealRegex( StructEnum @struct, bool isUnicode )
+        private static FeatureMatrix BuildFeatureMatrix_RealRegex( bool useBuilder, bool isUnicode )
         {
+            isUnicode |= !useBuilder;
+
             return new FeatureMatrix
             {
                 Parentheses = FeatureMatrix.PunctuationEnum.Normal,
@@ -2008,7 +2012,7 @@ namespace RustPlugin
             };
         }
 
-        private static FeatureMatrix BuildFeatureMatrix_Regexr( StructEnum @struct )
+        private static FeatureMatrix BuildFeatureMatrix_Regexr( )
         {
             return new FeatureMatrix
             {

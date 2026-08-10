@@ -39,8 +39,6 @@ namespace RustPlugin
         {
             Debug.Assert( options.crate == CrateEnum.java_regex );
 
-            bool is_builder = options.@struct == StructEnum.RegexBuilder;
-
             StringBuilder flags = new( );
             if( options.case_insensitive ) flags.Append( 'i' );
             if( options.multi_line ) flags.Append( 'm' );

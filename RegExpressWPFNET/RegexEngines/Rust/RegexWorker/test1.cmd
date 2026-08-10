@@ -1,2 +1,2 @@
-@echo { "struct" : "RegexBuilder", "pattern" : ".", "text" : "abc", "options" : { "unicode" : true } } | ".\target\release\RustRegexWorker.exe"
+@echo { "use_builder" : true, "pattern" : ".", "text" : "abc", "options" : { "unicode" : true } } | ".\target\release\RustRegexWorker.exe"
 

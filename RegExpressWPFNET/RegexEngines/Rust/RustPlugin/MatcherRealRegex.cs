@@ -32,16 +32,11 @@ namespace RustPlugin
         {
             Debug.Assert( options.crate == CrateEnum.real_regex );
 
-            if( options.@struct == StructEnum.None )
-            {
-                throw new ApplicationException( "Invalid struct." );
-            }
-
-            bool is_builder = options.@struct == StructEnum.RegexBuilder;
+            bool use_builder = options.UseBuilder;
 
             var obj = new
             {
-                structure = options.@struct,
+                use_builder = use_builder,
                 pattern = pattern,
                 text = text,
                 options = new
@@ -56,9 +51,9 @@ namespace RustPlugin
                     options.fallback,
                     //options.octal,
 
-                    //sl = is_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null, // (no-op)
-                    //dsl = is_builder ? ValidationUtilities.ParseUInt32( "dfa_size_limit", options.dfa_size_limit ) : null,
-                    //nl = is_builder ? ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ) : null,
+                    //sl = use_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null, // (no-op)
+                    //dsl = use_builder ? ValidationUtilities.ParseUInt32( "dfa_size_limit", options.dfa_size_limit ) : null,
+                    //nl = use_builder ? ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ) : null,
                 }
             };
 

@@ -44,24 +44,19 @@ namespace RustPlugin
         {
             Debug.Assert( options.crate == CrateEnum.regexr );
 
-            if( options.@struct == StructEnum.None )
-            {
-                throw new ApplicationException( "Invalid struct." );
-            }
-
-            bool is_builder = options.@struct == StructEnum.RegexBuilder;
+            bool use_builder = options.UseBuilder;
 
             var obj = new
             {
-                structure = Enum.GetName( options.@struct ),
+                use_builder = use_builder,
                 pattern = pattern,
                 text = text,
                 options = new
                 {
                     options.jit,
                     options.optimize_prefixes,
-                    backtrack_limit = is_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
-                    size_limit = is_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null,
+                    backtrack_limit = use_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
+                    size_limit = use_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null,
                 }
             };
 

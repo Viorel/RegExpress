@@ -65,7 +65,7 @@ namespace RustPlugin
             Notify( preferImmediateReaction: true );
         }
 
-        private void cbxStruct_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        private void chbx_use_builder_Changed( object sender, RoutedEventArgs e )
         {
             UpdateUI( );
 
@@ -87,7 +87,7 @@ namespace RustPlugin
             Notify( preferImmediateReaction: true );
         }
 
-        public void UpdateUI( )
+        internal void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
             if( ChangeCounter != 0 ) return;
@@ -96,26 +96,8 @@ namespace RustPlugin
             {
                 ++ChangeCounter;
 
-                CrateEnum crate = ( (ComboBoxItem)cbxCrate.SelectedItem )?.Tag?.ToString( ) switch
-                {
-                    "regex" => CrateEnum.regex,
-                    "regex_lite" => CrateEnum.regex_lite,
-                    "fancy_regex" => CrateEnum.fancy_regex,
-                    "regress" => CrateEnum.regress,
-                    "resharp" => CrateEnum.resharp,
-                    "anre" => CrateEnum.anre,
-                    "real_regex" => CrateEnum.real_regex,
-                    "java_regex" => CrateEnum.java_regex,
-                    "regexr" => CrateEnum.regexr,
-                    _ => CrateEnum.None,
-                };
-
-                StructEnum @struct = ( (ComboBoxItem)cbxStruct.SelectedItem )?.Tag?.ToString( ) switch
-                {
-                    "Regex" => StructEnum.Regex,
-                    "RegexBuilder" => StructEnum.RegexBuilder,
-                    _ => StructEnum.None,
-                };
+                CrateEnum crate = Options.crate;
+                bool use_builder = Options.UseBuilder;
 
                 bool is_regex = crate == CrateEnum.regex;
                 bool is_regex_lite = crate == CrateEnum.regex_lite;
@@ -128,9 +110,7 @@ namespace RustPlugin
                 bool is_java_regex = crate == CrateEnum.java_regex;
                 bool is_regexr = crate == CrateEnum.regexr;
 
-                bool is_builder = @struct == StructEnum.RegexBuilder;
-
-                pnlStruct.Display( is_regex_or_regex_lite || is_fancy || is_real || is_regexr );
+                chbx_use_builder.Display( is_regex_or_regex_lite || is_fancy || is_real || is_regexr );
                 pnlRegexBuilderOptions.Display( is_regex_or_regex_lite || is_fancy || is_real );
                 pnlRegressOptions.Display( is_regress );
                 pnlResharpOptions.Display( is_resharp );
@@ -157,16 +137,16 @@ namespace RustPlugin
                 chbx_end_text.Display( is_fancy );
                 chbx_fallback.Display( is_real );
 
-                if( pnlStruct.IsDisplayed( ) )
+                if( chbx_use_builder.IsDisplayed( ) )
                 {
                     var pnls = new[] { pnlRegexBuilderOptions, pnlRegexrOptions };
 
                     foreach( var pnl in pnls.Where( p => p.IsDisplayed( ) ) )
                     {
-                        pnl.IsEnabled = is_builder;
+                        pnl.IsEnabled = use_builder;
                         pnl.Opacity = pnlRegexBuilderOptions.IsEnabled ? 1 : 0.75;
 
-                        if( is_builder )
+                        if( use_builder )
                         {
                             pnl.ClearValue( DataContextProperty ); // (to use inherited context)
                         }
@@ -176,7 +156,6 @@ namespace RustPlugin
                         }
                     }
                 }
-
             }
             finally
             {

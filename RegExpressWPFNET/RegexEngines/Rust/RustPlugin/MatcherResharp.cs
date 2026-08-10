@@ -31,11 +31,6 @@ namespace RustPlugin
         {
             Debug.Assert( options.crate == CrateEnum.resharp );
 
-            if( options.@struct == StructEnum.None )
-            {
-                throw new ApplicationException( "Invalid struct." );
-            }
-
             UInt64? max_dfa_capacity = ValidationUtilities.ParseUInt64( "max_dfa_capacity", options.max_dfa_capacity );
             UInt64? lookahead_context_max = ValidationUtilities.ParseUInt64( "lookahead_context_max", options.lookahead_context_max );
 

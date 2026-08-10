@@ -51,17 +51,8 @@
                     <ui:ComboBoxItemWithVersion Tag ="regexr"       Text="regexr"       Version="{Binding Regexr,       Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
-
-            <StackPanel x:Name="pnlStruct" Orientation="Horizontal" Margin="0 0 0 4">
-                <StackPanel.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </StackPanel.LayoutTransform>
-                <Label Content="Struct:" Target="{Binding ElementName=cbxStruct}" Padding="0 2 4 2" MinWidth="40"/>
-                <ComboBox x:Name="cbxStruct" SelectedValuePath="Tag" SelectedValue="{Binding struct, FallbackValue='Regex'}" VerticalAlignment="Center" SelectionChanged="cbxStruct_SelectionChanged" MinWidth="44">
-                    <ComboBoxItem Tag ="Regex" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
-                    <ComboBoxItem Tag ="RegexBuilder" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
-                </ComboBox>
-            </StackPanel>
+            
+            <ui:CheckboxWithNote x:Name="chbx_use_builder" Prop="UseBuilder" Text="Use RegexBuilder" Note="" Changed="chbx_use_builder_Changed"/>
 
             <StackPanel x:Name="pnlRegexBuilderOptions" Orientation="Vertical" Visibility="Collapsed" d:Visibility="Visible">
 

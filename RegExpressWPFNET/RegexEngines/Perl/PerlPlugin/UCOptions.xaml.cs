@@ -45,6 +45,18 @@ namespace PerlPlugin
 
         void UpdateUI( )
         {
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
+
+            try
+            {
+                ++ChangeCounter;
+
+            }
+            finally
+            {
+                --ChangeCounter;
+            }
         }
 
         private void CheckBox_Changed( object sender, RoutedEventArgs e )

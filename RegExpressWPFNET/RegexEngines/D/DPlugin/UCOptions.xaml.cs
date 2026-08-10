@@ -37,6 +37,18 @@ namespace DPlugin
 
         void UpdateUI( )
         {
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
+
+            try
+            {
+                ++ChangeCounter;
+
+            }
+            finally
+            {
+                --ChangeCounter;
+            }
         }
 
         private void UserControl_Loaded( object sender, RoutedEventArgs e )

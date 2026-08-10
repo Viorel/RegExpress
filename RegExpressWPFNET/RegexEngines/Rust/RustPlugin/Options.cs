@@ -21,13 +21,6 @@ namespace RustPlugin
         regexr,
     }
 
-    enum StructEnum
-    {
-        None,
-        Regex,
-        RegexBuilder,
-    }
-
     enum UnicodeModeEnum // ('resharp')
     {
         None,
@@ -49,7 +42,7 @@ namespace RustPlugin
     internal class Options
     {
         public CrateEnum @crate { get; set; } = CrateEnum.regex;
-        public StructEnum @struct { get; set; } = StructEnum.Regex;
+        public bool UseBuilder { get; set; } = false;
 
         public bool case_insensitive { get; set; }
         public bool multi_line { get; set; }
