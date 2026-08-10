@@ -86,22 +86,28 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Peel an optional lead `\b`/`\B` at \p p (typically after `save 0`).
+   * \brief Peel an optional `\b`/`\B` assertion at \p p.
    *
-   * If \p p is not an assert, leaves \p lead at 0 and returns true. If it is a word-boundary
-   * assert, records the hint, advances \p p, returns true. If it is any other assert, returns
-   * false (shape disqualified for wb-wrapping fast paths).
+   * If \p p is not an assert, leaves \p hint at 0 and returns true. If it is a word-boundary assert,
+   * records the hint, advances \p p, returns true. If it is any other assert, returns false (shape
+   * disqualified for wb-wrapping fast paths).
+   *
+   * **Lead and trail are the same operation.** This was two functions, `peel_optional_lead_wb` and
+   * `peel_optional_trail_wb`, byte-identical but for the out-parameter's name — nothing here looks at
+   * WHERE \p p points, so the position is entirely the caller's. Their doc comments already said "same
+   * contract as", and the risk was not the duplicate lines but a fix landing on one of two copies that
+   * both feed load-bearing hint decisions.
    *
    * \param[in]     code Instruction stream.
-   * \param[in,out] p    Program counter (advanced past the lead assert when peeled).
-   * \param[out]    lead Hint 0/1/2.
-   * \return false if a non-wb lead assert blocks the shape.
+   * \param[in,out] p    Program counter (advanced past the assert when peeled).
+   * \param[out]    hint Hint 0/1/2 — see \ref wb_hint_of.
+   * \return false if a non-wb assert blocks the shape.
    */
-  [[nodiscard]] constexpr bool peel_optional_lead_wb(std::span<const instr> code,
-                                                     std::size_t&           p,
-                                                     std::uint8_t&          lead) noexcept
+  [[nodiscard]] constexpr bool peel_optional_wb(std::span<const instr> code,
+                                                std::size_t&           p,
+                                                std::uint8_t&          hint) noexcept
   {
-    lead = 0;
+    hint = 0;
     if (p >= code.size() || code[p].op != opcode::assert_position) {
       return true;
     }
@@ -109,34 +115,7 @@ namespace real::detail {
     if (!is_word_boundary_kind(k)) {
       return false;
     }
-    lead = wb_hint_of(k);
-    ++p;
-    return true;
-  }
-
-  /*!
-   * \brief Peel an optional trail `\b`/`\B` at \p p (before closing `save 1` / exit).
-   *
-   * Same contract as \ref peel_optional_lead_wb for a trailing assert.
-   *
-   * \param[in]     code  Instruction stream.
-   * \param[in,out] p     Program counter (advanced past the trail assert when peeled).
-   * \param[out]    trail Hint 0/1/2.
-   * \return false if a non-wb trail assert blocks the shape.
-   */
-  [[nodiscard]] constexpr bool peel_optional_trail_wb(std::span<const instr> code,
-                                                      std::size_t&           p,
-                                                      std::uint8_t&          trail) noexcept
-  {
-    trail = 0;
-    if (p >= code.size() || code[p].op != opcode::assert_position) {
-      return true;
-    }
-    const auto k {static_cast<assert_kind>(code[p].arg8)};
-    if (!is_word_boundary_kind(k)) {
-      return false;
-    }
-    trail = wb_hint_of(k);
+    hint = wb_hint_of(k);
     ++p;
     return true;
   }
@@ -179,7 +158,7 @@ namespace real::detail {
       ++p;
     }
     std::uint8_t wb_lead {0};
-    if (!peel_optional_lead_wb(code, p, wb_lead)) {
+    if (!peel_optional_wb(code, p, wb_lead)) {
       return {};
     }
     return {.body_start = p, .wb_lead = wb_lead, .anchored_start = anchored, .ok = true};
@@ -209,7 +188,7 @@ namespace real::detail {
   [[nodiscard]] constexpr shape_close parse_shape_close(std::span<const instr> code,
                                                         std::size_t            from) noexcept
   {
-    // Peeled inline rather than through peel_optional_trail_wb, which REFUSES any assertion that is
+    // Peeled inline rather than through peel_optional_wb, which REFUSES any assertion that is
     // not a word boundary -- so calling it first made the end-anchor peel below unreachable. The
     // compiler emits the trail in this order (`X+\b$` -> klass, split, assert(\b), assert($)), and
     // anything else that lands here simply fails the `save 1`/`match` check at the end.
@@ -564,13 +543,13 @@ namespace real::detail {
     // Optional trail \b/\B immediately before save 1 (branches jump to it).
     if (exit_pc >= 2 && code[exit_pc - 1].op == opcode::assert_position) {
       std::size_t t {exit_pc - 1};
-      if (!peel_optional_trail_wb(code, t, wb_trail)) {
+      if (!peel_optional_wb(code, t, wb_trail)) {
         return false;
       }
       exit_pc = exit_pc - 1;
     }
     // Optional lead \b/\B immediately after save 0.
-    if (!peel_optional_lead_wb(code, body, wb_lead)) {
+    if (!peel_optional_wb(code, body, wb_lead)) {
       return false;
     }
     if (body >= exit_pc) {
@@ -1241,7 +1220,7 @@ namespace real::detail {
             // just the prefix (fuzz-compat crash 86573f5 / pattern `\w{2}\bthe` on "…ox").
             std::size_t  probe      {i};
             std::uint8_t trail_hint {0};
-            if (!peel_optional_trail_wb(code, probe, trail_hint)) {
+            if (!peel_optional_wb(code, probe, trail_hint)) {
               break; // non-wb assert
             }
             if (probe + 1 < code.size() && code[probe].op == opcode::save && code[probe].arg16 == 1
@@ -1262,6 +1241,18 @@ namespace real::detail {
           hints.wb_lead     = wb_lead;
           hints.wb_trail    = wb_trail;
           hints.body_pc     = body_pc;
+          // A bare single byte-class (`[a-z]`, `[aeiou]`) -- the batchable sub-case of the shape just
+          // armed. The test is the whole program, not a property of it: exactly `save 0`, `klass`,
+          // `save 1`, `match`. That excludes a capture wrap (`([a-z])`, 6 ops), a `\b` wrap, an anchor
+          // and a single literal byte (`byte`, which takes exact_literal). See
+          // pattern_hints::single_class for why this is its own field rather than a flag on
+          // greedy_class_loop.
+          // `code.size() == 4` already implies slot_count 2: any inner capturing group contributes its
+          // own pair of saves, which would push the program past four instructions.
+          if (code.size() == 4 && wb_lead == 0 && wb_trail == 0 && body_pc == 1
+              && code[1].op == opcode::klass) {
+            hints.single_class = code[1].arg16;
+          }
         }
       }
 
@@ -1526,7 +1517,7 @@ namespace real::detail {
               exit_pc == after_loop + 1) {
             std::size_t  q        {exit_pc};
             std::uint8_t wb_trail {0};
-            if (!peel_optional_trail_wb(code, q, wb_trail)) {
+            if (!peel_optional_wb(code, q, wb_trail)) {
               q = code.size(); // disqualify below
             }
             std::array<char, 8>  suffix      {};
@@ -1577,7 +1568,49 @@ namespace real::detail {
                                                out_trail);
                 }
               }
-              if (arm) {
+              // A BARE unbounded possessive byte-CLASS loop (`[a-z]++`, `(?>[a-z]+)`) is redirected to
+              // the GREEDY class-loop selector instead of arming a possessive one, because it is the
+              // same language: possessive means "take the maximal run and never give it back", and
+              // with nothing after the loop there is nothing to give back to. Verified by match count
+              // rather than by argument -- `[a-z]+` and `[a-z]++` both report 4 on "abc,de f 42 ghij".
+              //
+              // The gain is that the greedy selector is BATCHED, and the possessive one is not:
+              // `[a-z]++` measured 4.013 ns/B against `[a-z]+`'s 1.177, a quantifier doing strictly
+              // LESS work being 3.4x slower. Doing it HERE, in the recognizer, is what makes it
+              // affordable: three attempts to reach the same result from the runtime side -- teaching
+              // the fillers a class-index parameter, with and without the code-point half -- each cost
+              // the Unicode class rows 5.7 to 9.1 % (`\p{L}+`, `\p{N}+`, `\w+`, all 16 draws of 16
+              // against their floors, benchmarks/bench_layout.py). This translation unit is at its
+              // inlining budget; a hint set at compile time spends none of it.
+              //
+              // Scope is deliberately the byte class only, and bare only. `X*+` can match empty (the
+              // guard above already requires has_mandatory here for a suffix-free shape). A suffix
+              // (`[a-z]++x`) means the match is not the run. An enveloping capture keeps its slots in
+              // possessive_group_start, which the greedy path does not read. A `\b` wrap is excluded
+              // upstream (`arm` is false). And the code-point kind is left alone: its own route is not
+              // batched for `{k,}` either, for the same budget reason.
+              const bool redirect {arm && suffix_len == 0 && gs < 0 && has_mandatory && !has_wb
+                                   && (loop_ref.kind == class_kind::klass
+                                       || loop_ref.kind == class_kind::klass_cp)};
+              if (redirect && loop_ref.kind == class_kind::klass) {
+                hints.greedy_class_loop     = loop_ref.index;
+                hints.greedy_class_loop_min = 1;
+                hints.greedy_class_loop_end = 0;
+              }
+              else if (redirect) {
+                // The CODE-POINT twin, and it is here because the first version of this redirect left
+                // it out on a reason that does not survive reading: "its own route is not batched
+                // either". \ref pattern_hints::greedy_cp_class IS batched -- it is what `\w+` takes,
+                // at 1.365 ns/B with zero route entries per match. What was actually costly was
+                // teaching the cp FILLER a new parameter (that charged `\p{L}+` 6 to 9 %), and a hint
+                // decided here pays none of it. `\w++` was 4.700 ns/B against `\w+`'s 1.365.
+                hints.greedy_cp_class      = loop_ref.index;
+                hints.greedy_cp_class_plus = true; // a possessive loop is unbounded by construction
+                hints.greedy_cp_class_min  = 1;
+                hints.greedy_cp_class_end  = 0;
+                hints.greedy_cp_class_max  = 0;
+              }
+              else if (arm) {
                 hints.possessive_class        = loop_ref;
                 hints.possessive_group_start  = gs;
                 hints.possessive_group_end    = gs < 0 ? std::int16_t {-1}
@@ -1989,6 +2022,7 @@ namespace real::detail {
       hints.exact_literal_len     = 0;
       hints.fixed_shape           = false;
       hints.fs_pair_width         = 0;    // paired with fixed_shape: never read without it
+      hints.single_class          = -1;   // likewise paired with fixed_shape
       hints.codepoint_class_ascii = -1;
       hints.fixed_alternation     = false;
     }

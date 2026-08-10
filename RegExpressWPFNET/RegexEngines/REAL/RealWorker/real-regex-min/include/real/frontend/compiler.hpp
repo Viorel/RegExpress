@@ -1090,10 +1090,7 @@ namespace real::detail {
             // cover: members that all encode to the SAME length and differ in exactly ONE byte, so
             // no alternation is needed at all. `(?i)é` is that -- `C3 A9` / `C3 89` -- and staying
             // fixed-width there is what keeps the prefilter's fixed-offset walk alive.
-            if (try_emit_fixed_width_class(prog, eff)) {
-              break;
-            }
-            emit_klass_cp(prog, eff);
+            emit_effective_class(prog, eff);
             break;
           }
         case node_kind::any:
@@ -1235,6 +1232,87 @@ namespace real::detail {
     }
 
     /*!
+     * \brief The class an alternation of single ATOMS is, when it is one.
+     *
+     * `(?:a|b|c)` is `[abc]` written the long way, and `(?:é|à|è)` is `[éàè]` — the split chain
+     * matches no shape recognizer while the class does. EXACT rather than approximate: every branch
+     * consumes exactly one atom and none captures, so leftmost-first preference among them has no
+     * observable effect, the span being the same whichever branch a backtracker would have picked.
+     *
+     * Asked from BOTH emission sites — \ref emit_alternation and \ref emit_unbounded_body — because
+     * the right class emission differs between them (the quantifier body wants a code-point class,
+     * the bare form wants whatever a hand-written class gets), while the QUESTION is the same one.
+     * Two places restating it is the drift this file has paid for before.
+     *
+     * \param[in]  node The alternation node.
+     * \param[out] out  The fused class, valid only when this returns `true`.
+     * \return `true` if every branch is one atom and there are at least two of them.
+     */
+    [[nodiscard]] constexpr bool fuse_single_atom_alternation(const ast_node& node,
+                                                              class_def&      out) const
+    {
+      std::int32_t scan {node.child};
+      std::size_t  n    {0};
+      while (scan != -1) {
+        const ast_node& b {tree_.nodes[static_cast<std::size_t>(scan)]};
+        if (b.kind == node_kind::byte) {
+          out.ascii.set(b.byte);
+        }
+        else if (const std::uint32_t cp {single_codepoint_atom(tree_, scan)};
+                 cp != not_a_single_codepoint && !has_flag(flags_, flags::bytes)) {
+          // A non-ASCII branch is a concat of UTF-8 bytes spelling exactly one character: a member
+          // like any other, one encoding wider. The same predicate the parser and
+          // emit_unbounded_body ask, so all three agree on "one atom" by construction.
+          out.ranges.push_back({.lo = cp, .hi = cp});
+        }
+        else {
+          return false; // a class, a sequence, a group, or an EMPTY branch (`a|` matches empty)
+        }
+        ++n;
+        scan = b.next;
+      }
+      return n >= 2; // one branch is not an alternation to fuse
+    }
+
+    /*!
+     * \brief Emits an already-materialised class the one way this compiler emits classes.
+     *
+     * Extracted so the alternation fusion cannot diverge from a class written by hand: `(?:é|à|è)`
+     * and `[éàè]` are the same language and must become the same program. Emitting the fused set
+     * directly as a code-point class instead measured FASTER on the bare form (arm64 1.85 against
+     * 4.42 ns/B) precisely because it took a different route -- a licence for one spelling to compile
+     * differently from the other, not a reason, and refused for that.
+     *
+     * That observation was then chased on its own terms and REFUTED, so it is not retried: the two
+     * ISAs DISAGREE about which emission a standalone non-ASCII class wants. Measured both ways on
+     * both machines -- `[éÉ]` arm64 2.157 fixed-width against 1.260 code-point, but x86-64 2.544
+     * against 2.932; `(?i)é` identical figures; `[àèù]` arm64 1.949 against 1.283, x86-64 2.279
+     * against 3.018. arm64 wants the code-point class by 1.5-2.4x, x86-64 wants fixed-width by
+     * 1.15-1.3x, and no single choice wins on both. Where a literal PRECEDES the class they agree
+     * emphatically (`(?i)café` 0.44/0.64 against 1.13/1.67; `caf[éÉ]` 0.48/0.63 against 0.82/1.18),
+     * which is the case the fixed-width form was introduced for and the one it keeps.
+     *
+     * \param[in,out] prog The program being built.
+     * \param[in]     eff  The effective class (ASCII bitmap + non-ASCII ranges).
+     */
+    constexpr void emit_effective_class(dynamic_program& prog,
+                                        const class_def& eff) const
+    {
+      if (has_flag(flags_, flags::bytes) || eff.ranges.empty()) {
+        emit_klass(prog, eff.ascii);
+        return;
+      }
+      if (is_any_non_ascii(eff.ranges)) {
+        emit_any_codepoint_class(prog, eff.ascii);
+        return;
+      }
+      if (try_emit_fixed_width_class(prog, eff)) {
+        return;
+      }
+      emit_klass_cp(prog, eff);
+    }
+
+    /*!
      * \brief Emits an alternation: branches chained with leftmost-preferred splits.
      *
      * Every branch but the last jumps to a shared exit, patched once at the end.
@@ -1247,6 +1325,16 @@ namespace real::detail {
                                     const ast_node&  node,
                                     bool             capture_free) const
     {
+      // An alternation of single atoms IS a class; see \ref fuse_single_atom_alternation for why
+      // that is exact. Emitted the way a hand-written class is, so `(?:é|à|è)` and `[éàè]` become the
+      // same program rather than two spellings with two routes.
+      {
+        class_def fused;
+        if (fuse_single_atom_alternation(node, fused)) {
+          emit_effective_class(prog, fused);
+          return;
+        }
+      }
       std::vector<std::int32_t> jumps;
       std::int32_t              branch {node.child};
       while (branch != -1) {
@@ -1333,6 +1421,19 @@ namespace real::detail {
           class_def one;
           one.ranges.push_back({.lo = cp, .hi = cp});
           emit_klass_cp(prog, one);
+          return;
+        }
+      }
+      // An alternation of single atoms under an unbounded quantifier wants the SAME treatment as a
+      // class does here, and for the same reason: fused through the bare-class path it becomes the
+      // fixed-width byte form, which is the shape with no route (`(?:é|à|è)+` measured 7.39 ns/B that
+      // way against 1.90 as a code-point class). The fusion test is shared with \ref
+      // emit_alternation; only the emission differs, which is the whole point of asking rather than
+      // restating.
+      if (c.kind == node_kind::alternation && c.next < 0) {
+        class_def fused;
+        if (fuse_single_atom_alternation(c, fused) && !fused.ranges.empty()) {
+          emit_klass_cp(prog, fused);
           return;
         }
       }

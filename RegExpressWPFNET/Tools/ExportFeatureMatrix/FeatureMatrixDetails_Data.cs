@@ -561,9 +561,13 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"Unicode “.”", @"“.” matches Unicode characters, not just ASCII", (e, fm) => fm.Unicode_Class_Dot )
                     .Test( @"X.....Y", "XăîșțâY", null, "XăîșțâY" ),
                 new FeatureMatrixDetails( @"Unicode “\w”", @"“\w” matches Unicode characters, not just ASCII", (e, fm) => fm.Unicode_Class_vW )
-                    .Test( @"X\w\w\w\w\wY", "XăîșțâY", null, "XăîșțâY" ),
+                    .Test( @"X\w\w\w\w\wY", "XăîșțâY", null, "XăîșțâY" )
+                    .Test( @"(?u)X\w\w\w\w\wY", "XăîșțâY", null, "XăîșțâY" )
+                    .Test( @"(?u:X\w\w\w\w\wY)", "XăîșțâY", null, "XăîșțâY" ),
                 new FeatureMatrixDetails( @"[Unicode]", @"Support Unicode characters inside sets", (e, fm) => fm.InsideSets_Unicode )
-                    .Test( @"X[é]Y", "XéY", null, "XéY" ),
+                    .Test( @"X[é]Y", "XéY", null, "XéY" )
+                    .Test( @"(?u)X[é]Y", "XéY", null, "XéY" )
+                    .Test( @"(?u:X[é]Y)", "XéY", null, "XéY" ),
                 new FeatureMatrixDetails( @"Surrogates", @"“.” matches surrogate pairs as one entity (no split)", (e, fm) => fm.Unicode_Class_Dot && fm.KeepSurrogatePairs )
                     .Test( @"X.Y", "X💕Y", null, "X💕Y" ),
                 new FeatureMatrixDetails( @"é=É", @"Support Unicode case folding", (e, fm) => fm.UnicodeCaseFolding )

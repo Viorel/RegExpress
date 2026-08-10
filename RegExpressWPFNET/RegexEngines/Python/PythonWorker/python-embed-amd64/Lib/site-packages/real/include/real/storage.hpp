@@ -1342,18 +1342,65 @@ namespace real {
 
     public:
 
+      /*!
+       * \brief Everything \ref build yields that is NOT a range, measured in ONE evaluation.
+       *
+       * The two-phase this class is built on -- measure, then freeze, because C++20 forbids persistent
+       * constexpr allocation -- does not say how many times to measure, and the measuring had grown to
+       * SEVEN separate `build()` calls: one per size, one per scalar, each its own top-level constant
+       * expression re-running the whole compiler front end. Collapsed here to one, which takes the
+       * class from **12 `build()` evaluations to 6** (the five range members below are the rest).
+       *
+       * That is a compile-time change with no run-time surface: the frozen arrays are byte-identical,
+       * because they are produced by the same \ref take calls from the same builder. What it buys is
+       * headroom against the per-expression constexpr step budget -- the ceiling \ref class_tables
+       * below is already annotated for, and the reason `build_byte_program` reaches only byte classes.
+       *
+       * The idea is lifted from a `pluck`-style single measure pass proposed in the `stx` staged-types
+       * incubation; the 15-20 % faster compile it reported for a five-pattern translation unit is the
+       * claim this collapse makes testable here, without taking on the library.
+       */
+      struct measured
+      {
+        pattern_hints hints          {}; //!< Search hints.
+        std::size_t   code_size      {}; //!< Instruction count.
+        std::size_t   class_count    {}; //!< Distinct byte-class count.
+        std::size_t   name_count     {}; //!< Named-group count.
+        std::size_t   cp_class_count {}; //!< Code-point class count (`klass_cp`).
+        std::size_t   cp_range_count {}; //!< Total code-point ranges.
+        std::uint16_t slot_count     {}; //!< `2*(groups+1)`.
+      };
+
+      //! \brief The one measuring evaluation. Never emitted: nothing takes its address, and every
+      //!        member below reads it at compile time only.
+      static constexpr measured survey {[] {
+                                          const dynamic_program p {build()};
+                                          return measured {.hints          = p.hints,
+                                                           .code_size      = p.code.size(),
+                                                           .class_count    = p.classes.size(),
+                                                           .name_count     = p.names.size(),
+                                                           .cp_class_count = p.cp_classes.size(),
+                                                           .cp_range_count = p.cp_ranges.size(),
+                                                           .slot_count     = p.slot_count};
+                                        }()};
+
       //! \brief The flag set in force: \c F plus what a leading `(?imsxaU)` group added, minus what a
       //!        `(?flags-flags)` removal cleared. Mirrors \ref dynamic_storage::compile, so the two
-      //!        storages report the same thing for the same pattern.
-      static constexpr flags         effective_flags            {flags_without(F | detail::parse(Pat.view(), F).inline_flags,
-                                                                               detail::parse(Pat.view(), F).inline_removed)};
-      static constexpr pattern_hints hints                      {build().hints};                                 //!< Search hints.
-      static constexpr std::size_t   code_size                  {build().code.size()};                           //!< Instruction count.
-      static constexpr std::size_t   class_count                {build().classes.size()};                        //!< Distinct class count.
-      static constexpr std::size_t   name_count                 {build().names.size()};                          //!< Named-group count.
-      static constexpr std::size_t   cp_class_count             {build().cp_classes.size()};                     //!< Code-point class count (klass_cp).
-      static constexpr std::size_t   cp_range_count             {build().cp_ranges.size()};                      //!< Total code-point ranges.
-      static constexpr std::uint16_t slot_count                 {build().slot_count};                            //!< `2*(groups+1)`.
+      //!        storages report the same thing for the same pattern. Parsed ONCE -- the two-call form
+      //!        this replaces ran the parser twice for one answer, the same defect as the seven-call
+      //!        measure above in miniature.
+      static constexpr flags         effective_flags            {[] {
+                                                                   const auto parsed {detail::parse(Pat.view(), F)};
+                                                                   return flags_without(F | parsed.inline_flags,
+                                                                                        parsed.inline_removed);
+                                                                 }()};
+      static constexpr pattern_hints hints                      {survey.hints};                                  //!< Search hints.
+      static constexpr std::size_t   code_size                  {survey.code_size};                              //!< Instruction count.
+      static constexpr std::size_t   class_count                {survey.class_count};                            //!< Distinct class count.
+      static constexpr std::size_t   name_count                 {survey.name_count};                             //!< Named-group count.
+      static constexpr std::size_t   cp_class_count             {survey.cp_class_count};                         //!< Code-point class count (klass_cp).
+      static constexpr std::size_t   cp_range_count             {survey.cp_range_count};                         //!< Total code-point ranges.
+      static constexpr std::uint16_t slot_count                 {survey.slot_count};                             //!< `2*(groups+1)`.
 
       static constexpr std::array<instr, code_size>        code {take<instr, code_size>(build().code)};          //!< The program.
       static constexpr std::array<char_class, class_count> classes =
@@ -1368,6 +1415,17 @@ namespace real {
       //! \brief Flat byte-class membership tables, built at compile time: `class_tables[i*256 + b]`.
       //!        Reuses the \ref classes member rather than calling \ref build again — an extra `build()` per
       //!        table pushes the whole instantiation past clang's constexpr step budget.
+      //!
+      //! \note **A pack-expansion `tabulate<N>(f)` here was written, measured and REFUSED.** The loop
+      //!       below cannot be one pass: constant evaluation rejects indeterminate subobjects, so the
+      //!       array is zeroed and then overwritten — 2N element operations where a pack expansion
+      //!       needs N. The argument is sound and buys nothing. Compile time on a five-`static_regex`
+      //!       unit: 4.38 s against 4.40 s, and on a class-heavy unit 2.48 s against 2.38 s, with the
+      //!       direction flipping between paired runs in both — indistinguishable. And the capability
+      //!       argument fails too: bisecting `-fconstexpr-steps` to the failure point gives **177 734
+      //!       for both forms**, exactly, so there is no budget headroom in it either. The compiler's
+      //!       cost for a 2048-element pack cancels the halved element count. The loop stays: same
+      //!       speed, same budget, no helper to maintain.
       static constexpr std::array < std::uint8_t, (class_count == 0 ? 1 : class_count) * 256 > class_tables {[] {
                                                                                                                std::array < std::uint8_t, (class_count == 0 ? 1 : class_count) * 256 > t {};
                                                                                                                for (std::size_t i = 0; i < class_count; ++i) {

@@ -718,6 +718,30 @@ namespace real {
        * the six IL fields above).
        */
       std::uint16_t greedy_cp_class_max {};
+
+      /*!
+       * \brief Class index when the WHOLE pattern is a bare single byte-class -- `[a-z]`, `[aeiou]`,
+       *        `[0-9]` with no quantifier at all -- else -1.
+       *
+       * \ref greedy_class_loop describes `class+` and carries no "single" flag, unlike its two
+       * neighbours (\ref greedy_cp_class_plus, \ref codepoint_class_plus). So the unquantified form
+       * matched no batchable selector and crossed a full route entry PER match where all three class
+       * routes cross one per batch: measured at 1.000 entries per match and 7.882 ns/B for `[a-z]`,
+       * against 4.494 for the batched `[^,]` over the same corpus -- slower per byte than `.`, which
+       * matches at every position.
+       *
+       * A SEPARATE field rather than a flag on \ref greedy_class_loop, and that is not a stylistic
+       * choice: sharing that selector forces every pure `class+` call site to branch on the other
+       * shape too, which cost 20 % on x86 when it was tried (see \ref trailing_lookaround, which
+       * declines to arm it for the same reason).
+       *
+       * Scope is the 4-opcode program exactly (`save 0`, `klass`, `save 1`, `match`): no capture wrap,
+       * no `\b` wrap, no anchor. A single literal BYTE (`a`) is excluded -- it takes `exact_literal`,
+       * a different route with its own memchr scan.
+       *
+       * APPENDED LAST, per this struct's placement rule.
+       */
+      std::int32_t single_class {-1};
     };
 
     /*!

@@ -2108,25 +2108,51 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Expands \p klass into one flat 256-byte membership row of the per-regex cache, once.
+     *
+     * The shared body of \ref fill_class_row and \ref fill_cp_ascii_row, which differed only in which
+     * `char_class` they read, which array they wrote, and the offset their ready-bit sits at. Both are
+     * `noinline, cold` and reached only through the once-per-class miss path, so collapsing them costs
+     * nothing at run time and stops a fix from landing on one of two copies. \ref fill_cp_page_row is
+     * deliberately NOT folded in: it builds a 30-word bitmap over a code-point page from range pairs,
+     * sharing only the lock-and-ready-bit frame.
+     *
+     * \param[in,out] cache       The per-regex immutables.
+     * \param[in]     ready_index Index of this row's ready bit.
+     * \param[in]     klass       The membership set to expand.
+     * \param[out]    row         Destination, 256 bytes.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline, cold))
+#endif
+    static void fill_byte_row(detail::regex_immutables& cache,
+                              std::size_t               ready_index,
+                              const char_class&         klass,
+                              std::uint8_t*             row)
+    {
+      const std::lock_guard<std::mutex> lock {detail::immut_build_mu(&cache)};
+      if (cache.row_ready(ready_index)) {
+        return; // filled while we waited
+      }
+      for (std::size_t b {0}; b < 256; ++b) {
+        row[b] = klass.test(static_cast<std::uint8_t>(b)) ? 1U : 0U;
+      }
+      cache.set_row_ready(ready_index);
+    }
+
+    /*!
      * \brief Fills one byte-class row of the per-regex cache, once.
      * \param[in,out] cache       The per-regex immutables.
      * \param[in]     class_index Index into the program's interned byte classes.
      */
 #if defined(__GNUC__) || defined(__clang__)
-    __attribute__((noinline, cold))
+    __attribute__((noinline, cold)) // as before the factoring: see verify_class_row's own note
 #endif
     void fill_class_row(detail::regex_immutables& cache,
                         std::size_t               class_index) const
     {
-      const std::lock_guard<std::mutex> lock {detail::immut_build_mu(&cache)};
-      if (cache.row_ready(class_index)) {
-        return; // filled while we waited
-      }
-      const char_class& klass {prog_.classes[class_index]};
-      for (std::size_t b {0}; b < 256; ++b) {
-        cache.class_rows[(class_index * 256) + b] = klass.test(static_cast<std::uint8_t>(b)) ? 1U : 0U;
-      }
-      cache.set_row_ready(class_index);
+      fill_byte_row(cache, class_index, prog_.classes[class_index],
+                    cache.class_rows.data() + (class_index * 256));
     }
 
     /*!
@@ -2135,20 +2161,13 @@ namespace real::detail {
      * \param[in]     cp_index Index into the program's code-point classes.
      */
 #if defined(__GNUC__) || defined(__clang__)
-    __attribute__((noinline, cold))
+    __attribute__((noinline, cold)) // as before the factoring: see verify_class_row's own note
 #endif
     void fill_cp_ascii_row(detail::regex_immutables& cache,
                            std::size_t               cp_index) const
     {
-      const std::lock_guard<std::mutex> lock {detail::immut_build_mu(&cache)};
-      if (cache.row_ready(cache.cp_ascii_ready_at + cp_index)) {
-        return;
-      }
-      const char_class& klass {prog_.cp_classes[cp_index].ascii};
-      for (std::size_t b {0}; b < 256; ++b) {
-        cache.cp_ascii_rows[(cp_index * 256) + b] = klass.test(static_cast<std::uint8_t>(b)) ? 1U : 0U;
-      }
-      cache.set_row_ready(cache.cp_ascii_ready_at + cp_index);
+      fill_byte_row(cache, cache.cp_ascii_ready_at + cp_index, prog_.cp_classes[cp_index].ascii,
+                    cache.cp_ascii_rows.data() + (cp_index * 256));
     }
 
     /*!
@@ -2284,9 +2303,9 @@ namespace real::detail {
                                                run_mode         mode,
                                                OutSlots&        out_slots)
     {
-      const std::uint8_t* const tbl {
+      const std::uint8_t* const tbl       {
         class_table(static_cast<std::size_t>(prog_.hints.greedy_class_loop))};
-      std::size_t limit             {text.size()};
+      std::size_t       limit             {text.size()};
       if (prog_.hints.greedy_class_loop_end == 2 && limit > 0 && text[limit - 1] == '\n') {
         --limit; // `$`: the position before one final newline is also an end
       }
@@ -3176,17 +3195,16 @@ namespace real::detail {
      * \param[in]  cap   Capacity of \p out.
      * \return How many spans were written.
      *
-     * \note A fourth filler for the whole-pattern `.`/negated-class route was written, verified and
-     *       REFUSED. On clang/arm64 it is the best of the three: `.` over an emoji corpus emits a
-     *       match every 1.7 bytes and read 4.664 -> 1.921 ns/B, −58.8 %, with every other row inside
-     *       1.7 %. On gcc/x86-64 the same patch gains almost nothing on its own row (8.532 -> 8.174)
-     *       and takes back most of what the byte filler had won: `words` 1.708 -> 3.155, `digits`
-     *       1.089 -> 1.933, the ASCII witness 1.694 -> 3.165. A third branch in `refill_batch` and a
-     *       fourth scan body in this file is what the translation unit could not absorb
-     *       (docs/design.dox §10.1). Two fillers is what fits; the emoji row keeps its +7 % and the
-     *       reason is written here rather than rediscovered.
+     * \note **A filler for the `.`/negated-class route was refused here once, then landed.** The first
+     *       attempt gained −58.8 % on clang/arm64 and almost nothing on gcc/x86-64, where it took back
+     *       most of what this filler had won (`words` 1.708 -> 3.155, `digits` 1.089 -> 1.933) — a
+     *       translation-unit inline-budget effect, not a property of the scan (docs/design.dox §10.1).
+     *       \ref fill_codepoint_class_spans is the version that did land, and it disclosed its own
+     *       residual cost on unrelated rows rather than hiding it. The lesson that survives is the
+     *       measurement discipline, not the conclusion "two fillers is what fits": each added branch
+     *       in `refill_batch` must be re-measured on BOTH ISAs against rows that never touch it.
      */
-    template <bool Cascade>
+    template <bool Cascade, bool WbEdge, bool WbKept>
     constexpr std::size_t fill_class_spans(std::string_view text,
                                            std::size_t      start,
                                            cp_span*         out,
@@ -3194,8 +3212,47 @@ namespace real::detail {
     {
       const std::uint8_t* const tbl {
         class_table(static_cast<std::size_t>(prog_.hints.greedy_class_loop))};
-      std::size_t n                 {0};
-      std::size_t i                 {start};
+      // A TEMPLATE parameter, so the guard below compiles away entirely for every pattern that does
+      // not carry a dropped leading `\b` -- which is nearly all of them. Two weaker versions were
+      // measured and REFUSED first, both by benchmarks/bench_layout.py against this machine's own
+      // floors: written inline per iteration it cost `digits` +17.3 %, `words` +13.6 % and
+      // `\p{L}+` +13.4 % (it re-read the hint struct on every span emitted); hoisting it to a
+      // runtime local still cost +6 to +8 % on five class-scan rows, all judged REAL. Only
+      // `if constexpr` leaves those rows compiling to what they compiled to before.
+      // P1 `{k,}`: the minimum run length, in BYTES, read ONCE outside the loop. A bare `+` leaves
+      // it 1, where the compare can never fire (a run is non-empty), so the shapes that do not use
+      // it pay a register compare and no hint-struct access -- the distinction that cost 17 % when
+      // the wb guard was first written the other way (see this file's WbEdge note).
+      //
+      // THE CODE-POINT TWIN EXISTS NOW, and how it got here is the part worth keeping. It was refused
+      // twice -- a counter as a closure outside the loop, then the same templated away -- because each
+      // charged `\p{L}+`, a pattern whose min is 1 and which never runs the check, **+4.9 % and then
+      // +7.6 %**, 16 draws of 16 against a 0.7 % floor. Both readings were correct FOR THE INSTRUMENT
+      // that produced them: benchmarks/bench_engines.cpp links <regex>, PCRE2 and RE2 beside real.hpp
+      // and sits on the per-unit inlining budget. A consumer compiles only real.hpp. Re-judged in
+      // benchmarks/bench_minimal.cpp -- which is that unit -- the same change reads `\w{2,}` −38.1 %
+      // and `\p{L}{3,}` −36.2 % over 24 paired draws, with `\p{L}+` at −0.3 %, indistinguishable.
+      // The cost belonged to the harness, not to the library. docs/MEASUREMENT.md §5.5.
+      //
+      // The refusals are kept rather than deleted because the reasoning was sound and only the
+      // instrument was wrong; deleting them would erase the one case that shows how that happens.
+      // A KEPT `\b`/`\B` wrap, checked per span. `wb_boundaries_ok` is the member the general route
+      // calls; it reads `text_`, which `run()` binds and a filler never does, so this mirrors it
+      // against this filler's own `text` -- the same null-view trap the WbEdge guard hit.
+      // `\b[a-z]+\b` is where it pays: 4.485 ns/B against `[a-z]+`'s 1.169. A maximal run of a word
+      // SUBSET can legitimately start after `_` or a digit, so unlike `\b\w+\b`'s this assertion is
+      // NOT redundant and cannot be dropped at recognition time -- it has to be evaluated here.
+      const bool         wb_ascii          {!prog_.unicode_word};
+      const assert_kind  wb_lead_k         {prog_.hints.wb_lead == 2 ? assert_kind::not_word_boundary
+                                                              : assert_kind::word_boundary};
+      const assert_kind  wb_trail_k        {prog_.hints.wb_trail == 2 ? assert_kind::not_word_boundary
+                                                               : assert_kind::word_boundary};
+      const std::uint8_t wb_lead_h         {prog_.hints.wb_lead};
+      const std::uint8_t wb_trail_h        {prog_.hints.wb_trail};
+      const std::size_t  min_len           {prog_.hints.greedy_class_loop_min};
+      bool               wb_edge           {WbEdge && start > 0};
+      std::size_t        n                 {0};
+      std::size_t        i                 {start};
       while (i < text.size()) {
         if (tbl[static_cast<std::uint8_t>(text[i])] == 0U) {
           ++i;
@@ -3216,9 +3273,97 @@ namespace real::detail {
             ++end;
           }
         }
+        // B-1 window-edge guard, and it fires at exactly ONE position per walk. A candidate reached
+        // by scanning forward past a non-member byte is provably preceded by one, so B-1's
+        // redundancy argument (a maximal run can only start where the preceding character is
+        // non-word) holds for it unconditionally. The single exception is the first candidate when
+        // it coincides with `start` and `start > 0`, because a caller-supplied `pos` does NOT assert
+        // that `text[pos - 1]` is absent or non-word -- see pattern_hints::wb_lead_maximal_run. On a
+        // refill, `start` is the previous span's end, whose byte the scan just rejected, so the
+        // condition cannot hold there; this is the same test, at the same position, that
+        // run_class_loop applies.
+        // The guard, and it is a REGISTER test that goes false after the first span. Written the
+        // obvious way -- the whole condition inline, per iteration -- it read `prog_.hints` out of the
+        // hint struct on every span emitted and cost `digits` +17.3 %, `words` +13.6 % and `\p{L}+`
+        // +13.4 % on x86-64, all four judged REAL by benchmarks/bench_layout.py against their measured
+        // floors. Hoisted, those rows are back inside noise. The assertion evaluator is the FREE
+        // function given this filler's own `text`, not the member wrapper: the wrapper reads `text_`,
+        // which `run()` binds and a filler never does, so calling it here segfaults in word_before on
+        // a null view (ASan caught it the first time). `ascii_word` mirrors the wrapper exactly for a
+        // non-flipped site.
+        if constexpr (WbEdge) {
+          if (wb_edge) {
+            wb_edge = false; // can only ever be the FIRST candidate -- see the pre-loop initialiser
+            if (i == start
+                && !detail::assertion_holds(assert_kind::word_boundary, text, i, !prog_.unicode_word)) {
+              i = end; // no genuine boundary here: skip this whole run, as the general route does
+              continue;
+            }
+          }
+        }
+        // P1: a maximal run shorter than the required minimum can never satisfy `X{k,}` starting
+        // here, so skip past the whole run and try the next one -- exactly what run_class_loop's
+        // search mode does.
+        if (end - i < min_len) {
+          i = end;
+          continue;
+        }
+        // The same retry the general route uses: a run whose wrap does not hold cannot match starting
+        // here, so skip the WHOLE run and try the next. Absent entirely when WbKept is false.
+        if constexpr (WbKept) {
+          if ((wb_lead_h != 0 && !detail::assertion_holds(wb_lead_k, text, i, wb_ascii))
+              || (wb_trail_h != 0 && !detail::assertion_holds(wb_trail_k, text, end, wb_ascii))) {
+            i = end;
+            continue;
+          }
+        }
         out[n] = cp_span {.start = i, .end = end};
         ++n;
         i = end;
+        if (n == cap) {
+          break;
+        }
+      }
+      return n;
+    }
+
+    /*!
+     * \brief Fills up to \p cap bare single byte-class matches from \p start without leaving the route.
+     *
+     * The unquantified sibling of \ref fill_class_spans, and the reason it exists is the same one, in
+     * its sharpest form: `[a-z]` has no `+` to amortise anything over, so every single accepted byte
+     * was a full route entry — 1.000 entries per match, 7.882 ns/B, slower per byte than `.`, which
+     * matches at every position. `[a-z]+` over the same corpus reads 1.110.
+     *
+     * There is no run to coalesce and so no `Cascade` variant: one accepted byte is one match, spans
+     * are exactly one byte wide, and consecutive matches are consecutive positions. The accept test is
+     * \ref class_table on \ref pattern_hints::single_class — the SAME table the general route consults,
+     * not a second copy of the membership rule.
+     *
+     * Narrow by construction, and the guard is the caller's (\ref real::basic_match_iterator): search
+     * semantics, no anchor, no `\b`/`\B` wrap. The shape itself (a 4-opcode program) rules out capture
+     * groups and a `{k,}` minimum, so unlike its siblings this filler has no bookkeeping it could fail
+     * to reproduce.
+     *
+     * \param[in]  text  The subject.
+     * \param[in]  start Where to begin.
+     * \param[out] out   Buffer for the spans found.
+     * \param[in]  cap   Capacity of \p out; the walk stops there and resumes from the last end.
+     * \return How many spans were written.
+     */
+    constexpr std::size_t fill_single_class_spans(std::string_view text,
+                                                  std::size_t      start,
+                                                  cp_span*         out,
+                                                  std::size_t      cap)
+    {
+      const std::uint8_t* const tbl               {class_table(static_cast<std::size_t>(prog_.hints.single_class))};
+      std::size_t               n                 {0};
+      for (std::size_t i {start}; i < text.size(); ++i) {
+        if (tbl[static_cast<std::uint8_t>(text[i])] == 0U) {
+          continue;
+        }
+        out[n] = cp_span {.start = i, .end = i + 1};
+        ++n;
         if (n == cap) {
           break;
         }
@@ -3245,6 +3390,7 @@ namespace real::detail {
      * \param[in]  cap   Capacity of \p out; the walk stops there and resumes from the last end.
      * \return How many spans were written.
      */
+    template <bool WbEdge>
     constexpr std::size_t fill_cp_class_spans(std::string_view text,
                                               std::size_t      start,
                                               cp_span*         out,
@@ -3266,8 +3412,26 @@ namespace real::detail {
                            const bool m {dc.cp < 0x80U ? asc[dc.cp] != 0U : member_hi(dc.cp)};
                            return m ? dc.length : 0;
                          };
+      const std::size_t min_len {prog_.hints.greedy_cp_class_min};
+      const auto        count_cps = [&](std::size_t s, std::size_t e) -> std::size_t {
+                                      std::size_t k {0};
+                                      for (std::size_t j {s}; j < e; ++k) {
+                                        const auto lead {static_cast<std::uint8_t>(text[j])};
+                                        j += lead < 0x80U ? std::size_t {1}
+                                                          : detail::decode_codepoint_strict(text, j).length;
+                                      }
+                                      return k;
+                                    };
       const bool        greedy  {prog_.hints.greedy_cp_class_plus};
       const std::size_t max_len {prog_.hints.greedy_cp_class_max};
+      // A TEMPLATE parameter, so the guard below compiles away entirely for every pattern that does
+      // not carry a dropped leading `\b` -- which is nearly all of them. Two weaker versions were
+      // measured and REFUSED first, both by benchmarks/bench_layout.py against this machine's own
+      // floors: written inline per iteration it cost `digits` +17.3 %, `words` +13.6 % and
+      // `\p{L}+` +13.4 % (it re-read the hint struct on every span emitted); hoisting it to a
+      // runtime local still cost +6 to +8 % on five class-scan rows, all judged REAL. Only
+      // `if constexpr` leaves those rows compiling to what they compiled to before.
+      bool              wb_edge {WbEdge && start > 0};
       std::size_t       n       {0};
       std::size_t       i       {start};
       while (i < text.size()) {
@@ -3312,6 +3476,38 @@ namespace real::detail {
             }
             end += w2;
           }
+        }
+        // B-1 window-edge guard, and it fires at exactly ONE position per walk. A candidate reached
+        // by scanning forward past a non-member byte is provably preceded by one, so B-1's
+        // redundancy argument (a maximal run can only start where the preceding character is
+        // non-word) holds for it unconditionally. The single exception is the first candidate when
+        // it coincides with `start` and `start > 0`, because a caller-supplied `pos` does NOT assert
+        // that `text[pos - 1]` is absent or non-word -- see pattern_hints::wb_lead_maximal_run. On a
+        // refill, `start` is the previous span's end, whose byte the scan just rejected, so the
+        // condition cannot hold there; this is the same test, at the same position, that
+        // run_cp_class_loop applies.
+        // The guard, and it is a REGISTER test that goes false after the first span. Written the
+        // obvious way -- the whole condition inline, per iteration -- it read `prog_.hints` out of the
+        // hint struct on every span emitted and cost `digits` +17.3 %, `words` +13.6 % and `\p{L}+`
+        // +13.4 % on x86-64, all four judged REAL by benchmarks/bench_layout.py against their measured
+        // floors. Hoisted, those rows are back inside noise. The assertion evaluator is the FREE
+        // function given this filler's own `text`, not the member wrapper: the wrapper reads `text_`,
+        // which `run()` binds and a filler never does, so calling it here segfaults in word_before on
+        // a null view (ASan caught it the first time). `ascii_word` mirrors the wrapper exactly for a
+        // non-flipped site.
+        if constexpr (WbEdge) {
+          if (wb_edge) {
+            wb_edge = false; // can only ever be the FIRST candidate -- see the pre-loop initialiser
+            if (i == start
+                && !detail::assertion_holds(assert_kind::word_boundary, text, i, !prog_.unicode_word)) {
+              i = end; // no genuine boundary here: skip this whole run, as the general route does
+              continue;
+            }
+          }
+        }
+        if (min_len > 1 && count_cps(i, end) < min_len) {
+          i = end;
+          continue;
         }
         out[n] = cp_span {.start = i, .end = end};
         ++n;
@@ -3512,6 +3708,13 @@ namespace real::detail {
       // Arc B-2: `\b`/`\B` on subset cp-class (e.g. `\b\d+\b`) — try successive runs.
       if (prog_.hints.wb_lead != 0 || prog_.hints.wb_trail != 0) {
         if (mode == run_mode::full || mode == run_mode::prefix) {
+          // `extend_run` decodes at its argument, which requires a byte to be there; anchored modes
+          // have no forward scan to establish that, so the window edge must be tested here (the
+          // search branch below gets it from its own scan). The route's minimum is at least one code
+          // point by construction, so an exhausted window can never match.
+          if (start >= text.size()) {
+            return fail();
+          }
           const std::size_t match_end {extend_run(start)};
           if (match_end == npos || (mode == run_mode::full && match_end != text.size()) ||
               (prog_.hints.greedy_cp_class_end != 0 && match_end != end_limit) ||
@@ -4391,6 +4594,130 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Batched twin of \ref run_codepoint_class — fills up to \p cap maximal spans in ONE call.
+     *
+     * The `.`/negated-class shape was the only class scan without a batch filler, so it paid a full
+     * route entry PER MATCH where the byte- and code-point-class routes pay one per sixteen. Measured
+     * on their own fast paths: `[a-z]+` 5.55 ns per match, `[^ ]+` 19.04, `[^,]+` 19.45 -- and
+     * `fields [^,]+` and `.` are the two weakest rows in docs/BENCHMARKS.md against PCRE2-JIT.
+     *
+     * A NEW function rather than a flag threaded through the existing one: an earlier attempt to widen
+     * a shared scan lambda with one extra branch cost `\p{L}+` +79 % and `\p{N}+` +92 % on the paths
+     * that did not even use it. Nothing here is on any other route's codegen.
+     *
+     * Search semantics only, which is what the batched walk uses -- \ref basic_match_iterator excludes
+     * anchored shapes from batching, and `run_mode::full` keeps \ref run_codepoint_class.
+     *
+     * \tparam Cascade Select the memchr-cascade run scan, chosen once per walk.
+     * \param[in]  text  The subject.
+     * \param[in]  start Byte offset to begin at.
+     * \param[out] out   Receives the spans.
+     * \param[in]  cap   Capacity of \p out.
+     * \return How many spans were written (0 = no further match).
+     */
+    template <bool Cascade>
+    constexpr std::size_t fill_codepoint_class_spans(std::string_view text,
+                                                     std::size_t      start,
+                                                     cp_span*         out,
+                                                     std::size_t      cap)
+    {
+      const std::uint8_t* const ascii {
+        class_table(static_cast<std::size_t>(prog_.hints.codepoint_class_ascii))};
+      const auto cont = [&](std::size_t i) {
+                          const auto cont_byte {static_cast<std::uint8_t>(text[i])};
+                          return cont_byte >= 0x80 && cont_byte <= 0xBF;
+                        };
+      const auto width = [&](std::size_t i) -> std::size_t {
+                           const auto byte_value {static_cast<std::uint8_t>(text[i])};
+                           if (byte_value < 0x80) {
+                             return ascii[byte_value] != 0U ? 1 : 0;
+                           }
+                           if (byte_value >= 0xC2 && byte_value <= 0xDF) {
+                             return i + 1 < text.size() && cont(i + 1) ? 2 : 0;
+                           }
+                           if (byte_value >= 0xE0 && byte_value <= 0xEF) {
+                             if (i + 2 >= text.size()) {
+                               return 0;
+                             }
+                             const detail::utf8_second_byte_bounds& b {
+                               detail::utf8_second_byte_bounds_table[byte_value]};
+                             const auto b2                            {static_cast<std::uint8_t>(text[i + 1])};
+                             return b2 >= b.lo && b2 <= b.hi && cont(i + 2) ? 3 : 0;
+                           }
+                           if (byte_value >= 0xF0 && byte_value <= 0xF4) {
+                             if (i + 3 >= text.size()) {
+                               return 0;
+                             }
+                             const detail::utf8_second_byte_bounds& b {
+                               detail::utf8_second_byte_bounds_table[byte_value]};
+                             const auto b2                            {static_cast<std::uint8_t>(text[i + 1])};
+                             return b2 >= b.lo && b2 <= b.hi && cont(i + 2) && cont(i + 3) ? 4 : 0;
+                           }
+                           return 0;
+                         };
+      std::size_t n {0};
+      std::size_t i {start};
+      while (n < cap && i < text.size()) {
+        std::size_t w {width(i)};
+        while (w == 0) {
+          ++i;
+          if (i >= text.size()) {
+            return n;
+          }
+          w = width(i);
+        }
+        const std::size_t match_start {i};
+        std::size_t       match_end   {i + w};
+        if (prog_.hints.codepoint_class_plus) {
+          const auto scalar_scan = [&]() {
+                                     while (match_end < text.size()) {
+                                       const std::size_t cw {width(match_end)};
+                                       if (cw == 0) {
+                                         break;
+                                       }
+                                       match_end += cw;
+                                     }
+                                   };
+          if constexpr (Cascade) {
+            if (!std::is_constant_evaluated()) {
+              const std::size_t stop {find_bytes_cascade(text, match_end, prog_.hints.stop_set.data(),
+                                                         prog_.hints.stop_set_size)};
+              const std::size_t p1   {stop == npos ? text.size() : stop};
+              bool              bad  {false};
+              while (match_end < p1) {
+                const std::size_t high {first_high_byte(text, match_end, p1)};
+                if (high == p1) {
+                  break;
+                }
+                match_end = high;
+                const std::size_t cw {width(match_end)};
+                if (cw == 0) {
+                  bad = true;
+                  break;
+                }
+                match_end += cw;
+              }
+              if (!bad) {
+                match_end = p1;
+              }
+            }
+            else {
+              scalar_scan();
+            }
+          }
+          else {
+            scalar_scan();
+          }
+        }
+        out[n].start = match_start;
+        out[n].end   = match_end;
+        ++n;
+        i = match_end;
+      }
+      return n;
+    }
+
+    /*!
      * \brief Fast path for `.` / a negated class, optionally a greedy `+`.
      *
      * Scans codepoints directly, mirroring the byte-level expansion the VM would
@@ -4462,6 +4789,14 @@ namespace real::detail {
                            return 0;
                          };
 
+      // The recompute below is DELIBERATE, and removing it was measured and refused. The search loop
+      // stops on a non-zero width and could hand it over -- callgrind agrees it is redundant, and
+      // carrying it (`while (... && (first_width = width(i)) == 0)`) cut total instructions on `[^,]+`
+      // by 21 % (119.5M -> 94.5M, 343 -> 271 Ir per match, the lambda being a real call rather than
+      // inlined). It also made this path SLOWER, reproducibly on two independent builds: `\w+`
+      // +20.6 % / +19.4 %, `[à-ÿ]+` +12.5 % / +12.6 %, while the row it targeted (`[^,]+`) moved
+      // -0.6 % / -2.8 %. Fewer instructions is not faster; the extra variable live across the loop
+      // costs more than the call it saves. Do not "simplify" this again without timing it.
       std::size_t match_start {start};
       if (mode == run_mode::search) {
         while (match_start < text.size() && width(match_start) == 0) {
@@ -4595,6 +4930,23 @@ namespace real::detail {
      * \param[in]  mode      Anchoring mode.
      * \param[out] out_slots Receives the matched span on success.
      * \return `true` if some branch matched.
+     *
+     * \note **This route is 99 % per-match RETURN at density, and that is measured rather than
+     *       inferred.** Holding the pattern (`cat|dog|fish`) and 200 KB of bytes fixed and varying only
+     *       how often a match must be emitted gives a clean line across five densities (50 000 / 25 000
+     *       / 12 500 / 6 250 / 3 125 matches): the fit is **19.13 ns per match of return** against
+     *       **5 776 ns of scanning for the whole 200 KB** (0.0289 ns/byte). At the densest point the
+     *       scan is 0.6 % of the work. Even §A's `alt` row, on sparse prose, is ~71 % return -- which
+     *       is why it loses to PCRE2-JIT on both ISAs while the scan itself is nearly free.
+     *
+     *       So the opportunity here is a BATCH FILLER, exactly as for the class routes, and the
+     *       recoverable amount is the one the class routes actually recovered: `[^,]+` went 19.45 ns
+     *       per match to 4.58 when batched. Not attempted yet, and two things make it the heaviest
+     *       item on that list rather than the obvious next one -- the search body below is a SIMD
+     *       block scan with a carried mask plus a scalar tail plus a non-SIMD fallback, so a filler
+     *       reproduces all three; and a new filler body is the change shape that charged unrelated
+     *       rows every time it was tried during the batching work (docs/MEASUREMENT.md §5.4, §5.5).
+     *       Judge it on BOTH instruments if it is built.
      */
     template <typename OutSlots>
     constexpr bool run_alternation(std::string_view text,
@@ -4698,6 +5050,136 @@ namespace real::detail {
         return fail();
       }
       return true;
+    }
+
+    /*!
+     * \brief Fills up to \p cap `fixed_alternation` matches from \p start without leaving the route.
+     *
+     * The measurement that motivates it is recorded on \ref run_alternation -- holding `cat|dog|fish` and 200 KB
+     * of bytes fixed and varying only how often a match must be emitted fits **19.13 ns per match of
+     * return against 5 776 ns to scan the whole 200 KB** -- at density the scan is 0.6 % of the work.
+     * This route was 99 % per-match return, where the class routes had been 71 %.
+     *
+     * Scope is the SMALL-SET shape only (2..8 distinct branch first bytes, \ref
+     * pattern_hints::small_set_size), which is what the mask scan below needs. An alternation outside
+     * that range takes `run_alternation`'s `fast_search` fallback, and the caller declines to batch it
+     * rather than have this body grow a second scan -- adding bodies to this translation unit is the
+     * change shape that charged unrelated rows repeatedly during the batching work
+     * (docs/MEASUREMENT.md §5.4).
+     *
+     * The scan is deliberately a COPY of run_alternation's rather than a refactor of it. Both were
+     * available; the existing route is measured and working, and relocating its hot body risks a
+     * regression there that would be worse than this filler's whole gain. If the duplication proves
+     * costly on either instrument, the refactor is the fallback, not the other way round.
+     *
+     * \param[in]  text  The subject.
+     * \param[in]  start Where to begin.
+     * \param[out] out   Buffer for the spans found.
+     * \param[in]  cap   Capacity of \p out; the walk stops there and resumes from the last end.
+     * \return How many spans were written.
+     */
+    constexpr std::size_t fill_alternation_spans(std::string_view text,
+                                                 std::size_t      start,
+                                                 cp_span*         out,
+                                                 std::size_t      cap)
+    {
+      const auto& code {prog_.code};
+      // Leftmost-FIRST among branches, read from the split chain in source order, exactly as
+      // run_alternation's own `match_at` does -- same helper calls, same order, same wb test.
+      const auto match_at = [&](std::size_t match_start) -> std::size_t {
+                              std::size_t pc {prog_.hints.body_pc == 0
+                                                ? std::size_t {1}
+                                                : static_cast<std::size_t>(prog_.hints.body_pc)};
+                              while (true) {
+                                const bool        is_split {code[pc].op == opcode::split};
+                                const std::size_t branch   {is_split
+                                                            ? static_cast<std::size_t>(code[pc].primary_target)
+                                                            : pc};
+                                const std::size_t me {match_byte_klass_run(text, branch, match_start)};
+                                if (me != npos && wb_boundaries_ok(match_start, me)) {
+                                  return me;
+                                }
+                                if (!is_split) {
+                                  return npos;
+                                }
+                                pc = static_cast<std::size_t>(code[pc].secondary_target);
+                              }
+                            };
+      const std::size_t           cnt {prog_.hints.small_set_size};
+      std::array<std::uint8_t, 8> mem {};
+      for (std::size_t i = 0; i < cnt; ++i) {
+        mem[i] = static_cast<std::uint8_t>(prog_.hints.small_set[i]);
+      }
+      const std::size_t sz  {text.size()};
+      std::size_t       n   {0};
+      std::size_t       pos {start};
+      while (pos < sz && n < cap) {
+        std::size_t hit {npos};
+        std::size_t end {npos};
+        // Block scan. A match may end inside a later block, so the walk always RESUMES from the
+        // match end rather than continuing the current mask -- the mask's carry is worth having
+        // within a block of misses, not across an emitted span.
+        //
+        // GUARDED, and the guard is not decoration: `mask_t` and its accessors only exist behind this
+        // condition (simd.hpp), and the first version of this filler copied run_alternation's block
+        // WITHOUT copying its `#if`. Every CI leg here defines one of the two macros, so the omission
+        // was invisible locally and on both benchmark legs; a translation unit with neither failed to
+        // compile with "'mask_t' was not declared in this scope". Where the block is absent the scalar
+        // loop below covers the whole subject rather than only a tail -- same answers, no vectors.
+#if defined(__ARM_NEON) || defined(__SSE2__)
+        if (!std::is_constant_evaluated()) {
+          for (; pos + 16 <= sz; pos += 16) {
+            std::array<std::uint8_t, 16> buf {};
+            std::memcpy(buf.data(), text.data() + pos, 16);
+            mask_t mask                      {load_members_mask(buf.data(), mem.data(), cnt)};
+            while (!empty(mask)) {
+              const std::size_t lane {first_lane(mask)};
+              const std::size_t me   {match_at(pos + lane)};
+              if (me != npos) {
+                hit = pos + lane;
+                end = me;
+                break;
+              }
+              mask = clear_first(mask);
+            }
+            if (hit != npos) {
+              break;
+            }
+          }
+        }
+#endif
+        if (hit == npos) {
+          // The whole scan when no vector block ran (no SIMD, or constant evaluation), the tail
+          // otherwise -- run_alternation draws the same boundary.
+          for (; pos < sz; ++pos) {
+            const std::uint8_t b      {static_cast<std::uint8_t>(text[pos])};
+            bool               member {false};
+            for (std::size_t i = 0; i < cnt; ++i) {
+              if (b == mem[i]) {
+                member = true;
+                break;
+              }
+            }
+            if (member) {
+              const std::size_t me {match_at(pos)};
+              if (me != npos) {
+                hit = pos;
+                end = me;
+                break;
+              }
+            }
+          }
+        }
+        if (hit == npos) {
+          break;
+        }
+        out[n] = cp_span {.start = hit, .end = end};
+        ++n;
+        // An alternation branch is a non-empty byte/klass run, so `end > hit` always and the walk
+        // cannot stall; the find_iter empty-match rule has nothing to apply here.
+        pos = end;
+      }
+      return n;
     }
 
     /*!
@@ -4826,6 +5308,27 @@ namespace real::detail {
      * \param[in]  mode      Anchoring mode.
      * \param[out] out_slots Receives the capture slots on success.
      * \return `true` if a match was found.
+     *
+     * \note **A one-byte whole-pattern literal is NOT redirected to the batched single-class route,
+     *       and that is measured rather than an oversight.** `e` and `[e]` are the same language, and
+     *       `single_class` is batched where this route is not, so the redirect looks free -- the same
+     *       argument that made the bare-possessive redirect a 72 % win. It is not free here, because
+     *       which route wins depends on the SUBJECT, not the pattern:
+     *
+     *           byte  matches/100 KB   exact_literal   batched class
+     *           e       10 447          4.274 ns/B     0.953   class wins 4.5x
+     *           ,       16 949          4.919          1.467   class wins 3.4x
+     *           q        1 493          0.418          0.673   LITERAL wins 1.6x
+     *           z        1 492          0.414          0.669   LITERAL wins 1.6x
+     *           @        1 516          0.399          0.679   LITERAL wins 1.7x
+     *
+     *       `memchr` skips whole regions, which is worth more than batching when matches are rare,
+     *       and sparse one-byte literals are at least as common as dense ones. A blanket redirect
+     *       would trade a 4.5x dense win for a 1.6x sparse loss.
+     *
+     *       So the shape of the answer is a DENSITY GATE -- what \ref ac_density_favours_automaton
+     *       already is for Aho-Corasick -- not a recognition-time redirect. That is a design of its
+     *       own, needing its own threshold measurement, and it is not attempted here.
      */
     template <typename OutSlots>
     constexpr bool run_exact_literal(std::string_view text,
