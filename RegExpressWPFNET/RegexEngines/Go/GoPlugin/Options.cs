@@ -30,6 +30,10 @@ namespace GoPlugin
         public bool RE2 { get; set; }
         public bool Unicode { get; set; }
 
+        public bool OptionDisableCharClassASCIIBitmap { get; set; }
+        public string? OptionMaxBacktrackingStackSize { get; set; }
+        public string? OptionMaxCachedRuneBufferLength { get; set; }
+
         public bool Ungreedy { get; set; }
 
         public bool posix { get; set; }

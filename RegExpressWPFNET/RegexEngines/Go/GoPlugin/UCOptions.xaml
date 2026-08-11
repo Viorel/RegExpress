@@ -82,6 +82,37 @@
                 <ui:CheckboxWithNote Prop="ECMAScript" Note=""/>
                 <ui:CheckboxWithNote Prop="RE2" Note=""/>
                 <ui:CheckboxWithNote Prop="Unicode" Note=""/>
+                <ui:CheckboxWithNote Text="OptionMaintainCaptureOrder" Note="" IsChecked="True" IsEnabled="False"/>
+                <ui:CheckboxWithNote Prop="OptionDisableCharClassASCIIBitmap" Note=""/>
+
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 4" >
+                    <Grid.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Grid.LayoutTransform>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto" MinWidth="55"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=OptionMaxBacktrackingStackSize}" Content="OptionMaxBacktrackingStackSize:"/>
+                    <TextBox x:Name="OptionMaxBacktrackingStackSize" Grid.Column="1" Grid.Row="0" Text="{Binding OptionMaxBacktrackingStackSize, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– interpreter's per-match backtracking stack" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=OptionMaxCachedRuneBufferLength}" Content="OptionMaxCachedRuneBufferLength:"/>
+                    <TextBox x:Name="OptionMaxCachedRuneBufferLength" Grid.Column="1" Grid.Row="1" Text="{Binding OptionMaxCachedRuneBufferLength, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– used when converting input strings to the engine's internal representation" Style="{StaticResource note}" />
+
+                </Grid>
             </StackPanel>
 
             <!-- rexa -->
@@ -123,7 +154,7 @@
 
                     <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=MaxDFAStates}" Content="MaxDFAStates:"/>
                     <TextBox x:Name="MaxDFAStates" Grid.Column="1" Grid.Row="0" Text="{Binding MaxDFAStates, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– maximum number of DFA states to cache; larger values use more memory but reduce NFA fallback frequency." Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– maximum number of DFA states to cache; larger values use more memory but reduce NFA fallback frequency" Style="{StaticResource note}" />
 
                     <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=DeterminizationLimit}" Content="DeterminizationLimit:"/>
                     <TextBox x:Name="DeterminizationLimit" Grid.Column="1" Grid.Row="1" Text="{Binding DeterminizationLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
@@ -131,7 +162,7 @@
 
                     <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=MinLiteralLen}" Content="MinLiteralLen:"/>
                     <TextBox x:Name="MinLiteralLen" Grid.Column="1" Grid.Row="2" Text="{Binding MinLiteralLen, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– minimum length for prefilter literals; shorter literals may have too many false positives." Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– minimum length for prefilter literals; shorter literals may have too many false positives" Style="{StaticResource note}" />
 
                     <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=MaxLiterals}" Content="MaxLiterals:"/>
                     <TextBox x:Name="MaxLiterals" Grid.Column="1" Grid.Row="3" Text="{Binding MaxLiterals, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>

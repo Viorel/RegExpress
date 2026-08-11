@@ -30,6 +30,9 @@ namespace GoPlugin
         {
             Debug.Assert( options.Package == PackageEnum.regexp2 );
 
+            Int64? OptionMaxBacktrackingStackSize = ValidationUtilities.ParseInt64( "OptionMaxBacktrackingStackSize", options.OptionMaxBacktrackingStackSize );
+            Int64? OptionMaxCachedRuneBufferLength = ValidationUtilities.ParseInt64( "OptionMaxCachedRuneBufferLength", options.OptionMaxCachedRuneBufferLength );
+
             var data = new
             {
                 pattern,
@@ -44,6 +47,9 @@ namespace GoPlugin
                 options.ECMAScript,
                 options.RE2,
                 options.Unicode,
+                options.OptionDisableCharClassASCIIBitmap,
+                OptionMaxBacktrackingStackSize,
+                OptionMaxCachedRuneBufferLength,
             };
 
             string json = JsonSerializer.Serialize( data );

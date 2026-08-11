@@ -15,15 +15,18 @@ type inputStruct struct {
 	Pattern string
 	Text    string
 
-	IgnoreCase              bool
-	Multiline               bool
-	ExplicitCapture         bool
-	Singleline              bool
-	IgnorePatternWhitespace bool
-	RightToLeft             bool
-	ECMAScript              bool
-	RE2                     bool
-	Unicode                 bool
+	IgnoreCase                        bool
+	Multiline                         bool
+	ExplicitCapture                   bool
+	Singleline                        bool
+	IgnorePatternWhitespace           bool
+	RightToLeft                       bool
+	ECMAScript                        bool
+	RE2                               bool
+	Unicode                           bool
+	OptionDisableCharClassASCIIBitmap bool
+	OptionMaxBacktrackingStackSize    *int
+	OptionMaxCachedRuneBufferLength   *int
 }
 
 type outputStruct struct {
@@ -88,9 +91,22 @@ func main() {
 		options |= regexp2.Unicode
 	}
 
+	var co []regexp2.CompileOption
+	co = append(co, options)
+	co = append(co, regexp2.OptionMaintainCaptureOrder())
+	if input.OptionDisableCharClassASCIIBitmap {
+		co = append(co, regexp2.OptionDisableCharClassASCIIBitmap())
+	}
+	if input.OptionMaxBacktrackingStackSize != nil {
+		co = append(co, regexp2.OptionMaxBacktrackingStackSize(*input.OptionMaxBacktrackingStackSize))
+	}
+	if input.OptionMaxCachedRuneBufferLength != nil {
+		co = append(co, regexp2.OptionMaxCachedRuneBufferLength(*input.OptionMaxCachedRuneBufferLength))
+	}
+
 	var re *regexp2compat.Regexp
 
-	re, err = regexp2compat.Compile(pattern, regexp2.OptionMaintainCaptureOrder(), options)
+	re, err = regexp2compat.Compile(pattern, co...)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
