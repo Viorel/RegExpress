@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -24,7 +26,7 @@ namespace RegExpressWPFNET
     /// <summary>
     /// Interaction logic for UCMain.xaml
     /// </summary>
-    partial class UCMain : UserControl, IDisposable
+    partial class UCMain : UserControl, IDisposable, INotifyPropertyChanged
     {
         readonly ResumableLoop FindMatchesLoop;
         readonly ResumableLoop UpdateWhitespaceWarningLoop;
@@ -44,6 +46,7 @@ namespace RegExpressWPFNET
         TabData? InitialTabData = null;
         bool ucPatternHadFocus = false;
         bool ucTextHadFocus = false;
+        double? Animation1From;
 
         public event EventHandler? Changed;
         public event EventHandler? NewTabClicked;
@@ -101,6 +104,24 @@ namespace RegExpressWPFNET
             }
         }
 
+        string mLblMatchesText = "Matches";
+
+        public string LblMatchesText
+        {
+            get
+            {
+                return mLblMatchesText;
+            }
+            private set
+            {
+                mLblMatchesText = value;
+
+                NotifyPropertyChanged( ); // (even if text not changed -- for animation)
+
+                animation1.From = Animation1From; // re-enable animation
+            }
+        }
+
         public UCMain( IReadOnlyList<IRegexEngine> engines )
         {
             InitializeComponent( );
@@ -113,6 +134,10 @@ namespace RegExpressWPFNET
             lblWarnings.Inlines.Remove( lblWhitespaceWarning1 );
             lblWarnings.Inlines.Remove( lblWhitespaceWarning2 );
             pnlOwerlappingMatches.Visibility = Visibility.Collapsed;
+
+            // disable this animation for a while
+            Animation1From = animation1.From;
+            animation1.From = 0;
 
             FindMatchesLoop = new ResumableLoop( "Match", FindMatchesThreadProc, 333, 555 );
             UpdateWhitespaceWarningLoop = new ResumableLoop( "WS Warning", UpdateWhitespaceWarningThreadProc, 444, 777 );
@@ -535,7 +560,7 @@ namespace RegExpressWPFNET
             if( preferImmediateReaction )
             {
                 ucMatches.ShowInfo( "Matching…", false );
-                lblMatches.Text = "Matches";
+                LblMatchesText = "";
 
                 FindMatchesLoop.SignalExecute( );
             }
@@ -823,7 +848,7 @@ namespace RegExpressWPFNET
                             potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ),
                             noGroupDetails: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag ) );
                         ucMatches.ShowNoPattern( );
-                        lblMatches.Text = "Matches";
+                        LblMatchesText = "Matches";
                         ShowOverlappingMatchesWarning( false );
                     } );
             }
@@ -862,7 +887,7 @@ namespace RegExpressWPFNET
                                 potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ),
                                 noGroupDetails: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag ) );
                             ucMatches.ShowError( exc, engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.ScrollErrorsToEnd ) );
-                            lblMatches.Text = "Error";
+                            LblMatchesText = "Error";
                             ShowOverlappingMatchesWarning( false );
                         } );
 
@@ -920,7 +945,7 @@ namespace RegExpressWPFNET
                                             showCaptures: !engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups ) && !engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoCaptures ) && cbShowCaptures.IsChecked == true,
                                             noGroupIndex: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupIndex ), noGroupSuccessFlag: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupSuccessFlag ) );
 
-                                        lblMatches.Text = count == 0 ? "Matches" : count == 1 ? "1 match" : $"{count:#,##0} matches";
+                                        LblMatchesText = count == 0 ? "Matches" : count == 1 ? "1 match" : $"{count:#,##0} matches";
                                         ShowOverlappingMatchesWarning( is_overlapping );
                                     } );
                 }
@@ -1241,6 +1266,16 @@ namespace RegExpressWPFNET
             pnlOwerlappingMatches.Display( yes );
         }
 
+        void NotifyPropertyChanged( [CallerMemberName] string? propertyName = null )
+        {
+            PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
+        }
+
+        #region INotifyPropertyChanged
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        #endregion
 
         #region IDisposable Support
 
@@ -1291,5 +1326,6 @@ namespace RegExpressWPFNET
 
         [GeneratedRegex( "(\r\n|[\r\n\t \f\v])+", RegexOptions.ExplicitCapture )]
         private static partial Regex RegexReplaceLineEnds( );
+
     }
 }

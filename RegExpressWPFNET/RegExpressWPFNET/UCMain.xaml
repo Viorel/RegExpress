@@ -22,11 +22,11 @@
         <Grid Grid.Column="0">
 
             <Grid.RowDefinitions>
-                <RowDefinition x:Name="TopRow" Height="73" MinHeight="44" />
+                <RowDefinition x:Name="TopRow" Height="73" MinHeight="67" />
                 <RowDefinition Height="5" />
-                <RowDefinition Height="*" MinHeight="55" />
+                <RowDefinition Height="*" MinHeight="67"/>
                 <RowDefinition Height="5" />
-                <RowDefinition x:Name="BottomRow" Height="220" MinHeight="55" />
+                <RowDefinition x:Name="BottomRow" Height="220" MinHeight="77"  />
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0" Margin="0 0 0 1">
@@ -60,7 +60,7 @@
             <Grid Grid.Row="2" Margin="0 4 0 1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*" MinHeight="33"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0" >
@@ -89,7 +89,7 @@
             <Grid Grid.Row="4" Margin="0 4 0 0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*" MinHeight="33"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
                 <Grid>
@@ -99,7 +99,31 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Style="{StaticResource StackPanelWithLabels}">
-                        <TextBlock x:Name="lblMatches" Grid.Row="0" Text="Matches" Style="{StaticResource Labels}"/>
+                        <Border ClipToBounds="True" BorderThickness="0">
+                            <TextBlock x:Name="lblMatches" Grid.Row="0"  
+                                   Text="{Binding LblMatchesText, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Mode=OneWay, NotifyOnTargetUpdated=True, FallbackValue='Matches'}"
+                                   Style="{StaticResource Labels}" >
+                                <TextBlock.RenderTransform>
+                                    <TransformGroup>
+                                        <TranslateTransform x:Name="transform1" Y="0"/>
+                                    </TransformGroup>
+                                </TextBlock.RenderTransform>
+                                <TextBlock.Triggers>
+                                    <EventTrigger RoutedEvent="Binding.TargetUpdated" >
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation x:Name="animation1"
+                                                    Storyboard.TargetName="transform1"
+                                                    Storyboard.TargetProperty="Y"
+                                                    From="28"
+                                                    To="0"
+                                                    Duration="00:00:00.222" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </TextBlock.Triggers>
+                            </TextBlock>
+                        </Border>
                         <TextBlock x:Name="pnlOwerlappingMatches" Padding="0" Margin="22 0 0 0">
                             <Run Foreground="OrangeRed">&#x26a0;</Run>
                             Overlapping matches
