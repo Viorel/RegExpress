@@ -511,8 +511,18 @@ namespace real::detail {
       }
     }
 
-    ThreadList lists[2]; //!< Current and next thread lists (flipped by index).
-    EpsVec     stack;    //!< Epsilon-closure DFS stack.
+    // TWO NAMED MEMBERS, NOT `ThreadList lists[2]`, and it must stay that way. An array of two is
+    // constructed by a loop, and gcc widens that loop body's sparse zero-stores (each list's handful of
+    // bookkeeping words) into a `memset` spanning the whole element -- 2472 bytes per list, 4944 per
+    // state, which is exactly the inline buffers this file documents as deliberately left
+    // uninitialized. The layout is unchanged (two consecutive ThreadLists either way), so this is a
+    // codegen constraint and nothing else; a single list, or two named ones, gets scalar stores at the
+    // real offsets. `std::array<ThreadList, 2>` does NOT avoid it -- it is the loop that does it, not
+    // the C array. Every access site takes `&list_a`/`&list_b` once and then rotates POINTERS, so
+    // nothing indexes these with a runtime value and naming them costs no access.
+    ThreadList list_a; //!< One of the two thread lists; the run rotates pointers, not indices.
+    ThreadList list_b; //!< The other one — see \ref list_a.
+    EpsVec     stack;  //!< Epsilon-closure DFS stack.
 
     /*!
      * \brief Flat 256-byte membership table for the hot single-class scan, and
@@ -808,12 +818,7 @@ namespace real::detail {
           // No size guard: on a no-match haystack the route is memmem-only (the reverse setup is lazy, built on
           // the first candidate, never here), so it wins at every size; and the prefix byte-program is a
           // per-regex immutable (built once, amortized by any later use — the lazy-DFA warmup's own contract).
-          if (state_.il_text != static_cast<const void*>(text.data())) {
-            state_.il_abandoned      = false; // a fresh haystack: re-enable the route and re-evaluate its guards
-            state_.il_density_cands  = 0;
-            state_.il_density_origin = npos;
-            state_.il_text           = static_cast<const void*>(text.data());
-          }
+          il_reset_on_new_haystack(text);
           if (!state_.il_abandoned) {
             bool       abandon {false};
             const bool matched {run_inner_literal(text, start, out_slots, abandon)};
@@ -849,8 +854,24 @@ namespace real::detail {
       }
 #endif
       if (sem_ == match_semantics::first && prog_.hints.fixed_shape) {
+        if (prog_.hints.anchored_start && start != 0) {
+          out_slots.assign(prog_.slot_count, npos);
+          return false;
+        }
         prof::tick_route(prof::route::fixed_shape);
-        return run_fixed_shape(text, start, mode, out_slots);
+        const bool matched {run_fixed_shape(text, start,
+                                            prog_.hints.anchored_start && mode == run_mode::search
+                                              ? run_mode::prefix : mode, out_slots)};
+        if (matched && prog_.hints.fs_end_anchor != 0) {
+          const std::size_t e      {out_slots[1]};
+          const bool        at_end {e == text.size()
+                                    || (prog_.hints.fs_end_anchor == 2 && e + 1 == text.size() && text[e] == 0x0A)};
+          if (!at_end) {
+            out_slots.assign(prog_.slot_count, npos);
+            return false;
+          }
+        }
+        return matched;
       }
       if (sem_ == match_semantics::first && prog_.hints.codepoint_class_ascii >= 0
           && (std::is_constant_evaluated() || !class_fastpath_disabled())) {
@@ -950,8 +971,8 @@ namespace real::detail {
     {
       text_ = text;
       const std::size_t code_size {prog_.code.size()};
-      auto*             clist     {&state_.lists[0]};
-      auto*             nlist     {&state_.lists[1]};
+      auto*             clist     {&state_.list_a};
+      auto*             nlist     {&state_.list_b};
       clist->reset(code_size);
       nlist->reset(code_size);
       out_slots.assign(prog_.slot_count, npos);
@@ -992,6 +1013,7 @@ namespace real::detail {
           ++pos;
           continue;
         }
+        detail::prof::tick_thread_count(clist->pcs.size());
         step(*clist, *nlist, pos, mode, matched, out_slots);
         auto* swap {clist};
         clist = nlist;
@@ -1069,6 +1091,39 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Re-enables the inner-literal route and clears its density counters on a new haystack.
+     *
+     * ONE MECHANISM, not two: the route's guards are sticky per haystack (`il_abandoned`, and the density
+     * pair behind it), and both `run()`'s gate and \ref fill_inner_literal_spans have to observe the same
+     * reset at the same moment. Written out in each place, a guard re-enabled in one and not the other is a
+     * silent behaviour difference between a batched walk and a per-match walk -- the exact shape of defect
+     * the batching work has produced twice already.
+     *
+     * \param[in] text The subject being scanned.
+     */
+    constexpr void il_reset_on_new_haystack(std::string_view text)
+    {
+      // GUARDED, and the guard is the whole reason this compiles for both storages: the IL fields exist on
+      // the dynamic state and on a static one only when its tier wants IL (`static_il_guard_fields`), so an
+      // unguarded body here fails to compile for `static_pike_scratch<…, WantsIL = false>`. The route's own
+      // gate had the guard by living inside a discarded `if constexpr` branch; factoring the body out moved
+      // the obligation here.
+      if constexpr (requires(State & st) {
+        st.il_abandoned;
+      }) {
+        if (state_.il_text != static_cast<const void*>(text.data())) {
+          state_.il_abandoned      = false; // a fresh haystack: re-enable and re-evaluate its guards
+          state_.il_density_cands  = 0;
+          state_.il_density_origin = npos;
+          state_.il_text           = static_cast<const void*>(text.data());
+        }
+      }
+      else {
+        static_cast<void>(text);
+      }
+    }
+
+    /*!
      * \brief The inner-literal search: memmem a required literal, reverse-match the prefix to the match start,
      *        forward-confirm — the reverse-inner protocol (regex-automata's `ReverseInner`).
      *
@@ -1103,6 +1158,9 @@ namespace real::detail {
       bool              first_candidate {true};
       while (true) {
         const std::size_t h {find_literal(text, pos, lit)};
+        if (h != npos) {
+          detail::prof::tick_prefilter_candidate();
+        }
         if (h == npos) {
           out_slots.assign(prog_.slot_count, npos);
           return false;   // no more candidates (no-match): memmem-only — the guard below was never reached
@@ -1188,16 +1246,7 @@ namespace real::detail {
           return false;
         }
         std::size_t s {h}; // boundary 0 = head literal: the reverse is the identity
-        if (boundary >= 1 && prog_.hints.il_fused_eligible) {
-          // IL-FUSION: the whole pattern (prefix + literal + suffix) is a plain fixed-width byte/klass
-          // sequence (prog_.hints.fixed_shape, checked at compile time -- compiler.hpp's il_fused_eligible
-          // wiring), so the match start is pure arithmetic: no reverse DFA. Bounds-guarded both ways -- a
-          // hit closer to the text start than the prefix's width, or whose only possible start falls
-          // below the reverse floor, has no valid candidate here (mirrors reverse_start returning npos).
-          const std::size_t prefix_w {prog_.hints.il_fused_prefix_width};
-          s = (h >= prefix_w && h - prefix_w >= min_match_start) ? h - prefix_w : npos;
-        }
-        else if (boundary >= 1 && prog_.hints.il_rev_class >= 0) {
+        if (boundary >= 1 && prog_.hints.il_rev_class >= 0) {
           // IL REVERSE-BY-CLASS: the prefix is one greedy class loop, so the match start for this candidate
           // is where the class run ending at `h` begins — a backward walk, no automaton and no per-regex
           // cache, which is what lets a storage without immutables take this route at all. `+` needs at
@@ -1264,29 +1313,8 @@ namespace real::detail {
           }
         }
         if (s == npos) {
+          detail::prof::tick_prefilter_rejected();
           pos = h + 1; // the prefix reaches no start within [min_match_start, h] -> next candidate
-        }
-        else if (prog_.hints.il_fused_eligible) {
-          // The fused verify: one match_byte_klass_run pass over the WHOLE span (prefix + literal +
-          // suffix, all byte/klass ops by construction) -- no forward DFA, no one-pass extraction. A
-          // fixed-width match has every save at a compile-time-constant offset from the start, exactly
-          // like run_fixed_shape's own grouped path, so fill_fixed_saves (no re-match) fills captures.
-          const std::size_t match_end {prog_.slot_count <= 2 ? match_byte_klass_run<false>(text, 1, s)
-                                                              : match_byte_klass_run<true>(text, 1, s)};
-          if (match_end != npos) {
-            out_slots.assign(prog_.slot_count, npos);
-            out_slots[0] = s;
-            out_slots[1] = match_end;
-            if (prog_.slot_count > 2) {
-              fill_fixed_saves(s, out_slots);
-            }
-            return true;
-          }
-          // min_pre_start intentionally not advanced here: match_byte_klass_run reports pass/fail only,
-          // not how far it got, so there is no sound tighter floor to claim (and none is needed for
-          // linearity -- the fused verify is a hard-bounded O(il_fused_max_width) check per candidate,
-          // not the reverse/forward-DFA cost the guard was built to bound).
-          pos = h + 1;
         }
         else if (prog_.hints.il_fwd_class >= 0) {
           // TWO-RUN CONFIRM: the whole pattern is `class+ <literal> class+` (hints.il_fwd_class), and the
@@ -1381,11 +1409,19 @@ namespace real::detail {
     /*!
      * \brief The concrete thread-list type taken from the bound `State`.
      */
-    using list_type = std::remove_reference_t<decltype(std::declval<State&>().lists[0])>;
+    using list_type = std::remove_reference_t<decltype(std::declval<State&>().list_a)>;
+
+  public:
 
     //! \brief Below this input length the lazy-DFA routing is skipped (the two-pass setup does not amortise
     //!        on a short subject — the Pike VM goes direct). A measured, documented threshold.
+    //!
+    //!        PUBLIC because \ref real::basic_match_iterator reads it when deciding whether to batch this
+    //!        route: below this length the route is not taken, so its filler could only fail once per
+    //!        match. Paired with \ref lazy_dfa_is_the_route, which is public for the same reason.
     static constexpr std::size_t lazy_dfa_min_input {512};
+
+  private:
 
     /*!
      * \brief O1 density-gate sample size and threshold (inner-literal → core/DFA when candidate density is high).
@@ -1436,6 +1472,22 @@ namespace real::detail {
      * So the rule is a PRODUCT, not a density: `(candidates per 1000 bytes) * branch_count`. The
      * product is what is roughly invariant, and it is what this threshold is expressed in.
      *
+     * **THIS QUANTITY CANNOT DECIDE ALONE, and the gate no longer asks it to.** Candidate density
+     * counts positions where a branch HEAD occurs and cannot tell a false start from a completed
+     * match, and those two pull in OPPOSITE directions: a false start punishes the cascade (verify,
+     * reject, resume) and leaves the automaton indifferent, while a match rewards the cascade (it
+     * stops there) and costs the automaton a per-match return. One number was arbitrating two forces
+     * that oppose each other -- the same argument the branch COUNT lost, now applying to what replaced
+     * it. A counter-example in the wild: a nine-branch alternation over ordinary prose reads 3.56 ns/B
+     * on the automaton against 1.87 on the cascade, a 1.9x loss on the side of the threshold that is
+     * supposed to be a win.
+     *
+     * The gate therefore samples a SECOND quantity beside this one and takes the automaton only when
+     * BOTH agree -- see \ref ac_completion_pct , which carries the sweep that measures it, the
+     * derivation of its constant and the cost of asking. The two constants here were NOT retuned when
+     * that landed: retuning them against that sweep's tables would have moved the error rather than
+     * removed it.
+     *
      * **The constant is the measured MINIMUM (588), not a mid-point, and that choice is a
      * consequence rather than a taste.** Today every alternation past \ref ac_branch_threshold takes
      * AC unconditionally, so switching too EARLY can never be worse than the behaviour being
@@ -1450,6 +1502,31 @@ namespace real::detail {
     static constexpr std::size_t   ac_density_min_span           {64};   //!< Shortest span an early verdict may rest on.
     static constexpr std::size_t   ac_density_work_threshold     {550};  //!< Product `(candidates per 1000 bytes) * branch_count` at or above which the automaton wins, at or above \ref ac_branch_threshold branches.
     static constexpr std::uint16_t ac_branch_floor               {4};    //!< Fewest branches the automaton is ever considered for; below this nothing is measured.
+    /*!
+     * \brief Percentage of sampled candidates that may COMPLETE a branch and still leave the automaton
+     *        ahead. Above it the cascade wins whatever the candidate density says.
+     *
+     * The second quantity the gate needed, and the reason it needed one is measured rather than argued
+     * (`benchmarks/ac_regime.cpp`'s third sweep): candidate density counts positions where a branch HEAD
+     * occurs and cannot tell a false start from a match, yet those pull in OPPOSITE directions. A false
+     * start punishes the cascade -- verify, reject, resume -- and leaves the automaton indifferent; a
+     * match REWARDS the cascade, which stops there, and charges the automaton a per-match return. Holding
+     * candidate density fixed at 99.8 per 1000 bytes on twelve branches and varying only the completed
+     * fraction, the verdict flips:
+     *
+     *     completed %        0     25     50     75    100
+     *     arm64 AC/casc    0.87   1.09   1.43   1.75   2.19
+     *     x86-64           0.56   0.76   1.00   1.34   1.90
+     *
+     * Interpolated, the balance sits at **15 % on arm64 and 50 % on x86-64**, and the constant takes the
+     * CONSERVATIVE platform: below the true crossover on either one, so it can decline where the automaton
+     * would still have won but never take it where the cascade wins. That is the same safety direction
+     * \ref ac_density_work_threshold_low argues for and for the same reason -- below
+     * \ref ac_branch_threshold the automaton was historically never taken, so switching early regresses
+     * what ships while switching late only forfeits.
+     */
+    static constexpr std::size_t   ac_completion_pct             {15};
+
     static constexpr std::size_t   ac_density_work_threshold_low {1400}; //!< The same product for \ref ac_branch_floor .. \ref ac_branch_threshold branches, where the safe direction is reversed.
 
     // A RELATION, not a value. The sabotage sweep reports only that no test reacts to a 4x change in
@@ -1458,6 +1535,43 @@ namespace real::detail {
     // nonsense if its floor exceeds its cap, and nothing said so until now.
     static_assert(ac_density_min_span <= ac_density_sample_bytes,
                   "the sample window's floor must not exceed its cap");
+
+    /*!
+     * \brief Does a branch of the alternation COMPLETE at \p at?
+     *
+     * The gate's second quantity needs to tell a false start from a match, and a candidate is only a head
+     * byte until something is tried at it. This walks the split chain in source order and asks
+     * \ref match_byte_klass_run for each branch, exactly as `run_alternation` and
+     * \ref fill_alternation_spans do -- one attempt per branch, no thread lists, no capture work.
+     *
+     * A COPY of that walk rather than a call into one, for the reason \ref fill_alternation_spans states
+     * about its own: both routes are measured and working, and relocating a hot body to share it risks a
+     * regression there that would cost more than this gate can win. Twelve lines, and the three copies
+     * agree by construction because they ask the same primitive in the same order.
+     *
+     * \param[in] text The subject.
+     * \param[in] at   A candidate position (a branch head byte occurs there).
+     * \return True when some branch matches at \p at.
+     */
+    [[nodiscard]] bool ac_candidate_completes(std::string_view text,
+                                              std::size_t      at)
+    {
+      const auto& code {prog_.code};
+      std::size_t pc   {prog_.hints.body_pc == 0 ? std::size_t {1}
+                                               : static_cast<std::size_t>(prog_.hints.body_pc)};
+      while (true) {
+        const bool        is_split  {code[pc].op == opcode::split};
+        const std::size_t branch    {is_split ? static_cast<std::size_t>(code[pc].primary_target) : pc};
+        const std::size_t match_end {match_byte_klass_run(text, branch, at)};
+        if (match_end != npos && wb_boundaries_ok(at, match_end)) {
+          return true;
+        }
+        if (!is_split) {
+          return false;
+        }
+        pc = static_cast<std::size_t>(code[pc].secondary_target);
+      }
+    }
 
     /*!
      * \brief Decides ONCE PER HAYSTACK whether the Aho-Corasick automaton should take this
@@ -1519,10 +1633,12 @@ namespace real::detail {
         const std::size_t span_cap {needed < ac_density_min_span       ? ac_density_min_span
                                     : needed > ac_density_sample_bytes ? ac_density_sample_bytes
                                                                        : needed};
-        const std::size_t limit    {text.size() < start + span_cap ? text.size() : start + span_cap};
-        std::size_t       cands    {0};
-        std::size_t       pos      {start};
-        std::size_t       scanned  {limit > start ? limit - start : std::size_t {1}};
+        const std::size_t limit              {text.size() < start + span_cap ? text.size() : start + span_cap};
+        std::size_t       cands              {0};
+        std::size_t       completed          {0};
+        bool              completion_decided {false};
+        std::size_t       pos                {start};
+        std::size_t       scanned            {limit > start ? limit - start : std::size_t {1}};
         // A TRUNCATED view, not the whole subject: next_candidate scans until it finds a candidate
         // or runs out of text, so bounding only what gets counted bounds nothing at all. On a
         // candidate-free haystack the "256-byte sample" read all 4000 bytes and cost 2 us -- two
@@ -1534,8 +1650,24 @@ namespace real::detail {
             break;
           }
           ++cands;
+          // THE SECOND QUANTITY, and its cost is asymmetric BY DESIGN. Verifying a candidate costs one
+          // walk of the split chain -- what the cascade pays there anyway -- and the expensive direction
+          // is verifying many of them, which only happens when few complete: exactly the regime where the
+          // automaton then wins and amortises it. The direction that must stay cheap is the one that ENDS
+          // on the cascade, and it does: two completions are enough to exceed the threshold on any sample
+          // this window can hold, so a matching subject bails out after two walks.
+          if (ac_candidate_completes(window, pos)) {
+            ++completed;
+            if (completed * 100U > cands * ac_completion_pct + 100U) {
+              // The completed fraction is already past the threshold and more candidates can only be
+              // read as more evidence for the cascade. Decline now, before paying for the rest.
+              scanned            = pos > start ? pos - start : std::size_t {1};
+              completion_decided = true;
+              break;
+            }
+          }
           ++pos;
-          // Stop as soon as the verdict cannot change. The sample is not free -- next_candidate on
+          // Stop as soon as the DENSITY verdict cannot change. The sample is not free -- next_candidate on
           // the first-bytes bitmap tests a byte at a time -- and a dense haystack reaches certainty
           // in a fraction of the window, which is exactly the case that must not pay for it.
           const std::size_t seen {pos > start ? pos - start : std::size_t {1}};
@@ -1547,7 +1679,11 @@ namespace real::detail {
         const std::size_t span {scanned};
         // (candidates per 1000 bytes) * branch_count, in one expression so the division rounds once.
         const std::size_t work {cands * 1000U * branches / span};
-        state_.ac_dense           = work >= want;
+        // BOTH quantities must favour the automaton. Density alone provably cannot decide (see
+        // ac_completion_pct), so a dense sample whose candidates keep completing stays on the cascade.
+        const bool        completion_ok {!completion_decided
+                                         && completed * 100U <= cands * ac_completion_pct};
+        state_.ac_dense           = work >= want && completion_ok;
         state_.ac_decided         = true;
         ac_density_last_verdict() = state_.ac_dense ? ac_verdict::automaton : ac_verdict::cascade;
         return state_.ac_dense;
@@ -5183,6 +5319,397 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Is the exact-literal route the one `run()` would take, in its one-search subset?
+     *
+     * Mirrors `run()`'s cascade for the same reason lazy_dfa_is_the_route does. Only three kinds of route
+     * sit ABOVE this one -- the byte-class loop, the code-point class loop, and the three possessive
+     * loops -- so the list is short; everything below it (inner literal, fixed shape, the DFAs) is
+     * territory this route already wins and must keep.
+     *
+     * The `literal_one_search` bit carries the rest by itself: it is set only when the program has no
+     * capture, no assertion, no anchor, a literal of two bytes or more, and `prefix_size ==
+     * exact_literal_len`. That is exactly the subset where the answer is `find_prefix` plus two stores,
+     * with nothing to confirm and no occurrence to retry.
+     *
+     * \param[in] hints The program's shape hints.
+     * \return True when no earlier route in the cascade claims this shape.
+     */
+    [[nodiscard]] static constexpr bool exact_literal_is_the_route(const pattern_hints& hints) noexcept
+    {
+      return hints.exact_literal_len > 0
+             && hints.literal_one_search                         // no capture / assertion / anchor, len >= 2
+             && hints.greedy_class_loop < 0                      // the byte-class loop sits above
+             && hints.greedy_cp_class < 0                        // so does the code-point one
+             && hints.possessive_class.kind == class_kind::none; // and the three possessive loops
+    }
+
+    /*!
+     * \brief A two-slot sink, for a filler that must call a route function expecting a slot container.
+     *
+     * The batched routes all arm on `slot_count == 2`, so the whole-match span is every slot the program
+     * has. This exists so \ref fill_inner_literal_spans can reuse \ref run_inner_literal verbatim -- one
+     * mechanism rather than a copy of its confirm logic -- without pulling `real::detail::small_vec` into
+     * this header, which `storage.hpp` cannot do (it includes this one), and without putting a 256-byte
+     * inline buffer on `refill_batch`'s frame.
+     *
+     * It satisfies exactly what the route touches: `assign`, `resize`, `size` and indexing.
+     */
+    struct slot_pair
+    {
+      std::size_t slots[2] {npos, npos}; //!< `[0]` is the match start, `[1]` the match end.
+
+      /*!
+       * \brief Sets both slots to \p value.
+       * \param[in] n     The route's `slot_count`; must be 2, and is ignored.
+       * \param[in] value The value written to both slots (the route passes \ref real::npos).
+       */
+      constexpr void assign(std::size_t n,
+                            std::size_t value) noexcept
+      {
+        static_cast<void>(n);
+        slots[0] = value;
+        slots[1] = value;
+      }
+
+      /*!
+       * \brief No-op: the pair is already at its final size.
+       * \param[in] n The requested size; must be 2, and is ignored.
+       */
+      constexpr void resize(std::size_t n) noexcept
+      {
+        static_cast<void>(n);
+      }
+
+      /*!
+       * \brief The slot count.
+       * \return Always 2.
+       */
+      [[nodiscard]] constexpr std::size_t size() const noexcept
+      {
+        return 2;
+      }
+
+      /*!
+       * \brief Slot access.
+       * \param[in] i Slot index, 0 or 1.
+       * \return A reference to that slot.
+       */
+      [[nodiscard]] constexpr std::size_t& operator[](std::size_t i) noexcept
+      {
+        return slots[i];
+      }
+
+      /*!
+       * \brief Slot access, const.
+       * \param[in] i Slot index, 0 or 1.
+       * \return A const reference to that slot.
+       */
+      [[nodiscard]] constexpr const std::size_t& operator[](std::size_t i) const noexcept
+      {
+        return slots[i];
+      }
+    };
+
+    /*!
+     * \brief Is the inner-literal route the one `run()` would take for this program?
+     *
+     * Mirrors that route's own gate, and only the routes with their own `run_*` body above it in the
+     * cascade -- the two class loops, the three possessive loops, the exact literal. A scan STRATEGY is
+     * not a route: that distinction is what the lazy-DFA predicate got wrong at first (see there), and
+     * nothing of the kind applies here anyway.
+     *
+     * `prefix_code` is required non-empty unconditionally, which is conservative rather than exact: the
+     * gate requires it only where the state confirms by reverse, which is the dynamic storage. A static
+     * regex with an inner literal and no prefix program therefore keeps the per-match walk. Batching it is
+     * separate work with its own measurement, not a widening of this line.
+     *
+     * \param[in] prog The compiled program view.
+     * \return True when no earlier route in the cascade claims this shape.
+     */
+    [[nodiscard]] static constexpr bool inner_literal_is_the_route(const program_view& prog) noexcept
+    {
+      const pattern_hints& hints {prog.hints};
+      return hints.inner_literal_len > 0
+             && hints.inner_literal_prefix >= 1                  // a literal at offset 0 is a PREFIX and keeps find_prefix
+             && !hints.fixed_shape                               // the route's own gate: IL never beats the fixed-shape scan
+             && !prog.prefix_code.empty()                        // the reverse start-finder must exist
+             && hints.exact_literal_len == 0                     // exact-literal search sits above
+             && hints.greedy_class_loop < 0                      // the byte-class loop sits above
+             && hints.greedy_cp_class < 0                        // so does the code-point one
+             && hints.possessive_class.kind == class_kind::none; // and the three possessive loops
+    }
+
+    /*!
+     * \brief Is the lazy-DFA route the one `run()` would actually take for this program?
+     *
+     * MIRRORS `run()`'s CASCADE, and it has to: a batched walk bypasses `run()` entirely, so batching a
+     * shape that some EARLIER route claims does not merely fail to help, it takes the pattern off a
+     * faster route. Written first as "whatever the four shape recognizers did not claim", which cost
+     * `literal charlie` **+81.1 %** [+72.4, +87.2] at 24 of 24 paired draws against a 3.5 % floor: a
+     * plain literal has no class loop and no fixed alternation, so it fell through to here and left its
+     * `memmem` behind. The conditions below are therefore stated positively, one per route that sits
+     * above the lazy DFA in the cascade, and NOT as a residue.
+     *
+     * \warning **Adding a route to `run()` above the lazy DFA means adding its hint here.** Nothing
+     *          enforces that automatically; the failure mode is a silent slowdown on exactly the shape
+     *          the new route was written for, and the only instrument that sees it is a per-row layout
+     *          judgement on a row that exercises that shape.
+     *
+     * \param[in] hints The program's shape hints.
+     * \return True when no earlier route in the cascade claims this shape.
+     */
+    [[nodiscard]] static constexpr bool lazy_dfa_is_the_route(const pattern_hints& hints) noexcept
+    {
+      // WHAT BELONGS HERE IS A ROUTE, NOT A SCAN STRATEGY, and the first version of this predicate confused
+      // the two. `rare_disc` and a literal `prefix_size` are branches of \ref next_candidate -- the
+      // candidate-scan this filler itself calls, whose per-haystack sticky state is reset inside that same
+      // function -- so excluding them declined shapes that take THIS route anyway and get their scan for
+      // free: `https?://` (rare_disc = 58, prefix_size = 4) billed 0.996 engine entries per match while
+      // both clauses stood. What remains is one clause per route with its own `run_*` body above this one
+      // in the cascade.
+      return hints.exact_literal_len == 0     // exact-literal search (`charlie`)
+             && hints.inner_literal_len == 0  // inner-literal memmem (`\d+\.\d+`)
+             && !hints.literal_one_search     // single-occurrence literal walk
+             && !hints.fixed_shape            // fixed-width shape (`[0-9a-f]{8}`)
+             && hints.fs_pair_width == 0      // the fixed-shape PAIR route
+             && !hints.fixed_alternation;     // run_alternation / Aho-Corasick territory
+    }
+
+    /*!
+     * \brief Fills up to \p cap exact-literal matches from \p start without re-entering the route gate.
+     *
+     * REOPENS A DOCUMENTED REFUSAL, and the reason is recorded in \ref run_literal_one_search — this filler
+     * was written, measured and refused once. It was never wrong -- `exhaustive-compat` was byte-identical
+     * over 3 218 434 cases and a both-ways differential agreed on every span -- and it read `literal`
+     * -29.4 % [-32.2, -24.6] at 24 of 24 draws. It was refused for what it charged elsewhere: five rows
+     * from +2.8 % to +10.7 %, all above their floors at 24 of 24, with 14 of 15 rows leaning positive.
+     * The mechanism was pinned by machine code rather than argued -- no scan loop changed; `refill_batch`
+     * grew 379 -> 389 instructions and `count_matches` 610 -> 606, and `count_matches` is what every row
+     * measures -- and the note closes by saying a reopening needs a filler that does not enlarge
+     * `refill_batch`.
+     *
+     * What reopens it is not a cheaper flag but a CONTRARY MEASUREMENT: a fifth route was since added to
+     * `refill_batch`, enlarging it, and the judgement showed no cross-row toll at all (12 of 19 medians
+     * positive, p = 0.36). What charged the rows in that work was the shape of `advance`'s HOT path -- one
+     * extra comparison there cost 17 of 21 rows, p = 0.007, median +1.3 %, and moving it into the branch
+     * reached once per walk removed it entirely. So "enlarging refill_batch charges every row" is not a
+     * law, and the original refusal deserves one re-test under the current shape.
+     *
+     * NO PARTIAL STATE, unlike the lazy-DFA filler: `find_prefix` scans to the end of the subject, so an
+     * empty return means no occurrence remains anywhere ahead. Exhaustion is proven, and the caller's
+     * "empty buffer ends the walk" reading is correct here.
+     *
+     * \param[in]  text  The subject.
+     * \param[in]  start Where to begin.
+     * \param[out] out   Buffer for the spans found.
+     * \param[in]  cap   Capacity of \p out; the walk stops there and resumes from the last end.
+     * \return How many spans were written.
+     */
+    std::size_t fill_exact_literal_spans(std::string_view text,
+                                         std::size_t      start,
+                                         cp_span        * out,
+                                         std::size_t      cap)
+    {
+      const std::size_t      len {static_cast<std::size_t>(prog_.hints.exact_literal_len)};
+      const std::string_view lit {prog_.hints.prefix.data(), len};
+      std::size_t            n   {0};
+      std::size_t            pos {start};
+      while (n < cap) {
+        const std::size_t cand {find_prefix(text, pos, lit)};
+        if (cand == npos) {
+          break;
+        }
+        out[n] = cp_span {.start = cand, .end = cand + len};
+        ++n;
+        // Non-overlapping, as the walk requires. The hint guarantees len >= 2, so the position always
+        // advances and the loop cannot stall on a zero-width answer.
+        pos = cand + len;
+      }
+      return n;
+    }
+
+    /*!
+     * \brief Fills up to \p cap inner-literal matches from \p start without re-entering the route gate.
+     *
+     * The route bills **one engine entry per match** (1.001 on a prose corpus) where every batched route
+     * bills one per `batch_cap`, and the cost is that return rather than the scan: `\d+\.\d+` reads
+     * 34.3 ns/match at one match every 20 bytes, 41.2 at one every 60 and 44.1 at one every 200 -- flat
+     * across densities, which is what a per-match constant looks like. At the dense end that constant IS
+     * the whole 1.80 ns/B.
+     *
+     * IT CALLS \ref run_inner_literal RATHER THAN COPYING IT, which is the opposite of what
+     * \ref fill_alternation_spans chose, and for a reason that differs in kind: that filler's twin is a
+     * mask scan whose hot body relocating would risk the working route, while this route's per-call work is
+     * a linearity backstop, a density guard, a warm/cold size floor and a reverse confirm -- four pieces of
+     * state whose duplication is exactly how a batched walk and a per-match walk come to disagree. The
+     * route is already written to be re-entered per match in a walk (its own comment calls `start` "the
+     * finditer resume"), so calling it in a loop asks nothing new of it. The per-haystack reset is shared
+     * through \ref il_reset_on_new_haystack for the same reason.
+     *
+     * \p partial follows the lazy-DFA filler's contract, and this route needs it more: it ABANDONS -- on
+     * the density guard, on the linearity backstop, on the size floor, or when there is no way to place a
+     * candidate's start -- and every one of those leaves matches ahead that another route will find. Only a
+     * memmem that ran out of candidates proves exhaustion, and that is the one branch which clears it.
+     *
+     * \param[in]  text    The subject.
+     * \param[in]  start   Where to begin.
+     * \param[out] out     Buffer for the spans found.
+     * \param[in]  cap     Capacity of \p out; the walk stops there and resumes from the last end.
+     * \param[out] partial True unless the subject was proven spent; see above.
+     * \param[out] disarm  Set when the route has ABANDONED this haystack, meaning every further attempt
+     *                      on it is wasted work. The caller must then stop calling this filler for the
+     *                      rest of the walk. Without it the walk pays one failed refill per match on top
+     *                      of the real work: measured 3634 attempts against 7 on the veto matrix's dense
+     *                      date cell, which took `date dense` from 2.617 to 2.883 -- the route slower
+     *                      than the core it replaces, which is exactly what that cell vetoes. The sticky
+     *                      abandon was doing its job; the walk was not listening.
+     * \return How many spans were written.
+     */
+    std::size_t fill_inner_literal_spans(std::string_view text,
+                                         std::size_t      start,
+                                         cp_span        * out,
+                                         std::size_t      cap,
+                                         bool           & partial,
+                                         bool           & disarm)
+    {
+      partial = true;
+      // Same guard as il_reset_on_new_haystack, and the same reason: a static tier that does not want IL
+      // has no `il_abandoned` to read. Such a storage never arms this route either (the caller's condition
+      // needs a `prefix_code`, which those programs do not carry), so declining here is unreachable rather
+      // than a behaviour choice -- it exists to keep the template well-formed.
+      if constexpr (!requires(State & st) {
+        st.il_abandoned;
+      }) {
+        static_cast<void>(text);
+        static_cast<void>(start);
+        static_cast<void>(out);
+        static_cast<void>(cap);
+        disarm = true;
+        return 0;
+      }
+      else {
+        // NO RESET HERE. `run()`'s gate owns the per-haystack reset, and doing it here too makes the two
+        // callers ping-pong: this filler cleared an abandon the gate had just set, so a route that had
+        // given up on this haystack was retried on EVERY match. Measured on the veto matrix's dense date
+        // cell: 3637 entries against 7, and `date dense` went 2.617 -> 2.883 (route slower than the core
+        // it replaces, which is what that cell vetoes). Declining until the gate resets costs one wasted
+        // refill per haystack.
+        if (state_.il_abandoned) {
+          disarm = true; // and the caller stops asking: see \p disarm
+          return 0;
+        }
+        slot_pair   scratch;
+        std::size_t n   {0};
+        std::size_t pos {start};
+        while (n < cap && pos <= text.size()) {
+          bool       abandon {false};
+          const bool matched {run_inner_literal(text, pos, scratch, abandon)};
+          if (abandon) {
+            return n;        // a guard tripped; partial stays set and the caller re-enters through the gate
+          }
+          if (!matched) {
+            partial = false; // PROVEN spent: memmem found no further candidate anywhere ahead
+            return n;
+          }
+          out[n] = cp_span {.start = scratch[0], .end = scratch[1]};
+          ++n;
+          // A match contains the required literal, so it is never empty and the walk cannot stall; the
+          // find_iter empty-match rule has nothing to apply.
+          pos = scratch[1];
+        }
+        return n;
+      }
+    }
+
+    /*!
+     * \brief Fills up to \p cap lazy-DFA matches from \p start without re-entering the route gate.
+     *
+     * The fifth batched route, and the one the other four made conspicuous. A pattern whose branches are
+     * not all literals -- `[a-z]+|[0-9]+`, the plain tokenizer idiom -- matches none of the four
+     * shape recognizers and lands here, where it was billing **0.9949 engine entries per match** against
+     * 0.2501 for every batched route. On 100 KB of prose that reads 10.00 ns/B against `[a-z]+`'s 1.20
+     * for the same match count, and the excess fits a per-match constant on two independent densities:
+     * 44 ns/match at one match every 5.2 bytes (`[a-z]+|zzzz`), 37.8 ns/match at one every 62
+     * (`[0-9]+|zzzz`). The DFA scan is not the cost; the return is.
+     *
+     * ONLY THE ANCHORED-FROM-CANDIDATE SUB-SCAN, deliberately. \ref try_shared_lazy_dfa_search has a
+     * second sub-scan (`forward_end` then `reverse_start`) for when the first bytes do not carry the
+     * search, and reproducing it here would put a second body in this translation unit -- the change
+     * shape that repeatedly charged unrelated rows during the batching work (docs/MEASUREMENT.md §5.4).
+     * Declining it costs nothing, because of \p partial.
+     *
+     * WHY \p partial EXISTS, and why the other four fillers need no such thing. Returning zero spans is
+     * how a filler says "the subject is spent", and \ref basic_match_iterator::advance ends the walk on
+     * it. For the four shape routes that is sound: their scan covers the whole subject, so nothing found
+     * means nothing there. This route can stop with matches still to come -- the fallback sub-scan's
+     * territory, fewer than \ref lazy_dfa_min_input bytes left, no shared DFAs built yet -- and ending
+     * the walk there would drop them. So \p partial is set unless exhaustion was PROVEN (no candidate
+     * remains in the whole subject), and the caller resumes on the per-match path, which re-enters the
+     * full gate. Pessimistic by construction: only one branch clears it.
+     *
+     * \param[in]  text    The subject.
+     * \param[in]  start   Where to begin.
+     * \param[out] out     Buffer for the spans found.
+     * \param[in]  cap     Capacity of \p out; the walk stops there and resumes from the last end.
+     * \param[out] partial True unless the subject was proven spent; see above.
+     * \return How many spans were written.
+     */
+    std::size_t fill_lazy_dfa_spans(std::string_view text,
+                                    std::size_t      start,
+                                    cp_span        * out,
+                                    std::size_t      cap,
+                                    bool           & partial)
+    {
+      partial = true;
+      std::size_t n    {0};
+      const bool  used {
+        with_search_dfas([&](lazy_dfa& fwd, reverse_dfa& rev) {
+                           // The reverse DFA serves the fallback sub-scan only, which this filler declines; naming it
+                           // keeps the callback signature `with_search_dfas` hands out.
+                           static_cast<void>(rev);
+                           fwd.begin_scan();
+                           std::size_t pos {start};
+                           while (n < cap && pos <= text.size() && text.size() - pos >= lazy_dfa_min_input) {
+                             std::size_t hit {npos};
+                             std::size_t end {npos};
+                             std::size_t c   {pos};
+                             while (true) {
+                               c = next_candidate(text, c, pos);
+                               if (c > text.size()) {
+                                 partial = false; // PROVEN spent: no candidate byte remains anywhere ahead
+                                 return;
+                               }
+                               const auto anchored {fwd.anchored_end(text, c)};
+                               prefilter_note_scan(anchored.scanned_to - c);
+                               if (anchored.end != npos) {
+                                 hit = c;
+                                 end = anchored.end;
+                                 break;
+                               }
+                               if (anchored.scanned_to >= text.size()) {
+                                 return; // the fallback sub-scan's territory; partial stays set
+                               }
+                               ++c;
+                             }
+                             if (end == hit) {
+                               // A zero-width match carries the find_iter empty-match rule (`forbid_empty_until_`),
+                               // which the batched span path does not apply. The caller's arming condition already
+                               // excludes a nullable pattern, so this is a belt rather than a road -- and if it ever
+                               // trips, stopping is the answer that stays correct.
+                               return;
+                             }
+                             out[n] = cp_span {.start = hit, .end = end};
+                             ++n;
+                             pos = end;
+                           }
+                         })};
+      if (!used) {
+        n = 0; // no shared DFAs on this regex yet: nothing found and nothing proven
+      }
+      return n;
+    }
+
+    /*!
      * \brief Tests whether the fixed literal prefix occurs at \p cand.
      * \param[in] text The subject text.
      * \param[in] cand Candidate start offset.
@@ -5271,6 +5798,59 @@ namespace real::detail {
      * \param[in]  len       The literal's length (`hints.exact_literal_len`, >= 2 by the hint).
      * \param[out] out_slots Receives `[cand, cand + len]` on success.
      * \return `true` if the literal occurs at or after \p start.
+     *
+     * \note **A span filler for this shape WAS refused, and is now in place — the refusal was overturned by
+     *       measurement, not by argument.** The history is kept because it is the clearest case this
+     *       repository has of a refusal that was right when taken and wrong later, and of what changed. The
+     *       route bills one entry per match (`dog`: 2001 entries against 2000 matches) where every batched
+     *       route bills one per `batch_cap`, and this subset is the ideal candidate: the
+     *       `literal_one_search` hint already excludes captures, assertions, anchors and one-byte
+     *       literals, so a filler is `find_prefix` plus two stores, with no confirm and no retry.
+     *       Correctness was never the problem — `exhaustive-compat` returned byte-identical counts
+     *       (3 218 434 cases, 4 548 documented divergences, 0 serious) and a both-ways differential over
+     *       the batch seam agreed on every span.
+     *
+     *       On `benchmarks/bench_minimal.cpp` against this machine's calibrated floors, 24 paired
+     *       draws: `literal` **−29.4 %** [−32.2, −24.6] at 24/24 — and `single [a-z]` **+10.7 %**,
+     *       `\b\w+\b` **+4.0 %**, `\w+` **+3.7 %**, `\w{2,}` **+3.2 %**, `fields [^,]+` **+2.8 %**, all
+     *       five above their own floors at 24/24, with **14 of 15 rows leaning positive**. The trade is
+     *       what settles it: the gain lands on a row already ahead of PCRE2-JIT (1.29× / 1.94×) while the
+     *       costs land on rows near parity, four of which are the previous train's own wins.
+     *
+     *       **The mechanism was then pinned by comparing machine code rather than argued, and it is not
+     *       the diffuse "per-unit inline budget" this note first blamed.** Of 398 function bodies in the
+     *       consumer unit, five changed and NONE of them is a scan loop: every filler, and `advance`,
+     *       are byte-identical. What moved is `refill_batch` (379 → 389 instructions), the iterator's
+     *       constructor, and `count_matches` (610 → 606) — and `count_matches` is what
+     *       `benchmarks/bench_minimal.cpp` measures for every row. So the rows that "regressed" do not do
+     *       more work; the shared entry point they all pass through was recompiled.
+     *
+     *       Two follow-ups were tried against that mechanism and both failed, which is why the refusal
+     *       stood at the time rather than waiting on one more idea. Folding the flag away cannot help: the
+     *       added `bool` lands in existing padding, `sizeof` the iterator is unchanged at 8664 either way.
+     *       Replacing the dispatch chain with a `switch` on a dense enum does not help either — clang
+     *       emits a branch tree rather than a jump table, and the variant reproduced the SAME
+     *       379 → 389 and 610 → 606 for no gain at all. Outlining the constructor's cold eligibility
+     *       half (\ref real::basic_match_iterator::decide_batching) kept `count_matches` byte-identical on
+     *       its own but NOT with this filler on top, so the note closed by asking for a filler that does
+     *       not enlarge `refill_batch`.
+     *
+     *       **WHAT OVERTURNED IT.** Not a cheaper flag: the diagnosis was right and the condition it named
+     *       came true on its own. `count_matches` has since been cut from 610 instructions to 377 — its two
+     *       cold halves were outlined (`decide_batching`, and the trailing-lookaround walk's counter) for
+     *       unrelated reasons — and at that size the filler no longer moves it at all. Re-measured on the
+     *       machine-code instrument first, as this note's own method requires: of 407 function bodies in the
+     *       consumer unit, THREE change size — `refill_batch` 391 → 401, the cold `decide_batching`
+     *       160 → 187, and `count_matches` **377 → 377**. Enlarging `refill_batch` was never the mechanism;
+     *       recompiling the entry point every row measures was.
+     *
+     *       The layout judgement then agreed, 25 rows against recalibrated floors, 24 paired draws:
+     *       `literal charlie` **−24.1 %** [−27.6, −15.1] at 24/24, the ONLY row judged REAL, and the five
+     *       rows the first attempt charged now read +0.3 %, +0.8 %, +0.7 %, +1.8 % and −0.6 % — every one
+     *       indistinguishable. No cross-row toll either: 13 of 21 medians positive, p = 0.38, against
+     *       14 of 15 leaning positive the first time. A fifth batched route had also been added to
+     *       `refill_batch` shortly before, enlarging it, and charged nothing measurable — which is what
+     *       made re-testing this defensible rather than hopeful.
      */
     template <typename OutSlots>
 #if defined(__GNUC__) || defined(__clang__)
@@ -5849,6 +6429,7 @@ namespace real::detail {
             }
             break;
           case opcode::split:
+            detail::prof::tick_event(detail::prof::event::pool_incref);
             pool.incref(block); // one held ref -> two pushed frames
             stack.push_back({.pc = instruction.secondary_target, .block = block});
             stack.push_back({.pc = instruction.primary_target, .block = block});
@@ -5856,6 +6437,7 @@ namespace real::detail {
           case opcode::save:
             {
               // The one write: copy-on-write off the block if shared, then record pos in the slot.
+              detail::prof::tick_event(detail::prof::event::pool_cow_write);
               const std::uint32_t written {pool.cow_write(block, instruction.arg16, pos)};
               stack.push_back({.pc = pc + 1, .block = written});
             }

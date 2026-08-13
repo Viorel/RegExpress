@@ -6,6 +6,29 @@
              xmlns:local="clr-namespace:RegExpressWPFNET"
              mc:Ignorable="d" 
              d:DesignHeight="200" d:DesignWidth="500" Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <Style x:Key="buttonStyle1" TargetType="Button">
+            <!--<Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="6" 
+                                BorderThickness="1" 
+                                Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" 
+                                BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}" 
+                                Padding="8 2 8 3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>-->
+            <Setter Property="Padding" Value="8 2 8 3"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontStyle" Value="Normal"/>
+        </Style>
+    </UserControl.Resources>
+    
     <Grid>
         <ProgressBar x:Name="pbProgress" Panel.ZIndex="2" VerticalAlignment="Top" Visibility="Hidden" Style="{StaticResource ProgressBar1}" />
         <ProgressBar x:Name="pbProgressIndeterminate" Panel.ZIndex="10" VerticalAlignment="Top" Visibility="Hidden" Style="{StaticResource ProgressBar1}" IsIndeterminate="True" />
@@ -65,18 +88,24 @@
                     <Run x:Name="runInfo" d:Text="Please wait..." />
                 </Paragraph>
                 <BlockUIContainer Padding="1 4">
-                    <Button x:Name="btnCancel" Content="Cancel" Padding="16 3" FontFamily="Segoe UI" FontSize="11" FontStyle="Normal" BorderThickness="1" HorizontalAlignment="Left" Click="BtnCancel_Click" />
+                    <Button x:Name="btnCancel" Content="Cancel" Style="{StaticResource buttonStyle1}" HorizontalAlignment="Left" Click="BtnCancel_Click" 
+                            Visibility="Collapsed" d:Visibility="Visible" />
                 </BlockUIContainer>
             </FlowDocument>
         </RichTextBox>
 
         <RichTextBox x:Name="rtbError" Style="{StaticResource Error}" IsReadOnly="True" IsReadOnlyCaretVisible="True" 
+                     IsDocumentEnabled="True"
                      Visibility="Hidden"
-                     d:Visibility="Hidden">
+                     d:Visibility="Visible">
             <FlowDocument>
                 <Paragraph Padding="1 4 1 1">
                     <Run x:Name="runError" d:Text="Error&#13;&#10;text" />
                 </Paragraph>
+                <BlockUIContainer Padding="1 4">
+                    <Button x:Name="btnRetry" Content="Retry" Style="{StaticResource buttonStyle1}" HorizontalAlignment="Left" Click="BtnRetry_Click"
+                            Visibility="Collapsed" d:Visibility="Visible" />
+                </BlockUIContainer>
             </FlowDocument>
         </RichTextBox>
 

@@ -62,9 +62,12 @@ namespace real::detail::prof {
     cascade,
     rare_byte,
     memmem,
-    wb_b1_drop, //!< compile-time drop observed at first dispatch
-    wb_b2_wrap, //!< runtime wrap: class/cp loop with wb_lead|wb_trail
+    wb_b1_drop,     //!< compile-time drop observed at first dispatch
+    wb_b2_wrap,     //!< runtime wrap: class/cp loop with wb_lead|wb_trail
     il_abandoned,
+    pool_incref,    //!< COW capture-block refcount taken (one per `split` in the epsilon walk)
+    pool_decref,    //!< COW capture-block refcount dropped (one per thread death)
+    pool_cow_write, //!< COW capture-block written (one per `save`, group 0 included)
     count_
   };
 
@@ -79,6 +82,13 @@ namespace real::detail::prof {
     std::uint64_t prefilter_candidates                            {};
     std::uint64_t prefilter_rejected                              {};
     std::uint64_t run_len_hist[8]                                 {}; //!< log2 buckets for maximal class/cp runs
+    //! \brief log2 buckets for the LIVE THREAD COUNT the general VM carries into each `step()`.
+    //!
+    //! The question this exists for: a general-VM step measures 12 to 25 ns per byte where a routed class
+    //! loop measures ~1, and whether that is the list machinery or genuine NFA parallelism depends entirely
+    //! on how many threads are actually live. One thread per position means the cost is overhead the shape
+    //! does not need; many means it is the automaton doing real work.
+    std::uint64_t thread_hist[8]                                  {};
   };
 
   [[nodiscard]] inline counters& tls() noexcept
@@ -110,6 +120,27 @@ namespace real::detail::prof {
   inline void add_bytes(std::uint64_t n) noexcept
   {
     tls().bytes_examined += n;
+  }
+
+  inline void record_thread_count(std::size_t n) noexcept
+  {
+    unsigned    b {0};
+    std::size_t x {n};
+    while (x > 1 && b < 7U) {
+      x >>= 1;
+      ++b;
+    }
+    ++tls().thread_hist[b];
+  }
+
+  inline void record_prefilter_candidate() noexcept
+  {
+    ++tls().prefilter_candidates;
+  }
+
+  inline void record_prefilter_rejected() noexcept
+  {
+    ++tls().prefilter_rejected;
   }
 
   inline void note_run_len(std::size_t len) noexcept
@@ -161,6 +192,9 @@ namespace real::detail::prof {
       case event::wb_b1_drop: return "wb_b1_drop";
       case event::wb_b2_wrap: return "wb_b2_wrap";
       case event::il_abandoned: return "il_abandoned";
+      case event::pool_incref: return "pool_incref";
+      case event::pool_decref: return "pool_decref";
+      case event::pool_cow_write: return "pool_cow_write";
       case event::count_: return "?";
     }
     return "?";
@@ -202,6 +236,66 @@ namespace real::detail::prof {
     }
 #else
     (void)e;
+#endif
+  }
+
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((always_inline))
+#endif
+  /*!
+   * \brief Bill one `step()` carrying \p n live threads. Erased entirely unless \c REAL_PROFILE is defined.
+   * \param[in] n Threads in the current list as the step begins.
+   */
+  constexpr void tick_thread_count(std::size_t n) noexcept
+  {
+#if defined(REAL_PROFILE)
+    if (!std::is_constant_evaluated()) {
+      record_thread_count(n);
+    }
+#else
+    (void)n;
+#endif
+  }
+
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((always_inline))
+#endif
+  /*!
+   * \brief Bill one candidate a prefilter produced. Erased entirely unless \c REAL_PROFILE is defined.
+   *
+   * WIRED LATE, AND THE COUNTER IT FILLS WAS DEAD BEFORE. `counters::prefilter_candidates` and
+   * `counters::prefilter_rejected` (visible only in a \c REAL_PROFILE build, which is why they are named
+   * here as code rather than cross-referenced) were declared and incremented nowhere, so a probe that read
+   * them got a false zero -- which is exactly what happened while diagnosing whether a head literal is
+   * prefiltered at all: the reading was the instrument's silence, not the engine's answer.
+   *
+   * SCOPE, STATED because a counter whose meaning is guessed is barely better than a dead one: these two
+   * cover the INNER-LITERAL route's memmem loop and nothing else. One candidate is one hit `find_literal`
+   * returned; one rejection is one hit whose reverse walk reached no match start, so the loop advanced.
+   * Other routes have their own notions of a candidate and are deliberately not folded in here.
+   */
+  constexpr void tick_prefilter_candidate() noexcept
+  {
+#if defined(REAL_PROFILE)
+    if (!std::is_constant_evaluated()) {
+      record_prefilter_candidate();
+    }
+#endif
+  }
+
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((always_inline))
+#endif
+  /*!
+   * \brief Bill one prefilter candidate REJECTED by confirmation. See \ref tick_prefilter_candidate
+   *        for the scope these two share.
+   */
+  constexpr void tick_prefilter_rejected() noexcept
+  {
+#if defined(REAL_PROFILE)
+    if (!std::is_constant_evaluated()) {
+      record_prefilter_rejected();
+    }
 #endif
   }
 

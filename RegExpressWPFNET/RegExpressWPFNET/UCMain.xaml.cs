@@ -484,7 +484,20 @@ namespace RegExpressWPFNET
 
             FindMatchesLoop.SignalRewind( );
 
-            ucMatches.ShowError( new Exception( "Operation cancelled." ), false );
+            LblMatchesText = "Error";
+            ucMatches.ShowError( new Exception( "Operation cancelled." ), scrollToEnd: false, showRetry: true );
+        }
+
+
+        private void UcMatches_RetryInvoked( object sender, EventArgs e )
+        {
+            if( !IsFullyLoaded ) return;
+            if( IsInChange ) return;
+
+            LblMatchesText = "Matches";
+            ucMatches.ShowInfo( "Retrying...", showCancelButton: false );
+
+            FindMatchesLoop.SignalExecute( );
         }
 
 
@@ -559,8 +572,8 @@ namespace RegExpressWPFNET
 
             if( preferImmediateReaction )
             {
-                ucMatches.ShowInfo( "Matching…", false );
-                LblMatchesText = "";
+                if( LblMatchesText != "Matches" ) LblMatchesText = "";
+                ucMatches.ShowInfo( "Matching…", showCancelButton: false );
 
                 FindMatchesLoop.SignalExecute( );
             }
@@ -886,8 +899,8 @@ namespace RegExpressWPFNET
                             ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ),
                                 potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ),
                                 noGroupDetails: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag ) );
-                            ucMatches.ShowError( exc, engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.ScrollErrorsToEnd ) );
                             LblMatchesText = "Error";
+                            ucMatches.ShowError( exc, scrollToEnd: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.ScrollErrorsToEnd ), showRetry: false );
                             ShowOverlappingMatchesWarning( false );
                         } );
 
@@ -963,7 +976,7 @@ namespace RegExpressWPFNET
                         ( ) =>
                         {
                             ucMatches.ShowIndeterminateProgress( true );
-                            ucMatches.ShowInfo( "The engine is busy, please wait…", true );
+                            ucMatches.ShowInfo( "The engine is busy, please wait…", showCancelButton: true );
                             var engine = CurrentRegexEngine;
                             ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ), noGroupDetails: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups ) );
                         } );

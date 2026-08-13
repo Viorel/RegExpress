@@ -32,7 +32,7 @@
 #include <mutex>
 #include <span>
 #include <type_traits>
-#include <unordered_map>
+#include <unordered_map> // REAL_ALLOW_STD_HASH -- see shared_dfa_map
 #include <optional>
 #include <cstddef>
 #include <cstdint>
@@ -650,9 +650,9 @@ namespace real::detail {
      */
     static constexpr std::size_t sig_hash(std::span<const std::uint64_t> v)
     {
-      std::uint64_t h {1469598103934665603ULL};
+      std::uint64_t h {fnv1a_offset_basis};
       for (const std::uint64_t x : v) {
-        h = (h ^ x) * 1099511628211ULL;
+        h = (h ^ x) * fnv1a_prime;
       }
       return static_cast<std::size_t>(h);
     }
@@ -1016,7 +1016,7 @@ namespace real::detail {
   [[nodiscard]] inline std::mutex& immut_build_mu(const regex_immutables* immut)
   {
     static std::array<std::mutex, 64> stripes {};
-    const std::size_t                 h       {std::hash<const void*> {}(immut)};
+    const std::size_t                 h       {std::hash<const void*> {}(immut)}; // REAL_ALLOW_STD_HASH
     return stripes[h % stripes.size()];
   }
 
@@ -1070,12 +1070,21 @@ namespace real::detail {
    * \brief Process-wide map. Intentionally never destroyed (leaky singleton): a static map would
    *        tear down at exit while other statics' \c ~regex_immutables still call \ref erase_shared_dfas.
    *        The OS reclaims the map at process exit — not an accumulating leak; entries are erased on dtor.
+   *
+   *        THE ONE PLACE these headers use `std::unordered_map`, and the exception is stated rather than
+   *        silent. The rule (lazy_dfa.hpp's `hash_trans`) avoids `std::hash`/`std::unordered_map` because
+   *        their out-of-line libc++ symbols drift across toolchains, which matters for anything a scan
+   *        touches. This map is consulted once per WALK to find a process-wide DFA slot, never per match and
+   *        never in constant evaluation, so a drifting symbol costs a call it already pays. Anything on a
+   *        scan path still uses the in-house FNV hash-consing. `check-layers` enforces the rule and accepts
+   *        `REAL_ALLOW_STD_HASH` on the lines below as this exception.
    * \return The map, keyed by \ref regex_immutables address.
    */
-  inline std::unordered_map<const regex_immutables*, std::shared_ptr<shared_dfa_slot>>& shared_dfa_map()
+  inline std::unordered_map<const regex_immutables*, std::shared_ptr<shared_dfa_slot>>& // REAL_ALLOW_STD_HASH
+  shared_dfa_map()
   {
     static auto* m {
-      new std::unordered_map<const regex_immutables*, std::shared_ptr<shared_dfa_slot>>};
+      new std::unordered_map<const regex_immutables*, std::shared_ptr<shared_dfa_slot>>}; // REAL_ALLOW_STD_HASH
     return *m;
   }
 

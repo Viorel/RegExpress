@@ -27,7 +27,6 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 #include "real/core/program.hpp"
@@ -106,6 +105,26 @@ namespace real::detail {
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& fixed_shape_pair_route_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
+  /*!
+   * \brief Test seam: force the matcher off the fixed-shape walk (\c run_fixed_shape) onto the general
+   *        Pike loop, so a differential can assert routed and unrouted agree.
+   *
+   *        This route had NO seam, and that gap was not harmless: it is what `date`
+   *        (`[0-9]{4}-[0-9]{2}-[0-9]{2}`, docs/BENCHMARKS.md §A's weakest row) actually takes, and the
+   *        test that claimed to cover the shape reached for \ref inner_literal_route_disabled instead --
+   *        which does nothing for a `fixed_shape` pattern, because the inner-literal gate excludes them.
+   *        Both arms of that differential therefore ran the same code and asserted nothing. Verified with
+   *        the route counters: routed and unrouted both billed `fixed_shape` 3092 times over 3091
+   *        matches.
+   *        Not for production use.
+   * \return Reference to the process-wide seam flag; set it to true to take the route out.
+   */
+  inline bool& fixed_shape_route_disabled()
   {
     static bool disabled {false};
     return disabled;
@@ -345,11 +364,11 @@ namespace real::detail {
 
       static constexpr std::uint64_t hash_trans(const std::vector<std::pair<utf8_byte_range, std::int32_t>>& trans)
       {
-        std::uint64_t h {1469598103934665603ULL};
+        std::uint64_t h {fnv1a_offset_basis};
         for (const std::pair<utf8_byte_range, std::int32_t>& t : trans) {
-          h = (h ^ t.first.lo) * 1099511628211ULL;
-          h = (h ^ t.first.hi) * 1099511628211ULL;
-          h = (h ^ static_cast<std::uint32_t>(t.second)) * 1099511628211ULL;
+          h = (h ^ t.first.lo) * fnv1a_prime;
+          h = (h ^ t.first.hi) * fnv1a_prime;
+          h = (h ^ static_cast<std::uint32_t>(t.second)) * fnv1a_prime;
         }
         return h;
       }
@@ -880,9 +899,9 @@ namespace real::detail {
           // call and reports a null-pointer call on every use of `class_preds`, and one call site does not
           // justify suppressing that.
           const char_class& cc {classes[in.arg16]};
-          std::uint64_t     h  {1469598103934665603ULL};
+          std::uint64_t     h  {fnv1a_offset_basis};
           for (const std::uint64_t w : cc.bits) {
-            h = (h ^ w) * 1099511628211ULL;
+            h = (h ^ w) * fnv1a_prime;
           }
           std::int32_t& head    {pred_head[static_cast<std::size_t>(h) % pred_buckets]};
           bool          present {false};
@@ -945,9 +964,9 @@ namespace real::detail {
     std::vector<std::int32_t> sig_next;  // parallel to `rep`, indexed by class id
     std::vector<std::uint8_t> rep;       // representative byte of each class id
     for (unsigned b {0}; b < 256U; ++b) {
-      std::uint64_t h {1469598103934665603ULL};
+      std::uint64_t h {fnv1a_offset_basis};
       for (std::size_t w {0}; w < sig_words; ++w) {
-        h = (h ^ sig[(b * sig_words) + w]) * 1099511628211ULL;
+        h = (h ^ sig[(b * sig_words) + w]) * fnv1a_prime;
       }
       std::int32_t& head     {sig_head[static_cast<std::size_t>(h) % sig_buckets]};
       bool          assigned {false};
@@ -1011,9 +1030,9 @@ namespace real::detail {
       // FNV-1a computed in a fixed 64-bit accumulator, truncated to size_t on return: the 64-bit
       // offset-basis brace-initialised straight into size_t narrows (an error) where size_t is 32-bit
       // (win32). Truncating a full FNV-64 keeps a well-distributed hash without width-specific constants.
-      std::uint64_t h {1469598103934665603ULL};
+      std::uint64_t h {fnv1a_offset_basis};
       for (const std::int32_t x : v) {
-        h = (h ^ static_cast<std::uint64_t>(static_cast<std::uint32_t>(x))) * 1099511628211ULL;
+        h = (h ^ static_cast<std::uint64_t>(static_cast<std::uint32_t>(x))) * fnv1a_prime;
       }
       return static_cast<std::size_t>(h);
     }

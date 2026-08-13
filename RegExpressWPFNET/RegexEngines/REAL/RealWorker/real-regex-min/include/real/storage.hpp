@@ -1076,6 +1076,25 @@ namespace real {
                                               // capacity is deliberately small: growing the state
                                               // is what costs gcc/x86 its class-scan codegen, and
                                               // the saving does not depend on the capacity.
+                                              //
+                                              // RAISING IT TO 16 WAS TRIED AND REFUSED, on the
+                                              // measurement rather than on this argument. Eight is
+                                              // below every program that reaches the general VM --
+                                              // measured at 11 to 73 instructions across eight
+                                              // realistic shapes -- so these two tables allocate
+                                              // 88 bytes each on such a call, and 16 would close
+                                              // the 9..16 band. It costs more than it buys: 24
+                                              // paired draws on an idle x86-64 host with the
+                                              // governor pinned put the four per-call rows at
+                                              // +4.1 % to +5.6 % (19-22 of 24 draws agreeing,
+                                              // floors 4.5-6.8 %) against -3.1 % on the row it was
+                                              // aimed at. No row is REAL by the two-condition rule,
+                                              // but the reward side is sub-floor too, and the tie
+                                              // goes to not growing a per-call object for 176 bytes
+                                              // of allocation. The tier that would cover the
+                                              // measured band is 64 or 128, i.e. +896 or +1920
+                                              // bytes on a state already near 4944 -- a worse
+                                              // version of the same trade, so it was not attempted.
                                               small_vec<std::uint64_t, 8>>,
                             small_vec<eps_entry, 32>>
       {
@@ -1089,21 +1108,45 @@ namespace real {
          * actually runs.
          */
         std::optional<lookaround_scratch> lookaround;
-        capture_pool                      pool;                          //!< copy-on-write capture blocks (heap-backed).
-        std::optional<lazy_dfa>           fwd_dfa;                       //!< Fallback when immut is null; prefer shared_fwd_dfa.
-        std::optional<reverse_dfa>        rev_dfa;                       //!< Fallback reverse; prefer shared_rev_dfa.
-        const void       *                dfa_program         {nullptr}; //!< Program the per-state DFAs were built for (fallback).
-        std::optional<reverse_dfa>        il_prefix_rev;                 //!< Fallback IL prefix reverse; prefer shared_il_prefix_rev.
-        const void       *                il_prefix_for       {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
-        const void       *                il_text             {nullptr}; //!< IL: the haystack \ref il_abandoned refers to.
-        bool                              il_abandoned        {false};   //!< IL: a linearity/density guard tripped on this haystack.
-        std::uint32_t                     il_density_cands    {};        //!< O1: IL candidates seen on this haystack.
-        std::size_t                       il_density_origin   {npos};    //!< O1: first IL candidate byte offset this haystack.
-        const void       *                rare_disc_text      {nullptr}; //!< Rare-disc: haystack \ref rare_disc_abandoned refers to.
-        bool                              rare_disc_abandoned {false};   //!< Rare-disc density guard: stay on prefix for this haystack.
-        const void       *                ac_text             {nullptr}; //!< AC: the haystack \ref ac_dense was decided on.
-        bool                              ac_decided          {false};   //!< AC: the density sample has run on this haystack.
-        bool                              ac_dense            {false};   //!< AC: candidates are dense enough that the automaton wins.
+        /*!
+         * \brief Copy-on-write capture blocks, SBO rather than `pike.hpp`'s heap-vector alias.
+         *
+         * The pool's own `reset` comment records taking a general-VM search from thirteen heap
+         * allocations to five by reserving a block budget up front. Those five were then measured, by
+         * size and by symbol, on `^[\t \n\r]+|[\t \n\r]+$` over a 28-byte subject: **three of them are
+         * this pool** — 128 bytes of `data`, 32 of `refcount`, 32 of `free_list` — and they recur on
+         * every call at every subject length, which is what a per-call fixed cost looks like. The other
+         * two are the thread lists' `mark`.
+         *
+         * `pike.hpp` cannot fix this itself: it sits BELOW this header in the layering contract, so its
+         * `capture_pool` alias has no `small_vec` to reach for. The pool is not a member of
+         * \ref real::detail::basic_pike_state either — each concrete state declares its own — so
+         * choosing the container here is the whole change.
+         *
+         * The inline capacity is the SMALLEST that covers the reserve: `reset` asks for
+         * `slot_count * 8`, and a capture-free pattern has `slot_count == 2`, so sixteen values fit a
+         * groupless walk exactly. Patterns WITH groups still spill, deliberately — growing this state is
+         * what has repeatedly cost gcc/x86 its class-scan codegen (see the `mark` capacity note in the
+         * thread list above), and a bigger inline block would trade a measured regression on routes
+         * that never build a pool for an allocation on patterns that do.
+         */
+        basic_capture_pool<small_vec<std::size_t, 16>,
+                           small_vec<std::int32_t, 8>,
+                           small_vec<std::uint32_t, 8>> pool;
+        std::optional<lazy_dfa>                         fwd_dfa;                       //!< Fallback when immut is null; prefer shared_fwd_dfa.
+        std::optional<reverse_dfa>                      rev_dfa;                       //!< Fallback reverse; prefer shared_rev_dfa.
+        const void                     *                dfa_program         {nullptr}; //!< Program the per-state DFAs were built for (fallback).
+        std::optional<reverse_dfa>                      il_prefix_rev;                 //!< Fallback IL prefix reverse; prefer shared_il_prefix_rev.
+        const void                     *                il_prefix_for       {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
+        const void                     *                il_text             {nullptr}; //!< IL: the haystack \ref il_abandoned refers to.
+        bool                                            il_abandoned        {false};   //!< IL: a linearity/density guard tripped on this haystack.
+        std::uint32_t                                   il_density_cands    {};        //!< O1: IL candidates seen on this haystack.
+        std::size_t                                     il_density_origin   {npos};    //!< O1: first IL candidate byte offset this haystack.
+        const void                     *                rare_disc_text      {nullptr}; //!< Rare-disc: haystack \ref rare_disc_abandoned refers to.
+        bool                                            rare_disc_abandoned {false};   //!< Rare-disc density guard: stay on prefix for this haystack.
+        const void                     *                ac_text             {nullptr}; //!< AC: the haystack \ref ac_dense was decided on.
+        bool                                            ac_decided          {false};   //!< AC: the density sample has run on this haystack.
+        bool                                            ac_dense            {false};   //!< AC: candidates are dense enough that the automaton wins.
         //! \brief This storage benefits from the multi-literal route (\ref pike_vm::ac_ready). A marker,
         //!        not a field: the automaton lives per regex in \ref detail::regex_immutables.
         static constexpr bool             supports_aho_corasick {true};
@@ -1136,8 +1179,26 @@ namespace real {
         // so every folding and tokenization decision was made under the right flags; narrowing what
         // `compile` sees here would change a behaviour that is already correct. What is REPORTED is the
         // set in force, so the accessor and the engine agree on a global removal.
+        dynamic_program prog {detail::compile(tree, effective)};
+        // The fixed-shape test seam is applied HERE, once per regex, and NOT in run()'s dispatch gate.
+        // It was in that gate first, and the cost is why it moved: `run()` is entered once per MATCH for
+        // this route (it bills 1.0003 entries per match where every batched route bills one per four), so
+        // the four instructions the check added were paid per match -- `date {4}-{2}-{2}` +8.4 %
+        // [+2.9, +23.9] at 24 of 24 paired draws against a 2.5 % floor, on bench_minimal against this
+        // machine's calibrated floors. The seven other route seams sit in gates too and cost nothing
+        // measurable, because their routes ARE batched and amortise the check over `batch_cap` matches.
+        // Clearing the hint takes the route out with no per-match test at all, and `fs_pair_width` goes
+        // with it exactly as prefilter.hpp's lookaround wipe pairs them.
+        //
+        // The AGGREGATE return below is required, not stylistic: a named local returned by value needs
+        // dynamic_storage's own constructor, which is not constexpr, and `real::regex` IS used in constant
+        // evaluation (tests/engine/test_prefilter.cpp's static_asserts caught exactly that).
+        if (!std::is_constant_evaluated() && detail::fixed_shape_route_disabled()) {
+          prog.hints.fixed_shape   = false;
+          prog.hints.fs_pair_width = 0;
+        }
         return {.pattern_text    = std::string(pattern),
-                .program         = detail::compile(tree, effective),
+                .program         = std::move(prog),
                 .effective_flags = flags_without(effective, tree.inline_removed)};
       }
 

@@ -189,6 +189,7 @@ static int GetHyperscanVersion( BinaryWriterA& outwr, StreamWriterA& errwr )
     return 0;
 }
 
+
 struct Match
 {
     bool const success;
@@ -277,7 +278,7 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
     }
     else
     {
-        errwr.WriteStringF( "Invalid mode." );
+        errwr.WriteString( "Invalid mode." );
 
         return -1;
     }
@@ -302,7 +303,7 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
     }
     else
     {
-        errwr.WriteStringF( "Invalid mode_som." );
+        errwr.WriteString( "Invalid mode_som." );
 
         return -1;
     }
@@ -313,12 +314,12 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
     {
         if( hs == HS_COMPILER_ERROR )
         {
-            errwr.WriteStringF( "Unable to compile pattern \"{}\": {}.", pattern, compile_err->message );
+            errwr.WriteString( compile_err->message );
             hs_free_compile_error( compile_err );
         }
         else
         {
-            errwr.WriteStringF( "Unable to compile pattern \"{}\": {}.", pattern, ErrorText( hs ) );
+            errwr.WriteString( ErrorText( hs ) );
         }
 
         return -1;
@@ -390,7 +391,7 @@ static int DoHyperscanMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const s
     }
     else
     {
-        errwr.WriteStringF( "Invalid mode [2]." );
+        errwr.WriteString( "Invalid mode [2]." );
 
         return -1;
     }
@@ -507,7 +508,7 @@ static int DoChimeraMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const std
     case 1: ch_mode = CH_MODE_NOGROUPS; break;
     case 2: ch_mode = CH_MODE_GROUPS; break;
     default:
-        errwr.WriteStringF( "Invalid mode." );
+        errwr.WriteString( "Invalid mode." );
 
         return -1;
     }
@@ -539,12 +540,12 @@ static int DoChimeraMatch( BinaryWriterA& outwr, StreamWriterA& errwr, const std
     {
         if( ch == CH_COMPILER_ERROR )
         {
-            errwr.WriteStringF( "Unable to compile pattern \"{}\": {}.", pattern, compile_err->message );
+            errwr.WriteString( compile_err->message );
             ch_free_compile_error( compile_err );
         }
         else
         {
-            errwr.WriteStringF( "Unable to compile pattern \"{}\": {}.", pattern, ChimeraErrorText( ch ) );
+            errwr.WriteString( ChimeraErrorText( ch ) );
         }
 
         return -1;

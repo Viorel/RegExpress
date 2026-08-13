@@ -802,12 +802,6 @@ namespace real::detail {
     hints.empty_match_possible = empty_match_possible;
   }
 
-  //! \brief IL-fusion cap (compiler.hpp, `pattern_hints::il_fused_eligible`): the largest total width
-  //!        (prefix + literal + suffix) that takes the fused arithmetic verify instead of the
-  //!        reverse/forward-DFA route. A generous bound for the emails/dates/keys the route targets,
-  //!        not a hard architectural limit -- kept narrow deliberately (scope, predictability).
-  inline constexpr std::int32_t il_fused_max_width {32};
-
   /*!
    * \brief Total consuming width (in bytes) of a straight-line byte/klass program: `save 0`, an
    *        interleaved byte/klass/save sequence with no nested capturing groups, `save 1`, `match` --
@@ -1184,12 +1178,11 @@ namespace real::detail {
       std::uint8_t       body_pc     {1};
       bool               saw_body    {}; // true once a consuming op has been seen (trail assert only after)
       const shape_lead   lead        {parse_shape_lead(code)};
-      std::size_t        i           {lead.ok && !lead.anchored_start ? lead.body_start : code.size()};
+      std::size_t        i           {lead.ok ? lead.body_start : code.size()};
+      std::uint8_t       end_anchor  {};
       const std::uint8_t wb_lead     {lead.wb_lead};
-      if (lead.ok && !lead.anchored_start) {
-        if (wb_lead != 0) {
-          body_pc = static_cast<std::uint8_t>(i);
-        }
+      if (lead.ok) {
+        body_pc = static_cast<std::uint8_t>(i);
         while (i < code.size()) {
           const opcode op {code[i].op};
           if (op == opcode::byte || op == opcode::klass) {
@@ -1213,34 +1206,24 @@ namespace real::detail {
             }
             ++i;
           }
-          else if (op == opcode::assert_position && saw_body && wb_trail == 0) {
-            // Single trailing \b/\B only when it is immediately before save 1 / match.
-            // A mid-pattern \b (e.g. `\w{2}\bthe`) must NOT be peeled as trail: match_byte_klass_run
-            // stops at the assert and would silently drop the following literal, falsely matching
-            // just the prefix (fuzz-compat crash 86573f5 / pattern `\w{2}\bthe` on "…ox").
-            std::size_t  probe      {i};
-            std::uint8_t trail_hint {0};
-            if (!peel_optional_wb(code, probe, trail_hint)) {
-              break; // non-wb assert
-            }
-            if (probe + 1 < code.size() && code[probe].op == opcode::save && code[probe].arg16 == 1
-                && code[probe + 1].op == opcode::match && probe + 2 == code.size()) {
-              wb_trail = trail_hint;
-              i        = probe; // advance past the trail assert; next iter hits save 1
-            }
-            else {
-              break;            // mid-pattern \b/\B — fixed-shape cannot represent a mid-run zero-width assert
-            }
+          else if (op == opcode::assert_position && saw_body && wb_trail == 0 && end_anchor == 0) {
+            const shape_close close {parse_shape_close(code, i)};
+            if (!close.ok) { break; }
+            if (close.end_anchor != 0 && !lead.anchored_start) { break; }
+            wb_trail   = close.wb_trail;
+            end_anchor = close.end_anchor;
+            i          = code.size() - 2;
           }
           else {
             break; // split/jump/klass_cp/lookaround/extra assert disqualify
           }
         }
         if (width >= 1 && closed && !nested && i + 1 == code.size() && code[i].op == opcode::match) {
-          hints.fixed_shape = true;
-          hints.wb_lead     = wb_lead;
-          hints.wb_trail    = wb_trail;
-          hints.body_pc     = body_pc;
+          hints.fixed_shape   = true;
+          hints.fs_end_anchor = end_anchor;
+          hints.wb_lead       = wb_lead;
+          hints.wb_trail      = wb_trail;
+          hints.body_pc       = body_pc;
           // A bare single byte-class (`[a-z]`, `[aeiou]`) -- the batchable sub-case of the shape just
           // armed. The test is the whole program, not a property of it: exactly `save 0`, `klass`,
           // `save 1`, `match`. That excludes a capture wrap (`([a-z])`, 6 ops), a `\b` wrap, an anchor
@@ -1303,7 +1286,19 @@ namespace real::detail {
           phi1s[len] = phi1;
           ++len;
         }
-        if (all_small && len >= 1 && len <= 16) {
+        // A PEELED ANCHOR REFUSES THE PAIR PREFILTER, and the reason is a contract that stops holding.
+        // `fixed_shape_pair` documents itself as transparent -- "it only FILTERS candidates; the same
+        // match_fixed_body_wb verify decides every one of them" -- and that is true while the shape may
+        // start anywhere. It stops being true the moment `^`/`\A` or `\Z`/`$` is peeled out of the
+        // program: the filter does not read `anchored_start` or `fs_end_anchor`, so it happily returns a
+        // candidate the peeled assertion forbids. Measured: `^[0-9]{4}-[0-9]{2}-[0-9]{2}$` on
+        // "2026-08-10_11:43:27" reported [0,10) through this route where the general VM finds no match --
+        // 3 of 253 differential cases, all of them the shape whose `fs_pair_width` was armed.
+        //
+        // Refusing costs nothing that matters: the prefilter exists to SKIP candidate positions, and an
+        // anchored shape has exactly ONE candidate. There is nothing left to skip. `fixed_shape` itself
+        // stays armed and honours both anchors in its own gate.
+        if (all_small && len >= 1 && len <= 16 && !lead.anchored_start && end_anchor == 0) {
           bool homogeneous {true};
           for (std::uint32_t k {1}; k < len; ++k) {
             if (plo0s[k] != plo0s[0] || phi0s[k] != phi0s[0]

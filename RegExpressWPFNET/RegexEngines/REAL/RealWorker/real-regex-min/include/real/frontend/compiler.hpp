@@ -452,10 +452,8 @@ namespace real::detail {
       }
       // IL fixed code-point shape (hints.il_cp_shape_eligible): the whole program is saves plus a fixed
       // sequence of code-point atoms and literal bytes, with no split, jump or assertion anywhere. The
-      // byte-width-fixed case is il_fused_eligible's; this is the one a `klass_cp` puts out of its reach.
-      // No `!il_fused_eligible` guard here: that flag is set later, by compile() below, so it would read
-      // false whatever the pattern. Both hints may be set at once; run_inner_literal prefers the fused
-      // verify, which is the cheaper of the two when the shape is byte-width-fixed as well.
+      // The byte-width-fixed case belongs to `fixed_shape` and its own route; this hint is the one a
+      // `klass_cp` puts out of that route's reach, which is why it exists separately.
       if (il.len > 0 && il.prefix_child_count >= 1) {
         std::size_t pc          {0};
         std::size_t cps         {0};
@@ -2089,21 +2087,12 @@ namespace real::detail {
       prog.prefix_classes    = pp.classes;
       prog.prefix_cp_classes = pp.cp_classes;
       prog.prefix_cp_ranges  = pp.cp_ranges;
-      // IL-fusion: when the WHOLE pattern is a plain fixed-width byte/klass sequence (fixed_shape --
-      // no branches/klass_cp/assertions anywhere, prefix and suffix both included), the memmem hit's
-      // match start is pure arithmetic and the whole span verifies in one match_byte_klass_run pass
-      // (run_inner_literal, pike.hpp) -- no reverse DFA, no forward DFA, no one-pass extraction. The
-      // prefix sub-program (pp, just compiled) gives the prefix's own width directly; fixed_shape
-      // already guarantees prog.code as a whole (prefix + literal + suffix) is this same shape, so a
-      // second walk of it is only needed for the total-width cap, not to re-prove eligibility.
-      if (prog.hints.fixed_shape) {
-        const std::int32_t prefix_w {fixed_run_width(pp.code)};
-        const std::int32_t total_w  {fixed_run_width(prog.code)};
-        if (prefix_w >= 0 && total_w >= 0 && total_w <= il_fused_max_width) {
-          prog.hints.il_fused_eligible     = true;
-          prog.hints.il_fused_prefix_width = static_cast<std::uint8_t>(prefix_w);
-        }
-      }
+      // IL-FUSION IS GONE, and it was gone before it was removed: its two branches in
+      // run_inner_literal read `il_fused_eligible`, which only this site set and only under
+      // `fixed_shape` -- while the inner-literal route's own gate requires `!fixed_shape`, because the
+      // fixed-shape route beats it (see that gate's note). So the flag could never be true where it was
+      // read. The compiled prefix sub-program `pp` above is still used by the reverse-DFA confirm; only
+      // the arithmetic-verify shortcut, which nothing could reach, is retired.
     }
     return prog;
   }

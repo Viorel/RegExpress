@@ -74,6 +74,7 @@ namespace RegExpressWPFNET
 
         public event EventHandler? SelectionChanged;
         public event EventHandler? Cancelled;
+        public event EventHandler? RetryInvoked;
 
 
         public UCMatches( )
@@ -118,7 +119,7 @@ namespace RegExpressWPFNET
 
             pnlDebug.Visibility = Visibility.Collapsed;
 #if !DEBUG
-			pnlDebug.Visibility = Visibility.Collapsed;
+            pnlDebug.Visibility = Visibility.Collapsed;
 #endif
             //LocalUnderliningAdorner.IsDbgDisabled = true; 
             //ExternalUnderliningAdorner.IsDbgDisabled = true;
@@ -146,7 +147,7 @@ namespace RegExpressWPFNET
         }
 
 
-        public void ShowError( Exception exc, bool scrollToEnd )
+        public void ShowError( Exception exc, bool scrollToEnd, bool showRetry )
         {
             StopAll( );
 
@@ -161,7 +162,7 @@ namespace RegExpressWPFNET
             {
                 CancelInfo( );
                 ShowOne( rtbError );
-                runError.Text = exc.Message.Trim( ) + Environment.NewLine;
+                runError.Text = exc.Message.Trim( ) + ( showRetry ? "" : Environment.NewLine );
                 if( scrollToEnd )
                 {
                     rtbError.ScrollToEnd( );
@@ -170,6 +171,7 @@ namespace RegExpressWPFNET
                 {
                     rtbError.ScrollToHome( );
                 }
+                btnRetry.Display( showRetry );
             } ) );
         }
 
@@ -368,6 +370,12 @@ namespace RegExpressWPFNET
         private void BtnCancel_Click( object sender, RoutedEventArgs e )
         {
             Cancelled?.Invoke( this, EventArgs.Empty );
+        }
+
+
+        private void BtnRetry_Click( object sender, RoutedEventArgs e )
+        {
+            RetryInvoked?.Invoke( this, EventArgs.Empty );
         }
 
 
