@@ -251,15 +251,20 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=regexr_bl}">backtrack__limit:</Label>
-                    <TextBox x:Name="regexr_bl" Grid.Column="1" Grid.Row="0" Text="{Binding backtrack_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– how many steps a backreference search may take before giving up" Style="{StaticResource note}" />
+                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=regexr_sl}">size__limit:</Label>
+                    <TextBox x:Name="regexr_sl" Grid.Column="1" Grid.Row="0" Text="{Binding size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– how large a pattern may expand to" Style="{StaticResource note}" />
 
-                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=regexr_sl}">size__limit:</Label>
-                    <TextBox x:Name="regexr_sl" Grid.Column="1" Grid.Row="1" Text="{Binding size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– how large a pattern may expand to" Style="{StaticResource note}" />
+                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=regexr_nl}">nest__limit:</Label>
+                    <TextBox x:Name="regexr_nl" Grid.Column="1" Grid.Row="1" Text="{Binding nest_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– how deeply groups, character classes, and inline flag scopes may nest" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=regexr_bl}">backtrack__limit:</Label>
+                    <TextBox x:Name="regexr_bl" Grid.Column="1" Grid.Row="2" Text="{Binding backtrack_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– how many steps a backreference search may take" Style="{StaticResource note}" />
 
                 </Grid>
 

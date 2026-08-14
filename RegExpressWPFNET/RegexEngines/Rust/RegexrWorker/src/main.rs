@@ -72,16 +72,22 @@ fn main()
             .optimize_prefixes(optimize_prefixes)
             ;
 
-        let n = options["backtrack_limit"].as_u64();
-        if n.is_some()
-        {
-            reb = reb.backtrack_limit( n.unwrap());
-        } 
-
         let n = options["size_limit"].as_u32();
         if n.is_some()
         {
             reb = reb.size_limit( n.unwrap());
+        } 
+
+        let n = options["nest_limit"].as_u32();
+        if n.is_some()
+        {
+            reb = reb.nest_limit( n.unwrap());
+        } 
+
+        let n = options["backtrack_limit"].as_u64();
+        if n.is_some()
+        {
+            reb = reb.backtrack_limit( n.unwrap());
         } 
 
         re = reb.build();

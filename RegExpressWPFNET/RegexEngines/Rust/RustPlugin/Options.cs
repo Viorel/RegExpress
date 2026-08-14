@@ -70,7 +70,7 @@ namespace RustPlugin
 
         public string? size_limit { get; set; } // also for 'regexr'
         public string? dfa_size_limit { get; set; } // (not in 'regex_lite')
-        public string? nest_limit { get; set; }
+        public string? nest_limit { get; set; } // also for 'regexr'
 
         // Fancy-regex
 

@@ -55,8 +55,9 @@ namespace RustPlugin
                 {
                     options.jit,
                     options.optimize_prefixes,
-                    backtrack_limit = use_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
                     size_limit = use_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null,
+                    nest_limit = use_builder ? ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ) : null,
+                    backtrack_limit = use_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
                 }
             };
 
