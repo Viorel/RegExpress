@@ -53,7 +53,7 @@ namespace RustPlugin
             {
                 pattern = pattern,
                 text = text,
-                flags = flags.ToString(),
+                flags = flags.ToString( ),
             };
 
             string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
@@ -124,6 +124,13 @@ namespace RustPlugin
                     }
                 }
 
+                for( int i = 0; i < m.ng.Length; i++ )
+                {
+                    string name = m.ng[i][0];
+                    string value = m.ng[i][1];
+
+                    match.AddSucceededNoDetailsGroup( name, value );
+                }
 
                 matches.Add( match );
             }
