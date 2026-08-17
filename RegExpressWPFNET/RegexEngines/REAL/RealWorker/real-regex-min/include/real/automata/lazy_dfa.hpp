@@ -17,10 +17,12 @@
 #define REAL_LAZY_DFA_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include <algorithm>
 #include <array>
+#include <ranges>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -47,7 +49,7 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test seam: force the matcher off the inner-literal search route (IL.2) onto the core search, so a
+   * \brief Test seam: force the matcher off the inner-literal search route onto the core search, so a
    *        differential can assert routed and unrouted searches agree. Not for production use — the route is
    *        transparent by contract (its reverse bound never advances mid-search, so it cannot miss a leftmost
    *        match), and this only exists to prove it.
@@ -195,7 +197,8 @@ namespace real::detail {
    * which is what leaves `tests/engine/test_il_density_gate.cpp` unable to see it at all. That file
    * pins semantic transparency, correctly and thoroughly, and therefore cannot react to
    * \ref real::detail::pike_vm::il_density_milli_threshold moving: the spans are equal whichever way
-   * the gate goes. The sabotage sweep reported that constant unguarded for exactly this reason.
+   * the gate goes. That is why the constant has no test guarding its value -- there is nothing semantic
+   * to assert, and this seam is what makes the two routes comparable at all.
    *
    * One store, on a path that already writes two sticky fields beside it.
    *
@@ -238,11 +241,13 @@ namespace real::detail {
     return verdict;
   }
 
-  //! \brief A byte-level program derived from a Pike program for the DFA passes: every `klass_cp` construct
-  //!        is expanded into UTF-8 byte-range split/klass chains, so the whole thing is byte-transition-only
-  //!        and a forward DFA can represent it. The Pike program itself is untouched (byte-identity); this
-  //!        is a private recognition view the DFAs own. `eligible` is false when an op no DFA can represent
-  //!        (a position assertion or a lookaround) is present — the caller then keeps the Pike VM.
+  /*!
+   * \brief A byte-level program derived from a Pike program for the DFA passes: every `klass_cp` construct
+   *        is expanded into UTF-8 byte-range split/klass chains, so the whole thing is byte-transition-only
+   *        and a forward DFA can represent it. The Pike program itself is untouched (byte-identity); this
+   *        is a private recognition view the DFAs own. `eligible` is false when an op no DFA can represent
+   *        (a position assertion or a lookaround) is present — the caller then keeps the Pike VM.
+   */
   struct byte_program
   {
     std::vector<instr>      code;                   //!< The expanded byte-only instruction stream.
@@ -252,38 +257,33 @@ namespace real::detail {
     bool                    unicode_word   {false}; //!< Program default word-ness for `\b \B \< \>` (Tier-B edge conditions).
   };
 
-  //! \brief One node of a minimal deterministic UTF-8 trie for a code-point class. Its transitions are byte
-  //!        ranges that are pairwise **disjoint**, so at most one edge matches any byte — that determinism is
-  //!        what makes the byte-program one-pass-friendly. `child >= 0` is a node id; `child == -1` is accept
-  //!        (a code point ends here — the run continues at the construct's successor).
   /*!
-   * \brief One trie node's outgoing edges.
-   *
-   * \note **This vector is one heap block per node, and after the 2026-08 allocation work it is what
-   *       remains.** Phase-bracketed counting of a first `\w+@\w+` search over 8 KB puts 2761
-   *       allocations in a single `build_utf8_trie` call -- 5522 across the two `build_byte_program`
-   *       calls, against 5845 for the whole first search once the reverse transpose was CSR-packed
-   *       and the one-pass extractor stopped being built for capture-free patterns. So this is 94 %
-   *       of what is left.
-   *
-   *       It is NOT a flat-pool fix, which is why it is written down rather than attempted at the end
-   *       of the train that measured it. Two sources share the count: this per-node vector, and the
-   *       `bounds`/`tails` pair that `builder::build` allocates at every level -- and build is
-   *       RECURSIVE, so those cannot share one scratch buffer. The shape that works is a stack-
-   *       disciplined arena, each level taking a slice and releasing it on return, plus a flat
-   *       transition pool with the memo's hash/compare working over spans. Seven `trans` sites, two
-   *       scratch vectors, one recursion.
-   *
-   *       The root cause sits above all of it: for `\w`, over 99 % of what this trie recognises is
-   *       code points a pure-ASCII subject can never contain, and the subject is known at search
-   *       time. An ASCII-first expansion would delete the work rather than make it cheaper.
+   * \brief One node of a minimal deterministic UTF-8 trie for a code-point class. Its transitions are byte
+   *        ranges that are pairwise **disjoint**, so at most one edge matches any byte — that determinism is
+   *        what makes the byte-program one-pass-friendly. A target `>= 0` is a node id; `-1` is accept (a
+   *        code point ends here — the run continues at the construct's successor).
    */
   struct utf8_trie_node
   {
-    std::vector<std::pair<utf8_byte_range, std::int32_t>> trans; //!< Outgoing edges: a byte range paired with its target, `-1` meaning accept. Pairwise disjoint.
+    /*!
+     * \brief Outgoing edges: a byte range paired with its target, `-1` meaning accept. Pairwise disjoint.
+     *
+     * \note **One heap block per node, and once the surrounding allocation work is done it is what
+     *       dominates a first search.** Flattening it into a pool is not a local edit: two sources share
+     *       the count, this vector and the `bounds`/`tails` pair `builder::build` allocates at every
+     *       level -- and build is RECURSIVE, so those cannot share one scratch buffer. The shape that
+     *       works is a stack-disciplined arena, each level taking a slice and releasing it on return,
+     *       plus a flat transition pool with the memo's hash and compare working over spans.
+     *
+     *       The root cause sits above all of it: for a class like `\w`, almost everything this trie
+     *       recognises is code points a pure-ASCII subject cannot contain, and the subject IS known at
+     *       search time. An ASCII-first expansion would delete the work rather than make it cheaper --
+     *       see the design note above \ref build_byte_program.
+     */
+    std::vector<std::pair<utf8_byte_range, std::int32_t>> trans;
   };
 
-  //! \brief A minimal deterministic UTF-8 trie for a code-point class. `root == -1` means the class is empty.
+  /*! \brief A minimal deterministic UTF-8 trie for a code-point class. `root == -1` means the class is empty. */
   struct utf8_trie
   {
     std::vector<utf8_trie_node> nodes;      //!< Node pool; ids in \ref utf8_trie_node::trans index it.
@@ -309,10 +309,9 @@ namespace real::detail {
                                       std::span<const code_range> cp_ranges)
   {
     // Sequences land in ONE buffer with an offset per sequence, not in a vector of vectors. Each sequence
-    // is 1 to 4 ranges and was its own vector growing from empty, so it re-allocated at 1, 2 and 4: over a
-    // `(\w+)@(\w+)` build those inner vectors were the single largest source of allocations, 164 220
-    // blocks holding 755 KB -- an average block of 4.6 bytes. Spans are taken only once the pool is
-    // complete, so no growth can invalidate one.
+    // is 1 to 4 ranges, so as its own vector it reallocates at 1, 2 and 4 -- three heap blocks averaging a
+    // handful of bytes each, per sequence, and a Unicode class has thousands. Spans are taken only once
+    // the pool is complete, so no growth can invalidate one.
     std::vector<utf8_byte_range> seq_pool;
     std::vector<std::size_t>     seq_at {0};
     for (int b = 0; b < 0x80;) { // ASCII: each contiguous run of set bits is a one-byte sequence
@@ -343,17 +342,17 @@ namespace real::detail {
       return trie;
     }
     //! \brief A sequence's remaining byte ranges, as a view. The sequences in `seqs` outlive the whole
-    //!        recursion, so a suffix needs no copy -- `subspan(1)` replaces a fresh vector per candidate
-    //!        per interval, which was 3179 allocations for a `\w` trie and the single largest allocation
-    //!        source in this build.
+    //!        recursion, so a suffix needs no copy -- `subspan(1)` replaces what would otherwise be a
+    //!        fresh vector per candidate per interval, once per level of a recursion over a whole class.
     using seq_view = std::span<const utf8_byte_range>;
 
     struct builder
     {
       std::vector<utf8_trie_node>& nodes;
       // Hash-cons index over FNV(trans), as an INTRUSIVE chain: `memo_head[bucket]` is a node id or -1,
-      // `memo_next[id]` the next id in that bucket. 1024 inner vectors cost 1024 allocations per trie and
-      // more memory than the table they index. Head insertion is safe because a bucket only ever holds one
+      // `memo_next[id]` the next id in that bucket. One inner vector per bucket would cost one allocation
+      // per bucket per trie, and more memory than the table they index. Head insertion is safe because a
+      // bucket only ever holds one
       // representative per distinct `trans` -- an identical node returns the existing id and is not inserted
       // -- so the walk order cannot change the result.
       // The engine headers avoid std::hash / std::unordered_map, whose out-of-line libc++ symbols (e.g.
@@ -573,18 +572,18 @@ namespace real::detail {
     }
   };
 
-  //! \brief Emits \p trie into \p bp as a deterministic split/klass/jump fragment; accept edges jump to
-  //!        \p after (the construct's successor). The root is emitted first, so the fragment's entry is its
-  //!        base pc. Disjoint ranges mean at most one branch matches any byte.
   /*!
-   * \brief Emits \p trie into \p bp, interning each edge's byte range through \p seen.
+   * \brief Emits \p trie into \p bp as a deterministic split/klass/jump fragment, interning each edge's
+   *        byte range through \p seen.
+   *
+   * Accept edges jump to \p after (the construct's successor); the root is emitted first, so the
+   * fragment's entry is its base pc, and disjoint ranges mean at most one branch matches any byte.
    *
    * Every edge class here is a SINGLE range (`set_range` below), so `(lo, hi)` is an exact key and two
-   * edges with the same range can share one interned class. Without that sharing a UTF-8 trie interns
-   * the same range once per edge -- the continuation range `0x80..0xBF` sits on nearly every node --
-   * and the redundancy compounds across occurrences: `(\w+)@(\w+)` interned 2507 classes for 475
-   * distinct ranges. The caller owns \p seen so it spans all occurrences in one program, which is
-   * where most of the duplication lives (each `\w+` emits its own full trie).
+   * edges with the same range can share one interned class. Without that sharing a UTF-8 trie interns the
+   * same range once per edge -- the continuation range `0x80..0xBF` sits on nearly every node -- and the
+   * redundancy compounds across occurrences, since each `\w+` emits its own full trie. The caller owns
+   * \p seen so it spans every occurrence in one program, which is where most of the duplication lives.
    *
    * Sharing an index is safe because a class index is only ever read as "which byte set" -- the
    * alphabet, `onepass`'s class_cover_, and the DFA all treat it that way; nothing uses it to tell two
@@ -653,10 +652,9 @@ namespace real::detail {
   //! repeat count multiplies the trie's several-hundred-to-thousand-node size by k with no cache to amortize
   //! it. Left unbounded, that is O(k x trie size) wall-clock BEFORE onepass or the lazy DFA ever run (their
   //! own caps — \ref onepass::max_nodes, \ref onepass::max_minimize_work — sit downstream of this and never
-  //! get a chance to bound it). Calibrated empirically (arm64, the sanitizer-instrumented `make fuzz` build,
-  //! whose -timeout=10 is the real constraint): `\w{5}a` -> 17154 instrs/1.3s, `\w{10}a` -> 34304/3.9s,
-  //! `\w{15}a` -> 51454/7.1s already flirts with the timeout. 20000 keeps sanitized wall time around 1.5-2s
-  //! (5x+ margin) while comfortably exceeding every legitimate pattern in the test suite. Exceeding it
+  //! get a chance to bound it). The binding constraint is the sanitizer-instrumented fuzzing build, whose
+  //! per-input timeout a `\w{k}` reaches while k is still small; the cap is set to keep that build's worst
+  //! case well inside its timeout while comfortably exceeding every legitimate pattern. Exceeding it
   //! declines Tier-A/Tier-B (and so onepass/lazy-DFA) entirely, falling back to the general Pike VM, which
   //! matches straight off the (small, unexpanded) compiled program and needs no trie expansion at all.
   inline constexpr std::size_t max_byte_program_size {20000};
@@ -678,24 +676,19 @@ namespace real::detail {
    *                            seconds to build.
    * \return The expanded program, with \ref byte_program::eligible false when it declined.
    */
-  // AN ASCII-RESTRICTED EXPANSION WAS PROTOTYPED AND THE NUMBERS ARE NOT CLOSE. Emitting each
-  // `klass_cp` as a plain byte class built from `cp_class::ascii` -- which is already a `char_class`,
-  // so nothing needs converting -- instead of expanding its UTF-8 trie:
+  // AN ASCII-RESTRICTED EXPANSION WAS PROTOTYPED AND THE GAP IS NOT CLOSE. Emitting each `klass_cp` as a
+  // plain byte class built from `cp_class::ascii` -- which is already a `char_class`, so nothing needs
+  // converting -- instead of expanding its UTF-8 trie takes a text-mode program from thousands of
+  // instructions and hundreds of classes to a handful of each. Everything downstream is sized by that
+  // program -- the lazy alphabet, the DFA's subset construction, the one-pass table -- so this does not
+  // merely make the trie build cheaper, it makes the whole pipeline trivial. What it would close is the
+  // order-of-magnitude gap that still separates a first text-mode search from its byte-class twin.
   //
-  //     `\w+@\w+`   full expansion   2808 allocations   6866 instructions   476 classes
-  //                  ASCII-restricted    12                  8                 3
-  //
-  // 8 instructions against 6866. Everything downstream is sized by that program -- the lazy alphabet,
-  // the DFA's subset construction, the one-pass table -- so this does not merely make the trie build
-  // cheaper, it makes the whole pipeline trivial. The end-to-end gap it would close is the ~40x that
-  // still separates a first `\w+@\w+` search from its byte-class twin.
-  //
-  // THE OBVIOUS ROUTING IS REFUTED, MEASURED. A restricted program is correct only if the whole
-  // scanned region is ASCII, so the naive design pre-scans the subject. That scan costs more than the
-  // search it protects: 0.071 us against a 0.060 us steady-state search on 8 KB, and 0.635 against
-  // 0.057 on 64 KB -- eleven times, turning a 57 ns search into 692. Caching the verdict per haystack
-  // does not rescue the common case either, since the VM state is fresh per `search()` and would
-  // re-scan; that is the same trap the compat regex_iterator was found in.
+  // THE OBVIOUS ROUTING IS REFUTED, MEASURED. A restricted program is correct only if the whole scanned
+  // region is ASCII, so the naive design pre-scans the subject. That scan costs MORE than the search it
+  // protects, and the gap widens with the subject, because the scan is O(n) against a search that skips.
+  // Caching the verdict per haystack does not rescue the common case either, since the VM state is fresh
+  // per `search()` and would re-scan; that is the same trap the compat regex_iterator was found in.
   //
   // What is left is for the restricted DFA to derail ITSELF: map every byte >= 0x80 to one
   // distinguished alphabet class whose transition is a sentinel meaning "cannot answer", so the scan
@@ -710,24 +703,19 @@ namespace real::detail {
   // ASCII program a subject that would fool it. That is a feature with a correctness obligation, not
   // a local edit -- and it subsumes the trie-arena work above rather than competing with it.
   //
-  // THE EXPANSION IS BLIND TO THE SUBJECT, AND THAT IS WHERE THE COST IS. A text-mode class is
-  // expanded here in full -- every code point it can match, as a UTF-8 trie -- before anything has
-  // looked at what will be searched. Measured on the devbox (g++ 13.3), first search and first
-  // fullmatch, against the strict-ASCII equivalent of the same class:
+  // THE EXPANSION IS BLIND TO THE SUBJECT, AND THAT IS WHERE THE COST IS. A text-mode class is expanded
+  // here in full -- every code point it can match, as a UTF-8 trie -- before anything has looked at what
+  // will be searched. The gap against the strict-ASCII equivalent of the same class scales with how much
+  // of the class lies outside ASCII: two orders of magnitude for `\w`, one for `\d`, and small for `\s`,
+  // which is nearly all ASCII to begin with. For a wide class that is essentially all of the cost, paid to
+  // recognise code points a pure-ASCII subject cannot contain.
   //
-  //     \w   803.35 us / 1556.37      [A-Za-z0-9_]  4.31 / 6.53     186x
-  //     \d    57.23    /  146.08      [0-9]         2.75 / 6.90      21x
-  //     \s    11.12    /   26.82      [ \t\n]       2.93 / 6.62       3.8x
+  // The general Pike VM needs none of it: a bare `\w+` takes a route with no byte program at all. This
+  // expansion exists only to feed the lazy DFA and the one-pass extractor.
   //
-  // For `\w` that is over 99 % of the cost, paid to recognise code points a pure-ASCII subject can
-  // never contain. The general Pike VM needs none of it -- `\w+` on its own costs 0.6 us because it
-  // takes a route with no byte program at all; this expansion exists only to feed the lazy DFA and
-  // the one-pass extractor.
-  //
-  // The shape that would fix it is an ASCII-first expansion upgraded on demand, since the subject IS
-  // known at search time and its ASCII-ness is a cheap scan. That is an architectural change to when
-  // the immutables are built, not a tweak here, and it is not attempted in this train -- but the
-  // measurement is recorded so the next person does not have to re-derive the size of the prize.
+  // The shape that would fix it is an ASCII-first expansion upgraded on demand, since the subject IS known
+  // at search time and its ASCII-ness is a cheap scan. That is an architectural change to WHEN the
+  // immutables are built, not a tweak here.
 #if defined(__GNUC__) || defined(__clang__)
   __attribute__((cold)) // build-time only: see the note in prefilter.hpp's detect_fast_shapes
 #endif
@@ -773,23 +761,17 @@ namespace real::detail {
 
     const std::size_t         n {prog.code.size()};
     std::vector<std::int32_t> map(n + 1, 0);                     // old pc -> new pc (n = the one-past end)
-    // A trie PER CLASS, not per occurrence, and pointers into it per pc. A trie is a pure function of
-    // its code-point class, so `(\w+)X(\w+)` was building the identical structure twice. Devbox
-    // callgrind put build_utf8_trie at 4.6 % of a capture-pattern profile, and the wall clock puts
-    // that pattern's FIRST search at 1064 us against 3.9 for its byte-class twin `([a-z]+)X([a-z]+)`
-    // -- the cost is the lazy table build, not construction (15.8 us) and not steady-state (1.6 us).
-    // Deduplicating within the build takes it to 897 us, and `(\d+)X(\d+)` from 75.2 to 60.1.
-    // `by_class` is sized up front and never grows, so the pointers cannot dangle.
+    // A trie PER CLASS, not per occurrence, and pointers into it per pc. A trie is a pure function of its
+    // code-point class, so a pattern naming the same class twice -- `(\w+)X(\w+)` -- otherwise builds the
+    // identical structure twice, and the cost of a first search on such a pattern is this build, not
+    // construction and not steady-state matching. `by_class` is sized up front and never grows, so the
+    // pointers cannot dangle.
     //
-    // NOT shared across the program's TWO expansions -- Tier-A through ensure_immutables and Tier-B
-    // through ensure_op_table, which calls it, so one cache on the latter's stack would cover both
-    // with nothing outliving the build. That was written, wired and measured, and it does not pay:
-    // anchored first-match on the devbox went 167.3 -> 153.6 us for `(\d+)X(\d+)` but 1584.0 ->
-    // 1615.5 for `(\w+)X(\w+)`, against a byte-class gauge that did not move. Holding `\w`'s large
-    // tries alive across both builds costs more than rebuilding them, and the large classes are
-    // exactly the case worth fixing. Reverted; the earlier note that called this unreachable for a
-    // DIFFERENT reason (kilobytes kept in regex_immutables) was wrong about the mechanism and right
-    // about the conclusion.
+    // NOT shared across the program's TWO expansions -- Tier-A through ensure_immutables and Tier-B through
+    // ensure_op_table, which calls it, so one cache on the latter's stack would cover both with nothing
+    // outliving the build. That was written, wired and measured, and it does not pay: holding a wide
+    // class's large tries alive across both builds costs more than rebuilding them, and the wide classes
+    // are exactly the case worth fixing. Reverted.
     std::vector<utf8_trie>        by_class(prog.cp_classes.size());
     std::vector<bool>             class_built(prog.cp_classes.size(), false);
     std::vector<const utf8_trie*> tries(n, nullptr);              // the trie for each klass_cp pc
@@ -875,15 +857,16 @@ namespace real::detail {
                                               vec.push_back(value);
                                             }};
     // Memoize by class index and by literal byte. `push_unique` is a linear scan with a full 256-bit
-    // char_class compare, and it ran once per `klass` INSTRUCTION -- ~2507 of them for `(\w+)@(\w+)`
-    // against only 475 distinct classes, so ~595k class comparisons where 113k suffice. Skipping an
-    // index already processed is a no-op by construction: its content was pushed the first time.
+    // char_class compare, and it runs once per `klass` INSTRUCTION -- of which a Unicode trie emits several
+    // times more than there are distinct classes, so most of those comparisons are re-deciding a class
+    // already seen. Skipping an index already processed is a no-op by construction: its content was pushed
+    // the first time.
     // This pays only because emit_utf8_trie now shares one interned class per byte range; with a fresh
     // index per edge the memo would never hit.
     // Distinct-class collection, hashed rather than linear-scanned. The linear scan compares whole
-    // 256-bit char_class values; on `(\w+)@(\w+)` it ran 112575 of them to find exactly ONE duplicate,
-    // because interning already shares one class per byte range (see emit_utf8_trie) so the array arrives
-    // nearly deduplicated. Intrusive chain, not std::unordered_map: this function is constexpr and the
+    // 256-bit char_class values, and on a Unicode program it runs tens of thousands of them to find almost
+    // no duplicate at all -- interning already shares one class per byte range (see emit_utf8_trie), so the
+    // array arrives nearly deduplicated and the scan is pure loss. Intrusive chain, not std::unordered_map: this function is constexpr and the
     // engine headers avoid std::hash, whose out-of-line libc++ symbols drift across toolchains. Insertion
     // order in `class_preds` is preserved, so sig_equal's early exit behaves identically.
     constexpr std::size_t     pred_buckets {512};
@@ -1446,18 +1429,15 @@ namespace real::detail {
      */
     static constexpr bool compute_eligibility(std::span<const instr> code)
     {
-      for (const instr& in : code) {
-        if (in.op == opcode::assert_position || in.op == opcode::assert_lookaround
-            || in.op == opcode::klass_cp || in.op == opcode::byte_loop_possessive
-            || in.op == opcode::klass_loop_possessive || in.op == opcode::klass_cp_loop_possessive) {
-          // Position assertions / variable-width classes: no forward-DFA representation. Tier 1's
-          // possessive-loop family additionally has no consuming-edge representation at all here
-          // (consumes() below only recognizes byte/klass) — treating it as a dead end (silently
-          // non-consuming) would be an outright wrong DFA, not just an unrepresented shape.
-          return false;
-        }
-      }
-      return true;
+      // Position assertions / variable-width classes: no forward-DFA representation. Tier 1's
+      // possessive-loop family additionally has no consuming-edge representation at all here
+      // (consumes() below only recognizes byte/klass) — treating it as a dead end (silently
+      // non-consuming) would be an outright wrong DFA, not just an unrepresented shape.
+      return std::ranges::none_of(code, [](const instr& in) {
+                                    return in.op == opcode::assert_position || in.op == opcode::assert_lookaround
+                                           || in.op == opcode::klass_cp || in.op == opcode::byte_loop_possessive
+                                           || in.op == opcode::klass_loop_possessive || in.op == opcode::klass_cp_loop_possessive;
+                                  });
     }
 
     /*!
@@ -1900,17 +1880,14 @@ namespace real::detail {
      */
     static constexpr bool compute_eligibility(std::span<const instr> code)
     {
-      for (const instr& in : code) {
-        if (in.op == opcode::assert_position || in.op == opcode::assert_lookaround
-            || in.op == opcode::klass_cp || in.op == opcode::byte_loop_possessive
-            || in.op == opcode::klass_loop_possessive || in.op == opcode::klass_cp_loop_possessive) {
-          // Tier 1's possessive-loop family has no consuming-edge representation here either
-          // (consumes() above only recognizes byte/klass) -- same reasoning as the forward-DFA's
-          // own compute_eligibility.
-          return false;
-        }
-      }
-      return true;
+      // Tier 1's possessive-loop family has no consuming-edge representation here either
+      // (consumes() above only recognizes byte/klass) -- same reasoning as the forward-DFA's
+      // own compute_eligibility.
+      return std::ranges::none_of(code, [](const instr& in) {
+                                    return in.op == opcode::assert_position || in.op == opcode::assert_lookaround
+                                           || in.op == opcode::klass_cp || in.op == opcode::byte_loop_possessive
+                                           || in.op == opcode::klass_loop_possessive || in.op == opcode::klass_cp_loop_possessive;
+                                  });
     }
 
     /*!

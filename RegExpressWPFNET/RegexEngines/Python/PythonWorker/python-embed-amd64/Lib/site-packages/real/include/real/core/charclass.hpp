@@ -4,13 +4,16 @@
  *
  * The engine only ever tests bitmaps: negation and "one whole codepoint"
  * semantics are resolved at compile time (see compiler.hpp), never at match
- * time. Also provides the ASCII sets behind `\d`, `\w` and `\s`.
+ * time. Also holds the ASCII sets behind `\d`, `\w` and `\s`, the UTF-8
+ * lead/continuation byte sets that `.` and negated classes expand to, and the
+ * per-lead bounds that reject a malformed sequence without decoding it.
  */
 #ifndef REAL_CHARCLASS_HPP
 #define REAL_CHARCLASS_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "real/version.hpp"
 
@@ -188,17 +191,11 @@ namespace real::detail {
    * \brief The ASCII whitespace set behind `\s` under `flags::ascii` / `flags::bytes`.
    * \return The set `[ \t\n\r\f\v]`.
    *
-   * \note This is Python `re`'s own ASCII-mode `\s` set — NOT `str.isspace()`, which is a
-   *       different, broader (Unicode-aware) predicate that happens to agree with Python's
-   *       *text*-mode `\s` (the generated `space_ranges` table, which does list `U+001C`-
-   *       `U+001F` FS/GS/RS/US — verified live: `re.match(r"\s", "\x1c")` matches, but
-   *       `re.match(r"(?a)\s", "\x1c")` does not). Adding FS/GS/RS/US here
-   *       would conflate the two, making ASCII-mode `\s`
-   *       accept four bytes Python's own ASCII `\s` rejects — found by differential fuzzing
-   *       (`(?a)\s` matching `'\\x1c'` where `re` does not), fixed by removing them; `\\w`/`\\d`/
-   *       `\\b` were already correct (unaffected — this bug was specific to `space_set`).
-   *       `space_ranges` (text/Unicode mode, unaffected by this set) is the correct place
-   *       FS/GS/RS/US belong, and already lists them (`U+001C`-`U+0020`).
+   * \note NOT `str.isspace()`, which is the broader Unicode-aware predicate and agrees instead with
+   *       Python's *text*-mode `\s`. The difference is FS/GS/RS/US (`U+001C`–`U+001F`): text mode
+   *       accepts them, ASCII mode does not. They belong in the generated `space_ranges` table, which
+   *       lists them; adding them here would make ASCII-mode `\s` accept four bytes Python's own
+   *       ASCII `\s` rejects.
    */
   constexpr char_class space_set()
   {
@@ -262,23 +259,8 @@ namespace real::detail {
   }
 
   /*!
-   * \brief `[lo, hi]` bounds for the FIRST continuation byte of a multi-byte UTF-8 sequence,
-   *        given its lead byte.
-   *
-   * Every lead byte defaults to the generic continuation range `[0x80, 0xBF]`; four narrow it
-   * (Unicode Table 3-7) to exclude an overlong, surrogate, or beyond-`U+10FFFF` encoding: `0xE0`
-   * (3-byte, excludes the 3-byte overlong region `[0x80, 0x9F]`), `0xED` (3-byte, excludes the
-   * `U+D800-U+DFFF` surrogate block `[0xA0, 0xBF]`), `0xF0` (4-byte, excludes the 4-byte overlong
-   * region `[0x80, 0x8F]`), `0xF4` (4-byte, excludes code points past `U+10FFFF`, `[0x90, 0xBF]`).
-   * The 2-byte case needs no narrowing here: excluding `0xC0`/`0xC1` from \ref utf8_lead2_set
-   * already rules out every 2-byte overlong encoding.
-   *
-   * This is the single source of truth for rejecting those four encodings WITHOUT decoding the
-   * full code point (unlike \ref real::detail::decode_codepoint_strict, which accumulates the
-   * code point via shifts and checks it against `min_cp`/the surrogate block after the fact --
-   * correct, but too costly for a hot per-byte scan). Shared by every consumer that needs the
-   * rejection at scan speed: pike.hpp's `.` fast path and compiler.hpp's canonical byte-range
-   * expansion both read this table, so a narrowing here can never diverge between routes.
+   * \brief `[lo, hi]` bounds for the FIRST continuation byte of a multi-byte UTF-8 sequence, given its
+   *        lead byte — one entry of \ref utf8_second_byte_bounds_table.
    */
   struct utf8_second_byte_bounds
   {
@@ -304,8 +286,25 @@ namespace real::detail {
     return table;
   }
 
-  //! \brief The table itself, indexed by lead byte (0–255; only 0xC2–0xF4 are ever consulted).
-  //!        `inline constexpr`: computed once at compile time, one shared instance across TUs.
+  /*!
+   * \brief First-continuation-byte bounds indexed by lead byte (0–255; only 0xC2–0xF4 are ever
+   *        consulted). `inline constexpr`: computed once at compile time, one instance across TUs.
+   *
+   * Every lead byte defaults to the generic continuation range `[0x80, 0xBF]`; four narrow it
+   * (Unicode Table 3-7) to exclude an overlong, surrogate, or beyond-`U+10FFFF` encoding: `0xE0`
+   * (3-byte, excludes the 3-byte overlong region `[0x80, 0x9F]`), `0xED` (3-byte, excludes the
+   * `U+D800-U+DFFF` surrogate block `[0xA0, 0xBF]`), `0xF0` (4-byte, excludes the 4-byte overlong
+   * region `[0x80, 0x8F]`), `0xF4` (4-byte, excludes code points past `U+10FFFF`, `[0x90, 0xBF]`).
+   * The 2-byte case needs no narrowing here: excluding `0xC0`/`0xC1` from \ref utf8_lead2_set
+   * already rules out every 2-byte overlong encoding.
+   *
+   * This is the single source of truth for rejecting those four encodings WITHOUT decoding the
+   * full code point (unlike \ref real::detail::decode_codepoint_strict, which accumulates the
+   * code point via shifts and checks it against `min_cp`/the surrogate block after the fact --
+   * correct, but too costly for a hot per-byte scan). Shared by every consumer that needs the
+   * rejection at scan speed: pike.hpp's `.` fast path and compiler.hpp's canonical byte-range
+   * expansion both read this table, so a narrowing here can never diverge between routes.
+   */
   inline constexpr std::array<utf8_second_byte_bounds, 256> utf8_second_byte_bounds_table {
     make_utf8_second_byte_bounds_table()};
 } // namespace real::detail

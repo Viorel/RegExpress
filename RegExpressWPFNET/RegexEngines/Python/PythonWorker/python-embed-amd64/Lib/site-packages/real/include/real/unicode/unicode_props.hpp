@@ -11,7 +11,8 @@
 #define REAL_UNICODE_PROPS_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "real/version.hpp"
 

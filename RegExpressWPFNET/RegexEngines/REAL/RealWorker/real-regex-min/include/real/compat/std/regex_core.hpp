@@ -8,7 +8,8 @@
 #define REAL_STD_REGEX_CORE_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include <real/version.hpp>
 
@@ -79,16 +80,16 @@ namespace real::compat {
      */
     enum match_flag_type : unsigned
     {
-      match_default    = 0,
+      match_default    = 0,          //!< No constraint; the operation may stay on REAL.
       match_not_bol    = 1U << 0U,   //!< `^` does not match the start of the sequence.
       match_not_eol    = 1U << 1U,   //!< `$` does not match the end of the sequence.
       match_not_bow    = 1U << 2U,   //!< `\b` does not match at the start.
       match_not_eow    = 1U << 3U,   //!< `\b` does not match at the end.
-      match_any        = 1U << 4U,
+      match_any        = 1U << 4U,   //!< Any match will do; REAL satisfies it by returning the leftmost one.
       match_not_null   = 1U << 5U,   //!< Do not match an empty sequence.
       match_continuous = 1U << 6U,   //!< The match must start at the first character.
-      match_prev_avail = 1U << 7U,
-      format_default    = 0,
+      match_prev_avail = 1U << 7U,   //!< `--first` is valid, so `^` and `\b` may inspect the character before it.
+      format_default    = 0,         //!< ECMAScript replacement syntax, copying the unmatched text.
       format_sed        = 1U << 8U,  //!< sed/POSIX replacement syntax (routes to std).
       format_no_copy    = 1U << 9U,  //!< Do not copy the parts of the text that did not match.
       format_first_only = 1U << 10U, //!< Replace only the first match.
@@ -128,8 +129,7 @@ namespace real::compat {
       return static_cast<match_flag_type>(~static_cast<unsigned>(a));
     }
 
-    //! \brief Error categories. Aliased to std's so `regex_error::code()` is a true drop-in.
-    using error_type = std::regex_constants::error_type;
+    using error_type = std::regex_constants::error_type; //!< Error categories, aliased to std's so `regex_error::code()` is a true drop-in.
   } // namespace regex_constants
 
   /*!
@@ -234,8 +234,8 @@ namespace real::compat {
      * `\0` followed by a digit: `real` reads it as a legacy octal escape (Annex B, e.g. `\012` →
      * newline) while libstdc++ reads `\0` as NUL then a literal digit. Strict ECMAScript makes `\0`+
      * digit a syntax error (no valid production), so neither is "the" spec answer — routing to std
-     * keeps compat ≡ its secondary oracle and the contract (never a silent divergence). The fuzzer
-     * found this. (`\1`-`\9` already route to std via real's backreference rejection.)
+     * keeps compat ≡ its secondary oracle and the contract that no divergence is silent. (`\1`-`\9`
+     * already route to std through real's backreference rejection.)
      *
      * `\C` (RE2's raw-byte escape): `real` accepts it here because `real::compat` always
      * compiles its internal engine with `flags::bytes` (for byte-per-`std::regex`-char alignment, see
@@ -244,8 +244,7 @@ namespace real::compat {
      * RE2/real-only extension outside this layer's std::regex contract), and libstdc++ does not accept
      * it either — a genuine both-behavior mismatch (real: matches one byte; std: rejects, or accepts
      * it as some other escape and matches differently), not a case where routing to std even yields
-     * agreement. Route to std up front so compat never exposes it. The fuzzer found this (the exact
-     * seed corpus added for `\C`'s own coverage, replayed here since `fuzz/corpus` is shared).
+     * agreement. Route to std up front so compat never exposes it.
      * \param[in] p The pattern text.
      * \return `true` if it holds a construct only the `std` backend can serve.
      */
@@ -600,17 +599,19 @@ namespace real::compat {
       return out;
     }
 
-    //! \brief grep / egrep: a newline in the pattern is a top-level alternation of the lines (grep = BRE lines,
-    //!        egrep = ERE lines). Each line is translated by \p translate_line and the results are joined with
-    //!        `|` — correct precedence by construction, since `|` is the lowest, and each line's `^`/`$` stay
-    //!        branch-relative. A line that declines, or an empty line (a blank branch — a std edge best left to
-    //!        std), declines the whole pattern.
-    template <typename LineFn>
     /*!
+     * \brief grep / egrep: a newline in the pattern is a top-level alternation of the lines (grep = BRE
+     *        lines, egrep = ERE lines).
+     *
+     * Each line is translated by \p translate_line and the results are joined with `|` — correct
+     * precedence by construction, since `|` is the lowest, and each line's `^`/`$` stay branch-relative.
+     * A line that declines, or an empty line (a blank branch, a std edge best left to std), declines the
+     * whole pattern.
      * \param[in] p              The pattern, whose newlines separate alternatives (grep/egrep).
      * \param[in] translate_line Applied to each line; its `std::nullopt` fails the whole translation.
      * \return The joined ECMAScript alternation, or `std::nullopt` if any line failed.
      */
+    template <typename LineFn>
     [[nodiscard]] inline std::optional<std::string> translate_newline_alt(std::string_view p,
                                                                           LineFn           translate_line)
     {
@@ -712,7 +713,8 @@ namespace real::compat {
     using flag_type   = regex_constants::syntax_option_type; //!< Option type.
     using string_type = std::basic_string<CharT>;            //!< Pattern string type.
 
-    basic_regex() = default;                                 // the variant default-constructs to an empty std regex
+    /*! \brief An empty pattern on the std backend — the variant's first alternative default-constructs. */
+    basic_regex() = default;
 
     /*!
      * \brief Compiles \p pattern from a C string.

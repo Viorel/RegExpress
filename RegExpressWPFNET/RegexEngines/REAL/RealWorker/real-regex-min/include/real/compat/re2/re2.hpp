@@ -54,9 +54,8 @@
 #ifndef REAL_RE2_RE2_HPP
 #define REAL_RE2_RE2_HPP
 
-// Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>,
-// <real/compat/re2/re2.hpp>).
+// A public entry point: #include <real/compat/re2/re2.hpp>. It pulls in re2/arg.hpp, which is
+// internal and carries the usual banner.
 
 #include <real/version.hpp>
 

@@ -5,13 +5,14 @@
  * Mirrors real RE2's own mechanism (`re2.h`, `class RE2::Arg`): a `void*` destination plus a
  * function-pointer parser, so `FullMatch`/`PartialMatch`/`Consume`/`FindAndConsume` can accept a
  * heterogeneous, variadic list of output pointers (`&i`, `&s`, `&d`, …) without a virtual call or
- * an `any`-style allocation. Included via the `re2/re2.hpp` umbrella — do not include directly.
+ * an `any`-style allocation.
  */
 #ifndef REAL_RE2_ARG_HPP
 #define REAL_RE2_ARG_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/compat/re2/re2.hpp>.
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include <real/version.hpp>
 
@@ -22,7 +23,7 @@
 #include <string_view>
 #include <type_traits>
 
-//! \brief Drop-in replacement for RE2's API surface, on REAL's engine.
+/*! \brief Drop-in replacement for RE2's API surface, on REAL's engine. */
 namespace real::compat::re2 {
 
   /*!
@@ -38,8 +39,7 @@ namespace real::compat::re2 {
   {
   public:
 
-    //! \brief A parser: writes the `[text, text + length)` submatch into `dest`, or fails.
-    using Parser = bool (*)(const char* text, std::size_t length, void* dest);
+    using Parser = bool (*)(const char* text, std::size_t length, void* dest); //!< Writes the `[text, text + length)` submatch into `dest`, or fails.
 
     /*!
      * \brief Default-constructs a no-op `Arg` (same as `Arg(nullptr)`).
@@ -150,18 +150,21 @@ namespace real::compat::re2 {
     }
 
     /*!
-     * \brief Parses into a floating-point type via `std::strtod` on a NUL-terminated buffer.
+     * \brief Parses into a floating-point type via the `strto*` matching \p T, on a NUL-terminated buffer.
      *
-     * Not `std::from_chars`: this SDK's libc++ (Apple Clang) has the floating-point overload of
-     * `std::from_chars` explicitly deleted — a libc++/toolchain portability gap, not specific to
-     * this project or to RE2. `strtod` is locale-sensitive in general, but this call site only
-     * ever sees digits/`.`/`e`/`+`/`-` from a regex submatch, so the "C" locale's behavior (the
-     * only one that matters here) is what `strtod` gives regardless of the process locale.
+     * Not `std::from_chars`: some standard libraries explicitly delete its floating-point overload, so
+     * the `strto*` family is the portable floor rather than a preference. They are locale-sensitive in
+     * general, but this call site only ever sees digits, `.`, `e`, `+` and `-` from a regex submatch, and
+     * on those every locale agrees with "C".
+     *
+     * The conversion is picked to match \p T rather than always going through `double`: parsing a `float`
+     * with `strtod` would accept a value the destination cannot hold and silently narrow it to infinity,
+     * where `strtof` reports the overflow through `ERANGE`. RE2 dispatches the same way.
      * \tparam    T      A floating-point destination type.
      * \param[in]  text   The submatch's first byte.
      * \param[in]  length The submatch's length in bytes.
      * \param[out] out    Set on success only.
-     * \return `true` on success (the whole submatch consumed, in range).
+     * \return `true` when the whole submatch is consumed and the value is within \p T's range.
      */
     template <typename T>
     static bool parse_floating(const char* text,
@@ -173,12 +176,21 @@ namespace real::compat::re2 {
       }
       const std::string buffer(text, length);
       errno = 0;
-      char*        end   {};
-      const double value {std::strtod(buffer.c_str(), &end)};
+      char* end   {};
+      T     value {};
+      if constexpr (std::is_same_v<T, float>) {
+        value = std::strtof(buffer.c_str(), &end);
+      }
+      else if constexpr (std::is_same_v<T, long double>) {
+        value = std::strtold(buffer.c_str(), &end);
+      }
+      else {
+        value = static_cast<T>(std::strtod(buffer.c_str(), &end));
+      }
       if (end != buffer.c_str() + buffer.size() || errno == ERANGE) {
         return false;
       }
-      out = static_cast<T>(value);
+      out = value;
       return true;
     }
 

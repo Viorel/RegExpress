@@ -11,7 +11,8 @@
 #define REAL_PROGRAM_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "real/version.hpp"
 
@@ -50,13 +51,13 @@ namespace real {
     ecma = 32,            //!< ECMAScript compatibility: `$` (no multiline) matches only at the very end (not before a final `\n`, the Python default), AND `.` (no dotall) also excludes `\r` (ECMAScript excludes `\n` and `\r`; the multi-byte U+2028/U+2029 have no byte-level effect).
     ascii = 64,           //!< ASCII mode (`re.A`): `\d \w \s \b` stay ASCII and icase folds ASCII only, even in text mode. `.`, explicit classes and UTF-8 literals stay code-point-aware.
     dollar_endonly = 128, //!< `$` (no multiline) matches only at the very end of the text, never before a final `\n` — the Rust/`\z` semantics. Unlike \ref flags::ecma this touches `$` ONLY, leaving `.` at the Python default. Used by the Rust binding for drop-in parity.
-    allow_raw_byte = 256, //!< Permits `\C` (RE2's raw-byte escape) outside `flags::bytes` too — for byte-offset-native consumers only (e.g. `real::compat::re2`), never a char-offset-based binding (a `\C` span can land mid-codepoint). `flags::bytes` alone still suffices on its own; this widens the *gate*, not `\C`'s own byte-only behavior. `std::uint16_t`-backed since `bytes`..`dollar_endonly` already claim every bit of a `std::uint8_t` (a spike confirmed the width change is layout-neutral: `sizeof`/`offsetof` on every downstream struct are unchanged, the extra byte absorbed by existing padding).
+    allow_raw_byte = 256, //!< Permits `\C` (RE2's raw-byte escape) outside `flags::bytes` too. For byte-offset-native consumers only (e.g. `real::compat::re2`); a `\C` span can land mid-codepoint. `flags::bytes` already allows `\C`.
     ungreedy = 512,       //!< Ungreedy mode (RE2 `(?U)`): swap the default quantifier greediness — a bare quantifier becomes lazy and the explicit `?` suffix re-inverts back to greedy (`(?U)a+` matches minimally, `(?U)a+?` maximally). Resolved entirely at parse time into each repeat node's `lazy` bit (the compiler and VM never read this flag), and scoped like the other inline letters: `(?U:…)`, `(?-U:…)` and the constructor flag all work through the flag-scope stack.
   };
 
   /*!
-   * \brief Which match a search returns among those starting at the leftmost position (an experimental,
-   *        opt-in, off-by-default engine mode — the default is unchanged).
+   * \brief Which match a search returns among those starting at the leftmost position. Opt-in:
+   *        `first` below is what a search uses unless asked otherwise.
    */
   enum class match_semantics : std::uint8_t
   {
@@ -122,9 +123,12 @@ namespace real {
   }
 
   /*!
-   * \brief Whether a rejected pattern is malformed (`syntax`) or well-formed but beyond REAL's linear engine
-   *        (`unsupported`: a backreference, `\p{…}`, a nested/unbounded lookaround). The distinction is a
-   *        stable, machine-readable classification the C ABI exposes so a binding never has to grep `what()`.
+   * \brief Whether a rejected pattern is malformed (`syntax`) or well formed but beyond REAL's linear
+   *        engine (`unsupported`).
+   *
+   * `unsupported` covers a backreference, a conditional, and a lookaround that is not bounded — the
+   * constructs a linear-time engine cannot represent at all. It is a stable, machine-readable
+   * classification the C ABI exposes, so a binding never has to grep \ref regex_error::what.
    */
   enum class error_kind : std::uint8_t
   {
@@ -132,10 +136,12 @@ namespace real {
     unsupported,
   };
 
-  //! \brief The exception every rejected pattern throws: a message with the pattern offset it was found at,
-  //!        plus an \ref error_kind a caller can branch on without parsing \ref what. In a constexpr context
-  //!        (`static_regex`) reaching the throw is a compile-time error, the message appearing in the
-  //!        diagnostic trace.
+  /*!
+   * \brief The exception every rejected pattern throws: a message with the pattern offset it was found at,
+   *        plus an \ref error_kind a caller can branch on without parsing \ref what. In a constexpr context
+   *        (`static_regex`) reaching the throw is a compile-time error, the message appearing in the
+   *        diagnostic trace.
+   */
   class regex_error : public std::exception
   {
   public:
@@ -190,20 +196,24 @@ namespace real {
 
   namespace detail {
 
-    //! \brief An inclusive code-point range `[lo, hi]`. Shared by character classes (ast.hpp) and the
-    //!        generated Unicode property / fold tables; lives here so those low-level headers need not
-    //!        pull in the parser.
+    /*!
+     * \brief An inclusive code-point range `[lo, hi]`. Shared by character classes (ast.hpp) and the
+     *        generated Unicode property / fold tables; lives here so those low-level headers need not
+     *        pull in the parser.
+     */
     struct code_range
     {
       std::uint32_t lo {}; //!< First code point (inclusive).
       std::uint32_t hi {}; //!< Last code point (inclusive).
     };
 
-    //! \brief A match-time code-point class for the `klass_cp` opcode: an ASCII bitmap for code points
-    //!        `< 0x80` plus a slice of sorted non-ASCII ranges (indexing the program's flat `cp_ranges`
-    //!        buffer). It is the already-effective set (any `\W`/`[^…]` negation is materialised at
-    //!        compile time). Unlike the byte-NFA `klass`, the ranges are kept and binary-searched at
-    //!        match time — O(log ranges) per position, independent of the range count.
+    /*!
+     * \brief A match-time code-point class for the `klass_cp` opcode: an ASCII bitmap for code points
+     *        `< 0x80` plus a slice of sorted non-ASCII ranges (indexing the program's flat `cp_ranges`
+     *        buffer). It is the already-effective set (any `\W`/`[^…]` negation is materialised at
+     *        compile time). Unlike the byte-NFA `klass`, the ranges are kept and binary-searched at
+     *        match time — O(log ranges) per position, independent of the range count.
+     */
     struct cp_class
     {
       char_class    ascii;             //!< Members `< 0x80`.
@@ -216,10 +226,9 @@ namespace real {
       std::uint64_t fingerprint {};
     };
 
-    //! \brief FNV-1a 64-bit offset basis. Named once because it was written out SIX times and two of the
-    //!        copies disagreed: five sites carried `1469598103934665603`, this value with the final digit
-    //!        dropped, which still hashes but is not FNV-1a and made the repository's own hashes
-    //!        inconsistent with each other. A constant copied by hand is a constant that drifts.
+    //! \brief FNV-1a 64-bit offset basis. Defined once and referenced everywhere, never re-typed: a
+    //!        constant copied by hand drifts, and a wrong basis still hashes perfectly well -- it simply
+    //!        is not FNV-1a, so nothing downstream notices.
     inline constexpr std::uint64_t fnv1a_offset_basis {14695981039346656037ULL};
 
     inline constexpr std::uint64_t fnv1a_prime        {1099511628211ULL}; //!< FNV-1a 64-bit prime, paired with \ref fnv1a_offset_basis.
@@ -289,10 +298,9 @@ namespace real {
       // On no match (or end of text): epsilon-transition IN PLACE (same position, no byte
       // consumed) to `secondary_target` — safe specifically because it never crosses a position,
       // unlike a hypothetical multi-byte single-dispatch jump-ahead, which this
-      // one-position-per-thread-list VM cannot represent (see pike.hpp's step()/add_thread; this
-      // is also why a general "Tier 1.5" for compound bodies was scoped out of this train — a
-      // bare/singly-captured atom is the only shape that carries its own failure locally, within
-      // one dispatch, with nothing to propagate).
+      // one-position-per-thread-list VM cannot represent (see pike.hpp's step()/add_thread). It is
+      // also why the family stops at a bare or singly-captured atom: that is the only shape whose
+      // failure is local to one dispatch, with nothing to propagate outward.
       byte_loop_possessive,     //!< Consume one byte == arg8. See the opcode-family note above.
       klass_loop_possessive,    //!< Consume one byte in classes[arg16]. See the opcode-family note above.
       klass_cp_loop_possessive, //!< Consume one code point in cp_classes[arg16] (direct decode; emits the ordinary 3-slot UTF-8 continuation chain right after itself, identical layout to klass_cp — the membership decision is already fully made at the first byte). See the opcode-family note above.
@@ -374,12 +382,11 @@ namespace real {
      * \brief A typed reference into one of the three possessive-loop-body opcodes' own operand
      *        spaces.
      *
-     * R2 (phase Raffinement): replaces the untyped `{classes-index, cp_classes-index, is_cp bool}`
-     * triple that was Bug D/E's own locus -- prefilter.hpp's same_atom check compared a
-     * classes-table index against a cp_classes-table index with nothing but a hand-written side
-     * check to know they were different tables; a coincidental numeric collision (both table-index
-     * 0) let `[abc].*+` match unconditionally. A `class_ref`'s `operator==` always compares
-     * `kind` first, so a byte/klass/klass_cp mismatch cannot silently compare equal.
+     * The untyped alternative -- a `{classes-index, cp_classes-index, is_cp bool}` triple -- puts the
+     * burden on every comparison site to remember which table an index belongs to. prefilter.hpp's
+     * same_atom check did not, and a coincidental collision (both tables' index 0) let `[abc].*+`
+     * match unconditionally. `class_ref`'s `operator==` compares `kind` first, so a byte/klass/klass_cp
+     * mismatch cannot compare equal however the indices land.
      */
     struct class_ref
     {
@@ -395,7 +402,7 @@ namespace real {
         return kind != class_kind::none;
       }
 
-      //! \brief Equality, comparing \ref kind first so two different tables' indices never collide.
+      /*! \brief Equality, comparing \ref kind first so two different tables' indices never collide. */
       friend constexpr bool operator==(const class_ref&,
                                        const class_ref&) noexcept = default;
     };
@@ -415,14 +422,14 @@ namespace real {
      *       tail is cold *for it* while being hot for whichever route it does take — which is why the tail
      *       is ordered away from the prefix rather than moved behind an indirection.
      *
-     *       Two consequences, both measured and both easy to undo by accident. **Add new fields at the
-     *       END**: an insertion higher up reflows everything after it, and \ref small_set's growth and
-     *       \ref alternation_branch_count's placement each record a case where doing otherwise shifted
-     *       hot-field offsets and their cache line — a pure layout effect, no logic change, and
-     *       measurable. And **do not "split this into hot and cold structs"** as a fresh idea: that split
-     *       is what this order already is. Removing the tail from \ref program_view would shrink the view
-     *       by ~34 % at the price of an indirection on every route that reads it, where materialising the
-     *       dynamic view removes the whole per-search construction and costs no indirection at all.
+     *       Two consequences, both easy to undo by accident. **Add new fields at the END**: an insertion
+     *       higher up reflows everything after it, and both \ref small_set's growth and
+     *       \ref alternation_branch_count's placement record a case where doing otherwise moved hot fields
+     *       across a cache line — a pure layout effect, no logic change, and measurable on patterns that
+     *       read none of the new field. And **do not "split this into hot and cold structs"** as a fresh
+     *       idea: that split is what this order already is. Removing the tail from \ref program_view would
+     *       shrink the view at the price of an indirection on every route that reads it, where
+     *       materialising the dynamic view removes the whole per-search construction and costs none.
      */
     struct pattern_hints
     {
@@ -440,13 +447,13 @@ namespace real {
       //!        accepts one final newline). The match must END at that limit; the route walks the run
       //!        BACKWARD from it rather than scanning forward and retrying.
       std::uint8_t         greedy_class_loop_end     {};
-      std::uint16_t        greedy_class_loop_min     {1};  //!< P1: minimum run length (bytes) for \ref greedy_class_loop -- 1 for a bare `X+`, k for the `X{k,}` desugaring (k mandatory copies of the same atom then a loop of it, compiler.hpp's emit_repeat).
+      std::uint16_t        greedy_class_loop_min     {1};  //!< Minimum run length (bytes) for \ref greedy_class_loop -- 1 for a bare `X+`, k for the `X{k,}` desugaring (k mandatory copies of the same atom then a loop of it, compiler.hpp's emit_repeat).
       std::int32_t         greedy_cp_class           {-1}; //!< cp_class index if the whole pattern is a code-point class `klass_cp` (optionally `+`), else -1.
       bool                 greedy_cp_class_plus      {};   //!< The \ref greedy_cp_class pattern is a greedy `+` loop (vs a single code point).
       //! \brief Trailing end anchor on \ref greedy_cp_class — 0 none, 1 `\Z`, 2 `$` (which also
       //!        accepts one final newline). Same meaning as \ref greedy_class_loop_end.
       std::uint8_t         greedy_cp_class_end       {};
-      std::uint16_t        greedy_cp_class_min       {1};  //!< P1: minimum run length (CODE POINTS, not bytes) for \ref greedy_cp_class when \ref greedy_cp_class_plus is set -- see \ref greedy_class_loop_min.
+      std::uint16_t        greedy_cp_class_min       {1};  //!< Minimum run length (CODE POINTS, not bytes) for \ref greedy_cp_class when \ref greedy_cp_class_plus is set -- see \ref greedy_class_loop_min.
       std::int16_t         greedy_group_start        {-1}; //!< For a class-loop wrapped in one capturing group (`(\w+)`, `([a-z]+)`): the group's start slot to mirror the whole-match start into (-1 = no enveloping group).
       std::int16_t         greedy_group_end          {-1}; //!< The enveloping group's end slot (mirrors the whole-match end).
       bool                 fixed_shape               {};   //!< Whole pattern is a fixed-width byte/klass sequence (no branches/asserts/captures).
@@ -465,8 +472,8 @@ namespace real {
       std::uint8_t exact_literal_len {};
 
       //! \brief For a whole-pattern `class+` run whose accepted set has a small (<= 6-byte) complement:
-      //!        the STOP bytes (the complement), driving the memchr-cascade run scan (OPT-C). Empty
-      //!        unless \ref stop_set_size is set. Placed last so it never shifts the hot fields' offsets.
+      //!        the STOP bytes (the complement), driving the memchr-cascade run scan. Empty unless
+      //!        \ref stop_set_size is set. Placed last so it never shifts the hot fields' offsets.
       std::array<char, 6> stop_set      {};
       std::uint8_t        stop_set_size {}; //!< Members in \ref stop_set — 0 when the complement is too large, else 1..6.
 
@@ -474,15 +481,15 @@ namespace real {
       //!        mode: the L-SIMD masked block scan) in place of the bitmap loop. Empty unless \ref
       //!        small_set_size is set. Placed here (cold, alongside \ref stop_set — the same memchr-cascade
       //!        family) rather than near \ref first_bytes, its earlier position: that spot was ahead of the
-      //!        greedy_class_loop* fields the class-loop fast path reads every call, and growing this array
-      //!        (Alt-fix's 4->8 cap raise) shifted those hot fields' offsets and their cache line -- a pure
-      //!        layout effect, not a logic change, but measurable. This array is written once at compile and
+      //!        greedy_class_loop* fields the class-loop fast path reads every call, and raising this
+      //!        array's cap from four to eight moved those hot fields across a cache line -- a pure layout
+      //!        effect, not a logic change, but measurable. This array is written once at compile and
       //!        read only by the alternation route, so it costs nothing to keep it out of the hot prefix.
       std::array<char, 8> small_set      {};
       std::uint8_t        small_set_size {}; //!< Members in \ref small_set — 0 when not a small set, else 2..8.
 
       //! \brief A *required* literal byte at a fixed offset from the match start that is statically rarer
-      //!        than the pattern's first-byte set (OPT: the date `-` at offset 4). The search jumps by
+      //!        than the pattern's first-byte set (the date `-` at offset 4). The search jumps by
       //!        `memchr`-ing this one byte (SIMD) and back-verifies from `found - rare_offset`, instead of
       //!        the per-byte first-byte bitmap loop on a common class. -1 when no such byte was found.
       std::int16_t rare_byte   {-1};
@@ -506,10 +513,29 @@ namespace real {
       //!        reverse-matches from a candidate back to the match start. `inner_literal_len == 0` = none;
       //!        `inner_literal_prefix == 0` = the literal is at the head (reverse is the identity), `-1` = it
       //!        is nested with no clean prefix boundary. Filled at compile from the AST (raw bytes, so \ref
-      //!        pattern_hints — a core type — need not know the frontend literal type). Not yet routed on.
+      //!        pattern_hints — a core type — need not know the frontend literal type). `pike_vm::run`
+      //!        dispatches on these through its inner-literal route.
       std::array<std::uint8_t, 16> inner_literal        {};   //!< The literal's bytes, the first \ref inner_literal_len of which are meaningful.
       std::uint8_t                 inner_literal_len    {};   //!< Bytes held in \ref inner_literal; 0 means the pattern has no required inner literal.
       std::int32_t                 inner_literal_prefix {-1}; //!< Top-level children before the literal; 0 = at the head, -1 = nested with no clean boundary.
+
+      /*!
+       * \brief Every `save` in this program writes slot 0 or slot 1, so a thread's whole capture state is
+       *        the group-0 START and nothing else.
+       *
+       * STRUCTURAL, not empirical: `compile()` emits `save 0` at pc 0 and `save 1` immediately before
+       * `match`, and emits no other `save` unless the pattern has a capture GROUP. So "no save past slot 1"
+       * is exactly "no groups" -- but it is derived here by SCANNING the code rather than from
+       * `group_count`, so it holds for any producer of a program, including one added later.
+       *
+       * What it licenses: the epsilon walk need not carry a refcounted capture block per branch. `save 0`
+       * sits at pc 0, so every thread one `add_thread` call adds shares one start -- either the one passed
+       * in, or `pos` if the walk crossed the head -- and both are single `std::size_t` values in the call
+       * frame. That is why this must be a GUARD and not an assumption: a program whose `save 0` sat behind
+       * a split would let one branch inherit its sibling's start, which is a wrong ANSWER rather than a
+       * slow one (tests/frontend/test_index_and_range_limits.cpp).
+       */
+      bool                         capture_free_walk    {false};
 
       //! \brief For a \ref fixed_shape run that is also HOMOGENEOUS -- every position accepts the
       //!        identical byte set, itself expressible as <= 2 contiguous ranges (`[0-9a-f]{8}`,
@@ -530,11 +556,9 @@ namespace real {
       //!        end test is cheap: with the start pinned there is exactly ONE candidate position, so a
       //!        failed end test owes no retry. A trailing `$` WITHOUT `^` stays on the general VM.
       //!
-      //!        This byte and the one below it are the pair held where the retired IL-fusion fields sat, so
-      //!        that removing dead code did not reflow every field after it — see the layout note further
-      //!        down: a mid-struct reflow of this struct once cost `dog` 16.33 -> 21.23 us through the Rust
-      //!        bench. One of the two is now spent on something real; reclaiming the other is a
-      //!        measurement, not a cleanup.
+      //!        This byte and the one below it are the pair held where retired fields sat, so that removing
+      //!        dead code did not reflow every field after it — see this struct's layout note. One of the two
+      //!        is now spent on something real; reclaiming the other is a measurement, not a cleanup.
       std::uint8_t fs_end_anchor            {};
       std::uint8_t reserved_layout_hold [1] {}; //!< The remaining held byte; see \ref fs_end_anchor.
 
@@ -542,7 +566,8 @@ namespace real {
       //!        `[0-9]+(?![0-9])`, …). Index into lookarounds; -1 = not this shape.
       //!        \ref trailing_la_class holds the body's class index. Intentionally does **not** set
       //!        \ref greedy_class_loop (left −1) so the pure class+ call site stays a single compare —
-      //!        zero overhead on the daily `[a-z]+` path (x86: sharing greedy_class_loop regressed it −20 %).
+      //!        sharing that selector would make every `[a-z]+` search branch on this shape too, which was
+      //!        measured to cost more than the route saves.
       std::int16_t trailing_lookaround {-1};
       std::int32_t trailing_la_class   {-1}; //!< Class index for \ref trailing_lookaround body; −1 if unset.
 
@@ -553,7 +578,7 @@ namespace real {
       //!        different start positions at genuinely different lengths -- see the per-attempt-independence
       //!        divergence pinned in test_static.cpp's `(a){2,4}+b`), so a linear-time skip-based search
       //!        cannot be built for it here; it stays on the general VM. At most one leading mandatory copy
-      //!        (min in {0,1}); min >= 2 also stays on the general VM (not in this train's measured corpus).
+      //!        (min in {0,1}); min >= 2 also stays on the general VM.
       //!        A non-empty \ref possessive_prefix additionally requires (checked at recognition time,
       //!        prefilter.hpp) that the loop's class excludes the prefix's AND suffix's leading byte -- the
       //!        invariant that makes the delimited/"quoted" runner's skip-to-body-end retry provably linear
@@ -574,7 +599,7 @@ namespace real {
       //!        start/end after the body fast-path accepts a candidate.
       std::uint8_t wb_lead  {}; //!< Leading wrap: 0 none, 1 `\b`, 2 `\B` — asserted at the match start.
       std::uint8_t wb_trail {}; //!< Trailing wrap, same encoding as \ref wb_lead — asserted at the match end.
-      //! \brief True when a genuine leading `\b` was dropped by the B-1 optimization (a maximal
+      //! \brief True when a genuine leading `\b` was dropped by the DROP rule (a maximal
       //!        greedy/possessive run can only legitimately START where the preceding character
       //!        is non-word, so the runtime check is redundant -- \ref resolve_class_wb_hints).
       //!        That argument silently assumes "preceding character absent" means the TRUE start
@@ -601,11 +626,10 @@ namespace real {
       //!        scan). Placed LAST (own reason \ref small_set / \ref stop_set are also placed away
       //!        from the hot prefix): inserting anywhere earlier reflows every field after it,
       //!        including \ref wb_lead / \ref body_pc themselves, which fixed_shape / alternation /
-      //!        exact_literal all read on every match — measured empirically (a naive insertion
-      //!        right after \ref small_set_size grew sizeof(pattern_hints) by 8 bytes via an
-      //!        alignment cascade off \ref inner_literal_prefix and shifted wb_lead/body_pc by +4).
-      //!        Appending after the last field instead is byte-identical: sizeof/offsetof unchanged
-      //!        for every existing field, verified before/after.
+      //!        exact_literal all read on every match. An insertion right after \ref small_set_size
+      //!        does worse than shift them: it grows the whole struct through an alignment cascade off
+      //!        \ref inner_literal_prefix. Appending after the last field leaves sizeof and every
+      //!        existing offset untouched.
       std::uint16_t alternation_branch_count {};
 
       //! \brief Number of leading top-level children peeled before the IL reverse-prefix
@@ -627,8 +651,8 @@ namespace real {
       //! `next_candidate`, so the candidate would not come from `find_prefix`).
       //!
       //! Folded into one bit deliberately: every term is a property of the compiled program, never
-      //! of the subject, so evaluating them per match cost the shapes that FAIL the guard ~1–1.6%
-      //! (measured) for a decision that cannot change. The caller adds only `slot_count == 2`,
+      //! of the subject, so evaluating them per match charges the shapes that FAIL the guard for a
+      //! decision that cannot change between matches. The caller adds only `slot_count == 2`,
       //! which lives on the program rather than here. Assertion-freeness is computed directly from
       //! `code` and deliberately **not** inferred from \ref wb_lead / \ref anchored_start / \ref
       //! line_anchored — an assert kind those hints do not represent would make that inference
@@ -663,13 +687,10 @@ namespace real {
       std::uint8_t fs_pair_b_lo1 {1}; //!< Position B, second range's low byte; same "no second range" convention.
       std::uint8_t fs_pair_b_hi1 {};  //!< Position B, second range's high byte.
 
-      // The six IL fields below are APPENDED LAST, and that placement is the change rather than a detail:
-      // inserting them mid-struct (where the retired IL-fusion pair used to sit) reflowed every field
-      // after them and moved
-      // the class-loop fast path's own hot fields across a cache line. Measured through the Rust crate's
-      // criterion bench, same bench file both sides: `find/literal` (`dog`) 16.33 -> 21.23 us and
-      // `find/word_bound` (`\b\w+\b`) 325.5 -> 415.8 us, a pure layout effect on patterns that read none
-      // of these. Same fault the small_set note above records for the 4->8 cap raise.
+      // The six IL fields below are APPENDED LAST, and that placement is load-bearing: inserting them
+      // mid-struct reflows every field after them and moves the class-loop fast path's own hot fields
+      // across a cache line -- measurably, on patterns that read none of these six. It is the same fault
+      // the small_set note above records for that array's cap raise.
       /*!
        * \brief IL reverse-by-class: set when the inner-literal PREFIX is exactly one greedy class loop
        *        (`[a-z]+@…`, `\w+-…`, `\d+\.…`), so the match start for a candidate literal at `h` is the
@@ -694,11 +715,12 @@ namespace real {
        *
        * With \ref il_rev_class placing the start by walking the prefix class back from the literal, the rest
        * of the match is the suffix class run forward from the literal's end — and every capture slot is one
-       * of four positions (`s`, the literal's start, the literal's end, `e`). Profiling the row this serves,
-       * `[a-z]+@[a-z]+` over a 64 KiB corpus of matches: 74% of `static_regex`'s instructions were the Pike
-       * VM (`add_thread` 33%, `step` 21%, `run_general` 13%, the copy-on-write capture pool 6% — on a pattern
-       * with no capture groups at all), against a dynamic regex that confirms through its lazy DFA and
-       * one-pass table. This shape needs neither, so a storage with no per-regex cache stops paying for one.
+       * of four positions (`s`, the literal's start, the literal's end, `e`). What this buys is aimed at a
+       * storage with NO per-regex cache: a dynamic regex confirms a candidate through its lazy DFA and
+       * one-pass table, while `static_regex` has neither and falls back to the general VM -- most of its
+       * work then being thread management and the copy-on-write capture pool, on a pattern that may have no
+       * capture groups at all. This shape confirms without an engine, so that cost disappears rather than
+       * being reduced.
        *
        * -1 when the suffix is not a single greedy class loop reaching the end of the pattern.
        */
@@ -738,16 +760,15 @@ namespace real {
        *        `[0-9]` with no quantifier at all -- else -1.
        *
        * \ref greedy_class_loop describes `class+` and carries no "single" flag, unlike its two
-       * neighbours (\ref greedy_cp_class_plus, \ref codepoint_class_plus). So the unquantified form
-       * matched no batchable selector and crossed a full route entry PER match where all three class
-       * routes cross one per batch: measured at 1.000 entries per match and 7.882 ns/B for `[a-z]`,
-       * against 4.494 for the batched `[^,]` over the same corpus -- slower per byte than `.`, which
-       * matches at every position.
+       * neighbours (\ref greedy_cp_class_plus, \ref codepoint_class_plus). Without this field the
+       * unquantified form matches no batchable selector and crosses a full route entry PER match, where
+       * all three class routes cross one per BATCH -- which made a single-byte class slower per byte than
+       * `.`, a pattern that matches at every position.
        *
        * A SEPARATE field rather than a flag on \ref greedy_class_loop, and that is not a stylistic
-       * choice: sharing that selector forces every pure `class+` call site to branch on the other
-       * shape too, which cost 20 % on x86 when it was tried (see \ref trailing_lookaround, which
-       * declines to arm it for the same reason).
+       * choice: sharing that selector forces every pure `class+` call site to branch on the other shape
+       * too, which was measured to cost more than it saves (see \ref trailing_lookaround, which declines
+       * to arm it for the same reason).
        *
        * Scope is the 4-opcode program exactly (`save 0`, `klass`, `save 1`, `match`): no capture wrap,
        * no `\b` wrap, no anchor. A single literal BYTE (`a`) is excluded -- it takes `exact_literal`,
@@ -771,14 +792,19 @@ namespace real {
       std::int32_t end   {}; //!< End offset (exclusive) of the name.
     };
 
-    //! \brief The per-regex immutable lazy-DFA/one-pass cache (defined in onepass.hpp; a forward declaration
-    //!        keeps this low-level header independent of it). A dynamic storage owns one and points its view
-    //!        at it, so the byte-program and one-pass table are built once per regex, not per find_iter.
+    /*!
+     * \brief The per-regex immutable lazy-DFA/one-pass cache (defined in onepass.hpp; a forward declaration
+     *        keeps this low-level header independent of it). A dynamic storage owns one and points its view
+     *        at it, so the byte-program and one-pass table are built once per regex, not per find_iter.
+     */
     struct regex_immutables;
-    //! \brief A non-owning view of everything the engine needs to run one compiled pattern: the borrowed
-    //!        spans, the slot count, the mode flags, the search hints, and the per-regex cache. Both storages
-    //!        hand one of these to the VM, which is why the engine is storage-agnostic. Valid only as long as
-    //!        the program it views is alive.
+
+    /*!
+     * \brief A non-owning view of everything the engine needs to run one compiled pattern: the borrowed
+     *        spans, the slot count, the mode flags, the search hints, and the per-regex cache. Both storages
+     *        hand one of these to the VM, which is why the engine is storage-agnostic. Valid only as long as
+     *        the program it views is alive.
+     */
     struct program_view
     {
       std::span<const instr>          code;                   //!< The instruction stream (main + lookaround regions).
@@ -807,6 +833,28 @@ namespace real {
       const std::uint8_t*             cp_ascii_tables {nullptr}; //!< Flat ASCII tables per `cp_class`: `[i * 256 + b]`. Null as \ref class_tables.
       const std::uint64_t*            cp_page_tables  {nullptr}; //!< Flat page bitmaps per `cp_class`: `[i * 30]`. Null as \ref class_tables.
     };
+
+    /*!
+     * \brief This view is COPIED ON EVERY `find_iter` AND `count_matches` CALL, so its size is a per-call
+     *        cost and growing it is a decision, not a detail.
+     *
+     * A ceiling rather than a stopwatch, and that is the point. A per-call cost of this shape is fixed:
+     * it does not scale with the subject, so it hides under the noise floor of any throughput row and
+     * surfaces only on short inputs. Timing cannot guard it -- the effect is the same order as the floor of
+     * the rows that would carry it -- so it is guarded by COUNTING bytes instead, the same way per-call
+     * allocations are guarded by counting them rather than timing them.
+     *
+     * The number is not a target to hit but a line to notice crossing: ten spans plus \ref pattern_hints
+     * plus the scalars and pointers. Lower it when the view shrinks, and raise it only with the reason
+     * written down -- a change that adds a span here charges every call on both surfaces.
+     *
+     * Guarded on the pointer width because `std::span` is two pointers: a literal byte count would fail on
+     * a 32-bit target for no reason (this project has a `win32-narrowing` CI leg), and the concern -- do
+     * not silently make the per-call copy bigger -- is the same on any width.
+     */
+    static_assert(sizeof(void*) != 8 || sizeof(program_view) <= 440,
+                  "program_view grew: it is copied once per find_iter/count_matches call. See the note "
+                  "above -- raise this ceiling deliberately, with the per-call cost accepted in writing.");
 
     /*!
      * \brief Owning, heap-allocated program: the storage backing `real::regex`.

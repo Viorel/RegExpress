@@ -11,17 +11,18 @@
  * ambiguity); `(\w+)_(\w+)` is not (`_` is itself a `\w`, so a `_` both extends group 1 and starts the
  * separator — a genuine conflict).
  *
- * This header is the **builder only** (the arc's first slice): it classifies a pattern and, when one-pass,
- * produces the node table. Nothing runs matching through it yet. It builds over the L2.5 byte_program
- * (Unicode `\w \d \s` already expanded to byte ranges), so the one-pass check runs at the byte level. The
- * table format here is a readable struct, not RE2's packed `uint32`; packing is a runtime concern (a later
- * slice) that the differential would catch either way.
+ * This header classifies a pattern and, when one-pass, produces the node table; `pike_vm` walks it through
+ * \ref real::detail::onepass::extract, which is what the `onepass_full` and `onepass_window` routes are.
+ * It builds over the byte program (Unicode `\w \d \s` already expanded to byte ranges), so the one-pass
+ * check runs at the byte level. The table is a readable struct rather than RE2's packed `uint32`: packing
+ * would be a runtime decision, and the differential holds either form to the same answers.
  */
 #ifndef REAL_ONEPASS_HPP
 #define REAL_ONEPASS_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include <algorithm>
 #include <array>
@@ -47,9 +48,11 @@
 
 namespace real::detail {
 
-  //! \brief One outgoing edge of a one-pass node, for a byte-class: the next node and the capture slots that
-  //!        take the current position as the byte is consumed. Two epsilon paths reaching the same class with
-  //!        a different edge is the one-pass conflict — the pattern is then rejected.
+  /*!
+   * \brief One outgoing edge of a one-pass node, for a byte-class: the next node and the capture slots that
+   *        take the current position as the byte is consumed. Two epsilon paths reaching the same class with
+   *        a different edge is the one-pass conflict — the pattern is then rejected.
+   */
   struct onepass_edge
   {
     std::uint32_t next        {0};     //!< Next node id (valid only when \ref assigned).
@@ -58,8 +61,10 @@ namespace real::detail {
     bool          assigned    {false}; //!< Whether this byte-class has an edge from this node.
   };
 
-  //! \brief A one-pass node: one edge per byte-class, plus whether the run may end here and with what
-  //!        captures. Nodes are the points the automaton can be in *between* byte reads.
+  /*!
+   * \brief A one-pass node: one edge per byte-class, plus whether the run may end here and with what
+   *        captures. Nodes are the points the automaton can be in *between* byte reads.
+   */
   struct onepass_node
   {
     std::vector<onepass_edge> edge;                      //!< Indexed by byte-class.
@@ -85,18 +90,17 @@ namespace real::detail {
     static constexpr std::uint32_t no_node          {0xFFFFFFFFU};  //!< "No node yet" sentinel in the pc->node map.
     static constexpr std::size_t   max_nodes        {65000};        //!< Node cap (RE2's), a memory/DoS bound.
     static constexpr std::size_t   max_slots        {10};           //!< Slot-pointer cap: group 0 + four user groups.
-    // SIZING, not behaviour: a dedup hash width. Collisions cost time, never correctness, so
-    // the sabotage sweep reads it unguarded and there is nothing for a test to pin.
+    // SIZING, not behaviour: a dedup hash width. A collision costs a comparison, never an answer, so
+    // there is nothing here for a test to pin.
     static constexpr std::size_t   minimize_buckets {4096};         //!< Hash buckets for the Moore-refinement dedup.
     static constexpr std::size_t   max_table_bytes  {8U << 20};     //!< Table-memory cap (~8 MB): larger declines to the VM.
     //! Moore-refinement work cap (rounds x nodes x per-node signature width). A repeated large class (e.g.
     //! `\w{k}`, whose Unicode trie floods thousands of nodes per copy) forms a *chain* of that many node
     //! groups, and Moore refinement needs one round per link of the chain to propagate a distinguishing byte
     //! all the way back to the start -- rounds ~ O(k), each O(nodes x alphabet), so total work is quadratic
-    //! in k and unbounded as k grows (confirmed: `\w{30}` alone took ~2.1s on arm64/-O2 before this cap).
-    //! Calibrated against the full test suite's own one-pass patterns, whose peak observed work is ~5.9M
-    //! (5 rounds, 3762 nodes) -- this cap gives that a >16x margin while bounding worst-case wall time to a
-    //! few hundred ms instead of seconds-to-unbounded. Larger declines to the VM, same as the other caps here.
+    //! in k and unbounded as k grows. Bounding the CUMULATIVE work rather than the round count is what lets
+    //! a small automaton refine as long as it needs while a long chain is caught early; the cap sits well
+    //! above what the suite's own one-pass patterns reach. Larger declines to the VM, as the other caps do.
     static constexpr std::uint64_t max_minimize_work {100'000'000ULL};
 
     /*!
@@ -199,8 +203,8 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Fills \p out with the capture slots of the one-pass match on `text[s, e)` — the single left-to-
-     *        right pass the whole arc is for, no thread lists. \p text is the **full** subject (never a
+     * \brief Fills \p out with the capture slots of the one-pass match on `text[s, e)` — one left-to-right
+     *        pass, no thread lists. \p text is the **full** subject (never a
      *        substring: assertions look at `s - 1` and `e`). Anchored at \p s; this is *fullmatch-on-span*
      *        (the span the router located): it consumes to \p e and requires the run to accept exactly there.
      *        `\ref real::npos` marks a slot no edge wrote. Returns `false` (leaving \p out unspecified) if the
@@ -299,12 +303,11 @@ namespace real::detail {
      *
      * A `jump` is a pure epsilon step -- no byte consumed, no capture written, no assertion added (see the
      * `opcode::jump` case in \ref build_edges, which just recurses with the masks unchanged) -- so the node
-     * at a jump's pc and the node at its target receive identical edges. Creating one for each was what left
-     * the flood holding a private copy of every shared trie subgraph for \ref minimize to merge afterwards:
-     * 2506 of 2508 nodes for `(\w+)@(\w+)` sat on a jump, because \ref emit_utf8_trie writes `klass` then
-     * `jump(target)` per trie edge and the successor below was taken as `pc + 1`. Resolving the chain makes
-     * the flood produce the shared node directly -- measured, the flood now lands ON the minimal automaton
-     * for those patterns (660 nodes in and 660 out, where it was 2508 in and 660 out).
+     * at a jump's pc and the node at its target receive identical edges. Creating one for each leaves the
+     * flood holding a private copy of every shared trie subgraph, for \ref minimize to merge afterwards --
+     * and \ref emit_utf8_trie writes `klass` then `jump(target)` per trie edge, so on a Unicode class nearly
+     * every node sits on a jump. Resolving the chain makes the flood produce the shared node directly, so on
+     * those patterns it lands on the minimal automaton with nothing left for minimize to merge.
      *
      * Bounded by the code size. A jump cycle would spin here, and \ref build_edges's `on_path` detection only
      * sees pcs it actually visits; on hitting the bound the pc is returned as-is, the flood reaches the cycle
@@ -392,8 +395,8 @@ namespace real::detail {
       // keeps `eligible_` true -- the only paths that skip that clear are the ones that also bail() (turn
       // eligible_ false), which stops this loop on its next condition check regardless. So the array is
       // already all-zero at the top of each iteration; re-zeroing bp.code.size() elements per node (up to
-      // node_cap_ times) was O(node_cap x code size) for no reason -- multiple seconds on a large repeated
-      // class (e.g. `\w{100}`) before it ever reached minimize().
+      // node_cap_ times) would be O(node_cap x code size) for no reason -- on a large repeated class that
+      // dominates the entire build before minimize() is ever reached.
       std::vector<char> on_path(bp.code.size(), 0);
       while (!queue.empty() && eligible_) {
         const std::int32_t pc {queue.back()};
@@ -445,10 +448,10 @@ namespace real::detail {
       const std::uint64_t round_work {static_cast<std::uint64_t>(n) * sig_width};
       std::uint64_t       work_done  {0};
       // All scratch is FLAT and hoisted out of the refinement loop. Nested vectors cost three ways:
-      // rebuilding them per round was n + minimize_buckets (= 4096) allocations *each round*; the
-      // signatures' per-element push_back was capacity check plus construct per word (17 % of this
-      // build's instructions on a `\w`-shaped program); and 4096 vector headers is more memory than
-      // the table it indexes. Flat removes all three -- four allocations for the whole call.
+      // rebuilding them per round is n + minimize_buckets allocations *each round*; the signatures'
+      // per-element push_back is a capacity check plus a construct per word, a sizeable share of the
+      // whole build on a `\w`-shaped program; and one vector header per bucket is more memory than the
+      // table it indexes. Flat removes all three -- four allocations for the whole call.
       //
       // Every node's `edge` holds exactly alpha_.count entries (see build/rebuild), which is why
       // `sig_width` above can be a single number for the work budget. Rows are nonetheless of
@@ -464,16 +467,15 @@ namespace real::detail {
       // Rows are SPARSE: only an ASSIGNED byte-class contributes. An unassigned class adds the same
       // (0, 0, 0) to every node's dense row, so dropping it cannot change any comparison; and each
       // sparse entry carries its class index, so two nodes whose assigned SETS differ can never
-      // compare equal. Density, not sparsity, is what decides the size of the win: 39.4 assigned
-      // classes of 103 for `(\w+)@(\w+)` gives 162 words a row against 313 dense, and 9.5 of 66 for
-      // `(\d+)@(\d+)` gives 42 against 202. Even the widest node measured (64 assigned) is 260, so
-      // the encoding never loses.
+      // compare equal. What decides the size of the win is DENSITY: a node assigning a minority of the
+      // alphabet shrinks by that ratio, and even one assigning most of it stays no wider than the dense
+      // row, so the encoding never loses.
       //
       // Rows are split by WHAT VARIES. Only `cls[i]` and the `cls[edge.next]` of each assigned class
       // change between rounds; the class indices and the capture/assert masks are fixed for the whole
       // call. Those invariants are therefore grouped ONCE, into an `inv_id`, and a round's signature is
-      // `(inv_id, cls[i], nexts...)` -- 2 + assigned words against 4 + 4 x assigned. On `(\w+)@(\w+)`
-      // that is 41 words a round instead of 162, and every round hashes and compares the narrow form.
+      // `(inv_id, cls[i], nexts...)` -- 2 + assigned words against 4 + 4 x assigned, so every round hashes
+      // and compares a signature several times narrower.
       //
       // The partition is unchanged, at every round and not merely at the fixpoint: `inv_id` is a
       // bijection onto the invariant tuple, so grouping by it groups exactly what grouping by the raw
@@ -792,21 +794,24 @@ namespace real::detail {
     std::string                             bail_reason_;       //!< Human-readable decline reason (\ref bail_reason).
   };
 
-  //! \brief The per-regex immutable cache the router shares across every find_iter on a regex: the byte-
-  //!        program (klass_cp expanded to the deterministic trie) and, when the pattern is one-pass, the
-  //!        extractor table. Built under program-identity invalidation (\ref built_for), so a const regex
-  //!        used from many threads builds race-free, and assign-onto-warmed rebuilds for the new program.
-  //!
-  struct regex_immutables; // forward — \ref erase_shared_dfas is called from the dtor
+  struct regex_immutables;                                       // defined below; the dtor calls the next line
   inline void erase_shared_dfas(const regex_immutables* immut);
 
-  //!        The mutable lazy-DFA transition caches live in a process-wide side table
-  //!        (\ref shared_dfa_slot), keyed by this object's address and guarded by a per-slot mutex —
-  //!        so this struct stays free of \c std::mutex / extra members (layout: \c once_flag →
-  //!        \c atomic pointer, same footprint). Address-reuse of the immutables object invalidates
-  //!        the slot via \ref reset_shared_dfas; program change at the same address is detected by
-  //!        \ref built_for (see \ref pike_vm::ensure_immutables). The dtor erases this address's map
-  //!        entry so match-time caches do not outlive the regex.
+  /*!
+   * \brief The per-regex immutable cache the router shares across every find_iter on a regex: the byte
+   *        program (klass_cp expanded to the deterministic trie) and, when the pattern is one-pass, the
+   *        extractor table.
+   *
+   * Built under program-identity invalidation (\ref built_for), so a const regex used from many threads
+   * builds race-free, and assigning onto a warmed regex rebuilds for the new program.
+   *
+   * The mutable lazy-DFA transition caches live in a process-wide side table (\ref shared_dfa_slot), keyed
+   * by this object's address and guarded by a per-slot mutex — so this struct stays free of
+   * \c std::mutex and of the members one would bring. Address reuse of the immutables object invalidates
+   * the slot via \ref reset_shared_dfas; a program change at the same address is caught by \ref built_for
+   * (see \ref pike_vm::ensure_immutables). The destructor erases this address's map entry, so match-time
+   * caches never outlive the regex.
+   */
   struct regex_immutables
   {
     byte_program           byte_prog;                     //!< klass_cp-expanded byte program (empty until built).
@@ -817,12 +822,10 @@ namespace real::detail {
     /*!
      * \brief Byte-indexed membership rows, filled ON FIRST USE of each class and kept for the regex's life.
      *
-     * `class_table` derived a 256-entry row into the VM state, and a `search()` builds a fresh state — so
-     * that walk landed on every short search: 2562 of the 3849 instructions one `[a-z]+` search spent.
-     * Filling every row with the program instead traded it for a cost `first_use` sees in full, since
-     * `[^,]+` interns fourteen classes and a short search touches one: +82 % there, +98 % on compile. Per
-     * class, on demand, cached per regex is the only arrangement that pays for neither — measured against
-     * both alternatives on compile, first use, repeated search and a 64 KiB walk.
+     * Deriving a 256-entry row into the VM state charges every short search, because `search()` builds a
+     * fresh state and the derivation lands in it. Filling every row at compile instead charges patterns that
+     * never touch most of their classes -- a negated class interns a dozen and a short search reads one.
+     * Per class, on demand, cached per regex is the only arrangement that pays for neither.
      *
      * THREAD SAFETY. \ref rows_for identifies the program the rows were sized for, exactly as \ref built_for
      * does for the rest of this cache, so a copied or reassigned regex re-sizes rather than reading a
@@ -838,10 +841,10 @@ namespace real::detail {
      *        overflow vector for the runs that do not fit.
      *
      * A fresh `real::regex` pays this whole block per construction, so the bit word matters more than it
-     * looks: as three separate `std::vector<std::atomic<char>>` a pattern with no cp_class still allocated
-     * two one-element vectors, and arm64 first use measured +10.8 % on `[a-z]+`. Bits cover the runs that
-     * fit in one word and allocate nothing; \ref row_ready_overflow carries the rest. The check is not on
-     * a hot path — the VM state remembers its last verified row, so this is read on a miss, not per call.
+     * looks: as three separate `std::vector<std::atomic<char>>`, a pattern with no cp_class still allocates
+     * two one-element vectors, and first use pays for both. Bits cover the runs that fit in one word and
+     * allocate nothing; \ref row_ready_overflow carries the rest. The check is not on a hot path — the VM
+     * state remembers its last verified row, so this is read on a miss, not per call.
      *
      * A `std::vector` of atomics rather than a `unique_ptr` array: `unique_ptr`'s destructor is not
      * constexpr, and this struct must stay a literal type for `real::regex` to be usable in a constant
@@ -858,11 +861,9 @@ namespace real::detail {
     std::atomic<const void*> rows_for {nullptr};
 
     //! \brief The multi-literal automaton for a `fixed_alternation` past the branch threshold, or empty
-    //!        when never built or declined (a pathological icase-fold expansion). Per REGEX, not per
-    //!        state: it lived on the state until it was measured, and a state is fresh per `search()`,
-    //!        so crossing the threshold rebuilt it on every call and cost 29.5 us and 584 allocations
-    //!        where a 3-branch alternation below the gate cost 0.14 -- a fast path that was ~200x slower
-    //!        than not taking it.
+    //!        when never built or declined (a pathological icase-fold expansion). Per REGEX, not per state:
+    //!        a state is fresh per `search()`, so holding it there rebuilds the whole automaton on every
+    //!        call — a fast path costing orders of magnitude more than the route it replaces.
     std::optional<ac_automaton> ac;
 
     //! \brief \c prog.code.data() \ref ac was built for, or null. Its OWN identity atomic, deliberately
@@ -872,12 +873,11 @@ namespace real::detail {
     std::atomic<const void*> ac_for {nullptr};
 
     //! \brief \c prog.code.data() \ref op_table was built for, or null. Same identity discipline as
-    //!        \ref rows_for and for the same reason: the extractor is needed only by the routes that
-    //!        actually fill captures through it, and it is by far the most expensive thing this cache
-    //!        holds -- 884 of the 1494 us a first `(\w+)@(\w+)` search spent, measured, against 331 for
-    //!        the byte program and 117 for the lazy DFA. Bundling it with \ref built_for made every route
+    //!        \ref rows_for and for the same reason: the extractor is needed only by the routes that fill
+    //!        captures through it, and it is by far the most expensive thing this cache holds — more than
+    //!        the byte program and the lazy DFA together. Bundling it into \ref built_for makes every route
     //!        that needs only the byte program pay for it, including a 2-slot pattern with no capture to
-    //!        extract at all (`\w+@\w+` measured the same 1487 us as its 6-slot twin).
+    //!        extract at all.
     std::atomic<const void*> op_table_for {nullptr};
 
     //! \brief \c prog.code.data() this cache was built for, or null if never built / invalidated.
@@ -891,8 +891,8 @@ namespace real::detail {
     // by `1ULL << i` for every index under it. Raise it without widening the type and the shift is
     // undefined behaviour for i >= 64 while \ref row_ready_overflow is indexed from the wrong base --
     // two silent faults, no diagnostic, and a suite that stays green because the overflow path is
-    // rarely reached. The sabotage sweep reported this constant unguarded, which is how it was
-    // looked at; a test could only ever sample one value of it, so the guard belongs here.
+    // rarely reached. A test could only ever sample one value of the constant, so the guard belongs
+    // here rather than in the suite.
     static_assert(row_ready_bit_capacity
                   == sizeof(decltype(row_ready_bits)::value_type) * 8U,
                   "row_ready_bit_capacity must be exactly the bit width of row_ready_bits");
@@ -927,7 +927,7 @@ namespace real::detail {
       }
     }
 
-    regex_immutables() = default;
+    regex_immutables() = default; //!< An empty cache: every identity key null, nothing built.
 
     /*!
      * \brief Copies as an EMPTY cache: a copied regex is an independent regex.
@@ -949,17 +949,15 @@ namespace real::detail {
     /*!
      * \brief Clears EVERY identity key, so nothing built for the old program survives an assignment.
      *
-     * There are four, and the two assignment operators used to clear only two of them. `ac_for` was
-     * the one that bit: assigning onto a WARMED regex left the Aho-Corasick automaton keyed to the
-     * previous program, and because copy-assigning the program's vector reuses its buffer,
-     * `code.data()` is unchanged -- so the route's identity check passed and served the OLD
-     * automaton. Reproduced through the public API: after `a = b` with a dense alternation, `a`
-     * answered **3230 matches on a subject where `b` matches none, and 0 on a subject where `b`
-     * matches 3125**. Silent wrong answers in both directions, not a crash.
+     * There are four keys and every one of them must be cleared, because the identity check they perform
+     * can PASS on a stale cache: copy-assigning the program's vector reuses its buffer, so `code.data()`
+     * is unchanged and a key left pointing at it still matches. A cache kept that way then serves the
+     * PREVIOUS pattern's product -- for `ac_for`, the previous alternation's automaton, which answers
+     * matches on a subject the new pattern does not match and none on a subject it does. Silent wrong
+     * answers in both directions, not a crash.
      *
-     * `op_table_for` was equally unreset and is not currently reachable this way -- captures come out
-     * right after the same assignment -- but it is cleared here too, because the invariant is "an
-     * assignment invalidates every cache", not "every cache we have a reproducer for".
+     * That is why the invariant is "an assignment invalidates every cache" rather than "every cache with
+     * a known reproducer": one of the four has no reproducer today and is cleared all the same.
      */
     void invalidate_all() noexcept
     {
@@ -984,8 +982,10 @@ namespace real::detail {
       return *this;
     }
 
-    //! \brief Invalidates as the copy assignment does, and for the same reason.
-    //! \return `*this`.
+    /*!
+     * \brief Invalidates as the copy assignment does, and for the same reason.
+     * \return `*this`.
+     */
     // NOLINTNEXTLINE(cert-oop54-cpp)
     regex_immutables& operator=(regex_immutables&& /*other*/) noexcept
     {
@@ -1020,10 +1020,13 @@ namespace real::detail {
     return stripes[h % stripes.size()];
   }
 
-  //! \brief Process-wide shared DFA transition caches keyed by \ref regex_immutables*.
-  //!        Thread-safe: map insert/erase under \ref shared_dfa_map_mu, DFA warm/scan under \ref mu.
-  //!        Slots are \c shared_ptr so a concurrent \ref erase_shared_dfas (dtor) cannot free a slot a
-  //!        thread is still scanning — the slot dies when the last holder (map or TLS cache) releases.
+  /*!
+   * \brief Process-wide shared DFA transition caches keyed by \ref regex_immutables*.
+   *
+   * Thread-safe: map insert/erase under \ref shared_dfa_map_mu, DFA warm/scan under \ref mu. Slots are
+   * \c shared_ptr so a concurrent \ref erase_shared_dfas (from a destructor) cannot free a slot a thread
+   * is still scanning — the slot dies when the last holder, map or thread-local cache, releases it.
+   */
   struct shared_dfa_slot
   {
     std::mutex                 mu;            //!< Guards every DFA below: warm-up and scan alike.
@@ -1033,7 +1036,7 @@ namespace real::detail {
     //! \brief True after this regex has been IL-candidate-scanned at least once (any size).
     //!        Cold first scan keeps the high \ref regex_immutables::il_min_haystack floor; warm
     //!        scans use \ref il_warm_floor. Not "il_prefix_rev is built" — a always-<floor corpus
-    //!        would never build the reverse DFA and would never drop the floor (audit 3.1).
+    //!        would never build the reverse DFA and so would never drop the floor.
     std::atomic<bool>          il_warmed {false};
 
     //! \brief The regex this slot belongs to, or null once \ref erase_shared_dfas has retired it.
@@ -1047,9 +1050,10 @@ namespace real::detail {
     std::atomic<const regex_immutables*> owner {nullptr};
   };
 
-  //! \brief Warm-regime IL min haystack (bytes). Shared reverse DFA amortizes after scan 1; below this
-  //!        even warm IL may not win (measured ~4 KB email dense collapse, 2026-07). Cold first scan
-  //!        still uses \ref regex_immutables::il_min_haystack (~94 KB email).
+  //! \brief Warm-regime IL minimum haystack, in bytes. The shared reverse DFA is amortised after the
+  //!        first scan, but below this size the candidate scan itself can cost more than the route saves,
+  //!        so the floor stays. A cold first scan uses the higher
+  //!        \ref regex_immutables::il_min_haystack instead.
   inline constexpr std::size_t il_warm_floor {4UL * 1024};
 
   /*!
@@ -1117,14 +1121,17 @@ namespace real::detail {
   }
 
   /*!
+   * \brief Resolve the process-wide DFA slot for this regex (map insert under \ref shared_dfa_map_mu).
+   *
+   * A thread-local last-hit cache stands in front of the map, because a dense inner-literal scan would
+   * otherwise take the map mutex once per candidate. The cache does not live on \ref regex_immutables —
+   * that struct sits on the class-loop path's own cache lines, and widening it is measurable there.
+   * It holds a \c shared_ptr rather than a raw pointer, so an erase cannot free a slot a scan is still
+   * walking, and it validates the hit against the slot's own \ref shared_dfa_slot::owner — ownership
+   * being per slot, one regex's destruction costs only the threads that were using it, where a
+   * process-wide epoch counter would send every thread back to the map.
    * \param[in] immut The regex whose slot is wanted.
    * \return Its slot, created on first use; never null.
-   * \brief Resolve the process-wide DFA slot for this regex (map insert under \ref shared_dfa_map_mu).
-   *        Thread-local last-hit cache: dense IL was paying map_mu per candidate without it; the cache
-   *        is not on \ref regex_immutables (layout isolation — x86 class-loop +6% suspect). Holds a
-   *        \c shared_ptr (not a raw pointer) so erase cannot UAF a live scan, and validates it against
-   *        the slot's own \ref shared_dfa_slot::owner — so an unrelated regex's destruction no longer
-   *        invalidates this thread's cache (the process-wide epoch counter it replaced did).
    */
   [[nodiscard]] inline shared_dfa_slot& shared_dfa_for(regex_immutables* immut)
   {

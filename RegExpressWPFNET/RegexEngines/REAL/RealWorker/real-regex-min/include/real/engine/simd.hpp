@@ -12,18 +12,18 @@
  *
  * Every function here is either intrinsics-only or a few bit ops over an opaque scalar — no eligibility
  * decision, no candidate/skip loop, no memcpy of the SUBJECT text (the caller owns that, MISRA-clean).
- * That split is deliberate: the loop logic in pike.hpp is the same C++ on every ISA and is exercised by
- * the ordinary test suite regardless of which leg compiled; the mask primitives here are, by
- * construction, ISA-exclusive (the NEON body never compiles on x86 and vice versa), so a single-ISA CI
- * runner can never line-cover both — see the Makefile's `COV_FLOOR_IGNORE` for this file (guarded
- * instead by sanitize, the fuzz corpus, the correctness nets in test_quantifiers, and — the practical
- * proof — the twin ISA's own coverage of the identical contract).
+ * That split keeps the loop logic in pike.hpp the same C++ on every ISA, exercised by the ordinary test
+ * suite whichever leg compiled. The primitives here are ISA-exclusive by construction — the NEON body
+ * never compiles on x86, nor SSE2 on aarch64 — so no single runner can line-cover both; hence this
+ * file's `COV_FLOOR_IGNORE` in the Makefile, the contract being guarded instead by sanitize, the fuzz
+ * corpus and the twin ISA's own runs over the identical interface.
  */
 #ifndef REAL_SIMD_HPP
 #define REAL_SIMD_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "real/version.hpp"
 
@@ -42,15 +42,15 @@ namespace real::detail {
 
 #if defined(__ARM_NEON)
 
-  //! \brief Opaque 16-lane mask: nibble-packed (4 bits/lane, 0xF = set / 0x0 = clear — the vshrn
-  //!        narrowing shift NEON produces from a byte compare has no cheaper 1-bit/lane form).
-  using mask_t = std::uint64_t;
+  using mask_t = std::uint64_t; //!< Opaque 16-lane mask, 4 bits/lane (0xF set, 0x0 clear) — NEON has no movemask, only the narrowing shift a byte compare feeds.
 
-  //! \brief Mask of \p buf16 against up to 8 single-byte members (the alternation first-byte set,
-  //!        `pattern_hints::small_set`).
-  //! \param[in] buf16   16 already-loaded bytes (the caller's MISRA-clean memcpy).
-  //! \param[in] members The candidate bytes, \p count of them valid.
-  //! \param[in] count   Number of valid \p members (1..8).
+  /*!
+   * \brief Mask of \p buf16 against up to 8 single-byte members (the alternation first-byte set,
+   *        `pattern_hints::small_set`).
+   * \param[in] buf16   16 already-loaded bytes (the caller's MISRA-clean memcpy).
+   * \param[in] members The candidate bytes, \p count of them valid.
+   * \param[in] count   Number of valid \p members (1..8).
+   */
   inline mask_t load_members_mask(const std::uint8_t * buf16,
                                   const std::uint8_t * members,
                                   std::size_t          count)
@@ -63,13 +63,15 @@ namespace real::detail {
     return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(eq), 4)), 0);
   }
 
-  //! \brief Mask of \p buf16 against a HOMOGENEOUS fixed-shape's shared <= 2-range set
-  //!        (prefilter.hpp's `class_range_count`).
-  //! \param[in] buf16 16 already-loaded bytes (the caller's MISRA-clean memcpy).
-  //! \param[in] lo0    Lower bound of the first range.
-  //! \param[in] hi0    Upper bound of the first range.
-  //! \param[in] lo1    Lower bound of the second range (`lo1 > hi1` encodes "no second range").
-  //! \param[in] hi1    Upper bound of the second range.
+  /*!
+   * \brief Mask of \p buf16 against a HOMOGENEOUS fixed-shape's shared <= 2-range set
+   *        (prefilter.hpp's `class_range_count`).
+   * \param[in] buf16 16 already-loaded bytes (the caller's MISRA-clean memcpy).
+   * \param[in] lo0   Lower bound of the first range.
+   * \param[in] hi0   Upper bound of the first range.
+   * \param[in] lo1   Lower bound of the second range (`lo1 > hi1` encodes "no second range").
+   * \param[in] hi1   Upper bound of the second range.
+   */
   inline mask_t load_range_mask(const std::uint8_t * buf16,
                                 std::uint8_t         lo0,
                                 std::uint8_t         hi0,
@@ -92,23 +94,22 @@ namespace real::detail {
     return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(good), 4)), 0);
   }
 
-  //! \brief Mask of the lanes where `buf16_a[l] == a` AND `buf16_b[l] == b` — the two-byte substring
-  //!        prefilter (prefilter.hpp's `simd_literal_scan`).
-  //!
-  //! **The one primitive here with no SSE2 twin, deliberately.** Its only caller
-  //! (`prefilter.hpp`'s `simd_literal_scan`) is NEON-gated: on x86-64 glibc's `find`/`memchr` are AVX2
-  //! (256-bit) and beat a 128-bit block filter on every row measured, so x86 keeps the platform search
-  //! and an SSE2 leg here would be unrouted code inviting someone to route it. An AVX2 leg — plus its
-  //! own wider mask type — is the honest way to bring this win to x86; that is a separate arc.
-  //!
-  //! The two windows are the SAME 16 candidate starts probed at two needle offsets: the caller loads
-  //! \p buf16_a at the candidate positions and \p buf16_b shifted by the offset delta, so lane `l`
-  //! answers "could the needle start at candidate `l`?" for both probes at once. Two bytes rejects far
-  //! more than one — the point of the filter — and the survivors still get a full verify.
-  //! \param[in] buf16_a 16 already-loaded bytes at the candidate starts (the caller's MISRA-clean memcpy).
-  //! \param[in] a       The needle byte expected at the first probe offset.
-  //! \param[in] buf16_b 16 already-loaded bytes at the candidate starts + delta (same, shifted).
-  //! \param[in] b       The needle byte expected at the second probe offset.
+  /*!
+   * \brief Mask of the lanes where `buf16_a[l] == a` AND `buf16_b[l] == b` — the two-byte substring
+   *        prefilter (prefilter.hpp's `simd_literal_scan`).
+   *
+   * The two windows are the SAME 16 candidate starts probed at two needle offsets: the caller loads
+   * \p buf16_a at the candidate positions and \p buf16_b shifted by the offset delta, so lane `l`
+   * answers "could the needle start at candidate `l`?" for both probes at once. Two bytes rejects far
+   * more than one, and the survivors still get a full verify.
+   *
+   * The one primitive with no SSE2 twin: its only caller is NEON-gated, x86-64 keeping the platform
+   * substring search, whose vectors are wider than this 128-bit floor. A twin here would be unrouted.
+   * \param[in] buf16_a 16 already-loaded bytes at the candidate starts (the caller's MISRA-clean memcpy).
+   * \param[in] a       The needle byte expected at the first probe offset.
+   * \param[in] buf16_b 16 already-loaded bytes at the candidate starts + delta (same, shifted).
+   * \param[in] b       The needle byte expected at the second probe offset.
+   */
   inline mask_t load_pair_mask(const std::uint8_t * buf16_a,
                                std::uint8_t         a,
                                const std::uint8_t * buf16_b,
@@ -120,27 +121,29 @@ namespace real::detail {
     return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(hit), 4)), 0);
   }
 
-  //! \brief `true` if no lane of \p m is set.
+  /*! \brief `true` if no lane of \p m is set. */
   inline bool empty(mask_t m)
   {
     return m == 0U;
   }
 
-  //! \brief Index (0..15) of the first set lane of \p m. UB if \ref empty(m).
+  /*! \brief Index (0..15) of the first set lane of \p m. UB if `empty(m)`. */
   inline std::size_t first_lane(mask_t m)
   {
     return static_cast<std::size_t>(std::countr_zero(m)) >> 2U;
   }
 
-  //! \brief \p m with its first set lane cleared.
+  /*! \brief \p m with its first set lane cleared. */
   inline mask_t clear_first(mask_t m)
   {
     const std::size_t lane {first_lane(m)};
     return m & ~(static_cast<mask_t>(0xF) << (4U * lane));
   }
 
-  //! \brief `true` if every lane in `[start, start + len)` of \p m is set (`len` clamped to 16 - start
-  //!        by the caller; a `len` reaching lane 16 is treated as the mask's natural width).
+  /*!
+   * \brief `true` if every lane in `[start, start + len)` of \p m is set. The caller clamps \p len to
+   *        `16 - start`; a \p len reaching lane 16 reads as the mask's full width.
+   */
   inline bool window_all_set(mask_t      m,
                              std::size_t start,
                              std::size_t len)
@@ -149,8 +152,10 @@ namespace real::detail {
     return ((m >> (4U * start)) & want) == want;
   }
 
-  //! \brief Index (0..15, absolute — not relative to \p start) of the first CLEAR lane in
-  //!        `[start, start + len)` of \p m. UB if `window_all_set(m, start, len)`.
+  /*!
+   * \brief Index (0..15, absolute — not relative to \p start) of the first CLEAR lane in
+   *        `[start, start + len)` of \p m. UB if `window_all_set(m, start, len)`.
+   */
   inline std::size_t first_clear_lane(mask_t      m,
                                       std::size_t start,
                                       std::size_t len)
@@ -160,7 +165,7 @@ namespace real::detail {
     return start + (static_cast<std::size_t>(std::countr_zero(fails)) >> 2U);
   }
 
-  //! \brief Index (0..15) of the first set lane of \p m at or after \p from, or 16 if none.
+  /*! \brief Index (0..15) of the first set lane of \p m at or after \p from, or 16 if none. */
   inline std::size_t next_set_lane(mask_t      m,
                                    std::size_t from)
   {
@@ -173,14 +178,15 @@ namespace real::detail {
 
 #elif defined(__SSE2__)
 
-  //! \brief Opaque 16-lane mask: bit-packed (1 bit/lane — `_mm_movemask_epi8` gives this natively).
-  using mask_t = std::uint32_t;
+  using mask_t = std::uint32_t; //!< Opaque 16-lane mask, 1 bit/lane — the form `_mm_movemask_epi8` yields.
 
-  //! \brief Mask of \p buf16 against up to 8 single-byte members (the alternation first-byte set,
-  //!        `pattern_hints::small_set`). SSE2 leg of the NEON overload above.
-  //! \param[in] buf16   16 already-loaded bytes (the caller's MISRA-clean memcpy).
-  //! \param[in] members The candidate bytes, \p count of them valid.
-  //! \param[in] count   Number of valid \p members (1..8).
+  /*!
+   * \brief Mask of \p buf16 against up to 8 single-byte members (the alternation first-byte set,
+   *        `pattern_hints::small_set`). SSE2 leg of the NEON overload above.
+   * \param[in] buf16   16 already-loaded bytes (the caller's MISRA-clean memcpy).
+   * \param[in] members The candidate bytes, \p count of them valid.
+   * \param[in] count   Number of valid \p members (1..8).
+   */
   inline mask_t load_members_mask(const std::uint8_t * buf16,
                                   const std::uint8_t * members,
                                   std::size_t          count)
@@ -194,13 +200,15 @@ namespace real::detail {
     return static_cast<mask_t>(_mm_movemask_epi8(eq));
   }
 
-  //! \brief Mask of \p buf16 against a HOMOGENEOUS fixed-shape's shared <= 2-range set
-  //!        (prefilter.hpp's `class_range_count`). SSE2 leg of the NEON overload above.
-  //! \param[in] buf16 16 already-loaded bytes (the caller's MISRA-clean memcpy).
-  //! \param[in] lo0    Lower bound of the first range.
-  //! \param[in] hi0    Upper bound of the first range.
-  //! \param[in] lo1    Lower bound of the second range (`lo1 > hi1` encodes "no second range").
-  //! \param[in] hi1    Upper bound of the second range.
+  /*!
+   * \brief Mask of \p buf16 against a HOMOGENEOUS fixed-shape's shared <= 2-range set
+   *        (prefilter.hpp's `class_range_count`). SSE2 leg of the NEON overload above.
+   * \param[in] buf16 16 already-loaded bytes (the caller's MISRA-clean memcpy).
+   * \param[in] lo0   Lower bound of the first range.
+   * \param[in] hi0   Upper bound of the first range.
+   * \param[in] lo1   Lower bound of the second range (`lo1 > hi1` encodes "no second range").
+   * \param[in] hi1   Upper bound of the second range.
+   */
   inline mask_t load_range_mask(const std::uint8_t * buf16,
                                 std::uint8_t         lo0,
                                 std::uint8_t         hi0,
@@ -227,25 +235,28 @@ namespace real::detail {
     return (~static_cast<mask_t>(_mm_movemask_epi8(bad))) & 0xFFFFU;
   }
 
-  //! \brief `true` if no lane of \p m is set.
+  /*! \brief `true` if no lane of \p m is set. */
   inline bool empty(mask_t m)
   {
     return m == 0U;
   }
 
-  //! \brief Index (0..15) of the first set lane of \p m. UB if \ref empty(m).
+  /*! \brief Index (0..15) of the first set lane of \p m. UB if `empty(m)`. */
   inline std::size_t first_lane(mask_t m)
   {
     return static_cast<std::size_t>(std::countr_zero(m));
   }
 
-  //! \brief \p m with its first set lane cleared.
+  /*! \brief \p m with its first set lane cleared. */
   inline mask_t clear_first(mask_t m)
   {
     return m & (m - 1U);
   }
 
-  //! \brief `true` if every lane in `[start, start + len)` of \p m is set.
+  /*!
+   * \brief `true` if every lane in `[start, start + len)` of \p m is set. The caller clamps \p len to
+   *        `16 - start`; a \p len reaching lane 16 reads as the mask's full width.
+   */
   inline bool window_all_set(mask_t      m,
                              std::size_t start,
                              std::size_t len)
@@ -254,8 +265,10 @@ namespace real::detail {
     return ((m >> start) & want) == want;
   }
 
-  //! \brief Index (0..15, absolute — not relative to \p start) of the first CLEAR lane in
-  //!        `[start, start + len)` of \p m. UB if `window_all_set(m, start, len)`.
+  /*!
+   * \brief Index (0..15, absolute — not relative to \p start) of the first CLEAR lane in
+   *        `[start, start + len)` of \p m. UB if `window_all_set(m, start, len)`.
+   */
   inline std::size_t first_clear_lane(mask_t      m,
                                       std::size_t start,
                                       std::size_t len)
@@ -265,7 +278,7 @@ namespace real::detail {
     return start + static_cast<std::size_t>(std::countr_zero(fails));
   }
 
-  //! \brief Index (0..15) of the first set lane of \p m at or after \p from, or 16 if none.
+  /*! \brief Index (0..15) of the first set lane of \p m at or after \p from, or 16 if none. */
   inline std::size_t next_set_lane(mask_t      m,
                                    std::size_t from)
   {

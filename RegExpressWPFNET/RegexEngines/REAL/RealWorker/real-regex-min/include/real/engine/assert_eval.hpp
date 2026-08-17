@@ -5,14 +5,15 @@
  *
  * The multiline / trailing-newline subtleties are resolved at compile time into the \ref real::detail::assert_kind
  * carried by an `assert_position` op, so evaluation here is a pure predicate on `(text, pos)` plus the word-ness
- * mode. The Pike VM (pike.hpp) delegates to these; the one-pass runtime (onepass.hpp) evaluates the same
- * predicates for an edge's assertion conditions, so both agree by construction.
+ * mode. Both callers read these functions — the Pike VM per instruction, the one-pass runtime per edge
+ * condition — so their notion of a boundary agrees by construction rather than by review.
  */
 #ifndef REAL_ASSERT_EVAL_HPP
 #define REAL_ASSERT_EVAL_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include <cstddef>
 #include <cstdint>
@@ -48,6 +49,8 @@ namespace real::detail {
     }
     std::size_t i     {pos - 1};
     std::size_t steps {0};
+    // Walk back over continuation bytes, bounded to the longest UTF-8 sequence: a longer run is
+    // malformed by definition, and the bound is what keeps one boundary test from scanning the subject.
     while (i > 0 && (static_cast<std::uint8_t>(text[i]) & 0xC0U) == 0x80U && steps < 3) {
       --i;
       ++steps;

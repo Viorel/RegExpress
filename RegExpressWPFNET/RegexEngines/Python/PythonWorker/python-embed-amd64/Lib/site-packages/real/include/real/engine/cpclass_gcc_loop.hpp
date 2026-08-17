@@ -1,11 +1,11 @@
-// O2r-1b: gcc-only body for real::detail::pike_vm::run_cp_class_loop's hot greedy loop. Full rationale
-// and measured numbers in cpclass_gcc.hpp (cp_class_hi_width, called below for the >= 0x80 case).
+// gcc-only body for real::detail::pike_vm::run_cp_class_loop's hot greedy loop. Full rationale in
+// cpclass_gcc.hpp, which also defines cp_class_hi_width, called below for the >= 0x80 case.
 //
 // Internal — do not include directly. A body fragment, not a standalone translation unit: valid only
 // spliced into run_cp_class_loop's body by pike.hpp, under the same
 // #if defined(__GNUC__) && !defined(__clang__) that guards this #include. cp_index, text, mode and
-// out_slots are the enclosing function's parameters/locals; asc, width, in_class and extend_run are consumed by
-// the shared tail (Arc B-2 wb handling) that follows this splice in pike.hpp.
+// out_slots are the enclosing function's parameters/locals; asc, width, in_class and extend_run are
+// consumed by the word-boundary tail that follows this splice in pike.hpp.
 
 const std::uint8_t* const asc {cp_ascii_table(cp_index)};
 const auto                width = [&](std::size_t i) -> std::size_t {
@@ -22,17 +22,16 @@ const auto                width = [&](std::size_t i) -> std::size_t {
                                     }
                                     return cp_class_hi_width(text, i, cp_index);
                                   };
-// The shared tail's scan predicate. It DELEGATES here, where the clang/MSVC body specialises: this body's
-// `width` already takes the ASCII branch first (that is what O2r-1b bought), so there is nothing left to
-// narrow, and a second lambda only perturbs codegen. Delegating is not a guess -- callgrind on x86-64/g++
-// 13.3 puts this body byte-identical to the pre-change instruction count on all six of \w+, \d+, [a-z]+,
-// [0-9]+, [^,]+ and dog, while a specialised copy here moved [a-z]+ by -0.54% and \w+ by 0.00003%.
+// The shared tail's scan predicate. It DELEGATES here, where the clang/MSVC body specialises: this
+// body's `width` already takes the ASCII branch first, so a specialised copy has nothing left to narrow
+// and only adds a second lambda for the compiler to place. Measured as instruction-count neutral across
+// the class-loop rows, so the simpler form wins.
 const auto in_class = [&](std::size_t i) -> bool { return width(i) != 0; };
 // Success: fill_span_slots ensure_size; fail assigns below (shared fail lambda after this splice).
-// EXPERIMENT (O2r-1c): explicit by-VALUE capture of the scalars instead of `[&]`. gcc keeps this
-// lambda out of line, and `[&]` made every call traverse a closure of references -- including a
-// reference to `width`, itself a by-reference closure, so the width call inside was a second
-// indirection. Small by-value members let the one remaining call load them directly.
+// Explicit by-VALUE capture of the scalars, not `[&]`: gcc keeps this lambda out of line, and a
+// by-reference closure makes every call traverse references -- including one to `width`, itself a
+// by-reference closure, so the width call inside is a second indirection. Small by-value members let
+// the one remaining call load them directly.
 const auto extend_run = [text, asc, cp_index, this,
                          greedy = prog_.hints.greedy_cp_class_plus,
                          max_len = prog_.hints.greedy_cp_class_max](std::size_t match_start) -> std::size_t {
@@ -65,8 +64,9 @@ const auto extend_run = [text, asc, cp_index, this,
                               match_end += w;
                             }
                           }
-                          // A COUNTED repeat sits in the `else`; see the same split in pike.hpp's own
-                          // extend_run for the 2.3 % that ordering it the other way cost right here.
+                          // A COUNTED repeat sits in the `else`: the greedy form is the common one, and
+                          // testing it first keeps the counted branch off the hot path. pike.hpp's own
+                          // extend_run carries the same split for the same reason.
                           else if (max_len != 0) {
                             for (std::size_t n {1}; n < max_len && match_end < text.size(); ++n) {
                               const auto lead {static_cast<std::uint8_t>(text[match_end])};

@@ -1,6 +1,6 @@
 /*!
  * \file profile.hpp
- * \brief Optional route-attribution counters for the P0 profiling substrate.
+ * \brief Optional route-attribution counters — the profiling substrate.
  *
  * **Codegen-invisible when OFF** (default): tick helpers are empty \c always_inline
  * functions — no branch, no thread_local touch, no object-layout change. Counters and
@@ -17,12 +17,13 @@
 #define REAL_CORE_PROFILE_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp>
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include <cstdint>
 #include <type_traits>
 
-//! \brief Opt-in route/work counters, compiled out unless the profiling build flag is set.
+/*! \brief Opt-in route/work counters, compiled out unless the profiling build flag is set. */
 namespace real::detail::prof {
 
   /*!
@@ -38,15 +39,15 @@ namespace real::detail::prof {
     fixed_shape_pair,  //!< heterogeneous fixed shape, two-position vector prefilter.
     codepoint_class,
     alternation,
-    aho_corasick,      //!< multi-literal automaton, past the measured branch-count threshold.
+    aho_corasick,      //!< multi-literal automaton, past the branch-count threshold.
     onepass_full,
     onepass_window,
-    lazy_dfa_anchored, //!< A2: first-byte candidate + anchored_end
+    lazy_dfa_anchored, //!< first-byte candidate + anchored_end
     lazy_dfa_fwd_rev,  //!< unanchored forward + reverse
     general_full,
     general_window,
     trailing_la,
-    possessive_byte_loop,     //!< R2 (phase Raffinement): bare/suffixed possessive literal-byte +/++ (byte_loop_possessive).
+    possessive_byte_loop,     //!< bare/suffixed possessive literal-byte +/++ (byte_loop_possessive).
     possessive_class_loop,    //!< bare/suffixed possessive class+/++ (klass_loop_possessive).
     possessive_cp_class_loop, //!< bare/suffixed possessive cp-class +/++ (klass_cp_loop_possessive).
     possessive_delimited,     //!< literal-prefix + possessive loop + literal-suffix ("quoted").
@@ -54,7 +55,7 @@ namespace real::detail::prof {
   };
 
   /*!
-   * \brief Secondary events (prefilter / Arc B / abandon).
+   * \brief Secondary events: prefilter work, word-boundary handling, abandons, capture-pool traffic.
    */
   enum class event : std::uint8_t
   {
@@ -73,7 +74,7 @@ namespace real::detail::prof {
 
 #if defined(REAL_PROFILE)
 
-  //! \brief Thread-local counters — never stored on engine objects. Profile-ON only.
+  /*! \brief Thread-local counters — never stored on engine objects. Profile-ON only. */
   struct counters
   {
     std::uint64_t routes[static_cast<std::size_t>(route::count_)] {};
@@ -84,13 +85,17 @@ namespace real::detail::prof {
     std::uint64_t run_len_hist[8]                                 {}; //!< log2 buckets for maximal class/cp runs
     //! \brief log2 buckets for the LIVE THREAD COUNT the general VM carries into each `step()`.
     //!
-    //! The question this exists for: a general-VM step measures 12 to 25 ns per byte where a routed class
-    //! loop measures ~1, and whether that is the list machinery or genuine NFA parallelism depends entirely
-    //! on how many threads are actually live. One thread per position means the cost is overhead the shape
+    //! The question this exists for: the general VM costs an order of magnitude more per byte than a
+    //! routed loop, and whether that is the thread-list machinery or genuine NFA parallelism depends on
+    //! how many threads are actually live. One thread per position means the cost is overhead the shape
     //! does not need; many means it is the automaton doing real work.
     std::uint64_t thread_hist[8]                                  {};
   };
 
+  // Harness side, profile-ON only: the thread-local block, its reset/read pair, the record_* helpers the
+  // tick_* wrappers below call, and the name tables a reader prints. The two histogram helpers bucket by
+  // log2 and saturate in the eighth bucket, so a run longer than the last boundary is not lost, only
+  // merged.
   [[nodiscard]] inline counters& tls() noexcept
   {
     static thread_local counters c;
@@ -202,7 +207,7 @@ namespace real::detail::prof {
 
 #endif // REAL_PROFILE
 
-  // Tick helpers: always_inline so OFF builds erase the call (P3c: no dead runtime branch).
+  // Tick helpers: always_inline so an OFF build erases the call rather than leaving a dead branch.
 #if defined(__GNUC__) || defined(__clang__)
   __attribute__((always_inline))
 #endif
@@ -263,16 +268,12 @@ namespace real::detail::prof {
   /*!
    * \brief Bill one candidate a prefilter produced. Erased entirely unless \c REAL_PROFILE is defined.
    *
-   * WIRED LATE, AND THE COUNTER IT FILLS WAS DEAD BEFORE. `counters::prefilter_candidates` and
-   * `counters::prefilter_rejected` (visible only in a \c REAL_PROFILE build, which is why they are named
-   * here as code rather than cross-referenced) were declared and incremented nowhere, so a probe that read
-   * them got a false zero -- which is exactly what happened while diagnosing whether a head literal is
-   * prefiltered at all: the reading was the instrument's silence, not the engine's answer.
-   *
-   * SCOPE, STATED because a counter whose meaning is guessed is barely better than a dead one: these two
-   * cover the INNER-LITERAL route's memmem loop and nothing else. One candidate is one hit `find_literal`
-   * returned; one rejection is one hit whose reverse walk reached no match start, so the loop advanced.
-   * Other routes have their own notions of a candidate and are deliberately not folded in here.
+   * SCOPE, STATED because a counter whose meaning is guessed is barely better than a dead one:
+   * `counters::prefilter_candidates` and `counters::prefilter_rejected` (named here as code because they
+   * exist only in a \c REAL_PROFILE build) cover the INNER-LITERAL route's memmem loop and nothing else.
+   * One candidate is one hit `find_literal` returned; one rejection is one hit whose reverse walk reached
+   * no match start, so the loop advanced. Other routes have their own notion of a candidate and are
+   * deliberately not folded in, so a zero here is not a statement about them.
    */
   constexpr void tick_prefilter_candidate() noexcept
   {

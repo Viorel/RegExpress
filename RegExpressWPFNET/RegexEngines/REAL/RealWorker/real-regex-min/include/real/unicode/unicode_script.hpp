@@ -15,7 +15,8 @@
 #define REAL_UNICODE_SCRIPT_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "real/version.hpp"
 
@@ -205,7 +206,7 @@ namespace real::detail {
     count
   };
 
-  //! \brief One code-point range and the Script it belongs to (the table partitions the code space).
+  /*! \brief One code-point range and the Script it belongs to (the table partitions the code space). */
   struct script_range
   {
     char32_t lo; //!< First code point of the range.
@@ -1229,7 +1230,7 @@ namespace real::detail {
    */
   constexpr bool is_script_cp(script sc, char32_t cp) { return script_of(cp) == sc; }
 
-  //! \brief A loose-normalized (lowercase, no _/-/space) Script name and its value.
+  /*! \brief A loose-normalized (lowercase, no _/-/space) Script name and its value. */
   struct script_alias_entry
   {
     std::string_view name; //!< The loose-normalized name (long name or short UAX24 code).

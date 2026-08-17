@@ -19,7 +19,8 @@
 #define REAL_AST_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "real/version.hpp"
 
@@ -97,8 +98,10 @@ namespace real::detail {
     std::uint16_t effective_flags {};                   //!< Flag set in force where this node was parsed (see \ref flags). Stamped from the scope stack; carried for scoped-flag semantics.
   };
 
-  //! \brief A parsed character class: its ASCII bitmap plus any non-ASCII code-point ranges. Bundling
-  //!        the two (rather than parallel side tables) makes them impossible to desynchronize.
+  /*!
+   * \brief A parsed character class: its ASCII bitmap plus any non-ASCII code-point ranges. Bundling the
+   *        two (rather than parallel side tables) makes them impossible to desynchronize.
+   */
   struct class_def
   {
     char_class              ascii;                    //!< ASCII members as a bitmap (all 256 bytes in bytes mode); pre-negation.
@@ -240,7 +243,7 @@ namespace real::detail {
     octal_overflow, //!< A 3-octal-digit escape greater than 0o377 (an error in CPython).
   };
 
-  //! \brief Result of decode_digit_escape().
+  /*! \brief Result of \ref decode_digit_escape. */
   struct digit_escape_result
   {
     digit_escape_kind kind   {digit_escape_kind::group_ref}; //!< Which interpretation applies.
@@ -603,8 +606,10 @@ namespace real::detail {
       return out;
     }
 
-    //! \brief The classification of a `\d \D \w \W \s \S` shorthand: its ASCII bitmap, its Unicode range
-    //!        table, and whether it is the negated (uppercase) form.
+    /*!
+     * \brief The classification of a `\d \D \w \W \s \S` shorthand: its ASCII bitmap, its Unicode range
+     *        table, and whether it is the negated (uppercase) form.
+     */
     struct shorthand_spec
     {
       char_class                  set;     //!< The ASCII bitmap (digit / word / space set).
@@ -671,8 +676,10 @@ namespace real::detail {
       return {.set = space_set(), .ranges = space_ranges, .negated = true};
     }
 
-    //! \brief A loose-match key (lowercase, no `_`/`-`/space; UAX44-LM3-ish) built into a fixed buffer, so no
-    //!        heap or `<string>` is needed at parse time. A name longer than the buffer simply fails to match.
+    /*!
+     * \brief A loose-match key (lowercase, no `_`/`-`/space; UAX44-LM3-ish) built into a fixed buffer, so no
+     *        heap or `<string>` is needed at parse time. A name longer than the buffer simply fails to match.
+     */
     struct loose_buf
     {
       std::array<char, 64> data {}; //!< The normalised bytes, the first \ref len of which are meaningful.
@@ -796,10 +803,12 @@ namespace real::detail {
                        "Script_Extensions and the standard binary properties are built in)");
     }
 
-    //! \brief The result of \ref parse_property_table — the property's code-point ranges, plus whether a
-    //!        leading `\p{^...}` caret was stripped (RE2/Perl negation-by-caret, e.g. `\p{^L}` == `\P{L}`).
-    //!        `caret` is XORed into the caller's own negation flag so the caret composes with `\P` /
-    //!        `[^...]` instead of overriding them.
+    /*!
+     * \brief The result of \ref parse_property_table — the property's code-point ranges, plus whether a
+     *        leading `\p{^...}` caret was stripped (RE2/Perl negation-by-caret, e.g. `\p{^L}` == `\P{L}`).
+     *        `caret` is XORed into the caller's own negation flag so the caret composes with `\P` /
+     *        `[^...]` instead of overriding them.
+     */
     struct property_table_result
     {
       std::vector<code_range>  ranges; //!< The resolved property's code-point ranges (never caret-adjusted).
@@ -1048,9 +1057,11 @@ namespace real::detail {
       return seq;
     }
 
-    //! \brief What \ref parse_quoted_span emitted: a bare pre-chained all-but-last prefix
-    //!        (`head`..`head_tail`, -1 when the span has fewer than two characters) plus the span's
-    //!        final atom `last` (-1 when the span is empty) — the caller's quantifier target.
+    /*!
+     * \brief What \ref parse_quoted_span emitted: a bare pre-chained all-but-last prefix
+     *        (`head`..`head_tail`, -1 when the span has fewer than two characters) plus the span's final
+     *        atom `last` (-1 when the span is empty) — the caller's quantifier target.
+     */
     struct quoted_span
     {
       std::int32_t head      {-1}; //!< First atom of the all-but-last prefix chain (-1: none).

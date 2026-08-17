@@ -1,13 +1,19 @@
 /*!
  * \file frontend/inner_literal_reverse.hpp
- * \brief The prefix-reverse of the inner-literal prefilter (INNER-LITERAL IL.1). Given a required inner
- *        literal found at a candidate position, reverse-match the pattern's PREFIX (everything before the
- *        literal) to recover the match start — the reverse-inner protocol. Reuses the engine's existing
- *        reverse machinery (build_byte_program() + reverse_dfa), just on the prefix sub-program.
- *        **Inert**: nothing routes on it yet (that is IL.2).
+ * \brief The prefix-reverse of the inner-literal prefilter: given a required inner literal found at a
+ *        candidate position, reverse-match the pattern's PREFIX — everything before the literal — to
+ *        recover the match start. Reuses the engine's reverse machinery, `build_byte_program()` plus
+ *        `reverse_dfa`, on the prefix sub-program alone.
+ *
+ * Unrouted: \ref real::detail::prefix_reverse_start has no caller outside its own test. The protocol
+ * lives here, written and tested, so that a route can be given it rather than inventing one.
  */
 #ifndef REAL_FRONTEND_INNER_LITERAL_REVERSE_HPP
 #define REAL_FRONTEND_INNER_LITERAL_REVERSE_HPP
+
+// Internal — do not include directly.
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include <real/version.hpp>
 
@@ -32,7 +38,7 @@ namespace real::detail {
    * The prefix is compiled through the normal path: its capturing groups become `save` ops, which \ref
    * build_byte_program drops as zero-width, so the byte program (and the reverse over it) is capture-free by
    * construction — no separate capture-free compile is needed. Top-level `\b`/`\B` are peeled before the
-   * prefix is built (D1a, \ref extract_inner_literal / \ref build_prefix_ast with skip); other anchors and
+   * prefix is built (\ref extract_inner_literal / \ref build_prefix_ast with skip); other anchors and
    * lookarounds still decline extraction, so an extracted pattern's prefix stays byte-program eligible.
    *
    * \param[in] tree          The pattern's AST, which the prefix is rebuilt from.

@@ -8,7 +8,8 @@
 #define REAL_STD_REGEX_MATCH_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "regex_core.hpp"
 
@@ -407,7 +408,7 @@ namespace real::compat {
 
   // --- free functions ----------------------------------------------------------------------
 
-  //! \brief Backend routing and format expansion for the compat layer. Not a stable API.
+  /*! \brief Backend routing and format expansion for the compat layer. Not a stable API. */
   namespace detail {
 
     /*!
@@ -416,9 +417,10 @@ namespace real::compat {
      * Only `match_default` and the non-constraining `match_any` hint stay on `real` (which satisfies
      * `match_any` by returning the leftmost match, so ignoring it is sound). *Any* constraining bit —
      * `not_bol`, `not_eol`, `not_bow`, `not_eow`, `not_null`, `match_continuous`, `match_prev_avail` —
-     * is not expressible through `real`'s API, so the operation routes to `std` (§0: a constraining
-     * flag is never accepted-then-ignored). Affining this (e.g. `continuous`→`real.match(pos)`) is a
-     * measured optimization for later, not a hand-coded partition the fuzzer would have to police.
+     * is not expressible through `real`'s API, so the operation routes to `std`, this layer never
+     * accepting a flag it would then ignore. Narrowing the set (mapping `match_continuous` onto
+     * `real.match(pos)`, say) is a measured optimisation; partitioning the flags by hand without one
+     * only gives the fuzzer more to police.
      * \param[in] mf The match flags the caller passed.
      * \return `true` if every flag in \p mf is expressible through REAL's API, so the operation may stay
      *         on the real backend.
@@ -448,16 +450,16 @@ namespace real::compat {
       return (static_cast<unsigned>(f) & ~honored) == 0U;
     }
 
-    //! \brief Maps compat match/format flags to `std::regex_constants` — exhaustive (the std path).
-    //!
-    //! Every compat bit has an entry: a forgotten bit would be silently lost on the std path, which
-    //! is exactly the divergence §0 forbids. Both the match-control flags (search/match/iterate) and
-    //! the format flags (replace) are mapped here.
-    [[nodiscard]] inline std::regex_constants::match_flag_type
     /*!
+     * \brief Maps compat match/format flags to `std::regex_constants` — exhaustively.
+     *
+     * Every compat bit has an entry: a forgotten bit would be silently lost on the std path, which is
+     * the one divergence this layer does not allow itself. Both the match-control flags
+     * (search/match/iterate) and the format flags (replace) are mapped here.
      * \param[in] f The compat flags to translate.
      * \return The equivalent `std::regex_constants::match_flag_type`.
      */
+    [[nodiscard]] inline std::regex_constants::match_flag_type
     to_std_match(regex_constants::match_flag_type f) noexcept
     {
       namespace sc = std::regex_constants;
@@ -506,8 +508,15 @@ namespace real::compat {
           // A POSIX grammar on REAL routes an unanchored search to leftmost-LONGEST bounds
           // (re.posix_longest()); a whole-sequence match (fullmatch) has one candidate, so longest ==
           // first there.
-          const auto             result {anchored ? engine.fullmatch(sv)
-                                         : (re.posix_longest() ? engine.search_longest(sv) : engine.search(sv))};
+          const auto result {[&] {
+                               if (anchored) {
+                                 return engine.fullmatch(sv);
+                               }
+                               if (re.posix_longest()) {
+                                 return engine.search_longest(sv);
+                               }
+                               return engine.search(sv);
+                             }()};
           if (!result.matched()) {
             m.set_ready_no_match(); // std leaves ready()==true, size()==0 on a failed match
             return false;
@@ -990,8 +999,6 @@ namespace real::compat {
   {
     return regex_replace(out, first, last, re, std::basic_string<CharT>(fmt), flags);
   }
-
-  // --- regex_iterator ----------------------------------------------------------------------
 } // namespace real::compat
 
 #endif // REAL_STD_REGEX_MATCH_HPP

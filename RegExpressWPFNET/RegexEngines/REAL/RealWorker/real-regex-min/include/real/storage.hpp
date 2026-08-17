@@ -15,7 +15,8 @@
 #define REAL_STORAGE_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "real/version.hpp"
 
@@ -23,6 +24,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -76,7 +78,7 @@ namespace real {
     }
   };
 
-  //! \brief Storage-policy internals shared by \ref real::regex and \ref real::static_regex.
+  /*! \brief Storage-policy internals shared by \ref real::regex and \ref real::static_regex. */
   namespace detail {
 
     /*!
@@ -243,9 +245,8 @@ namespace real {
        * trivial default initialization even in a constant expression (P1331R2); reading an element before
        * writing it would be diagnosed there rather than silently returning garbage.
        *
-       * Measured, single `search()` on an 81-byte subject, arm64/clang: `[^,]+` 262.0 -> 168.7 ns (which
-       * turns that row from losing to the dynamic regex into beating it), `dog` 39.8 -> 18.3, `[0-9]+`
-       * 192.6 -> 163.0.
+       * On a short subject this is most of the cost of a search: the clear is proportional to the
+       * worst-case capacity while the work is proportional to the subject.
        */
       std::array<T, Cap> data_;
       std::size_t        size_ {}; //!< Number of elements in use.
@@ -268,9 +269,9 @@ namespace real {
      *          element's lifetime is begun by `std::construct_at` (placement-new) before it is read,
      *          and reads stay within `[0, size_)`. Any accessor added here must preserve that
      *          write-before-read order, or it reads indeterminate memory — a silent UB
-     *          value-init would mask. MemorySanitizer is the detector (the CI sanitize leg is
-     *          ASan/UBSan, which does not catch it); run MSan on the devbox when changing how
-     *          small_vec accesses its elements.
+     *          value-init would mask. MemorySanitizer is the detector — the CI sanitize leg is
+     *          ASan/UBSan, which does not catch this — so run an MSan build when changing how small_vec
+     *          accesses its elements.
      *
      * \tparam T              Element type.
      * \tparam InlineCapacity Number of elements held inline before spilling.
@@ -297,18 +298,21 @@ namespace real {
       std::size_t capacity_ {InlineCapacity}; //!< Current capacity.
       bool        is_heap_  {};               //!< True once spilled to the heap.
 
-      //! \brief Inline element block. A struct (not a bare C array) so the union ctor can
-      //!        activate it as a whole with \c construct_at in a constant expression, while
-      //!        \ref inline_data still indexes a plain C array — which the static analyzer can
-      //!        bound (a \c std::array's `operator[]` hides the extent and trips a false
-      //!        out-of-bounds on \ref transfer_range).
+      /*!
+       * \brief Inline element block. A struct (not a bare C array) so the union ctor can activate it as a
+       *        whole with \c construct_at in a constant expression, while \ref inline_data still indexes a
+       *        plain C array — which the static analyzer can bound (a \c std::array's `operator[]` hides
+       *        the extent and trips a false out-of-bounds on \ref transfer_range).
+       */
       struct inline_block
       {
         T elems[InlineCapacity]; //!< The inline elements, as a plain C array the analyzer can bound.
       };
 
-      //! \brief The either-or storage: the inline buffer, or a pointer to the heap block once the
-      //!        vector has spilled. \ref is_heap_ says which member is active.
+      /*!
+       * \brief The either-or storage: the inline buffer, or a pointer to the heap block once the vector
+       *        has spilled. \ref is_heap_ says which member is active.
+       */
       union Storage
       {
         inline_block inline_buffer; //!< Inline storage (when not heap).
@@ -319,8 +323,8 @@ namespace real {
          *
          * At **run time** the inline buffer is left UNINITIALIZED: small_vec writes every
          * element through \c std::construct_at (placement-new) before any read (push_back and
-         * assign), so the value-init was pure overhead — ~30 % of the instruction count on a
-         * findall tokenizing workload (a fresh slot buffer per match, of which ~2 slots serve).
+         * assign), so the value-init is pure overhead — and a tokenizing walk builds a fresh slot
+         * buffer per match, of which two slots serve, so it is overhead per match.
          * At **compile time** the member must be active and initialized for the constexpr
          * matching path (which assigns through \ref inline_data while it is the active member), so
          * it is value-initialized there via \c construct_at on the whole \ref inline_block —
@@ -521,7 +525,9 @@ namespace real {
       constexpr void extend_capacity()
       {
         const std::size_t current {capacity_};
-        const std::size_t new_cap {(current > (std::size_t)-1 / 2) ? (std::size_t)-1 : current * 2};
+        const std::size_t new_cap {(current > std::numeric_limits<std::size_t>::max() / 2)
+                                     ? std::numeric_limits<std::size_t>::max()
+                                     : current * 2};
         reserve(new_cap);
       }
 
@@ -984,10 +990,10 @@ namespace real {
       /*!
        * \brief Allocates and copy-constructs a context from \p src.
        *
-       * Cold: only a result detached from a temporary regex ever owns a context, and only a copy of
-       * one ever reaches here. Left warm it bids for the translation unit's inline budget against
-       * the scan routes, which measured +5.6 % on `words` and its ASCII witness -- the same
-       * non-monotonic budget effect \ref build_byte_program is annotated for.
+       * Cold: only a result detached from a temporary regex ever owns a context, and only a copy of one
+       * ever reaches here. Left warm it bids for the translation unit's inline budget against the scan
+       * routes, and takes it from them -- the same non-monotonic budget effect \ref build_byte_program is
+       * annotated for.
        *
        * \param[in] src The context to copy.
        */
@@ -1078,23 +1084,15 @@ namespace real {
                                               // the saving does not depend on the capacity.
                                               //
                                               // RAISING IT TO 16 WAS TRIED AND REFUSED, on the
-                                              // measurement rather than on this argument. Eight is
-                                              // below every program that reaches the general VM --
-                                              // measured at 11 to 73 instructions across eight
-                                              // realistic shapes -- so these two tables allocate
-                                              // 88 bytes each on such a call, and 16 would close
-                                              // the 9..16 band. It costs more than it buys: 24
-                                              // paired draws on an idle x86-64 host with the
-                                              // governor pinned put the four per-call rows at
-                                              // +4.1 % to +5.6 % (19-22 of 24 draws agreeing,
-                                              // floors 4.5-6.8 %) against -3.1 % on the row it was
-                                              // aimed at. No row is REAL by the two-condition rule,
-                                              // but the reward side is sub-floor too, and the tie
-                                              // goes to not growing a per-call object for 176 bytes
-                                              // of allocation. The tier that would cover the
-                                              // measured band is 64 or 128, i.e. +896 or +1920
-                                              // bytes on a state already near 4944 -- a worse
-                                              // version of the same trade, so it was not attempted.
+                                              // measurement rather than on the argument. Eight sits
+                                              // below every program that reaches the general VM, so
+                                              // sixteen would close only the narrow band just above
+                                              // it -- and it charges every per-call row for the
+                                              // wider state, which is the side that measured worse
+                                              // than the target row measured better. The tier that
+                                              // would actually cover the general VM's own range is
+                                              // several times larger again, a worse version of the
+                                              // same trade, so it was not attempted.
                                               small_vec<std::uint64_t, 8>>,
                             small_vec<eps_entry, 32>>
       {
@@ -1111,12 +1109,11 @@ namespace real {
         /*!
          * \brief Copy-on-write capture blocks, SBO rather than `pike.hpp`'s heap-vector alias.
          *
-         * The pool's own `reset` comment records taking a general-VM search from thirteen heap
-         * allocations to five by reserving a block budget up front. Those five were then measured, by
-         * size and by symbol, on `^[\t \n\r]+|[\t \n\r]+$` over a 28-byte subject: **three of them are
-         * this pool** — 128 bytes of `data`, 32 of `refcount`, 32 of `free_list` — and they recur on
-         * every call at every subject length, which is what a per-call fixed cost looks like. The other
-         * two are the thread lists' `mark`.
+         * The pool's own `reset` comment records collapsing a general-VM search's heap allocations by
+         * reserving a block budget up front. Of the handful that remain, counted by size and by symbol,
+         * MOST ARE THIS POOL -- its `data`, `refcount` and `free_list` -- and they recur on every call at
+         * every subject length, which is what a per-call fixed cost looks like. The rest are the thread
+         * lists' `mark`.
          *
          * `pike.hpp` cannot fix this itself: it sits BELOW this header in the layering contract, so its
          * `capture_pool` alias has no `small_vec` to reach for. The pool is not a member of
@@ -1140,8 +1137,8 @@ namespace real {
         const void                     *                il_prefix_for       {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
         const void                     *                il_text             {nullptr}; //!< IL: the haystack \ref il_abandoned refers to.
         bool                                            il_abandoned        {false};   //!< IL: a linearity/density guard tripped on this haystack.
-        std::uint32_t                                   il_density_cands    {};        //!< O1: IL candidates seen on this haystack.
-        std::size_t                                     il_density_origin   {npos};    //!< O1: first IL candidate byte offset this haystack.
+        std::uint32_t                                   il_density_cands    {};        //!< IL candidates seen on this haystack.
+        std::size_t                                     il_density_origin   {npos};    //!< First IL candidate byte offset this haystack.
         const void                     *                rare_disc_text      {nullptr}; //!< Rare-disc: haystack \ref rare_disc_abandoned refers to.
         bool                                            rare_disc_abandoned {false};   //!< Rare-disc density guard: stay on prefix for this haystack.
         const void                     *                ac_text             {nullptr}; //!< AC: the haystack \ref ac_dense was decided on.
@@ -1181,12 +1178,10 @@ namespace real {
         // set in force, so the accessor and the engine agree on a global removal.
         dynamic_program prog {detail::compile(tree, effective)};
         // The fixed-shape test seam is applied HERE, once per regex, and NOT in run()'s dispatch gate.
-        // It was in that gate first, and the cost is why it moved: `run()` is entered once per MATCH for
-        // this route (it bills 1.0003 entries per match where every batched route bills one per four), so
-        // the four instructions the check added were paid per match -- `date {4}-{2}-{2}` +8.4 %
-        // [+2.9, +23.9] at 24 of 24 paired draws against a 2.5 % floor, on bench_minimal against this
-        // machine's calibrated floors. The seven other route seams sit in gates too and cost nothing
-        // measurable, because their routes ARE batched and amortise the check over `batch_cap` matches.
+        // It was in that gate first, and the cost is why it moved: this route enters `run()` once per
+        // MATCH, where a batched route enters once per batch, so a handful of instructions in the gate is
+        // paid per match here and amortised everywhere else. The seven other route seams do sit in gates
+        // and cost nothing measurable, for exactly that reason.
         // Clearing the hint takes the route out with no per-match test at all, and `fs_pair_width` goes
         // with it exactly as prefilter.hpp's lookaround wipe pairs them.
         //
@@ -1206,26 +1201,23 @@ namespace real {
        * \brief Returns a non-owning view of the compiled program.
        *
        * \note **Returning by value here is deliberate, and the alternatives are priced.** The
-       *       compile-time storage hands back a reference and explains why; this one builds 432 bytes per
+       *       compile-time storage hands back a reference and explains why; this one builds the view per
        *       call, and `view()` runs once per `search()`. Two ways to remove that were prototyped and
-       *       measured against the compile-time storage on the same pattern:
+       *       refused, each on its own ground:
        *       - *Materialise the view* behind an identity guard, so the construction happens once per
-       *         program: a 6-byte search goes 37.3 → 32.9 ns (−11.8 %), a 256-byte one 139.2 → 136.3
-       *         (−2.1 %). It costs **440 bytes per regex** — `sizeof(real::regex)` 1512 → 1952 — which is
-       *         the wrong direction for anyone holding many patterns, and it needs a guard that tests
-       *         `view_.immut != &immut_` as well as the program's identity: a MOVE leaves
-       *         `program.code.data()` unchanged, so the obvious one-condition guard validates a view
-       *         pointing into the moved-from object. That shape aborted the existing lifetime tests
-       *         immediately, as a double free.
-       *       - *Carry `pattern_hints` by pointer* instead of copying its 232 bytes into the view, which
-       *         would shrink the construction rather than remove it. Refused on arithmetic, not on taste:
-       *         removing the construction **entirely** is worth 4.4 ns, so shrinking it by 54 % is worth
-       *         at most ~2.4, against an indirection on every hot hint read and a 269-site change.
+       *         program. It enlarges every regex object by the size of a view, which is the wrong
+       *         direction for anyone holding many patterns, and the guard is subtler than it looks: a
+       *         MOVE leaves `program.code.data()` unchanged, so a guard testing only the program's
+       *         identity validates a view still pointing into the moved-from object. The obvious
+       *         one-condition form aborts the lifetime tests as a double free; a correct guard must also
+       *         test `view_.immut != &immut_`.
+       *       - *Carry `pattern_hints` by pointer* instead of copying it into the view. This shrinks the
+       *         construction rather than removing it, so it can win at most a fraction of what removing
+       *         it wins -- against an indirection on every hot hint read, at every site that reads one.
        *
-       *       So the whole prize here is **4.4 ns per search**, and both standing proposals were competing
-       *       for that same budget without anyone having measured it. Recorded so the next reader gets the
-       *       number instead of re-deriving it. The dynamic path's real gap to the compile-time one is
-       *       ~25 ns on a short subject *after* materialising, so ~85 % of it is somewhere else entirely.
+       *       The whole prize is a few nanoseconds per search, and both standing proposals were competing
+       *       for that same budget. The dynamic path's real gap to the compile-time one is several times
+       *       larger than the prize, so most of it is somewhere else entirely.
        *
        * \return The view; valid as long as this storage is alive.
        */
@@ -1268,24 +1260,23 @@ namespace real {
     {
       const void*   il_text           {nullptr}; //!< IL: the haystack \ref il_abandoned refers to.
       bool          il_abandoned      {false};   //!< IL: a guard tripped on this haystack — stay on the core.
-      std::uint32_t il_density_cands  {};        //!< O1: IL candidates seen on this haystack.
-      std::size_t   il_density_origin {npos};    //!< O1: first IL candidate byte offset this haystack.
+      std::uint32_t il_density_cands  {};        //!< IL candidates seen on this haystack.
+      std::size_t   il_density_origin {npos};    //!< First IL candidate byte offset this haystack.
     };
 
-    //! \brief No IL fields: the route is not compiled for this pattern.
+    /*! \brief No IL fields: the route is not compiled for this pattern. */
     struct static_no_il_guard_fields
     {};
 
     /*!
      * \brief Rounds a program length up to the scratch capacity tier it shares with its neighbours.
      *
-     * Sharing \ref static_pike_scratch is by exact template arguments, so keying it on the measured
+     * Sharing \ref static_pike_scratch is by exact template arguments, so keying it on the exact
      * `code_size` means two patterns one instruction apart still instantiate every Pike VM route twice.
      * Rounding to powers of two collapses neighbours onto one type while keeping the over-allocation
-     * small: on an 18-pattern sample spanning 5..47 instructions this yields four groups instead of
-     * eighteen, and the smallest pattern's scratch grows 1.6x rather than the 6.4x a coarse 32/64 ladder
-     * would cost. The floor of 8 keeps the ladder from splintering at the bottom, where the groups are
-     * densest and the absolute sizes smallest.
+     * bounded by a factor of two, where a coarse ladder would multiply the smallest patterns' scratch
+     * several times over. The floor of 8 keeps the ladder from splintering at the bottom, where the
+     * patterns are densest and the absolute sizes smallest.
      *
      * Rounding UP only: every capacity derived from this is a bound the exact size must not exceed, so a
      * tier is always safe where the measured value was.
@@ -1376,8 +1367,8 @@ namespace real {
         const ast       tree {detail::parse(Pat.view(), F)};
         dynamic_program prog {detail::compile(tree, F | tree.inline_flags)};
         if (!prog.lookarounds.empty()) {
-          // Honest absence: the constexpr sub-VM is a measured follow-up. A clear compile
-          // error (this throw, evaluated at compile time) beats a silent miscompile.
+          // Honest absence: there is no constexpr sub-VM to evaluate a lookaround. A clear compile
+          // error -- this throw, evaluated at compile time -- beats a silent miscompile.
           throw regex_error("static_regex does not support lookarounds yet (use real::regex)", 0);
         }
         return prog;
@@ -1409,17 +1400,13 @@ namespace real {
        * The two-phase this class is built on -- measure, then freeze, because C++20 forbids persistent
        * constexpr allocation -- does not say how many times to measure, and the measuring had grown to
        * SEVEN separate `build()` calls: one per size, one per scalar, each its own top-level constant
-       * expression re-running the whole compiler front end. Collapsed here to one, which takes the
-       * class from **12 `build()` evaluations to 6** (the five range members below are the rest).
+       * expression re-running the whole compiler front end. Collapsed here to one, halving the number of
+       * `build()` evaluations the class costs (the five range members below are the rest).
        *
        * That is a compile-time change with no run-time surface: the frozen arrays are byte-identical,
        * because they are produced by the same \ref take calls from the same builder. What it buys is
-       * headroom against the per-expression constexpr step budget -- the ceiling \ref class_tables
-       * below is already annotated for, and the reason `build_byte_program` reaches only byte classes.
-       *
-       * The idea is lifted from a `pluck`-style single measure pass proposed in the `stx` staged-types
-       * incubation; the 15-20 % faster compile it reported for a five-pattern translation unit is the
-       * claim this collapse makes testable here, without taking on the library.
+       * headroom against the per-expression constexpr step budget -- the ceiling \ref class_tables below
+       * is already annotated for, and the reason `build_byte_program` reaches only byte classes.
        */
       struct measured
       {
@@ -1479,14 +1466,12 @@ namespace real {
       //!
       //! \note **A pack-expansion `tabulate<N>(f)` here was written, measured and REFUSED.** The loop
       //!       below cannot be one pass: constant evaluation rejects indeterminate subobjects, so the
-      //!       array is zeroed and then overwritten — 2N element operations where a pack expansion
-      //!       needs N. The argument is sound and buys nothing. Compile time on a five-`static_regex`
-      //!       unit: 4.38 s against 4.40 s, and on a class-heavy unit 2.48 s against 2.38 s, with the
-      //!       direction flipping between paired runs in both — indistinguishable. And the capability
-      //!       argument fails too: bisecting `-fconstexpr-steps` to the failure point gives **177 734
-      //!       for both forms**, exactly, so there is no budget headroom in it either. The compiler's
-      //!       cost for a 2048-element pack cancels the halved element count. The loop stays: same
-      //!       speed, same budget, no helper to maintain.
+      //!       array is zeroed and then overwritten — 2N element operations where a pack expansion needs
+      //!       N. The argument is sound and buys nothing. Compile time is indistinguishable between the
+      //!       two forms, with the direction flipping between paired runs; and bisecting
+      //!       `-fconstexpr-steps` to the failure point gives the SAME budget for both, so there is no
+      //!       headroom in it either — the compiler's own cost for a large pack cancels the halved
+      //!       element count. The loop stays: same speed, same budget, no helper to maintain.
       static constexpr std::array < std::uint8_t, (class_count == 0 ? 1 : class_count) * 256 > class_tables {[] {
                                                                                                                std::array < std::uint8_t, (class_count == 0 ? 1 : class_count) * 256 > t {};
                                                                                                                for (std::size_t i = 0; i < class_count; ++i) {
@@ -1545,20 +1530,15 @@ namespace real {
        *
        * A required literal at offset >= 1 is necessary but not sufficient. `fixed_shape` means the core
        * already has an arithmetic-width scan for the whole pattern, and then memmem has nothing to add;
-       * without it the core falls to the general VM, which is what the literal sweep rescues. Measured
-       * over a 64 KiB corpus, this storage with the route compiled in vs kept out:
+       * without it the core falls to the general VM, which is what the literal sweep rescues. The shape
+       * of the result is the same on every pattern measured: a non-fixed-shape pattern gains by orders of
+       * magnitude on a subject with NO match -- where the literal scan rejects the whole corpus and the
+       * general VM would walk it -- and is neutral once matches are dense enough that the scan finds one
+       * immediately. A fixed_shape pattern gains nothing and pays for the attempt.
        *
-       *     pattern                     fixed | no match: out -> in | matches: out -> in
-       *     [a-z]+@[a-z]+                   0 |  1619.67 -> 1.33 us |  1063.54 -> 1053.92 us
-       *     \w+-\w+                         0 |  1585.38 -> 1.38 us |  1679.04 -> 1677.92 us
-       *     \d+\.\d+                        0 |    29.42 -> 1.33 us |   592.75 ->  586.00 us
-       *     \d{4}-\d{2}-\d{2}               0 |    29.50 -> 1.46 us |   629.08 ->  629.08 us
-       *     [0-9]{4}-[0-9]{2}-[0-9]{2}      1 |     1.42 -> 1.42 us |    29.50 ->   35.38 us
-       *
-       * Every non-fixed-shape pattern gains 20x-1218x with no match and is neutral or better with them;
-       * the fixed-shape one gains nothing and pays 20%. Excluding it here rather than at run time is what
-       * keeps the cost off patterns that do not use the route — compiling the block into `run()` at all
-       * cost `[^,]+` 5.2% (28.25 -> 29.71 us) although it has no inner literal and never entered.
+       * Excluding it HERE rather than at run time is what keeps the cost off the patterns that do not use
+       * the route: compiling the block into `run()` at all is measurable on a pattern with no inner
+       * literal, which never enters it.
        */
       static constexpr bool wants_inner_literal {hints.inner_literal_len > 0 && hints.inner_literal_prefix >= 1
                                                  && !hints.fixed_shape};

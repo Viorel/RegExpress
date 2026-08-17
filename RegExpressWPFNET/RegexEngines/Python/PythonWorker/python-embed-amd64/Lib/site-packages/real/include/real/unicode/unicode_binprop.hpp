@@ -15,7 +15,8 @@
 #define REAL_UNICODE_BINPROP_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "real/version.hpp"
 
@@ -11772,7 +11773,7 @@ namespace real::detail {
     return cp_in_ranges(binprop_ranges[static_cast<std::size_t>(prop)], cp);
   }
 
-  //! \brief A loose-normalized (lowercase, no _/-/space) binary-property name and its value.
+  /*! \brief A loose-normalized (lowercase, no _/-/space) binary-property name and its value. */
   struct binprop_alias_entry
   {
     std::string_view name; //!< The loose-normalized name.

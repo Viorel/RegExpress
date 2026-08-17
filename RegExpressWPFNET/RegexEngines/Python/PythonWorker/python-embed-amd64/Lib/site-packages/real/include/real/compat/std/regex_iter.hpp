@@ -7,16 +7,19 @@
 #define REAL_STD_REGEX_ITER_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "regex_match.hpp"
 
 #include <iterator>
 #include <memory>
 
-//! \brief Drop-in replacements for `<regex>`: \c basic_regex, \c regex_search / \c regex_match /
-//!        \c regex_replace and the iterator types -- backed by REAL's linear-time engine where it can
-//!        serve the pattern, and by `std::regex` otherwise, never by a silent divergence.
+/*!
+ * \brief Drop-in replacements for `<regex>`: \c basic_regex, \c regex_search / \c regex_match /
+ *        \c regex_replace and the iterator types -- backed by REAL's linear-time engine where it can
+ *        serve the pattern, and by `std::regex` otherwise, never by a silent divergence.
+ */
 namespace real::compat {
   /*!
    * \brief Iterates the non-overlapping matches of a pattern in a sequence (`std::regex_iterator`).
@@ -80,11 +83,11 @@ namespace real::compat {
      * \brief Copies the iteration position, but NOT the walker.
      *
      * The walker is an accelerator over \ref real_pos_, never the state itself, and that is what
-     * makes this cheap where the obvious designs are not. Copying it would clone 8 KB plus heap;
-     * sharing it copy-on-write would clone on the first advance, which `operator++(int)` performs on
-     * every call -- buying `++it` at the price of `it++`. Leaving the copy without one costs it a
-     * single walker construction IF it ever advances, and nothing at all if it does not, which is
-     * what a post-increment's discarded result actually does.
+     * makes this cheap where the obvious designs are not. Copying it would clone the VM scratch it
+     * embeds; sharing it copy-on-write would clone on the first advance, which `operator++(int)`
+     * performs on every call -- buying `++it` at the price of `it++`. Leaving the copy without one
+     * costs it a single walker construction IF it ever advances, and nothing at all if it does not,
+     * which is what a post-increment's discarded result actually does.
      * \param[in] other The iterator to copy.
      */
     regex_iterator(const regex_iterator& other)
@@ -229,29 +232,19 @@ namespace real::compat {
     bool                                        at_end_ {true};                               //!< Whether this is the end sentinel.
 
     /*!
-     * \brief Advances the real path: next region search from \ref real_pos_.
+     * \brief Advances the real path: one step of the walker, built on first use at \ref real_pos_.
      *
-     * \note **This costs 1.8-5.5x what `find_iter` costs for the same walk, and the reason is
-     *       structural rather than an oversight.** Each advance is a fresh `search()`, which builds a
-     *       fresh VM state; `basic_match_iterator` builds ONE and reuses it across the whole walk.
-     *       That state is where every per-haystack decision lives -- the Aho-Corasick density
-     *       verdict, the inner-literal density gate, the DFA warmup -- so a fresh search per match
-     *       re-derives all of them once per match. Measured over an 8000-byte subject, identical
-     *       match counts on both paths: `[a-z]+` 14.7 us against 72.4 (4.9x), `(\w+)@(\w+)` 12.5
-     *       against 22.3 (1.8x), a 24-branch alternation 46.8 against 251.9 (5.4x) -- the worst case
-     *       being exactly the family whose routing gate is sticky per haystack.
+     * \note ONE walker serves the whole iteration, and that is the point rather than an allocation
+     *       detail. A match iterator carries the VM state where every per-haystack decision lives --
+     *       the Aho-Corasick density verdict, the inner-literal density gate, the DFA warmup -- so
+     *       advancing by a fresh `search()` instead would re-derive all of them once per match, worst
+     *       on exactly the families whose routing gate is sticky per haystack.
      *
-     * \note **Not fixed, and the constraint is the reason, so it does not get re-derived.**
-     *       `sizeof(basic_match_iterator)` is 8232 bytes against this iterator's 320, because it
-     *       embeds the VM scratch. `std::regex_iterator` requires copies to be independent and its
-     *       `operator++(int)` returns one, so embedding the walker would clone 8 KB plus heap on
-     *       every post-increment -- trading a win on `++it` for a loss on `it++`. The shape that
-     *       would work is a heap-held walker behind a pointer, detached copy-on-write so a copy that
-     *       never advances never clones; that is a real piece of work, not a tweak.
-     *
-     * \note **The drop-in promise is not what is at stake here.** Against the `std::regex` this
-     *       surface replaces, on the same three cases: 9.9x, 88.7x and 10.8x faster. The gap above is
-     *       a missed opportunity against REAL's own best path, not a failure of the compat layer.
+     * \note The walker is held behind a pointer and never copied. `std::regex_iterator` requires
+     *       copies to be independent and its `operator++(int)` returns one, so embedding the walker
+     *       would clone the VM scratch -- which is what makes a match iterator an order of magnitude
+     *       larger than this one -- on every post-increment, buying `++it` at the price of `it++`. A
+     *       copy starts without a walker and builds one only if it advances; see the copy constructor.
      */
     void next_real()
     {

@@ -5,16 +5,15 @@
  * A dense-trie automaton (goto-function-as-total-transition-table), built lazily per program from
  * the compiled byte/klass op sequence of a \ref real::detail::pattern_hints::fixed_alternation
  * -shaped program (see prefilter.hpp's `is_fixed_alternation`) once its branch count reaches the
- * measured threshold where a single O(n) automaton walk beats \ref
+ * threshold where a single O(n) automaton walk beats \ref
  * real::detail::pattern_hints::small_set's 2..8-member memchr-cascade scan — that scan has no fast
- * path at all past 8 distinct first bytes (the alternation gap). Complements
- * small_set/fixed_alternation; does not replace them — an eligible pattern under the threshold
- * keeps the existing route unchanged.
+ * path at all past 8 distinct first bytes. It complements small_set/fixed_alternation rather than
+ * replacing them: an eligible pattern under the threshold stays on its usual route.
  *
  * Leftmost-first semantics: earliest match start wins; among matches starting at the same
  * position, the FIRST-LISTED branch (smallest declared id) wins, matching REAL's own thread-
- * priority alternation semantics exactly — verified by a dedicated differential, not just
- * asserted (see tests/engine/test_fastpath_seam_matrix.cpp's seam_run_aho_corasick).
+ * priority alternation semantics exactly — held to it by a differential rather than by assertion
+ * (tests/engine/test_fastpath_seam_matrix.cpp, seam_run_aho_corasick).
  *
  * Storage is a std::vector<ac_node> pool throughout — no raw new/delete anywhere in this file.
  */
@@ -22,7 +21,8 @@
 #define REAL_AHO_CORASICK_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp>
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "real/version.hpp"
 
@@ -46,10 +46,9 @@ namespace real::detail {
    * \ref goto_ starts as a sparse trie edge set (missing = -1) during \ref ac_automaton::build
    * and ends as a TOTAL transition function (goto-function-as-DFA): every entry is a valid state
    * index once construction finishes, so a search-time lookup is a single array read with no
-   * fail-chain walk. Dense-only: no sparse/hybrid representation — the initial spike found the backup
-   * engine's claimed "~60x memory savings" there embedded a full `array<int,256>` unconditionally
-   * anyway (not a real saving), so a bespoke sparse layout was not pursued here either, for the
-   * realistic literal-alternation sizes this engine targets (tens of nodes, not thousands).
+   * fail-chain walk. Dense only, no sparse or hybrid row: this engine is built for literal
+   * alternations of tens of nodes, where the whole table is a few kilobytes, and a sparse row would
+   * trade that certain cost for a lookup that is no longer one read.
    */
   struct ac_node
   {
@@ -73,8 +72,8 @@ namespace real::detail {
    * \brief Dense Aho-Corasick automaton for a `fixed_alternation` program's branch set.
    *
    * Built once per compiled program (see \ref build_ac_automaton), then reused across every match
-   * on that program via the state cache in \ref pike_state — mirrors the existing lazy-DFA /
-   * inner-literal-prefix build-once-per-program precedent.
+   * on that program via the state cache in \ref pike_state — the same build-once-per-program
+   * discipline the lazy DFA and the inner-literal prefix follow.
    */
   class ac_automaton
   {
@@ -102,12 +101,10 @@ namespace real::detail {
     {
       std::int32_t state {0};
       for (const std::uint8_t byte : bytes) {
-        // A COPY, not a reference: nodes_[state].goto_[byte] must not be held by reference across
-        // emplace_back below, which can reallocate nodes_'s backing storage and dangle it (a
-        // heap-use-after-free ASan caught here — ported, unnoticed, from the original POC, whose
-        // differential never happened to exercise a reallocating growth step badly enough to
-        // change an answer). Write the new index back through a FRESH index into nodes_ (valid
-        // post-reallocation) rather than through any reference taken before emplace_back.
+        // A COPY, not a reference: emplace_back below can reallocate nodes_'s backing storage, and
+        // any reference or pointer into the pool taken before it dangles afterwards. Read the edge
+        // out by value, then write the new index back through a FRESH index into nodes_.
+        // A reference here compiles, passes an ordinary differential, and is a use-after-free.
         std::int32_t next {nodes_[static_cast<std::size_t>(state)].goto_[byte]};
         if (next == -1) {
           next = static_cast<std::int32_t>(nodes_.size());
@@ -169,7 +166,7 @@ namespace real::detail {
       }
     }
 
-    //! \brief One AC search outcome: whether/where/which branch matched.
+    /*! \brief One AC search outcome: whether/where/which branch matched. */
     struct match_result
     {
       bool         matched    {}; //!< Whether anything matched; the other fields are meaningful only then.
@@ -228,9 +225,9 @@ namespace real::detail {
         // the FIRST candidate whose (start, end) passes wb_ok — output_link chains are strictly
         // decreasing in depth, hence strictly increasing start_pos, so the shallowest wb-passing
         // entry is always the best one this position can offer (nothing deeper can have an
-        // earlier start). Stops after one check in the common (no-wb) case: O(1) amortized (measured
-        // verified: worst-case ratio pinned at 2.00x across a 4096x text-length range under a
-        // 64-deep adversarial nested-suffix pattern set — no re-scan).
+        // earlier start). One check in the common (no-wb) case. The chain is walked forward only and
+        // the scan never returns to an earlier byte, so the search stays linear in the subject even
+        // when the branch set nests suffixes deeply.
         std::int32_t node_idx {state};
         while (node_idx != -1) {
           const ac_node& n {nodes_[static_cast<std::size_t>(node_idx)]};
@@ -274,10 +271,13 @@ namespace real::detail {
     std::int32_t          max_pattern_len_ {1};          //!< Longest literal added, bounding how far back a match can start.
   };
 
-  //! \brief Maximum concrete literal strings a single branch may expand into (icase klass
-  //!        fan-out). A branch whose combinatorial expansion would exceed this declines AC for
-  //!        the WHOLE pattern (falls back to the existing \ref pattern_hints::fixed_alternation
-  //!        route, zero behavior change) rather than build an unboundedly large trie.
+  /*!
+   * \brief Maximum concrete literal strings a single branch may expand into (icase klass fan-out).
+   *
+   * A branch whose combinatorial expansion would exceed this declines AC for the WHOLE pattern,
+   * which then takes the ordinary \ref pattern_hints::fixed_alternation route. The alternative is a
+   * trie whose size is the product of the branch's per-position member counts, with no bound.
+   */
   inline constexpr std::size_t ac_max_branch_expansion = 64;
 
   /*!
@@ -290,13 +290,11 @@ namespace real::detail {
    * falling straight through (final branch), exactly the shape `is_fixed_alternation` already
    * proved the program has).
    *
-   * \return The built automaton, or `std::nullopt` if any branch's icase-fold expansion would
-   *         exceed \ref ac_max_branch_expansion (caller falls back to the general alternation
-   *         route — a pathological input, not a correctness concern).
-   *
    * \param[in] code    The program's instruction stream.
    * \param[in] classes Its byte classes.
    * \param[in] body_pc The first branch/split pc, per \ref pattern_hints::body_pc.
+   * \return The built automaton, or `std::nullopt` if any branch's icase-fold expansion would exceed
+   *         \ref ac_max_branch_expansion — the caller then takes the general alternation route.
    */
   [[nodiscard]]
 #if defined(__GNUC__) || defined(__clang__)
@@ -362,4 +360,4 @@ namespace real::detail {
   }
 } // namespace real::detail
 
-#endif
+#endif // REAL_AHO_CORASICK_HPP

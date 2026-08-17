@@ -22,12 +22,11 @@
  *
  * Surface: `basic_regex` / `sub_match` / `match_results` / `regex_error`, `regex_search`,
  * `regex_match`, `regex_replace`, `regex_iterator` / `regex_token_iterator`, the full
- * `match_flag_type`, and `wregex` + POSIX grammars + `nosubs`. `real` runs the `char` /
- * default-traits / every-group path (see `detail::real_eligible`), under ECMAScript or under a
- * translated POSIX grammar; wide `CharT`, custom traits, `collate` and `nosubs` are always `std`,
- * as is any POSIX pattern translation declined. `regex_replace`/iterators
- * route nullable patterns to `std::regex` (the empty-match traversal differs from ECMAScript, see
- * `basic_regex::nullable`), and a constraining `match_flag` routes that operation to `std`.
+ * `match_flag_type`, `wregex`, the POSIX grammars and `nosubs`. `real` runs the `char` /
+ * default-traits / every-group path (see `detail::real_eligible`); wide `CharT`, custom traits,
+ * `collate` and `nosubs` are always `std`. `regex_replace` and the iterators route a nullable
+ * pattern to `std::regex` — the empty-match traversal differs from ECMAScript, see
+ * `basic_regex::nullable` — and a constraining `match_flag` routes that one operation to `std`.
  *
  * See the "Drop-in for std::regex" migration guide and the compatibility reference (COMPATIBILITY.md)
  * in the rendered documentation.
@@ -35,8 +34,8 @@
 #ifndef REAL_STD_REGEX_HPP
 #define REAL_STD_REGEX_HPP
 
-// Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// A public entry point: #include <real/compat/std/regex.hpp>. The three parts it pulls in are
+// internal and carry the usual banner.
 
 #include "regex_core.hpp"
 #include "regex_match.hpp"

@@ -3,10 +3,15 @@
  * \brief Extracts a *required inner literal* from a pattern's AST — the substring that every match must
  *        contain (`(\w+)@(\w+)` -> `@`, `key=(\w+)` -> `key=`, `\d{4}-\d{2}` -> `-`). It is the memmem
  *        candidate an inner-literal prefilter scans for: find the literal, then confirm the surrounding
- *        pattern from that candidate. Pure over the node pool; **inert** — nothing routes on it yet.
+ *        pattern from that candidate. A pure function over the node pool: compiler.hpp records the
+ *        result in `pattern_hints`, and `pike_vm::run` dispatches to `run_inner_literal` on it.
  */
 #ifndef REAL_FRONTEND_INNER_LITERAL_HPP
 #define REAL_FRONTEND_INNER_LITERAL_HPP
+
+// Internal — do not include directly.
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include <real/version.hpp>
 
@@ -19,7 +24,7 @@
 #include <real/engine/prefilter.hpp> // byte_frequency (a lower tier — frontend may use the runtime)
 #include <real/frontend/ast.hpp>
 
-//! \brief REAL's internal implementation. Not a stable API: anything here may change between releases.
+/*! \brief REAL's internal implementation. Not a stable API: anything here may change between releases. */
 namespace real::detail {
 
   /*!
@@ -27,14 +32,14 @@ namespace real::detail {
    *
    * `len == 0` means the pattern declined: a non-literal alternation, an optional (`?`/`*`/`{0,n}`), a
    * lookaround or a non-wb anchor at the level walked, or simply no literal run — anything that would make a
-   * required literal unsound. Top-level `\b`/`\B` are peeled (D1a): they set \ref wb_lead / \ref wb_trail and
+   * required literal unsound. Top-level `\b`/`\B` are peeled: they set \ref wb_lead / \ref wb_trail and
    * \ref prefix_skip so the reverse-prefix excludes them (asserts are not byte-DFA-eligible) while
    * `confirm_at` still runs the full program (boundaries checked there).
    *
-   * Prefilter skip-filler: a **pure-literal alternation** (`info|error|warn`) no longer aborts the whole
-   * walk — flush and continue so a later required run (`req=`) can arm. Branch bytes are never appended.
-   * Mono-byte optionals (`s?`) stay declined (P0.2 dropped after x86 A/B: IL on `://` regressed vs a strong
-   * first-byte/`http` baseline).
+   * A pure-literal alternation (`info|error|warn`) does not abort the walk: it flushes and continues, so a
+   * later required run (`req=`) can still arm. No branch's bytes are ever appended — none are shared.
+   * Mono-byte optionals (`s?`) stay declined; see \ref real::detail::inner_literal_detail::walk for why
+   * continuing past one is sound and still not wanted.
    */
   struct inner_literal
   {
@@ -43,8 +48,8 @@ namespace real::detail {
     std::array<std::uint8_t, 16> bytes              {};
     std::uint8_t                 len                {0};  //!< Bytes held in \ref bytes; 0 means the pattern declined.
     std::uint32_t                score              {0};  //!< Selectivity: higher = rarer/longer = fewer memmem candidates.
-    //! \brief Top-level concat children BEFORE the literal — the sub-pattern IL.1 reverse-matches from a
-    //!        candidate to find the match start. 0 = the literal is at the head (reverse is the identity:
+    //! \brief Top-level concat children BEFORE the literal — the sub-pattern the prefix-reverse matches
+    //!        backwards from a candidate to find the match start. 0 = the literal is at the head (identity:
     //!        start = candidate). -1 = the literal is nested in a group/repeat, so no clean top-level prefix
     //!        boundary exists (the prefix-reverse does not apply; the memmem candidate still does).
     std::int32_t                 prefix_child_count {-1};
@@ -66,9 +71,9 @@ namespace real::detail {
     }
   };
 
-  inline constexpr std::size_t inner_literal_max {16}; //!< The most bytes an inner literal keeps (a longer memmem target is diminishing returns and storage).
+  inline constexpr std::size_t inner_literal_max {16}; //!< The most bytes an inner literal keeps; past this a longer needle costs storage without shrinking the candidate set much.
 
-  //! \brief Helpers for \ref real::detail::extract_inner_literal; not part of any interface.
+  /*! \brief Helpers for \ref real::detail::extract_inner_literal; not part of any interface. */
   namespace inner_literal_detail {
 
     /*!
@@ -179,7 +184,10 @@ namespace real::detail {
      *
      * Every byte appended is present in *every* match; the confirming scan then verifies the surrounding
      * context. Pure-literal alternations \ref flush and continue (no branch bytes) so a later unconditional
-     * run can still arm. Optionals stay declined (conservative v1 / P0.2 dropped).
+     * run can still arm. An optional declines the whole extraction, which is a choice and not a
+     * requirement: flushing past it would be sound, since bytes after an optional are still required, but
+     * it would take `https?://` off its head literal `http`, and a required HEAD is a stronger filter than
+     * an inner scan for `://`.
      * \param[in]     tree      The AST holding the node.
      * \param[in]     idx       Node index; a negative index is the empty subtree and succeeds trivially.
      * \param[in,out] st        Walk state the run accumulates into.
@@ -222,7 +230,7 @@ namespace real::detail {
           return walk(tree, n.child, st, -1);
         case node_kind::repeat: {
             if (n.min == 0) {
-              return false; // ? * {0,n}: optional -> DECLINE (conservative v1; P0.2 mono-byte skip dropped)
+              return false; // ? * {0,n}: DECLINE -- see this function's own doc for why, and why not flush
             }
             flush(st);                        // the repeat's width is variable; break the run around it
             if (!walk(tree, n.child, st, -1)) { // a guaranteed literal inside the first (min) copy, nested
@@ -258,7 +266,7 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Whether \p idx is a top-level `\b` or `\B` anchor (D1a peel candidate).
+     * \brief Whether \p idx is a top-level `\b` or `\B` anchor — a peel candidate.
      * \param[in] tree The AST holding the node.
      * \param[in] idx  Node index; a negative index is not an anchor.
      * \return `true` for a word-boundary or not-word-boundary anchor node.
@@ -297,8 +305,8 @@ namespace real::detail {
    *
    * Routed on by `pike_vm::run` in search mode, via its `run_inner_literal`.
    *
-   * D1a: leading/trailing top-level `\b`/`\B` are peeled (recorded in \ref inner_literal::wb_lead /
-   * \ref inner_literal::wb_trail / \ref inner_literal::prefix_skip) so `\b\w+@\w+\b` keeps the `@` IL
+   * Leading and trailing top-level `\b`/`\B` are peeled — recorded in \ref inner_literal::wb_lead,
+   * \ref inner_literal::wb_trail and \ref inner_literal::prefix_skip — so `\b\w+@\w+\b` keeps the `@`
    * route; a mid-body wb anchor still declines. `confirm_at` on the full program re-checks the boundaries.
    * \param[in] tree The parsed pattern.
    * \return The best required literal, or a default-constructed \ref inner_literal (`len == 0`) when the
@@ -372,8 +380,8 @@ namespace real::detail {
    * children — later siblings (literal + suffix + trail wb) become unreferenced.
    * \param[in] tree  The pattern whose prefix is wanted.
    * \param[in] count How many body children the prefix keeps; must be >= 1.
-   * \param[in] skip  The D1a peeled-lead count (\ref inner_literal::prefix_skip); 0 preserves the pre-D1a
-   *                  behaviour, where the prefix is the first \p count children.
+   * \param[in] skip  Peeled-lead count (\ref inner_literal::prefix_skip); 0 means nothing was peeled, so
+   *                  the prefix is simply the first \p count children.
    * \return A copy of \p tree re-rooted and truncated to that prefix.
    */
   inline ast build_prefix_ast(const ast&   tree,

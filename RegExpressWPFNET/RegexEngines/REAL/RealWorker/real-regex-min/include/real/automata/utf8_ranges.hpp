@@ -6,13 +6,15 @@
  * encodings — no overlong forms, no surrogate encodings — is needed in two places: the compiler expands
  * `.` and negated classes this way, and the lazy DFA expands a `klass_cp` this way so a Unicode shorthand
  * becomes a byte-transition sub-automaton. This header is the shared, dependency-light home of that
- * algorithm (only `<cstdint>`/`<vector>`), so neither caller has to include the other.
+ * algorithm — no engine header, only `<cstddef>`, `<cstdint>` and `<vector>` — so neither caller has to
+ * include the other.
  */
 #ifndef REAL_UTF8_RANGES_HPP
 #define REAL_UTF8_RANGES_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include <cstddef>
 #include <cstdint>
@@ -20,14 +22,14 @@
 
 namespace real::detail {
 
-  //! \brief One byte-range step `[lo, hi]` of a UTF-8 sequence produced by the code-point-range algorithm.
+  /*! \brief One byte-range step `[lo, hi]` of a UTF-8 sequence produced by the code-point-range algorithm. */
   struct utf8_byte_range
   {
     std::uint8_t lo {}; //!< Low byte (inclusive).
     std::uint8_t hi {}; //!< High byte (inclusive).
   };
 
-  //! \brief A canonical UTF-8 byte-range sequence (1–4 steps) covering part of a code-point range.
+  /*! \brief A canonical UTF-8 byte-range sequence (1–4 steps) covering part of a code-point range. */
   struct utf8_byte_seq
   {
     utf8_byte_range parts[4] {}; //!< The per-byte ranges.
@@ -36,8 +38,9 @@ namespace real::detail {
 
   /*!
    * \brief Encodes \p cp to its UTF-8 bytes in \p out, returning the length (1–4).
-   * \param[in]  cp  The code point to encode.
-   * \param[out] out Receives its bytes; only the first \c return of them are written.
+   * \param[in]  cp  The code point to encode. A scalar value is assumed: nothing here rejects a
+   *                 surrogate or a value above U+10FFFF, both being excluded by the caller.
+   * \param[out] out Receives the bytes; only the first \e n are written, \e n being the return value.
    * \return The encoded length, 1 to 4.
    */
   constexpr std::size_t encode_utf8_bytes(std::uint32_t cp,
@@ -66,10 +69,14 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Splits `[start, end]` (same UTF-8 length after the length-boundary split) into contiguous
-   *        byte-range sequences (RE2 / rust regex-syntax `Utf8Sequences`). Every produced sequence is
-   *        canonical by construction — no overlong forms, no surrogates — which is exactly the
-   *        security property qE needs. Appends to \p out.
+   * \brief Appends to \p out the byte-range sequences recognising exactly the UTF-8 encodings of
+   *        `[start, end]` (RE2 / rust regex-syntax `Utf8Sequences`).
+   *
+   * Recurses on two splits until the range encodes to a single tuple of byte ranges: first at a UTF-8
+   * length boundary, so every sequence has one length; then at a continuation-byte boundary, so each
+   * byte position of a sequence covers a contiguous range. What comes out is canonical by construction
+   * — no overlong form, no surrogate encoding — which is what keeps a `.` or a negated class expanded
+   * through it from accepting malformed bytes as the character they resemble.
    *
    * \param[in]     start First code point of the range.
    * \param[in]     end   Last code point of the range, inclusive; an inverted range appends nothing.
@@ -122,7 +129,8 @@ namespace real::detail {
    *        surrogate block `[U+D800, U+DFFF]` (so a negated class never matches a surrogate encoding).
    * \param[in] lo First code point of the range.
    * \param[in] hi Last code point of the range, inclusive.
-   * \return The canonical sequences covering it, surrogates excluded.
+   * \return The canonical sequences covering it, surrogates excluded — empty for an inverted range, or
+   *         for one lying wholly inside the surrogate block.
    */
   constexpr std::vector<utf8_byte_seq> utf8_range_sequences(std::uint32_t lo,
                                                             std::uint32_t hi)

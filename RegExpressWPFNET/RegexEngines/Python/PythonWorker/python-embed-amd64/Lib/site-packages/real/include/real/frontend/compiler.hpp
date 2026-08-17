@@ -18,7 +18,8 @@
 #define REAL_COMPILER_HPP
 
 // Internal — do not include directly.
-// Users: #include <real/real.hpp> (or the documented opt-ins <real/dfa.hpp>, <real/compat/std/regex.hpp>).
+// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
+// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "real/version.hpp"
 
@@ -97,9 +98,9 @@ namespace real::detail {
     // Walk the fold table PER RANGE, not the whole table per class. The table is sorted by code point
     // (\ref find_fold_index binary-searches it), so each range seeks its first entry and walks forward
     // while the entry is still inside. Scanning the whole table and asking `any_of` over the ranges cost
-    // O(table x ranges) instead -- `\w` carries 771 ranges against ~1400 entries, so a single icase `\w`
-    // was over a million comparisons, and `\w{500}` folds the same class once per repeat: 326 ms to
-    // COMPILE that pattern, which CI's fuzzer reached as a 10-second timeout under sanitizers.
+    // O(table x ranges) instead, and a wide class carries hundreds of ranges against a table of over a
+    // thousand entries -- so a single icase `\w` is a six-figure comparison count, and a `{k}` repeat
+    // folds the same class once per copy. The sanitized fuzzing build reached that as a timeout.
     //
     // The accepted set is unchanged. Overlapping input ranges can now visit one entry more than once
     // where `any_of` short-circuited, which only pushes a duplicate degenerate {p, p} that
@@ -290,19 +291,17 @@ namespace real::detail {
     //! \brief Ways in the case-fold cache \ref effective_class keeps. Four is enough for a repeat to hit
     //!        its own way every time; a pattern alternating more distinct folded classes than this simply
     //!        misses, which is what every pattern did before.
-    // SIZING, not behaviour: a cache width whose MISS is already the documented fallback (see
-    // above -- a pattern alternating more distinct folded classes than this simply misses,
-    // which is what every pattern did before the cache). Unguarded by the sabotage sweep for
-    // that reason, and rightly.
+    // SIZING, not behaviour: a cache width whose MISS is already the documented fallback -- a pattern
+    // alternating more distinct folded classes than this simply folds them again. Nothing here is worth
+    // a test: no value of it can change an answer.
     static constexpr std::size_t fold_cache_ways {4};
 
     //! \brief Cache tag per way: the (class index, fold mode, negated) key held there, or -1 for empty.
     //!
     //!        `mutable` because the emit path reaches \ref effective_class through const member functions,
-    //!        and WRITTEN ONLY outside constant evaluation. MSVC's constant evaluator has already broken
-    //!        this header once over an object whose shape it merely disliked (C2131 on an indeterminate
-    //!        subobject, v2026.7.57), and a `static_regex` gains nothing here: its budget problem is the
-    //!        fold's step count, not its repetition.
+    //!        and WRITTEN ONLY outside constant evaluation. MSVC's constant evaluator has rejected this
+    //!        header before over an indeterminate subobject, and a `static_regex` gains nothing from the
+    //!        cache anyway: its budget problem is the fold's step count, not its repetition.
     mutable std::array<std::int32_t, fold_cache_ways> fold_key_ {-1, -1, -1, -1};
 
     //! \brief Cached FINISHED class per way -- folded, coalesced and negated. Default-constructed, so an
@@ -363,6 +362,15 @@ namespace real::detail {
       prog.hints        = analyze_program(prog.code, prog.classes, prog.cp_classes, prog.cp_ranges,
                                           prog.codepoint_mark_ascii, prog.codepoint_mark_offset,
                                           prog.codepoint_mark_end, prog.lookarounds);
+      // AND slot_count == 2 -- which analyze_program cannot see, because it is handed the CODE and a program
+      // can record captures WITHOUT `save` opcodes: a Tier-1 possessive with a `\b` wrap (`\b(\w)*+`) writes
+      // its group from the fast path. The save scan alone therefore called that pattern capture-free and lost
+      // both its group AND group 0's start; tests/engine/test_fixed_shape_wb_captures.cpp caught it on the
+      // first run. Placed AFTER the assignment above for the reason the first attempt got wrong: `prog.hints`
+      // is overwritten wholesale there, so a condition applied before it silently does nothing.
+      if (prog.slot_count != 2U) {
+        prog.hints.capture_free_walk = false;
+      }
       // The required inner literal + its prefix boundary (a single AST walk). Recorded in hints for the
       // inner-literal search route (pike_vm::run dispatches to run_inner_literal); kept off the program
       // code, so byte-identity is untouched.
@@ -370,7 +378,7 @@ namespace real::detail {
       prog.hints.inner_literal             = il.bytes;
       prog.hints.inner_literal_len         = il.len;
       prog.hints.inner_literal_prefix      = il.prefix_child_count;
-      // D1a: peel-lead skip for the reverse-prefix (see build_prefix_ast). Non-zero only when the
+      // Peel-lead skip for the reverse-prefix (see build_prefix_ast). Non-zero only when the
       // IL route is live. confirm_at still runs the full program (lead/trail `\b`/`\B` checked there).
       prog.hints.inner_literal_prefix_skip =
         (il.len > 0 && il.prefix_child_count >= 1 && il.prefix_skip > 0)
@@ -723,15 +731,14 @@ namespace real::detail {
      * `C3 89` — two bytes, one shared lead, one differing continuation — so the class is really
      * `byte C3` followed by a two-member BYTE class, which is fixed width. Sent through
      * \ref emit_klass_cp instead it becomes variable width, and that is what stops the prefilter's
-     * fixed-offset walk and the literal routes behind it. Measured on 200 KB of accented Latin prose
-     * at equal match density: a pure literal `café` is 0.257 ns/B, `caf[éÉ]` as a code-point class
-     * 0.700, `(?i)café` 1.226.
+     * fixed-offset walk and the literal routes behind it — the difference between a routed scan and the
+     * general VM on accented prose.
      *
-     * DELIBERATELY NARROW, because the neighbouring wide shape is already known to be a trap: an
-     * icase ASCII class like `(?i)[a-z]` gains the long s and the Kelvin sign, whose encodings are
-     * 2 and 3 bytes, so expressing it byte-wise needs an ALTERNATION — and that measured 545 µs
-     * against 230 for the `klass_cp` (see the emission site's note), with `caf(é|É)` reading 3.405
-     * ns/B here against 0.700 for the class. Requiring one common length AND a single varying
+     * DELIBERATELY NARROW, because the neighbouring wide shape is already known to be a trap: an icase
+     * ASCII class like `(?i)[a-z]` gains the long s and the Kelvin sign, whose encodings are 2 and 3
+     * bytes, so expressing it byte-wise needs an ALTERNATION — which is slower than the `klass_cp` it
+     * would replace (see the emission site's note), and slower again than the class form here.
+     * Requiring one common length AND a single varying
      * position is exactly what excludes every alternation-shaped case: no branch is ever emitted,
      * only a run of `byte` with one `klass` among them.
      *
@@ -1070,10 +1077,10 @@ namespace real::detail {
             // An ASCII bitmap with a FEW non-ASCII members -- what an icase fold makes of an ASCII class,
             // since `[a-z]` gains the long s and the Kelvin sign -- is a code-point class, and emitting it
             // as one is what lets the class-loop route take it. Expanded to a byte-level alternation
-            // instead (one branch for the bitmap, one per UTF-8 sequence), `(?i)[a-z]+` compiled to 8 byte
-            // classes and 18 instructions, matched no route at all and fell to the lazy DFA: 545 us over a
-            // 64 KiB corpus against 126 for its unfolded form. As one `klass_cp` it is 8 instructions and
-            // 230 us. Two rare fold partners were costing the route.
+            // instead (one branch for the bitmap, one per UTF-8 sequence), `(?i)[a-z]+` matches no route
+            // at all and falls to the lazy DFA, several times slower than its unfolded form. As one
+            // `klass_cp` it is a handful of instructions and keeps the class route. Two rare fold partners
+            // were otherwise costing the whole route.
             //
             // One-pass eligibility does not suffer and in places improves: `klass_cp` reaches
             // build_utf8_trie, whose disjoint per-node transitions are what make a Unicode class one-pass,
@@ -1201,11 +1208,15 @@ namespace real::detail {
         case anchor_kind::dollar:
           // Default (Python): `$` matches at end OR just before a final `\n`. With the ecma OR dollar_endonly
           // flag, `$` (no multiline) matches only at the very end — ECMAScript / Rust (`\z`) semantics.
-          result = multiline
-                   ? assert_kind::line_end
-                   : (has_flag(flags_, flags::ecma) || has_flag(flags_, flags::dollar_endonly)
-                        ? assert_kind::text_end
-                        : assert_kind::text_end_or_final_newline);
+          if (multiline) {
+            result = assert_kind::line_end;
+          }
+          else if (has_flag(flags_, flags::ecma) || has_flag(flags_, flags::dollar_endonly)) {
+            result = assert_kind::text_end;
+          }
+          else {
+            result = assert_kind::text_end_or_final_newline;
+          }
           break;
         case anchor_kind::text_start:
           result = assert_kind::text_start;
@@ -1277,18 +1288,17 @@ namespace real::detail {
      *
      * Extracted so the alternation fusion cannot diverge from a class written by hand: `(?:é|à|è)`
      * and `[éàè]` are the same language and must become the same program. Emitting the fused set
-     * directly as a code-point class instead measured FASTER on the bare form (arm64 1.85 against
-     * 4.42 ns/B) precisely because it took a different route -- a licence for one spelling to compile
-     * differently from the other, not a reason, and refused for that.
+     * directly as a code-point class instead measured FASTER on the bare form, precisely because it took
+     * a different route -- a licence for one spelling to compile differently from the other, not a
+     * reason, and refused for that.
      *
      * That observation was then chased on its own terms and REFUTED, so it is not retried: the two
-     * ISAs DISAGREE about which emission a standalone non-ASCII class wants. Measured both ways on
-     * both machines -- `[éÉ]` arm64 2.157 fixed-width against 1.260 code-point, but x86-64 2.544
-     * against 2.932; `(?i)é` identical figures; `[àèù]` arm64 1.949 against 1.283, x86-64 2.279
-     * against 3.018. arm64 wants the code-point class by 1.5-2.4x, x86-64 wants fixed-width by
-     * 1.15-1.3x, and no single choice wins on both. Where a literal PRECEDES the class they agree
-     * emphatically (`(?i)café` 0.44/0.64 against 1.13/1.67; `caf[éÉ]` 0.48/0.63 against 0.82/1.18),
-     * which is the case the fixed-width form was introduced for and the one it keeps.
+     * supported ISAs DISAGREE about which emission a STANDALONE non-ASCII class wants -- one prefers the
+     * code-point class, the other the fixed-width form, on the same patterns and by comparable margins.
+     * No single choice wins on both, which removes the argument for choosing at all.
+     *
+     * Where a literal PRECEDES the class they agree emphatically, and that is the case the fixed-width
+     * form was introduced for and the one it keeps.
      *
      * \param[in,out] prog The program being built.
      * \param[in]     eff  The effective class (ASCII bitmap + non-ASCII ranges).
@@ -1359,10 +1369,10 @@ namespace real::detail {
      * \brief Emits an UNBOUNDED quantifier's body, promoting a bare literal byte to a one-member
      *        byte class so the shape routes can see it.
      *
-     * `a+` compiled to a `byte` op, and the class-loop recognizer matches on `klass` only — so a
-     * quantifier over a single character had no fast route at all, while the semantically identical
-     * `[a]+` did. Over 100 000 bytes: `^a+$` **18.52 ns/B against 0.31** for `^[a]+$`, and `a+` 4.03
-     * against 0.31. A byte IS a one-member class; nothing but the opcode was in the way.
+     * A bare `a+` compiles its body to a `byte` op, and the class-loop recognizer matches on `klass`
+     * only — so without this promotion a quantifier over a single character reaches no fast route at all,
+     * while the semantically identical `[a]+` does, and the two spellings differ by more than an order of
+     * magnitude. A byte IS a one-member class; nothing but the opcode is in the way.
      *
      * Only for `max == -1` (`+`, `*`, `{n,}`), which is exactly what the class loop serves. A bounded
      * form like `a{3}` keeps its bytes: those copies are a fixed literal run, and the literal routes
@@ -1377,9 +1387,9 @@ namespace real::detail {
                                        bool             capture_free) const
     {
       // Peel transparent wrappers first. A NON-CAPTURING, non-atomic group changes nothing any route
-      // cares about -- there is no slot to save and no give-back rule to honour -- but it hid the atom
-      // from the promotion below: `(?:a)+` measured **1.368 ns/B against `a+`'s 0.460**, a 3x gap for a
-      // pair of parentheses. Scoped flags survive the peel because `effective_flags` is stamped on every
+      // cares about -- there is no slot to save and no give-back rule to honour -- but it hides the atom
+      // from the promotion below, so without this peel a pair of parentheses alone costs the pattern its
+      // route. Scoped flags survive the peel because `effective_flags` is stamped on every
       // node as it is parsed, so the child already carries the scope it was written in.
       //
       // `(?>...)` is excluded: `possessive` on a group means atomic, which is a real semantic.
@@ -1424,8 +1434,8 @@ namespace real::detail {
       }
       // An alternation of single atoms under an unbounded quantifier wants the SAME treatment as a
       // class does here, and for the same reason: fused through the bare-class path it becomes the
-      // fixed-width byte form, which is the shape with no route (`(?:é|à|è)+` measured 7.39 ns/B that
-      // way against 1.90 as a code-point class). The fusion test is shared with \ref
+      // fixed-width byte form, which is the shape with no route -- several times slower than the same
+      // set emitted as a code-point class. The fusion test is shared with \ref
       // emit_alternation; only the emission differs, which is the whole point of asking rather than
       // restating.
       if (c.kind == node_kind::alternation && c.next < 0) {
@@ -1612,7 +1622,13 @@ namespace real::detail {
             const class_def eff   {effective_class(node)};
             std::int32_t    width {eff.ascii.empty() ? 0 : 1};
             for (const code_range& r : eff.ranges) {
-              const std::int32_t w {r.hi < 0x800U ? 2 : (r.hi < 0x10000U ? 3 : 4)};
+              std::int32_t w {2};
+              if (r.hi >= 0x10000U) {
+                w = 4;
+              }
+              else if (r.hi >= 0x800U) {
+                w = 3;
+              }
               if (w > width) {
                 width = w;
               }
@@ -1973,7 +1989,7 @@ namespace real::detail {
      *        bodies) and \ref emit_atomic_group's `(?>X*)`-style desugaring.
      *
      * A general "Tier 1.5" for arbitrary compound deterministic bodies (`(?:ab)*+`, `(?:X++)*+`)
-     * was scoped OUT of this train after verifying a genuine VM-architecture wall, not assumed:
+     * is OUT OF SCOPE against a verified VM-architecture wall, not an assumed one:
      * `basic_thread_list` (pike.hpp) stores one uniform position per round for its whole thread
      * list — no per-thread position. A possessive loop's "give up, exit" transition for a
      * compound body would need to be offered ONLY once the body's own internal attempt has
