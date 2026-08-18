@@ -30,6 +30,8 @@ namespace RegExpressWPFNET
     /// </summary>
     partial class UCPattern : UserControl, IDisposable
     {
+        public static readonly RoutedUICommand HexaToCharCommand = new( );
+
         readonly WhitespaceAdorner WhitespaceAdorner;
 
         readonly ResumableLoop RecolouringLoop;
@@ -608,6 +610,19 @@ namespace RegExpressWPFNET
             }
         }
 
+        #region Commands
+
+        private void HexaToCharCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
+        {
+            e.CanExecute = rtb.IsSelectionActive;
+        }
+
+        private void HexaToCharCommand_Execute( object sender, ExecutedRoutedEventArgs e )
+        {
+            RtbUtilities.SelectedHexadecimalToChar( rtb );
+        }
+
+        #endregion
 
         #region IDisposable Support
 

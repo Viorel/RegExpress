@@ -13,6 +13,14 @@
 
     </UserControl.Resources>
 
+    <UserControl.CommandBindings>
+        <CommandBinding Command="{x:Static local:UCPattern.HexaToCharCommand}" CanExecute="HexaToCharCommand_CanExecute" Executed="HexaToCharCommand_Execute"/>
+    </UserControl.CommandBindings>
+
+    <UserControl.InputBindings>
+        <KeyBinding Command="{x:Static local:UCPattern.HexaToCharCommand}" Modifiers="Alt" Key="X"/>
+    </UserControl.InputBindings>
+
     <Grid>
         <AdornerDecorator>
             <local_controls:MyRichTextBox x:Name="rtb" 

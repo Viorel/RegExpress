@@ -9,6 +9,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using RegExpressLibrary;
@@ -25,6 +26,8 @@ namespace RegExpressWPFNET
     /// </summary>
     partial class UCText : UserControl, IDisposable
     {
+        public static readonly RoutedUICommand HexaToCharCommand = new( );
+
         readonly WhitespaceAdorner WhitespaceAdorner;
         readonly UnderliningAdorner LocalUnderliningAdorner;
         readonly UnderliningAdorner ExternalUnderliningAdorner;
@@ -831,6 +834,20 @@ namespace RegExpressWPFNET
 
             lblDbgInfo.Content = s;
         }
+
+        #region Commands
+
+        private void HexaToCharCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
+        {
+            e.CanExecute = rtb.IsSelectionActive;
+        }
+
+        private void HexaToCharCommand_Execute( object sender, ExecutedRoutedEventArgs e )
+        {
+            RtbUtilities.SelectedHexadecimalToChar( rtb );
+        }
+
+        #endregion
 
 
         #region IDisposable Support

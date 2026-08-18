@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Media;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -556,6 +557,22 @@ namespace RegExpressWPFNET.Code
                 rtb.ScrollToVerticalOffset( vo );
                 rtb.ScrollToHorizontalOffset( ho );
             } ) );
+        }
+
+        public static void SelectedHexadecimalToChar( RichTextBox rtb )
+        {
+            TextSelection selection = rtb.Selection;
+
+            try
+            {
+                UInt64 code = Convert.ToUInt64( selection.Text, fromBase: 16 );
+
+                selection.Text = char.ConvertFromUtf32( checked((int)code) );
+            }
+            catch
+            {
+                SystemSounds.Beep.Play( );
+            }
         }
 
 
