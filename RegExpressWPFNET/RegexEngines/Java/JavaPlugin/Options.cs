@@ -14,6 +14,7 @@ namespace JavaPlugin
         re2j,
         safere,
         reggie,
+        joni,
     }
 
     internal class Options
@@ -34,11 +35,25 @@ namespace JavaPlugin
         public bool useAnchoringBounds { get; set; } = true;
         public bool useTransparentBounds { get; set; } = false;
 
-        // re2j specific
+        // re2j
 
         public bool DISABLE_UNICODE_GROUPS { get; set; }
-        public bool LONGEST_MATCH { get; set; }
+        public bool LONGEST_MATCH { get; set; } // joni too
 
+        // joni
+
+        public bool FIND_NOT_EMPTY { get; set; }
+        public bool NEGATE_SINGLELINE { get; set; }
+        public bool DONT_CAPTURE_GROUP { get; set; }
+        public bool CAPTURE_GROUP { get; set; } = true;
+        //
+        public bool NOTBOL { get; set; }
+        public bool NOTEOL { get; set; }
+        /* Does not seem to be implemented
+        public bool NEWLINE_CRLF { get; set; }
+        public bool NOTBOS { get; set; }
+        public bool NOTEOS { get; set; }
+        */
 
         public Options Clone( )
         {

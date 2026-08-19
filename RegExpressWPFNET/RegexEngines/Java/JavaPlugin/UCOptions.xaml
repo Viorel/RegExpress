@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:JavaPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="313.765" d:DesignWidth="758.661" 
+             d:DesignHeight="532.345" d:DesignWidth="758.661" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -31,9 +31,10 @@
                     <ui:ComboBoxItemWithVersion Tag ="re2j"     Text="RE2/J"            Version="{Binding Re2j,     Source={StaticResource versions}}"/>
                     <ui:ComboBoxItemWithVersion Tag ="safere"   Text="SafeRE"           Version="{Binding SafeRE,   Source={StaticResource versions}}"/>
                     <ui:ComboBoxItemWithVersion Tag ="reggie"   Text="Reggie"           Version="{Binding Reggie,   Source={StaticResource versions}}"/>
+                    <ui:ComboBoxItemWithVersion Tag ="joni"     Text="Joni"             Version="{Binding Joni,     Source={StaticResource versions}}"/>
                 </ComboBox>
             </StackPanel>
-            
+
             <StackPanel x:Name="pnlCommon"  Orientation="Vertical">
                 <ui:CheckboxWithNote x:Name="CANON_EQ" Prop="CANON_EQ" Note="canonical equivalence"/>
                 <ui:CheckboxWithNote Prop="CASE_INSENSITIVE" Note="(i) case-insensitive matching"/>
@@ -46,6 +47,25 @@
                 <ui:CheckboxWithNote x:Name="UNIX_LINES" Prop="UNIX_LINES" Note="(d) only the “\n” line terminator is recognized in the behavior of “.”, “^”, and “$”"/>
                 <ui:CheckboxWithNote x:Name="DISABLE_UNICODE_GROUPS" Prop="DISABLE_UNICODE_GROUPS" Note="Unicode groups (e.g. \p{Greek}) will be syntax errors"/>
                 <ui:CheckboxWithNote x:Name="LONGEST_MATCH" Prop="LONGEST_MATCH" Note="matches longest possible string"/>
+            </StackPanel>
+
+            <StackPanel x:Name="pnlJoni" Orientation="Vertical">
+                <ui:CheckboxWithNote Prop="CASE_INSENSITIVE"    Text="IGNORECASE" Note=""/>
+                <ui:CheckboxWithNote Prop="COMMENTS"            Text="EXTEND" Note=""/>
+                <ui:CheckboxWithNote Prop="MULTILINE"           Text="MULTILINE" Note=""/>
+                <ui:CheckboxWithNote Prop="DOTALL"              Text="SINGLELINE" Note=""/>
+                <ui:CheckboxWithNote Prop="LONGEST_MATCH"       Text="FIND_LONGEST" Note=""/>
+                <ui:CheckboxWithNote Prop="FIND_NOT_EMPTY"      Text="FIND_NOT_EMPTY" Note=""/>
+                <ui:CheckboxWithNote Prop="NEGATE_SINGLELINE"   Text="NEGATE_SINGLELINE" Note=""/>
+                <ui:CheckboxWithNote Prop="DONT_CAPTURE_GROUP"  Text="DONT_CAPTURE_GROUP" Note=""/>
+                <ui:CheckboxWithNote Prop="CAPTURE_GROUP"       Text="CAPTURE_GROUP" Note=""/>
+                <ui:CheckboxWithNote Prop="NOTBOL"              Text="NOTBOL" Note="" />
+                <ui:CheckboxWithNote Prop="NOTEOL"              Text="NOTEOL" Note=""/>
+                <!--
+                Does not seem to be implemented
+                <ui:CheckboxWithNote Prop="NEWLINE_CRLF"        Text="NEWLINE_CRLF" Note=""/>
+                <ui:CheckboxWithNote Prop="NOTBOS"              Text="NOTBOS" Note=""/>
+                <ui:CheckboxWithNote Prop="NOTEOS"              Text="NOTEOS" Note=""/>-->
             </StackPanel>
 
             <StackPanel x:Name="panelRegion" Orientation="Vertical" VerticalAlignment="Top">
