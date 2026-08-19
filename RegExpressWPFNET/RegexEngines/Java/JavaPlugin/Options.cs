@@ -54,6 +54,11 @@ namespace JavaPlugin
         public bool NOTBOS { get; set; }
         public bool NOTEOS { get; set; }
         */
+        public bool ASCII_RANGE { get; set; }
+        public bool POSIX_BRACKET_ALL_RANGE { get; set; }
+        public bool WORD_BOUND_ALL_RANGE { get; set; }
+        public bool CR_7_BIT { get; set; }
+
 
         public Options Clone( )
         {

@@ -85,6 +85,10 @@ namespace JavaPlugin
                     NOTBOS = options.NOTBOS,
                     NOTEOS = options.NOTEOS,
                     */
+                    ASCII_RANGE = options.ASCII_RANGE,
+                    POSIX_BRACKET_ALL_RANGE = options.POSIX_BRACKET_ALL_RANGE,
+                    WORD_BOUND_ALL_RANGE = options.WORD_BOUND_ALL_RANGE,
+                    CR_7_BIT = options.CR_7_BIT,
                 }
             };
 

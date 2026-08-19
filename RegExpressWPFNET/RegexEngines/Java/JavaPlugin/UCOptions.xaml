@@ -50,22 +50,26 @@
             </StackPanel>
 
             <StackPanel x:Name="pnlJoni" Orientation="Vertical">
-                <ui:CheckboxWithNote Prop="CASE_INSENSITIVE"    Text="IGNORECASE" Note=""/>
-                <ui:CheckboxWithNote Prop="COMMENTS"            Text="EXTEND" Note=""/>
-                <ui:CheckboxWithNote Prop="MULTILINE"           Text="MULTILINE" Note=""/>
-                <ui:CheckboxWithNote Prop="DOTALL"              Text="SINGLELINE" Note=""/>
-                <ui:CheckboxWithNote Prop="LONGEST_MATCH"       Text="FIND_LONGEST" Note=""/>
-                <ui:CheckboxWithNote Prop="FIND_NOT_EMPTY"      Text="FIND_NOT_EMPTY" Note=""/>
-                <ui:CheckboxWithNote Prop="NEGATE_SINGLELINE"   Text="NEGATE_SINGLELINE" Note=""/>
-                <ui:CheckboxWithNote Prop="DONT_CAPTURE_GROUP"  Text="DONT_CAPTURE_GROUP" Note=""/>
-                <ui:CheckboxWithNote Prop="CAPTURE_GROUP"       Text="CAPTURE_GROUP" Note=""/>
-                <ui:CheckboxWithNote Prop="NOTBOL"              Text="NOTBOL" Note="" />
-                <ui:CheckboxWithNote Prop="NOTEOL"              Text="NOTEOL" Note=""/>
+                <ui:CheckboxWithNote Prop="CASE_INSENSITIVE"        Text="IGNORECASE" Note=""/>
+                <ui:CheckboxWithNote Prop="COMMENTS"                Text="EXTEND" Note=""/>
+                <ui:CheckboxWithNote Prop="MULTILINE"               Text="MULTILINE" Note=""/>
+                <ui:CheckboxWithNote Prop="DOTALL"                  Text="SINGLELINE" Note=""/>
+                <ui:CheckboxWithNote Prop="LONGEST_MATCH"           Text="FIND_LONGEST" Note=""/>
+                <ui:CheckboxWithNote Prop="FIND_NOT_EMPTY"          Text="FIND_NOT_EMPTY" Note=""/>
+                <ui:CheckboxWithNote Prop="NEGATE_SINGLELINE"       Text="NEGATE_SINGLELINE" Note=""/>
+                <ui:CheckboxWithNote Prop="DONT_CAPTURE_GROUP"      Text="DONT_CAPTURE_GROUP" Note=""/>
+                <ui:CheckboxWithNote Prop="CAPTURE_GROUP"           Text="CAPTURE_GROUP" Note=""/>
+                <ui:CheckboxWithNote Prop="NOTBOL"                  Text="NOTBOL" Note="" />
+                <ui:CheckboxWithNote Prop="NOTEOL"                  Text="NOTEOL" Note=""/>
                 <!--
                 Does not seem to be implemented
-                <ui:CheckboxWithNote Prop="NEWLINE_CRLF"        Text="NEWLINE_CRLF" Note=""/>
-                <ui:CheckboxWithNote Prop="NOTBOS"              Text="NOTBOS" Note=""/>
-                <ui:CheckboxWithNote Prop="NOTEOS"              Text="NOTEOS" Note=""/>-->
+                <ui:CheckboxWithNote Prop="NEWLINE_CRLF"            Text="NEWLINE_CRLF" Note=""/>
+                <ui:CheckboxWithNote Prop="NOTBOS"                  Text="NOTBOS" Note=""/>
+                <ui:CheckboxWithNote Prop="NOTEOS"                  Text="NOTEOS" Note=""/>-->
+                <ui:CheckboxWithNote Prop="ASCII_RANGE"             Text="ASCII_RANGE" Note=""/>
+                <ui:CheckboxWithNote Prop="POSIX_BRACKET_ALL_RANGE" Text="POSIX_BRACKET_ALL_RANGE" Note=""/>
+                <ui:CheckboxWithNote Prop="WORD_BOUND_ALL_RANGE"    Text="WORD_BOUND_ALL_RANGE" Note=""/>
+                <ui:CheckboxWithNote Prop="CR_7_BIT"                Text="CR_7_BIT" Note=""/>
             </StackPanel>
 
             <StackPanel x:Name="panelRegion" Orientation="Vertical" VerticalAlignment="Top">

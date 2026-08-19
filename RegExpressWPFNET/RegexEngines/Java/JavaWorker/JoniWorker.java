@@ -41,6 +41,10 @@ class JoniWorker
             if( GetBoolean( input_options, "NEWLINE_CRLF")) options |= org.joni.Option.NEWLINE_CRLF;
             if( GetBoolean( input_options, "NOTBOS")) options |= org.joni.Option.NOTBOS;
             if( GetBoolean( input_options, "NOTEOS")) options |= org.joni.Option.NOTEOS;
+            if( GetBoolean( input_options, "ASCII_RANGE")) options |= org.joni.Option.ASCII_RANGE;
+            if( GetBoolean( input_options, "POSIX_BRACKET_ALL_RANGE")) options |= org.joni.Option.POSIX_BRACKET_ALL_RANGE;
+            if( GetBoolean( input_options, "WORD_BOUND_ALL_RANGE")) options |= org.joni.Option.WORD_BOUND_ALL_RANGE;
+            if( GetBoolean( input_options, "CR_7_BIT")) options |= org.joni.Option.CR_7_BIT;
 
             byte[] pattern_bytes = input_pattern.getBytes( StandardCharsets.UTF_8);
             byte[] text_bytes = input_text.getBytes( StandardCharsets.UTF_8);
