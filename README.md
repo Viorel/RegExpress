@@ -48,11 +48,12 @@ The following engines are included:
   * [_real-regex_](https://crates.io/crates/real-regex) 2026.8.16,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0.
   * [_regexr_](https://crates.io/crates/regexr) 0.5.0.
-* [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2:
+* [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2.1:
   * _java.util.regex_,
   * [_RE2/J_](https://github.com/google/re2j) 1.8,
   * [_SafeRE_](https://github.com/eaftan/safere) 0.10.0,
-  * [_Reggie_](https://github.com/DataDog/java-reggie) 0.3.0.
+  * [_Reggie_](https://github.com/DataDog/java-reggie) 0.3.0,
+  * [_Joni_](https://github.com/jruby/joni) 2.2.7.
 * [**Python**](https://www.python.org/) 3.14.6:
   * _re_,
   * [_regex_](https://pypi.org/project/regex) 2026.7.19,

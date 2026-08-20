@@ -1,0 +1,2 @@
+::@echo { "pattern" : "(.)(x)?(y?)", "text" : "abc" } | .\JRE-min\bin\java.exe -cp .;json-simple-1.1.1.jar;joni-2.2.7.jar;jcodings-1.0.64.jar JoniWorker
+@echo { "pattern" : "(?<n1>.)(?<n2>x)?(?<n3>y?)", "text" : "abc" } | .\JRE-min\bin\java.exe -cp .;json-simple-1.1.1.jar;joni-2.2.7.jar;jcodings-1.0.64.jar JoniWorker

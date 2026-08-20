@@ -148,6 +148,7 @@ xcopy /D /R /Y "%BasePath%\JavaWorker\JavaWorker.class" "%EnginesTargetPath%\Jav
 xcopy /D /R /Y "%BasePath%\JavaWorker\RE2JWorker.class" "%EnginesTargetPath%\Java\*"
 xcopy /D /R /Y "%BasePath%\JavaWorker\SafeREWorker.class" "%EnginesTargetPath%\Java\*"
 xcopy /D /R /Y "%BasePath%\JavaWorker\ReggieWorker.class" "%EnginesTargetPath%\Java\*"
+xcopy /D /R /Y "%BasePath%\JavaWorker\JoniWorker.class" "%EnginesTargetPath%\Java\*"
 xcopy /D /R /Y "%BasePath%\JavaWorker\*.jar" "%EnginesTargetPath%\Java\*"
 
 

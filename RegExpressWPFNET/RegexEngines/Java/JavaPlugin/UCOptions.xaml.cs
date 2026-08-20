@@ -85,7 +85,8 @@ namespace JavaPlugin
                 bool is_regex = package == PackageEnum.regex;
                 bool is_re2j = package == PackageEnum.re2j;
                 bool is_safere = package == PackageEnum.safere;
-                bool is_reggie= package == PackageEnum.reggie;
+                bool is_reggie = package == PackageEnum.reggie;
+                bool is_joni = package == PackageEnum.joni;
 
                 pnlCommon.Display( is_regex || is_re2j || is_safere );
 
@@ -99,6 +100,8 @@ namespace JavaPlugin
                 LONGEST_MATCH.Display( is_re2j );
 
                 panelRegion.Display( is_regex || is_safere );
+
+                pnlJoni.Display( is_joni );
             }
             finally
             {
@@ -131,7 +134,8 @@ namespace JavaPlugin
                 PackageEnum.regex => "regex",
                 PackageEnum.re2j => "RE2/J",
                 PackageEnum.safere => "SafeRE",
-                PackageEnum.reggie=> "Reggie",
+                PackageEnum.reggie => "Reggie",
+                PackageEnum.joni => "Joni",
                 _ => "Unknown"
             };
         }

@@ -25,12 +25,14 @@ or:
 
 - The new version of Reggie (.jar) can be got from https://central.sonatype.com/artifact/com.datadoghq/reggie.
 
+- The new version of Joni (.jar) can be got from https://central.sonatype.com/artifact/org.jruby.joni/joni.
+
 To recompile the "*.java" workers
 --------------------------------------------------------
 
-- Adjust the JDK_ROOT variable in "compile.bat".
+- Adjust the JDK_ROOT variable in "compile.cmd".
 
-- Run "compile.bat".
+- Run "compile.cmd".
 
 - Commit "*.java" and "*.class" files to GIT.
 
@@ -42,16 +44,16 @@ To re-make the minimal JRE ("JRE-min.zip")
 
 - If "*.class" are not made yet, recompile the "*.java" files as explained before.
 
-- Adjust the JDK_ROOT variable in "deps.bat" and "makejre.bat".
+- Adjust the JDK_ROOT variable in "deps.cmd" and "makejre.cmd".
 
-- Run "deps.bat". Notice the modules displayed in the last column (usually "java.base").
+- Run "deps.cmd". Notice the modules displayed in the last column (usually "java.base").
 
-- Adjust the "--add-modules" argument in "makejre.bat". It will be a comma-separated list of modules 
+- Adjust the "--add-modules" argument in "makejre.cmd". It will be a comma-separated list of modules 
   from previous step (usually just "java.base").
 
 - Delete the "JRE-min" folder if exists.
 
-- Run "makejre.bat". It will create a new "JRE-min" folder.
+- Run "makejre.cmd". It will create a new "JRE-min" folder.
 
 - Compress the "JRE-min" folder to "JRE-min.zip" file, uzing ZIP format, ultra level, Deflate or Deflate64 method.
 
