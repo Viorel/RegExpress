@@ -6,7 +6,7 @@ __all__ = [
     "finditer", "split", "sub", "subn", "escape", "purge", "error", "Pattern",
     "Match", "RegexSet", "A", "ASCII", "I", "IGNORECASE", "M", "MULTILINE",
     "S", "DOTALL", "X", "VERBOSE", "U", "UNICODE", "NOFLAG", "get_include",
-    "get_config",
+    "get_config", "PatternError",
 ]
 
 __version__: str
@@ -30,6 +30,9 @@ A: Final[int]
 ASCII: Final[int]
 
 class error(Exception): ...
+
+# CPython 3.13's name for the same class, not a subclass.
+PatternError = error
 
 @final
 class Pattern:

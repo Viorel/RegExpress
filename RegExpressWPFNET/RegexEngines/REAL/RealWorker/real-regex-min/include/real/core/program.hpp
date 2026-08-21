@@ -129,7 +129,14 @@ namespace real {
    * `unsupported` covers a backreference, a conditional, and a lookaround that is not bounded — the
    * constructs a linear-time engine cannot represent at all. It is a stable, machine-readable
    * classification the C ABI exposes, so a binding never has to grep \ref regex_error::what.
+   *
+   * There is no native escape hatch, by design — a `real::regex` is the linear engine or nothing. A
+   * caller who must run such a pattern anyway constructs a `real::compat::regex` from
+   * `real/compat/std/%regex.hpp` with `real::compat::policy::fallback`, which delegates it to
+   * `std::regex` and forfeits the linear-time guarantee for that pattern only.
    */
+  // The `%` above is Doxygen's link suppressor and must stay: unescaped, the path autolinks to a
+  // file page the site profile does not publish, and the site build fails on the dangling label.
   enum class error_kind : std::uint8_t
   {
     syntax,

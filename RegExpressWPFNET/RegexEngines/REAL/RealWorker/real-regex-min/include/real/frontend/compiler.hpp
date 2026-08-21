@@ -1564,7 +1564,13 @@ namespace real::detail {
       }
       const std::int32_t lmax {l_max_bytes(node.child)};
       if (lmax < 0) {
-        throw regex_error("unbounded lookaround is not supported (use a fixed repeat count)", 0);
+        // Names the rewrite, not just the constraint: `(?=.*[A-Z])` is the shape people arrive with,
+        // and "use a fixed repeat count" does not tell them `.*` becomes `.{0,N}`. The ceiling is
+        // max_lookaround_length BYTES of L_max, so a bound in characters can still be refused above
+        // (a UTF-8 `.` is up to 4 bytes) -- hence an example well under it rather than the maximum.
+        throw regex_error("unbounded lookaround is not supported (bound the repetition, e.g. "
+                          ".* -> .{0,32}; the sub-pattern must match at most 255 bytes)",
+                          0);
       }
       if (lmax > max_lookaround_length) {
         throw regex_error("lookaround sub-pattern too long", 0);

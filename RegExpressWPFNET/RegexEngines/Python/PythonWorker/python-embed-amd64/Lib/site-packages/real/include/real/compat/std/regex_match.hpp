@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <ostream>
 
 namespace real::compat {
   /*!
@@ -138,6 +139,22 @@ namespace real::compat {
                   const sub_match<BidirIt>& rhs)
   {
     return lhs.str() == rhs.str();
+  }
+
+  /*!
+   * \brief Stream the matched text (`std::sub_match` parity). Found by ADL from
+   *        `std::cout << m[1]`. Writes `m.str()` — empty when the group did not
+   *        participate.
+   * \param[in,out] os The stream.
+   * \param[in]     m  The sub-match whose text is written.
+   * \return \p os, after writing.
+   */
+  template <typename CharT, typename Traits, typename BidirIt>
+  std::basic_ostream<CharT, Traits>&
+  operator<<(std::basic_ostream<CharT, Traits>& os,
+             const sub_match<BidirIt>&          m)
+  {
+    return os << m.str();
   }
 
   /*!

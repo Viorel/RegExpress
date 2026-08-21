@@ -364,6 +364,25 @@ namespace real {
     }
 
     /*!
+     * \brief View of a group's matched text — `std::smatch`'s spelling for \ref operator[].
+     *
+     * Exactly \ref operator[], under the name a caller arriving from `std::regex` writes first.
+     * Without it `m.str(1)` is a compile error that names an internal storage type and suggests
+     * nothing. Unlike `std::smatch::str` it returns a view rather than an owned string, so it
+     * never copies and the subject must outlive the result.
+     *
+     * That difference bites on the NEXT line the same caller writes: `std::string s = m.str(1);`
+     * does not compile, because `std::string_view` converts to `std::string` explicitly. Spell it
+     * `std::string s {m.str(1)};` when an owned copy is what you want.
+     * \param[in] group Group number (0 = whole match).
+     * \return A view into the searched text, empty if the group is unset.
+     */
+    [[nodiscard]] constexpr std::string_view str(std::size_t group = 0) const
+    {
+      return (*this)[group];
+    }
+
+    /*!
      * \brief Resolves a group name to its number.
      * \param[in] name The group name.
      * \return The group number, or \ref real::npos if unknown.

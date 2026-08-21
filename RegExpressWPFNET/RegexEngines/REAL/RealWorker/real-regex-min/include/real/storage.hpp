@@ -1419,6 +1419,25 @@ namespace real {
         std::uint16_t slot_count     {}; //!< `2*(groups+1)`.
       };
 
+      /*!
+       * \brief Whether \ref build is a constant expression for this pattern.
+       *
+       * A `requires` expression is a SFINAE context: forming the `bool_constant` template argument
+       * needs a constant expression, and \ref build throwing makes it one substitution failure
+       * rather than a hard error. That is what lets \ref viable be *asked* instead of crashed into.
+       */
+      static constexpr bool viable {requires { typename std::bool_constant<(build(), true)>; }};
+
+      // Placed BEFORE every member that reads `survey`: the failing assertion ends this
+      // instantiation, so the twenty-odd dependent members below never each report their own
+      // "must be initialized by a constant expression" (measured: 358 diagnostic lines for one
+      // backreference, the reason buried at line 39, against 22 with this assertion in front).
+      static_assert(viable,
+                    "real::static_regex: this pattern cannot be compiled at compile time -- a "
+                    "backreference, a POSIX class, or a lookaround (static_regex has no constexpr "
+                    "sub-VM for one). Compile the same pattern as a runtime real::regex to get the "
+                    "exact construct and its position, or rewrite it.");
+
       //! \brief The one measuring evaluation. Never emitted: nothing takes its address, and every
       //!        member below reads it at compile time only.
       static constexpr measured survey {[] {
