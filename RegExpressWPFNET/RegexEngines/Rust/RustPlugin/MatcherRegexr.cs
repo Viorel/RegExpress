@@ -19,7 +19,7 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace RustPlugin
 {
-    static class MatcherRegexr
+    static partial class MatcherRegexr
     {
         public class Rootobject
         {
@@ -78,7 +78,7 @@ namespace RustPlugin
 
             if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( AdjustErrorMessage( ph.Error, pattern ) );
 
 #if DEBUG
             using StreamReader sr = new( ph.OutputStream );
@@ -159,6 +159,37 @@ namespace RustPlugin
             return new RegexMatches( matches.Count, matches );
         }
 
+        private static string? AdjustErrorMessage( string error, string pattern )
+        {
+            // try to show character offset based on byte offset, which appears in error messages
+
+            System.Text.RegularExpressions.Match m = RegexExtractByteOffset( ).Match( error );
+
+            if( m.Success && int.TryParse( m.Groups[1].Value, out int byte_offset ) )
+            {
+                try
+                {
+                    byte[] utf8_bytes = Encoding.UTF8.GetBytes( pattern );
+                    int char_offset = Encoding.UTF8.GetCharCount( utf8_bytes, 0, byte_offset );
+
+                    if( char_offset != byte_offset )
+                    {
+                        string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character index {char_offset}";
+
+                        return new_message;
+                    }
+                }
+                catch
+                {
+                    if( Debugger.IsAttached ) Debugger.Break( );
+
+                    // ignore
+                }
+            }
+
+            return error;
+        }
+
         static string GetWorkerExePath( )
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
@@ -167,5 +198,9 @@ namespace RustPlugin
 
             return worker_exe;
         }
+
+        [GeneratedRegex( @" at position (\d+)" )]
+        private static partial Regex RegexExtractByteOffset( );
+
     }
 }

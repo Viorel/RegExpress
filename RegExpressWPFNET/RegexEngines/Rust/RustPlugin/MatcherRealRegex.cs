@@ -146,7 +146,7 @@ namespace RustPlugin
 
                     if( char_offset != byte_offset )
                     {
-                        string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character offset {char_offset}";
+                        string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character index {char_offset}";
 
                         return new_message;
                     }

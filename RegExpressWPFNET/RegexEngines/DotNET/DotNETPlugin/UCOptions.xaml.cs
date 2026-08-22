@@ -58,6 +58,12 @@ namespace DotNETPlugin
 
                 bool is_dotnet = @class == ClassEnum.RegexDotNet;
                 bool is_dotnet_framework = @class == ClassEnum.RegexDotNetFramework;
+                bool is_resharp = @class == ClassEnum.ReSharp;
+                bool is_scout = @class == ClassEnum.Scout;
+
+                pnlRegex.Display( is_dotnet | is_dotnet_framework );
+                pnlReSharp.Display( is_resharp );
+                pnlScout.Display( is_scout );
 
                 NonBacktracking.Display( is_dotnet );
                 NonBacktrackingDisabled.Display( !is_dotnet );
@@ -79,17 +85,27 @@ namespace DotNETPlugin
         private void cbxClass_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             UpdateUI( );
-            Notify( true );
+            Notify( preferImmediateReaction: true );
         }
 
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
-            Notify( false );
+            Notify( preferImmediateReaction: false );
         }
 
         private void cbxTimeout_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
-            Notify( true );
+            Notify( preferImmediateReaction: true );
+        }
+
+        private void tb_TextChanged( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
+
+        private void cbxByteRegexEngineMode_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
         }
 
         internal void SetOptions( Options options )

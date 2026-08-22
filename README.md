@@ -14,8 +14,11 @@ The comparison chart is an Excel file:
 
 The following engines are included:
 
-* [**Regex**](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-10.0) class from .NET 10.
-* [**Regex**](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8) class from .NET Framework 4.8.
+* **.NET**:
+  * [_Regex_](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-10.0) from .NET 10,
+  * [_Regex_](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8) from .NET Framework 4.8,
+  * [_RE#_](https://github.com/ieviev/resharp-dotnet) 1.0.5,
+  * [_Scout_](https://github.com/willibrandon/scout) 0.6.1.
 * [**wregex**](https://docs.microsoft.com/en-us/cpp/standard-library/regex) class in C++:
   * Standard Template Library, MSVC, 
   * Standard Template Library, GCC,
@@ -72,7 +75,6 @@ The following engines are included:
   * [_zig-regex_](https://github.com/zig-utils/zig-regex) v0.2.0, 
   * [_mvzr_](https://github.com/mnemnion/mvzr) v0.3.12,
   * _PZRE_ v0.2.3.
-* [**RE#**](https://github.com/ieviev/resharp-dotnet) 1.0.5 (for F#, C#, VB).
 * **Go** 1.26.5:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.5,
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.6.0,
