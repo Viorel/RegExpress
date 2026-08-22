@@ -69,7 +69,7 @@ namespace ScoutWorker
                     if( input_args.options.LineTerminator != null ) options.LineTerminator = Convert.ToByte( input_args.options.LineTerminator.Value );
                     if( input_args.options.DfaSizeLimit != null ) options.DfaSizeLimit = input_args.options.DfaSizeLimit.Value;
 
-                    switch(input_args.options.EngineMode)
+                    switch( input_args.options.EngineMode )
                     {
                     case null:
                     case "":
@@ -152,6 +152,8 @@ namespace ScoutWorker
                             //
                             break;
                         }
+
+                        start_at = new_start;
                     }
                 }
 

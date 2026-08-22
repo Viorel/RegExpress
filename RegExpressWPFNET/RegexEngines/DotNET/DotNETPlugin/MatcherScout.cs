@@ -145,12 +145,9 @@ internal partial class MatcherScout
                 byte[] utf8_bytes = Encoding.UTF8.GetBytes( pattern );
                 int char_offset = Encoding.UTF8.GetCharCount( utf8_bytes, 0, byte_offset );
 
-                if( char_offset != byte_offset )
-                {
-                    string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character index {char_offset}";
+                string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character index {char_offset}";
 
-                    return new_message;
-                }
+                return new_message;
             }
             catch
             {
