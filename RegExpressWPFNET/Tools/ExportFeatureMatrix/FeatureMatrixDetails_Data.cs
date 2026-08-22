@@ -579,7 +579,7 @@ partial class FeatureMatrixDetails
                     .IgnoreCase()
                     .Test( @"ΣΣΣ", "Σσς", null, "Σσς")
                     .Test( @"(?i)ΣΣΣ", "Σσς", null, "Σσς"),
-                new FeatureMatrixDetails( "ß=SS", "Match “ß ↔ ss” and “ß ↔ SS” in case-insensitive mode", (e, fm) => fm.ßSS )
+                new FeatureMatrixDetails( "ß=ss", "Match “ß ↔ ss” (and “ß ↔ SS” in case-insensitive mode)", (e, fm) => fm.ßSS )
                     .IgnoreCase()
                     .Test( @"aßb", "aSSb", "aSb", "aSSb")
                     .Test( @"(?i)aßb", "aSSb", "aSb", "aSSb"),

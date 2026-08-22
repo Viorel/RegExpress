@@ -12,5 +12,7 @@ namespace DotNETPlugin
 
         public static string? DotNet { get; } = LazyVersionDotNet.Value;
         public static string? DotNetFramework { get; } = LazyVersionDotNetFramework.Value;
+        public static string? ReSharp { get; } = "1.0.5";
+        public static string? Scout { get; } = "0.6.1";
     }
 }

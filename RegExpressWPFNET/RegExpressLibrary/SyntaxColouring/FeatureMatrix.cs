@@ -193,7 +193,7 @@ namespace RegExpressLibrary.SyntaxColouring
         public bool Anchor_G { get; init; }                                 // \G -- end of previous match, or start of string
         public bool Anchor_bB { get; init; }                                // \b, \B -- boundary between \w and \W; see also Esc_b, InsideSets_Esc_b
         public bool Anchor_bg { get; init; }                                // \b{g} -- Unicode extended grapheme cluster boundary; see also Anchor_bBBrace
-        public bool Anchor_bBBrace { get; init; }                           // \b{boundary_type}, \B{boundary_type}; ex.: \b{wb}, which is almost similar to \b
+        public bool Anchor_bBBrace { get; init; }                           // \b{boundary_type}, \B{boundary_type}; ex.: \b{wb}, which is almost similar to \b, or \b{start}, \b{start-half}
         public bool Anchor_PosixWB { get; init; }                           // Posix word boundaries: [[:<:]] and [[:>:]]
         public bool Anchor_K { get; init; }                                 // \K -- Keep the stuff left of the \K
         public bool Anchor_mM { get; init; }                                // \m -- start of word, \M -- end of word
@@ -294,7 +294,7 @@ namespace RegExpressLibrary.SyntaxColouring
 
         public bool Σσς { get; init; }                                      // match letters that have multiple uppercase and lowercase variants,
                                                                             // such as uppercase “Σ” and lowercase “σ” (inside words) and “ς” (at end of words)
-        public bool ßSS { get; init; }                                      // match “ß ↔ ss” and “ß ↔ SS” in case-insensitive mode. 
+        public bool ßSS { get; init; }                                      // match “ß ↔ ss” and “ß ↔ SS” in case-insensitive mode. ß - 'LATIN SMALL LETTER SHARP S' (U+00DF), ẞ - 'LATIN CAPITAL LETTER SHARP S' (U+1E9E)
 
 
         // Special features used only by specific engines.

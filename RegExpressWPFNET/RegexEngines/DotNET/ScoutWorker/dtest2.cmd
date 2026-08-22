@@ -1,0 +1,1 @@
+@echo { "pattern" : "(.)(?<n>.)", "text" : "abcd" } | "bin\Debug\net10.0\ScoutWorker.exe"

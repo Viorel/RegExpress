@@ -14,6 +14,16 @@ namespace DotNETPlugin
         None,
         RegexDotNet,
         RegexDotNetFramework,
+        ReSharp,
+        Scout,
+    }
+
+    enum ByteRegexEngineModeEnum
+    {
+        None,
+        Optimized,
+        General,
+        AutomataOnly,
     }
 
     sealed class Options
@@ -32,6 +42,29 @@ namespace DotNETPlugin
         public bool Singleline { get; set; }
 
         public long TimeoutMs { get; set; } = 10_000;
+
+        // RE#
+
+        public bool UseDotnetUnicode { get; set; }
+        public bool MinimizePattern { get; set; }
+        public bool FindLookaroundPrefix { get; set; }
+
+        public string? InitialDfaCapacity { get; set; }
+        public string? MaxDfaCapacity { get; set; }
+        public string? MaxPrefixLength { get; set; }
+        public string? FindPotentialStartSizeLimit { get; set; }
+        public string? StartsetInferenceLimit { get; set; }
+        public string? DfaThreshold { get; set; }
+
+        // Scout
+
+        public bool Crlf { get; set; }
+        //public LineTerminatorEnum LineTerminator { get; set; } // not used here
+        public bool Utf8 { get; set; } = true;
+        public bool UnicodeClasses { get; set; } = true;
+        //public bool MatchInvalidUtf8 { get; set; } // not used here
+        public ByteRegexEngineModeEnum ByteRegexEngineMode { get; set; } = ByteRegexEngineModeEnum.None;
+        public string? DfaSizeLimit { get; set; }
 
         public Options Clone( )
         {

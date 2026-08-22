@@ -155,8 +155,7 @@ namespace PythonPlugin
 
         private static string? AdjustErrorMessage( string error, string pattern )
         {
-            // try to show character offset based on byte offset, which is used by REAL in error messages;
-            // example of error message: "regex_error at 3: ..."
+            // try to show character offset based on byte offset, which appears in error messages
 
             Match m = RegexExtractByteOffset( ).Match( error );
 
@@ -169,7 +168,7 @@ namespace PythonPlugin
 
                     if( char_offset != byte_offset )
                     {
-                        string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character offset {char_offset}";
+                        string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character index {char_offset}";
 
                         return new_message;
                     }
@@ -215,7 +214,7 @@ namespace PythonPlugin
         [GeneratedRegex( @"^(?'t'[Mg]) (?'s'-?\d+), (?'e'-?\d+)|(?'t'N) (?'i'\d+) <(?'n'.*)>$", RegexOptions.ExplicitCapture )]
         private static partial Regex NMgRegex( );
 
-        [GeneratedRegex( @"^regex_error at (\d+): " )]
+        [GeneratedRegex( @" at position (\d+)" )]
         private static partial Regex RegexExtractByteOffset( );
     }
 }

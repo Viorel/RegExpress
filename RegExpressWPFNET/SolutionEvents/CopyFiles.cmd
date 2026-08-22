@@ -31,6 +31,14 @@ xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrame
 copy /Y "%EnginesTargetPath%\DotNET\FrameworkWorker\DotNETFrameworkWorker.exe.config" "%EnginesTargetPath%\DotNET\FrameworkWorker\DotNETFrameworkWorker.bin.config" > nul
 xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\*.dll" "%EnginesTargetPath%\DotNET\FrameworkWorker\*"
 
+xcopy /D /E /R /Y "%BasePath%\RESharpWorker\bin\%Configuration%\net10.0-windows7.0\*" "%EnginesTargetPath%\DotNET\RESharpWorker\*"
+
+xcopy /D /R /Y "%BasePath%\ScoutWorker\bin\%Configuration%\net10.0\ScoutWorker.exe" "%EnginesTargetPath%\DotNET\ScoutWorker\*"
+xcopy /D /R /Y "%BasePath%\ScoutWorker\bin\%Configuration%\net10.0\ScoutWorker.dll" "%EnginesTargetPath%\DotNET\ScoutWorker\*"
+xcopy /D /R /Y "%BasePath%\ScoutWorker\bin\%Configuration%\net10.0\ScoutWorker.deps.json" "%EnginesTargetPath%\DotNET\ScoutWorker\*"
+xcopy /D /R /Y "%BasePath%\ScoutWorker\bin\%Configuration%\net10.0\ScoutWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\ScoutWorker\*"
+xcopy /D /R /Y "%BasePath%\ScoutWorker\bin\%Configuration%\net10.0\Scout.*.dll" "%EnginesTargetPath%\DotNET\ScoutWorker\*"
+
 
 rem -- STD --
 
@@ -246,13 +254,6 @@ xcopy /D /R /Y "%BasePath%\ZigPlugin\bin\%Configuration%\%TargetDir%\ZigPlugin.d
 xcopy /D /R /Y "%BasePath%\RegexWorker\ZigRegexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 xcopy /D /R /Y "%BasePath%\MvzrWorker\ZigMvzrWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 xcopy /D /R /Y "%BasePath%\PzreWorker\zig-out\bin\ZigPzreWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
-
-
-rem -- RE# --
-
-set BasePath=%SolutionDir%\RegexEngines\RESharp
-xcopy /D /R /Y "%BasePath%\RESharpPlugin\bin\%Configuration%\%TargetDir%\RESharpPlugin.dll" "%EnginesTargetPath%\RESharp\*"
-xcopy /D /E /R /Y "%BasePath%\RESharpWorker\bin\%Configuration%\net10.0-windows7.0\*" "%EnginesTargetPath%\RESharp\Worker\*"
 
 
 rem -- Go --
