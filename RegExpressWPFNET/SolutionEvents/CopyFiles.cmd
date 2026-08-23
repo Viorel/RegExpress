@@ -21,8 +21,8 @@ rem -- .NET --
 set BasePath=%SolutionDir%\RegexEngines\DotNET
 xcopy /D /R /Y "%BasePath%\DotNETPlugin\bin\%Configuration%\%TargetDir%\DotNETPlugin.dll" "%EnginesTargetPath%\DotNET\*"
 
-xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.dll" "%EnginesTargetPath%\DotNET\Worker\*"
 xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.exe" "%EnginesTargetPath%\DotNET\Worker\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.dll" "%EnginesTargetPath%\DotNET\Worker\*"
 xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.deps.json" "%EnginesTargetPath%\DotNET\Worker\*"
 xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\Worker\*"
 
@@ -33,11 +33,17 @@ xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\*.dll" "%En
 
 xcopy /D /E /R /Y "%BasePath%\RESharpWorker\bin\%Configuration%\net10.0-windows7.0\*" "%EnginesTargetPath%\DotNET\RESharpWorker\*"
 
-xcopy /D /R /Y "%BasePath%\ScoutWorker\bin\%Configuration%\net10.0\ScoutWorker.exe" "%EnginesTargetPath%\DotNET\ScoutWorker\*"
+xcopy /D /R /Y "%BasePath%\ScoutWorker\bin\%Configuration%\net10.0\ScoutWorker.exe" "%EnginesTargetPath%\DotNET\ScoutWorker\*.bin"
 xcopy /D /R /Y "%BasePath%\ScoutWorker\bin\%Configuration%\net10.0\ScoutWorker.dll" "%EnginesTargetPath%\DotNET\ScoutWorker\*"
 xcopy /D /R /Y "%BasePath%\ScoutWorker\bin\%Configuration%\net10.0\ScoutWorker.deps.json" "%EnginesTargetPath%\DotNET\ScoutWorker\*"
 xcopy /D /R /Y "%BasePath%\ScoutWorker\bin\%Configuration%\net10.0\ScoutWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\ScoutWorker\*"
 xcopy /D /R /Y "%BasePath%\ScoutWorker\bin\%Configuration%\net10.0\Scout.*.dll" "%EnginesTargetPath%\DotNET\ScoutWorker\*"
+
+xcopy /D /R /Y "%BasePath%\LokadUtf8RegexWorker\bin\%Configuration%\net10.0\LokadUtf8RegexWorker.exe" "%EnginesTargetPath%\DotNET\LokadUtf8RegexWorker\*.bin"
+xcopy /D /R /Y "%BasePath%\LokadUtf8RegexWorker\bin\%Configuration%\net10.0\LokadUtf8RegexWorker.dll" "%EnginesTargetPath%\DotNET\LokadUtf8RegexWorker\*"
+xcopy /D /R /Y "%BasePath%\LokadUtf8RegexWorker\bin\%Configuration%\net10.0\LokadUtf8RegexWorker.deps.json" "%EnginesTargetPath%\DotNET\LokadUtf8RegexWorker\*"
+xcopy /D /R /Y "%BasePath%\LokadUtf8RegexWorker\bin\%Configuration%\net10.0\LokadUtf8RegexWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\LokadUtf8RegexWorker\*"
+xcopy /D /R /Y "%BasePath%\LokadUtf8RegexWorker\bin\%Configuration%\net10.0\Lokad.Utf8Regex.dll" "%EnginesTargetPath%\DotNET\LokadUtf8RegexWorker\*"
 
 
 rem -- STD --

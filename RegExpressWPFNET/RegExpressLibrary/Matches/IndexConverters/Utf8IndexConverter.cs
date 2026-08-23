@@ -6,14 +6,9 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary.Matches.IndexConverters
 {
-    public class Utf8IndexConverter : IIndexConverter
+    public sealed class Utf8IndexConverter( string text ) : IIndexConverter
     {
-        readonly byte[] Utf8Bytes;
-
-        public Utf8IndexConverter(string text)
-        {
-            Utf8Bytes = Encoding.UTF8.GetBytes( text );
-        }
+        readonly byte[] Utf8Bytes = Encoding.UTF8.GetBytes( text );
 
         public (int index, int length) Convert( int nativeStart, int nativeEnd )
         {

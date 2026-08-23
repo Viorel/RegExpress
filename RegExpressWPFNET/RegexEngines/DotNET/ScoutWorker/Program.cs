@@ -118,7 +118,7 @@ namespace ScoutWorker
                         }
                     }
 
-                    OutputMatch one_match = new( ) { g = groups.ToArray( ) };
+                    OutputMatch one_match = new( ) { g = [.. groups] };
 
                     matches.Add( one_match );
 
@@ -157,7 +157,7 @@ namespace ScoutWorker
                     }
                 }
 
-                string ret_json = JsonSerializer.Serialize( new OutputMatches { matches = matches.ToArray( ) } );
+                string ret_json = JsonSerializer.Serialize( new OutputMatches { matches = [.. matches] } );
 
                 Console.Out.WriteLine( ret_json );
             }

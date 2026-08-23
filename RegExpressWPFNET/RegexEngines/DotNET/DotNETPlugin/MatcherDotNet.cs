@@ -54,7 +54,7 @@ namespace DotNETPlugin
             var data = new { cmd = "m", text, pattern, options };
             string json = JsonSerializer.Serialize( data );
 
-            using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
             ph.AllEncoding = EncodingEnum.UTF8;
 

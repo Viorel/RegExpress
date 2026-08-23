@@ -60,13 +60,14 @@ namespace DotNETPlugin
                 bool is_dotnet_framework = @class == ClassEnum.RegexDotNetFramework;
                 bool is_resharp = @class == ClassEnum.ReSharp;
                 bool is_scout = @class == ClassEnum.Scout;
+                bool is_locad = @class == ClassEnum.LokadUtf8Regex;
 
-                pnlRegex.Display( is_dotnet | is_dotnet_framework );
+                pnlRegex.Display( is_dotnet | is_dotnet_framework | is_locad );
                 pnlReSharp.Display( is_resharp );
                 pnlScout.Display( is_scout );
 
-                NonBacktracking.Display( is_dotnet );
-                NonBacktrackingDisabled.Display( !is_dotnet );
+                NonBacktracking.Display( is_dotnet | is_locad );
+                NonBacktrackingDisabled.Display( !( is_dotnet | is_locad ) );
             }
             finally
             {
@@ -125,6 +126,5 @@ namespace DotNETPlugin
                 --ChangeCounter;
             }
         }
-
     }
 }

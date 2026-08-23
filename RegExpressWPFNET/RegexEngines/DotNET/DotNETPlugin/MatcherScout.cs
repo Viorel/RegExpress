@@ -46,8 +46,6 @@ internal partial class MatcherScout
                 UnicodeClasses = options.UnicodeClasses,
                 //MatchInvalidUtf8 = 
 
-                //TODO: engine
-
                 EngineMode = Enum.GetName( options.ByteRegexEngineMode ),
                 DfaSizeLimit = ValidationUtilities.ParseInt32( "DfaSizeLimit", options.DfaSizeLimit ),
             }
@@ -164,7 +162,7 @@ internal partial class MatcherScout
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_exe = Path.Combine( assembly_dir, "ScoutWorker", @"ScoutWorker.exe" );
+        string worker_exe = Path.Combine( assembly_dir, "ScoutWorker", @"ScoutWorker.bin" );
 
         return worker_exe;
     }

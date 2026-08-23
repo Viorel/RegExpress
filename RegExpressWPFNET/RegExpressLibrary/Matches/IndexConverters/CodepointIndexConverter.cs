@@ -6,14 +6,9 @@ using System.Threading.Tasks;
 
 namespace RegExpressLibrary.Matches.IndexConverters
 {
-    public class CodepointIndexConverter : IIndexConverter
+    public sealed class CodepointIndexConverter( string text ) : IIndexConverter
     {
-        readonly SurrogatePairsHelper Sph;
-
-        public CodepointIndexConverter( string text )
-        {
-            Sph = new( text );
-        }
+        readonly SurrogatePairsHelper Sph = new( text );
 
         public (int index, int length) Convert( int nativeStart, int nativeEnd )
         {

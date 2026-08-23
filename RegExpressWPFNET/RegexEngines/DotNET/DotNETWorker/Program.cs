@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Text;
 
 
-namespace DotNET9Worker
+namespace DotNETWorker
 {
     internal class Program
     {
@@ -142,7 +142,7 @@ namespace DotNET9Worker
 
                 var worker_match = new WorkerMatch { index = m.Index, length = m.Length };
 
-                foreach( Group g in m.Groups )
+                foreach( Group g in m.Groups.Cast<Group>( ) )
                 {
                     var worker_group = new WorkerGroup { success = g.Success, index = g.Index, length = g.Length, name = g.Name };
 

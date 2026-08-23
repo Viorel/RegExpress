@@ -41,12 +41,13 @@
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                 </StackPanel.LayoutTransform>
-                <Label Content="Class:" Target="{Binding ElementName=cbxClass}" Padding="0 2 4 2" MinWidth="40" VerticalAlignment="Center"/>
+                <Label Content="Kind:" Target="{Binding ElementName=cbxClass}" Padding="0 2 4 2" MinWidth="40" VerticalAlignment="Center"/>
                 <ComboBox x:Name="cbxClass" SelectedValuePath="Tag" SelectedValue="{Binding Class, FallbackValue='RegexDotNet'}" VerticalAlignment="Center" SelectionChanged="cbxClass_SelectionChanged"  MinWidth="44">
                     <ui:ComboBoxItemWithVersion Tag ="RegexDotNet"          Text="Regex .NET"           Version="{Binding DotNet,           Source={StaticResource versions}}" d:Version="###" IsSelected="True" />
                     <ui:ComboBoxItemWithVersion Tag ="RegexDotNetFramework" Text="Regex .NET Framework" Version="{Binding DotNetFramework,  Source={StaticResource versions}}" d:Version="###" />
                     <ui:ComboBoxItemWithVersion Tag ="ReSharp"              Text="RE#"                  Version="{Binding ReSharp,          Source={StaticResource versions}}" d:Version="###" />
-                    <ui:ComboBoxItemWithVersion Tag ="Scout"                Text="Scout"                Version="{Binding Scout,            Source={StaticResource versions}}" d:Version="###" />
+                    <ui:ComboBoxItemWithVersion Tag ="Scout"                Text="Scout ByteRegex"      Version="{Binding Scout,            Source={StaticResource versions}}" d:Version="###" />
+                    <ui:ComboBoxItemWithVersion Tag ="LokadUtf8Regex"       Text="Lokad Utf8Regex"      Version="{Binding LokadUtf8Regex,   Source={StaticResource versions}}" d:Version="###" />
                 </ComboBox>
             </StackPanel>
 

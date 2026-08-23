@@ -30,10 +30,12 @@
     <Project Path="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj">
       <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+      <BuildDependency Project="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/RESharpWorker/RESharpWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/ScoutWorker/ScoutWorker.csproj" />
     </Project>
     <Project Path="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+    <Project Path="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" Id="d102e3c3-2f20-4876-8aec-e2df4f5f9762" />
     <Project Path="RegexEngines/DotNET/RESharpWorker/RESharpWorker.csproj" />
     <Project Path="RegexEngines/DotNET/ScoutWorker/ScoutWorker.csproj" Id="3075510d-c247-4dd0-9b35-575e1bb4dc33" />
   </Folder>
@@ -164,6 +166,9 @@
     <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET/RESharpWorker/RESharpWorker.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET/ScoutWorker/ScoutWorker.csproj" />
     <BuildDependency Project="RegexEngines/Fortran/FortranPlugin/FortranPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Go/GoPlugin/GoPlugin.csproj" />
     <BuildDependency Project="RegexEngines/GRETA/GretaPlugin/GretaPlugin.csproj" />
@@ -186,7 +191,6 @@
     <BuildDependency Project="RegexEngines/RE2/RE2Worker/RE2Worker.vcxproj" />
     <BuildDependency Project="RegexEngines/REAL/RealPlugin/RealPlugin.csproj" />
     <BuildDependency Project="RegexEngines/REAL/RealWorker/RealWorker.vcxproj" />
-    <BuildDependency Project="RegexEngines/DotNET/RESharpWorker/RESharpWorker.csproj" />
     <BuildDependency Project="RegexEngines/Rust/RustPlugin/RustPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Std/SrellLinearWorker/SrellLinearWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/Std/SrellWorker/SrellWorker.vcxproj" />
@@ -201,6 +205,5 @@
     <BuildDependency Project="RegexEngines/TRE/TREWorker/TREWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/VBScript/VBScriptPlugin/VBScriptPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Zig/ZigPlugin/ZigPlugin.csproj" />
-    <BuildDependency Project="RegexEngines/DotNET/ScoutWorker/ScoutWorker.csproj" />
   </Project>
 </Solution>

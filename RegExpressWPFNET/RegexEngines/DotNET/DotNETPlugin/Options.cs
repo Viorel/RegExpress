@@ -16,6 +16,7 @@ namespace DotNETPlugin
         RegexDotNetFramework,
         ReSharp,
         Scout,
+        LokadUtf8Regex,
     }
 
     enum ByteRegexEngineModeEnum
