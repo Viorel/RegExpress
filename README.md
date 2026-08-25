@@ -17,8 +17,9 @@ The following engines are included:
 * **.NET**:
   * [_Regex_](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=net-10.0) from .NET 10,
   * [_Regex_](https://learn.microsoft.com/en-us/dotnet/api/system.text.regularexpressions.regex?view=netframework-4.8) from .NET Framework 4.8,
-  * [_RE#_](https://github.com/ieviev/resharp-dotnet) 1.0.5,
-  * [_Scout_](https://github.com/willibrandon/scout) 0.6.1.
+  * [_RE#_](https://www.nuget.org/packages/Resharp) 1.0.5,
+  * [_Scout_](https://www.nuget.org/packages/Scout) 0.6.1,
+  * [_Lokad.Utf8Regex_](https://www.nuget.org/packages/Lokad.Utf8Regex) 0.2.0.
 * [**wregex**](https://docs.microsoft.com/en-us/cpp/standard-library/regex) class in C++:
   * Standard Template Library, MSVC, 
   * Standard Template Library, GCC,
