@@ -6,13 +6,31 @@
              xmlns:local="clr-namespace:ZigPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="119.1" d:DesignWidth="402.442" 
+             d:DesignHeight="300.7" d:DesignWidth="402.442" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
         <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="0 2 4 2"/>
+        </Style>
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <EventSetter Event="TextChanged" Handler="tb_TextChanged"/>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="note">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
+            <!--<Setter Property="Opacity" Value="0.77"/>-->
+            <Setter Property="FontStyle" Value="Italic"/>
+            <Setter Property="Margin" Value="4 0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
     </UserControl.Resources>
 
@@ -46,6 +64,7 @@
                     <ui:ComboBoxItemWithVersion Tag="ZigRegex" Text="zig-regex" Version="{Binding ZigRegex, Source={StaticResource versions}}" IsSelected="True" />
                     <ui:ComboBoxItemWithVersion Tag="Mvzr"     Text="mvzr"      Version="{Binding Mvzr, Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag="Pzre"     Text="PZRE"      Version="{Binding Pzre, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="EziGex"   Text="ezi-gex"   Version="{Binding EziGex, Source={StaticResource versions}}" />
                 </ComboBox>
 
             </Grid>
@@ -62,6 +81,74 @@
             </StackPanel>
 
             <StackPanel x:Name="pnlPzreOptions">
+            </StackPanel>
+
+            <StackPanel x:Name="pnlEziGexOptions">
+                
+                <!--
+                Cannot be set at runtime
+                
+                <ui:CheckboxWithNote Prop="case_insensitive" Text="case_insensitive" Note=""/>
+                <ui:CheckboxWithNote Prop="multiline" Text="multiline" Note=""/>
+                <ui:CheckboxWithNote Prop="dot_all" Text="dot_matches_newline" Note=""/>
+                <ui:CheckboxWithNote Prop="unicode" Text="unicode" Note=""/>
+                <ui:CheckboxWithNote Prop="unicode_word_boundary_in_dfa" Text="unicode_word_boundary_in_dfa" Note=""/>
+                <ui:CheckboxWithNote Prop="prefilter" Text="prefilter" Note=""/>
+
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 6 0 0" >
+                    <Grid.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Grid.LayoutTransform>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto" MinWidth="55"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=case_fold}" Content="case__fold:"/>
+                    <ComboBox x:Name="case_fold" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding case_fold, FallbackValue='None'}" VerticalAlignment="Center" SelectionChanged="cb_SelectionChanged" MinWidth="77">
+                        <ComboBoxItem Tag ="None"       Content="" IsSelected="True" />
+                        <ComboBoxItem Tag ="none"       Content="none" />
+                        <ComboBoxItem Tag ="simple"     Content="simple" />
+                        <ComboBoxItem Tag ="full"       Content="full" />
+                    </ComboBox>
+                    <TextBlock Grid.Column="2" Grid.Row="0" Text="" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=max_repetition}" Content="max__repetition:"/>
+                    <TextBox x:Name="max_repetition" Grid.Column="1" Grid.Row="1" Text="{Binding max_repetition, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=byte_engine}" Content="byte__engine:"/>
+                    <ComboBox x:Name="byte_engine" Grid.Column="1" Grid.Row="2" SelectedValuePath="Tag" SelectedValue="{Binding byte_engine, FallbackValue='None'}" VerticalAlignment="Center" SelectionChanged="cb_SelectionChanged" MinWidth="77">
+                        <ComboBoxItem Tag ="None"       Content="" IsSelected="True" />
+                        <ComboBoxItem Tag ="auto"       Content="auto" />
+                        <ComboBoxItem Tag ="enabled"    Content="enabled" />
+                        <ComboBoxItem Tag ="disabled"   Content="disabled" />
+                    </ComboBox>
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=simd}" Content="simd:"/>
+                    <ComboBox x:Name="simd" Grid.Column="1" Grid.Row="3" SelectedValuePath="Tag" SelectedValue="{Binding simd, FallbackValue='None'}" VerticalAlignment="Center" SelectionChanged="cb_SelectionChanged" MinWidth="77">
+                        <ComboBoxItem Tag ="None"       Content="" IsSelected="True" />
+                        <ComboBoxItem Tag ="auto"       Content="auto" />
+                        <ComboBoxItem Tag ="off"        Content="off" />
+                    </ComboBox>
+                    <TextBlock Grid.Column="2" Grid.Row="3" Text="" Style="{StaticResource note}" />
+                </Grid>
+
+                -->
+
             </StackPanel>
 
         </StackPanel>

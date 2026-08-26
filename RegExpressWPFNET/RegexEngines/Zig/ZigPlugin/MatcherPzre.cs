@@ -43,7 +43,7 @@ Example of result:
     */
 
 
-    namespace PzreResponseClasses
+    static class MatcherPzre
     {
         public class RootObject
         {
@@ -55,11 +55,7 @@ Example of result:
             public int start { get; set; }
             public int length { get; set; }
         }
-    }
 
-
-    static class MatcherPzre
-    {
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             Debug.Assert( options.Library == RegexLibraryEnum.Pzre );
@@ -85,7 +81,7 @@ Example of result:
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-            ResponseClasses.RootObject? response = JsonSerializer.Deserialize<ResponseClasses.RootObject>( ph.OutputStream );
+            RootObject? response = JsonSerializer.Deserialize<RootObject>( ph.OutputStream );
 
             if( response == null ) throw new Exception( "Null response" );
 

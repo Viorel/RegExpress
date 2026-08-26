@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:DartPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="470.225" d:DesignWidth="666.746" 
+             d:DesignHeight="539.207" d:DesignWidth="666.746" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>

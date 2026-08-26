@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:GoPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="487.577" d:DesignWidth="705.436" 
+             d:DesignHeight="525.347" d:DesignWidth="705.436" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
