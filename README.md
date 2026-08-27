@@ -73,9 +73,10 @@ The following engines are included:
 * [**compile-time-regular-expressions (CTRE)**](https://github.com/hanickadot/compile-time-regular-expressions)[^2] 3.11.0  (in C++).
 * **GRETA** 2.6.4 (in C++).
 * **Zig** 0.16.0:
-  * [_zig-regex_](https://github.com/zig-utils/zig-regex) v0.2.0, 
-  * [_mvzr_](https://github.com/mnemnion/mvzr) v0.3.12,
-  * _PZRE_ v0.2.3.
+  * [_zig-regex_](https://github.com/zig-utils/zig-regex) 0.2.0, 
+  * [_mvzr_](https://github.com/mnemnion/mvzr) 0.3.12,
+  * _PZRE_ 0.2.3,
+  * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.6.2.
 * **Go** 1.26.5:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.5,
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.6.0,

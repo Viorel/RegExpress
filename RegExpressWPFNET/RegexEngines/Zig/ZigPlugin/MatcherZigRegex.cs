@@ -70,7 +70,7 @@ Example of result:
     */
 
 
-    namespace ResponseClasses
+    class RelaxedJsonConverter : System.Text.Json.Serialization.JsonConverter<string>
     {
         public class RootObject
         {
@@ -89,10 +89,7 @@ Example of result:
         {
             public string? value { get; set; }
         }
-    }
 
-    public class RelaxedJsonConverter : System.Text.Json.Serialization.JsonConverter<string>
-    {
         public override string? Read( ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options )
         {
             switch( reader.TokenType )
@@ -142,6 +139,25 @@ Example of result:
 
     static class MatcherZigRegex
     {
+        class RootObject
+        {
+            public string[]? names { get; set; }
+            public Match[]? matches { get; set; }
+        }
+
+        public class Match
+        {
+            public int start { get; set; }
+            public int length { get; set; }
+            public Group[]? groups { get; set; }
+        }
+
+        public class Group
+        {
+            public string? value { get; set; }
+        }
+
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             Debug.Assert( options.Library == RegexLibraryEnum.ZigRegex );
@@ -183,9 +199,9 @@ Example of result:
 #if DEBUG
             using StreamReader sr = new( ph.OutputStream );
             string output = sr.ReadToEnd( );
-            ResponseClasses.RootObject? response = JsonSerializer.Deserialize<ResponseClasses.RootObject>( output, json_options );
+            RootObject? response = JsonSerializer.Deserialize<RootObject>( output, json_options );
 #else
-            ResponseClasses.RootObject? response = JsonSerializer.Deserialize<ResponseClasses.RootObject>( ph.OutputStream, json_options );
+            RootObject? response = JsonSerializer.Deserialize<RootObject>( ph.OutputStream, json_options );
 #endif
 
             if( response == null ) throw new Exception( "Null response" );
