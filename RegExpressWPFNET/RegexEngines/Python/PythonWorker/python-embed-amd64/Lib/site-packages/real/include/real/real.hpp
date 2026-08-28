@@ -1632,11 +1632,12 @@ namespace real {
     [[nodiscard]] std::vector<result_type> find_all(const char* text) const&& = delete;
 
     /*!
-     * \brief Replaces matches in \p text (Python `re.sub`).
+     * \brief Replaces matches in \p text (ECMAScript / `std::regex_replace` `$1`).
      *
      * The \p replacement may reference groups: `$$` → '$', `$&` or `$0` →
-     * whole match, `$1` …, and `${name}`. Returns an owning string, so a
-     * temporary \p text is fine here.
+     * whole match, `$1` …, and `${name}`. This is not Python `re.sub` (`\1` /
+     * `\g<name>`) — that spelling is the Python and Go bindings. Returns an
+     * owning string, so a temporary \p text is fine here.
      *
      * \param[in] text        The subject text.
      * \param[in] replacement The replacement template.
@@ -2009,7 +2010,8 @@ namespace real {
     /*!
      * \brief Appends \p replacement to \p out, substituting group references.
      *
-     * Strict like Python: an invalid or out-of-range reference is an error.
+     * An invalid or out-of-range reference is an error (Python's rule), not left
+     * in place. The template spelling is ECMAScript / `std::regex`: `$1`, not `\1`.
      *
      * \param[in,out] out         The output string to append to.
      * \param[in]     match       The match supplying the captured groups.

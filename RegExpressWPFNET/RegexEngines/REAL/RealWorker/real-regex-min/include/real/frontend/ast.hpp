@@ -1385,6 +1385,49 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Returns `true` if \p ch is an ASCII letter (`A`–`Z`, `a`–`z`).
+     *
+     * Used to tell an unknown flag letter (`z`, `u`, `L`) from a terminator (`:`, `)`, `-`)
+     * after a flag run — CPython `_parse_flags` uses `str.isalpha()` for the same split.
+     * The parser peeks bytes, so this is ASCII-only; a non-ASCII lead byte is not a flag.
+     * \param[in] ch A character.
+     * \return `true` if \p ch is an ASCII letter.
+     */
+    static constexpr bool is_ascii_letter(char ch)
+    {
+      return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+    }
+
+    /*!
+     * \brief Consumes a run of inline flag letters (`imsxaU`).
+     * \return The OR of the consumed flags (`flags::none` if the run was empty).
+     */
+    constexpr flags consume_flag_letters()
+    {
+      flags found {flags::none};
+      while (!eof() && is_flag_letter(peek())) {
+        found = found | flag_for_letter(peek());
+        ++pos_;
+      }
+      return found;
+    }
+
+    /*!
+     * \brief Fails with "unknown flag" if the next byte is an ASCII letter that is not a flag.
+     *
+     * CPython `_parse_flags` makes this diagnosis, and it takes precedence over the caller's
+     * terminator check (misplaced global / missing flag after `-`). Call only after a flags
+     * group has started (a consumed flag letter, or `-`): the leading-global prefix must
+     * backtrack on `(?P` / `(?#` rather than treat `P` as an unknown flag.
+     */
+    constexpr void fail_if_unknown_flag()
+    {
+      if (!eof() && is_ascii_letter(peek())) {
+        fail("unknown flag");
+      }
+    }
+
+    /*!
      * \brief \p value with \p bit cleared. The intermediate cast matches the enum's
      *        `std::uint16_t` underlying type — a `std::uint8_t` here (the pre-widening
      *        vestige) would silently drop `flags::ungreedy` (512) from every scope.
@@ -1423,23 +1466,17 @@ namespace real::detail {
         pos_ = saved_pos;
         return false;
       }
-      flags found      {flags::none};
-      bool  any_letter {};
-      while (!eof() && is_flag_letter(peek())) {
-        found      = found | flag_for_letter(peek());
-        any_letter = true;
-        ++pos_;
+      const flags found      {consume_flag_letters()};
+      const bool  any_letter {found != flags::none};
+      if (any_letter) {
+        fail_if_unknown_flag();
       }
       flags removed     {flags::none};
       bool  any_removed {};
       if (accept('-')) {
-        bool saw_negative {false};
-        while (!eof() && is_flag_letter(peek())) {
-          removed      = removed | flag_for_letter(peek());
-          saw_negative = true;
-          ++pos_;
-        }
-        if (!saw_negative) {
+        removed = consume_flag_letters();
+        fail_if_unknown_flag();
+        if (removed == flags::none) {
           // '-' right after (? is only ever a flags construct (global or scoped) — see
           // parse_group's dispatch, which fails the same way for the scoped form. No other
           // (?...) construct starts with a dash, so this is a hard failure, not a backtrack.
@@ -1539,21 +1576,15 @@ namespace real::detail {
         }
         else if (!eof() && (is_flag_letter(peek()) || peek() == '-')) {
           // (?flags:...) / (?-flags:...) / (?flags-flags:...) — a scoped-flags group. Parse the
-          // added flags, an optional '-' and the removed flags.
-          flags added   {flags::none};
-          flags removed {flags::none};
-          while (!eof() && is_flag_letter(peek())) {
-            added = added | flag_for_letter(peek());
-            ++pos_;
-          }
+          // added flags, an optional '-' and the removed flags. An unknown letter is "unknown
+          // flag" (fail_if_unknown_flag), not the terminator diagnostics below.
+          const flags added {consume_flag_letters()};
+          fail_if_unknown_flag();
+          flags removed     {flags::none};
           if (accept('-')) {
-            bool saw_negative {false};
-            while (!eof() && is_flag_letter(peek())) {
-              removed      = removed | flag_for_letter(peek());
-              saw_negative = true;
-              ++pos_;
-            }
-            if (!saw_negative) {
+            removed = consume_flag_letters();
+            fail_if_unknown_flag();
+            if (removed == flags::none) {
               fail("missing flag after '-'");
             }
           }
@@ -1817,19 +1848,27 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Decodes a `\uHHHH` (4 hex) or `\UHHHHHHHH` (8 hex) code-point escape (str only).
+     * \brief Decodes a `\uHHHH` (4 hex) or `\UHHHHHHHH` (8 hex) code-point escape (str only),
+     *        or the braced form `\u{HHHHHH}` (1–6 hex) — the ECMAScript / regex-crate spelling,
+     *        a synonym of `\x{…}` via \ref parse_braced_hex_scalar. `\U{…}` is not this form
+     *        (`\U` stays 8 fixed digits).
      *
-     * Rejected with clear messages: byte mode (no code-point meaning), a surrogate
+     * Rejected with clear messages: byte mode (no code-point meaning; the constructor `bytes_`
+     * member, matching `\u`/`\U` — not the scoped-flag read `\x{…}` uses), a surrogate
      * (U+D800–U+DFFF), beyond U+10FFFF, or incomplete hex. The backslash and `u`/`U` are
-     * already consumed; this reads the hex digits.
+     * already consumed; this reads the hex digits, or `{` then the shared braced reader.
      *
-     * \param[in] capital True for `\U` (8 digits), false for `\u` (4 digits).
+     * \param[in] capital True for `\U` (8 digits), false for `\u` (4 digits or `\u{…}`).
      * \return The code point in `[0, 0x10FFFF]` (never a surrogate).
      */
     constexpr std::int32_t parse_unicode_codepoint(bool capital)
     {
       if (bytes_) {
         fail("\\u and \\U escapes are not allowed in bytes patterns");
+      }
+      if (!capital && !eof() && peek() == '{') {
+        ++pos_; // consume '{'
+        return parse_braced_hex_scalar();
       }
       const int    width {capital ? 8 : 4};
       std::int32_t value {};
@@ -1865,8 +1904,9 @@ namespace real::detail {
 
     /*!
      * \brief Decodes a braced hex scalar `HHHHHH}` (1–6 hex digits, then the closing `}`) — the code-
-     *        point reader shared by `\N{U+XXXX}` (after its own `U+` prefix) and `\x{XXXX}` (after its
-     *        own bytes-mode check, see \ref parse_braced_hex_escape). The opening `{` is already
+     *        point reader shared by `\N{U+XXXX}` (after its own `U+` prefix), `\x{XXXX}` (after its
+     *        own bytes-mode check, see \ref parse_braced_hex_escape), and `\u{XXXX}` (after
+     *        \ref parse_unicode_codepoint's bytes-mode check and opening `{`). The opening `{` is already
      *        consumed by the caller; this reads the hex digits, the closing `}`, and rejects a
      *        surrogate (U+D800–U+DFFF) or a value beyond U+10FFFF — the same code-point range `\u`/`\U`
      *        enforce (Python semantics).
