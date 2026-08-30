@@ -36,7 +36,7 @@
 /*! \brief Minor version (the calendar month). */
 #define REAL_VERSION_MINOR 8
 /*! \brief Patch version (the release count within the month). */
-#define REAL_VERSION_PATCH 19
+#define REAL_VERSION_PATCH 20
 // NOLINTEND(cppcoreguidelines-macro-to-enum,modernize-macro-to-enum,cppcoreguidelines-macro-usage)
 
 // Two-level stringize so the macro *values* (not their names) are pasted into the string.

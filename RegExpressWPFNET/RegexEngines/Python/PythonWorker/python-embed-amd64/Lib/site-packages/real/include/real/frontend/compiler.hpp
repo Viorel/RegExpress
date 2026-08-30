@@ -1560,7 +1560,7 @@ namespace real::detail {
         // parser rejects nested lookarounds first, so capture_free is never true here; a
         // nested lookaround reaching the compiler would break the linear-time guarantee,
         // so a throw beats a silent miscompile if that parser guard ever regresses.
-        throw regex_error("nested lookaround is not supported", 0);
+        throw regex_error("nested lookaround is not supported", 0, error_kind::unsupported);
       }
       const std::int32_t lmax {l_max_bytes(node.child)};
       if (lmax < 0) {
@@ -1570,10 +1570,10 @@ namespace real::detail {
         // (a UTF-8 `.` is up to 4 bytes) -- hence an example well under it rather than the maximum.
         throw regex_error("unbounded lookaround is not supported (bound the repetition, e.g. "
                           ".* -> .{0,32}; the sub-pattern must match at most 255 bytes)",
-                          0);
+                          0, error_kind::unsupported);
       }
       if (lmax > max_lookaround_length) {
-        throw regex_error("lookaround sub-pattern too long", 0);
+        throw regex_error("lookaround sub-pattern too long", 0, error_kind::unsupported);
       }
       const std::size_t sub_id {prog.lookarounds.size()};
       if (sub_id > 0xFFFF) {

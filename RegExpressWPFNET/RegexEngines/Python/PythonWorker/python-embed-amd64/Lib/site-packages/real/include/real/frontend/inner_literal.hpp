@@ -180,6 +180,52 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Whether a byte-run subtree can match the empty string — i.e. holds no byte at all.
+     *
+     * Only meaningful on a subtree \ref is_pure_byte_run has already accepted, where the only kinds
+     * reachable are `empty`, `byte`, `concat` and `group`; the others decline, which is the safe
+     * answer for a caller that uses this to refuse. `is_pure_byte_run` asks whether the shape is a
+     * run of literal bytes and answers yes for an EMPTY one — correct for its other callers, where an
+     * empty node sits beside bytes in a concat that is non-empty overall. An alternation BRANCH is
+     * the case where that is not enough: a zero-width branch makes the whole alternation nullable,
+     * and a nullable segment cannot stand in a reverse-prefix, which must consume what it spans.
+     * \param[in] tree The AST holding the node.
+     * \param[in] idx  Node index; a negative index is the empty subtree, which is empty.
+     * \return Whether the subtree matches the empty string.
+     */
+    [[nodiscard]] constexpr bool byte_run_is_empty(const ast&   tree,
+                                                   std::int32_t idx) noexcept
+    {
+      if (idx < 0) {
+        return true;
+      }
+      const ast_node& n {tree.nodes[static_cast<std::size_t>(idx)]};
+      switch (n.kind) {
+        case node_kind::byte:
+          return false;
+        case node_kind::empty:
+          return true;
+        case node_kind::concat:
+          for (std::int32_t c = n.child; c >= 0; c = tree.nodes[static_cast<std::size_t>(c)].next) {
+            if (!byte_run_is_empty(tree, c)) {
+              return false;
+            }
+          }
+          return true;
+        case node_kind::group:
+          return byte_run_is_empty(tree, n.child);
+        case node_kind::repeat:
+        case node_kind::klass:
+        case node_kind::any:
+        case node_kind::alternation:
+        case node_kind::lookaround:
+        case node_kind::anchor:
+          return true; // unreachable after is_pure_byte_run; declining is the safe answer
+      }
+      return true;
+    }
+
+    /*!
      * \brief Walk one node, appending guaranteed-present literal bytes to \ref walk_state::run.
      *
      * Every byte appended is present in *every* match; the confirming scan then verifies the surrounding
@@ -247,8 +293,15 @@ namespace real::detail {
             // Pure-literal alt (`info|error|warn`) — every branch is fixed bytes, so the alt is a
             // representable reverse-prefix segment. Flush (do not append any branch's bytes: none are
             // shared) and continue. A branch with klass/repeat/nested-alt declines the whole extract.
+            //
+            // "Fixed bytes" has to mean AT LEAST ONE byte. An empty branch — `(ab|)`, `(a|(?:))` —
+            // makes the alternation nullable, and a nullable segment cannot stand in a reverse-prefix:
+            // the prefix confirms at width 0 wherever the literal is found, so the scan accepts a
+            // candidate the pattern only reaches later and never considers the leftmost match. Measured
+            // on `(ab|)bb` over "abbbbbbbbbbbb": once the immutables are built, search answered [1,3]
+            // ("bb") where the general VM answers [0,4] ("abbb") — a silent wrong answer, not a slow one.
             for (std::int32_t b = n.child; b >= 0; b = tree.nodes[static_cast<std::size_t>(b)].next) {
-              if (!is_pure_byte_run(tree, b)) {
+              if (!is_pure_byte_run(tree, b) || byte_run_is_empty(tree, b)) {
                 return false;
               }
             }

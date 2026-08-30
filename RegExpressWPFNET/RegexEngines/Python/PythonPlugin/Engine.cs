@@ -142,7 +142,7 @@ namespace PythonPlugin
             //Engine engine_regex_v0 = new( ) { Options = new Options { Module = ModuleEnum.regex, POSIX = false, VERSION0 = true, VERSION1 = false } };
             Engine engine_regex_v1 = new( ) { Options = new Options { Module = ModuleEnum.regex, POSIX = false, VERSION0 = false, VERSION1 = true } };
             Engine engine_regex_v1_posix = new( ) { Options = new Options { Module = ModuleEnum.regex, POSIX = true, VERSION0 = false, VERSION1 = true } };
-            Engine engine_real_regex_ascii = new( ) { Options = new Options { Module = ModuleEnum.real_regex, VERSION0 = false, VERSION1 = false, ASCII = true } };
+            //Engine engine_real_regex_ascii = new( ) { Options = new Options { Module = ModuleEnum.real_regex, VERSION0 = false, VERSION1 = false, ASCII = true } };
             Engine engine_real_regex = new( ) { Options = new Options { Module = ModuleEnum.real_regex, VERSION0 = false, VERSION1 = false, ASCII = false } };
 
             return
@@ -151,7 +151,7 @@ namespace PythonPlugin
                     //new FeatureMatrixVariant("regex V0", engine_regex_v0),
                     new FeatureMatrixVariant("regex V1", engine_regex_v1),
                     new FeatureMatrixVariant("regex V1 (posix)", engine_regex_v1_posix),
-                    new FeatureMatrixVariant("real-regex (ASCII)", engine_real_regex_ascii),
+                    //new FeatureMatrixVariant("real-regex (ASCII)", engine_real_regex_ascii),
                     new FeatureMatrixVariant("real-regex", engine_real_regex),
                 ];
         }

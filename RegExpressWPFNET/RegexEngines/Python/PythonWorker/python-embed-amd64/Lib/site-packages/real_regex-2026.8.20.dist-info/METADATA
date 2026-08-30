@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: real-regex
-Version: 2026.8.19
+Version: 2026.8.20
 Summary: REAL — linear-time (ReDoS-safe) regex engine with an re-compatible API
 Author: René Chenard
 License-Expression: MIT
@@ -17,7 +17,7 @@ Classifier: Programming Language :: C++
 Classifier: Topic :: Text Processing
 Classifier: Topic :: Software Development :: Libraries
 Classifier: Operating System :: OS Independent
-Requires-Python: >=3.10
+Requires-Python: >=3.11
 Description-Content-Type: text/markdown
 License-File: LICENSE
 Dynamic: license-file
@@ -74,7 +74,7 @@ into delegating those to the standard library `re` per call with `real.compile(p
 module-wide with `real.fallback = True`) — it may accept them, at the cost of the linear-time guarantee for
 that pattern; `Pattern.engine` (`"real"` or `"re"`) always tells you which backend you got. A few semantics
 differ deliberately (e.g. a nullable loop's final empty capture). Full list:
-[COMPATIBILITY.md](https://github.com/RECHE23/real-regex/blob/main/docs/COMPATIBILITY.md).
+[Differences from Python re](https://github.com/RECHE23/real-regex/blob/main/docs/site/differences-from-re.md).
 
 The wheel also ships the header-only C++ library — `real.get_include()` returns its path, so the same engine
 is available to C++ via `#include <real/real.hpp>`. Source, benchmarks and the C++ API:

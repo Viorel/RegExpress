@@ -1399,6 +1399,52 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Fails a `(?…` extension, naming it when it is one REAL excludes by design.
+     *
+     * Callouts, pattern recursion and subroutine calls all reached the generic "unknown extension":
+     * classified `syntax`, so a binding could not tell a deliberate exclusion from a malformed
+     * pattern, and worded like a typo, so the reader learned nothing about why. They are refused for
+     * the same reason a backreference is — non-regular control flow is super-linear in the worst
+     * case — so they are named and tagged `unsupported`, which is what \ref error_kind already
+     * promised for this family. What is genuinely unrecognised keeps "unknown extension".
+     *
+     * Read at the character after `(?`, without consuming: the position the error reports stays the
+     * one every other diagnostic in this function reports.
+     * \throws real::regex_error always.
+     */
+    [[noreturn]] constexpr void fail_extension() const
+    {
+      if (!eof()) {
+        const char lead {peek()};
+        // (?C) / (?C1) / (?C"str") — PCRE callouts.
+        if (lead == 'C') {
+          fail_unsupported("callouts are not supported");
+        }
+        // (?R) whole-pattern, (?0) / (?3) absolute, (?+1) / (?-1) relative recursion.
+        if (lead == 'R' || is_ascii_digit(lead)
+            || ((lead == '+' || lead == '-') && pos_ + 1 < pattern_.size()
+                && is_ascii_digit(pattern_[pos_ + 1]))) {
+          fail_unsupported("pattern recursion is not supported");
+        }
+        // (?&name) — PCRE named subroutine call. (?P>name) is caught at the (?P branch.
+        if (lead == '&') {
+          fail_unsupported("subroutine calls are not supported");
+        }
+      }
+      fail("unknown extension");
+    }
+
+    /*!
+     * \brief Returns `true` if \p ch is an ASCII digit (`0`–`9`).
+     * \param[in] ch A character.
+     * \return `true` if \p ch is an ASCII digit.
+     */
+    static constexpr bool is_ascii_digit(char ch)
+    {
+      return ch >= '0' && ch <= '9';
+    }
+
+    /*!
      * \brief Consumes a run of inline flag letters (`imsxaU`).
      * \return The OR of the consumed flags (`flags::none` if the run was empty).
      */
@@ -1554,6 +1600,9 @@ namespace real::detail {
           else if (!eof() && peek() == '=') {
             fail_unsupported("named backreferences are not supported");
           }
+          else if (!eof() && peek() == '>') {
+            fail_unsupported("subroutine calls are not supported");
+          }
           else {
             fail("unknown extension");
           }
@@ -1572,9 +1621,15 @@ namespace real::detail {
           return parse_atomic_group(out, open_pos);
         }
         else if (!eof() && peek() == '(') {
-          fail("conditional groups are not supported");
+          fail_unsupported("conditional groups are not supported");
         }
-        else if (!eof() && (is_flag_letter(peek()) || peek() == '-')) {
+        // `-` opens a flag-removal group `(?-i:…)` — unless a digit follows, which makes it PCRE's
+        // relative recursion `(?-1)`. Without the exclusion that spelling is intercepted here and
+        // reported as "missing flag after '-'", naming neither the construct nor the reason.
+        else if (!eof()
+                 && (is_flag_letter(peek())
+                     || (peek() == '-'
+                         && (pos_ + 1 >= pattern_.size() || !is_ascii_digit(pattern_[pos_ + 1]))))) {
           // (?flags:...) / (?-flags:...) / (?flags-flags:...) — a scoped-flags group. Parse the
           // added flags, an optional '-' and the removed flags. An unknown letter is "unknown
           // flag" (fail_if_unknown_flag), not the terminator diagnostics below.
@@ -1601,7 +1656,7 @@ namespace real::detail {
           scoped_flags = true; // group stays non-capturing (-1)
         }
         else {
-          fail("unknown extension");
+          fail_extension();
         }
       }
       else {

@@ -10,4 +10,4 @@ strip = true
 
 [dependencies]
 json = "0.12.4"
-real-regex = { version = "2026.8.19", features = ["fallback"] }
+real-regex = { version = "2026.8.20", features = ["fallback"] }
