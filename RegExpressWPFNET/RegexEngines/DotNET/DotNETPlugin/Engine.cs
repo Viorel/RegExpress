@@ -334,7 +334,7 @@ namespace DotNETPlugin
                 NamedGroup_Apos = true,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
-                BalancingGroup = false,
+                BalancingGroup = true,
                 CapturingGroup = false,
                 DuplicateGroupName = true,
 
@@ -1100,7 +1100,7 @@ namespace DotNETPlugin
                 InsideSets_XModeComments = false,
 
                 Flags = true,
-                ScopedFlags = true,
+                ScopedFlags = false,
                 CircumflexFlags = false,
                 ScopedCircumflexFlags = false,
                 XFlag = true,
@@ -1224,7 +1224,7 @@ namespace DotNETPlugin
                 NamedGroup_Apos = true,
                 NamedGroup_LtGt = true,
                 NamedGroup_PLtGt = false,
-                BalancingGroup = true,
+                BalancingGroup = false,
                 CapturingGroup = false,
                 DuplicateGroupName = true,
 
