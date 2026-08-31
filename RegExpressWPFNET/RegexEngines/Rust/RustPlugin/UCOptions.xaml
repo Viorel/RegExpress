@@ -49,6 +49,7 @@
                     <ui:ComboBoxItemWithVersion Tag ="real_regex"   Text="real-regex"   Version="{Binding RealRegex,    Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="java_regex"   Text="java_regex"   Version="{Binding JavaRegex,    Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="regexr"       Text="regexr"       Version="{Binding Regexr,       Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="rexile"       Text="rexile"       Version="{Binding ReXile,       Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
             

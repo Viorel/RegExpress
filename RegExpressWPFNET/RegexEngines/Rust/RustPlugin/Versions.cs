@@ -18,5 +18,6 @@ namespace RustPlugin
         public static string RealRegex { get; } = "2026.8.20";
         public static string JavaRegex { get; } = "0.1.0";
         public static string Regexr { get; } = "0.5.0";
+        public static string ReXile { get; } = "0.6.2";
     }
 }
