@@ -19,6 +19,7 @@ namespace RustPlugin
         real_regex,
         java_regex,
         regexr,
+        rexile,
     }
 
     enum UnicodeModeEnum // ('resharp')
