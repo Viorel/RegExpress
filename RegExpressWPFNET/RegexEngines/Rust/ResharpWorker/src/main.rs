@@ -88,6 +88,9 @@ fn main() {
         opts.lookahead_context_max = lookahead_context_max.unwrap();
     }
 
+    // there is an undocummented public 'RegexBuilder'; the 'with_options' uses it
+    //let reb = resharp::RegexBuilder::new();
+
     let re = resharp::Regex::with_options(pattern, opts);
 
     if re.is_err()
