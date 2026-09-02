@@ -7,6 +7,8 @@
 @echo { "pattern" : ".", "Text" : "x\u00EEy" } | RexaWorker\RexaWorker.exe
 @echo coregex
 @echo { "pattern" : ".", "Text" : "x\u00EEy" } | CoregexWorker\CoregexWorker.exe
+@echo onigmo
+@echo { "pattern" : ".", "Text" : "x\u00EEy", "FindAll" : true } | OnigmoGoRegexpWorker\OnigmoGoRegexpWorker.exe
 @echo ---
 @echo PRETZEL (U+1F968), \uD83E\uDD68, utf-8: F0 9F A5 A8
 @echo regexp
@@ -17,3 +19,5 @@
 @echo { "pattern" : ".", "Text" : "x\uD83E\uDD68y" } | RexaWorker\RexaWorker.exe
 @echo coregex
 @echo { "pattern" : ".", "Text" : "x\uD83E\uDD68y" } | CoregexWorker\CoregexWorker.exe
+@echo onigmo
+@echo { "pattern" : ".", "Text" : "x\uD83E\uDD68y", "FindAll" : true } | OnigmoGoRegexpWorker\OnigmoGoRegexpWorker.exe

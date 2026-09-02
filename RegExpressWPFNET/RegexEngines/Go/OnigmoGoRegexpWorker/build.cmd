@@ -1,0 +1,1 @@
+go build -v -buildmode=exe -ldflags "-w -s" -trimpath OnigmoGoRegexpWorker.go

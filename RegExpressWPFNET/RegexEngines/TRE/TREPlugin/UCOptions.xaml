@@ -38,7 +38,7 @@
             </Label>
             <ui:CheckboxWithNote Prop="REG_NOTBOL" Note="“^” does not match the beginning"/>
             <ui:CheckboxWithNote Prop="REG_NOTEOL" Note="“$” does not match the end"/>
-            <ui:CheckboxWithNote Prop="MatchAll" Text="Find all" Note="find all matches" />
+            <ui:CheckboxWithNote Prop="MatchAll" Text="Find all" Note="find all occurrences" />
 
         </StackPanel>
     </Grid>

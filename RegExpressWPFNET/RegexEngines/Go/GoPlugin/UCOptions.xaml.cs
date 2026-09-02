@@ -89,10 +89,12 @@ namespace GoPlugin
                 bool is_regexp2 = Options.Package == PackageEnum.regexp2;
                 bool is_rexa = Options.Package == PackageEnum.rexa;
                 bool is_coregex = Options.Package == PackageEnum.coregex;
+                bool is_onigmo = Options.Package == PackageEnum.onigmo;
 
                 pnlRegexp2Flags.Display( is_regexp2 );
                 pnlRexaFlags.Display( is_rexa );
                 pnlCoregex.Display( is_coregex );
+                pnlOnigma.Display( is_onigmo );
 
                 cbxPosix.Display( is_regexp || is_coregex );
                 cbxLongest.Display( is_regexp || is_rexa || is_coregex );
