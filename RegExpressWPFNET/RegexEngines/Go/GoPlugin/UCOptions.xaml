@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:GoPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="525.347" d:DesignWidth="705.436" 
+             d:DesignHeight="652.547" d:DesignWidth="705.436" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -33,7 +33,7 @@
     </UserControl.Resources>
 
     <Grid>
-        <StackPanel VerticalAlignment="Top">
+        <StackPanel Orientation="Vertical" VerticalAlignment="Top" >
 
             <Grid Margin="0 0 0 4">
                 <Grid.ColumnDefinitions>
@@ -63,10 +63,11 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Package:" Target="{Binding ElementName=cbxPackage}"/>
                 <ComboBox x:Name="cbxPackage" Grid.Column="1" Grid.Row="0" MinWidth="77" SelectedValuePath="Tag" SelectedValue="{Binding Package, FallbackValue='regexp'}" SelectionChanged="cbxPackage_SelectionChanged">
-                    <ui:ComboBoxItemWithVersion Tag ="regexp"  Text="regexp"  Version="{Binding Regexp, Source={StaticResource versions}}" IsSelected="True"/>
-                    <ui:ComboBoxItemWithVersion Tag ="regexp2" Text="regexp2" Version="{Binding Regexp2, Source={StaticResource versions}}"/>
-                    <ui:ComboBoxItemWithVersion Tag ="rexa"    Text="rexa"    Version="{Binding Rexa, Source={StaticResource versions}}"/>
-                    <ui:ComboBoxItemWithVersion Tag ="coregex" Text="coregex" Version="{Binding Coregex, Source={StaticResource versions}}"/>
+                    <ui:ComboBoxItemWithVersion Tag ="regexp"   Text="regexp"   Version="{Binding Regexp,           Source={StaticResource versions}}" IsSelected="True"/>
+                    <ui:ComboBoxItemWithVersion Tag ="regexp2"  Text="regexp2"  Version="{Binding Regexp2,          Source={StaticResource versions}}"/>
+                    <ui:ComboBoxItemWithVersion Tag ="rexa"     Text="rexa"     Version="{Binding Rexa,             Source={StaticResource versions}}"/>
+                    <ui:ComboBoxItemWithVersion Tag ="coregex"  Text="coregex"  Version="{Binding Coregex,          Source={StaticResource versions}}"/>
+                    <ui:ComboBoxItemWithVersion Tag ="onigmo"   Text="onigmo"   Version="{Binding OnigmoGoRegexp,   Source={StaticResource versions}}"/>
                 </ComboBox>
 
             </Grid>
@@ -173,6 +174,11 @@
                     <TextBlock Grid.Column="2" Grid.Row="4" Text="– limits recursion during NFA compilation" Style="{StaticResource note}" />
                 </Grid>
 
+            </StackPanel>
+
+            <!-- onigma -->
+            <StackPanel x:Name="pnlOnigma" Orientation="Vertical">
+                <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
             </StackPanel>
 
             <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>

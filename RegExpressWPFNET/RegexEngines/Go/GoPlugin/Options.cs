@@ -14,6 +14,7 @@ namespace GoPlugin
         regexp2,
         rexa,
         coregex,
+        onigmo,
     }
 
     internal class Options
@@ -50,6 +51,8 @@ namespace GoPlugin
         public string? MinLiteralLen { get; set; }
         public string? MaxLiterals { get; set; }
         public string? MaxRecursionDepth { get; set; }
+
+        public bool FindAll { get; set; } = true;
 
         public Options Clone( )
         {

@@ -30,7 +30,7 @@
                 </ComboBox>
             </StackPanel>
 
-            <ui:CheckboxWithNote Prop="MatchAll" Text="Find all" Note="find all matches" />
+            <ui:CheckboxWithNote Prop="MatchAll" Text="Find all" Note="find all occurrences" />
         </StackPanel>
     </Grid>
 </UserControl>

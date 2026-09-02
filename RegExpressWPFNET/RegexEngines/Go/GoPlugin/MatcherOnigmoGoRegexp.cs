@@ -18,26 +18,24 @@ using RegExpressLibrary.Matches.Simple;
 
 namespace GoPlugin
 {
-    class MatcherRegexp
+    class MatcherOnigmoGoRegexp
     {
         public class RootObject
         {
-            public string[]? Names { get; set; }
-            public int[][]? Matches { get; set; }
+            public required string[] Names { get; set; }
+            public required int[][] Matches { get; set; }
         }
 
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
-            Debug.Assert( options.Package == PackageEnum.regexp );
+            Debug.Assert( options.Package == PackageEnum.onigmo );
 
             var data = new
             {
                 pattern,
                 text,
 
-                options.posix,
-                options.longest,
-                options.literal,
+                options.FindAll,
             };
 
             string json = JsonSerializer.Serialize( data );
@@ -138,7 +136,7 @@ namespace GoPlugin
         {
             string assembly_location = Assembly.GetExecutingAssembly( ).Location;
             string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-            string worker_exe = Path.Combine( assembly_dir, @"RegexpWorker.bin" );
+            string worker_exe = Path.Combine( assembly_dir, @"OnigmoGoRegexpWorker.bin" );
 
             return worker_exe;
         }

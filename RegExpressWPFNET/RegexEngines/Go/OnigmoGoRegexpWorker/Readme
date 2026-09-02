@@ -1,0 +1,26 @@
+HOW IT'S MADE
+---------------
+
+- Install Go, or download and unarchive.
+
+- If Go was updated, adjust the version in "go.mod".
+
+- To add modules:
+
+    > go get github.com/go-regexp/engine@v0.1.3
+
+    (Adjust the versions, or remove "@..." to get the latest versions)
+
+- To build:
+
+    > build.cmd
+
+  (If required, set the path to 'go.exe', or set PATH variable and restart console)
+
+- To test, for example:
+
+    > test1.cmd
+
+- Commit the changes (including the created "OnigmoGoRegexpWorker.exe").
+
+- Build the main Visual Studio solution.

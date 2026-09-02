@@ -272,6 +272,7 @@ xcopy /D /R /Y "%BasePath%\RegexpWorker\RegexpWorker.exe" "%EnginesTargetPath%\G
 xcopy /D /R /Y "%BasePath%\Regexp2Worker\Regexp2Worker.exe" "%EnginesTargetPath%\Go\*.bin"
 xcopy /D /R /Y "%BasePath%\RexaWorker\RexaWorker.exe" "%EnginesTargetPath%\Go\*.bin"
 xcopy /D /R /Y "%BasePath%\CoregexWorker\CoregexWorker.exe" "%EnginesTargetPath%\Go\*.bin"
+xcopy /D /R /Y "%BasePath%\OnigmoGoRegexpWorker\OnigmoGoRegexpWorker.exe" "%EnginesTargetPath%\Go\*.bin"
 
 
 rem -- Dart --

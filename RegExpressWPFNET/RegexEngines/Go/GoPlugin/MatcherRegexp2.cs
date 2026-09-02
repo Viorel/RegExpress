@@ -117,7 +117,7 @@ namespace GoPlugin
                             string? name = root_object.Names?[group_index]; // (for unnamed groups, 'regexp2' returns numbers)
                             if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
 
-                            bool success = m[i] >= 0;
+                            bool success = m[i] >= 0 && m[i + 1] >= 0;
 
                             if( !success )
                             {
