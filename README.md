@@ -78,9 +78,9 @@ The following engines are included:
   * [_mvzr_](https://github.com/mnemnion/mvzr) 0.3.12,
   * _PZRE_ 0.2.3,
   * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.6.2.
-* **Go** 1.26.5:
+* **Go** 1.27.0:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.5,
-  * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.6.0,
+  * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.7.1,
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
   * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.23.
 * **Dart** 3.12.2:

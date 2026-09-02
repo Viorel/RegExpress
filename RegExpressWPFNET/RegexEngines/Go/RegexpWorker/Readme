@@ -3,6 +3,8 @@ HOW IT'S MADE
 
 - Install Go, or download and unarchive.
 
+- If Go was updated, adjust the version in "go.mod".
+
 - To build:
 
     > build.cmd

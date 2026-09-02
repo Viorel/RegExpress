@@ -3,11 +3,17 @@ HOW IT'S MADE
 
 - Install Go, or download and unarchive.
 
+- If Go was updated, adjust the version in "go.mod".
+
 - To add modules:
 
     > go get github.com/coregx/coregex@v0.12.21
 
     (Adjust the versions, or remove "@..." to get the latest versions)
+
+- To remove unneeded lines from "go.sum"
+
+    > go mod tidy
     
 - To build:
 
