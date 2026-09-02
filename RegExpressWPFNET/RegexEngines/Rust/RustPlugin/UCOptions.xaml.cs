@@ -109,6 +109,7 @@ namespace RustPlugin
                 bool is_real = crate == CrateEnum.real_regex;
                 bool is_java_regex = crate == CrateEnum.java_regex;
                 bool is_regexr = crate == CrateEnum.regexr;
+                bool is_rexile = crate == CrateEnum.rexile;
 
                 chbx_use_builder.Display( is_regex_or_regex_lite || is_fancy || is_real || is_regexr );
                 pnlRegexBuilderOptions.Display( is_regex_or_regex_lite || is_fancy || is_real );
@@ -194,6 +195,7 @@ namespace RustPlugin
                 CrateEnum.real_regex => "real",
                 CrateEnum.java_regex => "java_regex",
                 CrateEnum.regexr => "regexr",
+                CrateEnum.rexile => "rexile",
                 _ => "unknown"
             };
         }

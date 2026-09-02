@@ -50,8 +50,9 @@ The following engines are included:
   * [_resharp_](https://crates.io/crates/resharp) 0.6.20,
   * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
   * [_real-regex_](https://crates.io/crates/real-regex) 2026.8.20,
-  * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0.
-  * [_regexr_](https://crates.io/crates/regexr) 0.5.0.
+  * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0,
+  * [_regexr_](https://crates.io/crates/regexr) 0.5.0,
+  * [_rexile_](https://crates.io/crates/rexile) 0.6.2.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2.1:
   * _java.util.regex_,
   * [_RE2/J_](https://github.com/google/re2j) 1.8,
