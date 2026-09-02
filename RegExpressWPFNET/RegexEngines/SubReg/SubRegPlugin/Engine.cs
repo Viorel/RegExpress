@@ -57,7 +57,7 @@ namespace SubRegPlugin
 
         public string Subtitle => $"{Name}";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupSuccessFlag | RegexEngineCapabilityEnum.NoCaptures;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupSuccessFlag;
 
         public string? NoteForCaptures => null;
 

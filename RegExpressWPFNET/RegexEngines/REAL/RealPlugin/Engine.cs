@@ -57,7 +57,7 @@ namespace RealPlugin
 
         public string Subtitle => $"{Name}";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.None;
 
         public string? NoteForCaptures => null;
 

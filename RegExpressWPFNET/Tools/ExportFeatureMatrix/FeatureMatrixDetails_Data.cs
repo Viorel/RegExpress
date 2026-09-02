@@ -618,7 +618,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a.+&.+b", "axb", null, "axb" ),
                 new FeatureMatrixDetails( @"~(…)", @"Complement (pattern must not match)", (e, fm) => fm.Ext_Operator_Complement)
                     .Test( @"ab~(x)c", "abc", null, "abc" ),
-                new FeatureMatrixDetails( @"", @"Get all captures matched by group", (e, fm) => ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups) && ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoCaptures))
+                new FeatureMatrixDetails( @"", @"Get all captures matched by group", (e, fm) => ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups) && e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.HasCaptures))
                     .Test( (e, fm) =>
                     {
                         e.SetCollectCaptures( true );

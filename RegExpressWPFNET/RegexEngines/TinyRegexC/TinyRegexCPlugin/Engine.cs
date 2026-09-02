@@ -57,7 +57,7 @@ namespace TinyRegexCPlugin
 
         public string Subtitle => $"{Name}";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroups;
 
         public string? NoteForCaptures => null;
 

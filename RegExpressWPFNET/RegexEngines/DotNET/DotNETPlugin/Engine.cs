@@ -69,14 +69,15 @@ namespace DotNETPlugin
             _ => "unknown"
         }}";
 
-        public RegexEngineCapabilityEnum Capabilities => Options.Class switch
-        {
-            ClassEnum.RegexDotNet or ClassEnum.RegexDotNetFramework => RegexEngineCapabilityEnum.ScrollErrorsToEnd,
-            ClassEnum.ReSharp => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures,
-            ClassEnum.Scout => RegexEngineCapabilityEnum.NoCaptures,
-            ClassEnum.LokadUtf8Regex => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures,
-            _ => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures,
-        };
+        public RegexEngineCapabilityEnum Capabilities =>
+            Options.Class switch
+            {
+                ClassEnum.RegexDotNet or ClassEnum.RegexDotNetFramework => RegexEngineCapabilityEnum.ScrollErrorsToEnd | RegexEngineCapabilityEnum.HasCaptures,
+                ClassEnum.ReSharp => RegexEngineCapabilityEnum.NoGroups,
+                ClassEnum.Scout => RegexEngineCapabilityEnum.None,
+                ClassEnum.LokadUtf8Regex => RegexEngineCapabilityEnum.NoGroups,
+                _ => RegexEngineCapabilityEnum.NoGroups,
+            };
 
         public string? NoteForCaptures => null;
 

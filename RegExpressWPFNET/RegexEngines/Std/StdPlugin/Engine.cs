@@ -60,7 +60,7 @@ namespace StdPlugin
 
         public string Subtitle => $"{Options.Compiler switch { CompilerEnum.MSVC => "std::wregex", CompilerEnum.GCC => "std::wregex (GCC)", CompilerEnum.SRELL => "srell::wregex", CompilerEnum.SRELL_LINEAR => "srel3::wregex", _ => " (Unknown)" }}";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.None;
 
         public string? NoteForCaptures => null;
 

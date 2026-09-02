@@ -70,10 +70,10 @@ namespace ZigPlugin
         public RegexEngineCapabilityEnum Capabilities =>
             Options.Library switch
             {
-                RegexLibraryEnum.ZigRegex => RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoCaptures,
-                RegexLibraryEnum.Mvzr => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures,
-                RegexLibraryEnum.Pzre => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures,
-                RegexLibraryEnum.EziGex => RegexEngineCapabilityEnum.NoCaptures,
+                RegexLibraryEnum.ZigRegex => RegexEngineCapabilityEnum.NoGroupIndex,
+                RegexLibraryEnum.Mvzr => RegexEngineCapabilityEnum.NoGroups,
+                RegexLibraryEnum.Pzre => RegexEngineCapabilityEnum.NoGroups,
+                RegexLibraryEnum.EziGex => RegexEngineCapabilityEnum.None,
                 _ => throw new NotImplementedException( )
             };
 

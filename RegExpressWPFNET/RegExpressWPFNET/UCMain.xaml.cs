@@ -823,9 +823,7 @@ namespace RegExpressWPFNET
 
         internal void ForgetMatches( )
         {
-            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ),
-                potentialOverlaps: false,
-                noGroupDetails: false );
+            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), noGroupDetails: false );
 
             ucMatches.SetMatches( "", RegexMatches.Empty, showFirstOnly: false, showSucceededGroupsOnly: false, showCaptures: false, noGroupIndex: false, noGroupSuccessFlag: false );
         }
@@ -858,7 +856,6 @@ namespace RegExpressWPFNET
                     ( ) =>
                     {
                         ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ),
-                            potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ),
                             noGroupDetails: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag ) );
                         ucMatches.ShowNoPattern( );
                         LblMatchesText = "Matches";
@@ -897,7 +894,6 @@ namespace RegExpressWPFNET
                         ( ) =>
                         {
                             ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ),
-                                potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ),
                                 noGroupDetails: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag ) );
                             LblMatchesText = "Error";
                             ucMatches.ShowError( exc, scrollToEnd: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.ScrollErrorsToEnd ), showRetry: false );
@@ -952,10 +948,9 @@ namespace RegExpressWPFNET
                                     ( ) =>
                                     {
                                         ucText.SetMatches( matches_to_show, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ),
-                                            potentialOverlaps: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ),
                                             noGroupDetails: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag ) );
                                         ucMatches.SetMatches( text, matches_to_show, first_only, showSucceededGroupsOnly: cbShowSucceededGroupsOnly.IsChecked == true,
-                                            showCaptures: !engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups ) && !engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoCaptures ) && cbShowCaptures.IsChecked == true,
+                                            showCaptures: !engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups ) && engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.HasCaptures ) && cbShowCaptures.IsChecked == true,
                                             noGroupIndex: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupIndex ), noGroupSuccessFlag: engine.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupSuccessFlag ) );
 
                                         LblMatchesText = count == 0 ? "Matches" : count == 1 ? "1 match" : $"{count:#,##0} matches";
@@ -978,7 +973,7 @@ namespace RegExpressWPFNET
                             ucMatches.ShowIndeterminateProgress( true );
                             ucMatches.ShowInfo( "The engine is busy, please wait…", showCancelButton: true );
                             var engine = CurrentRegexEngine;
-                            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), potentialOverlaps: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.OverlappingMatches ), noGroupDetails: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups ) );
+                            ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), noGroupDetails: engine!.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups ) );
                         } );
             }
             catch( ThreadInterruptedException )
@@ -1260,7 +1255,7 @@ namespace RegExpressWPFNET
         void UpdateShowCapturesCheckbox( IRegexEngine engine )
         {
             RegexEngineCapabilityEnum caps = engine.Capabilities;
-            bool captures_supported = !caps.HasFlag( RegexEngineCapabilityEnum.NoCaptures );
+            bool captures_supported = !caps.HasFlag( RegexEngineCapabilityEnum.NoGroups ) && caps.HasFlag( RegexEngineCapabilityEnum.HasCaptures );
 
             // showing unchecked checkbox when disabled
             cbShowCaptures.IsEnabled = captures_supported; //?

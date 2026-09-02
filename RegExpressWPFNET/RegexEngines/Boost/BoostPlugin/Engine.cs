@@ -65,8 +65,8 @@ namespace BoostPlugin
                 GrammarEnum.JavaScript or
                 GrammarEnum.JScript or
                 GrammarEnum.perl or
-                GrammarEnum.emacs => RegexEngineCapabilityEnum.None,
-                _ => RegexEngineCapabilityEnum.NoCaptures
+                GrammarEnum.emacs => RegexEngineCapabilityEnum.HasCaptures,
+                _ => RegexEngineCapabilityEnum.None
             };
 
         public string? NoteForCaptures => "requires ‘match_extra’";

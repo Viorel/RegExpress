@@ -66,8 +66,8 @@ namespace OnigurumaPlugin
                 SyntaxEnum.ONIG_SYNTAX_PERL or
                 SyntaxEnum.ONIG_SYNTAX_PERL_NG or
                 SyntaxEnum.ONIG_SYNTAX_RUBY or
-                SyntaxEnum.ONIG_SYNTAX_PYTHON => RegexEngineCapabilityEnum.None,
-                _ => RegexEngineCapabilityEnum.NoCaptures
+                SyntaxEnum.ONIG_SYNTAX_PYTHON => RegexEngineCapabilityEnum.HasCaptures,
+                _ => RegexEngineCapabilityEnum.None
             };
 
         public string? NoteForCaptures => "requires ‘ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY’";

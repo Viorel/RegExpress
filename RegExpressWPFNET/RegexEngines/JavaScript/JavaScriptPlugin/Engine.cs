@@ -84,7 +84,18 @@ namespace JavaScriptPlugin
             }
         }
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoCaptures | ( Options.Runtime != RuntimeEnum.RegexPlus ? RegexEngineCapabilityEnum.ScrollErrorsToEnd : 0 );
+        public RegexEngineCapabilityEnum Capabilities =>
+            Options.Runtime switch
+            {
+                RuntimeEnum.WebView2 => RegexEngineCapabilityEnum.None,
+                RuntimeEnum.NodeJs => RegexEngineCapabilityEnum.None,
+                RuntimeEnum.QuickJs => RegexEngineCapabilityEnum.None,
+                RuntimeEnum.SpiderMonkey => RegexEngineCapabilityEnum.None,
+                RuntimeEnum.Bun => RegexEngineCapabilityEnum.None,
+                RuntimeEnum.RE2JS => RegexEngineCapabilityEnum.None,
+                RuntimeEnum.RegexPlus => RegexEngineCapabilityEnum.ScrollErrorsToEnd,
+                _ => throw new NotImplementedException( )
+            };
 
         public string? NoteForCaptures => null;
 

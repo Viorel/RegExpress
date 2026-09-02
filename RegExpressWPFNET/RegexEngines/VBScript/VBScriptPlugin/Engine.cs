@@ -58,7 +58,7 @@ namespace VBScriptPlugin
 
         public string Subtitle => $"VBScript";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag | RegexEngineCapabilityEnum.NoCaptures;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag;
 
         public string? NoteForCaptures => null;
 

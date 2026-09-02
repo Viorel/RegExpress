@@ -59,7 +59,7 @@ namespace FortranPlugin
 
         public string Subtitle => $"Fortran ({mOptionsControl.Value.GetSelectedModuleTitle( )})";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoCaptures | RegexEngineCapabilityEnum.OverlappingMatches;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroups;
 
         public string? NoteForCaptures => null;
 

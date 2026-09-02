@@ -45,7 +45,6 @@ namespace RegExpressWPFNET
         RegexMatches? LastMatches;
         bool LastShowCaptures;
         string? LastEol;
-        bool LastPotentialOverlaps;
         UnderlineInfo? LastExternalUnderlineInfo;
         bool LastExternalUnderlineSetSelection;
         bool LastNoGroupDetails;
@@ -116,7 +115,7 @@ namespace RegExpressWPFNET
         }
 
 
-        public void SetMatches( RegexMatches matches, bool showCaptures, string eol, bool potentialOverlaps, bool noGroupDetails )
+        public void SetMatches( RegexMatches matches, bool showCaptures, string eol, bool noGroupDetails )
         {
             if( matches == null ) throw new ArgumentNullException( nameof( matches ) );
 
@@ -124,7 +123,6 @@ namespace RegExpressWPFNET
             RegexMatches? last_matches;
             bool last_show_captures;
             string? last_eol;
-            bool last_potential_overlaps;
             bool last_no_group_details;
 
             lock( this )
@@ -133,7 +131,6 @@ namespace RegExpressWPFNET
                 last_matches = LastMatches;
                 last_show_captures = LastShowCaptures;
                 last_eol = LastEol;
-                last_potential_overlaps = LastPotentialOverlaps;
                 last_no_group_details = LastNoGroupDetails;
             }
 
@@ -147,7 +144,6 @@ namespace RegExpressWPFNET
                 if( string.Equals( text, last_text ) &&
                     showCaptures == last_show_captures &&
                     eol == last_eol &&
-                    potentialOverlaps == last_potential_overlaps &&
                     noGroupDetails == last_no_group_details &&
                     new_groups.SequenceEqual( old_groups ) )
                 {
@@ -173,7 +169,6 @@ namespace RegExpressWPFNET
                 LastMatches = matches;
                 LastShowCaptures = showCaptures;
                 LastEol = eol;
-                LastPotentialOverlaps = potentialOverlaps;
                 LastExternalUnderlineInfo = null;
                 LastNoGroupDetails = noGroupDetails;
             }
@@ -490,14 +485,12 @@ namespace RegExpressWPFNET
             RegexMatches? matches;
             string? eol;
             bool show_captures;
-            bool potential_overlaps;
 
             lock( this )
             {
                 matches = LastMatches;
                 eol = LastEol;
                 show_captures = LastShowCaptures;
-                potential_overlaps = LastPotentialOverlaps;
             }
 
             TextData? td = null;

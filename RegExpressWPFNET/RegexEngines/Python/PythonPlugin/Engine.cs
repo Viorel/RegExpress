@@ -62,7 +62,12 @@ namespace PythonPlugin
 
         public string Subtitle => $"{Name} ({mOptionsControl.Value.GetSelectedModuleTitle( )})";
 
-        public RegexEngineCapabilityEnum Capabilities => ( mOptions.Module != ModuleEnum.regex ? RegexEngineCapabilityEnum.NoCaptures : RegexEngineCapabilityEnum.None ) | RegexEngineCapabilityEnum.OverlappingMatches;
+        public RegexEngineCapabilityEnum Capabilities =>
+            Options.Module switch
+            {
+                ModuleEnum.regex => RegexEngineCapabilityEnum.HasCaptures | RegexEngineCapabilityEnum.OverlappingMatches,
+                _ => RegexEngineCapabilityEnum.None
+            };
 
         public string? NoteForCaptures => null;
 
