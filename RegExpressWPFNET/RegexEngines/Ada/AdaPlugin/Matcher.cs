@@ -95,7 +95,7 @@ namespace AdaPlugin
                         }
 
                         // to 0... and exclusive end; 
-                        if( native_end < native_start  ) // 'end < start' in case of empty matches
+                        if( native_end < native_start ) // 'end < start' in case of empty matches
                         {
                             --native_start;
                             native_end = native_start;
@@ -137,9 +137,16 @@ namespace AdaPlugin
                         else
                         {
                             // to 0... and exclusive end
+
                             --native_start;
-                            --native_end;
-                            if( native_end < native_start ) native_end = native_start + 1; else ++native_end; // 'end < start' in case of empty matches
+
+                            if( native_end == 0 ) // empty match
+                            {
+                                native_end = native_start;
+                            }
+
+                            Debug.Assert( native_end >= native_start );
+
                             int native_length = native_end - native_start;
 
                             (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
