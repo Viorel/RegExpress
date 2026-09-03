@@ -77,7 +77,13 @@ namespace RustPlugin
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( AdjustErrorMessage( ph.Error, pattern ) );
 
+#if DEBUG
+            using StreamReader sr = new( ph.OutputStream );
+            string output = sr.ReadToEnd( );
+            MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( output );
+#else
             MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( ph.OutputStream );
+#endif
 
             if( response == null || response.matches == null || response.names == null ) throw new Exception( "Null response" );
 
