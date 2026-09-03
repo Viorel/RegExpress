@@ -1,1 +1,3 @@
 echo { "pattern" : "(.)(.)?(.)", "text" : "ac", "options" : { "roNotEmpty" : true } } | Win64\Release\CppBuilderWorker.exe 1>o 2>e & type o & type e
+echo { "pattern" : "(a?)(b)?(c)d", "text" : "cd", "options" : { "roNotEmpty" : false } } | Win64\Release\CppBuilderWorker.exe 1>o 2>e & type o & type e
+echo { "pattern" : "(a?)(b)?(c)d", "text" : "cd", "options" : { "roNotEmpty" : true } } | Win64\Release\CppBuilderWorker.exe 1>o 2>e & type o & type e

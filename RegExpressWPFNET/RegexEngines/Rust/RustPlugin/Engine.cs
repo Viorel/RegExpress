@@ -93,7 +93,7 @@ namespace RustPlugin
                 CrateEnum.fancy_regex => RegexEngineCapabilityEnum.None,
                 CrateEnum.regress => RegexEngineCapabilityEnum.None,
                 CrateEnum.resharp => RegexEngineCapabilityEnum.NoGroups,
-                CrateEnum.anre => RegexEngineCapabilityEnum.None,
+                CrateEnum.anre => RegexEngineCapabilityEnum.NoGroupSuccessFlag,
                 CrateEnum.real_regex => RegexEngineCapabilityEnum.None,
                 CrateEnum.java_regex => RegexEngineCapabilityEnum.None,
                 CrateEnum.regexr => RegexEngineCapabilityEnum.None,

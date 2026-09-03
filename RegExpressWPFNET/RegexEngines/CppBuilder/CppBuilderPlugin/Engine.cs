@@ -57,7 +57,7 @@ namespace CppBuilderPlugin
 
         public string Subtitle => "TRegEx";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.None;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupSuccessFlag;
 
         public string? NoteForCaptures => null;
 

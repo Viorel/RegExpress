@@ -95,15 +95,25 @@ namespace RustPlugin
 
                     int native_start = g[0];
                     int native_end = g[1];
-                    int native_length = native_end - native_start;
 
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    Debug.Assert( match != null );
-
+                    bool success = native_start >= 0 && native_end >= 0;
                     string name = name = group_index.ToString( CultureInfo.InvariantCulture );
 
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    if( !success )
+                    {
+                        match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        int native_length = native_end - native_start;
+                        Debug.Assert( native_length >= 0 );
+
+                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                        Debug.Assert( match != null );
+
+                        match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    }
                 }
 
                 Debug.Assert( match != null );

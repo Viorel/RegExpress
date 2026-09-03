@@ -523,16 +523,16 @@ namespace RegExpressWPFNET
                 var ordered_groups =
                                     match.Groups
                                         .Skip( 1 ) // skip main group (full match)
-                                        .Where( g => g.Success || !show_succeeded_groups_only )
+                                        .Where( g => !show_succeeded_groups_only || g.Success  )
                                         //OrderBy( g => g.Success ? g.Index : match.Index )
                                         .ToList( );
 
                 if( cnc.IsCancellationRequested ) break;
 
 
-                int min_text_index = ordered_groups.Select( g => g.Success ? g.CharIndex : match.CharIndex ).Append( match.CharIndex ).Min( );
-                int max_text_index = ordered_groups.Select( g => g.Success ? g.CharIndex + g.CharLength : match.CharIndex + match.CharLength ).Append( match.CharIndex + match.CharLength ).Max( );
-                if( show_captures )
+                int min_text_index = ordered_groups.Select( g => g.Success && !no_group_success_flag ? g.CharIndex : match.CharIndex ).Append( match.CharIndex ).Min( );
+                int max_text_index = ordered_groups.Select( g => g.Success && !no_group_success_flag ? g.CharIndex + g.CharLength : match.CharIndex + match.CharLength ).Append( match.CharIndex + match.CharLength ).Max( );
+                if( show_captures && !no_group_success_flag )
                 {
                     min_text_index = ordered_groups.SelectMany( g => g.Captures ).Select( c => c.CharIndex ).Append( min_text_index ).Min( );
                     max_text_index = ordered_groups.SelectMany( g => g.Captures ).Select( c => c.CharIndex + c.CharLength ).Append( max_text_index ).Max( );
@@ -729,8 +729,16 @@ namespace RegExpressWPFNET
 
                         if( !group.Success )
                         {
-                            value_inline = new Run( "failed", span.ContentEnd );
-                            value_inline.Style( GroupFailedStyleInfo );
+                            if( no_group_success_flag )
+                            {
+                                value_inline = new Run( "empty or failed", span.ContentEnd );
+                                value_inline.Style( LocationStyleInfo );
+                            }
+                            else
+                            {
+                                value_inline = new Run( "failed", span.ContentEnd );
+                                value_inline.Style( GroupFailedStyleInfo );
+                            }
                         }
                         else if( group.CharLength == 0 )
                         {

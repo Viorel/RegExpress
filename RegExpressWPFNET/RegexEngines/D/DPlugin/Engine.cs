@@ -57,7 +57,7 @@ namespace DPlugin
 
         public string Subtitle => $"{Name} (std.regex)";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.None;
+        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.NoGroupSuccessFlag;
 
         public string? NoteForCaptures => null;
 
