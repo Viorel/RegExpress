@@ -97,7 +97,7 @@ namespace RustPlugin
                 CrateEnum.real_regex => RegexEngineCapabilityEnum.None,
                 CrateEnum.java_regex => RegexEngineCapabilityEnum.None,
                 CrateEnum.regexr => RegexEngineCapabilityEnum.None,
-                CrateEnum.rexile => RegexEngineCapabilityEnum.NoGroupSuccessFlag,
+                CrateEnum.rexile => RegexEngineCapabilityEnum.None,
                 _ => throw new NotImplementedException( ),
             };
 
