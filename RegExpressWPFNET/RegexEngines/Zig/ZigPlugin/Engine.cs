@@ -70,11 +70,11 @@ namespace ZigPlugin
         public RegexEngineCapabilityEnum Capabilities =>
             Options.Library switch
             {
-                RegexLibraryEnum.ZigRegex => RegexEngineCapabilityEnum.NoGroupIndex,
-                RegexLibraryEnum.Mvzr => RegexEngineCapabilityEnum.NoGroups,
-                RegexLibraryEnum.Pzre => RegexEngineCapabilityEnum.NoGroups,
-                RegexLibraryEnum.EziGex => RegexEngineCapabilityEnum.None,
-                _ => throw new NotImplementedException( )
+                RegexLibraryEnum.ZigRegex => MatcherZigRegex.GetCapabilities( Options ),
+                RegexLibraryEnum.Mvzr => MatcherMvzr.GetCapabilities( Options ),
+                RegexLibraryEnum.Pzre => MatcherPzre.GetCapabilities( Options ),
+                RegexLibraryEnum.EziGex => MatcherEziGex.GetCapabilities( Options ),
+                _ => throw new NotImplementedException( ),
             };
 
         public string? NoteForCaptures => null;

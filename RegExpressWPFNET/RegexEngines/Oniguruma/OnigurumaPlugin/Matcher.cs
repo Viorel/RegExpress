@@ -23,6 +23,26 @@ namespace OnigurumaPlugin
 {
     static class Matcher
     {
+        internal static RegexEngineCapabilityEnum GetCapabilities( Options options )
+        {
+            return options.Syntax switch
+            {
+                SyntaxEnum.ONIG_SYNTAX_ONIGURUMA => RegexEngineCapabilityEnum.HasCaptures,
+                SyntaxEnum.ONIG_SYNTAX_ASIS => RegexEngineCapabilityEnum.None,
+                SyntaxEnum.ONIG_SYNTAX_POSIX_BASIC => RegexEngineCapabilityEnum.None,
+                SyntaxEnum.ONIG_SYNTAX_POSIX_EXTENDED => RegexEngineCapabilityEnum.None,
+                SyntaxEnum.ONIG_SYNTAX_EMACS => RegexEngineCapabilityEnum.None,
+                SyntaxEnum.ONIG_SYNTAX_GREP => RegexEngineCapabilityEnum.None,
+                SyntaxEnum.ONIG_SYNTAX_GNU_REGEX => RegexEngineCapabilityEnum.None,
+                SyntaxEnum.ONIG_SYNTAX_JAVA => RegexEngineCapabilityEnum.HasCaptures,
+                SyntaxEnum.ONIG_SYNTAX_PERL => RegexEngineCapabilityEnum.HasCaptures,
+                SyntaxEnum.ONIG_SYNTAX_PERL_NG => RegexEngineCapabilityEnum.HasCaptures,
+                SyntaxEnum.ONIG_SYNTAX_RUBY => RegexEngineCapabilityEnum.HasCaptures,
+                SyntaxEnum.ONIG_SYNTAX_PYTHON => RegexEngineCapabilityEnum.HasCaptures,
+                _ => throw new NotImplementedException( ),
+            };
+        }
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
@@ -200,6 +220,5 @@ namespace OnigurumaPlugin
 
             return worker_exe;
         }
-
     }
 }

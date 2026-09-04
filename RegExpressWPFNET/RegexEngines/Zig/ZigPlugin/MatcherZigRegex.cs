@@ -69,7 +69,6 @@ Example of result:
 
     */
 
-
     class RelaxedJsonConverter : System.Text.Json.Serialization.JsonConverter<string>
     {
         public class RootObject
@@ -139,6 +138,11 @@ Example of result:
 
     static class MatcherZigRegex
     {
+        internal static RegexEngineCapabilityEnum GetCapabilities( Options options )
+        {
+            return RegexEngineCapabilityEnum.None;
+        }
+
         class RootObject
         {
             public string[]? names { get; set; }

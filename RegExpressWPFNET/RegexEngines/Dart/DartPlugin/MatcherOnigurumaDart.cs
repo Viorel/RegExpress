@@ -19,6 +19,11 @@ namespace DartPlugin
 {
     class MatcherOnigurumaDart
     {
+        internal static RegexEngineCapabilityEnum GetCapabilities( Options options )
+        {
+            return RegexEngineCapabilityEnum.None;
+        }
+
         public class RootObject
         {
             public Match[]? Matches { get; set; }

@@ -57,7 +57,7 @@ namespace TREPlugin
 
         public string Subtitle => $"{Name}";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.None;
+        public RegexEngineCapabilityEnum Capabilities => Matcher.GetCapabilities( Options );
 
         public string? NoteForCaptures => null;
 
@@ -142,8 +142,8 @@ namespace TREPlugin
 
         public void SetCollectCaptures( bool yes )
         {
-            Options.REG_NOSUB = !yes;
-            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+            //Options.REG_NOSUB = !yes;
+            //if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         #endregion

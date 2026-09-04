@@ -19,6 +19,11 @@ namespace TREPlugin
 {
     class Matcher
     {
+        internal static RegexEngineCapabilityEnum GetCapabilities( Options options )
+        {
+            return RegexEngineCapabilityEnum.None;
+        }
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );

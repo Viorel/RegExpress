@@ -22,6 +22,11 @@ namespace ZigPlugin
 
     static class MatcherEziGex
     {
+        internal static RegexEngineCapabilityEnum GetCapabilities( Options options )
+        {
+            return RegexEngineCapabilityEnum.None;
+        }
+
         class RootObject
         {
             public string[]? names { get; set; }

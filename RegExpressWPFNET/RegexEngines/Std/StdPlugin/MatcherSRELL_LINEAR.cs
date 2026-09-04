@@ -19,6 +19,11 @@ namespace StdPlugin
 {
     static class MatcherSRELL_LINEAR
     {
+        internal static RegexEngineCapabilityEnum GetCapabilities( Options options )
+        {
+            return RegexEngineCapabilityEnum.None;
+        }
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             Debug.Assert( options.Compiler == CompilerEnum.SRELL_LINEAR );

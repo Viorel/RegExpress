@@ -141,8 +141,8 @@ namespace RE2Plugin
 
         public void SetCollectCaptures( bool yes )
         {
-            Options.never_capture = !yes;
-            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+            //Options.never_capture = !yes;
+            //if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         #endregion

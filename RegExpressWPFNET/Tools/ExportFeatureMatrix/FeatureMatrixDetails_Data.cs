@@ -153,7 +153,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a\j", @"aj", @"a\j", "aj" ),
             ] ),
 
-        new ( @"Escapes inside […] sets",
+        new ( @"Escapes inside sets",
             [
                 new FeatureMatrixDetails( @"[\a]", @"Bell, \u0007", (e, fm) => fm.InsideSets_Esc_a)
                     .Test( @"[\a]", "\u0007", null, "\u0007" ),
@@ -249,7 +249,7 @@ partial class FeatureMatrixDetails
                     .Test( @"\p{L}\P{L}", "x9", null, "x9" ),
             ] ),
 
-        new (@"Classes inside […] sets",
+        new (@"Classes inside sets",
             [
                 new FeatureMatrixDetails( @"[\d], [\D]", @"Digit", (e, fm) => fm.InsideSets_Class_dD)
                     .Test( @"a[\d]", "a9", null, "a9" ),
@@ -286,7 +286,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a[[.comma.]]b", "a,b", null, "a,b" ), // STL seems to have a defect.
             ] ),
 
-        new ( @"Operators inside […] sets",
+        new ( @"Operators inside sets",
             [
                 new FeatureMatrixDetails( @"[[…] op […]]", @"Using operators for nested groups", (e, fm) => fm.InsideSets_Operators)
                     .Test( @"[[ab]&[bc]]", "b", "a&c", "b")
@@ -542,6 +542,169 @@ partial class FeatureMatrixDetails
 
         new ( @"Miscellaneous",
             [
+                new FeatureMatrixDetails( @"", @"Get all captures matched by group", (e, fm) => ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups) && e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.HasCaptures))
+                    .Test( (e, fm) =>
+                    {
+                        e.SetCollectCaptures( true );
+
+                        try
+                        {
+                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(.)+", "ab" );
+                            if( matches.Count != 1 ) return false;
+
+                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First();
+                            if( !match.Success ) return false;
+
+                            var groups = match.Groups.ToArray();
+                            if( groups.Length != 2) return false; // including default group
+
+                            RegExpressLibrary.Matches.IGroup group = groups[1];
+                            if( !group.Success) return false;
+
+                            var captures = group.Captures.ToArray();
+                            if( captures.Length != 2) return false;
+
+                            if( captures[0].Value != "a" ) return false;
+                            if( captures[1].Value != "b" ) return false;
+
+                            return true;
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                        finally
+                        {
+                            e.SetCollectCaptures( false );
+                        }
+                    })
+                    .Test( (e, fm) =>
+                    {
+                        e.SetCollectCaptures( true );
+
+                        try
+                        {
+                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"\(.\)+", "ab" );
+                            if( matches.Count != 1 ) return false;
+
+                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First();
+                            if( !match.Success ) return false;
+
+                            var groups = match.Groups.ToArray();
+                            if( groups.Length != 2) return false; // including default group
+
+                            RegExpressLibrary.Matches.IGroup group = groups[1];
+                            if( !group.Success) return false;
+
+                            var captures = group.Captures.ToArray();
+                            if( captures.Length != 2) return false;
+
+                            if( captures[0].Value != "a" ) return false;
+                            if( captures[1].Value != "b" ) return false;
+
+                            return true;
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                        finally
+                        {
+                            e.SetCollectCaptures( false );
+                        }
+                    })
+                    .Test( (e, fm) =>
+                    {
+                        e.SetCollectCaptures( true );
+
+                        try
+                        {
+                            // Oniguruma's way 
+
+                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(?@.)+", "ab" );
+                            if( matches.Count != 1 ) return false;
+
+                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First();
+                            if( !match.Success ) return false;
+
+                            var groups = match.Groups.ToArray();
+                            if( groups.Length != 2) return false; // including default group
+
+                            RegExpressLibrary.Matches.IGroup group = groups[1];
+                            if( !group.Success) return false;
+
+                            var captures = group.Captures.ToArray();
+                            if( captures.Length != 2) return false;
+
+                            if( captures[0].Value != "a" ) return false;
+                            if( captures[1].Value != "b" ) return false;
+
+                            return true;
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                        finally
+                        {
+                            e.SetCollectCaptures( false );
+                        }
+                    }),
+                new FeatureMatrixDetails( @"", @"Differentiate between empty groups and failed groups", (e, fm) => ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups) && ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroupSuccessFlag) )
+                    .Test( (e, fm) =>
+                    {
+                        try
+                        {
+                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(a)(b*)(c)*(d)", "ad" ); 
+                            // "()" in "(a)" to fix an issue of tiny-regex-c);
+                            // "(d)" to ensure that previous groups are returned;
+                            // "*" instead of "?" because some engines do not support "?"
+
+                            if( matches.Count != 1 ) return false;
+
+                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First();
+                            if( !match.Success ) return false;
+
+                            RegExpressLibrary.Matches.IGroup[] groups = match.Groups.ToArray();
+                            if( groups.Length != 5) return false; // including default group
+
+                            if( !groups[1].Success) return false;
+                            if( !groups[2].Success) return false;
+                            if( groups[3].Success) return false;
+                            if( !groups[4].Success) return false;
+
+                            return true;
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    })
+                    .Test( (e, fm) =>
+                    {
+                        try
+                        {
+                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"\(a\)\(b*\)\(c\)*\(d\)", "ad" );
+                            if( matches.Count != 1 ) return false;
+
+                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First();
+                            if( !match.Success ) return false;
+
+                            RegExpressLibrary.Matches.IGroup[] groups = match.Groups.ToArray();
+                            if( groups.Length != 5) return false; // including default group
+                            
+                            if( !groups[1].Success) return false;
+                            if( !groups[2].Success) return false;
+                            if( groups[3].Success) return false;
+                            if( !groups[4].Success) return false;
+
+                            return true;
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    }),
                 new FeatureMatrixDetails( @"(*verb)", @"Control verbs: (*verb), (*verb:…), (*:name)", (e, fm) => fm.ControlVerbs)
                     .Test( @"x(*ACCEPT)|y(*FAIL)", "x", "y", "x" )
                     .Test( @"(*UCP)^a", "a", "", "a" )
@@ -583,15 +746,16 @@ partial class FeatureMatrixDetails
                     .IgnoreCase()
                     .Test( @"aßb", "aSSb", "aSb", "aSSb")
                     .Test( @"(?i)aßb", "aSSb", "aSb", "aSSb"),
-                /*
-                 * find defect
-                new FeatureMatrixDetails( "ß=S", "", (e, fm) => false )
-                    .IgnoreCase()
-                    .Test( @"ß", "s S", null)
-                    .Test( @"(?i)ß", "s S", null),
-                */
 
-                new FeatureMatrixDetails( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", (e, fm) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams)
+            /*
+             * find defect
+            new FeatureMatrixDetails( "ß=S", "", (e, fm) => false )
+                .IgnoreCase()
+                .Test( @"ß", "s S", null)
+                .Test( @"(?i)ß", "s S", null),
+            */
+
+            new FeatureMatrixDetails( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", (e, fm) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams)
                     .Test( @"(test){i}", "teXst", null, "teXst" )
                     .Test( @"(test){+1}", "teXst", null, "teXst" )
                     .Test( @"\(test\)\{+1\}", "teXst", null, "teXst" )
@@ -600,6 +764,7 @@ partial class FeatureMatrixDetails
                     .Test( (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Passed ),
                 new FeatureMatrixDetails( "Reject ReDoS", "Give error on possible ReDoS", (e, fm) => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Reject )
                     .Test( (e, fm) => CheckCatastrophicPattern( e, fm ) == CatastrophicBacktrackingResultEnum.Error ),
+
             ] ),
 
         new ( @"Specific extensions",
@@ -618,103 +783,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a.+&.+b", "axb", null, "axb" ),
                 new FeatureMatrixDetails( @"~(…)", @"Complement (pattern must not match)", (e, fm) => fm.Ext_Operator_Complement)
                     .Test( @"ab~(x)c", "abc", null, "abc" ),
-                new FeatureMatrixDetails( @"", @"Get all captures matched by group", (e, fm) => ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups) && e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.HasCaptures))
-                    .Test( (e, fm) =>
-                    {
-                        e.SetCollectCaptures( true );
-
-                        try
-                        {
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(.)+", "ab" );
-                            if( matches.Count != 1 ) return false;
-
-                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First();
-                            if( !match.Success ) return false;
-
-                            var groups = match.Groups.ToArray();
-                            if( groups.Length != 2) return false; // including default group
-
-                            RegExpressLibrary.Matches.IGroup group = groups[1];
-                            if( !group.Success) return false;
-
-                            var captures = group.Captures.ToArray();
-                            if( captures.Length != 2) return false;
-
-                            if( captures[0].Value != "a" ) return false;
-                            if( captures[1].Value != "b" ) return false;
-
-                            return true;
-                        }
-                        catch
-                        {
-                            return false;
-                        }
-                    })
-                    .Test( (e, fm) =>
-                    {
-                        e.SetCollectCaptures( true );
-
-                        try
-                        {
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"\(.\)+", "ab" );
-                            if( matches.Count != 1 ) return false;
-
-                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First();
-                            if( !match.Success ) return false;
-
-                            var groups = match.Groups.ToArray();
-                            if( groups.Length != 2) return false; // including default group
-
-                            RegExpressLibrary.Matches.IGroup group = groups[1];
-                            if( !group.Success) return false;
-
-                            var captures = group.Captures.ToArray();
-                            if( captures.Length != 2) return false;
-
-                            if( captures[0].Value != "a" ) return false;
-                            if( captures[1].Value != "b" ) return false;
-
-                            return true;
-                        }
-                        catch
-                        {
-                            return false;
-                        }
-                    })
-                    .Test( (e, fm) =>
-                    {
-                        e.SetCollectCaptures( true );
-
-                        try
-                        {
-                            // Oniguruma's way 
-
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(?@.)+", "ab" );
-                            if( matches.Count != 1 ) return false;
-
-                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First();
-                            if( !match.Success ) return false;
-
-                            var groups = match.Groups.ToArray();
-                            if( groups.Length != 2) return false; // including default group
-
-                            RegExpressLibrary.Matches.IGroup group = groups[1];
-                            if( !group.Success) return false;
-
-                            var captures = group.Captures.ToArray();
-                            if( captures.Length != 2) return false;
-
-                            if( captures[0].Value != "a" ) return false;
-                            if( captures[1].Value != "b" ) return false;
-
-                            return true;
-                        }
-                        catch
-                        {
-                            return false;
-                        }
-                    }),
-                new FeatureMatrixDetails( @"", @"Also support alternative syntax", (e, fm) => fm.Ext_AlternativeLanguage),
+                new FeatureMatrixDetails( @"", @"Support alternative syntax", (e, fm) => fm.Ext_AlternativeLanguage),
             ]),
 
         ];

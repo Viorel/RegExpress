@@ -20,6 +20,27 @@ namespace BoostPlugin
 {
     static partial class Matcher
     {
+        internal static RegexEngineCapabilityEnum GetCapabilities( Options options )
+        {
+            return options.Grammar switch
+            {
+                GrammarEnum.normal => RegexEngineCapabilityEnum.HasCaptures,
+                GrammarEnum.ECMAScript => RegexEngineCapabilityEnum.HasCaptures,
+                GrammarEnum.JavaScript => RegexEngineCapabilityEnum.HasCaptures,
+                GrammarEnum.JScript => RegexEngineCapabilityEnum.HasCaptures,
+                GrammarEnum.perl => RegexEngineCapabilityEnum.HasCaptures,
+                GrammarEnum.extended => RegexEngineCapabilityEnum.None,
+                GrammarEnum.egrep => RegexEngineCapabilityEnum.None,
+                GrammarEnum.awk => RegexEngineCapabilityEnum.None,
+                GrammarEnum.basic => RegexEngineCapabilityEnum.None,
+                GrammarEnum.sed => RegexEngineCapabilityEnum.None,
+                GrammarEnum.grep => RegexEngineCapabilityEnum.None,
+                GrammarEnum.emacs =>   RegexEngineCapabilityEnum.HasCaptures,
+                GrammarEnum.literal => RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag,
+                _ => throw new NotImplementedException( ),
+            };
+        }
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             // try identifying group names

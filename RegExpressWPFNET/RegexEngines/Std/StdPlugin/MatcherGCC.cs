@@ -19,6 +19,11 @@ namespace StdPlugin
 {
     static partial class MatcherGCC
     {
+        internal static RegexEngineCapabilityEnum GetCapabilities( Options options )
+        {
+            return RegexEngineCapabilityEnum.None; // TODO: check grammar
+        }
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             Debug.Assert( options.Compiler == CompilerEnum.GCC );

@@ -183,8 +183,8 @@ namespace DotNETPlugin
 
         public void SetCollectCaptures( bool yes )
         {
-            Options.ExplicitCapture = !yes;
-            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+            //Options.ExplicitCapture = !yes;
+            //if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         #endregion

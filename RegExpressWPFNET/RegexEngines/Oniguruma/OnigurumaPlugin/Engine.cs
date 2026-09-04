@@ -58,17 +58,7 @@ namespace OnigurumaPlugin
 
         public string Subtitle => $"{Name}";
 
-        public RegexEngineCapabilityEnum Capabilities =>
-            Options.Syntax switch
-            {
-                SyntaxEnum.ONIG_SYNTAX_ONIGURUMA or
-                SyntaxEnum.ONIG_SYNTAX_JAVA or
-                SyntaxEnum.ONIG_SYNTAX_PERL or
-                SyntaxEnum.ONIG_SYNTAX_PERL_NG or
-                SyntaxEnum.ONIG_SYNTAX_RUBY or
-                SyntaxEnum.ONIG_SYNTAX_PYTHON => RegexEngineCapabilityEnum.HasCaptures,
-                _ => RegexEngineCapabilityEnum.None
-            };
+        public RegexEngineCapabilityEnum Capabilities => Matcher.GetCapabilities( Options );
 
         public string? NoteForCaptures => "requires ‘ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY’";
 
@@ -168,8 +158,9 @@ namespace OnigurumaPlugin
 
         public void SetCollectCaptures( bool yes )
         {
-            Options.ONIG_OPTION_DONT_CAPTURE_GROUP = !yes;
-            Options.ONIG_OPTION_CAPTURE_GROUP = yes;
+            //Options.ONIG_OPTION_DONT_CAPTURE_GROUP = !yes;
+            //Options.ONIG_OPTION_CAPTURE_GROUP = yes;
+
             Options.ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = yes;
             if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }

@@ -60,7 +60,15 @@ namespace StdPlugin
 
         public string Subtitle => $"{Options.Compiler switch { CompilerEnum.MSVC => "std::wregex", CompilerEnum.GCC => "std::wregex (GCC)", CompilerEnum.SRELL => "srell::wregex", CompilerEnum.SRELL_LINEAR => "srel3::wregex", _ => " (Unknown)" }}";
 
-        public RegexEngineCapabilityEnum Capabilities => RegexEngineCapabilityEnum.None;
+        public RegexEngineCapabilityEnum Capabilities =>
+            Options.Compiler switch
+            {
+                CompilerEnum.MSVC => MatcherMSVC.GetCapabilities( Options ),
+                CompilerEnum.GCC => MatcherGCC.GetCapabilities( Options ),
+                CompilerEnum.SRELL => MatcherSRELL.GetCapabilities( Options ),
+                CompilerEnum.SRELL_LINEAR => MatcherSRELL_LINEAR.GetCapabilities( Options ),
+                _ => throw new NotImplementedException( ),
+            };
 
         public string? NoteForCaptures => null;
 
@@ -211,8 +219,8 @@ namespace StdPlugin
 
         public void SetCollectCaptures( bool yes )
         {
-            Options.nosubs = !yes;
-            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+            //Options.nosubs = !yes;
+            //if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         #endregion

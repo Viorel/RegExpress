@@ -62,9 +62,9 @@ namespace DartPlugin
         public RegexEngineCapabilityEnum Capabilities =>
             Options.package switch
             {
-                PackageEnum.RegExp => RegexEngineCapabilityEnum.NoGroupIndex,
-                PackageEnum.OnigurumaDart => RegexEngineCapabilityEnum.None,
-                _ => throw new NotImplementedException(),
+                PackageEnum.RegExp => MatcherRegExp.GetCapabilities( Options ),
+                PackageEnum.OnigurumaDart => MatcherOnigurumaDart.GetCapabilities( Options ),
+                _ => throw new NotImplementedException( ),
             };
 
         public string? NoteForCaptures => null;

@@ -2460,7 +2460,7 @@ namespace RustPlugin
                 Unicode_Class_Dot = true,
                 Unicode_Class_vW = false,
                 InsideSets_Unicode = true,
-                UnicodeCaseFolding = false,
+                UnicodeCaseFolding = true,
                 KeepSurrogatePairs = true,
                 FuzzyMatchingParams = false,
                 TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,

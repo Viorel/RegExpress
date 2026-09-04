@@ -136,8 +136,8 @@ namespace QtPlugin
 
         public void SetCollectCaptures( bool yes )
         {
-            Options.DontCaptureOption = !yes;
-            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+            //Options.DontCaptureOption = !yes;
+            //if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         #endregion

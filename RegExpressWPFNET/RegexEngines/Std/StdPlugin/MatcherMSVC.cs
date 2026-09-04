@@ -19,6 +19,20 @@ namespace StdPlugin
 {
     static class MatcherMSVC
     {
+        internal static RegexEngineCapabilityEnum GetCapabilities( Options options )
+        {
+            return options.Grammar switch
+            {
+                GrammarEnum.ECMAScript => RegexEngineCapabilityEnum.None,
+                GrammarEnum.basic => RegexEngineCapabilityEnum.None,
+                GrammarEnum.extended => RegexEngineCapabilityEnum.None,
+                GrammarEnum.awk => RegexEngineCapabilityEnum.None,
+                GrammarEnum.grep => RegexEngineCapabilityEnum.None,
+                GrammarEnum.egrep => RegexEngineCapabilityEnum.None,
+                _ => throw new NotImplementedException( ),
+            };
+        }
+
         public static RegexMatches GetMatches( ICancellable cnc, string pattern, string text, Options options )
         {
             Debug.Assert( options.Compiler == CompilerEnum.MSVC );

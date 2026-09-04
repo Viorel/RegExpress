@@ -45,6 +45,11 @@ Example of result:
 
     static class MatcherPzre
     {
+        internal static RegexEngineCapabilityEnum GetCapabilities( Options options )
+        {
+            return RegexEngineCapabilityEnum.NoGroups;
+        }
+
         public class RootObject
         {
             public Match[]? matches { get; set; }

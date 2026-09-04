@@ -137,8 +137,8 @@ namespace PerlPlugin
 
         public void SetCollectCaptures( bool yes )
         {
-            Options.n = !yes;
-            if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+            //Options.n = !yes;
+            //if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
 
         #endregion

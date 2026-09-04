@@ -57,17 +57,7 @@ namespace BoostPlugin
 
         public string Subtitle => $"{Name}";
 
-        public RegexEngineCapabilityEnum Capabilities =>
-            Options.Grammar switch
-            {
-                GrammarEnum.normal or
-                GrammarEnum.ECMAScript or
-                GrammarEnum.JavaScript or
-                GrammarEnum.JScript or
-                GrammarEnum.perl or
-                GrammarEnum.emacs => RegexEngineCapabilityEnum.HasCaptures,
-                _ => RegexEngineCapabilityEnum.None
-            };
+        public RegexEngineCapabilityEnum Capabilities => Matcher.GetCapabilities( Options );
 
         public string? NoteForCaptures => "requires ‘match_extra’";
 
@@ -142,7 +132,7 @@ namespace BoostPlugin
                 if( grammar == GrammarEnum.JavaScript ) continue; // not interested; seems similar to 'ECMAScript'
                 if( grammar == GrammarEnum.JScript ) continue; // not interested; seems similar to 'ECMAScript'
 
-                Engine engine = new( ) { Options = new Options { Grammar = grammar, match_extra = false } }; // ('match_extra' cannot be used for some grammars)
+                Engine engine = new( ) { Options = new Options { Grammar = grammar, match_extra = false, match_posix = false, match_perl = false } }; // ('match_extra' cannot be used for some grammars)
 
                 variants.Add( new FeatureMatrixVariant( Enum.GetName( grammar ), engine ) );
             }
@@ -164,8 +154,9 @@ namespace BoostPlugin
 
         public void SetCollectCaptures( bool yes )
         {
-            Options.nosubs = !yes;
-            Options.match_nosubs = !yes;
+            //Options.nosubs = !yes;
+            //Options.match_nosubs = !yes;
+
             Options.match_extra = yes;
             if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
         }
