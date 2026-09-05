@@ -2032,10 +2032,12 @@ namespace real::detail {
                                           bool             capture_free) const
     {
       if (capture_free) {
-        throw regex_error("possessive/atomic quantifiers inside a lookaround are not supported yet", 0);
+        throw regex_error("possessive/atomic quantifiers inside a lookaround are not supported yet", 0,
+                          error_kind::unsupported);
       }
       if (!is_tier1_body(body)) {
-        throw regex_error("possessive/atomic over a compound body is not supported yet", 0);
+        throw regex_error("possessive/atomic over a compound body is not supported yet", 0,
+                          error_kind::unsupported);
       }
       emit_tier1_loop(prog, tier1_atom(body), min, max, tier1_capture_group(body), capture_free);
     }
@@ -2070,7 +2072,8 @@ namespace real::detail {
       const ast_node& child {tree_.nodes[static_cast<std::size_t>(node.child)]};
       if (child.kind == node_kind::repeat && is_tier1_body(child.child)) {
         if (capture_free) {
-          throw regex_error("possessive/atomic quantifiers inside a lookaround are not supported yet", 0);
+          throw regex_error("possessive/atomic quantifiers inside a lookaround are not supported yet", 0,
+                            error_kind::unsupported);
         }
         emit_tier1_loop(prog, tier1_atom(child.child), child.min, child.max,
                         tier1_capture_group(child.child), capture_free);
@@ -2080,7 +2083,8 @@ namespace real::detail {
         emit_node(prog, node.child, capture_free); // vacuously atomic: no repeat, nothing to give back
         return;
       }
-      throw regex_error("possessive/atomic over a compound body is not supported yet", 0);
+      throw regex_error("possessive/atomic over a compound body is not supported yet", 0,
+                        error_kind::unsupported);
     }
   };
 
