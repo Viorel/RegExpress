@@ -4,6 +4,7 @@ using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -85,6 +86,15 @@ class Subengine( Options options ) : RegexSubengine
             {
                 Int32 native_start = br.ReadInt32( );
                 Int32 native_end = br.ReadInt32( );
+
+                if( options.REG_NOSUB )
+                {
+                    Debug.Assert( native_start < 0 );
+                    Debug.Assert( native_end < 0 );
+
+                    throw new Exception( "Match found, but details are not reported due to REG_NOSUB option." );
+                }
+
                 int native_length = native_end - native_start;
                 current_match = SimpleMatch.Create( (int)native_start, (int)native_length, stg );
                 current_match.AddDefaultGroup( );
