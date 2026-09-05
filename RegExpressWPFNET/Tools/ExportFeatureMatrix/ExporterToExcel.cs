@@ -73,7 +73,7 @@ partial class ExporterToExcel
 
             // get feature matrices from engines
 
-            IRegexEngine[] engines = [.. plugins.SelectMany( p => p.GetEngines( ) )];
+            RegexEngine[] engines = [.. plugins.SelectMany( p => p.GetEngines( ) )];
             IReadOnlyList<FeatureMatrixVariant>[] all_matrices = [.. engines.Select( e => e.GetFeatureMatrices( ) )];
 
             uint variant_index = 0;
@@ -719,6 +719,6 @@ partial class ExporterToExcel
 
 class EngineData
 {
-    public required IRegexEngine Engine { get; init; }
+    public required RegexEngine Engine { get; init; }
     public required (uint index, FeatureMatrixVariant variant)[] Matrices { get; init; }
 }

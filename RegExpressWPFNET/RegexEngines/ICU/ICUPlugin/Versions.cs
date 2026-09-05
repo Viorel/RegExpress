@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace ICUPlugin;
 
-namespace ICUPlugin
+class Versions
 {
-    internal class Versions
-    {
-        public static string ICU { get; } = "78.3";
-    }
+    public static string ICU { get; } = "78.3";
 }

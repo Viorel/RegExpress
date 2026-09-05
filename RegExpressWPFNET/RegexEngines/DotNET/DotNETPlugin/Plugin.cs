@@ -1,20 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using RegExpressLibrary;
+using System.Collections.Generic;
 
 
-namespace DotNETPlugin
+namespace DotNETPlugin;
+
+public class Plugin : RegexPlugin
 {
-    public class Plugin : RegexPlugin
+    #region RegexPlugin
+
+    public override IReadOnlyList<RegexEngine> GetEngines( )
     {
-        #region RegexPlugin
-
-        public override IReadOnlyList<IRegexEngine> GetEngines( )
-        {
-            return new[] { new Engine( ) };
-        }
-
-        #endregion
+        return [new Engine( )];
     }
+
+    #endregion
 }

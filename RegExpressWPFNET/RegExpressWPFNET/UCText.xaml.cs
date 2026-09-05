@@ -1,10 +1,14 @@
-﻿using System;
+﻿using RegExpressLibrary;
+using RegExpressLibrary.Matches;
+using RegExpressLibrary.SyntaxColouring;
+using RegExpressWPFNET.Adorners;
+using RegExpressWPFNET.Code;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Media;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,11 +16,6 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using RegExpressLibrary;
-using RegExpressLibrary.Matches;
-using RegExpressLibrary.SyntaxColouring;
-using RegExpressWPFNET.Adorners;
-using RegExpressWPFNET.Code;
 
 
 namespace RegExpressWPFNET

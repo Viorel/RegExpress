@@ -1,18 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using RegExpressLibrary;
+using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using RegExpressLibrary;
 
 
 namespace ICUPlugin
@@ -37,7 +26,7 @@ namespace ICUPlugin
 
         private void UserControl_Loaded( object sender, RoutedEventArgs e )
         {
-            if(IsFullyLoaded) return;
+            if( IsFullyLoaded ) return;
 
             IsFullyLoaded = true;
         }
@@ -60,8 +49,8 @@ namespace ICUPlugin
 
         void Notify( bool preferImmediateReaction )
         {
-            if(!IsFullyLoaded) return;
-            if(ChangeCounter != 0) return;
+            if( !IsFullyLoaded ) return;
+            if( ChangeCounter != 0 ) return;
 
             Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
         }

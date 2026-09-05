@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using RegExpressLibrary.Matches;
+﻿using System.Collections.Generic;
 
 
 namespace RegExpressLibrary.Matches
 {
-	public interface IMatch : IGroup // TODO: reconsider the inheritance
-	{
-		IEnumerable<IGroup> Groups { get; }
-	}
+    public interface IMatch : IGroup // TODO: reconsider the inheritance
+    {
+        IEnumerable<IGroup> Groups { get; }
+    }
 }

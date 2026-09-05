@@ -1,10 +1,6 @@
-﻿using System;
+﻿using RegExpressLibrary;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Documents;
-using RegExpressLibrary;
 
 
 namespace RegExpressWPFNET.Code.OutputInfo

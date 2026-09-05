@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace RealPlugin;
 
-namespace RealPlugin
+class Versions
 {
-    internal class Versions
-    {
-        public static string REAL { get; } = "2026.8.20";
-    }
+    public static string REAL { get; } = "2026.8.20";
 }

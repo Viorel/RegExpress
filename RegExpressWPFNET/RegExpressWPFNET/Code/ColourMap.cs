@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using RegExpressLibrary;
+using System.Collections.Generic;
 using System.Diagnostics;
-using RegExpressLibrary;
 
 
 namespace RegExpressWPFNET.Code

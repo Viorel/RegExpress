@@ -96,6 +96,37 @@ namespace
             return (int32_t)v;
         }
 
+        template<>
+        static inline char32_t CheckedCast( const int64_t& v )
+        {
+            if( v > std::numeric_limits<char32_t>::max( ) )
+            {
+                throw std::overflow_error( "'char32_t' overflow: " + std::to_string( v ) );
+            }
+
+            if( v < std::numeric_limits<char32_t>::min( ) )
+            {
+                throw std::underflow_error( "'char32_t' underflow: " + std::to_string( v ) );
+            }
+
+            return (char32_t)v;
+        }
+
+        template<>
+        static inline char32_t CheckedCast( const uint64_t& v )
+        {
+            if( v > std::numeric_limits<char32_t>::max( ) )
+            {
+                throw std::overflow_error( "'char32_t' overflow: " + std::to_string( v ) );
+            }
+
+            if( v < std::numeric_limits<char32_t>::min( ) )
+            {
+                throw std::underflow_error( "'char32_t' underflow: " + std::to_string( v ) );
+            }
+
+            return (char32_t)v;
+        }
 
         template<>
         static inline uint32_t CheckedCast( const uint32_t& v )
@@ -141,6 +172,7 @@ namespace
 /// The target type is determined from context.</para>
 /// <para>Do not use 'CheckedCast&lt;some_type>(some_value)'.</para>
 /// <para>Example: <c>int x = 1234; char c = CheckedCast(x); /* 'overflow_error' or 'underflow_error' if cannot cast */</c> </para>
+/// <para>If conversion is not available (but maybe can be added), then a compiler or linker error is raised.</para>
 /// </summary>
 /// <typeparam name="FROM">(Type determined automatically)</typeparam>
 /// <param name="v">The value to convert</param>

@@ -1,7 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using RegExpressLibrary;
+using System.Collections.Generic;
 
 
 namespace BoostPlugin
@@ -10,12 +8,11 @@ namespace BoostPlugin
     {
         #region RegexPlugin
 
-        public override IReadOnlyList<IRegexEngine> GetEngines( )
+        public override IReadOnlyList<RegexEngine> GetEngines( )
         {
-            return new[] { new Engine( ) };
+            return [new Engine( )];
         }
 
         #endregion
-
     }
 }

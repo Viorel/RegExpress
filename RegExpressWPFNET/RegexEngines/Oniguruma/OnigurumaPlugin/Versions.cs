@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace OnigurumaPlugin;
 
-namespace OnigurumaPlugin
+class Versions
 {
-    internal class Versions
-    {
-        public static string Oniguruma { get; } = "6.9.10";
-    }
+    public static string Oniguruma { get; } = "6.9.10";
 }

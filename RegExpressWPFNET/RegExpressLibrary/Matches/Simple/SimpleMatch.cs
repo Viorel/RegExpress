@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 
 namespace RegExpressLibrary.Matches.Simple
@@ -90,7 +86,7 @@ namespace RegExpressLibrary.Matches.Simple
             SimpleGroup group = new( nativeIndex, nativeLength, charIndex, charLength, true, name, TextGetter );
             mGroups.Add( group );
 
-            return group; 
+            return group;
         }
 
         public SimpleGroup AddSucceededNoDetailsGroup( string name, string value )

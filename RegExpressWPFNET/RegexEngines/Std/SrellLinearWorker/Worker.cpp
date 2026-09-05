@@ -7,6 +7,7 @@
 #include "BinaryWriter.h"
 #include "StreamWriter.h"
 #include "Convert.h"
+#include "CheckedCast.h"
 #include "SEHFilter.h"
 
 
@@ -47,7 +48,7 @@ static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const st
 				srel3::wregex regex( pattern.c_str( ), regexFlags );
 
 				if( max_dfacache.has_value( ) ) regex.max_dfacache( max_dfacache.value( ) );
-				if( max_states.has_value( ) ) regex.max_states( max_states.value( ) );
+				if( max_states.has_value( ) ) regex.max_states( CheckedCast( max_states.value( ) ) );
 
 				srel3::wcregex_iterator results_begin( text.c_str( ), text.c_str( ) + text.length( ), regex, matchFlags );
 				srel3::wcregex_iterator results_end{};

@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace DartPlugin;
 
-namespace DartPlugin
+class Versions
 {
-    internal class Versions
-    {
-        public static string Dart { get; } = "3.12.2";
-        public static string Duppix { get; } = "1.0.0";
-        public static string OnigurumaDart { get; } = "1.0.1";
-    }
+    public static string Dart { get; } = "3.12.2";
+    public static string Duppix { get; } = "1.0.0";
+    public static string OnigurumaDart { get; } = "1.0.1";
 }

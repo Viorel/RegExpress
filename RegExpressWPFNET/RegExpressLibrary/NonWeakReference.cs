@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RegExpressLibrary;
+﻿namespace RegExpressLibrary;
 
 /// <summary>
 /// Replaces WeakReference<T> to keep the data. For experiments only.

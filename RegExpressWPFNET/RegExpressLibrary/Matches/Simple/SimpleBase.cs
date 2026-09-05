@@ -1,37 +1,33 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 
 namespace RegExpressLibrary.Matches.Simple
 {
-	public abstract class SimpleBase
-	{
-		protected readonly ISimpleTextGetter TextGetter;
+    public abstract class SimpleBase
+    {
+        protected readonly ISimpleTextGetter TextGetter;
 
-		protected SimpleBase( int nativeIndex, int nativeLength, int charIndex, int charLength, ISimpleTextGetter textGetter )
-		{
-			Debug.Assert( textGetter != null );
+        protected SimpleBase( int nativeIndex, int nativeLength, int charIndex, int charLength, ISimpleTextGetter textGetter )
+        {
+            Debug.Assert( textGetter != null );
 
-			NativeIndex = nativeIndex;
-			NativeLength = nativeLength;
-			CharIndex = charIndex;
-			CharLength = charLength;
-			TextGetter = textGetter;
-		}
+            NativeIndex = nativeIndex;
+            NativeLength = nativeLength;
+            CharIndex = charIndex;
+            CharLength = charLength;
+            TextGetter = textGetter;
+        }
 
 
-		public int NativeIndex { get; }
+        public int NativeIndex { get; }
 
-		public int NativeLength { get; }
+        public int NativeLength { get; }
 
-		public int CharIndex { get; }
+        public int CharIndex { get; }
 
-		public int CharLength { get; }
+        public int CharLength { get; }
 
-		public string Value => CharIndex < 0 ? String.Empty : TextGetter.GetText( CharIndex, CharLength );
-	}
+        public string Value => CharIndex < 0 ? String.Empty : TextGetter.GetText( CharIndex, CharLength );
+    }
 }

@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-
-namespace RegExpressLibrary.Matches.Simple
+﻿namespace RegExpressLibrary.Matches.Simple
 {
-	public interface ISimpleTextGetter
-	{
-		void ThrowIfInvalid( int index, int length );
+    public interface ISimpleTextGetter
+    {
+        void ThrowIfInvalid( int index, int length );
 
         string GetText( int index, int length );
-	}
+    }
 }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 
 namespace RegExpressLibrary.Matches.IndexConverters
 {
@@ -13,7 +9,7 @@ namespace RegExpressLibrary.Matches.IndexConverters
         public (int index, int length) Convert( int nativeStart, int nativeEnd )
         {
             int start = Encoding.UTF8.GetCharCount( Utf8Bytes, 0, nativeStart );
-            int end = Encoding.UTF8.GetCharCount( Utf8Bytes, 0, nativeEnd);
+            int end = Encoding.UTF8.GetCharCount( Utf8Bytes, 0, nativeEnd );
 
             return (start, end - start);
         }

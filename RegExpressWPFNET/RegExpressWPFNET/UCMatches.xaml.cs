@@ -1,30 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Linq;
-using System.Printing;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Windows.Threading;
-using RegExpressLibrary;
+﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 using RegExpressLibrary.UI;
 using RegExpressWPFNET.Adorners;
 using RegExpressWPFNET.Code;
 using RegExpressWPFNET.Code.OutputInfo;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
+using System.Threading;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Media;
+using System.Windows.Threading;
 
 
 namespace RegExpressWPFNET
@@ -523,7 +514,7 @@ namespace RegExpressWPFNET
                 var ordered_groups =
                                     match.Groups
                                         .Skip( 1 ) // skip main group (full match)
-                                        .Where( g => !show_succeeded_groups_only || g.Success  )
+                                        .Where( g => !show_succeeded_groups_only || g.Success )
                                         //OrderBy( g => g.Success ? g.Index : match.Index )
                                         .ToList( );
 

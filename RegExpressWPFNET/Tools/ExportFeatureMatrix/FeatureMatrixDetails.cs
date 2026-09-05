@@ -33,7 +33,7 @@ partial class FeatureMatrixDetails
         internal string? ExpectedResult { get; }
         internal bool IgnoreCase { get; }
         internal bool IgnorePatternWhitespace { get; }
-        internal Func<IRegexEngine, FeatureMatrix, bool>? DirectCheck { get; }
+        internal Func<RegexEngine, FeatureMatrix, bool>? DirectCheck { get; }
 
         internal Rule( string pattern, string? textToMatch, string? textToNotMatch, string? expectedResult, bool ignoreCase, bool ignorePatternWhitespace )
         {
@@ -48,7 +48,7 @@ partial class FeatureMatrixDetails
             DirectCheck = null;
         }
 
-        internal Rule( Func<IRegexEngine, FeatureMatrix, bool> directCheck, bool ignoreCase, bool ignorePatternWhitespace )
+        internal Rule( Func<RegexEngine, FeatureMatrix, bool> directCheck, bool ignoreCase, bool ignorePatternWhitespace )
         {
             Pattern = null;
             TextToMatch = null;
@@ -61,12 +61,12 @@ partial class FeatureMatrixDetails
 
     internal readonly string ShortDesc;
     internal readonly string? Desc;
-    internal readonly Func<IRegexEngine, FeatureMatrix, bool> ValueGetter;
+    internal readonly Func<RegexEngine, FeatureMatrix, bool> ValueGetter;
     internal readonly List<Rule> Rules = [];
     bool mIgnoreCase = false;
     bool mIgnorePatternWhitespace = false;
 
-    internal FeatureMatrixDetails( string shortDesc, string desc, Func<IRegexEngine, FeatureMatrix, bool> valueGetter )
+    internal FeatureMatrixDetails( string shortDesc, string desc, Func<RegexEngine, FeatureMatrix, bool> valueGetter )
     {
         ShortDesc = shortDesc;
         Desc = desc;
@@ -101,7 +101,7 @@ partial class FeatureMatrixDetails
         return this;
     }
 
-    FeatureMatrixDetails Test( Func<IRegexEngine, FeatureMatrix, bool> func )
+    FeatureMatrixDetails Test( Func<RegexEngine, FeatureMatrix, bool> func )
     {
         Rules.Add( new Rule( func, mIgnoreCase, mIgnorePatternWhitespace ) );
 
@@ -117,7 +117,7 @@ partial class FeatureMatrixDetails
         Unknown,
     }
 
-    static CatastrophicBacktrackingResultEnum CheckCatastrophicPattern( IRegexEngine engine, FeatureMatrix fm )
+    static CatastrophicBacktrackingResultEnum CheckCatastrophicPattern( RegexEngine engine, FeatureMatrix fm )
     {
         try
         {

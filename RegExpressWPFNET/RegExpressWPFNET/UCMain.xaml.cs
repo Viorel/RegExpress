@@ -1,10 +1,12 @@
-﻿using System;
+﻿using RegExpressLibrary;
+using RegExpressLibrary.Matches;
+using RegExpressLibrary.SyntaxColouring;
+using RegExpressLibrary.UI;
+using RegExpressWPFNET.Code;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -13,12 +15,6 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Xml;
-using RegExpressLibrary;
-using RegExpressLibrary.Matches;
-using RegExpressLibrary.SyntaxColouring;
-using RegExpressLibrary.UI;
-using RegExpressWPFNET.Code;
 
 
 namespace RegExpressWPFNET
@@ -36,10 +32,10 @@ namespace RegExpressWPFNET
 
         readonly Regex RegexHasWhitespace = HasWhitespaceRegex( );
 
-        readonly IReadOnlyList<IRegexEngine> RegexEngines;
-        readonly IRegexEngine DefaultRegexEngine;
-        IRegexEngine? CurrentRegexEngine = null;
-        readonly HashSet<IRegexEngine> RegexEnginesUsed = new( );
+        readonly IReadOnlyList<RegexEngine> RegexEngines;
+        readonly RegexEngine DefaultRegexEngine;
+        RegexEngine? CurrentRegexEngine = null;
+        readonly HashSet<RegexEngine> RegexEnginesUsed = [];
 
         public bool IsFullyLoaded { get; private set; } = false;
         bool IsInChange = false;
@@ -122,7 +118,7 @@ namespace RegExpressWPFNET
             }
         }
 
-        public UCMain( IReadOnlyList<IRegexEngine> engines )
+        public UCMain( IReadOnlyList<RegexEngine> engines )
         {
             InitializeComponent( );
 
@@ -527,7 +523,7 @@ namespace RegExpressWPFNET
             if( !IsFullyLoaded ) return;
             if( IsInChange ) return;
 
-            CurrentRegexEngine = (IRegexEngine)e.AddedItems[0]!;
+            CurrentRegexEngine = (RegexEngine)e.AddedItems[0]!;
 
             ShowOverlappingMatchesWarning( false );
 
@@ -537,7 +533,7 @@ namespace RegExpressWPFNET
         }
 
 
-        private void Engine_OptionsChanged( IRegexEngine sender, RegexEngineOptionsChangedArgs args )
+        private void Engine_OptionsChanged( RegexEngine sender, RegexEngineOptionsChangedArgs args )
         {
             if( !IsFullyLoaded ) return;
             if( IsInChange ) return;
@@ -654,7 +650,7 @@ namespace RegExpressWPFNET
 
             try
             {
-                IRegexEngine? engine = RegexEngines.SingleOrDefault( eng => eng.CombinedId == tabData.ActiveCombinedId );
+                RegexEngine? engine = RegexEngines.SingleOrDefault( eng => GetCombinedId( eng ) == tabData.ActiveCombinedId );
 
                 // if no exact match, identify the most appropriate engine
 
@@ -696,11 +692,11 @@ namespace RegExpressWPFNET
                 SetEngineOption( engine ); //
 
                 // set options of active and inactive engines
-                foreach( IRegexEngine eng in RegexEngines )
+                foreach( RegexEngine eng in RegexEngines )
                 {
                     string? options = null;
 
-                    options = tabData.EngineOptions?.FirstOrDefault( o => o.CombinedId == eng.CombinedId )?.Options;
+                    options = tabData.EngineOptions?.FirstOrDefault( o => o.CombinedId == GetCombinedId( eng ) )?.Options;
 
                     // if no exact match, identify the most appropriate engine
 
@@ -834,7 +830,7 @@ namespace RegExpressWPFNET
             string pattern = "";
             string text = "";
             bool first_only = false;
-            IRegexEngine? engine = null;
+            RegexEngine? engine = null;
 
             UITaskHelper.Invoke( this,
                 ( ) =>
@@ -1163,7 +1159,7 @@ namespace RegExpressWPFNET
         }
 
 
-        void SetEngineOption( IRegexEngine engine )
+        void SetEngineOption( RegexEngine engine )
         {
             cbxEngine.SelectedItem = engine;
 
@@ -1227,7 +1223,7 @@ namespace RegExpressWPFNET
             TextSample = text;
         }
 
-        void UpdateOptions( IRegexEngine engine )
+        void UpdateOptions( RegexEngine engine )
         {
             pnlRegexOptions.Children.Clear( );
             Control options_control = engine.GetOptionsControl( );
@@ -1241,7 +1237,7 @@ namespace RegExpressWPFNET
             svOptions.ScrollToHome( );
         }
 
-        void UpdateShowSucceededGroupsOnlyCheckbox( IRegexEngine engine )
+        void UpdateShowSucceededGroupsOnlyCheckbox( RegexEngine engine )
         {
             RegexEngineCapabilityEnum caps = engine.Capabilities;
             bool group_success_flag_supported = !caps.HasFlag( RegexEngineCapabilityEnum.NoGroups ) && !caps.HasFlag( RegexEngineCapabilityEnum.NoGroupSuccessFlag );
@@ -1252,7 +1248,7 @@ namespace RegExpressWPFNET
             cbShowSucceededGroupsOnlyDisabledUnchecked.Display( !group_success_flag_supported );
         }
 
-        void UpdateShowCapturesCheckbox( IRegexEngine engine )
+        void UpdateShowCapturesCheckbox( RegexEngine engine )
         {
             RegexEngineCapabilityEnum caps = engine.Capabilities;
             bool captures_supported = !caps.HasFlag( RegexEngineCapabilityEnum.NoGroups ) && caps.HasFlag( RegexEngineCapabilityEnum.HasCaptures );
@@ -1278,6 +1274,8 @@ namespace RegExpressWPFNET
         {
             PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
         }
+
+        static (string Kind, string? Version) GetCombinedId( RegexEngine engine ) => (engine.Kind, engine.Version);
 
         #region INotifyPropertyChanged
 

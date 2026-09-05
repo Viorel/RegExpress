@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace VBScriptPlugin;
 
-namespace VBScriptPlugin
+class Versions
 {
-    internal class Versions
-    {
-        // The version of determined programmatically
-    }
+    // The version of determined programmatically
 }

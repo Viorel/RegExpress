@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace RegExpressLibrary.Matches.IndexConverters
+﻿namespace RegExpressLibrary.Matches.IndexConverters
 {
     public sealed class IdentityIndexConverter : IIndexConverter
     {

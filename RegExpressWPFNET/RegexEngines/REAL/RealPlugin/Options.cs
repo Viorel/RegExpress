@@ -1,29 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace RealPlugin;
 
-
-namespace RealPlugin
+class Options
 {
-    internal class Options
-    {
-        public bool icase { get; set; }
-        public bool multiline { get; set; }
-        public bool dotall { get; set; }
-        //public bool bytes { get; set; } // not supported here
-        public bool verbose { get; set; }
-        public bool ecma { get; set; }
-        public bool ascii { get; set; }
-        public bool dollar_endonly { get; set; }
-        public bool allow_raw_byte { get; set; }
-        public bool ungreedy { get; set; }
-        public bool longest { get; set; }
+    public bool icase { get; set; }
+    public bool multiline { get; set; }
+    public bool dotall { get; set; }
+    //public bool bytes { get; set; } // not supported here
+    public bool verbose { get; set; }
+    public bool ecma { get; set; }
+    public bool ascii { get; set; }
+    public bool dollar_endonly { get; set; }
+    public bool allow_raw_byte { get; set; }
+    public bool ungreedy { get; set; }
+    public bool longest { get; set; }
 
-        public Options Clone( )
-        {
-            return (Options)MemberwiseClone( );
-        }
+    public Options Clone( )
+    {
+        return (Options)MemberwiseClone( );
     }
 }

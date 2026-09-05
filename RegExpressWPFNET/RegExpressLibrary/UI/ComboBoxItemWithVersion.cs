@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.DirectoryServices.ActiveDirectory;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
 namespace RegExpressLibrary.UI
@@ -75,7 +68,7 @@ namespace RegExpressLibrary.UI
         {
             base.OnPropertyChanged( e );
 
-            if( e.Property.Name == "Tag")
+            if( e.Property.Name == "Tag" )
             {
                 AdjustContent( );
             }

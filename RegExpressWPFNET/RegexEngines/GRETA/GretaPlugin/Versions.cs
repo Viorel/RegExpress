@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace GretaPlugin;
 
-namespace GretaPlugin
+class Versions
 {
-    internal class Versions
-    {
-        public static string GRETA { get; } = "2.6.4";
-    }
+    public static string GRETA { get; } = "2.6.4";
 }

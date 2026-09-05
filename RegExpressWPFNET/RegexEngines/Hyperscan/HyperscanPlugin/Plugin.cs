@@ -1,21 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using RegExpressLibrary;
+using System.Collections.Generic;
 
 
-namespace HyperscanPlugin
+namespace HyperscanPlugin;
+
+public class Plugin : RegexPlugin
 {
-    public class Plugin : RegexPlugin
+    #region RegexPlugin
+
+    public override IReadOnlyList<RegexEngine> GetEngines( )
     {
-        #region RegexPlugin
-
-        public override IReadOnlyList<IRegexEngine> GetEngines( )
-        {
-            return new IRegexEngine[] { new Engine( ), new ChimeraEngine( ) };
-        }
-
-        #endregion
-
+        return [new HyperscanEngine( ), new ChimeraEngine( )];
     }
+
+    #endregion
 }

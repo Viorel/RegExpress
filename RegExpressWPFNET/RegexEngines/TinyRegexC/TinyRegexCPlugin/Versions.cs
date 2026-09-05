@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace TinyRegexCPlugin;
 
-namespace TinyRegexCPlugin
+class Versions
 {
-    internal class Versions
-    {
-        public static string TinyRegexC { get; } = "2022-06-21";
-    }
+    public static string TinyRegexC { get; } = "2022-06-21";
 }

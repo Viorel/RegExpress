@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-
-namespace RegExpressLibrary.SyntaxColouring
+﻿namespace RegExpressLibrary.SyntaxColouring
 {
     public readonly struct FeatureMatrix
     // ('struct', to simplify the calculation of hash code)

@@ -1,22 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace CompileTimeRegexPlugin;
 
-
-namespace CompileTimeRegexPlugin
+class Options
 {
-    internal class Options
-    {
-        public bool case_insensitive { get; set; }
-        public bool multiline { get; set; }
-        public bool singleline { get; set; }
-        public string? TemplateDepth { get; set; } // for undocumented "/templateDepth:N" compiler option
+    public bool case_insensitive { get; set; }
+    public bool multiline { get; set; }
+    public bool singleline { get; set; }
+    public string? TemplateDepth { get; set; } // for undocumented "/templateDepth:N" compiler option
 
-        public Options Clone( )
-        {
-            return (Options)MemberwiseClone( );
-        }
+    public Options Clone( )
+    {
+        return (Options)MemberwiseClone( );
     }
 }

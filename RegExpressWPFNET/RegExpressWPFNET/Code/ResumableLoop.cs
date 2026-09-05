@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using RegExpressLibrary;
+using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using RegExpressLibrary;
 
 
 namespace RegExpressWPFNET.Code

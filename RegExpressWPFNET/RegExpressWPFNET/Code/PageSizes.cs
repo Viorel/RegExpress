@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-
-namespace RegExpressWPFNET.Code
+﻿namespace RegExpressWPFNET.Code
 {
     internal readonly record struct PageSize( double WidthMm, double HeighMm );
 

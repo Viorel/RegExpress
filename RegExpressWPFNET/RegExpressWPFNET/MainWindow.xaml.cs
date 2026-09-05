@@ -1,34 +1,23 @@
-﻿using System;
+﻿using RegExpressLibrary;
+using RegExpressWPFNET.Code;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.DirectoryServices.ActiveDirectory;
 using System.Globalization;
 using System.IO;
-using System.IO.IsolatedStorage;
 using System.Linq;
 using System.Media;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
-using System.Xml;
-using RegExpressLibrary;
-using RegExpressWPFNET.Code;
 using Path = System.IO.Path;
 
 
@@ -463,7 +452,7 @@ namespace RegExpressWPFNET
         #endregion
 
 
-        IRegexEngine[] GetEngines( bool excludeNoFm = false )
+        RegexEngine[] GetEngines( bool excludeNoFm = false )
         {
             return ( excludeNoFm ? mRegexPlugins.Except( mNoFmRegexPlugins ) : mRegexPlugins ).SelectMany( p => p.GetEngines( ) ).ToArray( );
         }

@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace TREPlugin;
 
-namespace TREPlugin
+class Versions
 {
-    internal class Versions
-    {
-        public static string TRE { get; } = "0.9.0";
-    }
+    public static string TRE { get; } = "0.9.0";
 }

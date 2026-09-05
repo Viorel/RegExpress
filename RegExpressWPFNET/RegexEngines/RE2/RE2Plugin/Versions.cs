@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace RE2Plugin;
 
-namespace RE2Plugin
+class Versions
 {
-    internal class Versions
-    {
-        public static string RE2 { get; } = "2025-08-12";
-    }
+    public static string RE2 { get; } = "2025-08-12";
 }

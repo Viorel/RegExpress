@@ -1,22 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using RegExpressWPFNET.Code;
+using System;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
-using RegExpressLibrary;
-using RegExpressWPFNET.Code;
 
 
 namespace RegExpressWPFNET.Controls
 {
-    internal class MyRichTextBox : RichTextBox
+    class MyRichTextBox : RichTextBox
     {
         readonly WeakReference<TextData?>[] mCachedTextData = [new WeakReference<TextData?>( null ), new WeakReference<TextData?>( null ), new WeakReference<TextData?>( null )];
         readonly SelectionInfo[] mCachedSelection = [new SelectionInfo( -1, -1 ), new SelectionInfo( -1, -1 ), new SelectionInfo( -1, -1 )];
