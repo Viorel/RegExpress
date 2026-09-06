@@ -6077,7 +6077,17 @@ namespace real::detail {
       // a UTF-8 continuation byte (10xxxxxx) is not a valid start position. This
       // keeps zero-width matches (\b, \B, ^, $, empty) codepoint-aligned, like a
       // codepoint-based engine — bytes mode seeds every byte.
-      if (!prog_.byte_mode && pos < text.size() &&
+      //
+      // The region's own start is exempt, because "inside a codepoint" is a claim about the byte
+      // BEFORE `pos` and at `pos == start` there is none within the region: whatever sits there is
+      // the region's first byte, not the tail of a sequence the region contains. Without the
+      // exemption a subject beginning with a continuation byte has no position `start` at all, so
+      // `^` matched NOTHING on it — and `^` is the start of the subject by definition, whatever
+      // the bytes there decode to. Reachable from every byte-oriented caller (the C ABI, Go, Rust);
+      // not from Python, whose str offsets are codepoint indices and whose bytes mode does not
+      // decode. `$` never had the fault: at `pos == text.size()` the length test below already
+      // short-circuits, which is why the end of such a subject answered and its start did not.
+      if (!prog_.byte_mode && pos != start && pos < text.size() &&
           (static_cast<std::uint8_t>(text[pos]) & 0xC0U) == 0x80U) {
         return false;
       }

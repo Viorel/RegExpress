@@ -763,8 +763,10 @@ namespace real {
      *
      * Requires a build with \ref dfa_mode::which_matched. Returns a bitset of length
      * \ref rule_count in construction order. Early-exits when every pattern has hit.
-     * Empty matches are excluded (only states that accepted after consuming a byte
-     * contribute, via post-move accept masks).
+     * A rule that accepts the EMPTY string is credited: the start state's accept mask is folded in
+     * before the walk, so a nullable member answers true on an empty subject as this type's N-walk
+     * oracle does. Only that one position is added — every other accept still comes from a
+     * post-move mask.
      *
      * \param[in] text            Subject text.
      * \param[in] first_byte_skip When true (default), fast-forward over bytes that cannot
@@ -785,7 +787,40 @@ namespace real {
       const std::size_t          mw      {tables_.mask_words};
       std::size_t                pending {tables_.rule_count};
       const bool                 do_skip {first_byte_skip && tables_.skip_first_enabled};
-      for (std::size_t i = 0; i < text.size();) {
+
+      //! Fold one state's accept mask into the accumulator, counting newly-set bits for early exit.
+      const auto absorb = [&](std::uint32_t st) {
+                            if (st >= tables_.any_accept.size() || tables_.any_accept[st] == 0) {
+                              return;
+                            }
+                            const std::size_t base {static_cast<std::size_t>(st) * mw};
+                            for (std::size_t w = 0; w < mw; ++w) {
+                              const std::uint64_t m   {tables_.accept_mask[base + w]};
+                              const std::uint64_t neu {m & ~acc[w]};
+                              if (neu == 0) {
+                                continue;
+                              }
+                              acc[w] |= m;
+                              std::uint64_t x {neu};
+                              while (x != 0) {
+                                x &= x - 1U;
+                                if (pending > 0) {
+                                  --pending;
+                                }
+                              }
+                            }
+                          };
+
+      // A rule that accepts the EMPTY string has already accepted before any byte is read, and the
+      // loop below only folds POST-MOVE masks -- so on an empty subject it never ran at all and
+      // every nullable rule answered false, against this type's own N-walk oracle. The start
+      // state's own mask is that answer and the only place it lives.
+      //
+      // On a non-empty subject this is not a second crediting: `acc` starts at zero, and the loop's
+      // own fold is idempotent (`m & ~acc[w]`), so a rule already credited here contributes no new
+      // bit when the walk re-enters an accepting state.
+      absorb(state);
+      for (std::size_t i = 0; i < text.size() && pending != 0;) {
         // At start (no partial in flight), jump to the next set-first-byte candidate.
         if (do_skip && state == tables_.start) {
           const auto b0 {static_cast<std::uint8_t>(text[i])};
@@ -834,30 +869,7 @@ namespace real {
         const std::size_t cls  {tables_.byte_class[byte]};
         state = tables_.trans[(static_cast<std::size_t>(state) * nc) + cls];
         ++i;
-        // Most states accept nothing — skip the mask-OR on the common path.
-        if (state >= tables_.any_accept.size() || tables_.any_accept[state] == 0) {
-          continue;
-        }
-        const std::size_t base {static_cast<std::size_t>(state) * mw};
-        for (std::size_t w = 0; w < mw; ++w) {
-          const std::uint64_t m {tables_.accept_mask[base + w]};
-          const std::uint64_t neu {m & ~acc[w]};
-          if (neu == 0) {
-            continue;
-          }
-          acc[w] |= m;
-          // Count newly set bits for early-exit.
-          std::uint64_t x {neu};
-          while (x != 0) {
-            x &= x - 1U;
-            if (pending > 0) {
-              --pending;
-            }
-          }
-        }
-        if (pending == 0) {
-          break;
-        }
+        absorb(state); // most states accept nothing; `absorb` returns at once for those
       }
       for (std::size_t r = 0; r < tables_.rule_count; ++r) {
         hit[r] = ((acc[r >> 6U] >> (r & 63U)) & 1U) != 0;

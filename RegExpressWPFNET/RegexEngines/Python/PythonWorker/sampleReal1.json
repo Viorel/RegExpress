@@ -1,0 +1,15 @@
+{
+  "NOTE": "(should not have BOM)",
+  "pattern": "(?\u00E9",
+  "text": "a",
+  "flags": {
+    "ASCII": false,
+    "DOTALL": false,
+    "IGNORECASE": false,
+    "LOCALE": false,
+    "MULTILINE": false,
+    "VERBOSE": true,
+    "UNICODE": true,
+    "fallback": false
+  }
+}

@@ -776,13 +776,31 @@ namespace real {
     }
 
     /*!
-     * \brief Returns `true` if both denote the same position/end.
+     * \brief Returns `true` if both denote the same position in the SAME walk, or both are the end.
+     *
+     * The offset alone does not identify an iterator. Comparing `done_` and `pos_` and nothing else
+     * made two iterators over different walks equal whenever they happened to sit at the same
+     * offset — `find_iter` of `X` over `"aXbXc"` equalled `find_iter` of `Y` over `"aYbYc"` at
+     * position 1, while dereferencing to different text. Unlike a container iterator, this one owns
+     * the sequence it walks (\ref text_) and the program it runs (\ref prog_), so the identity is
+     * already here and costs one comparison to use.
+     *
+     * Both EXHAUSTED iterators stay equal whatever they walked, and that is not an oversight: \ref
+     * basic_match_range::end returns a default-constructed iterator, so a walk's own end sentinel
+     * carries neither text nor program. Requiring identity there would make every range-for over
+     * this type loop forever. The check therefore sits on the live branch only — which is also why
+     * it is free: a live iterator compared against the sentinel differs in `done_` and stops there,
+     * and so does an exhausted one, so the loop condition never reaches the added comparisons.
+     *
      * \param[in] other Another iterator.
-     * \return `true` if both denote the same position/end.
+     * \return `true` if both are exhausted, or both are live at the same offset of the same walk.
      */
     [[nodiscard]] constexpr bool operator==(const basic_match_iterator& other) const
     {
-      return done_ == other.done_ && (done_ || pos_ == other.pos_);
+      return done_ == other.done_ &&
+             (done_ || (pos_ == other.pos_ && text_.data() == other.text_.data() &&
+                        text_.size() == other.text_.size() &&
+                        prog_.code.data() == other.prog_.code.data()));
     }
 
   private:
@@ -2143,6 +2161,15 @@ namespace real {
                                             match_semantics         sem = match_semantics::first) const
     {
       const std::size_t              end {endpos < text.size() ? endpos : text.size()};
+      // An INVERTED region (pos past endpos) cannot contain a match, not even an empty one, and
+      // `re` agrees: `re.compile("x*").search("abc", 1, 0)` is None while pos == endpos still
+      // yields the zero-width match at that offset. Returning early is not an optimisation --
+      // without it `pos` is handed to the VM past the end of the truncated subject and a `substr`
+      // deep inside throws std::out_of_range, which escaped the engine as `string_view::substr`:
+      // a standard-library exception surfacing from a search, on input `re` accepts.
+      if (pos > end) {
+        return result_type {};
+      }
       // FRESH PER SEARCH, and reusing it across searches was measured and refused rather than
       // overlooked. Constructing plus destroying this state is a per-call constant: a fifth to a quarter
       // of a SHORT search, and negligible once captures dominate. No single member accounts for it --

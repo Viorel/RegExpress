@@ -163,6 +163,7 @@ namespace real {
                 std::size_t        position,
                 error_kind         kind = error_kind::syntax)
       : message_("regex_error at " + std::to_string(position) + ": " + message),
+        cause_(message),
         position_(position),
         kind_(kind)
     {}
@@ -194,9 +195,25 @@ namespace real {
       return position_;
     }
 
+    /*!
+     * \brief Returns the cause WITHOUT the `regex_error at N: ` prefix that \ref what adds.
+     *
+     * Every consumer that reports the position through its own channel — a Python `error.pos`, a
+     * rethrow that appends context — has to strip that prefix first, and each was doing it by
+     * matching the formatted string. Two copies of one format is a drift the class can simply not
+     * create: it holds both forms, since it built the prefixed one from this.
+     *
+     * \return The unprefixed message, valid for this object's lifetime.
+     */
+    [[nodiscard]] const std::string& cause() const noexcept
+    {
+      return cause_;
+    }
+
   private:
 
     std::string message_;  //!< Formatted message returned by what().
+    std::string cause_;    //!< The same message without the position prefix (see cause()).
     std::size_t position_; //!< Offset in the pattern text.
     error_kind  kind_;     //!< Malformed (syntax) vs unsupported-by-REAL.
   };

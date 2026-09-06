@@ -318,8 +318,20 @@ namespace real {
     void build_from_views(std::span<const std::string_view> patterns)
     {
       members_.reserve(patterns.size());
-      for (const std::string_view pat : patterns) {
-        members_.emplace_back(pat, flags_); // throws regex_error on failure
+      for (std::size_t i = 0; i < patterns.size(); ++i) {
+        try {
+          members_.emplace_back(patterns[i], flags_);
+        }
+        catch (const regex_error& ex) {
+          // WHICH member, said by the only place that knows. The position a member's own parser
+          // reports is an offset INSIDE that member, so on its own it points into a string the
+          // caller has to guess at: with three members and no index, a caller holding a generated
+          // list has to re-compile them all to find out which one it was. The index is free here
+          // and nowhere else.
+          throw regex_error(ex.cause() + " (in pattern " + std::to_string(i) + " of " +
+                            std::to_string(patterns.size()) + ")",
+                            ex.position(), ex.kind());
+        }
       }
       if (members_.empty()) {
         return;

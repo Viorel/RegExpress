@@ -1222,9 +1222,14 @@ namespace real::detail {
      * \brief Wraps \p atom in a repeat node if a quantifier follows.
      *
      * Grammar: `quantifier := ('*' | '+' | '?' | '{n}' | '{n,}' | '{,m}' |
-     * '{n,m}') '?'?`. An invalid `{...}` is not a quantifier at all
-     * and stays literal text, exactly like Python (e.g. `a{`, `a{2,3x`,
-     * `a{,}` all match literally). A bare anchor cannot be repeated.
+     * '{n,m}') '?'?`. An ILL-FORMED `{...}` is not a quantifier at all and stays
+     * literal text, exactly like Python (`a{`, `a{2,3x`, `a{,}` all match
+     * literally). A WELL-FORMED one with no atom before it does not: `{2}a` is
+     * literal here and `nothing to repeat` in Python, because `re` checks for a
+     * preceding atom and this function is only reached when there is one. That
+     * is a deliberate extension, recorded in the divergences catalogue as
+     * div_compiles -- "exactly like Python" held for the three examples above
+     * and not for the case they omitted. A bare anchor cannot be repeated.
      *
      * \param[in,out] out  The AST being built.
      * \param[in]     atom Index of the atom the quantifier would apply to.
@@ -1281,11 +1286,15 @@ namespace real::detail {
       // rejects it too ("bad repetition operator", RE2 has no possessives; measured 2026-07-17).
       const bool possessive {!is_ecma() && !lazy && accept('+')};
       if (!eof()) {
-        const char   ch          {peek()};
-        std::int32_t ignored_min {};
-        std::int32_t ignored_max {-1};
+        const std::size_t second_pos  {pos_}; // captured before try_parse_braces CONSUMES the braces
+        const char        ch          {peek()};
+        std::int32_t      ignored_min {};
+        std::int32_t      ignored_max {-1};
         if (ch == '*' || ch == '+' || ch == '?' ||
             (ch == '{' && try_parse_braces(ignored_min, ignored_max))) {
+          // The second quantifier, which is the one that cannot be there. `*` and `?` consume
+          // nothing so they already reported here; `{n}` does, and reported past its own `}`.
+          pos_ = second_pos;
           fail("multiple repeat");
         }
       }
@@ -1344,7 +1353,9 @@ namespace real::detail {
       min = repeat_min < 0 ? 0 : repeat_min;
       max = (has_comma && repeat_max < 0) ? -1 : repeat_max;
       if (max != -1 && max < min) {
-        pos_ = saved_pos;
+        // The first character INSIDE the braces, where `re` reports: the counts are the fault, not
+        // the brace that introduces them. `saved_pos` is the `{`.
+        pos_ = saved_pos + 1;
         fail("min repeat greater than max repeat");
       }
       return true;
@@ -1527,13 +1538,21 @@ namespace real::detail {
      * "at the start": that prefix would have taken it.
      *
      * \param[in] after_removal Whether the run just consumed a `-flags` suffix.
+     * \param[in] open_pos      Offset of the `(` that opened the group, where `re` reports the
+     *                          placement fault -- the whole construct is misplaced, not the byte
+     *                          the scan stopped on.
      */
-    constexpr void require_scoped_flags_colon(bool after_removal)
+    constexpr void require_scoped_flags_colon(bool        after_removal,
+                                              std::size_t open_pos)
     {
       if (accept(':')) {
         return;
       }
       if (!eof() && peek() == ')') {
+        // `a(?i)b` is wrong because the GROUP is not at the start; pointing after the flag letters
+        // named the last thing read instead of the thing that is misplaced, and on a long pattern
+        // the position is how the fault is found at all.
+        pos_ = open_pos;
         fail("global flags not at the start of the expression");
       }
       if (after_removal) {
@@ -1714,7 +1733,7 @@ namespace real::detail {
             }
             after_removal = true;
           }
-          require_scoped_flags_colon(after_removal);
+          require_scoped_flags_colon(after_removal, open_pos);
           // Every inline flag (i m s x a U) is honoured per scope: verbose changes tokenization, icase/
           // ascii govern folding and the \w\d\s tables, dotall the dot, multiline the ^/$ anchors,
           // ungreedy the default quantifier greediness — all read from the scope stack. The added set
@@ -1825,7 +1844,7 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Returns `true` if \p ch may start a group name.
+     * \brief Returns `true` if \p ch may start a group name in bytes mode.
      * \param[in] ch A character.
      * \return `true` if \p ch may start a group name.
      */
@@ -1835,7 +1854,90 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Parses `name := [A-Za-z_][A-Za-z0-9_]* '>'` and records it.
+     * \brief Returns `true` if \p cp may start a text-mode group name (`str.isidentifier()`).
+     *
+     * Measured against UCD 16.0.0: `isidentifier()` is `XID_Start ∪ {U+005F}`, then `XID_Continue`.
+     * \param[in] cp A code point.
+     * \return `true` if \p cp may start a name.
+     */
+    static constexpr bool is_name_start_cp(char32_t cp)
+    {
+      return cp == U'_' || is_binprop_cp(binprop::XID_Start, cp);
+    }
+
+    /*!
+     * \brief Fails a group name the way `re` does: quoting the name it read, at the name's start.
+     *
+     * `bad character in group name` names the rule; `re` names the reading —
+     * `bad character in group name 'a b' at position 4`. It reads to the closing `>` and quotes
+     * everything between, so the reader sees the whole name rather than being told one of its
+     * characters was wrong. `re` also splits three cases this did not: an EMPTY name is
+     * `missing group name`, an unterminated one is `missing >, unterminated name`, and only a
+     * name with a bad character carries the quote.
+     *
+     * Scans forward from \p begin to find the `>`; the read offset is left alone, since the
+     * caller is about to throw.
+     * \param[in] begin Offset of the name's first byte, which is where `re` reports.
+     * \throws real::regex_error always.
+     */
+    template <typename = void>
+    [[noreturn]] constexpr void fail_group_name(std::size_t begin) const
+    {
+      std::size_t close {begin};
+      while (close < pattern_.size() && pattern_[close] != '>') {
+        ++close;
+      }
+      if (close >= pattern_.size()) {
+        throw regex_error("missing >, unterminated name", begin);
+      }
+      if (close == begin) {
+        throw regex_error("missing group name", begin);
+      }
+      std::string message {"bad character in group name '"};
+      for (std::size_t i = begin; i < close; ++i) {
+        message += pattern_[i];
+      }
+      message += '\'';
+      throw regex_error(message, begin);
+    }
+
+    /*!
+     * \brief Fails a duplicate group name the way `re` does, naming it and both group numbers.
+     *
+     * `redefinition of group name` said neither which name nor which groups;
+     * `re` reports `redefinition of group name 'x' as group 2; was group 1`.
+     * \param[in] begin    Offset of the offending name's first byte.
+     * \param[in] end      One past its last byte.
+     * \param[in] group    The capture number being defined now.
+     * \param[in] previous The capture number that already carries this name.
+     * \throws real::regex_error always.
+     */
+    template <typename = void>
+    [[noreturn]] constexpr void fail_duplicate_group_name(std::size_t  begin,
+                                                          std::size_t  end,
+                                                          std::int32_t group,
+                                                          std::int32_t previous) const
+    {
+      std::string message {"redefinition of group name '"};
+      for (std::size_t i = begin; i < end; ++i) {
+        message += pattern_[i];
+      }
+      message += "' as group ";
+      message += std::to_string(group);
+      message += "; was group ";
+      message += std::to_string(previous);
+      throw regex_error(message, begin);
+    }
+
+    /*!
+     * \brief Parses a group name up to `>` and records it.
+     *
+     * Text mode: a Python identifier (`XID_Start ∪ {_}`, then `XID_Continue`), so `(?P<é>a)` is
+     * accepted. Bytes mode: `[A-Za-z_][A-Za-z0-9_]*`, matching `re` on a bytes pattern. A
+     * malformed UTF-8 sequence is "bad character in group name" at the bad byte — not a decode
+     * error, which would be a different divergence. The name is stored as a byte span into the
+     * pattern, so `group("é")` / `groupindex` resolve by the same octets.
+     *
      * \param[in,out] out   The AST; the name is appended to \ref ast::names.
      * \param[in]     group The capture number this name refers to.
      * \throws real::regex_error on a bad character or a duplicate name.
@@ -1844,20 +1946,48 @@ namespace real::detail {
                                     std::int32_t group)
     {
       const std::size_t begin {pos_};
-      if (eof() || !is_name_start(peek())) {
-        fail("bad character in group name");
+      // Read bytes-mode from the scope stack, not the global `bytes_` member (the flag-scope
+      // ratchet): bytes is never scoped, so this equals `bytes_` while keeping the parser's
+      // global-read count flat -- the same precedent as `\p{...}`, `\C` and the class walk.
+      if (has_flag(current_flags(), flags::bytes)) {
+        if (eof() || !is_name_start(peek())) {
+          fail_group_name(begin);
+        }
+        while (!eof() && (is_ascii_alnum(peek()) || peek() == '_')) {
+          ++pos_;
+        }
       }
-      while (!eof() && (is_ascii_alnum(peek()) || peek() == '_')) {
-        ++pos_;
+      else {
+        bool first {true};
+        while (!eof() && peek() != '>') {
+          const decoded_codepoint decoded {decode_codepoint_strict(pattern_, pos_)};
+          if (!decoded.valid) {
+            fail_group_name(begin);
+          }
+          const char32_t cp {static_cast<char32_t>(decoded.cp)};
+          const bool     ok {first ? is_name_start_cp(cp) : is_binprop_cp(binprop::XID_Continue, cp)};
+          if (!ok) {
+            fail_group_name(begin);
+          }
+          pos_ += decoded.length;
+          first = false;
+        }
+        if (first) {
+          fail_group_name(begin);
+        }
       }
       const std::size_t end {pos_};
-      expect('>', "bad character in group name");
+      if (eof() || peek() != '>') {
+        fail_group_name(begin);
+      }
+      ++pos_; // consume '>'
+
       for (const named_group& existing : out.names) {
         const std::string_view name    {pattern_.substr(begin, end - begin)};
         const auto             e_begin {static_cast<std::size_t>(existing.begin)};
         const auto             e_end   {static_cast<std::size_t>(existing.end)};
         if (pattern_.substr(e_begin, e_end - e_begin) == name) {
-          fail("redefinition of group name");
+          fail_duplicate_group_name(begin, end, group, existing.group);
         }
       }
       out.names.push_back({.group = group,
@@ -1871,11 +2001,13 @@ namespace real::detail {
      * Handles `\n` `\t` `\r` `\f` `\v` `\a` `\0`, `\xHH` and
      * escaped ASCII punctuation.
      *
+     * \param[in] backslash Offset of the `\` that opened the escape, forwarded so a truncated
+     *                       `\xH` reports at the sequence's start the way `re` does.
      * \return The byte value, or -1 when the escape is not a single byte
      *         (the caller then handles `\d` `\w` `\s`, etc.).
      * \throws real::regex_error on a malformed `\x` escape.
      */
-    constexpr std::int32_t parse_byte_escape()
+    constexpr std::int32_t parse_byte_escape(std::size_t backslash)
     {
       const char ch {peek()};
       if (ch >= '0' && ch <= '9') {
@@ -1907,8 +2039,8 @@ namespace real::detail {
         case 'x':
           {
             ++pos_;
-            const std::int32_t high_nibble {hex_digit()};
-            const std::int32_t low_nibble  {hex_digit()};
+            const std::int32_t high_nibble {hex_digit(backslash)};
+            const std::int32_t low_nibble  {hex_digit(backslash)};
             return (high_nibble * 16) + low_nibble; // arithmetic, not signed bitwise (MISRA)
           }
         default:
@@ -1945,14 +2077,96 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Fails a truncated escape the way `re` does: quoting what was read, at the backslash.
+     *
+     * `invalid \x escape: expected two hex digits` states the RULE; `re` states the READING —
+     * `incomplete escape \x1 at position 1` — so a reader sees which characters were consumed and
+     * where the sequence began rather than being told what a correct one looks like. CPython builds
+     * it as `"incomplete escape %s" % escape` and rewinds by `len(escape)`, which lands on the
+     * backslash; both halves are copied here.
+     *
+     * Every caller already knows its own backslash offset, so nothing new is computed: the quoted
+     * text is `pattern_[backslash_pos .. pos_)`, which is exactly what the scan consumed before
+     * running out of digits.
+     *
+     * \param[in] backslash_pos Offset of the `\` that opened the escape.
+     * \throws real::regex_error always.
+     */
+    template <typename = void>
+    [[noreturn]] constexpr void fail_incomplete_escape(std::size_t backslash_pos) const
+    {
+      std::string message {"incomplete escape "};
+      for (std::size_t i = backslash_pos; i < pos_ && i < pattern_.size(); ++i) {
+        message += pattern_[i];
+      }
+      throw regex_error(message, backslash_pos);
+    }
+
+    /*!
+     * \brief Fails a bad character-class range the way `re` does: quoting the range it read.
+     *
+     * `bad character range at position 1` said WHERE without saying WHAT, on the one diagnostic
+     * where the reader most needs the WHAT: a range is two endpoints and an order, and the message
+     * named none of them. `re` reports `bad character range z-a at position 1`. The parser already
+     * holds both ends — the caller rewinds the read offset to the range's start before failing, so
+     * the start is `begin` and the end is wherever the scan had reached.
+     *
+     * Quotes the SOURCE text, so `[\d-z]` names `\d-z` and `[\x7f-\x20]` names `\x7f-\x20`.
+     * `re` prints `\x-\x` for that second one, its own tokenizer showing through; quoting what the
+     * author wrote is more use to the author, and the divergence is only in how much of an
+     * already-rejected range is echoed back.
+     *
+     * \param[in] begin Offset of the range's first byte, which is where `re` reports.
+     * \param[in] end   One past the range's last byte, as far as the caller had read.
+     * \throws real::regex_error always.
+     */
+    template <typename = void>
+    [[noreturn]] constexpr void fail_bad_range(std::size_t begin,
+                                               std::size_t end) const
+    {
+      std::string message {"bad character range "};
+      for (std::size_t i = begin; i < end && i < pattern_.size(); ++i) {
+        message += pattern_[i];
+      }
+      throw regex_error(message, begin);
+    }
+
+    /*!
+     * \brief Fails an escape REAL does not implement, naming it and reporting at the backslash.
+     *
+     * `unsupported escape sequence` named the category and not the escape, so `\q`, `\y` and
+     * every other unrecognised letter produced one indistinguishable message — and it pointed at
+     * the escaped character rather than at the `\`, which is where `re` reports (`bad escape \q
+     * at position 0`) and where \ref fail_incomplete_escape already reports. Two escapes on the
+     * same line were impossible to tell apart from the diagnostic alone.
+     *
+     * The `unsupported` kind is kept: what a binding branches on does not change here, only what a
+     * reader is told.
+     *
+     * \param[in] backslash Offset of the `\` that opened the escape.
+     * \throws real::regex_error always.
+     */
+    template <typename = void>
+    [[noreturn]] constexpr void fail_unsupported_escape(std::size_t backslash) const
+    {
+      std::string message {"unsupported escape sequence \\"};
+      if (backslash + 1 < pattern_.size()) {
+        message += pattern_[backslash + 1];
+      }
+      throw regex_error(message, backslash, error_kind::unsupported);
+    }
+
+    /*!
      * \brief Consumes one hexadecimal digit.
+     * \param[in] backslash_pos Offset of the `\` that opened the escape, so a missing digit is
+     *                           reported as a truncated escape at the sequence's start.
      * \return Its value in `[0, 15]`.
      * \throws real::regex_error if the next character is not a hex digit.
      */
-    constexpr std::int32_t hex_digit()
+    constexpr std::int32_t hex_digit(std::size_t backslash_pos)
     {
       if (eof()) {
-        fail("invalid \\x escape: expected two hex digits");
+        fail_incomplete_escape(backslash_pos);
       }
       const char ch {peek()};
       ++pos_;
@@ -1966,7 +2180,7 @@ namespace real::detail {
         return ch - 'A' + 10;
       }
       --pos_;
-      fail("invalid \\x escape: expected two hex digits");
+      fail_incomplete_escape(backslash_pos);
     }
 
     /*!
@@ -1981,9 +2195,11 @@ namespace real::detail {
      * already consumed; this reads the hex digits, or `{` then the shared braced reader.
      *
      * \param[in] capital True for `\U` (8 digits), false for `\u` (4 digits or `\u{…}`).
+     * \param[in] backslash Offset of the `\` that opened the escape, for a truncated-escape report.
      * \return The code point in `[0, 0x10FFFF]` (never a surrogate).
      */
-    constexpr std::int32_t parse_unicode_codepoint(bool capital)
+    constexpr std::int32_t parse_unicode_codepoint(bool        capital,
+                                                   std::size_t backslash)
     {
       if (bytes_) {
         fail("\\u and \\U escapes are not allowed in bytes patterns");
@@ -2009,8 +2225,7 @@ namespace real::detail {
           }
         }
         if (digit < 0) {
-          fail(capital ? "invalid \\U escape: expected 8 hex digits"
-                       : "invalid \\u escape: expected 4 hex digits");
+          fail_incomplete_escape(backslash);
         }
         value = (value * 16) + digit;
         ++pos_;
@@ -2226,6 +2441,9 @@ namespace real::detail {
      */
     constexpr std::int32_t parse_escape(ast& out)
     {
+      // Kept because a truncated escape reports at the BACKSLASH, the way `re` does -- every
+      // diagnostic below that quotes what it read needs the sequence's start, not the cursor.
+      const std::size_t backslash {pos_};
       ++pos_; // consume the backslash
       if (eof()) {
         fail("dangling backslash");
@@ -2293,10 +2511,10 @@ namespace real::detail {
           return add_node(out, {.kind = node_kind::anchor, .anchor = anchor_kind::word_end});
         case 'u':
           ++pos_;
-          return emit_literal_codepoint(out, parse_unicode_codepoint(false));
+          return emit_literal_codepoint(out, parse_unicode_codepoint(false, backslash));
         case 'U':
           ++pos_;
-          return emit_literal_codepoint(out, parse_unicode_codepoint(true));
+          return emit_literal_codepoint(out, parse_unicode_codepoint(true, backslash));
         case 'N':
           ++pos_;
           return emit_literal_codepoint(out, parse_named_codepoint());
@@ -2329,9 +2547,9 @@ namespace real::detail {
               ++pos_; // consume 'x'
               return emit_literal_codepoint(out, parse_braced_hex_escape());
             }
-            const std::int32_t byte_value {parse_byte_escape()};
+            const std::int32_t byte_value {parse_byte_escape(backslash)};
             if (byte_value < 0) {
-              fail_unsupported("unsupported escape sequence");
+              fail_unsupported_escape(backslash);
             }
             // A `\xHH` / octal escape with value < 0x80 is an ASCII character (byte == code point): a
             // cased one folds under icase like a raw ASCII literal (`\x4B` == `K`). A value >= 0x80
@@ -2378,6 +2596,9 @@ namespace real::detail {
         ++pos_;
         return static_cast<std::uint8_t>(ch);
       }
+      // Same reason as parse_escape: a truncated escape reports at the backslash, not at the
+      // cursor, so its offset has to outlive the consumption.
+      const std::size_t backslash {pos_};
       ++pos_; // consume the backslash
       if (eof()) {
         fail("dangling backslash");
@@ -2414,7 +2635,7 @@ namespace real::detail {
             ++pos_;
             // A non-ASCII code point is now a valid class member (code-point mode); `parse_unicode_codepoint`
             // already rejects `\u`/`\U` in bytes mode, so a class in bytes mode still has ASCII-only members.
-            return parse_unicode_codepoint(capital);
+            return parse_unicode_codepoint(capital, backslash);
           }
         case 'N':
           ++pos_;
@@ -2454,9 +2675,9 @@ namespace real::detail {
               ++pos_; // consume 'x'
               return parse_braced_hex_escape();
             }
-            const std::int32_t byte_value {parse_byte_escape()};
+            const std::int32_t byte_value {parse_byte_escape(backslash)};
             if (byte_value < 0) {
-              fail_unsupported("unsupported escape sequence");
+              fail_unsupported_escape(backslash);
             }
             return byte_value;
           }
@@ -2531,8 +2752,15 @@ namespace real::detail {
           // and matched "-" -- while the mirror case `[a-\d]` already failed below. Python raises on
           // both; this half of the rule was simply missing. A trailing '-]' stays a literal, as there.
           if (!eof() && peek() == '-' && pos_ + 1 < pattern_.size() && pattern_[pos_ + 1] != ']') {
+            // The end endpoint has not been parsed here, so its extent is taken the way a reader
+            // takes it: one character, or two when it is an escape. Inventing more would be a guess
+            // about text the parser has not looked at.
+            std::size_t end {pos_ + 2};
+            if (pattern_[pos_ + 1] == '\\' && pos_ + 2 < pattern_.size()) {
+              ++end;
+            }
             pos_ = item_pos;
-            fail("bad character range");
+            fail_bad_range(item_pos, end);
           }
           continue; // set item (e.g. \d): its bitmap and any Unicode ranges are already merged
         }
@@ -2542,8 +2770,9 @@ namespace real::detail {
           ++pos_; // consume '-'
           const std::int32_t range_end {parse_class_item(klass, ranges, property_derived)};
           if (range_end < 0 || range_end < range_start) {
+            const std::size_t end {pos_}; // captured BEFORE the rewind, or the quote would be empty
             pos_ = item_pos;
-            fail("bad character range");
+            fail_bad_range(item_pos, end);
           }
           add_range(range_start, range_end);
         }
