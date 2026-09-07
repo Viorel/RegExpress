@@ -97,10 +97,12 @@ partial class SubengineRE2JS( Options options ) : RegexSubengine
 
         foreach( Match response_match in response.Matches )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             /*
-             * Example:
-             * {"Matches":[{"ag":[[0,3],[1,2],[2,3],[-1,-1]],"ng":[["n",2,3],["x",-1,-1]]},{"ag":[[4,7],[5,6],[6,7],[-1,-1]],"ng":[["n",6,7],["x",-1,-1]]}]}
-             */
+                 * Example:
+                 * {"Matches":[{"ag":[[0,3],[1,2],[2,3],[-1,-1]],"ng":[["n",2,3],["x",-1,-1]]},{"ag":[[4,7],[5,6],[6,7],[-1,-1]],"ng":[["n",6,7],["x",-1,-1]]}]}
+                 */
 
             HashSet<string> used_names = [];
 

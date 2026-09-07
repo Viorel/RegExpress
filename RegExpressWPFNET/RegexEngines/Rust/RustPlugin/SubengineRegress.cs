@@ -102,6 +102,8 @@ class SubengineRegress( Options options ) : RegexSubengine
 
         foreach( var m in response )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             SimpleMatch? match = null;
 
             List<string> assigned_names = [];

@@ -109,6 +109,8 @@ partial class Subengine( Options options ) : RegexSubengine
 
         while( ( line = ph.StreamReader.ReadLine( ) ) != null )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             if( line == "\x1FM" )
             {
                 match = null;

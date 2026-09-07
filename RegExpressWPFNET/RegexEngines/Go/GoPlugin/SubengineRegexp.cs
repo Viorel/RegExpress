@@ -89,6 +89,8 @@ class SubengineRegexp( Options options ) : RegexSubengine
 
             foreach( int[] m in root_object.Matches )
             {
+                if( cnc.IsCancellationRequested ) break;
+
                 if( m.Length < 2 || ( m.Length % 2 ) != 0 ) throw new Exception( $"Invalid length: {m.Length}." );
 
                 SimpleMatch match;

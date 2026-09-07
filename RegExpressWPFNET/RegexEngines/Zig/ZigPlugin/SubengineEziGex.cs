@@ -102,6 +102,8 @@ class SubengineEziGex( Options options ) : RegexSubengine
 
         foreach( var m in response.matches )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             SimpleMatch? match = null;
 
             {

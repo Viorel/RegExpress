@@ -111,6 +111,8 @@ partial class SubengineRegexr( Options options ) : RegexSubengine
 
         foreach( var m in root_object.matches )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             SimpleMatch? match = null;
 
             for( int group_index = 0; group_index < m.g.Length; group_index++ )

@@ -89,6 +89,8 @@ class SubengineDotNet( Options options ) : RegexSubengine
 
         for( int i = 0; i < worker_matches.Length; i++ )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             WorkerMatch m = worker_matches[i];
             SimpleMatch sm = SimpleMatch.Create( m.index, m.length, text_getter );
 

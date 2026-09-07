@@ -105,6 +105,8 @@ partial class Subengine( Options options ) : RegexSubengine
 
         for(; ; )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             char b = (char)br.ReadByte( );
             if( b == 'e' ) break;
 

@@ -92,6 +92,8 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
 
         while( ( line = ph.StreamReader.ReadLine( ) ) != null )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             if( line.Length == 0 || line.StartsWith( "#" ) ) continue;
 
             var m = NMgRegex( ).Match( line );

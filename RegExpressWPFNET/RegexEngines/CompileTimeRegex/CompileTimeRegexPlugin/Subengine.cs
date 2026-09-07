@@ -73,6 +73,8 @@ partial class Subengine( Options options ) : RegexSubengine
                 Path.Combine( temp_dir, "compile-time-regular-expressions" ),
                 recursive: true );
 
+            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+
             string build_cmd_full_path = Path.Combine( temp_dir, "build.cmd" );
 
             File.Copy(
@@ -104,6 +106,8 @@ partial class Subengine( Options options ) : RegexSubengine
                 File.WriteAllText( Path.Combine( temp_dir, "CompileTimeRegexSample.cpp" ), cpp_contents );
             }
 
+            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+
             // build executable
             string built_exe_full_path = Path.Combine( temp_dir, "CompileTimeRegexSample.exe" );
             {
@@ -131,6 +135,8 @@ partial class Subengine( Options options ) : RegexSubengine
                 }
             }
 
+            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+
             // execute
             {
                 ProcessHelper ph = new( built_exe_full_path )
@@ -149,6 +155,8 @@ partial class Subengine( Options options ) : RegexSubengine
 
                 while( ( line = ph.StreamReader.ReadLine( ) ) != null )
                 {
+                    if( cnc.IsCancellationRequested ) break;
+
                     line = line.Trim( );
 
                     if( line.Length == 0 ) continue;

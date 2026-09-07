@@ -90,6 +90,8 @@ partial class SubengineRe( Options options ) : RegexSubengine
 
         while( ( line = ph.StreamReader.ReadLine( ) ) != null )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             if( line.Length == 0 || line.StartsWith( "#" ) ) continue;
 
             Match m = NMgRegex( ).Match( line );

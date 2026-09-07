@@ -93,6 +93,8 @@ class SubengineResharp( Options options ) : RegexSubengine
 
         foreach( var m in response.matches )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             int native_start = m[0];
             int native_end = m[1];
             int native_length = native_end - native_start;

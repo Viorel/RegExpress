@@ -114,6 +114,8 @@ partial class SubengineRegexPlus( Options options ) : RegexSubengine
 
         foreach( var cm in response.Matches! )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             if( cm.Indices!.Any( ) )
             {
                 int native_start = cm.Indices![0][0];

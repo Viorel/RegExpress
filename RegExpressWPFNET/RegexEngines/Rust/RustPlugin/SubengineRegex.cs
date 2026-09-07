@@ -98,6 +98,8 @@ class SubengineRegex( Options options ) : RegexSubengine
 
         foreach( var m in response.matches )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             SimpleMatch? match = null;
 
             for( int group_index = 0; group_index < m.Length; group_index++ )

@@ -105,6 +105,8 @@ class Subengine( Options options ) : RegexSubengine
 
         for(; ; )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             int group_count = br.ReadInt32( );
             if( group_count < 0 ) break;
 

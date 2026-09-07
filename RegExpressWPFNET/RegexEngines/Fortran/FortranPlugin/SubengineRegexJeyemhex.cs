@@ -67,6 +67,8 @@ partial class SubengineRegexJeyemhex( Options options ) : RegexSubengine
 
         while( ( line = ph.StreamReader.ReadLine( ) ) != null )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             line = line.Trim( );
 
             if( line.Length == 0 ) continue;

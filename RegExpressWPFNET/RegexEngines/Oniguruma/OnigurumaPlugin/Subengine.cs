@@ -82,6 +82,8 @@ class Subengine( Options options, Engine parentEngine ) : RegexSubengine
 
         while( !done )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             switch( br.ReadByte( ) )
             {
             case (byte)'m':

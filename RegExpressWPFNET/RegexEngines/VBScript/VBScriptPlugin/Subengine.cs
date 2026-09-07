@@ -82,6 +82,8 @@ partial class Subengine( Options options ) : RegexSubengine
 
         while( ( line = ph.StreamReader.ReadLine( ) ) != null )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             var m = MatchRegex( ).Match( line );
             if( m.Success )
             {

@@ -129,6 +129,8 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
 
             foreach( Match m in root_object.Matches )
             {
+                if( cnc.IsCancellationRequested ) break;
+
                 SimpleMatch match;
 
                 {

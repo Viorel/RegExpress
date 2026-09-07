@@ -134,6 +134,8 @@ partial class HyperscanSubengine( HyperscanOptions options ) : RegexSubengine
 
         for( int i = 0; i < count; ++i )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             int native_index = checked((int)br.ReadUInt64( ));
             int native_length = checked((int)br.ReadUInt64( ));
             int native_end = native_index + native_length;

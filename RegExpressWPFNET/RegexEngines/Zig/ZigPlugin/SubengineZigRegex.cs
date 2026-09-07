@@ -225,6 +225,8 @@ class SubengineZigRegex( Options options ) : RegexSubengine
 
         foreach( var m in response.matches! )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             SimpleMatch? match = null;
 
             int native_start = m.start;

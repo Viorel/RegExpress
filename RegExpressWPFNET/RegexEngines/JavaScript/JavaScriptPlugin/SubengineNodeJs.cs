@@ -115,6 +115,8 @@ partial class SubengineNodeJs( Options options ) : RegexSubengine
 
                 for( int i = 1; i < cm.Indices.Count; ++i )
                 {
+                    if( cnc.IsCancellationRequested ) break;
+
                     // figure out the name
                     string? n = cm.Groups?.FirstOrDefault( g => cm.Indices[i] != null && (g.Value[0], g.Value[1]) == (cm.Indices[i][0], cm.Indices[i][1]) && !used_names.Contains( g.Key ) ).Key;
                     n ??= cm.Groups?.FirstOrDefault( g => cm.Indices[i] != null && (g.Value[0], g.Value[1]) == (cm.Indices[i][0], cm.Indices[i][1]) ).Key;

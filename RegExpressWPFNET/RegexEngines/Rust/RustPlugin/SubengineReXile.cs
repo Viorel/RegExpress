@@ -89,6 +89,8 @@ class SubengineReXile( Options options ) : RegexSubengine
 
         foreach( var m in root_object.matches )
         {
+            if( cnc.IsCancellationRequested ) break;
+
             SimpleMatch? match = null;
 
             {
