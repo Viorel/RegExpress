@@ -11,9 +11,10 @@
  * bitmap; they compile to the canonical UTF-8-ranges automaton, so a class matches
  * exactly those code points (and never an overlong / surrogate encoding). `.` and
  * an ASCII-only negated class (`[^x]`) still match any non-ASCII code point. In
- * bytes mode a non-ASCII class member is rejected (raw byte semantics). Every
- * construct consumes whole code points, so match boundaries never split a
- * sequence.
+ * bytes mode the unit is a byte, so a non-ASCII class member is the bytes it is
+ * written with — raw-byte semantics, the same class `re` on a bytes pattern and
+ * `std::regex<char>` build. Every construct in code-point mode consumes whole
+ * code points, so match boundaries never split a sequence.
  */
 #ifndef REAL_AST_HPP
 #define REAL_AST_HPP
@@ -483,9 +484,37 @@ namespace real::detail {
       if (pattern_[last] == '\\' && last + 1 < pattern_.size()) {
         ++last;
       }
-      std::string message {"unknown extension ?"};
+      // The quoted unit is the MODE's unit, and whatever the pattern holds the message itself must
+      // stay valid UTF-8. A lone lead byte in what() is not text: a binding that decodes the message
+      // cannot report the error at all — it raises a decoding failure instead, so the diagnostic is
+      // replaced by an unrelated one about the diagnostic. In text mode a byte >= 0x80 opens a code
+      // point and the whole sequence is quoted, exactly as `re` quotes it. A byte that opens no code
+      // point cannot be quoted as text and is written `\xHH`, which is also how every high byte is
+      // written in bytes mode — there the unit is one byte, and `re` spells it the same way (a byte
+      // below 0x80 stays raw in both, including the C0 controls).
+      const bool bytes_mode  {has_flag(current_flags(), flags::bytes)};
+      bool       escape_high {bytes_mode};
+      if (!bytes_mode && static_cast<std::uint8_t>(pattern_[last]) >= 0x80U) {
+        const detail::decoded_codepoint decoded {detail::decode_codepoint_strict(pattern_, last)};
+        if (decoded.valid) {
+          last += decoded.length - 1;
+        }
+        else {
+          escape_high = true;
+        }
+      }
+      constexpr std::string_view hex     {"0123456789abcdef"};
+      std::string                message {"unknown extension ?"};
       for (std::size_t i = question_pos + 1; i <= last; ++i) {
-        message += pattern_[i];
+        const std::uint8_t byte {static_cast<std::uint8_t>(pattern_[i])};
+        if (escape_high && byte >= 0x80U) {
+          message += "\\x";
+          message += hex[byte >> 4U];
+          message += hex[byte & 0x0FU];
+        }
+        else {
+          message += pattern_[i];
+        }
       }
       throw regex_error(message, question_pos);
     }
@@ -1221,15 +1250,19 @@ namespace real::detail {
     /*!
      * \brief Wraps \p atom in a repeat node if a quantifier follows.
      *
-     * Grammar: `quantifier := ('*' | '+' | '?' | '{n}' | '{n,}' | '{,m}' |
+     * Grammar: `quantifier := ('*' | '+' | '?' | '{n}' | '{n,}' | '{,m}' | '{,}' |
      * '{n,m}') '?'?`. An ILL-FORMED `{...}` is not a quantifier at all and stays
-     * literal text, exactly like Python (`a{`, `a{2,3x`, `a{,}` all match
-     * literally). A WELL-FORMED one with no atom before it does not: `{2}a` is
-     * literal here and `nothing to repeat` in Python, because `re` checks for a
-     * preceding atom and this function is only reached when there is one. That
-     * is a deliberate extension, recorded in the divergences catalogue as
-     * div_compiles -- "exactly like Python" held for the three examples above
-     * and not for the case they omitted. A bare anchor cannot be repeated.
+     * literal text, exactly like Python (`a{`, `a{}`, `a{2,3x` all match
+     * literally). `a{,}` is NOT one of those and this comment used to say it was,
+     * contradicting its own grammar line one sentence earlier: `{,m}` is Python's
+     * shorthand for `{0,m}`, so `{,}` is `{0,}`. The COMMA is what separates the
+     * two -- with it the bounds are optional, without it they are absent.
+     * A WELL-FORMED quantifier with no atom before it does not stay literal in
+     * Python: `{2}a` is literal here and `nothing to repeat` there, because `re`
+     * checks for a preceding atom and this function is only reached when there is
+     * one. That is a deliberate extension, recorded in the divergences catalogue
+     * as div_compiles, and it covers the whole brace family -- `{,}a`, `{,3}a` and
+     * `{2,}a` alike, not only `{n}a`. A bare anchor cannot be repeated.
      *
      * \param[in,out] out  The AST being built.
      * \param[in]     atom Index of the atom the quantifier would apply to.
@@ -1244,9 +1277,14 @@ namespace real::detail {
       // Like Python: a bare anchor cannot be repeated ((?:^)* is fine).
       if (out.nodes[static_cast<std::size_t>(atom)].kind == node_kind::anchor &&
           (peek() == '*' || peek() == '+' || peek() == '?' || peek() == '{')) {
-        std::int32_t ignored_min {};
-        std::int32_t ignored_max {-1};
+        const std::size_t quantifier_pos {pos_}; // captured before try_parse_braces CONSUMES
+        std::int32_t      ignored_min    {};
+        std::int32_t      ignored_max    {-1};
         if (peek() != '{' || try_parse_braces(ignored_min, ignored_max)) {
+          // The quantifier, which is the thing that cannot be there. `*`, `+` and `?` consume
+          // nothing and already reported here; a braced one consumed its whole body first, so the
+          // drift grew with what the braces held -- `\A{1}` was three past, `\A{2,3}` five.
+          pos_ = quantifier_pos;
           fail("nothing to repeat");
         }
       }
@@ -1346,9 +1384,14 @@ namespace real::detail {
         has_comma  = true;
         repeat_max = parse_repeat_count();
       }
-      if (!accept('}') || (repeat_min < 0 && repeat_max < 0)) {
+      // "Both bounds absent" is literal text only WITHOUT a comma. `{,n}` is Python's shorthand for
+      // `{0,n}` and this parser already implemented it; `{,}` is the same rule with the upper bound
+      // left off, so it means `{0,}`. Rejecting on the bounds alone sent `a{,}` and `a{}` out the
+      // same exit while `re` reads them differently -- `a{,}` matched the four literal characters
+      // instead of "aaa".
+      if (!accept('}') || (repeat_min < 0 && repeat_max < 0 && !has_comma)) {
         pos_ = saved_pos;
-        return false; // "{", "{}", "{,}", "{x"…: literal text
+        return false; // "{", "{}", "{x"…: literal text
       }
       min = repeat_min < 0 ? 0 : repeat_min;
       max = (has_comma && repeat_max < 0) ? -1 : repeat_max;
@@ -2538,6 +2581,32 @@ namespace real::detail {
           return add_node(out, {.kind = node_kind::any, .raw_byte = true});
         default:
           {
+            // A `\` before a non-ASCII character is that character, and the escape consumes one unit
+            // of the MODE: the whole code point in text mode, a single byte under bytes. This is the
+            // same atom the UNESCAPED literal emits in parse_atom, so the two forms agree by
+            // construction (a quantifier repeats the code point, and icase folds it, in both).
+            //
+            // It has to run BEFORE parse_byte_escape, which cannot serve the text case: that path
+            // yields a BYTE, and its caller below emits a byte node for any value >= 0x80 (the
+            // documented `\xHH` provenance split), so a `\é` routed there would compile and then
+            // not match `é`. parse_byte_escape returns -1 for such a byte, which is why every one
+            // of these reached fail_unsupported_escape and valid patterns did not compile.
+            if (static_cast<std::uint8_t>(peek()) >= 0x80U) {
+              // Bytes-mode read comes from the scope stack, as the `\C` case above does: bytes is
+              // never scoped, so it equals the global member while keeping the parser's
+              // global-read count flat (the flag-scope ratchet).
+              if (has_flag(current_flags(), flags::bytes)) {
+                const std::int32_t raw {static_cast<std::uint8_t>(peek())};
+                ++pos_;
+                return emit_literal_codepoint(out, raw);
+              }
+              const detail::decoded_codepoint decoded {detail::decode_codepoint_strict(pattern_, pos_)};
+              if (!decoded.valid) {
+                fail("invalid UTF-8 byte in pattern");
+              }
+              pos_ += decoded.length;
+              return emit_literal_codepoint(out, static_cast<std::int32_t>(decoded.cp));
+            }
             // `\x{...}` is RE2/Perl's braced code-point escape (ECMAScript spells this `\u{...}`
             // instead — Annex B has no braced `\x`, so under ecma `\x` keeps its two-hex meaning).
             // Gated `!is_ecma()`, mirroring `\u`/`\U` above (l.1770/1772). Anything else — ecma, `\x`
@@ -2579,12 +2648,19 @@ namespace real::detail {
                                             bool&                     property_derived)
     {
       const char ch {peek()};
-      if (static_cast<std::uint8_t>(ch) >= 0x80) {
-        // bytes mode keeps rejecting non-ASCII in a class (the compat layer relies on that rejection
-        // to fall back to std). Code-point mode decodes the whole code point as a class member.
-        if (bytes_) {
-          fail("non-ASCII character class member not supported");
-        }
+      // The mode's unit, once more: code-point mode decodes the WHOLE code point as one member, so
+      // only that mode needs a path of its own here. Under bytes the unit is a byte, and a bare high
+      // byte is an ordinary member — it falls through to the plain-member return below, the same one
+      // every other raw byte takes, and the class already carries bytes >= 0x80 in its bitmap
+      // because `\xHH` and the escaped form put them there.
+      //
+      // It used to be refused, so that the std-compat layer would fall back. But a byte class is not
+      // something a linear engine cannot represent: it is the same language `[\x80-\xff]` already
+      // compiles to, and `re` on a bytes pattern and `std::regex<char>` both read `[<C3>]` as exactly
+      // that class. The refusal therefore surfaced as "requires a non-linear engine" under
+      // policy::strict and cost the linear-time guarantee under fallback, for an answer this engine
+      // was already giving in another spelling.
+      if (!has_flag(current_flags(), flags::bytes) && static_cast<std::uint8_t>(ch) >= 0x80) {
         const detail::decoded_codepoint decoded {detail::decode_codepoint_strict(pattern_, pos_)};
         if (!decoded.valid) {
           fail("invalid UTF-8 byte in character class");
@@ -2669,6 +2745,29 @@ namespace real::detail {
           fail("invalid escape (\\8 and \\9 are not octal and there are no back-references in a class)");
         default:
           {
+            // Same rule and same unit as parse_escape's default, and it yields exactly what the
+            // UNESCAPED member yields at the head of this function: a code point in text mode, one
+            // byte under bytes. So under bytes each escaped high byte is ONE member: a class of two
+            // of them is {0xC3, 0xA9}, not the character those bytes spell -- the same class `re` on
+            // a bytes pattern and `std::regex` (whose unit is a `char`) produce — from a single
+            // backslash there, since a bare high byte is a member for them as it now is here too, so
+            // every spelling of that class agrees across the three.
+            // A code-point member is also usable as a range endpoint, which is how `[\à-\é]` becomes
+            // one range rather than two members.
+            if (static_cast<std::uint8_t>(peek()) >= 0x80U) {
+              // Scope-stack read, same reason as parse_escape's default (the flag-scope ratchet).
+              if (has_flag(current_flags(), flags::bytes)) {
+                const std::int32_t raw {static_cast<std::uint8_t>(peek())};
+                ++pos_;
+                return raw;
+              }
+              const detail::decoded_codepoint decoded {detail::decode_codepoint_strict(pattern_, pos_)};
+              if (!decoded.valid) {
+                fail("invalid UTF-8 byte in character class");
+              }
+              pos_ += decoded.length;
+              return static_cast<std::int32_t>(decoded.cp);
+            }
             // Mirrors the outside-class `\x{...}` gate in parse_escape: RE2/Perl braced code point,
             // `!is_ecma()`, else the existing `\xHH` byte path below (parse_byte_escape) is unchanged.
             if (peek() == 'x' && !is_ecma() && pos_ + 1 < pattern_.size() && pattern_[pos_ + 1] == '{') {

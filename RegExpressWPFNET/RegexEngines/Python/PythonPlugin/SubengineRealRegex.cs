@@ -173,18 +173,18 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
 
     private static string? AdjustErrorMessage( string error, string pattern )
     {
-        // try to show character offset based on byte offset, which appears in error messages
+        // try to show character offset based on codepoint offset, which appears in error messages
 
-        Match m = RegexExtractByteOffset( ).Match( error );
+        Match m = RegexExtractCodepointOffset( ).Match( error );
 
-        if( m.Success && int.TryParse( m.Groups[1].Value, out int byte_offset ) )
+        if( m.Success && int.TryParse( m.Groups[1].Value, out int codepoint_offset ) )
         {
             try
             {
-                byte[] utf8_bytes = Encoding.UTF8.GetBytes( pattern );
-                int char_offset = Encoding.UTF8.GetCharCount( utf8_bytes, 0, byte_offset );
+                SurrogatePairsHelper sph = new( pattern );
+                int char_offset = sph.ToCharIndex( codepoint_offset );
 
-                if( char_offset != byte_offset )
+                if( char_offset != codepoint_offset )
                 {
                     string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character index {char_offset}";
 
@@ -453,5 +453,5 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
     private static partial Regex NMgRegex( );
 
     [GeneratedRegex( @" at position (\d+)" )]
-    private static partial Regex RegexExtractByteOffset( );
+    private static partial Regex RegexExtractCodepointOffset( );
 }

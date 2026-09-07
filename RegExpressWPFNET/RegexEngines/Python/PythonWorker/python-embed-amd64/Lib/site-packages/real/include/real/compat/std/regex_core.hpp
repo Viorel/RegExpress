@@ -1002,9 +1002,11 @@ namespace real::compat {
           // error only when the std-only operation is actually invoked; search/match stay on real).
         }
         catch (const real::regex_error& real_error) {
-          // real cannot represent it (backref / unbounded lookaround / POSIX class / non-ASCII in a
-          // class). strict rejects; fallback delegates to std (which may accept it). Invalid for both
-          // throws compat::regex_error (emplace_std wraps).
+          // real cannot represent it (backref / unbounded lookaround / POSIX class). strict rejects;
+          // fallback delegates to std (which may accept it). Invalid for both throws
+          // compat::regex_error (emplace_std wraps). A non-ASCII class member used to be on this
+          // list and no longer is: under this layer's bytes mode it is a plain byte class, the same
+          // language `[\x80-\xff]` compiles to, so it stays on real and keeps the linear guarantee.
           reject_or_fallback(sv, f, real_error.what());
         }
       }
