@@ -1475,17 +1475,39 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Returns `true` if \p ch is an ASCII letter (`A`–`Z`, `a`–`z`).
+     * \brief Returns `true` if the unit at the cursor is a LETTER — an unknown flag, not a terminator.
      *
-     * Used to tell an unknown flag letter (`z`, `u`, `L`) from a terminator (`:`, `)`, `-`)
-     * after a flag run — CPython `_parse_flags` uses `str.isalpha()` for the same split.
-     * The parser peeks bytes, so this is ASCII-only; a non-ASCII lead byte is not a flag.
-     * \param[in] ch A character.
-     * \return `true` if \p ch is an ASCII letter.
+     * The split CPython's `_parse_flags` makes is `str.isalpha()`, and this asks that same question
+     * on the same UNIT: the whole code point in text mode, and under `flags::bytes` the byte read
+     * as latin-1, which is what `chr(b).isalpha()` answers there (`0xC3` is `Ã` and alphabetic,
+     * `0x80` is a control and is not). `gc_property::L` IS that predicate rather than an
+     * approximation of it: swept over all 1 112 064 code points it agrees with `str.isalpha()` on
+     * every one, so this introduces no second alphabet.
+     *
+     * An `is_ascii_letter` peek stood here before, and the comment on it admitted the shortcut —
+     * "the parser peeks bytes, so this is ASCII-only". The shortcut did not make the diagnosis
+     * vaguer, it made it FALSE: `(?ié` reported `missing -, : or )` where `re` reports `unknown
+     * flag`, so a reader was told the terminator was missing when the terminator was never the
+     * fault. And the boundary is not "non-ASCII": `é` is alphabetic and `😀` is not, so `(?i😀)`
+     * correctly stays a terminator fault on both sides.
+     *
+     * \return `true` if the cursor is on a letter, in the mode's own unit.
      */
-    static constexpr bool is_ascii_letter(char ch)
+    [[nodiscard]] constexpr bool at_letter_unit() const
     {
-      return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+      if (eof()) {
+        return false;
+      }
+      const std::uint8_t byte {static_cast<std::uint8_t>(peek())};
+      char32_t           cp   {byte};
+      if (byte >= 0x80U && !has_flag(current_flags(), flags::bytes)) {
+        const detail::decoded_codepoint decoded {detail::decode_codepoint_strict(pattern_, pos_)};
+        if (!decoded.valid) {
+          return false; // not a code point at all, so not a letter; another check names that
+        }
+        cp = static_cast<char32_t>(decoded.cp);
+      }
+      return cp_in_ranges(gc_property_ranges[static_cast<std::size_t>(gc_property::L)], cp);
     }
 
     /*!
@@ -1551,7 +1573,7 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Fails with "unknown flag" if the next byte is an ASCII letter that is not a flag.
+     * \brief Fails with "unknown flag" if the next unit is a letter that is not a flag.
      *
      * CPython `_parse_flags` makes this diagnosis, and it takes precedence over the terminator
      * check (\ref require_scoped_flags_colon). Call only after a flags group has started (a
@@ -1560,7 +1582,7 @@ namespace real::detail {
      */
     constexpr void fail_if_unknown_flag()
     {
-      if (!eof() && is_ascii_letter(peek())) {
+      if (at_letter_unit()) {
         fail("unknown flag");
       }
     }

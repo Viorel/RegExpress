@@ -62,7 +62,7 @@ The following engines are included:
 * [**Python**](https://www.python.org/) 3.14.6:
   * _re_,
   * [_regex_](https://pypi.org/project/regex) 2026.9.3,
-  * [_real-regex_](https://pypi.org/project/real-regex/) 2026.9.2.
+  * [_real-regex_](https://pypi.org/project/real-regex/) 2026.9.3.
 * [**D**](https://dlang.org/phobos/std_regex.html) 2.112.0 (*std.regex* module).
 * [**Perl**](https://perldoc.perl.org/perlreref) 5.40.2 (Strawberry Perl).
 * **Fortran** [**Forgex**](https://github.com/ShinobuAmasaki/forgex) v4.6 module (Intel® Fortran Compiler 2026.0.0).

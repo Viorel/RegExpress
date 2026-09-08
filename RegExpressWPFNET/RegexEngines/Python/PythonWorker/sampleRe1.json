@@ -10,6 +10,7 @@
     "MULTILINE": false,
     "VERBOSE": true,
     "UNICODE": true,
-    "fallback": false
+    "fallback": false,
+    "fullmatch": false
   }
 }

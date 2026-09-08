@@ -38,6 +38,11 @@ class Options
     // "real"
     public bool fallback { get; set; }
 
+    // many
+
+    public bool fullmatch { get; set; }
+
+
 
     public Options Clone( )
     {

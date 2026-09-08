@@ -73,6 +73,7 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
                     options.VERBOSE,
                     UNICODE = false, // currently it is 'no-op'
                     options.fallback,
+                    options.fullmatch,
                 },
             };
             var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

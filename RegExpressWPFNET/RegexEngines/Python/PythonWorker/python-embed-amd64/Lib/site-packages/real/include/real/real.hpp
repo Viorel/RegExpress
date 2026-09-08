@@ -1354,6 +1354,57 @@ namespace real {
       return search(std::string_view(text));
     }
 
+    // Region forms for string literals. Without these a bare literal is AMBIGUOUS with `pos`: a
+    // `const char*` converts to `std::string_view` and to `std::string` by two user-defined
+    // conversions of equal rank, and the second candidate is the `const std::string&&` overload
+    // deleted just below to stop a temporary from dangling -- so the diagnostic accused a literal,
+    // which has static storage duration and cannot dangle, of being a temporary. The no-pos forms
+    // above never had the problem because they carry this same overload; `split` carries one with
+    // its own second argument. These forward and do nothing else, so the region semantics are
+    // whatever the `string_view` overload says they are.
+
+    /*!
+     * \brief Region-aware `match` overload for string literals.
+     * \param[in] text   NUL-terminated text.
+     * \param[in] pos    Byte offset the match is anchored at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The result.
+     */
+    [[nodiscard]] constexpr result_type match(const char* text,
+                                              std::size_t pos,
+                                              std::size_t endpos = npos) const&
+    {
+      return match(std::string_view(text), pos, endpos);
+    }
+
+    /*!
+     * \brief Region-aware `fullmatch` overload for string literals.
+     * \param[in] text   NUL-terminated text.
+     * \param[in] pos    Byte offset the region starts at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The result.
+     */
+    [[nodiscard]] constexpr result_type fullmatch(const char* text,
+                                                  std::size_t pos,
+                                                  std::size_t endpos = npos) const&
+    {
+      return fullmatch(std::string_view(text), pos, endpos);
+    }
+
+    /*!
+     * \brief Region-aware `search` overload for string literals.
+     * \param[in] text   NUL-terminated text.
+     * \param[in] pos    Byte offset the search starts at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The result.
+     */
+    [[nodiscard]] constexpr result_type search(const char* text,
+                                               std::size_t pos,
+                                               std::size_t endpos = npos) const&
+    {
+      return search(std::string_view(text), pos, endpos);
+    }
+
     // Single attempts on a TEMPORARY regex. These stay callable, unlike find_iter and find_all: the
     // one-expression form is safe (the temporary outlives the full-expression) and it is what most
     // callers write -- this project's own suite alone has ~870 of them. The result may still be
@@ -1476,6 +1527,51 @@ namespace real {
     }
 
     /*!
+     * \brief Region-aware `match` on a temporary regex, string-literal overload.
+     * \param[in] text   NUL-terminated text.
+     * \param[in] pos    Byte offset the match is anchored at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type match(const char* text,
+                                       std::size_t pos,
+                                       std::size_t endpos = npos) const&&
+    {
+      return std::move(*this).match(std::string_view(text), pos, endpos);
+    }
+
+    /*!
+     * \brief Region-aware `fullmatch` on a temporary regex, string-literal overload.
+     * \param[in] text   NUL-terminated text.
+     * \param[in] pos    Byte offset the region starts at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type fullmatch(const char* text,
+                                           std::size_t pos,
+                                           std::size_t endpos = npos) const&&
+    {
+      return std::move(*this).fullmatch(std::string_view(text), pos, endpos);
+    }
+
+    /*!
+     * \brief Region-aware `search` on a temporary regex, string-literal overload.
+     * \param[in] text   NUL-terminated text.
+     * \param[in] pos    Byte offset the search starts at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The result.
+     */
+    [[nodiscard]]
+    constexpr owning_result_type search(const char* text,
+                                        std::size_t pos,
+                                        std::size_t endpos = npos) const&&
+    {
+      return std::move(*this).search(std::string_view(text), pos, endpos);
+    }
+
+    /*!
      * \brief Lazy range over all non-overlapping matches (Python `re.finditer`).
      *
      * Only callable on an lvalue regex: a C++20 range-for would dangle if the
@@ -1502,6 +1598,20 @@ namespace real {
     [[nodiscard]] constexpr basic_match_range<Storage> find_iter(const char* text) const&
     {
       return find_iter(std::string_view(text));
+    }
+
+    /*!
+     * \brief Region-aware `find_iter` overload for string literals.
+     * \param[in] text   NUL-terminated text (must outlive the range).
+     * \param[in] pos    Byte offset iteration starts at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The range.
+     */
+    [[nodiscard]] constexpr basic_match_range<Storage> find_iter(const char* text,
+                                                                 std::size_t pos,
+                                                                 std::size_t endpos = npos) const&
+    {
+      return find_iter(std::string_view(text), pos, endpos);
     }
 
     /*!
@@ -1544,10 +1654,42 @@ namespace real {
     }
 
     /*!
-     * \brief Deleted: `find_iter_longest` on a temporary regex would dangle.
+     * \brief Region-aware `find_iter_longest` overload for string literals.
+     * \param[in] text   NUL-terminated text (must outlive the range).
+     * \param[in] pos    Byte offset iteration starts at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The range.
      */
-    [[nodiscard]] basic_match_range<Storage> find_iter_longest(std::string_view, std::size_t,
-                                                               std::size_t) const&& = delete;
+    [[nodiscard]] constexpr basic_match_range<Storage> find_iter_longest(const char* text,
+                                                                         std::size_t pos    = 0,
+                                                                         std::size_t endpos = npos) const&
+    {
+      return find_iter_longest(std::string_view(text), pos, endpos);
+    }
+
+    /*!
+     * \brief Deleted: the range borrows the subject, so a temporary `std::string` would dangle.
+     *        Arrives together with the `const char*` forwarder above and not before it: a deletion
+     *        alone would make a bare literal AMBIGUOUS, since `const char*` reaches
+     *        `std::string_view` and `std::string` by two user-defined conversions of equal rank.
+     */
+    [[nodiscard]] basic_match_range<Storage> find_iter_longest(const std::string &&, std::size_t = 0,
+                                                               std::size_t = npos) const& = delete;
+
+    /*!
+     * \brief Deleted: `find_iter_longest` on a temporary regex would dangle — at EVERY arity.
+     *        The defaults are the point: the callable overload carries them, so a two-argument call
+     *        used to miss a three-parameter deletion and bind to the `const&` overload instead,
+     *        which a `const X&` accepts from an rvalue without complaint.
+     */
+    [[nodiscard]] basic_match_range<Storage> find_iter_longest(std::string_view, std::size_t = 0,
+                                                               std::size_t = npos) const&& = delete;
+    /*!
+     * \brief Deleted: same, spelled for `const char*` so a literal resolves HERE rather than
+     *        becoming ambiguous — the reader is told the REGEX is the temporary, which is true.
+     */
+    [[nodiscard]] basic_match_range<Storage> find_iter_longest(const char*, std::size_t = 0,
+                                                               std::size_t = npos) const&& = delete;
 
     /*!
      * \brief Deleted: `find_iter` on a temporary regex would dangle.
@@ -1557,6 +1699,14 @@ namespace real {
      * \brief Deleted: `find_iter` on a temporary regex would dangle.
      */
     [[nodiscard]] basic_match_range<Storage> find_iter(const char* text) const&& = delete;
+    /*!
+     * \brief Deleted: region `find_iter` on a temporary regex would dangle. Spelled for `const
+     *        char*` as well as `std::string_view` so a literal resolves HERE instead of becoming
+     *        ambiguous with the deleted `const std::string&&` overload -- the caller is told the
+     *        regex is the temporary, which is the truth, rather than being told its literal is.
+     */
+    [[nodiscard]] basic_match_range<Storage> find_iter(const char* text, std::size_t,
+                                                       std::size_t = npos) const&& = delete;
     /*!
      * \brief Deleted: region `find_iter` on a temporary regex would dangle.
      */
@@ -2252,9 +2402,26 @@ namespace real {
      * \param[in] text Subject.
      * \return The leftmost-longest match; falsy when there is none.
      */
-    [[nodiscard]] result_type search_longest(std::string_view text) const
+    [[nodiscard]] result_type search_longest(std::string_view text) const&
     {
       return run(text, 0, npos, detail::run_mode::search, match_semantics::longest);
+    }
+
+    /*!
+     * \brief `search_longest` on a temporary regex; the result owns its name context.
+     *
+     * The last single attempt without this twin. `search`, `match` and `fullmatch` each detach on an
+     * rvalue regex; this one stayed `const` with no ref-qualifier, so the SAME expression that is
+     * safe for `search` handed back a borrowing result from a regex that was already gone — a
+     * heap-use-after-free on any lookup BY NAME, since the span points into the subject but the
+     * pattern text and the named-group table went with the temporary.
+     *
+     * \param[in] text The subject text (must outlive the result — a separate rule, unchanged).
+     * \return The leftmost-longest match, owning its name context.
+     */
+    [[nodiscard]] owning_result_type search_longest(std::string_view text) const&&
+    {
+      return detach(run(text, 0, npos, detail::run_mode::search, match_semantics::longest));
     }
 
     /*!
@@ -2268,10 +2435,85 @@ namespace real {
      */
     [[nodiscard]] result_type search_longest(std::string_view text,
                                              std::size_t      pos,
-                                             std::size_t      endpos = npos) const
+                                             std::size_t      endpos = npos) const&
     {
       return run(text, pos, endpos, detail::run_mode::search, match_semantics::longest);
     }
+
+    /*!
+     * \brief Region-aware `search_longest` on a temporary regex; the result owns its name context.
+     * \param[in] text   Subject.
+     * \param[in] pos    Byte offset the search starts at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The leftmost-longest match in the region, owning its name context.
+     */
+    [[nodiscard]] owning_result_type search_longest(std::string_view text,
+                                                    std::size_t      pos,
+                                                    std::size_t      endpos = npos) const&&
+    {
+      return detach(run(text, pos, endpos, detail::run_mode::search, match_semantics::longest));
+    }
+
+    /*!
+     * \brief `search_longest` overload for string literals.
+     * \param[in] text NUL-terminated text.
+     * \return The leftmost-longest match.
+     */
+    [[nodiscard]] result_type search_longest(const char* text) const&
+    {
+      return search_longest(std::string_view(text));
+    }
+
+    /*!
+     * \brief `search_longest` on a temporary regex, string-literal overload.
+     *
+     * A forwarder needs its OWN `const&&`: without it a literal on a temporary regex resolves to the
+     * borrowing `const&` overload above and detaches nothing, which is the same door the region
+     * forwarders had to be added at.
+     *
+     * \param[in] text NUL-terminated text.
+     * \return The leftmost-longest match, owning its name context.
+     */
+    [[nodiscard]] owning_result_type search_longest(const char* text) const&&
+    {
+      return std::move(*this).search_longest(std::string_view(text));
+    }
+
+    /*!
+     * \brief Region-aware `search_longest` overload for string literals.
+     * \param[in] text   NUL-terminated text.
+     * \param[in] pos    Byte offset the search starts at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The leftmost-longest match in the region.
+     */
+    [[nodiscard]] result_type search_longest(const char* text,
+                                             std::size_t pos,
+                                             std::size_t endpos = npos) const&
+    {
+      return search_longest(std::string_view(text), pos, endpos);
+    }
+
+    /*!
+     * \brief Region-aware `search_longest` on a temporary regex, string-literal overload.
+     * \param[in] text   NUL-terminated text.
+     * \param[in] pos    Byte offset the search starts at.
+     * \param[in] endpos Byte offset the region ends at; defaults to the end of \p text.
+     * \return The leftmost-longest match in the region, owning its name context.
+     */
+    [[nodiscard]] owning_result_type search_longest(const char* text,
+                                                    std::size_t pos,
+                                                    std::size_t endpos = npos) const&&
+    {
+      return std::move(*this).search_longest(std::string_view(text), pos, endpos);
+    }
+
+    // Same predicate as every borrowing form above: the searched text must outlive the result, so a
+    // temporary std::string is refused while a literal (static storage) and a named string (an
+    // lvalue, which cannot bind to `const std::string&&` at all) stay callable. The `const char*`
+    // forwarders above must exist for these deletions to be readable rather than ambiguous.
+    [[nodiscard]] result_type search_longest(const std::string&&) const = delete; //!< Deleted: temporary text would dangle.
+    [[nodiscard]] result_type search_longest(const std::string &&, std::size_t,
+                                             std::size_t = npos) const = delete;  //!< Deleted: temporary text would dangle.
   };
 
   /*!

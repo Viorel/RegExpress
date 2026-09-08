@@ -71,6 +71,7 @@ partial class SubengineRe( Options options ) : RegexSubengine
                     options.MULTILINE,
                     options.VERBOSE,
                     UNICODE = false, // "For compatibility only. Ignored for string patterns (it is the default)"
+                    options.fullmatch,
                 },
             };
             var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

@@ -19,7 +19,8 @@
     "VERSION0": false,
     "VERSION1": true,
     "overlapped": false,
-    "partial": false
+    "partial": false,
+    "fullmatch" : false
   },
   "timeout": null
 }

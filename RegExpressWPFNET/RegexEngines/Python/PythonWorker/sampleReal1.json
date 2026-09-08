@@ -1,7 +1,7 @@
 {
   "NOTE": "(should not have BOM)",
-  "pattern": "(?\u00E9",
-  "text": "a",
+  "pattern": "abc",
+  "text": "abc",
   "flags": {
     "ASCII": false,
     "DOTALL": false,
@@ -10,6 +10,7 @@
     "MULTILINE": false,
     "VERBOSE": true,
     "UNICODE": true,
-    "fallback": false
+    "fallback": false,
+    "fullmatch": false
   }
 }

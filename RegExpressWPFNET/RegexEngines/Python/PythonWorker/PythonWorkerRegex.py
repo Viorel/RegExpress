@@ -2,6 +2,16 @@
 import json
 import regex
 
+
+def outputMatch(match):
+    print( f'M {match.start()}, {match.end()}')
+    for g in range(0, regex_obj.groups + 1) :
+        print( f'g {match.start(g)}, {match.end(g)}' )
+        if g != 0 :
+            for c in match.spans(g) :
+                print( f'c {c[0]}, {c[1]}')
+
+
 input_json = sys.stdin.read()
 
 #print( input_json, file = sys.stderr )
@@ -31,6 +41,10 @@ if flags_obj['WORD']            : flags |= regex.WORD
 if flags_obj['VERSION0']        : flags |= regex.VERSION0
 if flags_obj['VERSION1']        : flags |= regex.VERSION1 
 
+overlapped = flags_obj['overlapped']
+partial = flags_obj['partial']
+fullmatch = ('fullmatch' in flags_obj) and flags_obj['fullmatch']
+
 try:
     regex_obj = regex.compile( pattern, flags)
 
@@ -40,17 +54,18 @@ try:
     for key, value in regex_obj.groupindex.items():
         print( f'N {value} <{key}>')
 
-    matches = regex_obj.finditer( text, overlapped = flags_obj['overlapped'], partial = flags_obj['partial'], timeout = timeout )
-
-    for match in matches :
-        print( f'M {match.start()}, {match.end()}')
-        for g in range(0, regex_obj.groups + 1) :
-            print( f'g {match.start(g)}, {match.end(g)}' )
-            if g != 0 :
-                for c in match.spans(g) :
-                    print( f'c {c[0]}, {c[1]}')
+    if fullmatch:
+        match = regex_obj.fullmatch( text, partial = partial, timeout = timeout)
+        if match != None:
+            outputMatch( match)
+    else:
+        matches = regex_obj.finditer( text, overlapped = overlapped, partial = partial, timeout = timeout )
+        for match in matches :
+            outputMatch( match)
 
 except:
     ex_type, ex, tb = sys.exc_info()
 
     print( ex, file = sys.stderr )
+
+

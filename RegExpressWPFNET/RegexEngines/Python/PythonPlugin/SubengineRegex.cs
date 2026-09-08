@@ -86,6 +86,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
                     //
                     options.overlapped,
                     options.partial,
+                    options.fullmatch,
                 },
                 timeout = timeout
             };
