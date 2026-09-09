@@ -191,6 +191,9 @@ namespace RegExpressWPFNET
             adorner_layer.Add( WhitespaceAdorner );
 
             IsFullyLoaded = true;
+
+            RecolouringLoop.SignalWaitAndExecute( );
+            HighlightingLoop.SignalWaitAndExecute( );
         }
 
 
