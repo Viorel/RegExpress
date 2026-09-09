@@ -61,6 +61,7 @@ partial class Subengine( Options options ) : RegexSubengine
             bw.Write( options.allow_raw_byte ); //
             bw.Write( options.ungreedy );
             bw.Write( options.longest );
+            bw.Write( options.fullmatch );
 
             bw.Write( (byte)'e' );
         };

@@ -17,6 +17,7 @@
 #include <iostream>
 #include <format>
 #include <limits>
+#include <cassert>
 
 #include "RegExpressCppLibraryPCH.h"
 

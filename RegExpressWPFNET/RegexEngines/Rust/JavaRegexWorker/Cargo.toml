@@ -10,4 +10,4 @@ strip = true
 
 [dependencies]
 json = "0.12.4"
-java_regex = "0.1.0"
+java_regex = "=0.1.0"

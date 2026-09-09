@@ -13,8 +13,25 @@
 #include "real\\real.hpp"
 //#include "real\\compat\\std\\regex.hpp" // for 'real::compat::regex', to support fallback; not considered here
 
+static void WriteMatch( BinaryWriterW& outbw, const real::match_result& match, size_t groupCount )
+{
+	outbw.WriteT<char>( 'm' );
+	outbw.WriteT<uint64_t>( match.start( ) );
+	outbw.WriteT<uint64_t>( match.end( ) );
 
-static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, real::flags flags, bool longest )
+	for( size_t i = 1; i <= groupCount; ++i )
+	{
+		outbw.WriteT<char>( 'g' );
+
+		static_assert( real::npos == std::numeric_limits<uint64_t>::max( ) );
+
+		outbw.WriteT<uint64_t>( match.start( i ) ); // 'real::npos' if group failed
+		outbw.WriteT<uint64_t>( match.end( i ) );
+	}
+
+}
+
+static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, real::flags flags, bool longest, bool fullmatch )
 {
 
 	DWORD code;
@@ -40,21 +57,24 @@ static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const st
 				outbw.WriteT<char>( '-' );
 
 				const std::string textUTF8 = WStringToUtf8( text );
+				const auto group_count = re.group_count( );
 
-				for( const auto& match : longest ? re.find_iter_longest( textUTF8 ) : re.find_iter( textUTF8 ) )
+				if( fullmatch )
 				{
-					outbw.WriteT<char>( 'm' );
-					outbw.WriteT<uint64_t>( match.start( ) );
-					outbw.WriteT<uint64_t>( match.end( ) );
+					const auto& match = re.fullmatch( textUTF8 );
 
-					for( size_t i = 1; i <= re.group_count( ); ++i )
+					if( match )
 					{
-						outbw.WriteT<char>( 'g' );
+						WriteMatch( outbw, match, group_count );
+					}
+				}
+				else
+				{
+					for( const auto& match : longest ? re.find_iter_longest( textUTF8 ) : re.find_iter( textUTF8 ) )
+					{
+						assert( (bool)match );
 
-						static_assert( real::npos == std::numeric_limits<uint64_t>::max( ) );
-
-						outbw.WriteT<uint64_t>( match.start( i ) ); // 'real::npos' if group failed
-						outbw.WriteT<uint64_t>( match.end( i ) );
+						WriteMatch( outbw, match, group_count );
 					}
 				}
 
@@ -130,10 +150,11 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 		if( inbr.ReadByte( ) ) flags = flags | real::flags::ungreedy;
 
 		bool longest = inbr.ReadByte( ) != 0;
+		bool fullmatch = inbr.ReadByte( ) != 0;
 
 		if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-		DoMatch( outbw, pattern, text, flags, longest );
+		DoMatch( outbw, pattern, text, flags, longest, fullmatch );
 
 		return 0;
 	}

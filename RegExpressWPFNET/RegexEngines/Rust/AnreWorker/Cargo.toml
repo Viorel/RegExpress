@@ -13,4 +13,4 @@ strip = true
 
 [dependencies]
 json = "0.12.4"
-regex-anre = "2.1.2"
+regex-anre = "=2.1.2"

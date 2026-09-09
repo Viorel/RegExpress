@@ -13,4 +13,4 @@ strip = true
 
 [dependencies]
 json = "0.12.4"
-regex-lite = "0.1.9"
+regex-lite = "=0.1.9"

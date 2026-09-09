@@ -13,6 +13,7 @@ class Options
     public bool allow_raw_byte { get; set; }
     public bool ungreedy { get; set; }
     public bool longest { get; set; }
+    public bool fullmatch { get; set; }
 
     public Options Clone( )
     {

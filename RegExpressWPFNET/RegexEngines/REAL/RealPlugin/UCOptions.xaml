@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RealPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="195.576" d:DesignWidth="927.909" 
+             d:DesignHeight="222.415" d:DesignWidth="927.909" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -28,7 +28,8 @@
             <ui:CheckboxWithNote Prop="dollar_endonly" Note="`$` (no multiline) matches only at the very end of the text, never before a final `\n` — the Rust/`\z` semantics. Unlike flags::ecma this touches `$` ONLY, leaving `.` at the Python default. Used by the Rust binding for drop-in parity"/>
             <ui:CheckboxWithNote Prop="allow_raw_byte" Note="(experimental)"/>
             <ui:CheckboxWithNote Prop="ungreedy" Note="swap the default quantifier greediness — a bare quantifier becomes lazy and the explicit `?` suffix re-inverts back to greedy"/>
-            <ui:CheckboxWithNote Prop="longest" Note="(experimental)"/>
+            <ui:CheckboxWithNote Prop="longest" Note="(experimental) iterate matches with POSIX (leftmost-longest) bounds rather than the default leftmost-first"/>
+            <ui:CheckboxWithNote Prop="fullmatch" Note="match the entire text"/>
         </StackPanel>
     </Grid>
 </UserControl>

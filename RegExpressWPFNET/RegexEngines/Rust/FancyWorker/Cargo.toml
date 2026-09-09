@@ -13,4 +13,4 @@ strip = true
 
 [dependencies]
 json = "0.12.4"
-fancy-regex = "0.19.0"
+fancy-regex = "=0.19.0"

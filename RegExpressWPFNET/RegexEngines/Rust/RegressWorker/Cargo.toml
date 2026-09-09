@@ -13,4 +13,4 @@ strip = true
 
 [dependencies]
 json = "0.12.4"
-regress = "0.12.0"
+regress = "=0.12.0"
