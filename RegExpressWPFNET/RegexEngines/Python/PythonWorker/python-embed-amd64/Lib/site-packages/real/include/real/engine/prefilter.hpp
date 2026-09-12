@@ -1113,6 +1113,18 @@ namespace real::detail {
           // this route against the general VM, which is the only reason the shape is narrowed here rather
           // than shipped wrong; lifting it means teaching those loops to step by one code point.
           const bool counted_wb {cp_max != 0 && (lead.wb_lead != 0 || close.wb_trail != 0)};
+          // A counted run declines an END ANCHOR for the same reason, and it is the same defect one
+          // assertion over: the retry loops skip past a maximal run because "a maximal run that stops
+          // short of the limit can never be the match", which holds for `+` and `{k,}` -- their run IS
+          // maximal, so no later start inside it can succeed -- and fails for `{k}`, whose run is
+          // bounded from above. `\w{2}\Z` over "xab" fails at 0, would match at 1, and the skip lands
+          // on 2: only starts at a multiple of the width are ever tried, so `\w{3}\Z` succeeds iff
+          // `(len - 3) % 3 == 0`.
+          //
+          // Refused rather than taught to step by one code point: that lift is the same one
+          // `counted_wb` names and defers, and both loops would need it. `{k,}` and `+` keep the route
+          // because they leave `cp_max` at 0.
+          const bool counted_end {cp_max != 0 && close.end_anchor != 0};
           // A `\b`/`\B` wrap and an end anchor together are REFUSED, never combined: the wrap takes its
           // own branch in these routes (the WRAP rule) and that branch never sees an end limit, while the
           // assertion has already been peeled out of the program -- so nothing downstream could
@@ -1120,7 +1132,7 @@ namespace real::detail {
           // seam, and `\b(?>\w)$` (LEAD) against Python's re, by the binding's differential fuzz.
           if (ok && close.ok
               && (close.end_anchor == 0 || (lead.wb_lead == 0 && close.wb_trail == 0))
-              && !counted_wb && cp_idx >= 0
+              && !counted_wb && !counted_end && cp_idx >= 0
               && static_cast<std::size_t>(cp_idx) < cp_classes.size() && k <= 65535) {
             const bool has_wb {lead.wb_lead != 0 || close.wb_trail != 0};
             // Bare path: no Unicode table walk (keeps constexpr light for static_regex).
