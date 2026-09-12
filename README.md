@@ -56,7 +56,7 @@ The following engines are included:
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2.1:
   * _java.util.regex_,
   * [_RE2/J_](https://github.com/google/re2j) 1.8,
-  * [_SafeRE_](https://github.com/eaftan/safere) 0.10.0,
+  * [_SafeRE_](https://github.com/eaftan/safere) 0.11.0,
   * [_Reggie_](https://github.com/DataDog/java-reggie) 0.3.0,
   * [_Joni_](https://github.com/jruby/joni) 2.2.7.
 * [**Python**](https://www.python.org/) 3.14.6:
