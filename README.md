@@ -45,9 +45,9 @@ The following engines are included:
 * **Rust** 1.98.0:
   * [_regex_](https://crates.io/crates/regex) 1.13.1,
   * [_regex-lite_](https://crates.io/crates/regex-lite) 0.1.9,
-  * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.19.0, 
+  * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.19.1, 
   * [_regress_](https://crates.io/crates/regress) 0.12.0,
-  * [_resharp_](https://crates.io/crates/resharp) 0.6.20,
+  * [_resharp_](https://crates.io/crates/resharp) 0.7.3,
   * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
   * [_real-regex_](https://crates.io/crates/real-regex) 2026.9.5,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0,
@@ -78,7 +78,7 @@ The following engines are included:
   * [_mvzr_](https://github.com/mnemnion/mvzr) 0.3.12,
   * _PZRE_ 0.2.3,
   * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.6.2.
-* **Go** 1.27.0:
+* **Go** 1.27.1:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.5,
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.7.1,
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
