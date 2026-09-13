@@ -13,4 +13,5 @@ strip = true
 
 [dependencies]
 json = "0.12.4"
-fancy-regex = "=0.19.1"
+fancy-regex = { version = "=0.19.2", features = ["leftmost_longest"] }
+

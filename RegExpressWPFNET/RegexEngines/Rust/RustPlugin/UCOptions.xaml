@@ -74,6 +74,7 @@
                 <ui:CheckboxWithNote x:Name="chbx_allow_input_assertion_overrides" Prop="allow_input_assertion_overrides" Note="allow RegexInput assertion suppression overrides at runtime"/>
                 <ui:CheckboxWithNote x:Name="chbx_start_text" Prop="start_text" Note="preserves the ^ and \A assertions (if allow_input_assertion_overrides)"/>
                 <ui:CheckboxWithNote x:Name="chbx_end_text" Prop="end_text" Note="preserves the $ and \z assertions (if allow_input_assertion_overrides)"/>
+                <ui:CheckboxWithNote x:Name="chbx_leftmost_longest" Prop="leftmost_longest" Note="return the longest match"/>
                 <ui:CheckboxWithNote x:Name="chbx_fallback" Prop="fallback" Note="delegate pattern to regex crate if REAL cannot run it linearly; forfeits the linear-time guarantee"/>
 
                 <StackPanel Orientation="Vertical">

@@ -82,6 +82,7 @@ fn main()
         reb.seek(options["seek"].as_bool().unwrap_or(false));
         reb.disallow_empty_match_at_eof_after_newline(options["disallow_empty_match_at_eof_after_newline"].as_bool().unwrap_or(false));
         reb.allow_input_assertion_overrides(options["allow_input_assertion_overrides"].as_bool().unwrap_or(false));
+        reb.leftmost_longest(options["leftmost_longest"].as_bool().unwrap_or(false));
 
         let bytes_modes = options["bytes_mode"].as_str().unwrap_or("Default");
 

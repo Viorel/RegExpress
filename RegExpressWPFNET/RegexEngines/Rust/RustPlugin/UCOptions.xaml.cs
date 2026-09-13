@@ -126,6 +126,7 @@ namespace RustPlugin
                 chbx_allow_input_assertion_overrides.Display( is_fancy );
                 chbx_start_text.Display( is_fancy );
                 chbx_end_text.Display( is_fancy );
+                chbx_leftmost_longest.Display( is_fancy );
                 chbx_fallback.Display( is_real );
 
                 if( chbx_use_builder.IsDisplayed( ) )

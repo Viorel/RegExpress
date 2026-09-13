@@ -70,6 +70,7 @@ internal partial class SubengineFancyRegex( Options options ) : RegexSubengine
                 options.allow_input_assertion_overrides,
                 options.start_text,
                 options.end_text,
+                options.leftmost_longest,
                 bytes_mode = options.bytes_mode.ToString( ),
                 backtrack_limit = use_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
                 delegate_size_limit = use_builder ? ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ) : null,

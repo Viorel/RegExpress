@@ -68,6 +68,7 @@ class Options
 
     // Fancy-regex
 
+    public bool leftmost_longest { get; set; }
     public BytesModeEnum bytes_mode { get; set; } = BytesModeEnum.Default;
     public string? backtrack_limit { get; set; } // also for 'regexr'
     public string? delegate_size_limit { get; set; }
