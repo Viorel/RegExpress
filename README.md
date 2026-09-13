@@ -42,7 +42,7 @@ The following engines are included:
 * [**Hyperscan**](https://github.com/intel/hyperscan) 5.4.2 from Intel (in C).
 * [**Chimera**](http://intel.github.io/hyperscan/dev-reference/chimera.html), a hybrid of Hyperscan and PCRE 8.41 (in C).
 * [**ICU Regular Expressions**](https://icu.unicode.org/) 78.3 (in C++).
-* **Rust** 1.98.0:
+* **Rust** 1.98.1:
   * [_regex_](https://crates.io/crates/regex) 1.13.1,
   * [_regex-lite_](https://crates.io/crates/regex-lite) 0.1.9,
   * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.19.2, 
@@ -52,7 +52,7 @@ The following engines are included:
   * [_real-regex_](https://crates.io/crates/real-regex) 2026.9.5,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0,
   * [_regexr_](https://crates.io/crates/regexr) 0.5.0,
-  * [_rexile_](https://crates.io/crates/rexile) 0.7.2.
+  * [_rexile_](https://crates.io/crates/rexile) 0.7.3.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2.1:
   * _java.util.regex_,
   * [_RE2/J_](https://github.com/google/re2j) 1.8,

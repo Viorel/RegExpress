@@ -2,7 +2,7 @@
 
 class Versions
 {
-    public static string Rust { get; } = "1.98.0";
+    public static string Rust { get; } = "1.98.1";
     public static string Regex { get; } = "1.13.1";
     public static string RegexLite { get; } = "0.1.9";
     public static string FancyRegex { get; } = "0.19.2";
@@ -12,5 +12,5 @@ class Versions
     public static string RealRegex { get; } = "2026.9.5";
     public static string JavaRegex { get; } = "0.1.0";
     public static string Regexr { get; } = "0.5.0";
-    public static string ReXile { get; } = "0.7.2";
+    public static string ReXile { get; } = "0.7.3";
 }
