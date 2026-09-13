@@ -2,5 +2,5 @@
 
 class Versions
 {
-    public static string PCRE2 { get; } = "10.47";
+    public static string PCRE2 { get; } = "10.48";
 }

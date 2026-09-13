@@ -26,7 +26,7 @@ The following engines are included:
   * [_SRELL_](https://www.akenotsuki.com/misc/srell/en/) 2026.06.
   * [_SRELL linear_](https://www.akenotsuki.com/misc/srell/en/#linear) 2026.02.
 * [**Boost.Regex**](https://www.boost.org/doc/libs/1_89_0/libs/regex/doc/html/index.html) from Boost C++ Libraries 1.89.0.
-* [**PCRE2**](https://github.com/PCRE2Project/pcre2) Open Source Regex Library 10.47 (in C).
+* [**PCRE2**](https://github.com/PCRE2Project/pcre2) Open Source Regex Library 10.48 (in C).
 * [**RE2**](https://github.com/google/re2) Library 2025-08-12 from Google (in C++).
 * [**Oniguruma**](https://github.com/kkos/oniguruma) Regular Expression Library 6.9.10 (in C++).
 * [**SubReg**](https://github.com/mattbucknall/subreg) 2024-08-11 (in C).
