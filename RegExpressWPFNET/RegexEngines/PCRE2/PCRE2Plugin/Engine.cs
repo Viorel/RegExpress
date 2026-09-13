@@ -100,7 +100,9 @@ class Engine : RegexEngine
                 PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL = true,
 
                 PCRE2_NEVER_UCP = false,
+                PCRE2_NEVER_UTF = false,
                 PCRE2_UCP = true,
+                PCRE2_UTF = true,
                 PCRE2_EXTRA_ASCII_BSD = false,
                 PCRE2_EXTRA_ASCII_BSS = false,
                 PCRE2_EXTRA_ASCII_BSW = false,

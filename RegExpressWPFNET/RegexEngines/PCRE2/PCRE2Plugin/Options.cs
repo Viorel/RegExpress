@@ -66,7 +66,7 @@ class Options
     public bool PCRE2_UCP { get; set; }
     public bool PCRE2_UNGREEDY { get; set; }
     public bool PCRE2_USE_OFFSET_LIMIT { get; set; }
-    //public bool PCRE2_UTF {get;set;}
+    public bool PCRE2_UTF { get; set; }
 
 
     // Extra compile options

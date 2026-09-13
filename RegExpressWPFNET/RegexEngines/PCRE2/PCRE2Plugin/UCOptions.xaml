@@ -112,6 +112,7 @@
             <ui:CheckboxWithNote Prop="PCRE2_UCP" Note="Use Unicode properties for \d, \w, etc."/>
             <ui:CheckboxWithNote Prop="PCRE2_UNGREEDY" Note="Invert greediness of quantifiers"/>
             <ui:CheckboxWithNote Prop="PCRE2_USE_OFFSET_LIMIT" Note="Enable offset limit for unanchored matching"/>
+            <ui:CheckboxWithNote Prop="PCRE2_UTF" Note="Treat pattern and subjects as UTF strings"/>
         </StackPanel>
 
         <Label Margin="0 4 0 4" Padding="0">

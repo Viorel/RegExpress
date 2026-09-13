@@ -12,7 +12,7 @@ namespace PCRE2Plugin;
 
 class Subengine( Options options ) : RegexSubengine
 {
-    readonly LazyData<(bool PCRE2_ALLOW_EMPTY_CLASS, bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+    readonly LazyData<(bool PCRE2_UTF, bool PCRE2_ALLOW_EMPTY_CLASS, bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL), FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
@@ -21,12 +21,13 @@ class Subengine( Options options ) : RegexSubengine
 
     public override SyntaxOptions GetSyntaxOptions( )
     {
+        bool is_utf = options.PCRE2_UTF;
         bool is_literal = options.PCRE2_LITERAL;
         bool is_extended = options.PCRE2_EXTENDED;
         bool is_extended_more = options.PCRE2_EXTENDED_MORE;
         bool allow_empty_set = options.PCRE2_ALLOW_EMPTY_CLASS;
         bool bad_escape_is_literal = options.PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL;
-        FeatureMatrix fm = LazyFeatureMatrix.GetValue( (PCRE2_ALLOW_EMPTY_CLASS: allow_empty_set, PCRE2_ALT_BSUX: options.PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX: options.PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS: options.PCRE2_ALT_EXTENDED_CLASS, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: bad_escape_is_literal) );
+        FeatureMatrix fm = LazyFeatureMatrix.GetValue( (PCRE2_UTF: is_utf, PCRE2_ALLOW_EMPTY_CLASS: allow_empty_set, PCRE2_ALT_BSUX: options.PCRE2_ALT_BSUX, PCRE2_EXTRA_ALT_BSUX: options.PCRE2_EXTRA_ALT_BSUX, PCRE2_ALT_EXTENDED_CLASS: options.PCRE2_ALT_EXTENDED_CLASS, PCRE2_DUPNAMES: true, PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL: bad_escape_is_literal) );
 
         return new SyntaxOptions
         {
@@ -92,6 +93,7 @@ class Subengine( Options options ) : RegexSubengine
             bw.Write( Convert.ToByte( options.PCRE2_UCP ) );
             bw.Write( Convert.ToByte( options.PCRE2_UNGREEDY ) );
             bw.Write( Convert.ToByte( options.PCRE2_USE_OFFSET_LIMIT ) );
+            bw.Write( Convert.ToByte( options.PCRE2_UTF ) );
 
             // Extra compile options
 
@@ -217,9 +219,9 @@ class Subengine( Options options ) : RegexSubengine
         return worker_exe;
     }
 
-    static FeatureMatrix BuildFeatureMatrix( (bool PCRE2_ALLOW_EMPTY_CLASS, bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL) options )
+    static FeatureMatrix BuildFeatureMatrix( (bool PCRE2_UTF, bool PCRE2_ALLOW_EMPTY_CLASS, bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL) options )
     {
-        (bool PCRE2_ALLOW_EMPTY_CLASS, bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL) = options;
+        (bool PCRE2_UTF, bool PCRE2_ALLOW_EMPTY_CLASS, bool PCRE2_ALT_BSUX, bool PCRE2_EXTRA_ALT_BSUX, bool PCRE2_ALT_EXTENDED_CLASS, bool PCRE2_DUPNAMES, bool PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL) = options;
 
         return new FeatureMatrix
         {
@@ -266,7 +268,7 @@ class Subengine( Options options ) : RegexSubengine
             Esc_c1 = true,
             Esc_C1 = false,
             Esc_CMinus = false,
-            Esc_NBrace = false,
+            Esc_NBrace = PCRE2_UTF,
             GenericEscape = PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL,
 
             InsideSets_Esc_a = true,
@@ -289,7 +291,7 @@ class Subengine( Options options ) : RegexSubengine
             InsideSets_Esc_c1 = true,
             InsideSets_Esc_C1 = false,
             InsideSets_Esc_CMinus = false,
-            InsideSets_Esc_NBrace = false,
+            InsideSets_Esc_NBrace = PCRE2_UTF,
             InsideSets_GenericEscape = PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL,
 
             Class_Dot = true,
@@ -432,7 +434,7 @@ class Subengine( Options options ) : RegexSubengine
             Unicode_Class_vW = true,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
-            KeepSurrogatePairs = false,
+            KeepSurrogatePairs = PCRE2_UTF,
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = true,
