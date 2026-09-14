@@ -21,7 +21,7 @@ partial class SubengineRegexPlus( Options options ) : RegexSubengine
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
-        return RegexEngineCapabilityEnum.ScrollErrorsToEnd;
+        return RegexEngineCapabilityEnum.None;
     }
 
     public override SyntaxOptions GetSyntaxOptions( )

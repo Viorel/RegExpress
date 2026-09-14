@@ -262,6 +262,7 @@ xcopy /D /R /Y "%BasePath%\RegexWorker\ZigRegexWorker.exe" "%EnginesTargetPath%\
 xcopy /D /R /Y "%BasePath%\MvzrWorker\ZigMvzrWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 xcopy /D /R /Y "%BasePath%\PzreWorker\zig-out\bin\ZigPzreWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 xcopy /D /R /Y "%BasePath%\EziGexWorker\zig-out\bin\EziGexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
+xcopy /D /R /Y "%BasePath%\Zoptia0regexWorker\zig-out\bin\Zoptia0regexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 
 
 rem -- Go --
