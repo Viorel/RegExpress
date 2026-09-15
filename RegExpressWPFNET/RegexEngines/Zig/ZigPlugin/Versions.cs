@@ -7,4 +7,5 @@ class Versions
     public static string Mvzr { get; } = "0.3.12";
     public static string Pzre { get; } = "0.2.3";
     public static string EziGex { get; } = "0.6.2";
+    public static string Zoptia0regex { get; } = "0.5.2";
 }

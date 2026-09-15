@@ -7,6 +7,7 @@ enum RegexLibraryEnum
     Mvzr,
     Pzre,
     EziGex,
+    Zoptia0regex,
 }
 
 enum CaseFoldEnum
@@ -48,6 +49,11 @@ class Options
     public bool unicode_word_boundary_in_dfa { get; set; }
     public bool prefilter { get; set; }
     public SimdModeEnum simd { get; set; } = SimdModeEnum.None;
+
+    public bool posix { get; set; }
+    public bool longest { get; set; }
+    public bool literal { get; set; }
+
 
     public Options Clone( )
     {

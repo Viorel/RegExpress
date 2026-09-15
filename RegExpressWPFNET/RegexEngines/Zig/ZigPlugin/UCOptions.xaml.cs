@@ -89,11 +89,13 @@ namespace ZigPlugin
                 bool is_Mvzr = Options.Library == RegexLibraryEnum.Mvzr;
                 bool is_Pzre = Options.Library == RegexLibraryEnum.Pzre;
                 bool is_EziGex = Options.Library == RegexLibraryEnum.EziGex;
+                bool is_Zoptia0regex = Options.Library == RegexLibraryEnum.Zoptia0regex;
 
                 pnlZigRegexOptions.Display( is_ZigRegex );
                 pnlMvzrOptions.Display( is_Mvzr );
                 pnlPzreOptions.Display( is_Pzre );
                 pnlEziGexOptions.Display( is_EziGex );
+                pnlZoptia0regex.Display( is_Zoptia0regex );
             }
             finally
             {

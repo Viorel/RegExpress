@@ -61,10 +61,11 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Library:" Target="{Binding ElementName=cbxLibrary}" />
                 <ComboBox x:Name="cbxLibrary" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Library, FallbackValue='ZigRegex'}" SelectionChanged="cbxLibrary_SelectionChanged">
-                    <ui:ComboBoxItemWithVersion Tag="ZigRegex" Text="zig-regex" Version="{Binding ZigRegex, Source={StaticResource versions}}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="Mvzr"     Text="mvzr"      Version="{Binding Mvzr, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag="Pzre"     Text="PZRE"      Version="{Binding Pzre, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag="EziGex"   Text="ezi-gex"   Version="{Binding EziGex, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="ZigRegex"      Text="zig-regex"    Version="{Binding ZigRegex,     Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="Mvzr"          Text="mvzr"         Version="{Binding Mvzr,         Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="Pzre"          Text="PZRE"         Version="{Binding Pzre,         Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="EziGex"        Text="ezi-gex"      Version="{Binding EziGex,       Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="Zoptia0regex"  Text="zoptia0regex" Version="{Binding Zoptia0regex, Source={StaticResource versions}}" />
                 </ComboBox>
 
             </Grid>
@@ -149,6 +150,12 @@
 
                 -->
 
+            </StackPanel>
+
+            <StackPanel x:Name="pnlZoptia0regex">
+                <ui:CheckboxWithNote Prop="posix" Note="POSIX ERE syntax and leftmost-longest semantics"/>
+                <ui:CheckboxWithNote Prop="longest" Note="switch to leftmost-longest (POSIX) matching"/>
+                <ui:CheckboxWithNote Prop="literal" Note="interpret pattern as literal, not regexp"/>
             </StackPanel>
 
         </StackPanel>
