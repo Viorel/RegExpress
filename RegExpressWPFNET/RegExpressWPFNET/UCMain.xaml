@@ -156,16 +156,18 @@
                 <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
-                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Style="{StaticResource StackPanelWithLabels}">
                         <TextBlock Text="Options" Style="{StaticResource Labels}"/>
                     </StackPanel>
-                    <CheckBox x:Name="chbxWrap" Grid.Column="1" Content="Wrap" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0 0 2 0" Checked="ChbxWrap_Checked" Unchecked="ChbxWrap_Unchecked">
-                        <CheckBox.LayoutTransform>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" >
+                        <StackPanel.LayoutTransform>
                             <ScaleTransform ScaleX="0.8" ScaleY="0.8"/>
-                        </CheckBox.LayoutTransform>
-                    </CheckBox>
+                        </StackPanel.LayoutTransform>
+                        <Button x:Name="btnSpreadOptions" Content="Spread" ToolTip="Apply options to all tabs" VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="5 0" Margin="0 0 0 1" Background="Transparent" BorderBrush="Transparent" Click="btnSpreadOptions_Click" />
+                        <CheckBox x:Name="chbxWrap" Content="Wrap" ToolTip="Wrap long lines" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="4 0 2 0" Checked="ChbxWrap_Checked" Unchecked="ChbxWrap_Unchecked"/>
+                    </StackPanel>
                 </Grid>
 
                 <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0" Padding="2">

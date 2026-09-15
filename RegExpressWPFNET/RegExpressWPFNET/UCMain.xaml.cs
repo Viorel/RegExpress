@@ -45,7 +45,7 @@ namespace RegExpressWPFNET
         double? Animation1From;
 
         public event EventHandler? Changed;
-        public event EventHandler? NewTabClicked;
+        public event EventHandler? SpreadOptionsClicked;
 
         static readonly DependencyProperty SubtitleProperty = DependencyProperty.Register( nameof( Subtitle ), typeof( string ), typeof( UCMain ) );
         static readonly DependencyProperty RegexIndexProperty = DependencyProperty.Register( nameof( RegexIndex ), typeof( int ), typeof( UCMain ) );
@@ -361,13 +361,6 @@ namespace RegExpressWPFNET
             }
         }
 
-
-        private void BtnNewTab_Click( object sender, EventArgs e )
-        {
-            NewTabClicked?.Invoke( this, EventArgs.Empty );
-        }
-
-
         private void UcPattern_TextChanged( object sender, EventArgs e )
         {
             if( !IsFullyLoaded ) return;
@@ -517,6 +510,10 @@ namespace RegExpressWPFNET
             svOptions.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
         }
 
+        private void btnSpreadOptions_Click( object sender, RoutedEventArgs e )
+        {
+            SpreadOptionsClicked?.Invoke( this, EventArgs.Empty );
+        }
 
         private void CbxEngine_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {

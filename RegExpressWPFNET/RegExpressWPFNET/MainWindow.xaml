@@ -16,7 +16,7 @@
     <Window.Resources>
 
     </Window.Resources>
-    
+
     <Window.TaskbarItemInfo>
         <TaskbarItemInfo x:Name="taskBarItemInfo" Description="RegExpress" ProgressState="None" ProgressValue="0" />
     </Window.TaskbarItemInfo>
@@ -28,7 +28,7 @@
         <CommandBinding Command="{x:Static local:MainWindow.GoToOptionsCommand}" CanExecute="GoToOptionsCommand_CanExecute" Executed="GoToOptionsCommand_Execute"/>
         <CommandBinding Command="{x:Static local:MainWindow.MoveTabLeftCommand}" CanExecute="MoveTabLeftCommand_CanExecute" Executed="MoveTabLeftCommand_Execute"/>
         <CommandBinding Command="{x:Static local:MainWindow.MoveTabRightCommand}" CanExecute="MoveTabRightCommand_CanExecute" Executed="MoveTabRightCommand_Execute"/>
-        <CommandBinding Command="{x:Static local:MainWindow.ExpandOptionsCommand}" CanExecute="ExpandOptionsCommand_CanExecute" Executed="ExpandOptionsCommand_Execute"/>
+        <CommandBinding Command="{x:Static local:MainWindow.SpreadOptionsCommand}" CanExecute="SpreadOptionsCommand_CanExecute" Executed="SpreadOptionsCommand_Execute"/>
     </Window.CommandBindings>
 
     <Window.InputBindings>
@@ -38,7 +38,7 @@
         <KeyBinding Command="{x:Static local:MainWindow.GoToOptionsCommand}" Modifiers="" Key="F4" />
         <KeyBinding Command="{x:Static local:MainWindow.MoveTabLeftCommand}" Modifiers="Ctrl+Shift+Alt" Key="Left" />
         <KeyBinding Command="{x:Static local:MainWindow.MoveTabRightCommand}" Modifiers="Ctrl+Shift+Alt" Key="Right" />
-        <KeyBinding Command="{x:Static local:MainWindow.ExpandOptionsCommand}" Modifiers="Ctrl+Shift+Alt" Key="D" />
+        <KeyBinding Command="{x:Static local:MainWindow.SpreadOptionsCommand}" Modifiers="Ctrl+Shift" Key="D" />
     </Window.InputBindings>
 
     <Grid Margin="0 1 0 0">
@@ -111,58 +111,40 @@
                                    HorizontalAlignment="Left" Opacity="0.6"
                                    Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=InfoVisibility, Mode=OneWay, FallbackValue='Visible' }"
                                    />
-                        
-                        <!-- ╳ ⛌ ⛒ ❌ ⨯ ×  ➕ -->
 
-                        <Button x:Name="btnDeleteTab" Grid.Column="2" Grid.Row="0"
-                                Content="⨯" 
-                                ToolTip="Close tab"
-                                Margin="3 0 0 0"
-                                Command="{x:Static local:MainWindow.CloseTabCommand}"
-                                CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=.}" 
-                                IsTabStop="False"
-                                VerticalAlignment="Top"
-                                >
+                        <!-- ╳ ⛌ ⛒ ❌ ⨯ ×  ➕ … ⋯ ••• 𓈓 ⫶ ⋮ ⧉ 🗐 ⿻ -->
 
-                            <Button.Template>
-                                <ControlTemplate TargetType="Button">
-                                    <Border HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"
-                                            Margin="0 1 0 0"
-                                            Padding="4 2"
-                                            BorderThickness="0"
-                                            CornerRadius="2"
-                                            >
-
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Style.Triggers>
-                                                    <MultiDataTrigger>
-                                                        <MultiDataTrigger.Conditions>
-                                                            <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=IsSelected}" Value="False"/>
-                                                            <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=IsMouseOver}" Value="False"/>
-                                                        </MultiDataTrigger.Conditions>
-                                                        <Setter Property="Visibility" Value="Hidden"/>
-                                                    </MultiDataTrigger>
-
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}"/>
-                                                    </Trigger>
-
-                                                    <Trigger Property="IsMouseOver" Value="False">
-                                                        <Setter Property="Background" Value="Transparent"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-
-                                        <ContentPresenter VerticalAlignment="Center"/>
-
-                                    </Border>
-                                </ControlTemplate>
-                            </Button.Template>
-                        </Button>
-
+                        <Menu Grid.Column="2" Grid.Row="0" Background="Transparent" >
+                            <Menu.Style>
+                                <Style TargetType="Menu">
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=IsSelected}" Value="False"/>
+                                                <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=IsMouseOver}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Menu.Style>
+                            <Menu.Resources>
+                                <Style TargetType="MenuItem">
+                                    <Setter Property="Padding" Value="3 0 3 1"/>
+                                </Style>
+                            </Menu.Resources>
+                            <MenuItem Header="⧉" 
+                                      ToolTip="Duplicate tab" 
+                                      InputGestureText="Ctrl+D" 
+                                      Command="{x:Static local:MainWindow.DuplicateTabCommand}"
+                                      CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=.}" 
+                                      />
+                            <MenuItem Header="⨯" 
+                                      ToolTip="Close tab"
+                                      Command="{x:Static local:MainWindow.CloseTabCommand}"
+                                      CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=.}" 
+                                    />
+                        </Menu>
                     </Grid>
                 </DataTemplate>
             </TabControl.Resources>

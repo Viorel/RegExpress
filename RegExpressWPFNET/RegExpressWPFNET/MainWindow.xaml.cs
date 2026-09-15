@@ -38,7 +38,7 @@ namespace RegExpressWPFNET
         public static readonly RoutedUICommand GoToOptionsCommand = new( );
         public static readonly RoutedUICommand MoveTabLeftCommand = new( );
         public static readonly RoutedUICommand MoveTabRightCommand = new( );
-        public static readonly RoutedUICommand ExpandOptionsCommand = new( );
+        public static readonly RoutedUICommand SpreadOptionsCommand = new( );
 
         readonly List<RegexPlugin> mRegexPlugins = [];
         readonly List<RegexPlugin> mNoFmRegexPlugins = [];
@@ -287,7 +287,9 @@ namespace RegExpressWPFNET
 
         private void DuplicateTabCommand_Execute( object sender, ExecutedRoutedEventArgs e )
         {
-            DuplicateTab( );
+            TabItem? tab_item = ( e.Parameter as TabItem ) ?? tabControl.SelectedItem as TabItem;
+
+            DuplicateTab( tab_item );
         }
 
         private void GoToOptionsCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
@@ -392,18 +394,20 @@ namespace RegExpressWPFNET
             current_tab.IsSelected = true;
         }
 
-        private void ExpandOptionsCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
+        private void SpreadOptionsCommand_CanExecute( object sender, CanExecuteRoutedEventArgs e )
         {
             e.CanExecute = true;
         }
 
-        private void ExpandOptionsCommand_Execute( object sender, ExecutedRoutedEventArgs e )
+        private void SpreadOptionsCommand_Execute( object sender, ExecutedRoutedEventArgs e )
         {
             // Set the same engines, keeping pattern and text
 
             try
             {
-                TabItem? current_tab = tabControl.SelectedItem as TabItem;
+                bool ask = e.Parameter != null; // from menu
+
+                TabItem? current_tab = ( e.Parameter as TabItem ) ?? tabControl.SelectedItem as TabItem;
 
                 if( current_tab == null || current_tab.Content is not UCMain )
                 {
@@ -412,32 +416,8 @@ namespace RegExpressWPFNET
                     return;
                 }
 
-                UCMain current_UCMain = (UCMain)current_tab.Content;
-                TabData current_tab_data = new( );
-                current_UCMain.ExportTabData( current_tab_data );
-
-                foreach( TabItem other_tab in tabControl.Items )
-                {
-                    if( object.ReferenceEquals( other_tab, current_tab ) || other_tab.Content is not UCMain ) continue;
-
-                    UCMain other_UCMain = (UCMain)other_tab.Content;
-                    TabData other_tab_data = new( );
-                    other_UCMain.ExportTabData( other_tab_data );
-
-                    string json = JsonSerializer.Serialize( current_tab_data, JsonUtilities.JsonOptions );
-                    TabData? new_tab_data = JsonSerializer.Deserialize<TabData>( json, JsonUtilities.JsonOptions );
-                    if( new_tab_data == null ) throw new ApplicationException( );
-
-                    new_tab_data.Name = other_tab_data.Name;
-                    new_tab_data.Pattern = other_tab_data.Pattern;
-                    new_tab_data.Text = other_tab_data.Text;
-                    new_tab_data.Eol = other_tab_data.Eol;
-                    new_tab_data.Metrics = other_tab_data.Metrics;
-
-                    other_UCMain.ForgetMatches( );
-
-                    other_UCMain.ApplyTabData( new_tab_data );
-                }
+                UCMain us_main = (UCMain)current_tab.Content;
+                SpreadOptions( us_main, ask );
             }
             catch
             {
@@ -463,6 +443,59 @@ namespace RegExpressWPFNET
             if( !IsFullyLoaded ) return;
 
             AutoSaveLoop.SignalWaitAndExecute( );
+        }
+
+        void UCMain_SpreadOptionsClicked( object? sender, EventArgs e )
+        {
+            if( sender is not UCMain uc_main )
+            {
+                SystemSounds.Beep.Play( );
+
+                return;
+            }
+
+            SpreadOptions( uc_main, ask: true );
+        }
+
+        void SpreadOptions( UCMain source_uc_main, bool ask )
+        {
+            if( ask )
+            {
+                MessageBoxResult r = MessageBox.Show( this,
+                    "Apply these options to all other tabs?",
+                    "WARNING",
+                    MessageBoxButton.OKCancel, MessageBoxImage.Exclamation,
+                    MessageBoxResult.OK, MessageBoxOptions.None );
+
+                if( r != MessageBoxResult.OK ) return;
+            }
+
+            TabData current_tab_data = new( );
+            source_uc_main.ExportTabData( current_tab_data );
+
+            foreach( TabItem tab_item in tabControl.Items )
+            {
+                if( tab_item.Content is not UCMain ) continue;
+                if( object.ReferenceEquals( tab_item.Content, source_uc_main ) ) continue;
+
+                UCMain other_UCMain = (UCMain)tab_item.Content;
+                TabData other_tab_data = new( );
+                other_UCMain.ExportTabData( other_tab_data );
+
+                string json = JsonSerializer.Serialize( current_tab_data, JsonUtilities.JsonOptions );
+                TabData? new_tab_data = JsonSerializer.Deserialize<TabData>( json, JsonUtilities.JsonOptions );
+                if( new_tab_data == null ) throw new ApplicationException( );
+
+                new_tab_data.Name = other_tab_data.Name;
+                new_tab_data.Pattern = other_tab_data.Pattern;
+                new_tab_data.Text = other_tab_data.Text;
+                new_tab_data.Eol = other_tab_data.Eol;
+                new_tab_data.Metrics = other_tab_data.Metrics;
+
+                other_UCMain.ForgetMatches( );
+
+                other_UCMain.ApplyTabData( new_tab_data );
+            }
         }
 
         void AutoSaveThreadProc( ICancellable cnc )
@@ -716,6 +749,7 @@ namespace RegExpressWPFNET
             if( tabData != null ) uc_main.ApplyTabData( tabData );
 
             uc_main.Changed += UCMain_Changed;
+            uc_main.SpreadOptionsClicked += UCMain_SpreadOptionsClicked;
 
             tabControl.SelectedItem = new_tab_item; //?
 
@@ -745,6 +779,9 @@ namespace RegExpressWPFNET
 
 
             UCMain uc_main = (UCMain)tabItem.Content;
+
+            uc_main.Changed -= UCMain_Changed;
+            uc_main.SpreadOptionsClicked -= UCMain_SpreadOptionsClicked;
 
             uc_main.Shutdown( );
 
@@ -805,13 +842,14 @@ namespace RegExpressWPFNET
         }
 
 
-        void DuplicateTab( )
+        void DuplicateTab( TabItem? tabItem )
         {
             TabItem? new_tab_item = null;
-            var tab_data = new TabData( );
 
-            if( tabControl.SelectedItem is TabItem selected_tab_item && selected_tab_item.Content is UCMain uc_main )
+            if( tabItem is TabItem selected_tab_item && selected_tab_item.Content is UCMain uc_main )
             {
+                TabData tab_data = new( );
+
                 uc_main.ExportTabData( tab_data );
                 new_tab_item = AddNewTab( tab_data );
 
