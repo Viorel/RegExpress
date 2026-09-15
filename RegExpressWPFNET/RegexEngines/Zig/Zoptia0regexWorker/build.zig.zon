@@ -63,8 +63,8 @@
         //},
 
         .zoptia0regex = .{
-            .url = "https://github.com/zoptia/zoptia0regex/archive/refs/tags/v0.5.1.tar.gz",
-            .hash = "zoptia0regex-0.5.1-DssccbJ6RgBJ9fM9Q4_1_8kL2SqVsnCRp__K8-8lxh7z",
+            .url = "https://github.com/zoptia/zoptia0regex/archive/refs/tags/v0.5.2.tar.gz",
+            .hash = "zoptia0regex-0.5.2-DssccV6YaAC6nfXqeYXrP09bbUwPPH5VOlbg06RtZl_J",
         },
     },
     // Specifies the set of files and directories that are included in this package.

@@ -9,6 +9,7 @@ const OPTIONS_TYPE = struct {
     is_debug: bool = false,
     posix: bool = false,
     longest: bool = false,
+    literal: bool = false,
 };
 
 const INPUT_TYPE = struct {
@@ -47,32 +48,35 @@ pub fn main1(init: std.process.Init) !void {
 
     const input_object = input_parsed_object.value;
 
-    // TODO: POSIX
+    var pattern = input_object.pattern;
+    const text = input_object.text;
+    const options = input_object.options;
+
+    if (options.literal) {
+        pattern = try zoptia0regex.quoteMeta(allocator, pattern);
+    }
 
     var re: zoptia0regex.Regexp = undefined;
 
-    if (input_object.options.posix) {
-        re = try zoptia0regex.compilePOSIX(allocator, input_object.pattern);
+    if (options.posix) {
+        re = try zoptia0regex.compilePOSIX(allocator, pattern);
     } else {
-        re = try zoptia0regex.compile(allocator, input_object.pattern);
+        re = try zoptia0regex.compile(allocator, pattern);
     }
 
-    if (input_object.options.longest) re.setLongest();
+    if (options.longest) re.setLongest();
 
-    //try re.matches(allocator, input_object.text, 0);
+    //try re.matches(allocator, text, 0);
 
-    const matches = try re.findAllSubmatchIndex(allocator, input_object.text, -1);
+    const matches = try re.findAllSubmatchIndex(allocator, text, -1);
 
     const output: OUTPUT = .{ .names = re.subexp_names, .matches = matches };
 
-    const json_options: std.json.Stringify.Options = .{ .whitespace = if (input_object.options.is_debug) .indent_2 else .minified };
+    const json_options: std.json.Stringify.Options = .{ .whitespace = if (options.is_debug) .indent_2 else .minified };
 
     const output_json = try std.fmt.allocPrint(allocator, "{f}\n", .{std.json.fmt(output, json_options)});
 
     try stdout.writeStreamingAll(init.io, output_json);
-
-    //const t1 = try std.fmt.allocPrint(allocator, "{f}\n", .{std.json.fmt(input_object, json_options)});
-    //try stdout.writeStreamingAll(init.io, t1);
 }
 
 var init_arg: ?std.process.Init = null;

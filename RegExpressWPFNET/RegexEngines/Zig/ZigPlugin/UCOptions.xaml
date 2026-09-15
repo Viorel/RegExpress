@@ -155,6 +155,7 @@
             <StackPanel x:Name="pnlZoptia0regex">
                 <ui:CheckboxWithNote Prop="posix" Note="POSIX ERE syntax and leftmost-longest semantics"/>
                 <ui:CheckboxWithNote Prop="longest" Note="switch to leftmost-longest (POSIX) matching"/>
+                <ui:CheckboxWithNote Prop="literal" Note="interpret pattern as literal, not regexp"/>
             </StackPanel>
 
         </StackPanel>

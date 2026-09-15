@@ -29,6 +29,7 @@ class SubengineZoptia0regex( Options options ) : RegexSubengine
 
         return new SyntaxOptions
         {
+            Literal = options.literal,
             XLevel = XLevelEnum.none,
             FeatureMatrix = fm,
         };
@@ -52,6 +53,7 @@ class SubengineZoptia0regex( Options options ) : RegexSubengine
             {
                 posix = options.posix,
                 longest = options.longest,
+                literal = options.literal,
             },
         };
 

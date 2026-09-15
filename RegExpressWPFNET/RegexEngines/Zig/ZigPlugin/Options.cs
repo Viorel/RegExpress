@@ -52,6 +52,7 @@ class Options
 
     public bool posix { get; set; }
     public bool longest { get; set; }
+    public bool literal { get; set; }
 
 
     public Options Clone( )
