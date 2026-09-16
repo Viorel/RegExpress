@@ -131,6 +131,11 @@
                             <Menu.Resources>
                                 <Style TargetType="MenuItem">
                                     <Setter Property="Padding" Value="3 0 3 1"/>
+                                    <Style.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Style.Resources>
                                 </Style>
                             </Menu.Resources>
                             <MenuItem Header="⧉" 

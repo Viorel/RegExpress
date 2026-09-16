@@ -459,6 +459,10 @@ namespace RegExpressWPFNET
 
         void SpreadOptions( UCMain source_uc_main, bool ask )
         {
+            TabItem[] other_main_tabs = [.. EnumerateMainTabs( ).Where( t => !object.ReferenceEquals( t.Content, source_uc_main ) )];
+
+            if( other_main_tabs.Length < 1 ) return;
+
             if( ask )
             {
                 MessageBoxResult r = MessageBox.Show( this,
@@ -473,12 +477,9 @@ namespace RegExpressWPFNET
             TabData current_tab_data = new( );
             source_uc_main.ExportTabData( current_tab_data );
 
-            foreach( TabItem tab_item in tabControl.Items )
+            foreach( TabItem other_tab_item in other_main_tabs )
             {
-                if( tab_item.Content is not UCMain ) continue;
-                if( object.ReferenceEquals( tab_item.Content, source_uc_main ) ) continue;
-
-                UCMain other_UCMain = (UCMain)tab_item.Content;
+                UCMain other_UCMain = (UCMain)other_tab_item.Content;
                 TabData other_tab_data = new( );
                 other_UCMain.ExportTabData( other_tab_data );
 
@@ -517,7 +518,7 @@ namespace RegExpressWPFNET
             try
             {
                 var all_data = new AllTabData( );
-                var main_controls = GetMainTabs( ).Select( t => new { t.Header, uc_main = (UCMain)t.Content } );
+                var main_controls = EnumerateMainTabs( ).Select( t => new { t.Header, uc_main = (UCMain)t.Content } );
 
                 foreach( var main_control in main_controls )
                 {
@@ -711,7 +712,7 @@ namespace RegExpressWPFNET
         TabItem AddNewTab( TabData? tabData )
         {
             int max =
-                GetMainTabs( )
+                EnumerateMainTabs( )
                     .Where( i => i != tabItemNew && i.Header is string )
                     .Select( i =>
                     {
@@ -765,7 +766,7 @@ namespace RegExpressWPFNET
 
             tabControl.SelectedItem = tabItem;
 
-            TabItem[] main_tabs = GetMainTabs( ).ToArray( );
+            TabItem[] main_tabs = EnumerateMainTabs( ).ToArray( );
             int index = Array.IndexOf( main_tabs, tabItem );
 
             var r = MessageBox.Show( this,
@@ -821,7 +822,7 @@ namespace RegExpressWPFNET
         void RenumberTabs( )
         {
             int i = 0;
-            foreach( var tab in GetMainTabs( ) )
+            foreach( var tab in EnumerateMainTabs( ) )
             {
                 var name = "Regex " + ( ++i );
                 if( !name.Equals( tab.Header ) ) tab.Header = name; // ('If' to avoid effects)
@@ -831,12 +832,12 @@ namespace RegExpressWPFNET
 
         void UpdateInfoVisibility( )
         {
-            bool more_than_one = GetMainTabs( ).Skip( 1 ).Any( );
+            bool more_than_one = EnumerateMainTabs( ).Skip( 1 ).Any( );
 
             InfoVisibility = more_than_one ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        IEnumerable<TabItem> GetMainTabs( )
+        IEnumerable<TabItem> EnumerateMainTabs( )
         {
             return tabControl.Items.OfType<TabItem>( ).Where( t => t.Visibility == Visibility.Visible && t.Content is UCMain );
         }

@@ -9,26 +9,18 @@
 
     <UserControl.Resources>
         <Style x:Key="buttonStyle1" TargetType="Button">
-            <!--<Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border CornerRadius="6" 
-                                BorderThickness="1" 
-                                Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" 
-                                BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}" 
-                                Padding="8 2 8 3">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>-->
             <Setter Property="Padding" Value="8 2 8 3"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontStyle" Value="Normal"/>
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="5"/>
+                </Style>
+            </Style.Resources>
         </Style>
     </UserControl.Resources>
-    
+
     <Grid>
         <ProgressBar x:Name="pbProgress" Panel.ZIndex="2" VerticalAlignment="Top" Visibility="Hidden" Style="{StaticResource ProgressBar1}" />
         <ProgressBar x:Name="pbProgressIndeterminate" Panel.ZIndex="10" VerticalAlignment="Top" Visibility="Hidden" Style="{StaticResource ProgressBar1}" IsIndeterminate="True" />
