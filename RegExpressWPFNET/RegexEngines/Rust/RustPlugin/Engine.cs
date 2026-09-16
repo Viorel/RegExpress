@@ -101,6 +101,7 @@ class Engine : RegexEngine
         Engine engine_java_regex_uU = new( ) { Options = new Options { crate = CrateEnum.java_regex, unicode = true, unicode_sets = true, d = false, l = false } };
         Engine engine_regexr = new( ) { Options = new Options { crate = CrateEnum.regexr, UseBuilder = true } };
         Engine engine_rexile = new( ) { Options = new Options { crate = CrateEnum.rexile } };
+        Engine engine_iregexp_rs = new( ) { Options = new Options { crate = CrateEnum.iregexp_rs } };
 
         return
             [
@@ -115,6 +116,7 @@ class Engine : RegexEngine
                 new FeatureMatrixVariant("java_regex (“uU” flags)", engine_java_regex_uU),
                 new FeatureMatrixVariant("regexr", engine_regexr),
                 new FeatureMatrixVariant("rexile", engine_rexile),
+                new FeatureMatrixVariant("iregexp-rs", engine_iregexp_rs),
             ];
     }
 
@@ -148,6 +150,7 @@ class Engine : RegexEngine
             CrateEnum.java_regex => new SubengineJavaRegex( Options ),
             CrateEnum.regexr => new SubengineRegexr( Options ),
             CrateEnum.rexile => new SubengineReXile( Options ),
+            CrateEnum.iregexp_rs => new SubengineIRegexpRs( Options ),
             _ => throw new InvalidOperationException( )
         };
     }

@@ -161,7 +161,7 @@ internal partial class SubengineFancyRegex( Options options ) : RegexSubengine
 
     private static string? AdjustErrorMessage( string error, string pattern )
     {
-        // try to show character offset based on byte offset, which appears in error messages
+        // try to show character offset based on byte offset, which appears in error message
 
         System.Text.RegularExpressions.Match m = RegexExtractByteOffset( ).Match( error );
 

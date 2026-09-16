@@ -13,6 +13,7 @@ enum CrateEnum
     java_regex,
     regexr,
     rexile,
+    iregexp_rs,
 }
 
 enum UnicodeModeEnum // ('resharp')
@@ -31,6 +32,13 @@ enum BytesModeEnum // ('fancy')
     Unicode,
     Ascii,
     UnicodeBytes,
+}
+
+enum MatchModeEnum // ('iregex-rs')
+{
+    None,
+    Full,
+    Search,
 }
 
 class Options
@@ -96,6 +104,11 @@ class Options
 
     public bool jit { get; set; }
     public bool optimize_prefixes { get; set; }
+
+    // IRegexpRs
+
+    public MatchModeEnum MatchMode { get; set; } = MatchModeEnum.Full;
+
 
     public Options Clone( )
     {
