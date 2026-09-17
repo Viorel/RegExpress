@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) linear version 2026.02
+**  SRELL (std::regex-like library) linear version 2026.03
 **
 **  Copyright (c) 2026, Nozomu Katoo. All rights reserved.
 **
