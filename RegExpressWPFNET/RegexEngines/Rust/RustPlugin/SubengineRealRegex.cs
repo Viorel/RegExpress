@@ -149,7 +149,7 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
 
     private static string? AdjustErrorMessage( string error, string pattern )
     {
-        // try to show character offset based on byte offset, which is used by REAL in error messages;
+        // try to show character offset based on byte offset, which appears in error message;
         // example of error message: "syntax error at 3: ..."
 
         Match m = RegexExtractByteOffset( ).Match( error );

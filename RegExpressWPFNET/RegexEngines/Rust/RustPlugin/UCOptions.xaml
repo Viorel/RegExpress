@@ -5,9 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
-             mc:Ignorable="d" 
-             d:DesignHeight="927.355" d:DesignWidth="869.529" 
-             Loaded="UserControl_Loaded">
+             mc:Ignorable="d" d:DesignWidth="869.529" 
+             Loaded="UserControl_Loaded" Height="1074">
 
     <UserControl.Resources>
         <local:Versions x:Key="versions"/>
@@ -50,9 +49,10 @@
                     <ui:ComboBoxItemWithVersion Tag ="java_regex"   Text="java_regex"   Version="{Binding JavaRegex,    Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="regexr"       Text="regexr"       Version="{Binding Regexr,       Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="rexile"       Text="rexile"       Version="{Binding ReXile,       Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="iregexp_rs"   Text="iregexp-rs"   Version="{Binding IRegexpRs,    Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
-            
+
             <ui:CheckboxWithNote x:Name="chbx_use_builder" Prop="UseBuilder" Text="Use RegexBuilder" Note="" Changed="chbx_use_builder_Changed"/>
 
             <StackPanel x:Name="pnlRegexBuilderOptions" Orientation="Vertical" Visibility="Collapsed" d:Visibility="Visible">
@@ -270,6 +270,39 @@
 
                 </Grid>
 
+            </StackPanel>
+
+            <StackPanel x:Name="pnlIRegexpRs" Orientation="Vertical">
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Top">
+                    <Grid.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Grid.LayoutTransform>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=mm}">MatchMode:</Label>
+                    <ComboBox x:Name="mm" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding MatchMode, FallbackValue='Full'}" VerticalAlignment="Center" SelectionChanged="cbxMatchMode_SelectionChanged" >
+                        <ComboBoxItem Tag ="Full" IsSelected="True">
+                            <ui:TextAndNote Text="Full" Note="match complete string"/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag ="Search">
+                            <ui:TextAndNote Text="Search" Note="match any substring"/>
+                        </ComboBoxItem>
+                    </ComboBox>
+                    <!--<TextBlock Grid.Column="2" Grid.Row="0" Text="– matching semantics" Style="{StaticResource note}" />-->
+
+                </Grid>
             </StackPanel>
 
         </StackPanel>

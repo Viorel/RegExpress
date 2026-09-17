@@ -77,6 +77,11 @@ namespace RustPlugin
             Notify( preferImmediateReaction: true );
         }
 
+        private void cbxMatchMode_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
         internal void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
@@ -100,6 +105,7 @@ namespace RustPlugin
                 bool is_java_regex = crate == CrateEnum.java_regex;
                 bool is_regexr = crate == CrateEnum.regexr;
                 bool is_rexile = crate == CrateEnum.rexile;
+                bool is_regexp_rs = crate == CrateEnum.iregexp_rs;
 
                 chbx_use_builder.Display( is_regex_or_regex_lite || is_fancy || is_real || is_regexr );
                 pnlRegexBuilderOptions.Display( is_regex_or_regex_lite || is_fancy || is_real );
@@ -109,6 +115,7 @@ namespace RustPlugin
                 pnlJavaRegexOptions.Display( is_java_regex );
                 pnlFancyRegexCrateLimits.Display( is_fancy );
                 pnlRegexrOptions.Display( is_regexr );
+                pnlIRegexpRs.Display( is_regexp_rs );
 
                 pnlRegexCrateLimits.Display( is_regex_or_regex_lite );
                 dsl.IsEnabled = is_regex;
@@ -187,9 +194,9 @@ namespace RustPlugin
                 CrateEnum.java_regex => "java_regex",
                 CrateEnum.regexr => "regexr",
                 CrateEnum.rexile => "rexile",
+                CrateEnum.iregexp_rs => "iregexp-rs",
                 _ => "unknown"
             };
         }
-
     }
 }

@@ -174,7 +174,7 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
 
     private static string? AdjustErrorMessage( string error, string pattern )
     {
-        // try to show character offset based on codepoint offset, which appears in error messages
+        // try to show character offset based on codepoint offset, which appears in error message
 
         Match m = RegexExtractCodepointOffset( ).Match( error );
 
