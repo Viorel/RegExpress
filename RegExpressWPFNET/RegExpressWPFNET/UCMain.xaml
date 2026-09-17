@@ -161,22 +161,21 @@
                     <StackPanel Grid.Column="0" Style="{StaticResource StackPanelWithLabels}">
                         <TextBlock Text="Options" Style="{StaticResource Labels}"/>
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" >
-                        <StackPanel.LayoutTransform>
-                            <ScaleTransform ScaleX="0.8" ScaleY="0.8"/>
-                        </StackPanel.LayoutTransform>
-                        <Button x:Name="btnSpreadOptions" Content="Spread" ToolTip="Apply options to all tabs" VerticalAlignment="Center" VerticalContentAlignment="Center" 
-                                Padding="5 0 5 1" Margin="0 0 0 1" 
-                                Background="Transparent" BorderBrush="LightGray" 
-                                Click="btnSpreadOptions_Click" >
-                            <Button.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="4"/>
-                                </Style>
-                            </Button.Resources>
-                        </Button>
-                        <CheckBox x:Name="chbxWrap" Content="Wrap" ToolTip="Wrap long lines" VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="4 0 2 0" Checked="ChbxWrap_Checked" Unchecked="ChbxWrap_Unchecked"/>
-                    </StackPanel>
+                    <Menu Grid.Column="1" HorizontalAlignment="Right" HorizontalContentAlignment="Right" Background="Transparent">
+                        <Menu.Resources>
+                            <Style x:Key="TopMenuItem" TargetType="MenuItem">
+                                <Style.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="4"/>
+                                    </Style>
+                                </Style.Resources>
+                            </Style>
+                        </Menu.Resources>
+                        <MenuItem Header="·&#x2009;·&#x2009;·" Style="{StaticResource TopMenuItem}">
+                            <MenuItem Header="Spread" ToolTip="Apply options to all tabs" InputGestureText="Ctrl+Shift+D" Click="btnSpreadOptions_Click"/>
+                            <MenuItem x:Name="chbxWrap" Header="Wrap" ToolTip="Wrap long options" IsCheckable="True" Checked="ChbxWrap_Checked" Unchecked="ChbxWrap_Unchecked"/>
+                        </MenuItem>
+                    </Menu>
                 </Grid>
 
                 <Border Grid.Row="1" Style="{StaticResource RtbBorder}" Margin="0" Padding="2">
@@ -210,9 +209,6 @@
                                                 <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="1 0 0 0"/>
                                                 <TextBlock Grid.Column="1" Text="{Binding Version, TargetNullValue='Unknown version', FallbackValue='Unknown version'}" VerticalAlignment="Center" HorizontalAlignment="Left" 
                                                            Margin="6 0 1 0">
-                                                    <!--<TextBlock.LayoutTransform>
-                                                        <ScaleTransform ScaleX="0.8" ScaleY="1"/>
-                                                    </TextBlock.LayoutTransform>-->
                                                 </TextBlock>
                                             </Grid>
                                         </DataTemplate>
