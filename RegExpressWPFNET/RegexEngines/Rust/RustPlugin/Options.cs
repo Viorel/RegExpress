@@ -14,6 +14,7 @@ enum CrateEnum
     regexr,
     rexile,
     iregexp_rs,
+    ferroni,
 }
 
 enum UnicodeModeEnum // ('resharp')
@@ -39,6 +40,23 @@ enum MatchModeEnum // ('iregex-rs')
     None,
     Full,
     Search,
+}
+
+enum OnigSyntaxTypeEnum // ('ferroni')
+{
+    None,
+    OnigSyntaxASIS,
+    OnigSyntaxEmacs,
+    OnigSyntaxGnuRegex,
+    OnigSyntaxGrep,
+    OnigSyntaxJava,
+    OnigSyntaxOniguruma,
+    OnigSyntaxPerl,
+    OnigSyntaxPerl_NG,
+    OnigSyntaxPosixBasic,
+    OnigSyntaxPosixExtended,
+    OnigSyntaxPython,
+    OnigSyntaxRuby,
 }
 
 class Options
@@ -109,6 +127,9 @@ class Options
 
     public MatchModeEnum MatchMode { get; set; } = MatchModeEnum.Full;
 
+    // Ferrony
+
+    public OnigSyntaxTypeEnum OnigSyntaxType { get; set; } = OnigSyntaxTypeEnum.OnigSyntaxOniguruma;
 
     public Options Clone( )
     {

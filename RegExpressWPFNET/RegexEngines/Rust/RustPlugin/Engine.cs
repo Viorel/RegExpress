@@ -102,6 +102,7 @@ class Engine : RegexEngine
         Engine engine_regexr = new( ) { Options = new Options { crate = CrateEnum.regexr, UseBuilder = true } };
         Engine engine_rexile = new( ) { Options = new Options { crate = CrateEnum.rexile } };
         Engine engine_iregexp_rs = new( ) { Options = new Options { crate = CrateEnum.iregexp_rs } };
+        Engine engine_ferroni = new( ) { Options = new Options { crate = CrateEnum.ferroni } };
 
         return
             [
@@ -117,6 +118,7 @@ class Engine : RegexEngine
                 new FeatureMatrixVariant("regexr", engine_regexr),
                 new FeatureMatrixVariant("rexile", engine_rexile),
                 new FeatureMatrixVariant("iregexp-rs", engine_iregexp_rs),
+                new FeatureMatrixVariant("ferroni", engine_ferroni),
             ];
     }
 
@@ -151,6 +153,7 @@ class Engine : RegexEngine
             CrateEnum.regexr => new SubengineRegexr( Options ),
             CrateEnum.rexile => new SubengineReXile( Options ),
             CrateEnum.iregexp_rs => new SubengineIRegexpRs( Options ),
+            CrateEnum.ferroni => new SubengineFerroni( Options ),
             _ => throw new InvalidOperationException( )
         };
     }

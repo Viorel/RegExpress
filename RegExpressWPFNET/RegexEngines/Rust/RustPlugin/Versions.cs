@@ -14,4 +14,5 @@ class Versions
     public static string Regexr { get; } = "0.5.0";
     public static string ReXile { get; } = "0.7.3";
     public static string IRegexpRs { get; } = "0.1.0";
+    public static string Ferroni { get; } = "1.3.3";
 }
