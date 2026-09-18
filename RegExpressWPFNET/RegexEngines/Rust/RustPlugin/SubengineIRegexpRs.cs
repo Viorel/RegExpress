@@ -18,7 +18,7 @@ namespace RustPlugin;
 
 partial class SubengineIRegexpRs( Options options ) : RegexSubengine
 {
-    static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix( ) );
+    static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
 
     public override RegexEngineCapabilityEnum GetCapabilities( )

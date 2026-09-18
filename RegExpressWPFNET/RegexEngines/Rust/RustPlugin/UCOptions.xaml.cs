@@ -82,6 +82,18 @@ namespace RustPlugin
             Notify( preferImmediateReaction: true );
         }
 
+        private void cbxOnigSyntaxType_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
+        private void chbxOnigUseBuilder_Changed( object sender, RoutedEventArgs e )
+        {
+            UpdateUI( );
+
+            Notify( preferImmediateReaction: true );
+        }
+
         internal void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
@@ -106,8 +118,10 @@ namespace RustPlugin
                 bool is_regexr = crate == CrateEnum.regexr;
                 bool is_rexile = crate == CrateEnum.rexile;
                 bool is_regexp_rs = crate == CrateEnum.iregexp_rs;
+                bool is_ferroni = crate == CrateEnum.ferroni;
 
-                chbx_use_builder.Display( is_regex_or_regex_lite || is_fancy || is_real || is_regexr );
+                chbx_use_builder.Display( is_regex_or_regex_lite || is_fancy || is_real || is_regexr || is_ferroni );
+
                 pnlRegexBuilderOptions.Display( is_regex_or_regex_lite || is_fancy || is_real );
                 pnlRegressOptions.Display( is_regress );
                 pnlResharpOptions.Display( is_resharp );
@@ -116,6 +130,7 @@ namespace RustPlugin
                 pnlFancyRegexCrateLimits.Display( is_fancy );
                 pnlRegexrOptions.Display( is_regexr );
                 pnlIRegexpRs.Display( is_regexp_rs );
+                pnlFerroniOptions.Display( is_ferroni );
 
                 pnlRegexCrateLimits.Display( is_regex_or_regex_lite );
                 dsl.IsEnabled = is_regex;
@@ -138,7 +153,7 @@ namespace RustPlugin
 
                 if( chbx_use_builder.IsDisplayed( ) )
                 {
-                    var pnls = new[] { pnlRegexBuilderOptions, pnlRegexrOptions };
+                    var pnls = new[] { pnlRegexBuilderOptions, pnlRegexrOptions, pnlFerroniOptions };
 
                     foreach( var pnl in pnls.Where( p => p.IsDisplayed( ) ) )
                     {
@@ -195,6 +210,7 @@ namespace RustPlugin
                 CrateEnum.regexr => "regexr",
                 CrateEnum.rexile => "rexile",
                 CrateEnum.iregexp_rs => "iregexp-rs",
+                CrateEnum.ferroni => "ferroni",
                 _ => "unknown"
             };
         }

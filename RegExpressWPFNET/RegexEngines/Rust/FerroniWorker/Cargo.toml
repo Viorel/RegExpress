@@ -1,0 +1,8 @@
+[package]
+name = "FerroniWorker"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+json = "0.12.4"
+ferroni = "=1.3.3"

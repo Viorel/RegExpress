@@ -50,6 +50,7 @@
                     <ui:ComboBoxItemWithVersion Tag ="regexr"       Text="regexr"       Version="{Binding Regexr,       Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="rexile"       Text="rexile"       Version="{Binding ReXile,       Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="iregexp_rs"   Text="iregexp-rs"   Version="{Binding IRegexpRs,    Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="ferroni"      Text="ferroni"      Version="{Binding Ferroni,      Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 
@@ -303,6 +304,76 @@
                     <!--<TextBlock Grid.Column="2" Grid.Row="0" Text="– matching semantics" Style="{StaticResource note}" />-->
 
                 </Grid>
+            </StackPanel>
+
+            <StackPanel x:Name="pnlFerroniOptions" Orientation="Vertical">
+
+                <ui:CheckboxWithNote Prop="case_insensitive" Text="case_insensitive" Note="case-insensitive matching"/>
+                <ui:CheckboxWithNote Prop="dot_matches_new_line" Text="dot_matches_newline" Note="`.` matches `\n`"/>
+                <ui:CheckboxWithNote Prop="multi_line" Text="multi_line_anchors" Note="`^`/`$` matching at every line boundary"/>
+                <ui:CheckboxWithNote Prop="ignore_whitespace" Text="extended" Note="whitespace and `#` comments ignored"/>
+
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 0">
+                    <Grid.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Grid.LayoutTransform>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=onigsyn}">Syntax:</Label>
+                    <ComboBox x:Name="onigsyn" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding OnigSyntaxType, FallbackValue='OnigSyntaxOniguruma'}" VerticalAlignment="Center" SelectionChanged="cbxOnigSyntaxType_SelectionChanged" >
+                        <ComboBoxItem Tag="OnigSyntaxOniguruma" IsSelected="True">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                        <Separator/>
+                        <ComboBoxItem Tag="OnigSyntaxASIS">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxEmacs">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxGnuRegex">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxGrep">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxJava">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxPerl">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxPerl_NG">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxPosixBasic">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxPosixExtended">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxPython">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxRuby">
+                            <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
+                        </ComboBoxItem>
+                    </ComboBox>
+                    <!--<TextBlock Grid.Column="2" Grid.Row="0" Text="– matching semantics" Style="{StaticResource note}" />-->
+                </Grid>
+
             </StackPanel>
 
         </StackPanel>

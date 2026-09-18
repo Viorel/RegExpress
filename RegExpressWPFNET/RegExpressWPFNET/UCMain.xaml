@@ -171,7 +171,7 @@
                                 </Style.Resources>
                             </Style>
                         </Menu.Resources>
-                        <MenuItem Header="·&#x2009;·&#x2009;·" Style="{StaticResource TopMenuItem}">
+                        <MenuItem Header="⫶" Style="{StaticResource TopMenuItem}">
                             <MenuItem Header="Spread" ToolTip="Apply options to all tabs" InputGestureText="Ctrl+Shift+D" Click="btnSpreadOptions_Click"/>
                             <MenuItem x:Name="chbxWrap" Header="Wrap" ToolTip="Wrap long options" IsCheckable="True" Checked="ChbxWrap_Checked" Unchecked="ChbxWrap_Unchecked"/>
                         </MenuItem>
