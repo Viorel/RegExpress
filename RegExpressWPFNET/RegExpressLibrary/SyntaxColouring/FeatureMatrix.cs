@@ -292,6 +292,7 @@
 
         // Special features used only by specific engines.
 
+        public bool Ext_Canon_Eq { get; init; }                             // canonical equivalence; ex: "\u00E9" and "\u0065\u0301" (é)
         public bool Ext_Class_Name { get; init; }                           // ex: [:digit:] 
         public bool Ext_NamedGroup_AtApos { get; init; }                    // (?@'name'...)
         public bool Ext_NamedGroup_AtLtGt { get; init; }                    // (?@<name>...)

@@ -96,7 +96,7 @@ class Engine : RegexEngine
 
     public override IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
     {
-        Engine engine_regex = new( ) { Options = new Options { Package = PackageEnum.regex, UNICODE_CASE = true, UNICODE_CHARACTER_CLASS = true } };
+        Engine engine_regex = new( ) { Options = new Options { Package = PackageEnum.regex, CANON_EQ = true, UNICODE_CASE = true, UNICODE_CHARACTER_CLASS = true } };
         Engine engine_re2j = new( ) { Options = new Options { Package = PackageEnum.re2j } };
         Engine engine_safere = new( ) { Options = new Options { Package = PackageEnum.safere, UNICODE_CASE = true, UNICODE_CHARACTER_CLASS = true } };
         Engine engine_reggie = new( ) { Options = new Options { Package = PackageEnum.reggie } };

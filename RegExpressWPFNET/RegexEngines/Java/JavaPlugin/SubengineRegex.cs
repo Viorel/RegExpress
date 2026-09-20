@@ -18,8 +18,8 @@ namespace JavaPlugin;
 
 partial class SubengineRegex( Options options ) : RegexSubengine
 {
-    static readonly LazyData<(bool UNICODE_CASE, bool UNICODE_CHARACTER_CLASS), FeatureMatrix> LazyFeatureMatrix =
-        new( d => BuildFeatureMatrix( d.UNICODE_CASE, d.UNICODE_CHARACTER_CLASS ) );
+    static readonly LazyData<(bool CANON_EQ, bool UNICODE_CASE, bool UNICODE_CHARACTER_CLASS), FeatureMatrix> LazyFeatureMatrix =
+        new( d => BuildFeatureMatrix( d.CANON_EQ, d.UNICODE_CASE, d.UNICODE_CHARACTER_CLASS ) );
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
@@ -28,7 +28,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
 
     public override SyntaxOptions GetSyntaxOptions( )
     {
-        FeatureMatrix fm = LazyFeatureMatrix.GetValue( (options.UNICODE_CASE, options.UNICODE_CHARACTER_CLASS) );
+        FeatureMatrix fm = LazyFeatureMatrix.GetValue( (options.CANON_EQ, options.UNICODE_CASE, options.UNICODE_CHARACTER_CLASS) );
 
         return new SyntaxOptions
         {
@@ -323,7 +323,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
         }
     }
 
-    static FeatureMatrix BuildFeatureMatrix( bool isUnicodeCase, bool isUnicodeCharacterClass )
+    static FeatureMatrix BuildFeatureMatrix( bool isCanonEq, bool isUnicodeCase, bool isUnicodeCharacterClass )
     {
         return new FeatureMatrix
         {
@@ -541,6 +541,8 @@ partial class SubengineRegex( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = isUnicodeCase,
             ßSS = false,
+
+            Ext_Canon_Eq = isCanonEq,
         };
     }
 }

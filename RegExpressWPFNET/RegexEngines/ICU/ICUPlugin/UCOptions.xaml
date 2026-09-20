@@ -21,6 +21,7 @@
     <Grid>
         <StackPanel>
 
+            <ui:CheckboxWithNote Prop="UREGEX_CANON_EQ" Note="take the canonical equivalence of characters into account. NOTE: this flag is not yet implemented."/>
             <ui:CheckboxWithNote Prop="UREGEX_CASE_INSENSITIVE" Note="enable case insensitive matching"/>
             <ui:CheckboxWithNote Prop="UREGEX_COMMENTS" Note="allow white space and comments within patterns"/>
             <ui:CheckboxWithNote Prop="UREGEX_DOTALL" Note="“.” matches line terminators, otherwise “.” matching stops at line end"/>

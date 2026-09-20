@@ -542,7 +542,7 @@ partial class FeatureMatrixDetails
 
         new ( @"Miscellaneous",
             [
-                new FeatureMatrixDetails( @"", @"Get all captures matched by group", (e, fm) => ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups) && e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.HasCaptures))
+                new FeatureMatrixDetails( @"Captures", @"Get all captures matched by group", (e, fm) => ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups) && e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.HasCaptures))
                     .Test( (e, fm) =>
                     {
                         e.SetCollectCaptures( true );
@@ -650,7 +650,7 @@ partial class FeatureMatrixDetails
                             e.SetCollectCaptures( false );
                         }
                     }),
-                new FeatureMatrixDetails( @"", @"Differentiate between empty groups and failed groups", (e, fm) => ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups) && ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroupSuccessFlag) )
+                new FeatureMatrixDetails( @"Empty≠Failed", @"Differentiate between empty groups and failed groups", (e, fm) => ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups) && ! e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroupSuccessFlag) )
                     .Test( (e, fm) =>
                     {
                         try
@@ -738,6 +738,8 @@ partial class FeatureMatrixDetails
                     .Test( @"XéY", "XÉY", null, "XÉY" )
                     .Test( @"(?i)XéY", "XÉY", null, "XÉY" )
                     .Test( @"(?i:XéY)", "XÉY", null, "XÉY" ),
+                new FeatureMatrixDetails( @"é=e+´", @"Canonical equivalence of characters", (e, fm) => fm.Ext_Canon_Eq)
+                    .Test( "\u00E9", "e\u0301", null ),
                 new FeatureMatrixDetails( "Σσς", "Match letters that have multiple uppercase and lowercase variants", (e, fm) => fm.Σσς )
                     .IgnoreCase()
                     .Test( @"ΣΣΣ", "Σσς", null, "Σσς")
@@ -783,7 +785,7 @@ partial class FeatureMatrixDetails
                     .Test( @"a.+&.+b", "axb", null, "axb" ),
                 new FeatureMatrixDetails( @"~(…)", @"Complement (pattern must not match)", (e, fm) => fm.Ext_Operator_Complement)
                     .Test( @"ab~(x)c", "abc", null, "abc" ),
-                new FeatureMatrixDetails( @"", @"Support alternative syntax", (e, fm) => fm.Ext_AlternativeLanguage),
+                new FeatureMatrixDetails( @"Alt. syntax", @"Support alternative syntax", (e, fm) => fm.Ext_AlternativeLanguage),
             ]),
 
         ];

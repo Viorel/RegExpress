@@ -90,7 +90,7 @@ class ChimeraEngine : RegexEngine
     {
         return
             [
-                new FeatureMatrixVariant( null, new ChimeraEngine{ Options = new ChimeraOptions { CH_FLAG_UCP = true } } )
+                new FeatureMatrixVariant( null, new ChimeraEngine{ Options = new ChimeraOptions { CH_FLAG_UTF8 = true, CH_FLAG_UCP = true } } )
             ];
     }
 

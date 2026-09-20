@@ -2,7 +2,7 @@
 
 class Options
 {
-    //public bool UREGEX_CANON_EQ { get; set; } // Not implemented yet in ICU
+    public bool UREGEX_CANON_EQ { get; set; } // (not implemented yet in ICU)
     public bool UREGEX_CASE_INSENSITIVE { get; set; } // "i"
     public bool UREGEX_COMMENTS { get; set; } // "x"
     public bool UREGEX_DOTALL { get; set; } // "s"

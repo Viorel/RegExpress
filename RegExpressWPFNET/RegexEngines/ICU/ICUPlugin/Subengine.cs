@@ -45,7 +45,7 @@ class Subengine( Options options ) : RegexSubengine
         }
 
         uint flags = 0;
-        //if(options.UREGEX_CANON_EQ) flags |= 1 << 0; // not implemented by ICU
+        if( options.UREGEX_CANON_EQ ) flags |= 1 << 0; // (not yet implemented by ICU)
         if( options.UREGEX_CASE_INSENSITIVE ) flags |= 1 << 1;
         if( options.UREGEX_COMMENTS ) flags |= 1 << 2;
         if( options.UREGEX_DOTALL ) flags |= 1 << 3;

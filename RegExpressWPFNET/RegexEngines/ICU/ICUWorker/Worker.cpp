@@ -99,7 +99,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             auto limit = inbr.ReadOptional<int32_t>( );
 
             uint32_t flags = 0;
-            //if( remote_flags & ( 1 << 0 ) ) flags |= UREGEX_CANON_EQ; // not implemented by ICU
+            if( remote_flags & ( 1 << 0 ) ) flags |= UREGEX_CANON_EQ; // (not yet implemented by ICU)
             if( remote_flags & ( 1 << 1 ) ) flags |= UREGEX_CASE_INSENSITIVE;
             if( remote_flags & ( 1 << 2 ) ) flags |= UREGEX_COMMENTS;
             if( remote_flags & ( 1 << 3 ) ) flags |= UREGEX_DOTALL;
