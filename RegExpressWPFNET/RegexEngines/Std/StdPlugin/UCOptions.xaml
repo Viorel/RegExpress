@@ -45,11 +45,11 @@
                 </Grid.RowDefinitions>
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Implementation:" Target="{Binding ElementName=cbxCompiler}" />
-                <ComboBox x:Name="cbxCompiler" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Compiler, FallbackValue='MSVC'}" SelectionChanged="cbxCompiler_SelectionChanged">
-                    <ui:ComboBoxItemWithVersion Tag="MSVC"          Text="MSVC"         Version="{Binding MSVC,         Source={StaticResource versions}}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="GCC"           Text="GCC"          Version="{Binding GCC,          Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag="SRELL"         Text="SRELL"        Version="{Binding SRELL,        Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag="SRELL_LINEAR"  Text="SRELL linear" Version="{Binding SRELL_LINEAR, Source={StaticResource versions}}" />
+                <ComboBox x:Name="cbxCompiler" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Compiler, FallbackValue='MSVC'}" MinWidth="192" SelectionChanged="cbxCompiler_SelectionChanged">
+                    <ui:ComboBoxItemWithVersion Tag="MSVC"          Text="MSVC wregex"              Version="{Binding MSVC,         Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="GCC"           Text="GCC wregex"               Version="{Binding GCC,          Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="SRELL"         Text="SRELL u8regex"            Version="{Binding SRELL,        Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="SRELL_LINEAR"  Text="SREL3 u8regex (linear)"   Version="{Binding SRELL_LINEAR, Source={StaticResource versions}}" />
                 </ComboBox>
 
                 <Label Grid.Column="0" Grid.Row="1" Content="Grammar:" Target="{Binding ElementName=cbxGrammar}" />

@@ -46,9 +46,9 @@ class Engine : RegexEngine
 
     public override string Version => ""; // (versions are displayed for each compiler)
 
-    public override string Name => "wregex";
+    public override string Name => "std::basic_regex";
 
-    public override string Subtitle => $"{Options.Compiler switch { CompilerEnum.MSVC => "std::wregex", CompilerEnum.GCC => "std::wregex (GCC)", CompilerEnum.SRELL => "srell::wregex", CompilerEnum.SRELL_LINEAR => "srel3::wregex", _ => " (Unknown)" }}";
+    public override string Subtitle => $"{Options.Compiler switch { CompilerEnum.MSVC => "std::wregex", CompilerEnum.GCC => "std::wregex (GCC)", CompilerEnum.SRELL => "srell::u8regex", CompilerEnum.SRELL_LINEAR => "srel3::u8regex", _ => " (unknown)" }}";
 
     public override string? NoteForCaptures => null;
 
@@ -114,20 +114,19 @@ class Engine : RegexEngine
             {
                 Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = false, vmode = false } };
 
-                variants.Add( new FeatureMatrixVariant( $"SRELL", engine ) );
+                variants.Add( new FeatureMatrixVariant( $"SRELL u8", engine ) );
             }
             {
                 Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL, Grammar = grammar, unicodesets = true, vmode = true } };
 
-                variants.Add( new FeatureMatrixVariant( $"SRELL (“uv” flags)", engine ) );
+                variants.Add( new FeatureMatrixVariant( $"SRELL u8 (“uv” flags)", engine ) );
             }
 
             {
                 Engine engine = new( ) { Options = new Options { Compiler = CompilerEnum.SRELL_LINEAR, Grammar = grammar, unicodesets = true, vmode = true } };
 
-                variants.Add( new FeatureMatrixVariant( $"SRELL linear (“uv” flags)", engine ) );
+                variants.Add( new FeatureMatrixVariant( $"SREL3 u8 (“uv” flags)", engine ) );
             }
-
 #else
             // for investigations
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 
 namespace RegExpressLibrary
 {
@@ -28,5 +29,22 @@ namespace RegExpressLibrary
             binaryWriter.Write( value != null );
             if( value != null ) binaryWriter.Write( value.Value );
         }
+
+        //public static void WriteUTF8( this BinaryWriter binaryWriter, string value )
+        //{
+        //    var bytelen = value.Length * sizeof( char );
+        //    binaryWriter.Write7BitEncodedInt( bytelen );
+
+        //    byte[] bytes = Encoding.UTF8.GetBytes( value );
+        //    binaryWriter.Write( bytes );
+        //}
+
+        //public static string ReadUTF8( this BinaryReader binaryReader )
+        //{
+        //    int bytelen = binaryReader.Read7BitEncodedInt( );
+        //    byte[] bytes = binaryReader.ReadBytes( bytelen );
+
+        //    return Encoding.UTF8.GetString( bytes );
+        //}
     }
 }

@@ -18,11 +18,14 @@ public:
 	void WriteBytes( const void* buffer0, uint32_t size );
 
 	template<typename T>
-	void WriteT( const T& v)
+	void WriteT( const T& v )
 	{
 		WriteBytes( &v, sizeof( v ) );
 	}
 
+	void Write( const char8_t* s );
+	void Write( const char8_t* s, uint32_t charlen );
+	void Write( const std::u8string& s );
 
 private:
 
@@ -43,15 +46,17 @@ class BinaryWriterA final : public BinaryWriter
 {
 public:
 
+	using BinaryWriter::Write;
+
 	explicit BinaryWriterA( HANDLE h )
-		: BinaryWriter(h)
+		: BinaryWriter( h )
 	{
 
 	}
 
 	void Write( LPCSTR s );
 	void Write( LPCSTR s, uint32_t charlen );
-	void Write( const std::string & s );
+	void Write( const std::string& s );
 };
 
 
@@ -62,6 +67,8 @@ public:
 class BinaryWriterW final : public BinaryWriter
 {
 public:
+
+	using BinaryWriter::Write;
 
 	explicit BinaryWriterW( HANDLE h )
 		: BinaryWriter( h )

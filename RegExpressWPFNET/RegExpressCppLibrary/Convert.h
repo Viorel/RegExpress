@@ -10,9 +10,11 @@
 std::wstring Utf8ToWString( const char* s ); // (see also 'UTF8_to_wchar' from 'PartialJSON.h')
 std::wstring Utf8ToWString( const char* s, int len );
 std::wstring Utf8ToWString( const std::string& s );
+std::wstring Utf8ToWString( const std::u8string& s );
 std::wstring ToWString( const char* s ); // (simple unsigned widening)
 std::wstring ToWString( const std::string& s ); // (simple unsigned widening)
 
 std::string WStringToUtf8( const wchar_t* s );
 std::string WStringToUtf8( const std::wstring& s );
+std::u8string WStringToUtf8New( const std::wstring& s );
 std::string WStringToUtf8( const std::wstring& s, std::vector<int>* indices );

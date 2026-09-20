@@ -8,47 +8,49 @@ class BinaryReader abstract
 {
 protected:
 
-    BinaryReader( HANDLE h )
-        : mHandle( h )
-    {
+	BinaryReader( HANDLE h )
+		: mHandle( h )
+	{
 
-    }
+	}
 
 public:
 
-    uint8_t ReadByte( ) const;
+	uint8_t ReadByte( ) const;
 
-    template<typename T>
-    T ReadT( ) const
-    {
-        T v;
+	template<typename T>
+	T ReadT( ) const
+	{
+		T v;
 
-        ReadBytes( &v, sizeof( v ) );
+		ReadBytes( &v, sizeof( v ) );
 
-        return v;
-    }
+		return v;
+	}
 
-    template<typename T>
-    std::optional<T> ReadOptional( ) const
-    {
-        if( ReadByte( ) == 0 )
-        {
-            return {};
-        }
-        else
-        {
-            return std::optional<T>( ReadT<T>( ) );
-        }
-    }
+	template<typename T>
+	std::optional<T> ReadOptional( ) const
+	{
+		if( ReadByte( ) == 0 )
+		{
+			return {};
+		}
+		else
+		{
+			return std::optional<T>( ReadT<T>( ) );
+		}
+	}
+
+	std::u8string ReadU8String( ) const;
 
 private:
 
-    HANDLE const mHandle;
+	HANDLE const mHandle;
 
 protected:
 
-    void ReadBytes( void* buffer, uint32_t size ) const;
-    int Read7BitEncodedInt( ) const; // (borrowed from .NET)
+	void ReadBytes( void* buffer, uint32_t size ) const;
+	int Read7BitEncodedInt( ) const; // (borrowed from .NET)
 
 };
 
@@ -61,13 +63,13 @@ class BinaryReaderA final : public BinaryReader
 {
 public:
 
-    explicit BinaryReaderA( HANDLE h )
-        : BinaryReader( h )
-    {
+	explicit BinaryReaderA( HANDLE h )
+		: BinaryReader( h )
+	{
 
-    }
+	}
 
-    std::string ReadString( ) const;
+	std::string ReadString( ) const;
 
 };
 
@@ -81,13 +83,13 @@ class BinaryReaderW final : public BinaryReader
 {
 public:
 
-    explicit BinaryReaderW( HANDLE h )
-        : BinaryReader( h )
-    {
+	explicit BinaryReaderW( HANDLE h )
+		: BinaryReader( h )
+	{
 
-    }
+	}
 
-    std::wstring ReadString( ) const;
+	std::wstring ReadString( ) const;
 
 };
 

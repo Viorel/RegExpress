@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -43,7 +44,7 @@ class SubengineSRELL_LINEAR( Options options ) : RegexSubengine
 
         using ProcessHelper ph = new( GetWorkerExePath( ) );
 
-        ph.AllEncoding = EncodingEnum.Unicode;
+        ph.AllEncoding = EncodingEnum.UTF8;
 
         ph.BinaryWriter = bw =>
         {
@@ -87,6 +88,7 @@ class SubengineSRELL_LINEAR( Options options ) : RegexSubengine
         var br = ph.BinaryReader;
 
         List<IMatch> matches = [];
+        Utf8IndexConverter index_converter = new( text );
         SimpleTextGetter stg = new( text );
         SimpleMatch? current_match = null;
 
@@ -102,17 +104,21 @@ class SubengineSRELL_LINEAR( Options options ) : RegexSubengine
             {
             case (byte)'m':
             {
-                Int64 native_index = br.ReadInt64( );
-                Int64 native_length = br.ReadInt64( );
-                current_match = SimpleMatch.Create( (int)native_index, (int)native_length, stg );
+                int native_index = checked((int)br.ReadInt64( ));
+                int native_length = checked((int)br.ReadInt64( ));
+                int native_end = native_index + native_length;
+
+                (int char_start, int char_length) = index_converter.Convert( native_index, native_end );
+
+                current_match = SimpleMatch.Create( native_index, native_length, char_start, char_length, stg );
                 matches.Add( current_match );
             }
             break;
             case (byte)'g':
             {
                 if( current_match == null ) throw new Exception( "Invalid response." );
-                Int64 native_index = br.ReadInt64( );
-                Int64 native_length = br.ReadInt64( );
+                int native_index = checked((int)br.ReadInt64( ));
+                int native_length = checked((int)br.ReadInt64( ));
                 bool success = native_index >= 0;
 
                 string? name = null;
@@ -126,7 +132,11 @@ class SubengineSRELL_LINEAR( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    current_match.AddSucceededGroup( (int)native_index, (int)native_length, name );
+                    int native_end = native_index + native_length;
+
+                    (int char_start, int char_length) = index_converter.Convert( native_index, native_end );
+
+                    current_match.AddSucceededGroup( native_index, native_length, char_start, char_length, name );
                 }
             }
             break;
@@ -363,7 +373,7 @@ class SubengineSRELL_LINEAR( Options options ) : RegexSubengine
             Unicode_Class_vW = false,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
-            KeepSurrogatePairs = false,
+            KeepSurrogatePairs = true,
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = true,

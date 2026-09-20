@@ -80,6 +80,28 @@ std::wstring Utf8ToWString( const std::string& s )
 	return result;
 }
 
+std::wstring Utf8ToWString( const std::u8string& s )
+{
+	const auto size_needed = MultiByteToWideChar( CP_UTF8, MB_ERR_INVALID_CHARS, (const char*)s.c_str( ), CheckedCast( s.length( ) ), nullptr, 0 );
+
+	if( size_needed <= 0 )
+	{
+		throw std::runtime_error( "MultiByteToWideChar() failed [3]." );
+	}
+
+	std::wstring result;
+	result.resize( size_needed );
+
+	if( MultiByteToWideChar( CP_UTF8, MB_ERR_INVALID_CHARS, (const char*)s.c_str( ), CheckedCast( s.length( ) ), &result[0], size_needed ) <= 0 )
+	{
+		throw std::runtime_error( "MultiByteToWideChar() failed [4]." );
+	}
+
+	assert( result.length( ) == size_needed );
+	assert( result.c_str( )[result.length( )] == L'\0' );
+
+	return result;
+}
 
 std::wstring ToWString( const char* s )
 {
@@ -144,6 +166,29 @@ std::string WStringToUtf8( const std::wstring& s )
 	return result;
 }
 
+std::u8string WStringToUtf8New( const std::wstring& s )
+{
+	if( s.length( ) == 0 ) return std::u8string{};
+
+	const auto size_needed = WideCharToMultiByte( CP_UTF8, WC_ERR_INVALID_CHARS, s.c_str( ), CheckedCast( s.length( ) ), nullptr, 0, nullptr, nullptr );
+	if( size_needed <= 0 )
+	{
+		throw std::runtime_error( "WideCharToMultiByte() failed [3]." );
+	}
+
+	std::u8string result;
+	result.resize( size_needed );
+
+	if( WideCharToMultiByte( CP_UTF8, 0, s.c_str( ), CheckedCast( s.length( ) ), (char*)&result.at( 0 ), size_needed, nullptr, nullptr ) <= 0 )
+	{
+		throw std::runtime_error( "WideCharToMultiByte() failed [4]." );
+	}
+
+	assert( result.length( ) == size_needed );
+	assert( result.c_str( )[result.length( )] == '\0' );
+
+	return result;
+}
 
 /// <summary>
 /// Convert Unicode to UTF-8 and also build a table for conversion of character indices from UTF-8 to Unicode.

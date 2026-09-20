@@ -17,7 +17,8 @@
 
 #include "RegExpressCppLibraryPCH.h"
 
-#include "SRELL/single-header/srel3.hpp"
+#include "SREL3/single-header/srel3.hpp"
+#include "SRELL/single-header/srell.hpp"
 
 
 #endif //PCH_H

@@ -6,30 +6,30 @@
 #include "BinaryReader.h"
 #include "BinaryWriter.h"
 #include "StreamWriter.h"
-#include "CheckedCast.h"
 #include "Convert.h"
+#include "CheckedCast.h"
 #include "SEHFilter.h"
 
 
-static void FindPossibleNames( std::unordered_set<std::wstring>* set, const std::wstring& pattern )
+static void FindPossibleNames( std::unordered_set<std::u8string>* set, const std::u8string pattern )
 {
-	static const std::wstring n = L"n";
+	static const std::u8string n = u8"n";
+	static const srell::u8regex regex( u8R"REGEX(\(\s*\?\s*<\s*(?![=!])(?<n>.*?)\s*>)REGEX" );
 
-	static const srell::wregex regex( LR"REGEX(\(\s*\?\s*<\s*(?![=!])(?<n>.*?)\s*>)REGEX" );
-
-	srell::wcregex_iterator results_begin( pattern.c_str( ), pattern.c_str( ) + pattern.length( ), regex );
-	srell::wcregex_iterator results_end{};
+	srell::u8cregex_iterator results_begin( pattern.c_str( ), pattern.c_str( ) + pattern.length( ), regex );
+	srell::u8cregex_iterator results_end{};
 
 	for( auto i = results_begin; i != results_end; ++i )
 	{
-		const std::wstring& name = i->str( n );
+		const std::u8string& name = i->str( n );
 
 		set->insert( name );
 	}
 }
 
-static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, const std::wstring& localeName,
-	srell::wregex::flag_type regexFlags, srell::regex_constants::match_flag_type matchFlags, std::optional<uint64_t> limit_counter )
+static void DoMatch( BinaryWriterA& outbw, const std::u8string& pattern, const std::u8string& text, const std::u8string& localeName,
+	srell::u8regex::flag_type regexFlags, srell::regex_constants::match_flag_type matchFlags, 
+	std::optional<uint64_t> limit_counter )
 {
 	ULONG ss = 1024 * 10;
 	SetThreadStackGuarantee( &ss );
@@ -41,24 +41,24 @@ static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const st
 	{
 		[&]( )
 			{
-				std::unordered_set<std::wstring> possible_names;
+				std::unordered_set<std::u8string> possible_names;
 				FindPossibleNames( &possible_names, pattern );
 
-				srell::wregex regex( pattern.c_str( ), regexFlags );
+				srell::u8regex regex( pattern, regexFlags );
 
 				if( limit_counter.has_value( ) )
 				{
 					regex.limit_counter = limit_counter.value( );
 				}
 
-				srell::wcregex_iterator results_begin( text.c_str( ), text.c_str( ) + text.length( ), regex, matchFlags );
-				srell::wcregex_iterator results_end{};
+				srell::u8cregex_iterator results_begin( text.c_str( ), text.c_str( ) + text.length( ), regex, matchFlags );
+				srell::u8cregex_iterator results_end{};
 
 				outbw.WriteT<char>( 'b' );
 
 				for( auto i = results_begin; i != results_end; ++i )
 				{
-					const srell::wcmatch& match = *i;
+					const srell::u8cmatch& match = *i;
 
 					outbw.WriteT<char>( 'm' );
 					outbw.WriteT<int64_t>( match.position( ) );
@@ -68,7 +68,7 @@ static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const st
 
 					for( auto k = match.cbegin( ); k != match.cend( ); ++k, ++j )
 					{
-						const srell::wcsub_match& submatch = *k;
+						const srell::u8csub_match& submatch = *k;
 
 						outbw.WriteT<char>( 'g' );
 
@@ -84,7 +84,7 @@ static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const st
 
 							// try to find the possible name
 							bool found = false;
-							for( const std::wstring& name : possible_names )
+							for( const std::u8string& name : possible_names )
 							{
 								const auto& m = match.operator[]( name );
 								if( !m.matched ) continue; // name not found
@@ -98,7 +98,7 @@ static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const st
 								}
 							}
 
-							if( !found ) outbw.Write( std::wstring{} );
+							if( !found ) outbw.Write( std::u8string{} );
 						}
 					}
 				}
@@ -136,6 +136,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER( hPrevInstance );
 	UNREFERENCED_PARAMETER( lpCmdLine );
 
+	setlocale( LC_ALL, ".utf8" );
+
 	auto herr = GetStdHandle( STD_ERROR_HANDLE );
 	if( herr == INVALID_HANDLE_VALUE )
 	{
@@ -144,12 +146,12 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 		return 1;
 	}
 
-	StreamWriterW errwr( herr );
+	StreamWriterA errwr( herr );
 
 	auto hin = GetStdHandle( STD_INPUT_HANDLE );
 	if( hin == INVALID_HANDLE_VALUE )
 	{
-		errwr.WriteString( L"Cannot get STDIN" );
+		errwr.WriteString( "Cannot get STDIN" );
 
 		return 2;
 	}
@@ -157,51 +159,51 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 	auto hout = GetStdHandle( STD_OUTPUT_HANDLE );
 	if( hout == INVALID_HANDLE_VALUE )
 	{
-		errwr.WriteString( L"Cannot get STDOUT" );
+		errwr.WriteString( "Cannot get STDOUT" );
 
 		return 3;
 	}
 
 	try
 	{
-		BinaryWriterW outbw( hout );
-		BinaryReaderW inbr( hin );
+		BinaryWriterA outbw( hout );
+		BinaryReaderA inbr( hin );
 
-		std::wstring command = inbr.ReadString( );
+		std::u8string command = inbr.ReadU8String( );
 
 		// 
 
-		if( command == L"v" )
+		if( command == u8"v" )
 		{
 			// get version
 
 			// example (from "SRELL/single-header/srell.hpp"): 
 			//   #define SRELL_HPP_ 202602
-			auto v = std::format( L"{}.{:02}", SRELL_HPP_ / 100, SRELL_HPP_ % 100 ); // TODO: make sure that it still works; it does not seem documented
+			auto v = std::format( "{}.{:02}", SRELL_HPP_ / 100, SRELL_HPP_ % 100 ); // TODO: make sure that it still works; it does not seem documented
 
 			outbw.Write( v );
 
 			return 0;
 		}
 
-		if( command == L"m" )
+		if( command == u8"m" )
 		{
 			if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [1]." );
 
-			std::wstring pattern = inbr.ReadString( );
-			std::wstring text = inbr.ReadString( );
+			std::u8string pattern = inbr.ReadU8String( );
+			std::u8string text = inbr.ReadU8String( );
 
-			srell::wregex::flag_type regex_flags{};
+			srell::u8regex::flag_type regex_flags{};
 
-			std::wstring grammar_s = inbr.ReadString( );
-			if( grammar_s == L"ECMAScript" ) regex_flags |= srell::regex_constants::syntax_option_type::ECMAScript;
-			else if( grammar_s == L"basic" ) regex_flags |= srell::regex_constants::syntax_option_type::basic;
-			else if( grammar_s == L"extended" ) regex_flags |= srell::regex_constants::syntax_option_type::extended;
-			else if( grammar_s == L"awk" ) regex_flags |= srell::regex_constants::syntax_option_type::awk;
-			else if( grammar_s == L"grep" ) regex_flags |= srell::regex_constants::syntax_option_type::grep;
-			else if( grammar_s == L"egrep" ) regex_flags |= srell::regex_constants::syntax_option_type::egrep;
+			std::u8string grammar_s = inbr.ReadU8String( );
+			if( grammar_s == u8"ECMAScript" ) regex_flags |= srell::regex_constants::syntax_option_type::ECMAScript;
+			else if( grammar_s == u8"basic" ) regex_flags |= srell::regex_constants::syntax_option_type::basic;
+			else if( grammar_s == u8"extended" ) regex_flags |= srell::regex_constants::syntax_option_type::extended;
+			else if( grammar_s == u8"awk" ) regex_flags |= srell::regex_constants::syntax_option_type::awk;
+			else if( grammar_s == u8"grep" ) regex_flags |= srell::regex_constants::syntax_option_type::grep;
+			else if( grammar_s == u8"egrep" ) regex_flags |= srell::regex_constants::syntax_option_type::egrep;
 
-			std::wstring locale_s = inbr.ReadString( );
+			std::u8string locale_s = inbr.ReadU8String( );
 
 			if( inbr.ReadByte( ) ) regex_flags |= srell::regex_constants::syntax_option_type::icase;
 			if( inbr.ReadByte( ) ) regex_flags |= srell::regex_constants::syntax_option_type::nosubs;
@@ -232,19 +234,19 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 			return 0;
 		}
 
-		errwr.WriteStringF( L"Unsupported command: '{}'.", command );
+		errwr.WriteStringF( "Unsupported command: '{}'.", (const char*)command.c_str() );
 
 		return 1;
 	}
 	catch( const std::exception& exc )
 	{
-		errwr.WriteString( ToWString( exc.what( ) ) );
+		errwr.WriteString( exc.what( ) );
 
 		return 12;
 	}
 	catch( ... )
 	{
-		errwr.WriteString( L"Internal error" );
+		errwr.WriteString( "Internal error" );
 
 		return 14;
 	}
