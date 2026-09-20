@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -1067,11 +1068,15 @@ namespace RegExpressWPFNET
 
                     if( td.Selection.Start >= 0 && td.Selection.Start < td.Text.Length )
                     {
+                        int next;
+
                         if( !( char.IsHighSurrogate( td.Text, td.Selection.Start ) && td.Selection.Start + 1 < td.Text.Length ) )
                         {
                             char c = td.Text[td.Selection.Start];
 
                             s = $"{s}\u2002|\u2002U+{(uint)c:X4}";
+
+                            next = td.Selection.Start + 1;
                         }
                         else
                         {
@@ -1082,6 +1087,27 @@ namespace RegExpressWPFNET
                             Rune r = new( c1, c2 );
 
                             s = $"{s}\u2002|\u2002U+{r.Value:X} {(uint)c1:X4}:{(uint)c2:X4}";
+
+                            next = td.Selection.Start + 2;
+                        }
+
+
+                        // diacritics
+
+                        for( int i = 0; next < td.Text.Length; ++next, ++i )
+                        {
+                            char c2 = td.Text[next];
+
+                            if( char.GetUnicodeCategory( c2 ) != UnicodeCategory.NonSpacingMark ) break;
+
+                            if( i >= 2 )
+                            {
+                                s = $"{s}+…";
+
+                                break;
+                            }
+
+                            s = $"{s}+{(uint)c2:X4}";
                         }
                     }
                     else
