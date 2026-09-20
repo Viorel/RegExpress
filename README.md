@@ -20,11 +20,11 @@ The following engines are included:
   * [_RE#_](https://www.nuget.org/packages/Resharp) 1.0.5,
   * [_Scout_](https://www.nuget.org/packages/Scout) 0.6.1,
   * [_Lokad.Utf8Regex_](https://www.nuget.org/packages/Lokad.Utf8Regex) 0.3.0.
-* [**wregex**](https://docs.microsoft.com/en-us/cpp/standard-library/regex) class in C++:
-  * Standard Template Library, MSVC, 
-  * Standard Template Library, GCC,
-  * [_SRELL_](https://www.akenotsuki.com/misc/srell/en/) 2026.07.
-  * [_SRELL linear_](https://www.akenotsuki.com/misc/srell/en/#linear) 2026.03.
+* [**basic_regex**](https://docs.microsoft.com/en-us/cpp/standard-library/regex) class in C++:
+  * MSVC _wregex_, 
+  *  GCC _wregex_,
+  * [_SRELL_](https://www.akenotsuki.com/misc/srell/en/) _u8regex_ 2026.07.
+  * [_SRELL linear_](https://www.akenotsuki.com/misc/srell/en/#linear) _u8regex_ 2026.03.
 * [**Boost.Regex**](https://www.boost.org/doc/libs/1_89_0/libs/regex/doc/html/index.html) from Boost C++ Libraries 1.89.0.
 * [**PCRE2**](https://github.com/PCRE2Project/pcre2) Open Source Regex Library 10.48 (in C).
 * [**RE2**](https://github.com/google/re2) Library 2025-08-12 from Google (in C++).
@@ -141,18 +141,10 @@ Currently the regular expressions are saved and loaded automatically.
 
 ## Comparison chart
 
-The comparison chart (“Feature Matrix”) is an Excel file:
+The comparison chart (“Feature Matrix”) is an Excel file showing the key differences between engines:
 
 * [RegexFeatureMatrix.xlsx](RegexFeatureMatrix.xlsx)
 
-#### Example of several essential indicators:
-
-* which engines support named groups (`(?<name>...)` or `(?P<name>...)`)?
-* which engines support variable-length positive and negative lookbehinds (`(?<=...` and `(?<!...)`)?
-* which engines are protected against “catastrophic backtracking (ReDoS)” (pattern: `(a*)*b`, text: `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac`)?
-* which engines support fuzzy or approximate matching?
-
-The answers are in the Excel file.
 
 <br/>
 
