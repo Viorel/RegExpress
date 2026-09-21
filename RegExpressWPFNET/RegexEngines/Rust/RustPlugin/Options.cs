@@ -15,6 +15,7 @@ enum CrateEnum
     rexile,
     iregexp_rs,
     ferroni,
+    rusty_expressions,
 }
 
 enum UnicodeModeEnum // ('resharp')
@@ -129,7 +130,32 @@ class Options
 
     // Ferrony
 
-    public OnigSyntaxTypeEnum OnigSyntaxType { get; set; } = OnigSyntaxTypeEnum.OnigSyntaxOniguruma;
+    public OnigSyntaxTypeEnum OnigSyntaxType { get; set; } = OnigSyntaxTypeEnum.OnigSyntaxOniguruma; // (also 'RustyExpressions')
+
+    // RustyExpressions
+
+    public bool NEGATE_SINGLELINE { get; set; }
+    public bool DONT_CAPTURE_GROUP { get; set; }
+    public bool CAPTURE_GROUP { get; set; }
+    public bool NOTBOL { get; set; }
+    public bool NOTEOL { get; set; }
+    public bool IGNORECASE_IS_ASCII { get; set; }
+    public bool WORD_IS_ASCII { get; set; }
+    public bool DIGIT_IS_ASCII { get; set; }
+    public bool SPACE_IS_ASCII { get; set; }
+    public bool POSIX_IS_ASCII { get; set; }
+    public bool TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER { get; set; }
+    public bool TEXT_SEGMENT_WORD { get; set; }
+    public bool NOT_BEGIN_STRING { get; set; }
+    public bool NOT_END_STRING { get; set; }
+    public bool NOT_BEGIN_POSITION { get; set; }
+    public bool CALLBACK_EACH_MATCH { get; set; }
+    public bool MATCH_WHOLE_STRING { get; set; }
+
+    public string? stack_limit { get; set; }
+    public string? retry_limit_in_match { get; set; }
+    public string? retry_limit_in_search { get; set; }
+    public string? subexp_call_limit { get; set; }
 
     public Options Clone( )
     {

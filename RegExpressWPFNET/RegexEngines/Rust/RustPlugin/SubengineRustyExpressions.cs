@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -7,97 +8,95 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 
-namespace DartPlugin;
+namespace RustPlugin;
 
-class SubengineOnigurumaDart( Options options ) : RegexSubengine
+partial class SubengineRustyExpressions( Options options ) : RegexSubengine
 {
-    static readonly LazyData<OnigurumaSyntaxEnum /*syntax*/, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+    static readonly LazyData<OnigSyntaxTypeEnum, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
-        return RegexEngineCapabilityEnum.None;
+        return RegexEngineCapabilityEnum.HasCaptures;
     }
 
     public override SyntaxOptions GetSyntaxOptions( )
     {
-        FeatureMatrix fm = LazyFeatureMatrix.GetValue( options.OnigurumaSyntax );
+        FeatureMatrix fm = LazyFeatureMatrix.GetValue( options.OnigSyntaxType );
 
         return new SyntaxOptions
         {
-            Literal = options.OnigurumaSyntax == OnigurumaSyntaxEnum.onigSyntaxAsis,
-            XLevel = options.extend ? XLevelEnum.x : XLevelEnum.none,
+            Literal = options.OnigSyntaxType == OnigSyntaxTypeEnum.OnigSyntaxASIS,
+            XLevel = options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
             FeatureMatrix = fm,
         };
     }
 
-    public class RootObject
+    public class Rootobject
     {
-        public Match[]? Matches { get; set; }
+        public required Match[][] matches { get; set; }
+        public required string[] names { get; set; }
     }
 
     public class Match
     {
-        public int s { get; set; }
-        public int e { get; set; }
-        public G[]? g { get; set; }
-        public NV[]? nv { get; set; }
-    }
-
-    public class G
-    {
-        public int s { get; set; }
-        public int e { get; set; }
-    }
-
-    public class NV
-    {
-        public required string n { get; set; }
-        public required string v { get; set; }
+        public required int[] g { get; set; }
+        public required int[] c { get; set; }
     }
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
     {
-        Debug.Assert( options.package == PackageEnum.OnigurumaDart );
+        Debug.Assert( options.crate == CrateEnum.rusty_expressions );
 
-        var data = new
+        bool use_builder = options.UseBuilder;
+
+        var obj = new
         {
-            syntax = Enum.GetName( options.OnigurumaSyntax ),
-            pattern,
-            text,
+            use_builder = use_builder,
+            pattern = pattern,
+            text = text,
             options = new
             {
-                options.ignoreCase,
-                options.extend,
-                options.multiLine,
-                options.singleLine,
-                options.findLongest,
-                options.findNotEmpty,
-                options.negateSingleLine,
-                options.dontCaptureGroup,
-                options.captureGroup,
-                options.notBol,
-                options.notEol,
-                options.posixRegion,
-                options.checkValidityOfString,
-                options.ignoreCaseIsAscii,
-                options.wordIsAscii,
-                options.digitIsAscii,
-                options.spaceIsAscii,
-                options.posixIsAscii,
-                options.textSegmentExtendedGraphemeCluster,
-                options.textSegmentWord,
-                options.notBeginString,
-                options.notEndString,
-                options.notBeginPosition,
-                options.callbackEachMatch,
-                options.matchWholeString,
+                IGNORECASE = options.case_insensitive,
+                EXTEND = options.ignore_whitespace,
+                MULTILINE = options.multi_line,
+                SINGLELINE = options.dot_matches_new_line,
+                FIND_LONGEST = options.leftmost_longest,
+                FIND_NOT_EMPTY = options.find_not_empty,
+                NEGATE_SINGLELINE = options.NEGATE_SINGLELINE,
+                DONT_CAPTURE_GROUP = options.DONT_CAPTURE_GROUP,
+                CAPTURE_GROUP = options.CAPTURE_GROUP,
+                NOTBOL = options.NOTBOL,
+                NOTEOL = options.NOTEOL,
+                IGNORECASE_IS_ASCII = options.IGNORECASE_IS_ASCII,
+                WORD_IS_ASCII = options.WORD_IS_ASCII,
+                DIGIT_IS_ASCII = options.DIGIT_IS_ASCII,
+                SPACE_IS_ASCII = options.SPACE_IS_ASCII,
+                POSIX_IS_ASCII = options.POSIX_IS_ASCII,
+                TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER = options.TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER,
+                TEXT_SEGMENT_WORD = options.TEXT_SEGMENT_WORD,
+                NOT_BEGIN_STRING = options.NOT_BEGIN_STRING,
+                NOT_END_STRING = options.NOT_END_STRING,
+                NOT_BEGIN_POSITION = options.NOT_BEGIN_POSITION,
+                CALLBACK_EACH_MATCH = options.CALLBACK_EACH_MATCH,
+                MATCH_WHOLE_STRING = options.MATCH_WHOLE_STRING,
+
+                stack_limit = ValidationUtilities.ParseInt64( "stack_limit", options.stack_limit ),
+                retry_limit_in_match = ValidationUtilities.ParseInt64( "retry_limit_in_match", options.retry_limit_in_match ),
+                retry_limit_in_search = ValidationUtilities.ParseInt64( "retry_limit_in_search", options.retry_limit_in_search ),
+                subexp_call_limit = ValidationUtilities.ParseInt64( "subexp_call_limit", options.subexp_call_limit ),
+
+                syntax = Enum.GetName( options.OnigSyntaxType ),
             }
         };
-        string json = JsonSerializer.Serialize( data );
+
+        string json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );
 
         using ProcessHelper ph = new( GetWorkerExePath( ) );
 
@@ -108,128 +107,170 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             sw.Write( json );
         };
 
+#if DEBUG
+        ph.Environment.Add( "RUST_BACKTRACE", "1" );
+#endif
+
         if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( AdjustErrorMessage( ph.Error, pattern ) );
 
 #if DEBUG
         using StreamReader sr = new( ph.OutputStream );
         string output = sr.ReadToEnd( );
-        RootObject? root_object = JsonSerializer.Deserialize<RootObject>( output );
+        Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( output );
 #else
-        RootObject? root_object = JsonSerializer.Deserialize<RootObject>( ph.OutputStream );
+        Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( ph.OutputStream );
 #endif
 
-        if( root_object == null ) throw new Exception( "Invalid response." );
+        if( root_object == null || root_object.matches == null ) throw new Exception( "Null response" );
 
         List<IMatch> matches = [];
+        SimpleTextGetter? stg = new( text );
+        Utf8IndexConverter index_converter = new( text );
 
-        if( root_object.Matches != null )
+        foreach( Match[] m in root_object.matches )
         {
-            SimpleTextGetter stg = new( text );
+            if( cnc.IsCancellationRequested ) break;
 
-            foreach( Match m in root_object.Matches )
+            SimpleMatch? match = null;
+
             {
-                if( cnc.IsCancellationRequested ) break;
+                int native_start = m[0].g[0];
+                int native_end = m[0].g[1];
+                int native_length = native_end - native_start;
 
-                SimpleMatch match;
+                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
-                {
-                    int native_start = m.s;
-                    int native_end = m.e;
-                    Debug.Assert( native_end >= native_start );
-                    int native_length = native_end - native_start;
-
-                    match = SimpleMatch.Create( native_start, native_length, stg );
-
-                    match.AddDefaultGroup( );
-                }
-
-                {
-                    // groups
-
-                    for( int i = 0; i < m.g!.Length; ++i )
-                    {
-                        int group_index = i + 1;
-                        //..................
-                        string? name = null; // try to determine the name?
-                        if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
-
-                        var g = m.g[i];
-                        bool success = g.s >= 0 && g.e >= 0;
-
-                        if( !success )
-                        {
-                            match.AddFailedGroup( name );
-                        }
-                        else
-                        {
-                            int native_start = g.s;
-                            int native_end = g.e;
-                            Debug.Assert( native_end >= native_start );
-                            int native_length = native_end - native_start;
-
-                            match.AddSucceededGroup( native_start, native_length, name );
-                        }
-                    }
-
-                    // named values
-
-                    foreach( var nv in m.nv! )
-                    {
-                        match.AddSucceededNoDetailsGroup( nv.n, nv.v );
-                    }
-                }
-
-                matches.Add( match );
+                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match.AddDefaultGroup( );
             }
+
+            for( int group_index = 1; group_index < m.Length; group_index++ )
+            {
+                int native_start = m[group_index].g[0];
+                int native_end = m[group_index].g[1];
+
+                bool success = native_start >= 0 && native_end >= 0;
+
+                string? name = group_index < root_object.names.Length ? root_object.names[group_index] : null;
+                name ??= group_index.ToString( CultureInfo.InvariantCulture );
+
+                if( !success )
+                {
+                    match.AddFailedGroup( name );
+                }
+                else
+                {
+                    int native_length = native_end - native_start;
+                    Debug.Assert( native_length >= 0 );
+
+                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                    Debug.Assert( match != null );
+
+                    SimpleGroup added_group = match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+
+                    // Captures
+
+                    if( ( m[group_index].c.Length % 2 ) != 0 ) throw new Exception( $"Invalid length of captures: {m[group_index].c.Length}." );
+
+                    for( int i = 0; i < m[group_index].c.Length; i += 2 )
+                    {
+                        int c_native_start = m[group_index].c[i];
+                        int c_native_end = m[group_index].c[i + 1];
+
+                        int c_native_length = c_native_end - c_native_start;
+                        Debug.Assert( c_native_length >= 0 );
+
+                        (int c_char_start, int c_char_length) = index_converter.Convert( c_native_start, c_native_end );
+
+                        added_group.AddCapture( c_native_start, c_native_length, c_char_start, c_char_length );
+                    }
+                }
+            }
+
+            Debug.Assert( match != null );
+
+            matches.Add( match );
         }
 
         return new RegexMatches( matches.Count, matches );
+    }
+
+    private static string? AdjustErrorMessage( string error, string pattern )
+    {
+        // try to show character offset based on byte offset, which appears in error message
+
+        System.Text.RegularExpressions.Match m = RegexExtractByteOffset( ).Match( error );
+
+        if( m.Success && int.TryParse( m.Groups[1].Value, out int byte_offset ) )
+        {
+            try
+            {
+                byte[] utf8_bytes = Encoding.UTF8.GetBytes( pattern );
+                int char_offset = Encoding.UTF8.GetCharCount( utf8_bytes, 0, byte_offset );
+
+                if( char_offset != byte_offset )
+                {
+                    string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character index {char_offset}";
+
+                    return new_message;
+                }
+            }
+            catch
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                // ignore
+            }
+        }
+
+        return error;
     }
 
     static string GetWorkerExePath( )
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_exe = Path.Combine( assembly_dir, "onigurumadartworker.bin" );
+        string worker_exe = Path.Combine( assembly_dir, @"RustyExpressionsWorker.bin" );
 
         return worker_exe;
     }
 
-    static FeatureMatrix BuildFeatureMatrix( OnigurumaSyntaxEnum syntax )
+    private static FeatureMatrix BuildFeatureMatrix( OnigSyntaxTypeEnum syntax )
     {
         bool grp0 =
-            syntax == OnigurumaSyntaxEnum.onigSyntaxOniguruma ||
-            syntax == OnigurumaSyntaxEnum.onigSyntaxRuby ||
-            syntax == OnigurumaSyntaxEnum.onigSyntaxPerl ||
-            syntax == OnigurumaSyntaxEnum.onigSyntaxPerlNg;
+            syntax == OnigSyntaxTypeEnum.OnigSyntaxOniguruma ||
+            syntax == OnigSyntaxTypeEnum.OnigSyntaxRuby ||
+            syntax == OnigSyntaxTypeEnum.OnigSyntaxPerl ||
+            syntax == OnigSyntaxTypeEnum.OnigSyntaxPerl_NG;
 
         bool grp1 =
             grp0 ||
-            syntax == OnigurumaSyntaxEnum.onigSyntaxJava ||
-            syntax == OnigurumaSyntaxEnum.onigSyntaxPython;
+            syntax == OnigSyntaxTypeEnum.OnigSyntaxJava ||
+            syntax == OnigSyntaxTypeEnum.OnigSyntaxPython;
 
         bool grp2 =
-            syntax == OnigurumaSyntaxEnum.onigSyntaxGrep ||
-            syntax == OnigurumaSyntaxEnum.onigSyntaxEmacs ||
-            syntax == OnigurumaSyntaxEnum.onigSyntaxPosixBasic;
+            syntax == OnigSyntaxTypeEnum.OnigSyntaxGrep ||
+            syntax == OnigSyntaxTypeEnum.OnigSyntaxEmacs ||
+            syntax == OnigSyntaxTypeEnum.OnigSyntaxPosixBasic;
 
         bool grp3 =
-            syntax == OnigurumaSyntaxEnum.onigSyntaxPosixExtended ||
-            syntax == OnigurumaSyntaxEnum.onigSyntaxGnuRegex;
+            syntax == OnigSyntaxTypeEnum.OnigSyntaxPosixExtended ||
+            syntax == OnigSyntaxTypeEnum.OnigSyntaxGnuRegex;
 
-        bool is_oniguruma = syntax == OnigurumaSyntaxEnum.onigSyntaxOniguruma;
-        bool is_ruby = syntax == OnigurumaSyntaxEnum.onigSyntaxRuby;
-        bool is_perl = syntax == OnigurumaSyntaxEnum.onigSyntaxPerl;
-        bool is_perl_ng = syntax == OnigurumaSyntaxEnum.onigSyntaxPerlNg;
+        bool is_oniguruma = syntax == OnigSyntaxTypeEnum.OnigSyntaxOniguruma;
+        bool is_ruby = syntax == OnigSyntaxTypeEnum.OnigSyntaxRuby;
+        bool is_perl = syntax == OnigSyntaxTypeEnum.OnigSyntaxPerl;
+        bool is_perl_ng = syntax == OnigSyntaxTypeEnum.OnigSyntaxPerl_NG;
         bool is_perls = is_perl || is_perl_ng;
-        bool is_java = syntax == OnigurumaSyntaxEnum.onigSyntaxJava;
-        bool is_python = syntax == OnigurumaSyntaxEnum.onigSyntaxPython;
-        bool is_grep = syntax == OnigurumaSyntaxEnum.onigSyntaxGrep;
-        bool is_emacs = syntax == OnigurumaSyntaxEnum.onigSyntaxEmacs;
-        bool is_posix_extended = syntax == OnigurumaSyntaxEnum.onigSyntaxPosixExtended;
-        bool is_gnu = syntax == OnigurumaSyntaxEnum.onigSyntaxGnuRegex;
+        bool is_java = syntax == OnigSyntaxTypeEnum.OnigSyntaxJava;
+        bool is_python = syntax == OnigSyntaxTypeEnum.OnigSyntaxPython;
+        bool is_grep = syntax == OnigSyntaxTypeEnum.OnigSyntaxGrep;
+        bool is_emacs = syntax == OnigSyntaxTypeEnum.OnigSyntaxEmacs;
+        bool is_posix_extended = syntax == OnigSyntaxTypeEnum.OnigSyntaxPosixExtended;
+        bool is_gnu = syntax == OnigSyntaxTypeEnum.OnigSyntaxGnuRegex;
 
         return new FeatureMatrix
         {
@@ -264,7 +305,7 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             Esc_r = true,
             Esc_t = true,
             Esc_v = is_oniguruma || is_ruby || is_java || is_python,
-            Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
+            Esc_Octal = FeatureMatrix.OctalEnum.None,
             Esc_Octal0_1_3 = false,
             Esc_oBrace = grp0,
             Esc_x2 = grp1,
@@ -275,7 +316,7 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             Esc_UBrace = false,
             Esc_c1 = grp1,
             Esc_C1 = false,
-            Esc_CMinus = is_oniguruma || is_ruby,
+            Esc_CMinus = false, //is_oniguruma || is_ruby,
             Esc_NBrace = false,
             GenericEscape = true,
 
@@ -298,7 +339,7 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             InsideSets_Esc_UBrace = false,
             InsideSets_Esc_c1 = grp1,
             InsideSets_Esc_C1 = false,
-            InsideSets_Esc_CMinus = is_oniguruma || is_ruby,
+            InsideSets_Esc_CMinus = false, //is_oniguruma || is_ruby,
             InsideSets_Esc_NBrace = false,
             InsideSets_GenericEscape = true,
 
@@ -371,7 +412,7 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             NamedGroup_LtGt = grp1 || is_emacs,
             NamedGroup_PLtGt = false,
             BalancingGroup = false,
-            CapturingGroup = false,
+            CapturingGroup = true,
             DuplicateGroupName = grp1,
 
             NoncapturingGroup = grp1 || is_emacs,
@@ -421,7 +462,7 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             Conditional_BackrefByNumber = grp0 || is_python,
             Conditional_BackrefByName = false,
             Conditional_Pattern = grp0 || is_python,
-            Conditional_PatternOrBackrefByName = false,
+            Conditional_PatternOrBackrefByName = is_oniguruma || is_perl || is_perl_ng || is_python, //? not in Oniguruma
             Conditional_BackrefByName_Apos = is_oniguruma || is_ruby || is_perl_ng,
             Conditional_BackrefByName_LtGt = grp0 || is_python,
             Conditional_R = false,
@@ -445,8 +486,11 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             KeepSurrogatePairs = true,
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
-            Σσς = true, // if not 'ignoreCaseIsAscii'
-            ßSS = true, // if not 'ignoreCaseIsAscii'
+            Σσς = false, //?
+            ßSS = false, //?
         };
     }
+
+    [GeneratedRegex( @"^compile error at byte (\d+): " )]
+    private static partial Regex RegexExtractByteOffset( );
 }

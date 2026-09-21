@@ -119,6 +119,7 @@ namespace RustPlugin
                 bool is_rexile = crate == CrateEnum.rexile;
                 bool is_regexp_rs = crate == CrateEnum.iregexp_rs;
                 bool is_ferroni = crate == CrateEnum.ferroni;
+                bool is_rusty_expressions = crate == CrateEnum.rusty_expressions;
 
                 chbx_use_builder.Display( is_regex_or_regex_lite || is_fancy || is_real || is_regexr || is_ferroni );
 
@@ -131,6 +132,7 @@ namespace RustPlugin
                 pnlRegexrOptions.Display( is_regexr );
                 pnlIRegexpRs.Display( is_regexp_rs );
                 pnlFerroniOptions.Display( is_ferroni );
+                pnlRustyExpressionsOptions.Display( is_rusty_expressions );
 
                 pnlRegexCrateLimits.Display( is_regex_or_regex_lite );
                 dsl.IsEnabled = is_regex;
@@ -211,6 +213,7 @@ namespace RustPlugin
                 CrateEnum.rexile => "rexile",
                 CrateEnum.iregexp_rs => "iregexp-rs",
                 CrateEnum.ferroni => "ferroni",
+                CrateEnum.rusty_expressions=> "rusty_expressions",
                 _ => "unknown"
             };
         }

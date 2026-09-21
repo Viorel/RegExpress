@@ -94,9 +94,10 @@
                         </Label>
 
                         <Label x:Name="TabCaption" Grid.Column="1" Grid.Row="0" d:Content="Title"
-                            Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.Subtitle}"
                             Padding="2 3" 
-                            />
+                            >
+                            <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.Subtitle}"/>
+                        </Label>
 
                         <TextBlock Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" d:Text=".+"
                                    Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Content.PatternSample, Mode=OneWay}" 

@@ -1,4 +1,4 @@
-@rem LATIN SMALL LETTER I WITH CIRCUMFLEX (U+00EE), utf-8: C3 AE
-@echo { "use_builder" : false, "pattern" : "x?", "text" : "a\u00EEc", "options" : { } } | ".\target\release\FerroniWorker.exe"
-@rem PRETZEL (U+1F968), \uD83E\uDD68, utf-8: F0 9F A5 A8
-@echo { "use_builder" : false, "pattern" : ".", "text" : "a\uD83E\uDD68c", "options" : { } } | ".\target\release\FerroniWorker.exe"
+@echo { "use_builder" : false, "pattern" : "(a)(b?)(c)?(d)", "text" : "ad x ad", "options" : { } } | ".\target\release\FerroniWorker.exe"
+@echo { "use_builder" : false, "pattern" : "(a)(?<b>b?)(c)?(?<d>d)", "text" : "ad x ad", "options" : { } } | ".\target\release\FerroniWorker.exe"
+@echo { "use_builder" : false, "pattern" : "(?<n1>.)(.)(?<n2>.)", "text" : "abc", "options" : { } } | ".\target\release\FerroniWorker.exe"
+@echo { "use_builder" : false, "pattern" : "(?<a>a)|(?<a>b)", "text" : "ab", "options" : { } } | ".\target\release\FerroniWorker.exe"

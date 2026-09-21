@@ -30,7 +30,10 @@ namespace RegExpressWPFNET.Code
 
     class AllTabData
     {
-        public List<TabData> Tabs { get; set; } = new( );
+#if DEBUG
+        public bool IsDebug { get; } = true;
+#endif
+        public List<TabData> Tabs { get; set; } = [];
     }
 
 
