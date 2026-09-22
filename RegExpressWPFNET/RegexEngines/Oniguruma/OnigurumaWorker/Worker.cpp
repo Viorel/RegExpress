@@ -280,7 +280,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring
                                         {
                                             if( group == data->groupNumber )
                                             {
-                                                assert( ( beg % 2 ) == 0 ); // event positions expected
+                                                assert( ( beg % 2 ) == 0 ); // even positions expected
                                                 assert( ( end % 2 ) == 0 );
 
                                                 data->bw->WriteT<char>( 'c' );

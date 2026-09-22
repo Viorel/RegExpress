@@ -774,7 +774,8 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"[:class:]", @"Character class outside sets", (e, fm) => fm.Ext_Class_Name)
                     .Test( @"[:alpha:]", "X", null, "X" ),
                 new FeatureMatrixDetails( @"(?@…)", @"Capturing group", (e, fm) => fm.Ext_NamedGroup_AtApos || fm.Ext_NamedGroup_AtLtGt || fm.CapturingGroup)
-                    .Test( @"(?@<n>x)", "x", "", "x" ),
+                    .Test( @"(?@<n>x)", "x", "", "x" )
+                    .Test( @"(?@x)", "x", "", "x" ),
                 new FeatureMatrixDetails( @"\!c, \!\c", @"Complement (“not ‘c’”); 'c' — character", (e, fm) => fm.Ext_Class_Not)
                     .Test( @"\!x", "a", null, "a" ),
                 new FeatureMatrixDetails( @"![comment]", @"Inline comment", (e, fm) => fm.Ext_AnomalousInlineComments)

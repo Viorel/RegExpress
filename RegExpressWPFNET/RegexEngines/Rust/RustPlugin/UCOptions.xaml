@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" d:DesignWidth="869.529" 
-             Loaded="UserControl_Loaded" Height="1074">
+             Loaded="UserControl_Loaded" Height="1528">
 
     <UserControl.Resources>
         <local:Versions x:Key="versions"/>
@@ -39,18 +39,19 @@
                 </StackPanel.LayoutTransform>
                 <Label Content="Crate:" Target="{Binding ElementName=cbxCrate}" Padding="0 2 4 2" MinWidth="40"/>
                 <ComboBox x:Name="cbxCrate" SelectedValuePath="Tag" SelectedValue="{Binding crate, FallbackValue='regex'}" VerticalAlignment="Center" SelectionChanged="cbxCrate_SelectionChanged" MinWidth="44">
-                    <ui:ComboBoxItemWithVersion Tag ="regex"        Text="regex"        Version="{Binding Regex,        Source={StaticResource versions}}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag ="regex_lite"   Text="regex-lite"   Version="{Binding RegexLite,    Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="fancy_regex"  Text="fancy-regex"  Version="{Binding FancyRegex,   Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="regress"      Text="regress"      Version="{Binding Regress,      Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="resharp"      Text="resharp"      Version="{Binding Resharp,      Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="anre"         Text="regex-anre"   Version="{Binding Anre,         Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="real_regex"   Text="real-regex"   Version="{Binding RealRegex,    Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="java_regex"   Text="java_regex"   Version="{Binding JavaRegex,    Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="regexr"       Text="regexr"       Version="{Binding Regexr,       Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="rexile"       Text="rexile"       Version="{Binding ReXile,       Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="iregexp_rs"   Text="iregexp-rs"   Version="{Binding IRegexpRs,    Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag ="ferroni"      Text="ferroni"      Version="{Binding Ferroni,      Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="regex"                Text="regex"                Version="{Binding Regex,            Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag ="regex_lite"           Text="regex-lite"           Version="{Binding RegexLite,        Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="fancy_regex"          Text="fancy-regex"          Version="{Binding FancyRegex,       Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="regress"              Text="regress"              Version="{Binding Regress,          Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="resharp"              Text="resharp"              Version="{Binding Resharp,          Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="anre"                 Text="regex-anre"           Version="{Binding Anre,             Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="real_regex"           Text="real-regex"           Version="{Binding RealRegex,        Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="java_regex"           Text="java_regex"           Version="{Binding JavaRegex,        Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="regexr"               Text="regexr"               Version="{Binding Regexr,           Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="rexile"               Text="rexile"               Version="{Binding ReXile,           Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="iregexp_rs"           Text="iregexp-rs"           Version="{Binding IRegexpRs,        Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="ferroni"              Text="ferroni"              Version="{Binding Ferroni,          Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="rusty_expressions"    Text="rusty_expressions"    Version="{Binding RustyExpressions, Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 
@@ -336,7 +337,6 @@
                         <ComboBoxItem Tag="OnigSyntaxOniguruma" IsSelected="True">
                             <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
                         </ComboBoxItem>
-                        <Separator/>
                         <ComboBoxItem Tag="OnigSyntaxASIS">
                             <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
                         </ComboBoxItem>
@@ -376,6 +376,114 @@
 
             </StackPanel>
 
+            <StackPanel x:Name="pnlRustyExpressionsOptions" Orientation="Vertical">
+
+                <ui:CheckboxWithNote Prop="case_insensitive" Text="IGNORECASE" Note=""/>
+                <ui:CheckboxWithNote Prop="ignore_whitespace" Text="EXTEND" Note=""/>
+                <ui:CheckboxWithNote Prop="multi_line" Text="MULTILINE" Note=""/>
+                <ui:CheckboxWithNote Prop="dot_matches_new_line" Text="SINGLELINE" Note=""/>
+                <ui:CheckboxWithNote Prop="leftmost_longest" Text="FIND_LONGEST" Note=""/>
+                <ui:CheckboxWithNote Prop="find_not_empty" Text="FIND_NOT_EMPTY" Note=""/>
+                <ui:CheckboxWithNote Prop="NEGATE_SINGLELINE" Text="NEGATE_SINGLELINE" Note=""/>
+                <ui:CheckboxWithNote Prop="DONT_CAPTURE_GROUP" Text="DONT_CAPTURE_GROUP" Note=""/>
+                <ui:CheckboxWithNote Prop="CAPTURE_GROUP" Text="CAPTURE_GROUP" Note=""/>
+                <ui:CheckboxWithNote Prop="NOTBOL" Text="NOTBOL" Note=""/>
+                <ui:CheckboxWithNote Prop="NOTEOL" Text="NOTEOL" Note=""/>
+                <ui:CheckboxWithNote Prop="IGNORECASE_IS_ASCII" Text="IGNORECASE_IS_ASCII" Note=""/>
+                <ui:CheckboxWithNote Prop="WORD_IS_ASCII" Text="WORD_IS_ASCII" Note=""/>
+                <ui:CheckboxWithNote Prop="DIGIT_IS_ASCII" Text="DIGIT_IS_ASCII" Note=""/>
+                <ui:CheckboxWithNote Prop="SPACE_IS_ASCII" Text="SPACE_IS_ASCII" Note=""/>
+                <ui:CheckboxWithNote Prop="POSIX_IS_ASCII" Text="POSIX_IS_ASCII" Note=""/>
+                <ui:CheckboxWithNote Prop="TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER" Text="TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER" Note=""/>
+                <ui:CheckboxWithNote Prop="TEXT_SEGMENT_WORD" Text="TEXT_SEGMENT_WORD" Note=""/>
+                <ui:CheckboxWithNote Prop="NOT_BEGIN_STRING" Text="NOT_BEGIN_STRING" Note=""/>
+                <ui:CheckboxWithNote Prop="NOT_END_STRING" Text="NOT_END_STRING" Note=""/>
+                <ui:CheckboxWithNote Prop="NOT_BEGIN_POSITION" Text="NOT_BEGIN_POSITION" Note=""/>
+                <ui:CheckboxWithNote Prop="CALLBACK_EACH_MATCH" Text="CALLBACK_EACH_MATCH" Note=""/>
+                <ui:CheckboxWithNote Prop="MATCH_WHOLE_STRING" Text="MATCH_WHOLE_STRING" Note=""/>
+
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 0">
+                    <Grid.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Grid.LayoutTransform>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=rsonigsyn}">Syntax:</Label>
+                    <ComboBox x:Name="rsonigsyn" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding OnigSyntaxType, FallbackValue='OnigSyntaxOniguruma'}" VerticalAlignment="Center" SelectionChanged="cbxOnigSyntaxType_SelectionChanged" >
+                        <ComboBoxItem Tag="OnigSyntaxOniguruma" IsSelected="True">
+                            <ui:TextAndNote Text="ONIGURUMA" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxASIS">
+                            <ui:TextAndNote Text="ASIS" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxEmacs">
+                            <ui:TextAndNote Text="emacs" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxGnuRegex">
+                            <ui:TextAndNote Text="gnu_regex" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxGrep">
+                            <ui:TextAndNote Text="grep" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxJava">
+                            <ui:TextAndNote Text="java" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxPerl">
+                            <ui:TextAndNote Text="perl" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxPerl_NG">
+                            <ui:TextAndNote Text="perl_ng" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxPosixBasic">
+                            <ui:TextAndNote Text="posix_basic" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxPosixExtended">
+                            <ui:TextAndNote Text="posix_extended" Note=""/>
+                        </ComboBoxItem>
+                        <ComboBoxItem Tag="OnigSyntaxPython">
+                            <ui:TextAndNote Text="python" Note=""/>
+                        </ComboBoxItem>
+                        <!-- No 'Ruby'? -->
+                        <ComboBoxItem Tag="OnigSyntaxRuby">
+                            <ui:TextAndNote Text="ruby" Note=""/>
+                        </ComboBoxItem>
+                    </ComboBox>
+                    <!--<TextBlock Grid.Column="2" Grid.Row="0" Text="– matching semantics" Style="{StaticResource note}" />-->
+
+                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=stack_limit}">stack__limit:</Label>
+                    <TextBox x:Name="stack_limit" Grid.Column="1" Grid.Row="1" Text="{Binding stack_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– Maximum backtrack-stack depth" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=stack_limit}">retry__limit__in__match:</Label>
+                    <TextBox x:Name="retry_limit_in_match" Grid.Column="1" Grid.Row="2" Text="{Binding retry_limit_in_match, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– Retry count inside one match attempt" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=stack_limit}">retry__limit__in__search:</Label>
+                    <TextBox x:Name="retry_limit_in_search" Grid.Column="1" Grid.Row="3" Text="{Binding retry_limit_in_search, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="3" Text="– Retry count across a search" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=stack_limit}">subexp__call__limit:</Label>
+                    <TextBox x:Name="subexp_call_limit" Grid.Column="1" Grid.Row="4" Text="{Binding subexp_call_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="4" Text="– Maximum `\g` subexp-calls during search" Style="{StaticResource note}" />
+                </Grid>
+
+            </StackPanel>
         </StackPanel>
     </Grid>
 </UserControl>

@@ -16,6 +16,7 @@ enum OnigurumaSyntaxEnum
 {
     None,
     onigSyntaxOniguruma,
+    onigSyntaxAsis, // (undocumented?)
     onigSyntaxRuby,
     onigSyntaxPerl,
     onigSyntaxPerlNg,

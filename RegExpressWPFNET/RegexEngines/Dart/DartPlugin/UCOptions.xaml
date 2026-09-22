@@ -53,6 +53,7 @@
                 <Label x:Name="lblOnigurumaSyntax" Grid.Column="0" Grid.Row="1" Content="Syntax:" Target="{Binding ElementName=cbxOnigurumaSyntax}" />
                 <ComboBox x:Name="cbxOnigurumaSyntax" Grid.Column="1" Grid.Row="1" SelectedValuePath="Tag" SelectedValue="{Binding OnigurumaSyntax, FallbackValue='onigSyntaxOniguruma'}" SelectionChanged="cbxOnigurumaSyntax_SelectionChanged" >
                     <ui:ComboBoxItemWithVersion Tag="onigSyntaxOniguruma"       Text="onigSyntaxOniguruma"      IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="onigSyntaxAsis"            Text="onigSyntaxAsis"           />
                     <ui:ComboBoxItemWithVersion Tag="onigSyntaxRuby"            Text="onigSyntaxRuby"           />
                     <ui:ComboBoxItemWithVersion Tag="onigSyntaxPerl"            Text="onigSyntaxPerl"           />
                     <ui:ComboBoxItemWithVersion Tag="onigSyntaxPerlNg"          Text="onigSyntaxPerlNg"         />

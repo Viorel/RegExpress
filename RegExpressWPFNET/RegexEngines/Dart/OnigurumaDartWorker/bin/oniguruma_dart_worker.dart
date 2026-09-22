@@ -37,6 +37,7 @@ void main() async
       syntax: switch (syntax)
       {
         "" || "onigSyntaxOniguruma" => onigSyntaxOniguruma,
+        "onigSyntaxAsis"            => onigSyntaxAsis,
         "onigSyntaxRuby"            => onigSyntaxRuby,         
         "onigSyntaxPerl"            => onigSyntaxPerl,         
         "onigSyntaxPerlNg"          => onigSyntaxPerlNg,       

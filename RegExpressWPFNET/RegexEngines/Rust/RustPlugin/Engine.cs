@@ -102,7 +102,8 @@ class Engine : RegexEngine
         Engine engine_regexr = new( ) { Options = new Options { crate = CrateEnum.regexr, UseBuilder = true } };
         Engine engine_rexile = new( ) { Options = new Options { crate = CrateEnum.rexile } };
         Engine engine_iregexp_rs = new( ) { Options = new Options { crate = CrateEnum.iregexp_rs } };
-        Engine engine_ferroni = new( ) { Options = new Options { crate = CrateEnum.ferroni } };
+        Engine engine_ferroni = new( ) { Options = new Options { crate = CrateEnum.ferroni, OnigSyntaxType = OnigSyntaxTypeEnum.OnigSyntaxOniguruma } };
+        Engine engine_rusty_expressions = new( ) { Options = new Options { crate = CrateEnum.rusty_expressions, OnigSyntaxType = OnigSyntaxTypeEnum.OnigSyntaxOniguruma } };
 
         return
             [
@@ -119,6 +120,7 @@ class Engine : RegexEngine
                 new FeatureMatrixVariant("rexile", engine_rexile),
                 new FeatureMatrixVariant("iregexp-rs", engine_iregexp_rs),
                 new FeatureMatrixVariant("ferroni", engine_ferroni),
+                new FeatureMatrixVariant("rusty_expressions", engine_rusty_expressions),
             ];
     }
 
@@ -154,6 +156,7 @@ class Engine : RegexEngine
             CrateEnum.rexile => new SubengineReXile( Options ),
             CrateEnum.iregexp_rs => new SubengineIRegexpRs( Options ),
             CrateEnum.ferroni => new SubengineFerroni( Options ),
+            CrateEnum.rusty_expressions => new SubengineRustyExpressions( Options ),
             _ => throw new InvalidOperationException( )
         };
     }

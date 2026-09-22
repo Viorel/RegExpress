@@ -31,6 +31,7 @@ class SubengineFerroni( Options options ) : RegexSubengine
 
         return new SyntaxOptions
         {
+            Literal = options.OnigSyntaxType == OnigSyntaxTypeEnum.OnigSyntaxASIS,
             XLevel = options.ignore_whitespace ? XLevelEnum.x : XLevelEnum.none,
             FeatureMatrix = fm,
         };
@@ -70,6 +71,7 @@ class SubengineFerroni( Options options ) : RegexSubengine
                 dot_matches_newline = options.dot_matches_new_line,
                 multi_line_anchors = options.multi_line,
                 extended = options.ignore_whitespace,
+
                 syntax = Enum.GetName( options.OnigSyntaxType ),
             }
         };
