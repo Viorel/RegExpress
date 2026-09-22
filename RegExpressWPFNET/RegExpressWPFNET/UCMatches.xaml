@@ -34,7 +34,7 @@
                          IsReadOnly="True" 
                          IsReadOnlyCaretVisible="True" 
                          Visibility="Hidden"
-                         d:Visibility="Visible" >
+                         d:Visibility="Hidden" >
                 <FlowDocument>
                     <Section x:Name="secMatches" Padding="1 4 1 1">
                         <Paragraph>
@@ -54,7 +54,7 @@
 
         <RichTextBox x:Name="rtbNoMatches" Style="{StaticResource Info}" IsReadOnly="True" IsReadOnlyCaretVisible="True" 
                      Visibility="Hidden" 
-                     d:Visibility="Hidden">
+                     d:Visibility="Visible">
             <FlowDocument>
                 <Paragraph Padding="1 4 1 1">
                     No match
@@ -89,7 +89,7 @@
         <RichTextBox x:Name="rtbError" Style="{StaticResource Error}" IsReadOnly="True" IsReadOnlyCaretVisible="True" 
                      IsDocumentEnabled="True"
                      Visibility="Hidden"
-                     d:Visibility="Visible">
+                     d:Visibility="Hidden">
             <FlowDocument>
                 <Paragraph Padding="1 4 1 1">
                     <Run x:Name="runError" d:Text="Error&#13;&#10;text" />
@@ -98,6 +98,19 @@
                     <Button x:Name="btnRetry" Content="Retry" Style="{StaticResource buttonStyle1}" HorizontalAlignment="Left" Click="BtnRetry_Click"
                             Visibility="Collapsed" d:Visibility="Visible" />
                 </BlockUIContainer>
+            </FlowDocument>
+        </RichTextBox>
+
+        <RichTextBox x:Name="rtbIsMatchedButNoResults" Style="{StaticResource Info}" IsReadOnly="True" IsReadOnlyCaretVisible="True" 
+                 Visibility="Hidden" 
+                 d:Visibility="Hidden">
+            <FlowDocument>
+                <Paragraph Padding="1 4 1 1" FontStyle="Normal">
+                    MATCHED
+                </Paragraph>
+                <Paragraph Padding="1 4 1 1">
+                    Match found, but no details are provided.
+                </Paragraph>
             </FlowDocument>
         </RichTextBox>
 

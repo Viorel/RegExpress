@@ -88,7 +88,14 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
 
         List<IMatch> matches = [];
 
-        if( root_object.is_match )
+        if( !root_object.is_match )
+        {
+            return RegexMatches.Empty;
+        }
+
+        switch( options.MatchMode )
+        {
+        case MatchModeEnum.Full:
         {
             SimpleTextGetter? stg = new( text );
 
@@ -96,9 +103,13 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
             match.AddDefaultGroup( );
 
             matches.Add( match );
-        }
 
-        return new RegexMatches( matches.Count, matches );
+            return new RegexMatches( matches.Count, matches );
+        }
+        case MatchModeEnum.Search:
+        default:
+            return RegexMatches.MatchedButNoResults;
+        }
     }
 
     private static string? AdjustErrorMessage( string error, string pattern )

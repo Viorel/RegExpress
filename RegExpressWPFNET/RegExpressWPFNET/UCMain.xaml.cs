@@ -819,7 +819,8 @@ namespace RegExpressWPFNET
         {
             ucText.SetMatches( RegexMatches.Empty, showCaptures: cbShowCaptures.IsChecked == true, eol: GetEolOption( ), noGroupDetails: false );
 
-            ucMatches.SetMatches( "", RegexMatches.Empty, showFirstOnly: false, showSucceededGroupsOnly: false, showCaptures: false, noGroupIndex: false, noGroupSuccessFlag: false );
+            //ucMatches.SetMatches( text: "", matches: RegexMatches.Empty, showFirstOnly: false, showSucceededGroupsOnly: false, showCaptures: false, noGroupIndex: false, noGroupSuccessFlag: false );
+            ucMatches.ShowInfo( "", showCancelButton: false );
         }
 
         void FindMatchesThreadProc( ICancellable cnc )
@@ -907,9 +908,10 @@ namespace RegExpressWPFNET
                 {
                     int count = matches.Count;
 
-                    var matches_to_show = first_only ?
-                        new RegexMatches( Math.Min( 1, count ), matches.Matches.Take( 1 ) ) :
-                        matches;
+                    var matches_to_show =
+                        matches.IsMatchedButNoResults ? matches
+                                                      : first_only ? new RegexMatches( Math.Min( 1, count ), matches.Matches.Take( 1 ) )
+                                                                   : matches;
 
                     if( cnc.IsCancellationRequested ) return;
 

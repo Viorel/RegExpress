@@ -43,6 +43,7 @@ namespace RegExpressWPFNET
         readonly List<RegexPlugin> mRegexPlugins = [];
         readonly List<RegexPlugin> mNoFmRegexPlugins = [];
         bool IsError = false;
+        int mPreviousMainTabIndex;
 
         static readonly DependencyProperty InfoVisibilityProperty = DependencyProperty.Register( nameof( InfoVisibility ), typeof( Visibility ), typeof( MainWindow ) );
 
@@ -212,6 +213,8 @@ namespace RegExpressWPFNET
 
             TabItem? new_tab_item = e.AddedItems?.AsQueryable( ).OfType<TabItem>( ).SingleOrDefault( );
             UCMain? new_uc_main = new_tab_item?.Content as UCMain;
+
+            if( old_uc_main != null ) mPreviousMainTabIndex = tabControl.Items.IndexOf( old_tab_item );
 
             if( old_uc_main != null && new_uc_main != null && old_uc_main.IsFullyLoaded )
             {
@@ -767,11 +770,10 @@ namespace RegExpressWPFNET
             tabControl.SelectedItem = tabItem;
 
             TabItem[] main_tabs = EnumerateMainTabs( ).ToArray( );
-            int index = Array.IndexOf( main_tabs, tabItem );
+            int main_index = Array.IndexOf( main_tabs, tabItem );
 
             var r = MessageBox.Show( this,
-                //main_tabs.Count( ) == 1 ? "Clear this tab?" : "Remove this tab?",
-                "Remove this tab?",
+                main_tabs.Count( ) == 1 ? "Clear this tab?" : "Remove this tab?",
                 "WARNING",
                 MessageBoxButton.OKCancel, MessageBoxImage.Exclamation,
                 MessageBoxResult.OK, MessageBoxOptions.None );
@@ -779,6 +781,7 @@ namespace RegExpressWPFNET
             if( r != MessageBoxResult.OK ) return;
 
 
+            int tab_index = tabControl.Items.IndexOf( tabItem );
             UCMain uc_main = (UCMain)tabItem.Content;
 
             uc_main.Changed -= UCMain_Changed;
@@ -791,21 +794,39 @@ namespace RegExpressWPFNET
             tabItem.Template = null;
 #endif
 
-            tabControl.Items.Remove( tabItem );
-
             TabItem? tab_item_to_select = null;
 
-            if( index + 1 < main_tabs.Length )
+            if( mPreviousMainTabIndex >= 0 )
             {
-                tab_item_to_select = main_tabs[index + 1];
-            }
-            else
-            {
-                if( index - 1 >= 0 )
+                if( mPreviousMainTabIndex < tab_index )
                 {
-                    tab_item_to_select = main_tabs[index - 1];
+                    if( main_index > 0 )
+                    {
+                        tab_item_to_select = main_tabs[main_index - 1];
+                    }
+                }
+                else
+                {
+                    if( main_index + 1 < main_tabs.Length )
+                    {
+                        tab_item_to_select = main_tabs[main_index + 1];
+                    }
                 }
             }
+
+            if( tab_item_to_select == null )
+            {
+                if( main_index > 0 )
+                {
+                    tab_item_to_select = main_tabs[main_index - 1];
+                }
+                else if( main_index + 1 < main_tabs.Length )
+                {
+                    tab_item_to_select = main_tabs[main_index + 1];
+                }
+            }
+
+            tabControl.Items.Remove( tabItem );
 
             if( tab_item_to_select == null )
             {

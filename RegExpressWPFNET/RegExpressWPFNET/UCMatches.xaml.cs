@@ -208,6 +208,7 @@ namespace RegExpressWPFNET
             {
                 if( LastMatches != null )
                 {
+                    var is_matched_but_no_results = matches.IsMatchedButNoResults;
                     var old_groups = LastMatches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Success, g.NativeIndex, g.NativeLength, g.Value, g.Name) );
                     var new_groups = matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Success, g.NativeIndex, g.NativeLength, g.Value, g.Name) );
 
@@ -220,6 +221,7 @@ namespace RegExpressWPFNET
                         showCaptures == LastShowCaptures &&
                         noGroupIndex == LastNoGroupIndex &&
                         noGroupSuccessFlag == LastNoGroupSuccessFlag &&
+                        is_matched_but_no_results == LastMatches.IsMatchedButNoResults &&
                         new_groups.SequenceEqual( old_groups ) &&
                         new_captures.SequenceEqual( old_captures ) )
                     {
@@ -438,6 +440,17 @@ namespace RegExpressWPFNET
                 show_first_only = LastShowFirstOnly;
                 no_group_index = LastNoGroupIndex;
                 no_group_success_flag = LastNoGroupSuccessFlag;
+            }
+
+            if( matches.IsMatchedButNoResults )
+            {
+                Dispatcher.BeginInvoke( new Action( ( ) =>
+                {
+                    CancelInfo( );
+                    ShowOne( rtbIsMatchedButNoResults );
+                } ) );
+
+                return;
             }
 
             if( matches.Count == 0 )
@@ -1270,6 +1283,7 @@ namespace RegExpressWPFNET
             setVisibility( rtbNoMatches );
             setVisibility( rtbNoPattern );
             setVisibility( rtbError );
+            setVisibility( rtbIsMatchedButNoResults );
 
             if( !rtbMatches.IsVisible )
             {
