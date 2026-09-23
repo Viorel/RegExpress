@@ -16,6 +16,7 @@ enum CrateEnum
     iregexp_rs,
     ferroni,
     rusty_expressions,
+    derivre,
 }
 
 enum UnicodeModeEnum // ('resharp')
@@ -156,6 +157,10 @@ class Options
     public string? retry_limit_in_match { get; set; }
     public string? retry_limit_in_search { get; set; }
     public string? subexp_call_limit { get; set; }
+
+    // Derivre
+
+    //
 
     public Options Clone( )
     {

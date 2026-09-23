@@ -101,9 +101,10 @@ class Engine : RegexEngine
         Engine engine_java_regex_uU = new( ) { Options = new Options { crate = CrateEnum.java_regex, unicode = true, unicode_sets = true, d = false, l = false } };
         Engine engine_regexr = new( ) { Options = new Options { crate = CrateEnum.regexr, UseBuilder = true } };
         Engine engine_rexile = new( ) { Options = new Options { crate = CrateEnum.rexile } };
-        Engine engine_iregexp_rs = new( ) { Options = new Options { crate = CrateEnum.iregexp_rs } };
+        Engine engine_iregexp_rs = new( ) { Options = new Options { crate = CrateEnum.iregexp_rs, MatchMode = MatchModeEnum.Full } };
         Engine engine_ferroni = new( ) { Options = new Options { crate = CrateEnum.ferroni, OnigSyntaxType = OnigSyntaxTypeEnum.OnigSyntaxOniguruma } };
         Engine engine_rusty_expressions = new( ) { Options = new Options { crate = CrateEnum.rusty_expressions, OnigSyntaxType = OnigSyntaxTypeEnum.OnigSyntaxOniguruma } };
+        Engine engine_derivre = new( ) { Options = new Options { crate = CrateEnum.derivre } };
 
         return
             [
@@ -121,6 +122,7 @@ class Engine : RegexEngine
                 new FeatureMatrixVariant("iregexp-rs", engine_iregexp_rs),
                 new FeatureMatrixVariant("ferroni", engine_ferroni),
                 new FeatureMatrixVariant("rusty_expressions", engine_rusty_expressions),
+                new FeatureMatrixVariant("derivre", engine_derivre),
             ];
     }
 
@@ -157,6 +159,7 @@ class Engine : RegexEngine
             CrateEnum.iregexp_rs => new SubengineIRegexpRs( Options ),
             CrateEnum.ferroni => new SubengineFerroni( Options ),
             CrateEnum.rusty_expressions => new SubengineRustyExpressions( Options ),
+            CrateEnum.derivre => new SubengineDerivre( Options ),
             _ => throw new InvalidOperationException( )
         };
     }

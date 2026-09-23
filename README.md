@@ -55,7 +55,8 @@ The following engines are included:
   * [_rexile_](https://crates.io/crates/rexile) 0.7.3,
   * [_iregexp-rs_](https://github.com/strefethen/iregexp-rs) 0.1.0,
   * [_ferroni_](https://crates.io/crates/ferroni) 1.3.3,
-  * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.2.
+  * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.2,
+  * [_derivre_](https://crates.io/crates/derivre) 0.3.13.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2.1:
   * _java.util.regex_,
   * [_RE2/J_](https://github.com/google/re2j) 1.8,
