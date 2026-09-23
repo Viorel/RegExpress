@@ -52,6 +52,7 @@
                     <ui:ComboBoxItemWithVersion Tag ="iregexp_rs"           Text="iregexp-rs"           Version="{Binding IRegexpRs,        Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="ferroni"              Text="ferroni"              Version="{Binding Ferroni,          Source={StaticResource versions}}" />
                     <ui:ComboBoxItemWithVersion Tag ="rusty_expressions"    Text="rusty_expressions"    Version="{Binding RustyExpressions, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag ="derivre"              Text="derivre"              Version="{Binding Derivre,          Source={StaticResource versions}}" />
                 </ComboBox>
             </StackPanel>
 
@@ -484,6 +485,11 @@
                 </Grid>
 
             </StackPanel>
+
+            <StackPanel x:Name="pnlDerivre" Orientation="Vertical">
+                
+            </StackPanel>
+            
         </StackPanel>
     </Grid>
 </UserControl>

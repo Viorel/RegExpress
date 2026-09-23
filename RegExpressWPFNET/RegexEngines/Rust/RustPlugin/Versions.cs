@@ -16,4 +16,5 @@ class Versions
     public static string IRegexpRs { get; } = "0.1.0";
     public static string Ferroni { get; } = "1.3.3";
     public static string RustyExpressions { get; } = "0.2.2";
+    public static string Derivre { get; } = "0.3.13";
 }

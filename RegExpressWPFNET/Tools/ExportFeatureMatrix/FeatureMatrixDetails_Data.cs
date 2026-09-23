@@ -294,8 +294,8 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"(?[[…] op […]])", @"Using operators for nested groups", (e, fm) => fm.InsideSets_OperatorsExtended)
                     .Test( @"(?[[ab]&[bc]])", "b", "a&c", "b"),
                 new FeatureMatrixDetails( @"[…] & […]", @"Intersection", (e, fm) => fm.InsideSets_Operator_Ampersand)
-                    .Test( @"[[ab]&[bc]]", "b", "a&c", "b")
-                    .Test( @"(?[[ab]&[bc]])", "b", "a&c", "b"),
+                    .Test( @"[[ab]&[bc]]", "b", "a", "b")
+                    .Test( @"(?[[ab]&[bc]])", "b", "a", "b"),
                 new FeatureMatrixDetails( @"[…] + […]", @"Union", (e, fm) => fm.InsideSets_Operator_Plus)
                     .Test( @"[[a]+[b]]", "a", "+", "a")
                     .Test( @"(?[[a]+[b]])", "a", "+", "a" ),

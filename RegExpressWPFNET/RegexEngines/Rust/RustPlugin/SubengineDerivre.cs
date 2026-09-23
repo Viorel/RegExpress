@@ -16,7 +16,7 @@ using System.Text.RegularExpressions;
 
 namespace RustPlugin;
 
-partial class SubengineIRegexpRs( Options options ) : RegexSubengine
+partial class SubengineDerivre( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
@@ -40,12 +40,14 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
     sealed class Rootobject
     {
         public required bool is_match { get; set; }
+        public required int A_len { get; set; }
+        public required int B_len { get; set; }
     }
 
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
     {
-        Debug.Assert( options.crate == CrateEnum.iregexp_rs );
+        Debug.Assert( options.crate == CrateEnum.derivre );
 
         var obj = new
         {
@@ -53,7 +55,6 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
             text = text,
             options = new
             {
-                mode = Enum.GetName( options.MatchMode ),
             }
         };
 
@@ -90,25 +91,24 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
         {
             return RegexMatches.Empty;
         }
-
-        switch( options.MatchMode )
-        {
-        case MatchModeEnum.Full:
+        else
         {
             List<IMatch> matches = [];
+            SimpleTextGetter stg = new( text );
+            Utf8IndexConverter index_converter = new( text );
 
-            SimpleTextGetter? stg = new( text );
+            int native_start = 0;
+            int native_end = root_object.A_len - root_object.B_len;
+            int native_length = native_end - native_start;
 
-            SimpleMatch match = SimpleMatch.Create( 0, text.Length, stg );
+            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+            SimpleMatch match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
             match.AddDefaultGroup( );
 
             matches.Add( match );
 
             return new RegexMatches( matches.Count, matches );
-        }
-        case MatchModeEnum.Search:
-        default:
-            return RegexMatches.MatchedButNoResults;
         }
     }
 
@@ -147,7 +147,7 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_exe = Path.Combine( assembly_dir, @"IRegexpRsWorker.bin" );
+        string worker_exe = Path.Combine( assembly_dir, @"DerivreWorker.bin" );
 
         return worker_exe;
     }
@@ -165,60 +165,60 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
             AlternationOnSeparateLines = false,
 
             InlineComments = false,
-            XModeComments = false,
-            InsideSets_XModeComments = false,
+            XModeComments = true,
+            InsideSets_XModeComments = true,
 
-            Flags = false,
-            ScopedFlags = false,
+            Flags = true,
+            ScopedFlags = true,
             CircumflexFlags = false,
             ScopedCircumflexFlags = false,
-            XFlag = false,
+            XFlag = true,
             XXFlag = false,
 
             Literal_QE = false,
             InsideSets_Literal_QE = false,
             InsideSets_Literal_qBrace = false,
 
-            Esc_a = false,
+            Esc_a = true,
             Esc_b = false,
             Esc_e = false,
-            Esc_f = false,
+            Esc_f = true,
             Esc_n = true,
             Esc_r = true,
             Esc_t = true,
-            Esc_v = false,
+            Esc_v = true,
             Esc_Octal = FeatureMatrix.OctalEnum.None,
             Esc_Octal0_1_3 = false,
             Esc_oBrace = false,
-            Esc_x2 = false,
-            Esc_xBrace = false,
-            Esc_u4 = false,
-            Esc_U8 = false,
-            Esc_uBrace = false,
-            Esc_UBrace = false,
+            Esc_x2 = true,
+            Esc_xBrace = true,
+            Esc_u4 = true,
+            Esc_U8 = true,
+            Esc_uBrace = true,
+            Esc_UBrace = true,
             Esc_c1 = false,
             Esc_C1 = false,
             Esc_CMinus = false,
             Esc_NBrace = false,
             GenericEscape = false,
 
-            InsideSets_Esc_a = false,
+            InsideSets_Esc_a = true,
             InsideSets_Esc_b = false,
             InsideSets_Esc_e = false,
-            InsideSets_Esc_f = false,
+            InsideSets_Esc_f = true,
             InsideSets_Esc_n = true,
             InsideSets_Esc_r = true,
             InsideSets_Esc_t = true,
-            InsideSets_Esc_v = false,
+            InsideSets_Esc_v = true,
             InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
             InsideSets_Esc_Octal0_1_3 = false,
             InsideSets_Esc_oBrace = false,
-            InsideSets_Esc_x2 = false,
-            InsideSets_Esc_xBrace = false,
-            InsideSets_Esc_u4 = false,
-            InsideSets_Esc_U8 = false,
-            InsideSets_Esc_uBrace = false,
-            InsideSets_Esc_UBrace = false,
+            InsideSets_Esc_x2 = true,
+            InsideSets_Esc_xBrace = true,
+            InsideSets_Esc_u4 = true,
+            InsideSets_Esc_U8 = true,
+            InsideSets_Esc_uBrace = true,
+            InsideSets_Esc_UBrace = true,
             InsideSets_Esc_c1 = false,
             InsideSets_Esc_C1 = false,
             InsideSets_Esc_CMinus = false,
@@ -228,40 +228,40 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
             Class_Dot = true,
             Class_Cbyte = false,
             Class_Ccp = false,
-            Class_dD = false,
+            Class_dD = true,
             Class_hHhexa = false,
             Class_hHhorspace = false,
             Class_lL = false,
             Class_N = false,
             Class_O = false,
             Class_R = false,
-            Class_sS = false,
+            Class_sS = true,
             Class_sSx = false,
             Class_uU = false,
             Class_vV = false,
-            Class_wW = false,
+            Class_wW = true,
             Class_X = false,
-            Class_pP = false,
+            Class_pP = true,
             Class_pPBrace = true,
 
-            InsideSets_Class_dD = false,
+            InsideSets_Class_dD = true,
             InsideSets_Class_hHhexa = false,
             InsideSets_Class_hHhorspace = false,
             InsideSets_Class_lL = false,
             InsideSets_Class_R = false,
-            InsideSets_Class_sS = false,
+            InsideSets_Class_sS = true,
             InsideSets_Class_sSx = false,
             InsideSets_Class_uU = false,
             InsideSets_Class_vV = false,
-            InsideSets_Class_wW = false,
+            InsideSets_Class_wW = true,
             InsideSets_Class_X = false,
-            InsideSets_Class_pP = false,
+            InsideSets_Class_pP = true,
             InsideSets_Class_pPBrace = true,
-            InsideSets_Class_Name = false,
+            InsideSets_Class_Name = true,
             InsideSets_Equivalence = false,
             InsideSets_Collating = false,
 
-            InsideSets_Operators = false,
+            InsideSets_Operators = true,
             InsideSets_OperatorsExtended = false,
             InsideSets_Operator_Ampersand = false,
             InsideSets_Operator_Plus = false,
@@ -269,16 +269,16 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
             InsideSets_Operator_Minus = false,
             InsideSets_Operator_Circumflex = false,
             InsideSets_Operator_Exclamation = false,
-            InsideSets_Operator_DoubleAmpersand = false,
+            InsideSets_Operator_DoubleAmpersand = true,
             InsideSets_Operator_DoubleVerticalLine = false,
-            InsideSets_Operator_DoubleMinus = false,
-            InsideSets_Operator_DoubleTilde = false,
+            InsideSets_Operator_DoubleMinus = true,
+            InsideSets_Operator_DoubleTilde = true,
 
-            Anchor_Circumflex = false,
-            Anchor_Dollar = false,
-            Anchor_A = false,
+            Anchor_Circumflex = true,
+            Anchor_Dollar = true,
+            Anchor_A = true,
             Anchor_Z = FeatureMatrix.AnchorZModeEnum.None,
-            Anchor_z = false,
+            Anchor_z = true,
             Anchor_G = false,
             Anchor_bB = false,
             Anchor_bg = false,
@@ -291,13 +291,13 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
             Anchor_yY = false,
 
             NamedGroup_Apos = false,
-            NamedGroup_LtGt = false,
-            NamedGroup_PLtGt = false,
+            NamedGroup_LtGt = true,
+            NamedGroup_PLtGt = true,
             BalancingGroup = false,
             CapturingGroup = false,
             DuplicateGroupName = false,
 
-            NoncapturingGroup = false,
+            NoncapturingGroup = true,
             PositiveLookahead = false,
             NegativeLookahead = false,
             PositiveLookbehind = FeatureMatrix.LookModeEnum.None,
@@ -362,13 +362,13 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = false,
+            Unicode_Class_vW = true,
             InsideSets_Unicode = true,
-            UnicodeCaseFolding = false,
+            UnicodeCaseFolding = true,
             KeepSurrogatePairs = true,
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
-            Σσς = false,
+            Σσς = true,
             ßSS = false,
         };
     }
