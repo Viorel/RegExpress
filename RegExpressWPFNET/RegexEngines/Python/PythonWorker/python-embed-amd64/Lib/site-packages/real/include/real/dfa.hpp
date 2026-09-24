@@ -37,6 +37,7 @@
 #include "real/version.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <array>
 #include <cstddef>
 #include <ranges>
@@ -300,15 +301,15 @@ namespace real {
                             std::uint8_t   rep)
     {
       std::vector<std::uint32_t> seeds;
-      for (std::size_t pc = 0; pc < nfa.code.size(); ++pc) {
-        if (!dfa_test_bit(set, pc)) {
-          continue;
-        }
-        const dfa_instr& in      {nfa.code[pc]};
-        const bool       consume {(in.op == opcode::byte && in.arg8 == rep)
-                                  || (in.op == opcode::klass && nfa.classes[in.klass].test(rep))};
-        if (consume) {
-          seeds.push_back(static_cast<std::uint32_t>(pc + 1));
+      for (std::size_t w = 0; w < set.size(); ++w) {
+        for (std::uint64_t bits {set[w]}; bits != 0U; bits &= bits - 1U) { // set PCs only: the set is sparse
+          const std::size_t pc      {(w << 6U) + static_cast<std::size_t>(std::countr_zero(bits))};
+          const dfa_instr&  in      {nfa.code[pc]};
+          const bool        consume {(in.op == opcode::byte && in.arg8 == rep)
+                                     || (in.op == opcode::klass && nfa.classes[in.klass].test(rep))};
+          if (consume) {
+            seeds.push_back(static_cast<std::uint32_t>(pc + 1));
+          }
         }
       }
       return dfa_closure(nfa, seeds, false); // post-consumption: text_start is false here
@@ -485,6 +486,51 @@ namespace real {
     inline constexpr std::uint32_t dfa_no_rule {std::numeric_limits<std::uint32_t>::max()}; //!< \ref dfa_tables::accept's "this state does not accept" marker.
 
     /*!
+     * \brief Every class's move from one state in one pass over the state's PCs: \ref dfa_move for each
+     *        class of \p bc, without rescanning the set once per class.
+     * \param[in] nfa           The union NFA.
+     * \param[in] set           The source state's PC set.
+     * \param[in] bc            The byte classes (a byte PC consumes exactly its own byte's class).
+     * \param[in] klass_members For each NFA class, the byte-class indices it contains.
+     * \param[in,out] closures  Closures already computed during this construction, by seed list:
+     *            classes and states that consume through the same PCs share one closure.
+     * \return The successor PC set per class, indexed by class.
+     */
+    inline std::vector<dfa_set> dfa_move_all(const dfa_nfa&                                 nfa,
+                                             const dfa_set&                                 set,
+                                             const dfa_byte_classes&                        bc,
+                                             const std::vector<std::vector<std::uint8_t>>&  klass_members,
+                                             std::map<std::vector<std::uint32_t>, dfa_set>& closures)
+    {
+      std::vector<std::vector<std::uint32_t>> seeds(bc.count);
+      for (std::size_t w = 0; w < set.size(); ++w) {
+        for (std::uint64_t bits {set[w]}; bits != 0U; bits &= bits - 1U) {
+          const std::size_t pc {(w << 6U) + static_cast<std::size_t>(std::countr_zero(bits))};
+          const dfa_instr&  in {nfa.code[pc]};
+          if (in.op == opcode::byte) {
+            seeds[bc.of[in.arg8]].push_back(static_cast<std::uint32_t>(pc + 1));
+          }
+          else if (in.op == opcode::klass) {
+            for (const std::uint8_t c : klass_members[in.klass]) {
+              seeds[c].push_back(static_cast<std::uint32_t>(pc + 1));
+            }
+          }
+        }
+      }
+      std::vector<dfa_set> out;
+      out.reserve(bc.count);
+      for (auto& per_class : seeds) {
+        auto found {closures.find(per_class)};
+        if (found == closures.end()) {
+          dfa_set closed {dfa_closure(nfa, per_class, false)}; // post-consumption: text_start is false here
+          found = closures.emplace(std::move(per_class), std::move(closed)).first;
+        }
+        out.push_back(found->second);
+      }
+      return out;
+    }
+
+    /*!
      * \brief Subset construction over byte-classes, then Moore minimization.
      *
      * Initial partition keys on the **full accept mask** (which-matched), not only the
@@ -533,64 +579,69 @@ namespace real {
                              return s;
                            }};
 
-      const auto find_or_add {[&](dfa_set s) -> std::uint32_t {
-                                for (std::size_t i = 0; i < sets.size(); ++i) {
-                                  if (sets[i] == s) {
-                                    return static_cast<std::uint32_t>(i);
-                                  }
-                                }
-                                // False positive: live locals; analyzer mis-models the vector.
-                                // NOLINTNEXTLINE(clang-analyzer-core.NonNullParamChecker)
-                                auto mask {dfa_accept_mask_of(nfa, s)};
-                                sets.push_back(std::move(s));
-                                mask_pre.push_back(std::move(mask));
-                                if (sets.size() > state_cap) {
-                                  throw dfa_error("DFA state count exceeded max_dfa_states; "
-                                                  "pattern is too complex for a DFA");
-                                }
-                                return static_cast<std::uint32_t>(sets.size() - 1);
-                              }};
+      // Known sets by content, so a lookup is a logarithmic search rather than a comparison with every
+      // state.
+      std::map<dfa_set, std::uint32_t> index;
+      const auto                       find_or_add {[&](dfa_set s) -> std::uint32_t {
+                                                      if (const auto known {index.find(s)}; known != index.end()) {
+                                                        return known->second;
+                                                      }
+                                                      index.emplace(s, static_cast<std::uint32_t>(index.size())); // index holds one entry per state
+                                                      // False positive: live locals; analyzer mis-models the vector.
+                                                      // NOLINTNEXTLINE(clang-analyzer-core.NonNullParamChecker)
+                                                      auto mask {dfa_accept_mask_of(nfa, s)};
+                                                      sets.push_back(std::move(s));
+                                                      mask_pre.push_back(std::move(mask));
+                                                      if (sets.size() > state_cap) {
+                                                        throw dfa_error("DFA state count exceeded max_dfa_states; "
+                                                                        "pattern is too complex for a DFA");
+                                                      }
+                                                      return static_cast<std::uint32_t>(sets.size() - 1);
+                                                    }};
 
       const std::size_t words {(nfa.code.size() + 63U) / 64U};
       sets.emplace_back(words, 0); // state 0 = dead (empty set)
+      index.emplace(sets.back(), 0U);
       mask_pre.push_back(std::vector<std::uint64_t>(mw, 0));
       // Offset 0: text_start holds. Unanchored still starts here (anchors see pos 0).
       out.start = find_or_add(dfa_closure(nfa, entry_seeds, true));
 
       std::vector<std::uint32_t> trans_pre; // [s*nc + c]
+      // Which byte classes each NFA class holds, and the closures computed so far (by seed list).
+      std::vector<std::vector<std::uint8_t>> klass_members(nfa.classes.size());
+      for (std::size_t k = 0; k < nfa.classes.size(); ++k) {
+        for (std::size_t c = 0; c < nc; ++c) {
+          if (nfa.classes[k].test(bc.rep[c])) {
+            klass_members[k].push_back(static_cast<std::uint8_t>(c));
+          }
+        }
+      }
+      std::map<std::vector<std::uint32_t>, dfa_set> closures;
       // Indexed: find_or_add appends to `sets`. A range-for captures end() once
       // and never expands the states it just discovered (UAF under realloc;
       // silent one-state machine otherwise).
       // NOLINTNEXTLINE(modernize-loop-convert)
       for (std::size_t s = 0; s < sets.size(); ++s) {
+        std::vector<dfa_set> moves {dfa_move_all(nfa, sets[s], bc, klass_members, closures)};
         for (std::size_t c = 0; c < nc; ++c) {
-          trans_pre.push_back(find_or_add(complete(dfa_move(nfa, sets[s], bc.rep[c]))));
+          trans_pre.push_back(find_or_add(complete(std::move(moves[c]))));
         }
       }
       const std::size_t n_pre {sets.size()};
 
       // Moore: initial partition by FULL accept mask (not min-rule alone).
-      std::vector<std::int64_t>               block(n_pre, 0);
-      std::vector<std::vector<std::uint64_t>> mask_keys;
+      // Blocks are numbered in first-seen order, looked up through an ordered index: a comparison with
+      // every block seen so far made each round quadratic in the state count.
+      std::vector<std::int64_t>                             block(n_pre, 0);
+      std::map<std::vector<std::uint64_t>, std::int64_t>    mask_ids;
       for (std::size_t s = 0; s < n_pre; ++s) {
-        std::int64_t id {-1};
-        for (std::size_t i = 0; i < mask_keys.size(); ++i) {
-          if (mask_keys[i] == mask_pre[s]) {
-            id = static_cast<std::int64_t>(i);
-            break;
-          }
-        }
-        if (id < 0) {
-          id = static_cast<std::int64_t>(mask_keys.size());
-          mask_keys.push_back(mask_pre[s]);
-        }
-        block[s] = id;
+        block[s] = mask_ids.try_emplace(mask_pre[s], static_cast<std::int64_t>(mask_ids.size())).first->second;
       }
-      std::size_t num_blocks {mask_keys.size()};
+      std::size_t num_blocks {mask_ids.size()};
       for (bool changed = true; changed;) {
         changed = false;
-        std::vector<std::vector<std::int64_t>> sigs;
-        std::vector<std::int64_t>              new_block(n_pre, 0);
+        std::map<std::vector<std::int64_t>, std::int64_t> sig_ids;
+        std::vector<std::int64_t>                         new_block(n_pre, 0);
         for (std::size_t s = 0; s < n_pre; ++s) {
           std::vector<std::int64_t> sig;
           sig.reserve(nc + 1);
@@ -598,22 +649,11 @@ namespace real {
           for (std::size_t c = 0; c < nc; ++c) {
             sig.push_back(block[trans_pre[(s * nc) + c]]);
           }
-          std::int64_t id {-1};
-          for (std::size_t i = 0; i < sigs.size(); ++i) {
-            if (sigs[i] == sig) {
-              id = static_cast<std::int64_t>(i);
-              break;
-            }
-          }
-          if (id < 0) {
-            id = static_cast<std::int64_t>(sigs.size());
-            sigs.push_back(std::move(sig));
-          }
-          new_block[s] = id;
+          new_block[s] = sig_ids.try_emplace(std::move(sig), static_cast<std::int64_t>(sig_ids.size())).first->second;
         }
-        if (sigs.size() != num_blocks) {
+        if (sig_ids.size() != num_blocks) {
           changed    = true;
-          num_blocks = sigs.size();
+          num_blocks = sig_ids.size();
           block      = std::move(new_block);
         }
       }
@@ -864,6 +904,56 @@ namespace real {
     which_matched  = 1, //!< Mid-stream restart; full accept-mask per state for which-matched.
   };
 
+  class dfa;
+
+  /*!
+   * \brief What successive munches over ONE subject have learnt, so that tokenizing the whole subject
+   *        costs O(states × length) instead of O(length²) (Reps, "Maximal-munch tokenization in linear
+   *        time", 1998).
+   *
+   * A munch from an offset walks the DFA until it dies or the subject ends, then answers the last
+   * accepting position. Every (state, position) the walk visited AFTER that position leads to no
+   * accept -- that is why the walk went on without answering -- so a later munch reaching the same
+   * pair can stop there with the answer it already holds. The next munch starts at or after the
+   * previous answer's end, so without this a rule like `a*b` beside `a` rescans the rest of `aaa…`
+   * from every position.
+   *
+   * Bound to one \ref dfa and one subject: pass it to \ref dfa::match(std::string_view, std::size_t,
+   * dfa_munch_memo&) const with the same pair every time. Memory is one bit per remembered state per
+   * position of the subject, allocated for a state the first time it is remembered.
+   */
+  class dfa_munch_memo
+  {
+  public:
+
+    /*!
+     * \brief An empty memo for one subject.
+     * \param[in] subject_size The subject's length in bytes.
+     */
+    explicit dfa_munch_memo(std::size_t subject_size)
+      : size_(subject_size)
+    {}
+
+    /*!
+     * \brief DFA transitions taken by every munch so far -- the work the bound is stated in.
+     * \return The count, summed over every call that used this memo.
+     */
+    [[nodiscard]] std::size_t transitions() const noexcept
+    {
+      return transitions_;
+    }
+
+  private:
+
+    friend class dfa;
+
+    std::size_t                                        size_;                  //!< The subject's length.
+    std::vector<std::vector<bool>>                     dead_after_;            //!< [state][position]: no accept follows.
+    std::vector<std::pair<std::uint32_t, std::size_t>> trail_;                 //!< Pairs visited since the last accept.
+    std::size_t                                        transitions_ {0};       //!< See transitions().
+    const void        *                                owner_       {nullptr}; //!< The dfa's tables this memo describes.
+  };
+
   /*!
    * \brief A multi-rule DFA: maximal-munch (\c dfa_mode::munch) or which-matched
    *        unanchored scan (\c dfa_mode::which_matched).
@@ -925,6 +1015,67 @@ namespace real {
         if (rule != detail::dfa_no_rule) {
           best = dfa_match {.rule_index = rule, .length = i};
         }
+      }
+      return best;
+    }
+
+    /*!
+     * \brief \ref match(std::string_view) const at \p offset of \p subject, remembering in \p memo what the
+     *        walk proved so that successive calls over the same subject cost linear time in total.
+     *
+     * Answers exactly what `match(subject.substr(offset))` answers.
+     *
+     * \param[in]     subject The whole subject; every call with \p memo must pass the same one.
+     * \param[in]     offset  Where this munch starts (at most `subject.size()`).
+     * \param[in,out] memo    The subject's memo (see \ref dfa_munch_memo).
+     * \return The winning rule index and byte length, or `std::nullopt` if nothing non-empty matches.
+     * \throws std::invalid_argument If \p memo was made for a subject of another length, was used with
+     *         another DFA, or \p offset lies beyond \p subject.
+     */
+    [[nodiscard]] std::optional<dfa_match> match(std::string_view subject,
+                                                 std::size_t      offset,
+                                                 dfa_munch_memo&  memo) const
+    {
+      if (memo.size_ != subject.size() || offset > subject.size()) {
+        throw std::invalid_argument("real::dfa::match: the memo belongs to another subject, or the offset is past it");
+      }
+      if (memo.owner_ == nullptr) {
+        memo.owner_ = tables_.trans.data();
+        memo.dead_after_.resize(tables_.num_states);
+      }
+      else if (memo.owner_ != tables_.trans.data()) {
+        throw std::invalid_argument("real::dfa::match: the memo belongs to another DFA");
+      }
+      std::uint32_t            state {tables_.start};
+      std::optional<dfa_match> best;
+      memo.trail_.clear();
+      std::size_t i {offset};
+      while (i < subject.size()) {
+        const auto byte {static_cast<std::uint8_t>(subject[i])};
+        state = tables_.trans[(static_cast<std::size_t>(state) * tables_.num_classes) + tables_.byte_class[byte]];
+        if (state == 0U) { // dead state
+          break;
+        }
+        ++i;
+        const std::uint32_t rule {tables_.accept[state]};
+        if (rule != detail::dfa_no_rule) {
+          best = dfa_match {.rule_index = rule, .length = i - offset};
+          memo.trail_.clear();
+          continue;
+        }
+        const std::vector<bool>& known {memo.dead_after_[state]};
+        if (!known.empty() && known[i]) {
+          break; // an earlier walk proved no accept follows this pair
+        }
+        memo.trail_.emplace_back(state, i);
+      }
+      memo.transitions_ += i - offset;
+      for (const auto& [dead_state, position] : memo.trail_) {
+        std::vector<bool>& known {memo.dead_after_[dead_state]};
+        if (known.empty()) {
+          known.resize(memo.size_ + 1, false);
+        }
+        known[position] = true;
       }
       return best;
     }
