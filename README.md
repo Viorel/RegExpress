@@ -65,7 +65,7 @@ The following engines are included:
   * [_Joni_](https://github.com/jruby/joni) 2.2.7.
 * [**Python**](https://www.python.org/) 3.14.6:
   * _re_,
-  * [_regex_](https://pypi.org/project/regex) 2026.9.3,
+  * [_regex_](https://pypi.org/project/regex) 2026.9.10,
   * [_real-regex_](https://pypi.org/project/real-regex/) 2026.9.6.
 * [**D**](https://dlang.org/phobos/std_regex.html) 2.112.0 (*std.regex* module).
 * [**Perl**](https://perldoc.perl.org/perlreref) 5.40.2 (Strawberry Perl).
