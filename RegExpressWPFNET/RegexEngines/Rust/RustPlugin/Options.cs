@@ -132,6 +132,8 @@ class Options
     // Ferrony
 
     public OnigSyntaxTypeEnum OnigSyntaxType { get; set; } = OnigSyntaxTypeEnum.OnigSyntaxOniguruma; // (also 'RustyExpressions')
+    public string timeout { get; set; }
+    public string? match_stack_limit { get; set; }
 
     // RustyExpressions
 

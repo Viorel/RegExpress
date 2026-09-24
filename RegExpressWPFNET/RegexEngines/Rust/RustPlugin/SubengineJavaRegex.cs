@@ -379,7 +379,7 @@ class SubengineJavaRegex( Options options ) : RegexSubengine
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = true,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = u,
             ßSS = false,
         };

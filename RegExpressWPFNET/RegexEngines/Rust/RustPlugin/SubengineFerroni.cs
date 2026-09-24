@@ -73,6 +73,11 @@ class SubengineFerroni( Options options ) : RegexSubengine
                 extended = options.ignore_whitespace,
 
                 syntax = Enum.GetName( options.OnigSyntaxType ),
+
+                timeout = use_builder ? ValidationUtilities.ParseUInt64( "timeout", options.timeout ) : null,
+                retry_limit_in_match = use_builder ? ValidationUtilities.ParseUInt64( "retry_limit_in_match", options.retry_limit_in_match ) : null,
+                retry_limit_in_search = use_builder ? ValidationUtilities.ParseUInt64( "retry_limit_in_search", options.retry_limit_in_search ) : null,
+                match_stack_limit = use_builder ? ValidationUtilities.ParseUInt32( "match_stack_limit", options.stack_limit ) : null,
             }
         };
 
@@ -410,7 +415,7 @@ class SubengineFerroni( Options options ) : RegexSubengine
             ScriptRuns = false,
             Callouts = false,
 
-            EmptyConstruct = grp1,
+            EmptyConstruct = false,
             EmptyConstructX = false,
             EmptySet = false,
             EmptySetAny = false,
@@ -421,7 +426,7 @@ class SubengineFerroni( Options options ) : RegexSubengine
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = true,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
             Σσς = true, // if not 'ignoreCaseIsAscii'
             ßSS = true, // if not 'ignoreCaseIsAscii'
         };

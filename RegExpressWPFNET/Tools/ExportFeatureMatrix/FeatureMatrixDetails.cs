@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Bibliography;
 using RegExpressLibrary;
+using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
 namespace ExportFeatureMatrix;
@@ -135,13 +136,15 @@ partial class FeatureMatrixDetails
                     {
                     case FeatureMatrix.PunctuationEnum.Normal:
                     {
-                        var _ = engine.GetMatches( cnc, @"(a*)*b", TEXT );
+                        var unused1 = engine.GetMatches( cnc, @"(a*)*b", TEXT ).Matches.FirstOrDefault( );
+                        var unused2 = engine.GetMatches( cnc, @"(a+)+b", TEXT ).Matches.FirstOrDefault( ); ;
                         result = CatastrophicBacktrackingResultEnum.Passed;
                         break;
                     }
                     case FeatureMatrix.PunctuationEnum.Backslashed:
                     {
-                        var _ = engine.GetMatches( cnc, @"\(a*\)*b", TEXT );
+                        var unused1 = engine.GetMatches( cnc, @"\(a*\)*b", TEXT ).Matches.FirstOrDefault( );
+                        var unused2 = engine.GetMatches( cnc, @"\(a+\)+b", TEXT ).Matches.FirstOrDefault( );
                         result = CatastrophicBacktrackingResultEnum.Passed;
                         break;
                     }

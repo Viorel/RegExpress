@@ -331,6 +331,10 @@
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=onigsyn}">Syntax:</Label>
@@ -373,6 +377,23 @@
                         </ComboBoxItem>
                     </ComboBox>
                     <!--<TextBlock Grid.Column="2" Grid.Row="0" Text="– matching semantics" Style="{StaticResource note}" />-->
+
+                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=timeout}">timeout:</Label>
+                    <TextBox x:Name="timeout" Grid.Column="1" Grid.Row="1" Text="{Binding timeout, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="ms" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=fer_retry_limit_in_match}">retry__limit__in__match:</Label>
+                    <TextBox x:Name="fer_retry_limit_in_match" Grid.Column="1" Grid.Row="2" Text="{Binding retry_limit_in_match, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=fer_retry_limit_in_search}">retry__limit__in__search:</Label>
+                    <TextBox x:Name="fer_retry_limit_in_search" Grid.Column="1" Grid.Row="3" Text="{Binding retry_limit_in_search, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="3" Text="" Style="{StaticResource note}" />
+
+                    <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=match_stack_limit}">match__stack__limit:</Label>
+                    <TextBox x:Name="match_stack_limit" Grid.Column="1" Grid.Row="4" Text="{Binding match_stack_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="4" Text="" Style="{StaticResource note}" />
+
                 </Grid>
 
             </StackPanel>
@@ -471,15 +492,15 @@
                     <TextBox x:Name="stack_limit" Grid.Column="1" Grid.Row="1" Text="{Binding stack_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
                     <TextBlock Grid.Column="2" Grid.Row="1" Text="– Maximum backtrack-stack depth" Style="{StaticResource note}" />
 
-                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=stack_limit}">retry__limit__in__match:</Label>
+                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=retry_limit_in_match}">retry__limit__in__match:</Label>
                     <TextBox x:Name="retry_limit_in_match" Grid.Column="1" Grid.Row="2" Text="{Binding retry_limit_in_match, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
                     <TextBlock Grid.Column="2" Grid.Row="2" Text="– Retry count inside one match attempt" Style="{StaticResource note}" />
 
-                    <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=stack_limit}">retry__limit__in__search:</Label>
+                    <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=retry_limit_in_search}">retry__limit__in__search:</Label>
                     <TextBox x:Name="retry_limit_in_search" Grid.Column="1" Grid.Row="3" Text="{Binding retry_limit_in_search, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
                     <TextBlock Grid.Column="2" Grid.Row="3" Text="– Retry count across a search" Style="{StaticResource note}" />
 
-                    <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=stack_limit}">subexp__call__limit:</Label>
+                    <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=subexp_call_limit}">subexp__call__limit:</Label>
                     <TextBox x:Name="subexp_call_limit" Grid.Column="1" Grid.Row="4" Text="{Binding subexp_call_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
                     <TextBlock Grid.Column="2" Grid.Row="4" Text="– Maximum `\g` subexp-calls during search" Style="{StaticResource note}" />
                 </Grid>

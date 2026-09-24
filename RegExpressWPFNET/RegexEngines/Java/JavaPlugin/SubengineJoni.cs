@@ -419,7 +419,7 @@ partial class SubengineJoni( Options options ) : RegexSubengine
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = true,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = true,
             ßSS = true,
         };

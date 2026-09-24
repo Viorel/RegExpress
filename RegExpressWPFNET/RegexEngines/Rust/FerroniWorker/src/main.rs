@@ -46,6 +46,7 @@ fn main()
     let options = &input_json["options"];
 
     let re;
+    let mut se = ferroni::api::SearchOptions::default();
 
     if ! use_builder
     {
@@ -78,6 +79,30 @@ fn main()
                 _ => panic!("Invalid syntax")
             });
 
+        let n = options["timeout"].as_u64();
+        if let Some(n) = n
+        {
+            se = se.timeout( std::time::Duration::from_millis(n));
+        } 
+
+        let n = options["retry_limit_in_match"].as_u64();
+        if let Some(n) = n
+        {
+            se = se.retry_limit_in_match( n);
+        } 
+
+        let n = options["retry_limit_in_search"].as_u64();
+        if let Some(n) = n
+        {
+            se = se.retry_limit_in_search( n);
+        } 
+
+        let n = options["match_stack_limit"].as_u32();
+        if let Some(n) = n
+        {
+            se = se.match_stack_limit( n);
+        } 
+
         re = reb.build();
     }
 
@@ -96,7 +121,16 @@ fn main()
 
     while start <= text.len()
     {
-        let captures = re.captures( &text[start..]);
+        let captures = re.captures_with( &text[start..], se);
+
+        if let Err(err) = captures
+        {
+            eprintln!( "{}", err);
+
+            return;
+        }
+
+        let captures = captures.unwrap();
 
         if captures.is_none()
         {

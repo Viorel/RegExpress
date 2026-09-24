@@ -283,7 +283,8 @@
 
         public bool FuzzyMatchingParams { get; init; }                      // parameters for fuzzy matching (programmatically, not pattern syntax); (see also 'Quantifier_Braces_FreeForm')
 
-        public CatastrophicBacktrackingEnum TreatmentOfCatastrophicPatterns { get; init; } // what happens in case of "(a*)*b" on "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac"
+        public CatastrophicBacktrackingEnum TreatmentOfCatastrophicPatterns { get; init; } // what happens in case of "(a*)*b" and "(a+)+b" on "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac";
+                                                                                           // Note. Some engines ('Oniguruma', 'ferroni') are protected against "(a*)*b", but not "(a+)+b"
 
         public bool Σσς { get; init; }                                      // match letters that have multiple uppercase and lowercase variants,
                                                                             // such as uppercase “Σ” and lowercase “σ” (inside words) and “ς” (at end of words)

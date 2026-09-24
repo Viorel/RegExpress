@@ -337,7 +337,7 @@ partial class SubengineRegexJeyemhex( Options options ) : RegexSubengine
             UnicodeCaseFolding = false,
             KeepSurrogatePairs = false,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = false,
             ßSS = false,
 

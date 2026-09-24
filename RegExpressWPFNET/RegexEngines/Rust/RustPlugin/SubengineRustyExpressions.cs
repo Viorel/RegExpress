@@ -87,10 +87,10 @@ partial class SubengineRustyExpressions( Options options ) : RegexSubengine
                 CALLBACK_EACH_MATCH = options.CALLBACK_EACH_MATCH,
                 MATCH_WHOLE_STRING = options.MATCH_WHOLE_STRING,
 
-                stack_limit = ValidationUtilities.ParseInt64( "stack_limit", options.stack_limit ),
-                retry_limit_in_match = ValidationUtilities.ParseInt64( "retry_limit_in_match", options.retry_limit_in_match ),
-                retry_limit_in_search = ValidationUtilities.ParseInt64( "retry_limit_in_search", options.retry_limit_in_search ),
-                subexp_call_limit = ValidationUtilities.ParseInt64( "subexp_call_limit", options.subexp_call_limit ),
+                stack_limit = ValidationUtilities.ParseUInt32( "stack_limit", options.stack_limit ),
+                retry_limit_in_match = ValidationUtilities.ParseUInt64( "retry_limit_in_match", options.retry_limit_in_match ),
+                retry_limit_in_search = ValidationUtilities.ParseUInt64( "retry_limit_in_search", options.retry_limit_in_search ),
+                subexp_call_limit = ValidationUtilities.ParseUInt32( "subexp_call_limit", options.subexp_call_limit ),
 
                 syntax = Enum.GetName( options.OnigSyntaxType ),
             }
