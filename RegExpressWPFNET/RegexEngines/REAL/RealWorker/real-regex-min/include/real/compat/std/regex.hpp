@@ -15,7 +15,8 @@
  * lookarounds, POSIX classes and non-ASCII inside `[...]` route to `std::regex` via a
  * compile-time screen plus a compile-failure catch. The five POSIX grammars are NOT among them:
  * each is translated to its ECMAScript equivalent and run on `real` with leftmost-longest bounds
- * when the pattern translates, falling back to `std::regex` only when it does not.
+ * (group 0; captures are the winning thread's, not POSIX submatch) when the pattern translates,
+ * falling back to `std::regex` only when it does not.
  *
  * `real` is always built with `flags::bytes | flags::ecma` so its byte-oriented, ECMAScript-`$`,
  * ECMAScript-`.` semantics align with `std::basic_regex<char>` (validated by a differential).

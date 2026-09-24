@@ -5,25 +5,31 @@
  * A lexer matches many rules at every position; running each rule's Pike VM in
  * turn is linear but re-scans the input once per candidate rule. `real::dfa`
  * fuses a set of patterns into one deterministic automaton that recognizes the
- * winning rule in a single left-to-right pass — the same maximal-munch decision
- * (longest match; ties to the earliest rule), reached far faster when many rules
- * share leading bytes. It is built from the patterns' compiled programs, runs at
- * run time (the tables are heap-allocated once and then immutable), and is the
- * accelerated rule-dispatch path SciLex opts into.
+ * winning rule in a single left-to-right pass (longest match; ties to the earliest
+ * rule), reached far faster when many rules share leading bytes. It is built from
+ * the patterns' compiled programs, runs at run time (the tables are heap-allocated
+ * once and then immutable), and is the accelerated rule-dispatch path SciLex opts
+ * into.
  *
  * \note NOT the internal `real::detail::lazy_dfa` (`automata/lazy_dfa.hpp`): that one is a private,
  *       *priority-preserving* forward DFA that finds a single pattern's match boundary for the Pike route.
  *       This `real::dfa` is a public, capture-free *maximal-munch* recognizer over a whole rule set.
  *
  * Scope: a pattern is DFA-able iff its program holds no zero-width assertion other
- * than a leading `\A`/`^` (a no-op under anchored scanning). A pattern with any
- * other assertion (`$`, `\b`, multiline `^`/`$`, …) is **not** representable as a
- * pure DFA; the constructor throws \ref real::dfa_error rather than silently
- * mis-recognizing — the caller keeps such rules on the Pike VM. Lazy/greedy makes
- * no difference to a DFA: it recognizes the pattern's *language* and takes the
- * longest match, which is the lexer's munch for greedy rules but **not** for lazy
- * ones (whose `match()` is the shortest) — so the caller must only feed DFA-faithful
- * (greedy, assertion-free) rules. Include this header explicitly; `real.hpp` does not.
+ * than a leading `\A`/`^` (a no-op under anchored scanning), no lookaround, no
+ * possessive quantifier or atomic group, and a byte expansion small enough to build.
+ * Anything else throws \ref real::dfa_error rather than silently mis-recognizing —
+ * the caller keeps such rules on the Pike VM.
+ *
+ * **DFA-able is not the same as faithful.** A DFA recognizes a pattern's *language*
+ * and takes the LONGEST match, while `regex::match()` takes the match its priority
+ * order prefers. The two agree for many patterns and disagree for others, and the
+ * difference is not visible in the syntax: `a|ab` on `"ab"` matches 1 byte and the
+ * DFA takes 2; so does the greedy, longer-branch-first `(?:ab|a)(?:bc)?` on
+ * `"abc"`, while the lazy `x*?y` agrees on every input. So a caller that needs the
+ * DFA to reproduce a per-rule `match()` munch asks \ref real::dfa_faithful, which
+ * DECIDES the question for each pattern and names an input that separates the two
+ * when they differ. Include this header explicitly; `real.hpp` does not.
  */
 #ifndef REAL_DFA_HPP
 #define REAL_DFA_HPP
@@ -36,11 +42,14 @@
 #include <ranges>
 #include <cstdint>
 #include <limits>
+#include <map>
 #include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
+#include <utility>
 #include <vector>
 
 #include "real/core/config.hpp"
@@ -51,12 +60,13 @@ namespace real {
   /*!
    * \brief Thrown when a pattern cannot be represented as a DFA.
    *
-   * Four causes: a zero-width assertion other than a leading `\A`/`^` (`$`,
-   * `\b`, `\B`, multiline anchors), a lookaround, a Unicode code-point class
-   * (`\w`/`\d`/`\s` in text mode — use byte classes), or a possessive
-   * quantifier / atomic group. `real::dfa` never falls back silently — a
-   * violated contract is an error the caller handles (e.g. by keeping that
-   * rule on the Pike VM).
+   * Five causes: a zero-width assertion other than a leading `\A`/`^` (`$`,
+   * `\b`, `\B`, multiline anchors), a lookaround, a possessive quantifier /
+   * atomic group, a code-point class whose UTF-8 expansion is too large (text-mode
+   * `\w`, or a class repeated many times — narrower classes such as `\d`,
+   * `\p{Greek}` or `[àé]` build), or an automaton past the state cap (65 536 states).
+   * `real::dfa` never falls back silently — a violated contract is an error the
+   * caller handles (e.g. by keeping that rule on the Pike VM).
    */
   class dfa_error : public std::runtime_error
   {
@@ -124,7 +134,7 @@ namespace real {
      * \param[in] programs The compiled patterns, one per rule, in rule order.
      * \return The union NFA in one address space.
      * \throws real::dfa_error if any program holds an assertion other than a head text_start,
-     *         a lookaround, a code-point class, or a possessive/atomic construct.
+     *         a lookaround, a possessive/atomic construct, or a code-point class too wide to expand.
      */
     inline dfa_nfa dfa_flatten(std::span<const program_view> programs)
     {
@@ -677,6 +687,169 @@ namespace real {
       }
       return out;
     }
+
+    /*!
+     * \brief The priority-ordered epsilon closure of \p seed, as the Pike walk builds it: consuming pcs are
+     *        appended to \p out in priority order, and reaching a `match` stops the walk, because a thread
+     *        list is cut below its first accepting thread.
+     *
+     * This replays `pike_vm::add_thread` over the flattened byte program, and it must stay the SAME walk:
+     * DFS order (primary before secondary), a pc dropped once \p seen in this generation, and the
+     * empty-iteration routing -- a jump back to a loop head already seen exits the loop through the head's
+     * secondary, at this thread's own priority. Without that routing `(?:c??)*` on `"c"` reads as faithful
+     * while the engine answers the empty match. `dfa_fidelity_agrees_with_the_engine` in
+     * `tests/automata/test_dfa_fidelity.cpp` holds the two walks together.
+     *
+     * \param[in]     nfa      The union NFA (one rule).
+     * \param[in]     seed     The pc to close over.
+     * \param[in]     at_start Whether a head text_start assertion may be crossed.
+     * \param[in,out] seen     Per-generation visited marks, shared by every seed of one step.
+     * \param[in,out] out      Receives the consuming pcs, in priority order.
+     * \return True when the walk reached a `match`.
+     */
+    inline bool dfa_priority_closure(const dfa_nfa&              nfa,
+                                     std::uint32_t               seed,
+                                     bool                        at_start,
+                                     std::vector<std::uint8_t>&  seen,
+                                     std::vector<std::uint32_t>& out)
+    {
+      std::vector<std::uint32_t> stack {seed};
+      while (!stack.empty()) {
+        const std::uint32_t pc {stack.back()};
+        stack.pop_back();
+        if (seen[pc] != 0U) {
+          continue;
+        }
+        seen[pc] = 1U;
+        const dfa_instr& in {nfa.code[pc]};
+        switch (in.op) {
+          case opcode::split:
+            stack.push_back(static_cast<std::uint32_t>(in.secondary));
+            stack.push_back(static_cast<std::uint32_t>(in.primary));
+            break;
+          case opcode::jump:
+            {
+              auto head {static_cast<std::size_t>(in.primary)};
+              for (int hops = 0; hops < max_loop_hops && seen[head] != 0U && nfa.code[head].op == opcode::jump;
+                   ++hops) {
+                head = static_cast<std::size_t>(nfa.code[head].primary);
+              }
+              const bool exits {seen[head] != 0U && nfa.code[head].op == opcode::split};
+              stack.push_back(static_cast<std::uint32_t>(exits ? nfa.code[head].secondary : in.primary));
+            }
+            break;
+          case opcode::save: stack.push_back(pc + 1); break;
+          case opcode::assert_position:
+            if (at_start) { // dfa_flatten admits only a head text_start: ε at offset 0, dead after a byte
+              stack.push_back(pc + 1);
+            }
+            break;
+          case opcode::byte:
+          case opcode::klass: out.push_back(pc); break;
+          case opcode::match: return true;
+          case opcode::klass_cp:
+          case opcode::assert_lookaround:
+          case opcode::byte_loop_possessive:
+          case opcode::klass_loop_possessive:
+          case opcode::klass_cp_loop_possessive:
+            break; // absent from a flattened byte program (dfa_flatten expands or refuses them)
+        }
+      }
+      return false;
+    }
+
+    /*!
+     * \brief The per-pattern answer of \ref real::dfa_faithful, before the public wrapping.
+     */
+    struct dfa_fidelity_raw
+    {
+      std::uint8_t outcome {0}; //!< 0 faithful, 1 divergent, 2 undecided.
+      std::string  witness;     //!< Divergent only: an input separating `match()` from the longest match.
+    };
+
+    /*!
+     * \brief Decides whether \p prog's priority match equals its longest match on every input.
+     *
+     * The search walks the PRODUCT of two simulations over the same byte program: the priority one (the
+     * ordered thread list above the current best, as \ref dfa_priority_closure builds it, and whether a
+     * best exists) and the set one (every live pc, as the DFA sees it). A reachable product state whose set
+     * accepts at a byte where the priority list does not is a divergence, and the path to it is an input
+     * on which `match()` stops short of the longest match. Conversely, every divergence has such a state:
+     * the priority best only moves forward, so at the longest match's end the set accepts and the list
+     * did not. The search is therefore exact, and bounded only by \p budget.
+     *
+     * \param[in] prog   The pattern's program.
+     * \param[in] budget Product states explored before the answer is "undecided".
+     * \return The outcome, with a witness when divergent.
+     * \throws real::dfa_error for a pattern that is not DFA-able.
+     */
+    inline dfa_fidelity_raw dfa_decide_fidelity(const program_view& prog,
+                                                std::size_t         budget)
+    {
+      const std::array<program_view, 1> one   {prog};
+      const dfa_nfa                     nfa   {dfa_flatten(one)};
+      const dfa_byte_classes            bc    {dfa_compute_classes(nfa)};
+      const auto                        entry {static_cast<std::uint32_t>(nfa.entry[0])};
+      struct product_state
+      {
+        std::vector<std::uint32_t> live; //!< Priority threads above the current best, in order.
+        bool                       best; //!< A priority match has been recorded.
+        dfa_set                    all;  //!< Every live pc, as a set.
+      };
+      using product_key = std::tuple<std::vector<std::uint32_t>, bool, dfa_set>;
+      std::vector<product_state>                        states;
+      std::vector<std::pair<std::size_t, std::uint8_t>> parent; // (state, byte) that first reached it
+      std::map<product_key, std::size_t>                index;
+
+      std::vector<std::uint8_t>  seen(nfa.code.size(), 0U);
+      std::vector<std::uint32_t> live0;
+      const bool                 best0 {dfa_priority_closure(nfa, entry, true, seen, live0)};
+      states.push_back({.live = live0, .best = best0, .all = dfa_closure(nfa, {entry}, true)});
+      parent.emplace_back(std::size_t {0}, std::uint8_t {0});
+      index.emplace(product_key {states[0].live, states[0].best, states[0].all}, std::size_t {0});
+
+      // NOLINTNEXTLINE(modernize-loop-convert) -- indexed: the loop appends the states it discovers.
+      for (std::size_t s = 0; s < states.size(); ++s) {
+        for (std::size_t c = 0; c < bc.count; ++c) {
+          const std::uint8_t rep {bc.rep[c]};
+          dfa_set            all {dfa_move(nfa, states[s].all, rep)};
+          if (std::ranges::all_of(all, [](std::uint64_t word) { return word == 0U; })) {
+            continue; // dead: no thread survives, nothing can accept again
+          }
+          std::ranges::fill(seen, std::uint8_t {0});
+          std::vector<std::uint32_t> live;
+          bool                       hit {false};
+          for (const std::uint32_t pc : states[s].live) {
+            const dfa_instr& in       {nfa.code[pc]};
+            const bool       consumes {(in.op == opcode::byte && in.arg8 == rep)
+                                       || (in.op == opcode::klass && nfa.classes[in.klass].test(rep))};
+            if (consumes && dfa_priority_closure(nfa, pc + 1, false, seen, live)) {
+              hit = true;
+              break; // everything below the accepting thread is cut
+            }
+          }
+          if (!hit && dfa_accept_of(nfa, all) >= 0) {
+            std::string witness(1, static_cast<char>(rep));
+            for (std::size_t at = s; at != 0; at = parent[at].first) {
+              witness.insert(witness.begin(), static_cast<char>(parent[at].second));
+            }
+            return {.outcome = 1, .witness = std::move(witness)};
+          }
+          const bool  best {states[s].best || hit};
+          product_key key  {live, best, all};
+          if (index.contains(key)) {
+            continue;
+          }
+          if (states.size() >= budget) {
+            return {.outcome = 2, .witness = {}};
+          }
+          index.emplace(std::move(key), states.size());
+          states.push_back({.live = std::move(live), .best = best, .all = std::move(all)});
+          parent.emplace_back(s, rep);
+        }
+      }
+      return {.outcome = 0, .witness = {}};
+    }
   } // namespace detail
 
   /*!
@@ -707,8 +880,7 @@ namespace real {
      * \brief Builds the DFA from compiled programs (the embedder path).
      * \param[in] programs The patterns' programs, in priority order (see \ref regex::raw_program).
      * \param[in] mode     Munch (default) or which-matched unanchored multi-accept.
-     * \throws real::dfa_error if any program holds a non-head zero-width assertion, a
-     *         lookaround, a code-point class, or a possessive/atomic construct.
+     * \throws real::dfa_error for a pattern that is not DFA-able (see \ref dfa_error).
      */
     explicit dfa(std::span<const detail::program_view> programs,
                  dfa_mode                              mode = dfa_mode::munch)
@@ -719,8 +891,7 @@ namespace real {
      * \brief Builds the DFA from regexes (a convenience over \ref regex::raw_program).
      * \param[in] patterns The patterns, in priority order; they must outlive this call.
      * \param[in] mode     Munch (default) or which-matched.
-     * \throws real::dfa_error if any pattern holds a non-head zero-width assertion, a
-     *         lookaround, a code-point class, or a possessive/atomic construct.
+     * \throws real::dfa_error for a pattern that is not DFA-able (see \ref dfa_error).
      */
     explicit dfa(std::span<const regex> patterns,
                  dfa_mode               mode = dfa_mode::munch)
@@ -941,6 +1112,87 @@ namespace real {
 
     detail::dfa_tables tables_; //!< The immutable baked tables.
   };
+
+  /*!
+   * \brief The default search budget of \ref real::dfa_faithful, in product states: the same cap a
+   *        \ref dfa's own construction runs under.
+   */
+  inline constexpr std::size_t dfa_default_state_budget {65536};
+
+  // Spelled as a literal so the published signature names no internal; bound to the construction cap here
+  // so the two cannot drift apart.
+  static_assert(dfa_default_state_budget == detail::max_dfa_states,
+                "dfa_faithful's default budget must be the cap real::dfa's construction runs under");
+
+  /*!
+   * \brief The three answers \ref real::dfa_faithful can give.
+   */
+  enum class dfa_fidelity_outcome : std::uint8_t
+  {
+    faithful  = 0, //!< `match()` equals the longest match on every input: the DFA reproduces it.
+    divergent = 1, //!< Some input separates them; \ref dfa_fidelity::witness is one.
+    undecided = 2, //!< The search hit its state budget. Treat as not faithful; never as faithful.
+  };
+
+  /*!
+   * \brief The answer of \ref real::dfa_faithful.
+   */
+  struct dfa_fidelity
+  {
+    dfa_fidelity_outcome outcome    {dfa_fidelity_outcome::faithful}; //!< The decision.
+    std::size_t          rule_index {0};                              //!< The first pattern not proven faithful (0 for one pattern).
+    std::string          witness;                                     //!< Divergent only: an input on which `match()` is shorter than
+                                                                      //!< the longest match. Bytes, not necessarily valid UTF-8.
+  };
+
+  /*!
+   * \brief Decides whether \p pattern's `match()` is always its longest match -- whether a \ref dfa
+   *        built from it reproduces `pattern.match()` on every input.
+   *
+   * The answer is EXACT for the pattern, never a sample: `faithful` holds for every input, and
+   * `divergent` comes with an input that proves it. Only the search's size is bounded; past
+   * \p state_budget the answer is `undecided`, which a caller must treat as not faithful.
+   *
+   * \param[in] pattern      The pattern to decide.
+   * \param[in] state_budget Product states the search may explore.
+   * \return The decision, with a witness when divergent.
+   * \throws real::dfa_error for a pattern that is not DFA-able (see \ref dfa_error).
+   */
+  [[nodiscard]] inline dfa_fidelity dfa_faithful(const regex& pattern,
+                                                 std::size_t  state_budget = dfa_default_state_budget)
+  {
+    detail::dfa_fidelity_raw raw {detail::dfa_decide_fidelity(pattern.raw_program(), state_budget)};
+    return {.outcome = static_cast<dfa_fidelity_outcome>(raw.outcome), .rule_index = 0,
+            .witness = std::move(raw.witness)};
+  }
+
+  /*!
+   * \brief Decides \ref real::dfa_faithful for each of \p patterns, in order, and answers for the first one not
+   *        proven faithful (its index in \ref dfa_fidelity::rule_index).
+   *
+   * `faithful` means every pattern is, which is SUFFICIENT for a \ref dfa over the set to reproduce the
+   * per-rule `match()` munch (longest wins, earliest on a tie, empty never wins): with every rule's
+   * `match()` equal to its longest match, both reach the same length and the same earliest rule. It is
+   * not NECESSARY -- a divergent rule that a higher-priority rule always outlasts changes no answer, and
+   * this still refuses the set. That refusal is correct, only cautious; an acceptance is never wrong.
+   *
+   * \param[in] patterns     The patterns, in priority order.
+   * \param[in] state_budget Product states each pattern's search may explore.
+   * \return The first non-faithful pattern's decision, or `faithful`.
+   * \throws real::dfa_error for a pattern that is not DFA-able (see \ref dfa_error).
+   */
+  [[nodiscard]] inline dfa_fidelity dfa_faithful(std::span<const regex> patterns,
+                                                 std::size_t            state_budget = dfa_default_state_budget)
+  {
+    for (std::size_t i = 0; i < patterns.size(); ++i) {
+      dfa_fidelity one {dfa_faithful(patterns[i], state_budget)};
+      if (one.outcome != dfa_fidelity_outcome::faithful) {
+        one.rule_index = i;
+        return one;
+      }
+    }
+    return {};
+  }
 } // namespace real
 
 #endif // REAL_DFA_HPP

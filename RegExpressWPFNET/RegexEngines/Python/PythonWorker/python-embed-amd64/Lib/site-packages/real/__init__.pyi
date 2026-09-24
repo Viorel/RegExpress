@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable, Iterable, Iterator
 from typing import Any, Final, final, overload
 
@@ -35,7 +36,9 @@ VERBOSE: Final[int]
 A: Final[int]
 ASCII: Final[int]
 
-class error(Exception): ...
+# The runtime class derives from re.error (re.PatternError on 3.13+), so `except re.error` catches it
+# and msg/pattern/pos/lineno/colno are re's own fields; the stub inherits them rather than restating them.
+class error(re.error): ...
 
 # CPython 3.13's name for the same class, not a subclass.
 PatternError = error

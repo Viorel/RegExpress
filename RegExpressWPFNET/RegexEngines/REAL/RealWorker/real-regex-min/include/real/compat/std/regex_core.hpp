@@ -871,9 +871,10 @@ namespace real::compat {
 
     /*!
      * \brief Whether this is a POSIX pattern routed to REAL: `search`/`match` must use leftmost-**longest**
-     *        bounds (the POSIX semantics), not the default leftmost-first. Set for any of the five POSIX
+     *        bounds (group 0 — the POSIX overall-match rule), not the default leftmost-first. Captures
+     *        stay the winning thread's, not POSIX subexpression selection. Set for any of the five POSIX
      *        grammars once \ref detail::translate_posix has translated it onto REAL; a pattern that stays
-     *        on the std backend leaves it false, since std applies POSIX semantics itself.
+     *        on the std backend leaves it false, since std applies POSIX overall-match itself.
      * \return `true` under a POSIX grammar that REAL is running.
      */
     [[nodiscard]] bool posix_longest() const noexcept

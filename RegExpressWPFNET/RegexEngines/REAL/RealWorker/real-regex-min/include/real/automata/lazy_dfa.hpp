@@ -268,8 +268,11 @@ namespace real::detail {
     /*!
      * \brief Outgoing edges: a byte range paired with its target, `-1` meaning accept. Pairwise disjoint.
      *
-     * \note **One heap block per node, and once the surrounding allocation work is done it is what
-     *       dominates a first search.** Flattening it into a pool is not a local edit: two sources share
+     * \note **One heap block per node, and it dominates a cold first search, measured end to end
+     *       (2026.09.15, benchmarks/alloc_cold_probe.cpp): the tries are 98.5 % of
+     *       build_byte_program's 3 171 allocations -- `\w`'s alone is 2 757 -- and the build is
+     *       95.6 % of a cold first search's 3 317 for `\w+\d+`.** Flattening it into a pool is not
+     *       a local edit: two sources share
      *       the count, this vector and the `bounds`/`tails` pair `builder::build` allocates at every
      *       level -- and build is RECURSIVE, so those cannot share one scratch buffer. The shape that
      *       works is a stack-disciplined arena, each level taking a slice and releasing it on return,
@@ -1491,7 +1494,9 @@ namespace real::detail {
       }
       // The work stack is a MEMBER, not a local. This runs once per pc of the source state, so a
       // local vector was one heap block per call -- and a single 8 KB first search was measured at
-      // 10 408 allocations across the two DFAs. `mutable`: pure scratch, empty in and empty out.
+      // 10 408 allocations across the two DFAs (2026.08 landscape, `\w+@\w+` when the inner-literal
+      // route confirmed through the DFA; see state_pcs_'s comment for why the route is named).
+      // `mutable`: pure scratch, empty in and empty out.
       stack_.assign(1, pc);
       while (!stack_.empty()) {
         const std::int32_t cur {stack_.back()};
@@ -1606,35 +1611,42 @@ namespace real::detail {
     bool                        eligible_    {false};                                           //!< \ref compute_eligibility's verdict, fixed at construction.
     std::uint32_t               start_state_ {0};                                               //!< Id of the closure of pc 0, re-interned by each \ref flush.
 
-    // A VECTOR OF VECTORS, one heap block per DFA state, and it is the largest allocator in a first
-    // search over a large subject. Counted rather than timed: `\w+@\w+` on an 8 KB subject makes
-    // 16 146 allocations totalling 6.09 MB, against 187 and 163 KB for the ASCII twin
-    // `[a-z]+@[a-z]+`. Disabling routes attributes it -- with the lazy DFA off the same search makes
-    // 5738 allocations / 0.96 MB, and with the inner-literal route off as well, 91 / 117 KB. So the
-    // DFA's own construction is 10 408 allocations and 5.1 MB of that, essentially all of it here:
-    // one block per interned state, plus the full copy `step` takes at each transition because
-    // interning may reallocate this vector.
+    // A VECTOR OF VECTORS, one heap block per DFA state. What a first search pays here has been
+    // measured twice, and the two measurements DISAGREE because they were taken on different route
+    // landscapes. A measured number in a comment must name the ROUTE it was taken on, not only the
+    // pattern: routes move (three moved the week this was written), and a number whose routing
+    // premise changed reads as current long after it stopped applying. Both are stated with theirs.
     //
-    // TWO HYPOTHESES ABOUT THIS WERE MEASURED AND BOTH WERE WRONG, which is why they are written down.
-    // Reserving the OUTER vector saves 3 allocations of 16 146 and costs 98 KB -- the blocks are not
-    // the store's own growth. And FLATTENING this into one pool with an offset per state, the fix the
-    // trie builder uses, changes the count by exactly ZERO: 16 146 before and after. The interned
-    // states are simply not where the allocations are.
+    // 2026.08, counted rather than timed: `\w+@\w+` on an 8 KB subject made 16 146 allocations
+    // totalling 6.09 MB, against 187 and 163 KB for the ASCII twin `[a-z]+@[a-z]+` -- WHEN THE
+    // INNER-LITERAL ROUTE CONFIRMED THROUGH THIS DFA. Attribution was by disabling routes: lazy
+    // DFA off, the same search made 5 738 / 0.96 MB; inner-literal off as well, 91 / 117 KB. The
+    // per-call locals in the transition path (`step`/`step_seeded`'s `next` and `seen`, the latter
+    // also the memset callgrind put at 5 %) plus close_into's stack were essentially all of it.
     //
-    // They are the PER-CALL locals in the transition path: `step` and `step_seeded` each build a
-    // `next` and a `seen` sized to the byte program (which is also the memset that callgrind puts at
-    // 5 %), `step_seeded` copies the source pc-set defensively, and `close_into` allocates its own
-    // work stack -- once per pc of the source state, so many times per transition. Hoisting all of
-    // those into members, with a generation stamp replacing `seen`'s per-call zeroing, is the fix.
-    // It spans both lazy_dfa and reverse_dfa, changes close_into's constness, and lands in the path
-    // every DFA transition runs through: its own train, with its own differential.
+    // 2026.09.15, same instrument, this tree: `\w+@\w+` no longer reaches the DFA at all -- the
+    // inner-literal route carries it whole (DFA knob on/off: 5 649 vs 5 647). A pattern that DOES
+    // route here today -- `\w+\d+`, no required literal -- pays 3 317 allocations on the cold
+    // first search and ZERO on every warm one, while interning only TWO states. Hoisting the
+    // miss-path scratch (`next`/`seen` into members, a generation stamp for the zeroing) was
+    // written, measured, and REVERTED on these numbers: it removed 36 of 3 315 cold allocations,
+    // ~1 %, far below what this repository's layout instruments can resolve (±3 % floor, code
+    // layout, not noise -- BENCHMARKS.md).
     //
-    // The fix is the one this file already applied to the trie builder a few hundred lines up -- one
-    // flat buffer with an offset per entry, which that comment records as having removed "164 220
-    // blocks holding 755 KB". NOT attempted here: 21 use sites plus `pc_set_cache`, which takes this
-    // structure by reference and would have to learn the new shape, all of it inside the state
-    // interning path that every DFA transition runs through. It wants its own train and its own
-    // differential, not the tail of another one.
+    // ATTRIBUTED the same day (benchmarks/alloc_cold_probe.cpp, per-construction-site counting, the
+    // parts summed against the total): build_byte_program is 3 171 of the 3 317 (95.6 %), and the
+    // UTF-8 tries are 3 125 of that (98.5 % -- `\w` alone 2 757, `\d` 368); the shared alphabet 40,
+    // the two DFA constructors 50, the remainder 56. The onepass op_table is NOT among them -- it
+    // builds only for patterns with capture groups (pike.hpp's slot_count guard), and this pattern
+    // has none. So the cold cost is the trie expansion, paid once per regex object; the miss path
+    // is paid per transition. No bench row and no scaling test exercises the cold path -- the
+    // consumer verdict lives in the probe's header.
+    //
+    // STILL TRUE, measured on the 16 146 landscape and worth keeping against the day the
+    // scaffolding is fixed and the miss path matters again: reserving the OUTER vector saved 3
+    // allocations of 16 146 and cost 98 KB, and FLATTENING this into one pool with an offset per
+    // state -- the fix the trie builder uses -- changed the count by exactly ZERO. Whether they
+    // still hold on today's scaffolding-dominated cost is unknown until that attribution exists.
     mutable std::vector<std::int32_t>                                          stack_;           //!< close_into's work stack, hoisted: it ran once per pc of the source state.
     std::vector<std::vector<std::int32_t>>                                     state_pcs_;       //!< state id -> ordered pc-set.
     std::vector<std::uint32_t>                                                 trans_;           //!< flat [state*stride + class] -> next, unseeded (post-match); stride = alpha_.count.
