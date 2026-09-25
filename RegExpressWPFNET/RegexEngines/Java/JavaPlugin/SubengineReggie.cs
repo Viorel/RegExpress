@@ -28,6 +28,7 @@ partial class SubengineReggie( Options options ) : RegexSubengine
 
         return new SyntaxOptions
         {
+            Literal = options.LITERAL,
             XLevel = XLevelEnum.none,
             FeatureMatrix = fm,
         };
@@ -73,11 +74,18 @@ partial class SubengineReggie( Options options ) : RegexSubengine
 
         var obj = new
         {
-            command = "get-matches",
             pattern = pattern,
             text = text,
             options = new
             {
+                options.CASE_INSENSITIVE,
+                options.MULTILINE,
+                options.DOTALL,
+                options.LITERAL,
+                options.UNICODE_CHARACTER_CLASS,
+
+                options.CAPTURE_NAMED_ONLY,
+                options.ALLOW_JDK_FALLBACK,
 #if DEBUG
                 debug = true,
 #endif
@@ -249,11 +257,11 @@ partial class SubengineReggie( Options options ) : RegexSubengine
             Esc_r = true,
             Esc_t = true,
             Esc_v = false,
-            Esc_Octal = FeatureMatrix.OctalEnum.Octal_2_3,
+            Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
             Esc_Octal0_1_3 = false,
             Esc_oBrace = false,
             Esc_x2 = true,
-            Esc_xBrace = false,
+            Esc_xBrace = true,
             Esc_u4 = false,
             Esc_U8 = false,
             Esc_uBrace = false,
@@ -265,7 +273,7 @@ partial class SubengineReggie( Options options ) : RegexSubengine
             GenericEscape = true,
 
             InsideSets_Esc_a = false,
-            InsideSets_Esc_b = false,
+            InsideSets_Esc_b = true,
             InsideSets_Esc_e = false,
             InsideSets_Esc_f = true,
             InsideSets_Esc_n = true,
@@ -276,7 +284,7 @@ partial class SubengineReggie( Options options ) : RegexSubengine
             InsideSets_Esc_Octal0_1_3 = false,
             InsideSets_Esc_oBrace = false,
             InsideSets_Esc_x2 = true,
-            InsideSets_Esc_xBrace = false,
+            InsideSets_Esc_xBrace = true,
             InsideSets_Esc_u4 = false,
             InsideSets_Esc_U8 = false,
             InsideSets_Esc_uBrace = false,
@@ -304,7 +312,7 @@ partial class SubengineReggie( Options options ) : RegexSubengine
             Class_wW = true,
             Class_X = false,
             Class_pP = false,
-            Class_pPBrace = false,
+            Class_pPBrace = true,
 
             InsideSets_Class_dD = true,
             InsideSets_Class_hHhexa = false,
@@ -318,7 +326,7 @@ partial class SubengineReggie( Options options ) : RegexSubengine
             InsideSets_Class_wW = true,
             InsideSets_Class_X = false,
             InsideSets_Class_pP = false,
-            InsideSets_Class_pPBrace = false,
+            InsideSets_Class_pPBrace = true,
             InsideSets_Class_Name = false,
             InsideSets_Equivalence = false,
             InsideSets_Collating = false,
@@ -372,7 +380,7 @@ partial class SubengineReggie( Options options ) : RegexSubengine
             AbsentOperator = false,
             AllowSpacesInGroups = false,
 
-            Backref_Num = FeatureMatrix.BackrefEnum.OneDigit,
+            Backref_Num = FeatureMatrix.BackrefEnum.Any,
             Backref_kApos = true,
             Backref_kLtGt = true,
             Backref_kBrace = false,
@@ -400,8 +408,8 @@ partial class SubengineReggie( Options options ) : RegexSubengine
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
             Quantifier_LowAbbrev = false,
-            Quantifier_Lazy = false,
-            Quantifier_Possessive = false,
+            Quantifier_Lazy = true,
+            Quantifier_Possessive = true,
 
             Conditional_BackrefByNumber = true,
             Conditional_BackrefByName = false,
@@ -429,7 +437,7 @@ partial class SubengineReggie( Options options ) : RegexSubengine
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = false,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
             Σσς = false,
             ßSS = false,
         };

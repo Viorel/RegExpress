@@ -77,18 +77,19 @@ namespace JavaPlugin
                 bool is_reggie = package == PackageEnum.reggie;
                 bool is_joni = package == PackageEnum.joni;
 
-                pnlCommon.Display( is_regex || is_re2j || is_safere );
+                pnlCommon.Display( is_regex || is_re2j || is_safere || is_reggie );
 
                 CANON_EQ.Display( is_regex );
                 COMMENTS.Display( is_regex || is_safere );
-                LITERAL.Display( is_regex || is_safere );
+                LITERAL.Display( is_regex || is_safere || is_reggie );
                 UNICODE_CASE.Display( is_regex || is_safere );
-                UNICODE_CHARACTER_CLASS.Display( is_regex || is_safere );
+                UNICODE_CHARACTER_CLASS.Display( is_regex || is_safere || is_reggie );
                 UNIX_LINES.Display( is_regex || is_safere );
                 DISABLE_UNICODE_GROUPS.Display( is_re2j );
                 LONGEST_MATCH.Display( is_re2j );
 
-                panelRegion.Display( is_regex || is_safere );
+                pnlRegion.Display( is_regex || is_safere );
+                pnlReggie.Display( is_reggie );
 
                 pnlJoni.Display( is_joni );
             }

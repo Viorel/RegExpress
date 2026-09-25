@@ -61,7 +61,7 @@ The following engines are included:
   * _java.util.regex_,
   * [_RE2/J_](https://github.com/google/re2j) 1.8,
   * [_SafeRE_](https://github.com/eaftan/safere) 0.11.0,
-  * [_Reggie_](https://github.com/DataDog/java-reggie) 0.3.0,
+  * [_Reggie_](https://github.com/DataDog/java-reggie) 0.4.0,
   * [_Joni_](https://github.com/jruby/joni) 2.2.7.
 * [**Python**](https://www.python.org/) 3.14.6:
   * _re_,

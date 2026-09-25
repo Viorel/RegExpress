@@ -52,6 +52,11 @@ class Options
     public bool WORD_BOUND_ALL_RANGE { get; set; }
     public bool CR_7_BIT { get; set; }
 
+    // Reggie
+
+    public bool CAPTURE_NAMED_ONLY { get; set; }
+    public bool ALLOW_JDK_FALLBACK { get; set; }
+
 
     public Options Clone( )
     {

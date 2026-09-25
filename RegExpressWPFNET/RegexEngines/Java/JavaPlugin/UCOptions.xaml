@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:JavaPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="532.345" d:DesignWidth="758.661" 
+             d:DesignHeight="656.584" d:DesignWidth="758.661" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -48,6 +48,11 @@
                 <ui:CheckboxWithNote x:Name="DISABLE_UNICODE_GROUPS" Prop="DISABLE_UNICODE_GROUPS" Note="Unicode groups (e.g. \p{Greek}) will be syntax errors"/>
                 <ui:CheckboxWithNote x:Name="LONGEST_MATCH" Prop="LONGEST_MATCH" Note="matches longest possible string"/>
             </StackPanel>
+            
+            <StackPanel x:Name="pnlReggie"  Orientation="Vertical">
+                <ui:CheckboxWithNote Prop="CAPTURE_NAMED_ONLY" Note="Track only named and semantically-required capturing groups"/>
+                <ui:CheckboxWithNote Prop="ALLOW_JDK_FALLBACK" Note="delegates unsupported patterns to `java.util.regex`"/>
+            </StackPanel>
 
             <StackPanel x:Name="pnlJoni" Orientation="Vertical">
                 <ui:CheckboxWithNote Prop="CASE_INSENSITIVE"        Text="IGNORECASE" Note=""/>
@@ -72,7 +77,7 @@
                 <ui:CheckboxWithNote Prop="CR_7_BIT"                Text="CR_7_BIT" Note=""/>
             </StackPanel>
 
-            <StackPanel x:Name="panelRegion" Orientation="Vertical" VerticalAlignment="Top">
+            <StackPanel x:Name="pnlRegion" Orientation="Vertical" VerticalAlignment="Top">
 
                 <Label Margin="0 4 0 4" Padding="0">
                     <Italic>Region</Italic>

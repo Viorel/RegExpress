@@ -757,7 +757,7 @@ partial class FeatureMatrixDetails
                 .Test( @"(?i)ß", "s S", null),
             */
 
-            new FeatureMatrixDetails( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", (e, fm) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams)
+                new FeatureMatrixDetails( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", (e, fm) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams)
                     .Test( @"(test){i}", "teXst", null, "teXst" )
                     .Test( @"(test){+1}", "teXst", null, "teXst" )
                     .Test( @"\(test\)\{+1\}", "teXst", null, "teXst" )
