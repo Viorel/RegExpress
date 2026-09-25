@@ -4,15 +4,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.jcodings.specific.UTF16BEEncoding;
-import org.jcodings.specific.UTF16LEEncoding;
-import org.jcodings.specific.UTF32LEEncoding;
 import org.jcodings.specific.UTF8Encoding;
 
 class JoniWorker
 {
     public static void main( String[] args) 
     {
+        boolean is_debug = false;
+
         try 
         {
             byte[] input_bytes = System.in.readAllBytes();
@@ -45,6 +44,8 @@ class JoniWorker
             if( GetBoolean( input_options, "POSIX_BRACKET_ALL_RANGE")) options |= org.joni.Option.POSIX_BRACKET_ALL_RANGE;
             if( GetBoolean( input_options, "WORD_BOUND_ALL_RANGE")) options |= org.joni.Option.WORD_BOUND_ALL_RANGE;
             if( GetBoolean( input_options, "CR_7_BIT")) options |= org.joni.Option.CR_7_BIT;
+
+            is_debug =  GetBoolean( input_options, "debug");
 
             byte[] pattern_bytes = input_pattern.getBytes( StandardCharsets.UTF_8);
             byte[] text_bytes = input_text.getBytes( StandardCharsets.UTF_8);
@@ -140,8 +141,14 @@ class JoniWorker
         } 
         catch( Exception e) 
         {
-            //e.printStackTrace();
-            ErrLn( e.getClass().getName() + ": " +  e.getMessage());
+            if( is_debug)
+            {
+                e.printStackTrace();
+            }
+            else
+            {
+                ErrLn( e.toString());
+            }
         }
     }
 

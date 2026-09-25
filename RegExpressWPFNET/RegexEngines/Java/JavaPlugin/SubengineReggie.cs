@@ -76,6 +76,12 @@ partial class SubengineReggie( Options options ) : RegexSubengine
             command = "get-matches",
             pattern = pattern,
             text = text,
+            options = new
+            {
+#if DEBUG
+                debug = true,
+#endif
+            }
         };
 
         ph.StreamWriter = sw =>

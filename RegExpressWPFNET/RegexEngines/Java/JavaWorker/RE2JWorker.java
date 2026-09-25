@@ -3,18 +3,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.TreeSet;
-
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-
-import com.google.re2j.Pattern;
-import com.google.re2j.Matcher;
 
 
 class RE2JWorker
 {
     public static void main( String[] args) 
     {
+        boolean is_debug = false;
+
         try 
         {
             byte[] input_bytes = System.in.readAllBytes();
@@ -34,16 +32,18 @@ class RE2JWorker
                 JSONObject input_options = (JSONObject)input_json.get("options");
 
                 int options = 0;
-                if( GetBoolean( input_options, "CASE_INSENSITIVE")) options |= Pattern.CASE_INSENSITIVE;
-                if( GetBoolean( input_options, "DOTALL")) options |= Pattern.DOTALL;
-                if( GetBoolean( input_options, "MULTILINE")) options |= Pattern.MULTILINE;
+                if( GetBoolean( input_options, "CASE_INSENSITIVE")) options |= com.google.re2j.Pattern.CASE_INSENSITIVE;
+                if( GetBoolean( input_options, "DOTALL")) options |= com.google.re2j.Pattern.DOTALL;
+                if( GetBoolean( input_options, "MULTILINE")) options |= com.google.re2j.Pattern.MULTILINE;
 
                 // re2j specific
-                if( GetBoolean( input_options, "DISABLE_UNICODE_GROUPS")) options |= Pattern.DISABLE_UNICODE_GROUPS;
-                if( GetBoolean( input_options, "LONGEST_MATCH")) options |= Pattern.LONGEST_MATCH;
+                if( GetBoolean( input_options, "DISABLE_UNICODE_GROUPS")) options |= com.google.re2j.Pattern.DISABLE_UNICODE_GROUPS;
+                if( GetBoolean( input_options, "LONGEST_MATCH")) options |= com.google.re2j.Pattern.LONGEST_MATCH;
                 
-                Pattern pattern = Pattern.compile( input_pattern, options);
-                Matcher matcher = pattern.matcher( input_text);
+                is_debug =  GetBoolean( input_options, "debug");
+
+                com.google.re2j.Pattern pattern = com.google.re2j.Pattern.compile( input_pattern, options);
+                com.google.re2j.Matcher matcher = pattern.matcher( input_text);
 
                 Set<String> possible_names = new TreeSet<String>();
                 {
@@ -126,8 +126,14 @@ class RE2JWorker
         } 
         catch( Exception e) 
         {
-            //e.printStackTrace();
-            ErrLn( e.getClass().getName() + ": " +  e.getMessage());
+            if( is_debug)
+            {
+                e.printStackTrace();
+            }
+            else
+            {
+                ErrLn( e.toString());
+            }
         }
     }
 

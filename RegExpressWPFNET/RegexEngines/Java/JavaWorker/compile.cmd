@@ -1,5 +1,5 @@
 @rem TODO: adjust the JDK_ROOT variable; See "Readme".
-@set JDK_ROOT=T:\Limbaje\jdk-26.0.2.1
+@set JDK_ROOT="T:\Limbaje\jdk-27"
 "%JDK_ROOT%\bin\javac" -cp .;json-simple-1.1.1.jar JavaWorker.java
 "%JDK_ROOT%\bin\javac" -cp .;re2j-1.8.jar;json-simple-1.1.1.jar RE2JWorker.java
 "%JDK_ROOT%\bin\javac" -cp .;safere-0.11.0.jar;json-simple-1.1.1.jar SafeREWorker.java

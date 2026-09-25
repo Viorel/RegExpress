@@ -82,6 +82,9 @@ partial class SubengineRE2J( Options options ) : RegexSubengine
                 options.MULTILINE,
                 options.DISABLE_UNICODE_GROUPS,
                 options.LONGEST_MATCH,
+#if DEBUG
+                debug = true,
+#endif
             },
         };
 

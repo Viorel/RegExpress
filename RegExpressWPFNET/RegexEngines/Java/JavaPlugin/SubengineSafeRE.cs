@@ -99,6 +99,9 @@ partial class SubengineSafeRE( Options options ) : RegexSubengine
                 options.useTransparentBounds,
                 region_start,
                 region_end,
+#if DEBUG
+                debug = true,
+#endif
             },
         };
 

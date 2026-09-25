@@ -4,16 +4,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.TreeSet;
-import org.safere.Pattern;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.safere.Matcher;
 
 
 class SafeREWorker
 {
     public static void main( String[] args) 
     {
+        boolean is_debug = false;
+
         try 
         {
             byte[] input_bytes = System.in.readAllBytes();
@@ -33,14 +33,16 @@ class SafeREWorker
                 JSONObject input_options = (JSONObject)input_json.get("options");
 
                 int options = 0;
-                if( GetBoolean( input_options, "CASE_INSENSITIVE")) options |= Pattern.CASE_INSENSITIVE;
-                if( GetBoolean( input_options, "COMMENTS")) options |= Pattern.COMMENTS;
-                if( GetBoolean( input_options, "DOTALL")) options |= Pattern.DOTALL;
-                if( GetBoolean( input_options, "LITERAL")) options |= Pattern.LITERAL;
-                if( GetBoolean( input_options, "MULTILINE")) options |= Pattern.MULTILINE;
-                if( GetBoolean( input_options, "UNICODE_CASE")) options |= Pattern.UNICODE_CASE;
-                if( GetBoolean( input_options, "UNICODE_CHARACTER_CLASS")) options |= Pattern.UNICODE_CHARACTER_CLASS;
-                if( GetBoolean( input_options, "UNIX_LINES")) options |= Pattern.UNIX_LINES;
+                if( GetBoolean( input_options, "CASE_INSENSITIVE")) options |= org.safere.Pattern.CASE_INSENSITIVE;
+                if( GetBoolean( input_options, "COMMENTS")) options |= org.safere.Pattern.COMMENTS;
+                if( GetBoolean( input_options, "DOTALL")) options |= org.safere.Pattern.DOTALL;
+                if( GetBoolean( input_options, "LITERAL")) options |= org.safere.Pattern.LITERAL;
+                if( GetBoolean( input_options, "MULTILINE")) options |= org.safere.Pattern.MULTILINE;
+                if( GetBoolean( input_options, "UNICODE_CASE")) options |= org.safere.Pattern.UNICODE_CASE;
+                if( GetBoolean( input_options, "UNICODE_CHARACTER_CLASS")) options |= org.safere.Pattern.UNICODE_CHARACTER_CLASS;
+                if( GetBoolean( input_options, "UNIX_LINES")) options |= org.safere.Pattern.UNIX_LINES;
+
+                is_debug =  GetBoolean( input_options, "debug");
 
                 Integer region_start = GetInteger( input_options, "region_start");
                 Integer region_end = GetInteger( input_options, "region_end");
@@ -53,8 +55,8 @@ class SafeREWorker
                 Boolean use_anchoring_bounds = GetBoolean(input_options, "useAnchoringBounds");
                 Boolean use_transparent_bounds  = GetBoolean(input_options, "useTransparentBounds");
                 
-                Pattern pattern = Pattern.compile( input_pattern, options);
-                Matcher matcher = pattern.matcher( input_text);
+                org.safere.Pattern pattern = org.safere.Pattern.compile( input_pattern, options);
+                org.safere.Matcher matcher = pattern.matcher( input_text);
 
                 if( region_start != null && region_end != null )
                 {
@@ -66,7 +68,7 @@ class SafeREWorker
 
                 Set<String> possible_names = new TreeSet<String>();
                 {
-                    Matcher m = Pattern.compile( "\\(\\s*\\?<\\s*([a-z][a-z0-9\\s]*)>", Pattern.CASE_INSENSITIVE).matcher( input_pattern);
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile( "\\(\\s*\\?<\\s*([a-z][a-z0-9\\s]*)>", org.safere.Pattern.CASE_INSENSITIVE).matcher( input_pattern);
             
                     while( m.find()) 
                     {
@@ -145,8 +147,14 @@ class SafeREWorker
         } 
         catch( Exception e) 
         {
-            //e.printStackTrace();
-            ErrLn( e.getClass().getName() + ": " +  e.getMessage());
+            if( is_debug)
+            {
+                e.printStackTrace();
+            }
+            else
+            {
+                ErrLn( e.toString());
+            }
         }
     }
 

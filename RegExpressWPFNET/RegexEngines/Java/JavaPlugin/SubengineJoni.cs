@@ -99,6 +99,9 @@ partial class SubengineJoni( Options options ) : RegexSubengine
                 POSIX_BRACKET_ALL_RANGE = options.POSIX_BRACKET_ALL_RANGE,
                 WORD_BOUND_ALL_RANGE = options.WORD_BOUND_ALL_RANGE,
                 CR_7_BIT = options.CR_7_BIT,
+#if DEBUG
+                debug = true,
+#endif
             }
         };
 

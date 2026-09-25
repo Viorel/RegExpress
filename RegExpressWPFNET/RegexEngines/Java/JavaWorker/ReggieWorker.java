@@ -4,20 +4,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.regex.Pattern;
-
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-import java.util.regex.Matcher;
-import com.datadoghq.reggie.Reggie;
-import com.datadoghq.reggie.runtime.MatchResult;
-import com.datadoghq.reggie.runtime.ReggieMatcher;
 
 class ReggieWorker
 {
     public static void main( String[] args) 
     {
+        boolean is_debug = false;
+
         try 
         {
             byte[] input_bytes = System.in.readAllBytes();
@@ -34,13 +30,16 @@ class ReggieWorker
 
                 String input_pattern = (String)input_json.get( "pattern");
                 String input_text = (String)input_json.get( "text");
+                JSONObject input_options = (JSONObject)input_json.get( "options");
                 
-                ReggieMatcher matcher = Reggie.compile( input_pattern);
-                List<MatchResult> matches = matcher.findAll(input_text);
+                is_debug =  GetBoolean( input_options, "debug");
+
+                com.datadoghq.reggie.runtime.ReggieMatcher matcher = com.datadoghq.reggie.Reggie.compile( input_pattern);
+                List<com.datadoghq.reggie.runtime.MatchResult> matches = matcher.findAll(input_text);
 
                 Set<String> possible_names = new TreeSet<String>();
                 {
-                    Matcher m = Pattern.compile( "\\(\\s*\\?<\\s*([a-z][a-z0-9\\s]*)>", Pattern.CASE_INSENSITIVE).matcher( input_pattern);
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile( "\\(\\s*\\?<\\s*([a-z][a-z0-9\\s]*)>", java.util.regex.Pattern.CASE_INSENSITIVE).matcher( input_pattern);
             
                     while( m.find()) 
                     {
@@ -54,7 +53,7 @@ class ReggieWorker
 
                 for(int j = 0; j < matches.size(); ++j)
                 {
-                    MatchResult match = matches.get(j);
+                    com.datadoghq.reggie.runtime.MatchResult match = matches.get(j);
 
                     HashMap<String, Object> one_match = new HashMap<>();
 
@@ -122,18 +121,27 @@ class ReggieWorker
         } 
         catch( Exception e) 
         {
-            //e.printStackTrace();
-            ErrLn( e.getClass().getName() + ": " +  e.getMessage());
+            if( is_debug)
+            {
+                e.printStackTrace();
+            }
+            else
+            {
+                ErrLn( e.toString());
+            }
         }
     }
 
+    static Boolean GetBoolean( JSONObject j, String k)
+    {
+        return j != null && j.containsKey( k) && (Boolean)j.get(k);
+    }
 
     static void OutLn( String text)
     {
         System.out.writeBytes( text.getBytes( StandardCharsets.UTF_8));
         System.out.writeBytes( "\r\n".getBytes( StandardCharsets.UTF_8));
     }
-
 
     static void ErrLn( String text)
     {
