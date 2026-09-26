@@ -47,14 +47,14 @@ The following engines are included:
   * [_regex-lite_](https://crates.io/crates/regex-lite) 0.1.9,
   * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.19.2, 
   * [_regress_](https://crates.io/crates/regress) 0.12.0,
-  * [_resharp_](https://crates.io/crates/resharp) 0.7.3,
+  * [_resharp_](https://crates.io/crates/resharp) 0.7.5,
   * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
   * [_real-regex_](https://crates.io/crates/real-regex) 2026.9.7,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0,
   * [_regexr_](https://crates.io/crates/regexr) 0.5.0,
   * [_rexile_](https://crates.io/crates/rexile) 0.7.4,
   * [_iregexp-rs_](https://github.com/strefethen/iregexp-rs) 0.1.0,
-  * [_ferroni_](https://crates.io/crates/ferroni) 1.5.1,
+  * [_ferroni_](https://crates.io/crates/ferroni) 1.5.2,
   * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.2,
   * [_derivre_](https://crates.io/crates/derivre) 0.3.13.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2.1:

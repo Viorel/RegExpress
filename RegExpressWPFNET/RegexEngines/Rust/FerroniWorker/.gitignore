@@ -4,5 +4,4 @@ target/*.*
 target/release/*
 !target/release/*.exe
 target/debug/*
-!target/debug/*.exe
 target/flycheck0/*
