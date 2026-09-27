@@ -31,6 +31,7 @@
 #include "real/unicode/unicode_props.hpp" // word_ranges — exact \w identity for the DROP rule
 
 #include <array>
+#include <atomic>
 
 namespace real::detail {
 
@@ -57,6 +58,49 @@ namespace real::detail {
     prefilter_work_units() += static_cast<std::uint64_t>(n);
 #else
     (void) n;
+#endif
+  }
+
+  /*!
+   * \brief Pike VM runs over a window the DFAs found, counted for the tests that pin which windows need no VM.
+   *        Relaxed atomic: threads searching at once bill it concurrently.
+   * \return A reference to the process-wide counter.
+   */
+  inline std::atomic<std::uint64_t>& vm_window_runs() noexcept
+  {
+    static std::atomic<std::uint64_t> runs {0};
+    return runs;
+  }
+
+  /*!
+   * \brief Bill one Pike VM run over a DFA window to \ref vm_window_runs. A no-op unless the test binary
+   *        defines \c REAL_TEST_INSTRUMENT.
+   */
+  inline void note_vm_window() noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    vm_window_runs().fetch_add(1, std::memory_order_relaxed);
+#endif
+  }
+
+  /*!
+   * \brief Batches the lazy-DFA span filler produced, counted for the tests that pin which walks it serves.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& dfa_span_batches() noexcept
+  {
+    static std::atomic<std::uint64_t> batches {0};
+    return batches;
+  }
+
+  /*!
+   * \brief Bill one lazy-DFA span batch to \ref dfa_span_batches. A no-op unless the test binary defines
+   *        \c REAL_TEST_INSTRUMENT.
+   */
+  inline void note_dfa_span_batch() noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    dfa_span_batches().fetch_add(1, std::memory_order_relaxed);
 #endif
   }
 
@@ -2212,6 +2256,50 @@ namespace real::detail {
     return hints;
   }
 
+#if defined(__ARM_NEON)
+  /*!
+   * \brief The single-byte scan behind \ref find_byte on NEON: 64 bytes per round, rejected by one test on
+   *        the OR of four compares (\ref any_byte64).
+   *
+   * The platform `memchr` covers 64 bytes per round too, but measured 1250 ns over 64 KB with no hit
+   * (arm64, 2026-09-26) against 625 ns for this loop: a round of four independent compares and one
+   * branch. A round with a hit takes its first set lane in block order, so the first hit returned is the
+   * leftmost. x86-64 keeps the platform `memchr`, whose vectors are wider than this 128-bit floor.
+   * \param[in] text The subject text.
+   * \param[in] pos  Index to start scanning from (below `text.size()`).
+   * \param[in] byte The byte to find.
+   * \return The index of the first occurrence at or after \p pos, else \ref real::npos.
+   */
+  inline std::size_t simd_byte_scan(std::string_view text,
+                                    std::size_t      pos,
+                                    std::uint8_t     byte)
+  {
+    const char* const     base   {text.data()};
+    std::size_t           p      {pos};
+    constexpr std::size_t unroll {4};
+    while (p + (unroll * 16) <= text.size()) {
+      std::array<std::uint8_t, unroll * 16> blk {};
+      std::memcpy(blk.data(), base + p, unroll * 16); // MISRA-clean byte loads (no type-pun)
+      if (any_byte64(blk.data(), byte)) {
+        for (std::size_t u = 0; u < unroll; ++u) {
+          const mask_t mask {load_byte_mask(blk.data() + (u * 16), byte)};
+          if (!empty(mask)) {
+            return p + (u * 16) + first_lane(mask);
+          }
+        }
+      }
+      p += unroll * 16;
+    }
+    for (; p < text.size(); ++p) { // tail: fewer than 64 bytes left
+      if (static_cast<std::uint8_t>(base[p]) == byte) {
+        return p;
+      }
+    }
+    return npos;
+  }
+
+#endif
+
   /*!
    * \brief Index of \p byte in `text[pos..)`, or \ref real::npos.
    *
@@ -2234,10 +2322,14 @@ namespace real::detail {
       // Bill remaining haystack once per call — O(n) path bills ~once; per-pos restart → O(n²) total.
       prefilter_note_scan(text.size() - pos);
 #endif
+#if defined(__ARM_NEON)
+      return simd_byte_scan(text, pos, static_cast<std::uint8_t>(byte));
+#else
       const void* hit {std::memchr(text.data() + pos, byte, text.size() - pos)};
       return hit == nullptr
              ? npos
              : static_cast<std::size_t>(static_cast<const char*>(hit) - text.data());
+#endif
     }
     for (std::size_t i = pos; i < text.size(); ++i) {
       if (text[i] == byte) {

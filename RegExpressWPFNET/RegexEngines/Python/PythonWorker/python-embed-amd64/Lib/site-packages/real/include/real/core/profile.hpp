@@ -42,6 +42,7 @@ namespace real::detail::prof {
     aho_corasick,      //!< multi-literal automaton, past the branch-count threshold.
     onepass_full,
     onepass_window,
+    run_shape_window,  //!< Groups read by one greedy walk over a window the DFAs found (`pike_vm::match_run_shape`).
     lazy_dfa_anchored, //!< first-byte candidate + anchored_end
     lazy_dfa_fwd_rev,  //!< unanchored forward + reverse
     general_full,
@@ -63,12 +64,13 @@ namespace real::detail::prof {
     cascade,
     rare_byte,
     memmem,
-    wb_b1_drop,     //!< compile-time drop observed at first dispatch
-    wb_b2_wrap,     //!< runtime wrap: class/cp loop with wb_lead|wb_trail
+    wb_b1_drop,        //!< compile-time drop observed at first dispatch
+    wb_b2_wrap,        //!< runtime wrap: class/cp loop with wb_lead|wb_trail
     il_abandoned,
-    pool_incref,    //!< COW capture-block refcount taken (one per `split` in the epsilon walk)
-    pool_decref,    //!< COW capture-block refcount dropped (one per thread death)
-    pool_cow_write, //!< COW capture-block written (one per `save`, group 0 included)
+    pool_incref,       //!< COW capture-block refcount taken (one per `split` in the epsilon walk)
+    pool_decref,       //!< COW capture-block refcount dropped (one per thread death)
+    pool_cow_write,    //!< COW capture-block written (one per `save`, group 0 included)
+    bounded_backtrack, //!< the general loop answered by the bounded backtracker (small subject)
     count_
   };
 
@@ -173,6 +175,7 @@ namespace real::detail::prof {
       case route::aho_corasick: return "aho_corasick";
       case route::onepass_full: return "onepass_full";
       case route::onepass_window: return "onepass_window";
+      case route::run_shape_window: return "run_shape_window";
       case route::lazy_dfa_anchored: return "lazy_dfa_anchored";
       case route::lazy_dfa_fwd_rev: return "lazy_dfa_fwd_rev";
       case route::general_full: return "general_full";
@@ -200,6 +203,7 @@ namespace real::detail::prof {
       case event::pool_incref: return "pool_incref";
       case event::pool_decref: return "pool_decref";
       case event::pool_cow_write: return "pool_cow_write";
+      case event::bounded_backtrack: return "bounded_backtrack";
       case event::count_: return "?";
     }
     return "?";

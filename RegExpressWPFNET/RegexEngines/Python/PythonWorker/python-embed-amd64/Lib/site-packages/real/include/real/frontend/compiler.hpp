@@ -410,6 +410,10 @@ namespace real::detail {
       if (prog.slot_count != 2U) {
         prog.hints.capture_free_walk = false;
       }
+      // A lookaround is evaluated at whatever position a thread reaches it, and the backtracker reaches
+      // positions out of order -- which a lookbehind walk pays for by restarting. The VM keeps those.
+      prog.hints.bounded_backtrack = static_cast<std::uint8_t>(prog.lookarounds.empty()
+                                                               && prog.slot_count <= bounded_backtrack_max_slots);
       // The required inner literal + its prefix boundary (a single AST walk). Recorded in hints for the
       // inner-literal search route (pike_vm::run dispatches to run_inner_literal); kept off the program
       // code, so byte-identity is untouched.
@@ -1650,12 +1654,12 @@ namespace real::detail {
         throw regex_error("nested lookaround is not supported", 0, error_kind::unsupported);
       }
       const std::int32_t lmax {l_max_bytes(node.child)};
-      if (lmax < 0) {
+      if (lmax < 0 && node.direction == look_dir::behind) {
         // Names the rewrite, not just the constraint: `(?=.*[A-Z])` is the shape people arrive with,
         // and "use a fixed repeat count" does not tell them `.*` becomes `.{0,N}`. The ceiling is
         // max_lookaround_length BYTES of L_max, so a bound in characters can still be refused above
         // (a UTF-8 `.` is up to 4 bytes) -- hence an example well under it rather than the maximum.
-        throw regex_error("unbounded lookaround is not supported (bound the repetition, e.g. "
+        throw regex_error("unbounded lookbehind is not supported (bound the repetition, e.g. "
                           ".* -> .{0,32}; the sub-pattern must match at most 255 bytes)",
                           0, error_kind::unsupported);
       }
@@ -2104,7 +2108,7 @@ namespace real::detail {
      * \param[in]     capture_free Whether captures are suppressed here (inside a lookaround).
      * \throws real::regex_error when \p body is not Tier 1 eligible, or \p capture_free is
      *         true (a possessive/atomic construct inside a lookaround) — the lookaround
-     *         sub-VM's own dispatch (pike.hpp's `lookahead_matches`/`sub_fullmatch_window`/
+     *         sub-VM's own dispatch (pike.hpp's `lookahead_matches`/`lookbehind_matches`/
      *         `sub_add_thread`) hard-assumes only `byte`/`klass`/`klass_cp` ever appear in a
      *         sub-region; `klass_cp_loop_possessive` there would silently read the WRONG class
      *         table (`classes` instead of `cp_classes`, since `in.arg16` means something

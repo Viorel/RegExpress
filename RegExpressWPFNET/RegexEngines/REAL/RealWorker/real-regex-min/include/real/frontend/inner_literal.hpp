@@ -351,6 +351,63 @@ namespace real::detail {
       }
       return 0;
     }
+
+    /*!
+     * \brief Whether node \p k is a repetition, at least once, of a class every member of which is a word
+     *        character (groups around it looked through).
+     *
+     * What makes a peeled lead `\b` sound before such a prefix: the reverse scan finds the leftmost start
+     * of the run, and every later start is preceded by a member of the class -- a word character -- so no
+     * later start can be a boundary. Only the leftmost can, and that is the one confirm_at checks.
+     *
+     * \param[in] tree The parsed pattern.
+     * \param[in] k    The node.
+     * \return True for such a run.
+     */
+    [[nodiscard]] constexpr bool is_word_only_run(const ast&   tree,
+                                                  std::int32_t k)
+    {
+      const ast_node* n {&tree.nodes[static_cast<std::size_t>(k)]};
+      while (n->kind == node_kind::group) {
+        n = &tree.nodes[static_cast<std::size_t>(n->child)];
+      }
+      if (n->kind != node_kind::repeat || n->min < 1) {
+        return false;
+      }
+      const ast_node* c {&tree.nodes[static_cast<std::size_t>(n->child)]};
+      while (c->kind == node_kind::group) {
+        c = &tree.nodes[static_cast<std::size_t>(c->child)];
+      }
+      if (c->kind != node_kind::klass || c->negated) {
+        return false;
+      }
+      const class_def& cd {tree.classes[static_cast<std::size_t>(c->klass)]};
+      for (unsigned b {0}; b < 256U; ++b) {
+        const bool word {(b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'};
+        if (cd.ascii.test(static_cast<std::uint8_t>(b)) && !word) {
+          return false;
+        }
+      }
+      // word_ranges is sorted and disjoint: the range that could hold r.lo is found by bisection (this runs
+      // in constant evaluation for a static_regex, under the compiler's step budget).
+      for (const code_range& r : cd.ranges) {
+        std::size_t lo {0};
+        std::size_t hi {word_ranges_size};
+        while (lo < hi) {
+          const std::size_t mid {lo + ((hi - lo) / 2U)};
+          if (word_ranges[mid].hi < r.lo) {
+            lo = mid + 1U;
+          }
+          else {
+            hi = mid;
+          }
+        }
+        if (lo == word_ranges_size || r.lo < word_ranges[lo].lo || r.hi > word_ranges[lo].hi) {
+          return false;
+        }
+      }
+      return true;
+    }
   } // namespace inner_literal_detail
 
   /*!
@@ -408,6 +465,16 @@ namespace real::detail {
         }
       }
       inner_literal_detail::flush(st);
+      // A peeled lead boundary is checked by confirm_at at ONE start: the leftmost the reverse prefix
+      // finds. Where the prefix can start at several places, a later one may satisfy the boundary while the
+      // leftmost does not -- `\B\w+e` over "99e" wants the start inside the run -- and the match is lost.
+      // Only a lone word-only run makes the leftmost the one start that can (is_word_only_run); anything
+      // else before the literal declines the route.
+      const bool sound_lead {wb_lead == 0 || st.best_top == 0
+                             || (wb_lead == 1 && st.best_top == 1 && inner_literal_detail::is_word_only_run(tree, kids[lo]))};
+      if (!sound_lead) {
+        return inner_literal {};
+      }
       st.best.prefix_child_count = st.best_top;
       st.best.prefix_skip        = static_cast<std::int32_t>(lo);
       st.best.wb_lead            = wb_lead;

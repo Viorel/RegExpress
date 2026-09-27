@@ -432,6 +432,20 @@ namespace real {
     };
 
     /*!
+     * \brief Capture slots the bounded backtracker carries in a fixed array (16 groups and group 0).
+     */
+    inline constexpr std::size_t bounded_backtrack_max_slots {34};
+
+    /*!
+     * \brief The bounded backtracker's budget: one bit per (instruction, position), for a subject of n bytes
+     *        and a program of m instructions, (n + 1) x m of them.
+     *
+     * The bitmap sits on the stack, so the budget is also the route's stack cost: a kibibyte, beside two for
+     * the pending branches it holds before spilling to the heap.
+     */
+    inline constexpr std::size_t bounded_backtrack_bits {8192};
+
+    /*!
      * \brief Search-acceleration hints extracted from a compiled program.
      *
      * Filled by `analyze_program` (prefilter.hpp). The engine consults them to
@@ -581,10 +595,16 @@ namespace real {
       //!        failed end test owes no retry. A trailing `$` WITHOUT `^` stays on the general VM.
       //!
       //!        This byte and the one below it are the pair held where retired fields sat, so that removing
-      //!        dead code did not reflow every field after it — see this struct's layout note. One of the two
-      //!        is now spent on something real; reclaiming the other is a measurement, not a cleanup.
-      std::uint8_t fs_end_anchor            {};
-      std::uint8_t reserved_layout_hold [1] {}; //!< The remaining held byte; see \ref fs_end_anchor.
+      //!        dead code did not reflow every field after it — see this struct's layout note. Both are now
+      //!        spent: this one, and \ref bounded_backtrack below it.
+      std::uint8_t fs_end_anchor {};
+
+      //! \brief Nonzero when the general loop may answer a small subject by bounded backtracking
+      //!        (`pike_vm::run_bounded_backtrack`): no lookaround, and at most
+      //!        \ref bounded_backtrack_max_slots capture slots. The subject-size budget is checked per
+      //!        search. A HINT and not a runtime test so that blanking the hints -- what every
+      //!        differential does to reach the plain Pike VM -- also takes this route out.
+      std::uint8_t bounded_backtrack {};
 
       //! \brief Trailing lookaround on a groupless greedy `class+` body (`[a-z]+(?=[a-z])`,
       //!        `[0-9]+(?![0-9])`, …). Index into lookarounds; -1 = not this shape.

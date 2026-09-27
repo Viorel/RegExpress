@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <ranges>
 #include <bit>
 #include <cstddef>
@@ -43,6 +44,18 @@ namespace real::detail {
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& lazy_dfa_route_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
+  /*!
+   * \brief Test seam: force the general loop off the bounded backtracker onto the Pike VM, so a
+   *        differential can assert that both give the same answer on every small subject. Not for production
+   *        use -- the backtracker reproduces the VM's priority order by contract, and this proves it.
+   * \return Reference to the process-wide seam flag; set it to true to take the route out.
+   */
+  inline bool& bounded_backtrack_route_disabled()
   {
     static bool disabled {false};
     return disabled;
@@ -200,13 +213,15 @@ namespace real::detail {
    * the gate goes. That is why the constant has no test guarding its value -- there is nothing semantic
    * to assert, and this seam is what makes the two routes comparable at all.
    *
-   * One store, on a path that already writes two sticky fields beside it.
+   * One store, on a path that already writes two sticky fields beside it. Atomic because every search
+   * that abandons writes it, from whatever thread runs the search: a plain `bool` is a data race between
+   * two threads searching at once. The store is relaxed, which compiles to the plain store it replaces.
    *
    * \return Reference to the process-wide flag; clear it before a search to arm it.
    */
-  inline bool& il_density_last_abandoned()
+  inline std::atomic<bool>& il_density_last_abandoned()
   {
-    static bool abandoned {false};
+    static std::atomic<bool> abandoned {false};
     return abandoned;
   }
 
@@ -231,13 +246,15 @@ namespace real::detail {
    * SKIPPING bytes. That assertion turned the sanitize leg red while the engine was correct. Timing
    * belongs in `benchmarks/ac_regime.cpp`; a test asserts the decision.
    *
-   * One store per haystack, on the same path as the guard fields it reports on.
+   * One store per search, on the same path as the guard fields it reports on. Atomic for the reason
+   * \ref il_density_last_abandoned is: searches on different threads all write it. Relaxed, so the store
+   * costs what the plain one did.
    *
    * \return Reference to the process-wide verdict; assign \ref ac_verdict::not_consulted to arm it.
    */
-  inline ac_verdict& ac_density_last_verdict()
+  inline std::atomic<ac_verdict>& ac_density_last_verdict()
   {
-    static ac_verdict verdict {ac_verdict::not_consulted};
+    static std::atomic<ac_verdict> verdict {ac_verdict::not_consulted};
     return verdict;
   }
 
@@ -912,6 +929,23 @@ namespace real::detail {
         }
       }
     }
+    // A program that carries position assertions needs every class uniform in the two properties they
+    // read: whether a byte is a newline and whether it is an ASCII word byte. Two synthetic predicates
+    // split the alphabet on them, so a class's properties can be read off any one of its bytes.
+    if (std::ranges::any_of(code, [](const instr& in) { return in.op == opcode::assert_position; })) {
+      char_class newline;
+      newline.set(static_cast<std::uint8_t>('\n'));
+      char_class word;
+      word.set_range(static_cast<std::uint8_t>('a'), static_cast<std::uint8_t>('z'));
+      word.set_range(static_cast<std::uint8_t>('A'), static_cast<std::uint8_t>('Z'));
+      word.set_range(static_cast<std::uint8_t>('0'), static_cast<std::uint8_t>('9'));
+      word.set(static_cast<std::uint8_t>('_'));
+      char_class high;
+      high.set_range(static_cast<std::uint8_t>(0x80U), static_cast<std::uint8_t>(0xFFU));
+      class_preds.push_back(newline);
+      class_preds.push_back(word);
+      class_preds.push_back(high); // a Unicode word boundary is decided only between two ASCII bytes
+    }
     // A byte's signature -- which predicates hold it -- does not depend on the classes formed so far, so
     // it is built ONCE per byte and then grouped. Comparing each byte against every open class instead
     // re-walked all the predicates per (byte, class) pair: O(256 * classes * predicates) with a whole
@@ -1063,6 +1097,40 @@ namespace real::detail {
   };
 
   /*!
+   * \brief Whether a word assertion needs a code point's word-ness that one byte does not give: a side it
+   *        reads is a non-ASCII byte, and the ASCII side does not settle it alone.
+   *
+   * Between two ASCII bytes a Unicode word boundary is an ASCII one: the VM reads the byte itself on each
+   * side when it is below 0x80 (assert_eval.hpp). `\<` is false after an ASCII word byte or before an ASCII
+   * non-word byte whatever the other side is, and `\>` likewise, so those need no code point.
+   * \param[in] kind          The assertion.
+   * \param[in] prev_word     The byte before is an ASCII word byte.
+   * \param[in] prev_nonascii The byte before is not ASCII.
+   * \param[in] next_word     The byte after is an ASCII word byte.
+   * \param[in] next_nonascii The byte after is not ASCII.
+   * \return True when only the VM can decide it.
+   */
+  [[nodiscard]] constexpr bool undecidable_word(assert_kind kind,
+                                                bool        prev_word,
+                                                bool        prev_nonascii,
+                                                bool        next_word,
+                                                bool        next_nonascii)
+  {
+    switch (kind) {
+      case assert_kind::word_boundary:
+      case assert_kind::not_word_boundary: return prev_nonascii || next_nonascii;
+      case assert_kind::word_start:        return !prev_word && (next_nonascii || (prev_nonascii && next_word));
+      case assert_kind::word_end:          return !next_word && (prev_nonascii || (next_nonascii && prev_word));
+      case assert_kind::text_start:
+      case assert_kind::text_end:
+      case assert_kind::text_end_or_final_newline:
+      case assert_kind::line_start:
+      case assert_kind::line_end:          return false;
+    }
+    return false;
+  }
+
+  /*!
    * \brief A lazy priority-preserving forward DFA over a Pike program (the kFirstMatch forward pass).
    *
    * A DFA state is the ordered epsilon-closure of a set of program counters (the Pike thread list's PCs,
@@ -1071,8 +1139,9 @@ namespace real::detail {
    *
    * The cache is bounded: once it reaches \ref state_budget states it is flushed and rebuilt (states are
    * cheap to recompute; a bounded cache keeps memory flat). `state_budget` flushes crossed within one
-   * scan (see \ref begin_scan) trips \ref thrashing — the signal an eventual caller uses to abandon the
-   * DFA and finish that one search on the Pike VM, per-scan and linear, never re-attempting per position.
+   * scan (see \ref begin_scan) trips \ref thrashing. A DFA built to quit then ends the scan and reports a
+   * quit, and its caller finishes that one search on the Pike VM, per-scan and linear, never re-attempting
+   * per position.
    *
    * A program with an op no forward DFA can represent — a position assertion (`\b`, `^`, `$`), a
    * `klass_cp`, or a lookaround — is \ref eligible "ineligible"; this only builds the machinery, it does
@@ -1084,6 +1153,8 @@ namespace real::detail {
 
     static constexpr std::uint32_t dead_state     {0};           //!< The empty state: every transition from it stays here.
     static constexpr std::uint32_t no_transition  {0xFFFFFFFFU}; //!< A not-yet-computed cached transition.
+    static constexpr std::uint32_t quit_state     {0xFFFFFFFEU}; //!< What resolve() gives when a Unicode word boundary meets a non-ASCII byte; never interned.
+    static constexpr std::size_t   quit_pos       {npos - 1U};   //!< What forward_end() gives when its scan quit (see \ref anchored_result::quit).
     static constexpr std::uint32_t no_match_idx   {0xFFFFFFFFU}; //!< A state whose ordered set holds no accept.
     static constexpr std::size_t   state_budget   {4096};        //!< Cached states before a flush (the memory cap).
     static constexpr std::size_t   thrash_flushes {2};           //!< Flushes within one scan that trip \ref thrashing.
@@ -1108,15 +1179,38 @@ namespace real::detail {
      * \param[in] shared_alpha A precomputed alphabet the caller shares per regex, or null to compute it
      *                    here. Recomputing is O(256 x classes) and a Unicode byte-program has thousands, so
      *                    the router passes the shared one rather than paying it on every scan.
+     * \param[in] ascii_word Whether the program's word boundaries use ASCII word-ness (bytes mode, `(?a)`):
+     *                    only then does one byte decide them. False, the default, declines any word boundary.
+     * \param[in] byte_mode Whether a match may start at any byte. In text mode it may not start inside a code
+     *                    point; with assertions an empty match could otherwise be found there (the scans
+     *                    then do not seed at a continuation byte, as the VM does not).
+     * \param[in] word_quit Let a scan quit, and say so, where the DFA cannot answer well: with Unicode
+     *                    word-ness (\p ascii_word false), where a word boundary must be decided next to a
+     *                    non-ASCII byte (between two ASCII bytes a Unicode word boundary is an ASCII one);
+     *                    and once the cache thrashes (\ref thrashing), where building states costs more than
+     *                    the VM would. The caller then asks the VM.
      */
     explicit constexpr lazy_dfa(std::span<const instr>      code,
                                 std::span<const char_class> classes,
                                 std::size_t                 budget       = state_budget,
-                                const lazy_byte_alphabet*   shared_alpha = nullptr)
+                                const lazy_byte_alphabet*   shared_alpha = nullptr,
+                                bool                        ascii_word   = false,
+                                bool                        byte_mode    = true,
+                                bool                        word_quit    = false)
       : code_ {code}, classes_ {classes},
         alpha_ {shared_alpha != nullptr ? *shared_alpha : compute_lazy_alphabet(code, classes)},
-        eligible_ {compute_eligibility(code)}, budget_ {budget}
+        eligible_ {compute_eligibility(code, ascii_word || word_quit)}, byte_mode_ {byte_mode},
+        word_quit_ {word_quit && !ascii_word}, may_quit_ {word_quit},
+        look_ {std::ranges::any_of(code, [](const instr& in) { return in.op == opcode::assert_position; })},
+        plain_ {eligible_ && !look_}, budget_ {budget}
     {
+      if (look_) {
+        // The alphabet splits on newline, ASCII word bytes and non-ASCII bytes when the program carries
+        // assertions (compute_lazy_alphabet), so any byte of a class tells that class's properties.
+        for (unsigned b {0}; b < 256U; ++b) {
+          class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? ctx_nonascii : ctx_of(static_cast<std::uint8_t>(b));
+        }
+      }
       flush();                 // seeds the dead state (0) and the start state (1)
     }
 
@@ -1186,19 +1280,31 @@ namespace real::detail {
      * programs only (an ineligible one returns \ref real::npos; the caller keeps the Pike VM). No captures:
      * this reports the end; the windowed Pike pass fills the span and applies the empty-match rule.
      *
-     * \param[in] text Subject.
-     * \return The match end, or \ref real::npos when there is none (or the program is ineligible).
+     * A program with position assertions reads the text around \p start and past each position: the scan
+     * starts at \p start in the whole text rather than in a slice of it, so `^`, `\b` or `$` see what is
+     * really there (see \ref forward_end_look).
+     *
+     * \param[in] text  Subject.
+     * \param[in] start Offset the search starts at (the first seed).
+     * \return The match end, as an offset in \p text, or \ref real::npos when there is none (or the program
+     *         is ineligible).
      */
-    [[nodiscard]] std::size_t forward_end(std::string_view text)
+    [[nodiscard]] std::size_t forward_end(std::string_view text,
+                                          std::size_t      start = 0)
     {
-      if (!eligible_) {
-        return npos;
+      if (!plain_) {
+        if (!eligible_) {
+          return npos;
+        }
+        begin_scan();
+        return forward_end_look(text, start);
       }
       begin_scan();
-      std::uint32_t state    {start_state_}; // the seed at position 0 (a re-seeding state)
-      std::size_t   best_end {npos};
-      bool          matched  {false};
-      std::size_t   pos      {0};
+      std::uint32_t       state    {start_state_}; // the seed at the start (a re-seeding state)
+      std::size_t         best_end {npos};
+      bool                matched  {false};
+      std::size_t         pos      {start};
+      const std::uint16_t count    {alpha_.count};
       while (true) {
         const std::uint32_t midx {state_match_idx_[state]};
         if (midx != no_match_idx) {
@@ -1214,17 +1320,25 @@ namespace real::detail {
         }
         const std::uint8_t byte {static_cast<std::uint8_t>(text[pos])};
         // pre-match transitions re-seed (unanchored search continues); post-match ones do not (leftmost).
-        state = matched ? step(state, byte) : step_seeded(state, byte);
+        // The cached edge read inline, as the anchored scan does; step()/step_seeded() only on a miss.
+        const std::uint32_t cached {(matched ? trans_ : trans_seeded_)[(static_cast<std::size_t>(state) * count) + alpha_.of[byte]]};
+        if (cached != no_transition) {
+          state = cached;
+        }
+        else {
+          state = matched ? step(state, byte) : step_seeded(state, byte);
+        }
         ++pos;
       }
-      return best_end;
+      return (thrashing_ && may_quit_) ? quit_pos : best_end;
     }
 
     /*! \brief \ref anchored_end's result: the match end (or \ref real::npos) and how far the walk got. */
     struct anchored_result
     {
-      std::size_t end;        //!< Match end, or \ref real::npos.
-      std::size_t scanned_to; //!< Position the walk stopped at (see \ref anchored_end).
+      std::size_t end        {npos};  //!< Match end, or \ref real::npos.
+      std::size_t scanned_to {0};     //!< Position the walk stopped at (see \ref anchored_end).
+      bool        quit       {false}; //!< A Unicode word boundary met a non-ASCII byte: the answer is the VM's.
     };
 
     /*!
@@ -1271,8 +1385,13 @@ namespace real::detail {
     [[nodiscard]] anchored_result anchored_end(std::string_view text,
                                                std::size_t      start)
     {
-      if (!eligible_) {
-        return {.end = npos, .scanned_to = start};
+      // One test on the common path, as before programs with assertions had a scan of their own: this
+      // runs once per candidate position, so a second one there is an instruction per byte scanned.
+      if (!plain_) {
+        if (!eligible_) {
+          return {.end = npos, .scanned_to = start};
+        }
+        return anchored_end_look(text, start);
       }
       std::uint32_t       state    {start_state_};
       std::size_t         best_end {npos};
@@ -1297,7 +1416,21 @@ namespace real::detail {
         state = (trans != no_transition) ? trans : step(state, byte); // anchored: never re-seed -- a match starts at `start` or not at all
         ++pos;
       }
+      if (thrashing_ && may_quit_) {
+        return {.end = npos, .scanned_to = pos, .quit = true};
+      }
       return {.end = best_end, .scanned_to = pos};
+    }
+
+    /*!
+     * \brief Whether the program carries position assertions: a caller that confirms a match found here by
+     *        running the Pike VM over a slice must not cut the slice at the match end, where a `$` or a `\b`
+     *        would read the cut as the end of the text.
+     * \return True when it does.
+     */
+    [[nodiscard]] bool looks() const
+    {
+      return look_;
     }
 
     /*!
@@ -1330,19 +1463,21 @@ namespace real::detail {
       ++stats_.misses;
       std::vector<std::int32_t> next;
       std::vector<char>         seen(code_.size(), 0);
+      const std::uint8_t        ctx {class_ctx_[cls]};
       for (const std::int32_t pc : state_pcs_[state]) {
         if (consumes(pc, byte)) {
-          close_into(pc + consumed_width(pc), next, seen);
+          close_any(pc + consumed_width(pc), next, seen, ctx);
         }
       }
       const std::size_t   flushes_before {stats_.flushes};
-      const std::uint32_t result         {intern(next)}; // may grow/flush the tables — do not hold a reference
+      const std::uint32_t result         {intern_any(std::move(next), ctx)}; // may grow/flush the tables — do not hold a reference
       if (stats_.flushes == flushes_before) {
         trans_[(static_cast<std::size_t>(state) * alpha_.count) + cls] = result;   // no flush: `state` is still valid, so cache the edge
       }
       // On a flush mid-step the caller's `state` id is stale; `result` is a fresh post-flush id, and the
-      // caller re-seeds. (An eventual forward pass falls back to Pike once \ref thrashing trips.)
-      return result;
+      // caller re-seeds. A scan that may quit stops here once the cache thrashes: the dead state ends its
+      // loop, and the scan reports a quit.
+      return (thrashing_ && may_quit_) ? dead_state : result;
     }
 
   private:
@@ -1368,18 +1503,19 @@ namespace real::detail {
       const std::vector<std::int32_t> pcs {state_pcs_[state]}; // copy: intern() below may realloc state_pcs_
       std::vector<std::int32_t>       next;
       std::vector<char>               seen(code_.size(), 0);
+      const std::uint8_t              ctx {class_ctx_[cls]};
       for (const std::int32_t pc : pcs) {
         if (consumes(pc, byte)) {
-          close_into(pc + consumed_width(pc), next, seen);
+          close_any(pc + consumed_width(pc), next, seen, ctx);
         }
       }
-      close_into(0, next, seen); // re-seed at the lowest priority (deduped against the advanced threads)
+      close_any(0, next, seen, ctx); // re-seed at the lowest priority (deduped against the advanced threads)
       const std::size_t   flushes_before {stats_.flushes};
-      const std::uint32_t result         {intern(next)};
+      const std::uint32_t result         {intern_any(std::move(next), ctx)};
       if (stats_.flushes == flushes_before) {
         trans_seeded_[(static_cast<std::size_t>(state) * alpha_.count) + cls] = result;
       }
-      return result;
+      return (thrashing_ && may_quit_) ? dead_state : result; // see step()
     }
 
     /*!
@@ -1422,25 +1558,162 @@ namespace real::detail {
       if (stats_.flushes == flushes_before) {
         state_cut_[state] = result; // no flush: `state` is still valid, memoise the edge
       }
-      return result;
+      return (thrashing_ && may_quit_) ? dead_state : result; // see step()
     }
 
     /*!
      * \brief Scan \p code for an op no forward DFA can represent.
-     * \param[in] code The program's instruction stream.
+     * \param[in] code       The program's instruction stream.
+     * \param[in] ascii_word Whether a word boundary's word-ness is ASCII (then a byte decides it).
      * \return True when every op is representable.
      */
-    static constexpr bool compute_eligibility(std::span<const instr> code)
+    static constexpr bool compute_eligibility(std::span<const instr> code,
+                                              bool                   ascii_word)
     {
-      // Position assertions / variable-width classes: no forward-DFA representation. Tier 1's
-      // possessive-loop family additionally has no consuming-edge representation at all here
-      // (consumes() below only recognizes byte/klass) — treating it as a dead end (silently
-      // non-consuming) would be an outright wrong DFA, not just an unrepresented shape.
-      return std::ranges::none_of(code, [](const instr& in) {
-                                    return in.op == opcode::assert_position || in.op == opcode::assert_lookaround
-                                           || in.op == opcode::klass_cp || in.op == opcode::byte_loop_possessive
-                                           || in.op == opcode::klass_loop_possessive || in.op == opcode::klass_cp_loop_possessive;
+      // Variable-width classes and lookarounds: no forward-DFA representation. Tier 1's possessive-loop
+      // family has no consuming-edge representation here (consumes() below only recognizes byte/klass) —
+      // treating it as a dead end (silently non-consuming) would be an outright wrong DFA. A position
+      // assertion is represented (see close_look / resolve) unless it is a word boundary whose word-ness is
+      // a code point's, which no single byte decides, or one scoped to the other word-ness.
+      return std::ranges::none_of(code, [ascii_word](const instr& in) {
+                                    if (in.op == opcode::assert_position) {
+                                      const auto kind {static_cast<assert_kind>(in.arg8)};
+                                      const bool word {kind == assert_kind::word_boundary || kind == assert_kind::not_word_boundary
+                                                       || kind == assert_kind::word_start || kind == assert_kind::word_end};
+                                      return in.arg16 != 0 || (word && !ascii_word);
+                                    }
+                                    return in.op == opcode::assert_lookaround || in.op == opcode::klass_cp
+                                           || in.op == opcode::byte_loop_possessive || in.op == opcode::klass_loop_possessive
+                                           || in.op == opcode::klass_cp_loop_possessive;
                                   });
+    }
+
+    // What a DFA state knows of the text before its position, and what a pending assertion needs of the
+    // text after it. Contexts are bits; the look-ahead is a key: a byte class, the end of the text, or a
+    // newline that is the text's last byte (Python's `$` holds before one).
+    static constexpr std::uint8_t  ctx_start      {1};       //!< The position is the start of the text.
+    static constexpr std::uint8_t  ctx_newline    {2};       //!< The byte before it is a newline.
+    static constexpr std::uint8_t  ctx_word       {4};       //!< The byte before it is an ASCII word byte.
+    static constexpr std::uint8_t  ctx_nonascii   {6};       //!< The byte before it is not ASCII (word_quit only): newline and word at once, which no ASCII byte is.
+    static constexpr std::uint16_t key_unknown    {0xFFFFU}; //!< Closing inside a step: the next byte is not known yet.
+
+    /*!
+     * \brief Whether context \p ctx says the byte it describes is a newline.
+     * \param[in] ctx Context bits.
+     * \return True for a newline; false for a non-ASCII byte, which also carries the newline bit.
+     */
+    [[nodiscard]] static constexpr bool is_newline_ctx(std::uint8_t ctx)
+    {
+      return (ctx & ctx_nonascii) == ctx_newline;
+    }
+
+    /*!
+     * \brief Whether context \p ctx says the byte it describes is an ASCII word byte.
+     * \param[in] ctx Context bits.
+     * \return True for an ASCII word byte.
+     */
+    [[nodiscard]] static constexpr bool is_word_ctx(std::uint8_t ctx)
+    {
+      return (ctx & ctx_nonascii) == ctx_word;
+    }
+
+    /*!
+     * \brief Whether context \p ctx says the byte it describes is not ASCII.
+     * \param[in] ctx Context bits.
+     * \return True for a non-ASCII byte under word_quit.
+     */
+    [[nodiscard]] static constexpr bool is_nonascii_ctx(std::uint8_t ctx)
+    {
+      return (ctx & ctx_nonascii) == ctx_nonascii;
+    }
+
+    /*!
+     * \brief The context a position has after \p b.
+     * \param[in] b The byte before the position.
+     * \return Its context bits.
+     */
+    [[nodiscard]] static constexpr std::uint8_t ctx_of(std::uint8_t b)
+    {
+      const bool word {(b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'};
+      return static_cast<std::uint8_t>((b == '\n' ? ctx_newline : 0U) | (word ? ctx_word : 0U));
+    }
+
+    /*!
+     * \brief The key the text gives a pending assertion at \p pos: the class of the byte there, or the end.
+     * \param[in] text The subject.
+     * \param[in] pos  The position.
+     * \return The resolution key.
+     */
+    [[nodiscard]] std::uint16_t key_at(std::string_view text,
+                                       std::size_t      pos) const
+    {
+      if (pos >= text.size()) {
+        return static_cast<std::uint16_t>(alpha_.count);      // the end of the text
+      }
+      if (text[pos] == '\n' && pos + 1U == text.size()) {
+        return static_cast<std::uint16_t>(alpha_.count + 1U); // a final newline
+      }
+      return alpha_.of[static_cast<std::uint8_t>(text[pos])];
+    }
+
+    /*!
+     * \brief Whether an assertion that looks left holds with context \p ctx.
+     * \param[in] kind The assertion.
+     * \param[in] ctx  The position's context.
+     * \return True when it holds; always false for an assertion that also looks right (it waits instead).
+     */
+    [[nodiscard]] static constexpr bool holds_behind(assert_kind  kind,
+                                                     std::uint8_t ctx)
+    {
+      if (kind == assert_kind::text_start) {
+        return (ctx & ctx_start) != 0U;
+      }
+      return (ctx & ctx_start) != 0U || is_newline_ctx(ctx); // line_start
+    }
+
+    /*!
+     * \brief Whether an assertion that looks right holds, given the position's context and the key ahead.
+     * \param[in] kind The assertion.
+     * \param[in] ctx  The position's context.
+     * \param[in] key  What follows (\ref key_at).
+     * \return True when it holds.
+     */
+    [[nodiscard]] bool holds_ahead(assert_kind   kind,
+                                   std::uint8_t  ctx,
+                                   std::uint16_t key) const
+    {
+      const bool end        {key == alpha_.count};
+      const bool final_nl   {key == alpha_.count + 1U};
+      const bool next_nl    {final_nl || (key < alpha_.count && is_newline_ctx(class_ctx_[key]))};
+      const bool next_word  {key < alpha_.count && is_word_ctx(class_ctx_[key])};
+      const bool prev_word  {is_word_ctx(ctx)};
+      if (word_quit_ && undecidable_word(kind, prev_word, is_nonascii_ctx(ctx), next_word,
+                                         key < alpha_.count && is_nonascii_ctx(class_ctx_[key]))) {
+        quit_hit_ = true; // resolve() turns the whole resolution into quit_state
+        return false;
+      }
+      switch (kind) {
+        case assert_kind::text_end:                  return end;
+        case assert_kind::text_end_or_final_newline: return end || final_nl;
+        case assert_kind::line_end:                  return end || next_nl;
+        case assert_kind::word_boundary:             return prev_word != next_word;
+        case assert_kind::not_word_boundary:         return prev_word == next_word;
+        case assert_kind::word_start:                return !prev_word && next_word;
+        case assert_kind::word_end:                  return prev_word && !next_word;
+        case assert_kind::text_start:
+        case assert_kind::line_start:                return holds_behind(kind, ctx);
+      }
+      return false;
+    }
+
+    /*!
+     * \brief Whether \p kind looks only left, so a closure decides it without the next byte.
+     * \param[in] kind The assertion.
+     * \return True for `\A`, `^`.
+     */
+    [[nodiscard]] static constexpr bool looks_behind_only(assert_kind kind)
+    {
+      return kind == assert_kind::text_start || kind == assert_kind::line_start;
     }
 
     /*!
@@ -1529,6 +1802,320 @@ namespace real::detail {
     }
 
     /*!
+     * \brief \ref close_into for a program with position assertions: an assertion that looks left is decided
+     *        by \p ctx; one that looks right is decided by \p key when it is known, and otherwise waits in
+     *        \p out as a pending pc, in its priority place, until \ref resolve knows what follows.
+     * \param[in]     pc   Program counter to close over.
+     * \param[in,out] out  Ordered pc-set the closure is appended to.
+     * \param[in,out] seen Per-pc visited marks.
+     * \param[in]     ctx  The position's context.
+     * \param[in]     key  What follows the position, or \ref key_unknown.
+     */
+    constexpr void close_look(std::int32_t               pc,
+                              std::vector<std::int32_t>& out,
+                              std::vector<char>&         seen,
+                              std::uint8_t               ctx,
+                              std::uint16_t              key) const
+    {
+      stack_.assign(1, pc);
+      while (!stack_.empty()) {
+        const std::int32_t cur {stack_.back()};
+        stack_.pop_back();
+        if (cur < 0 || static_cast<std::size_t>(cur) >= code_.size() || seen[static_cast<std::size_t>(cur)] != 0) {
+          continue;
+        }
+        seen[static_cast<std::size_t>(cur)] = 1;
+        const instr& in {code_[static_cast<std::size_t>(cur)]};
+        switch (in.op) {
+          case opcode::byte:
+          case opcode::klass:
+          case opcode::match:
+            out.push_back(cur);
+            break;
+          case opcode::split:
+            stack_.push_back(in.secondary_target);
+            stack_.push_back(in.primary_target);
+            break;
+          case opcode::jump:
+            stack_.push_back(in.primary_target);
+            break;
+          case opcode::save:
+            stack_.push_back(cur + 1);
+            break;
+          case opcode::assert_position:
+            {
+              const auto kind {static_cast<assert_kind>(in.arg8)};
+              if (looks_behind_only(kind)) {
+                if (holds_behind(kind, ctx)) {
+                  stack_.push_back(cur + 1);
+                }
+              }
+              else if (key == key_unknown) {
+                out.push_back(cur); // pending: decided by what follows
+              }
+              else if (holds_ahead(kind, ctx, key)) {
+                stack_.push_back(cur + 1);
+              }
+              break;
+            }
+          default:
+            break;
+        }
+      }
+    }
+
+    /*!
+     * \brief The closure a step takes: \ref close_look when the program carries assertions, else
+     *        \ref close_into (which never reads \p ctx).
+     * \param[in]     pc   Program counter to close over.
+     * \param[in,out] out  Ordered pc-set.
+     * \param[in,out] seen Per-pc visited marks.
+     * \param[in]     ctx  The context after the byte just consumed.
+     */
+    constexpr void close_any(std::int32_t               pc,
+                             std::vector<std::int32_t>& out,
+                             std::vector<char>&         seen,
+                             std::uint8_t               ctx) const
+    {
+      if (look_) {
+        close_look(pc, out, seen, ctx, key_unknown);
+      }
+      else {
+        close_into(pc, out, seen);
+      }
+    }
+
+    /*!
+     * \brief Interns \p pcs; a set holding a pending assertion also holds its context, as a negative
+     *        sentinel at its end, because the same pcs with another context resolve differently.
+     * \param[in] pcs The ordered pc-set.
+     * \param[in] ctx Its position's context.
+     * \return The state id.
+     */
+    constexpr std::uint32_t intern_any(std::vector<std::int32_t> pcs,
+                                       std::uint8_t              ctx)
+    {
+      if (look_ && std::ranges::any_of(pcs, [this](std::int32_t pc) {
+                                         return code_[static_cast<std::size_t>(pc)].op == opcode::assert_position;
+                                       })) {
+        pcs.push_back(-1 - static_cast<std::int32_t>(ctx));
+      }
+      return intern(pcs);
+    }
+
+    /*!
+     * \brief \p state with its pending assertions decided by \p key: each is replaced, in its priority place,
+     *        by the closure past it when it holds and by nothing when it does not. A state with nothing
+     *        pending is its own resolution. Cached per (state, key).
+     * \param[in] state The state.
+     * \param[in] key   What follows its position (\ref key_at).
+     * \return The resolved state, which holds no pending assertion.
+     */
+    std::uint32_t resolve(std::uint32_t state,
+                          std::uint16_t key)
+    {
+      if (state_pending_[state] == 0U) {
+        return state;
+      }
+      const std::size_t   slot   {(static_cast<std::size_t>(state) * (alpha_.count + 2U)) + key};
+      const std::uint32_t cached {res_[slot]};
+      if (cached != no_transition) {
+        return cached;
+      }
+      std::vector<std::int32_t> pcs {state_pcs_[state]}; // copy: intern() below may realloc state_pcs_
+      const auto                ctx {static_cast<std::uint8_t>(-1 - pcs.back())};
+      pcs.pop_back();
+      std::vector<std::int32_t> out;
+      std::vector<char>         seen(code_.size(), 0);
+      quit_hit_ = false;
+      for (const std::int32_t pc : pcs) {
+        const instr& in {code_[static_cast<std::size_t>(pc)]};
+        if (in.op == opcode::assert_position) {
+          if (holds_ahead(static_cast<assert_kind>(in.arg8), ctx, key)) {
+            close_look(pc + 1, out, seen, ctx, key);
+          }
+        }
+        else if (seen[static_cast<std::size_t>(pc)] == 0) {
+          seen[static_cast<std::size_t>(pc)] = 1;
+          out.push_back(pc);
+        }
+      }
+      if (quit_hit_) {
+        res_[slot] = quit_state; // the same state and key meet the same byte: memoizing it is exact
+        return quit_state;
+      }
+      const std::size_t   flushes_before {stats_.flushes};
+      const std::uint32_t result         {intern(out)};
+      if (stats_.flushes == flushes_before) {
+        res_[slot] = result;
+      }
+      return result;
+    }
+
+    /*!
+     * \brief The start state for a position with context \p ctx: the closure of pc 0 there. Cached per
+     *        context; a program without assertions has one start whatever the context.
+     * \param[in] ctx The start position's context.
+     * \return Its state id.
+     */
+    std::uint32_t start_for(std::uint8_t ctx)
+    {
+      if (!look_) {
+        return start_state_;
+      }
+      if (starts_[ctx] != no_transition) {
+        return starts_[ctx];
+      }
+      std::vector<std::int32_t> pcs;
+      std::vector<char>         seen(code_.size(), 0);
+      close_look(0, pcs, seen, ctx, key_unknown);
+      const std::size_t   flushes_before {stats_.flushes};
+      const std::uint32_t result         {intern_any(std::move(pcs), ctx)};
+      if (stats_.flushes == flushes_before) {
+        starts_[ctx] = result;
+      }
+      return result;
+    }
+
+    /*!
+     * \brief The context of position \p pos in \p text.
+     * \param[in] text The subject.
+     * \param[in] pos  The position.
+     * \return The start context at 0, else the context after the byte before \p pos.
+     */
+    [[nodiscard]] std::uint8_t ctx_at(std::string_view text,
+                                      std::size_t      pos) const
+    {
+      return pos == 0 ? ctx_start : class_ctx_[alpha_.of[static_cast<std::uint8_t>(text[pos - 1U])]];
+    }
+
+    /*!
+     * \brief \ref forward_end for a program with position assertions. Each position's state is first resolved
+     *        by what follows it (\ref resolve), and the accept test and the step read the resolved state, so an
+     *        accept that a `$` or a `\b` guards is decided with the text on both sides of it.
+     * \param[in] text  Subject.
+     * \param[in] start The first seed's position.
+     * \return The match end in \p text, or \ref real::npos.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline, cold)) // out of the hot scans' bodies: a program without assertions never calls it
+#endif
+    std::size_t forward_end_look(std::string_view text,
+                                 std::size_t      start)
+    {
+      std::uint32_t       state    {start_for(ctx_at(text, start))};
+      std::size_t         best_end {npos};
+      bool                matched  {false};
+      std::size_t         pos      {start};
+      const std::uint16_t count    {alpha_.count};
+      while (true) {
+        // Only a state holding a pending assertion reads what follows it; the rest are their own resolution.
+        std::uint32_t here {state};
+        if (state_pending_[state] != 0U) {
+          // The memoized resolution read inline, as the cached edges are; resolve() only on a miss.
+          const std::uint16_t key  {key_at(text, pos)};
+          const std::uint32_t memo {res_[(static_cast<std::size_t>(state) * (count + 2U)) + key]};
+          here = memo != no_transition ? memo : resolve(state, key);
+          if (here == quit_state) {
+            return quit_pos;
+          }
+        }
+        if (state_match_idx_[here] != no_match_idx) {
+          best_end = pos;
+          matched  = true;
+          here     = cut_cached(here);
+          if (here == dead_state) {
+            break;
+          }
+        }
+        // Before a match, a dead state is not the end: an assertion can kill every thread at one position
+        // and let the next seed live (`^` after a newline), so the scan keeps seeding.
+        if (pos >= text.size() || (here == dead_state && matched)) {
+          break;
+        }
+        const auto byte {static_cast<std::uint8_t>(text[pos])};
+        // In text mode a match does not start inside a code point: the step onto a continuation byte
+        // carries the threads without a fresh seed.
+        const bool seed            {!matched && (byte_mode_ || !starts_inside_code_point(text, pos + 1U))};
+        // The cached edge read inline, as the plain scans do; step()/step_seeded() only on a miss.
+        const std::uint32_t cached {(seed ? trans_seeded_ : trans_)[(static_cast<std::size_t>(here) * count) + alpha_.of[byte]]};
+        if (cached != no_transition) {
+          state = cached;
+        }
+        else {
+          state = seed ? step_seeded(here, byte) : step(here, byte);
+          if (thrashing_ && may_quit_) {
+            return quit_pos; // before a match the dead state keeps seeding, so the loop would not end on it
+          }
+        }
+        ++pos;
+      }
+      return best_end;
+    }
+
+    /*!
+     * \brief Whether \p pos is inside a UTF-8 code point: the byte there is a continuation byte.
+     * \param[in] text The subject.
+     * \param[in] pos  The position.
+     * \return True inside a code point; false at the end or at a code point's first byte.
+     */
+    [[nodiscard]] static constexpr bool starts_inside_code_point(std::string_view text,
+                                                                 std::size_t      pos)
+    {
+      return pos < text.size() && (static_cast<std::uint8_t>(text[pos]) & 0xC0U) == 0x80U;
+    }
+
+    /*!
+     * \brief \ref anchored_end for a program with position assertions (see \ref forward_end_look).
+     * \param[in] text  Subject.
+     * \param[in] start The anchor.
+     * \return The match end and how far the walk got.
+     */
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline, cold)) // out of the hot scans' bodies: a program without assertions never calls it
+#endif
+    anchored_result anchored_end_look(std::string_view text,
+                                      std::size_t      start)
+    {
+      std::uint32_t       state    {start_for(ctx_at(text, start))};
+      std::size_t         best_end {npos};
+      std::size_t         pos      {start};
+      const std::uint16_t count    {alpha_.count};
+      while (true) {
+        std::uint32_t here {state};
+        if (state_pending_[state] != 0U) {
+          // The memoized resolution read inline, as the cached edges are; resolve() only on a miss.
+          const std::uint16_t key  {key_at(text, pos)};
+          const std::uint32_t memo {res_[(static_cast<std::size_t>(state) * (count + 2U)) + key]};
+          here = memo != no_transition ? memo : resolve(state, key);
+          if (here == quit_state) {
+            // Even past an accept: whether a longer match wins is what the boundary would have told.
+            return {.end = npos, .scanned_to = pos, .quit = true};
+          }
+        }
+        if (state_match_idx_[here] != no_match_idx) {
+          best_end = pos;
+          const std::uint32_t cut {state_cut_[here]};
+          here = cut != no_transition ? cut : cut_cached(here);
+          if (here == dead_state) {
+            break;
+          }
+        }
+        if (pos >= text.size() || here == dead_state) {
+          break;
+        }
+        const auto          byte   {static_cast<std::uint8_t>(text[pos])};
+        const std::uint32_t cached {trans_[(static_cast<std::size_t>(here) * count) + alpha_.of[byte]]};
+        state = cached != no_transition ? cached : step(here, byte);
+        ++pos;
+      }
+      if (thrashing_ && may_quit_) {
+        return {.end = npos, .scanned_to = pos, .quit = true};
+      }
+      return {.end = best_end, .scanned_to = pos};
+    }
+
+    /*!
      * \brief Intern an ordered pc-set into a state id (cached). Flushes the cache when the budget is hit.
      * \param[in] pcs The ordered pc-set.
      * \return Its state id, existing or freshly built; \ref dead_state for an empty set. A flush here
@@ -1562,13 +2149,31 @@ namespace real::detail {
       trans_.insert(trans_.end(), alpha_.count, no_transition);
       trans_seeded_.insert(trans_seeded_.end(), alpha_.count, no_transition);
       std::uint32_t match_idx {no_match_idx};
+      bool          pending   {false};
       for (std::size_t i = 0; i < pcs.size(); ++i) {
-        if (code_[static_cast<std::size_t>(pcs[i])].op == opcode::match) {
-          match_idx = static_cast<std::uint32_t>(i); // the highest-priority accept in this state
+        if (pcs[i] < 0) {
+          continue; // the context sentinel of a state with pending assertions (intern_any)
+        }
+        const opcode op {code_[static_cast<std::size_t>(pcs[i])].op};
+        if (op == opcode::assert_position) {
+          pending = true; // an accept past it is not an accept yet: only resolve() decides it
           break;
         }
+        if (op == opcode::match && match_idx == no_match_idx) {
+          match_idx = static_cast<std::uint32_t>(i); // the highest-priority accept in this state
+          if (!look_) {
+            break; // nothing can be pending in a program without assertions
+          }
+        }
+      }
+      if (pending) {
+        match_idx = no_match_idx;
       }
       state_match_idx_.push_back(match_idx);
+      state_pending_.push_back(pending ? 1U : 0U);
+      if (look_) {
+        res_.insert(res_.end(), alpha_.count + 2U, no_transition);
+      }
       state_cut_.push_back(no_transition); // the priority-cut result, memoized lazily on first use
       cache_.insert(pcs, id);
       return id;
@@ -1592,24 +2197,54 @@ namespace real::detail {
       trans_seeded_.clear();
       state_match_idx_.clear();
       state_cut_.clear();
+      state_pending_.clear();
+      res_.clear();
+      starts_.fill(no_transition);
       cache_.clear();
       // state 0 = dead (empty, self-looping), state 1 = start (closure of pc 0).
       state_pcs_.emplace_back();
       trans_.insert(trans_.end(), alpha_.count, dead_state);
-      trans_seeded_.insert(trans_seeded_.end(), alpha_.count, dead_state);
+      // Re-seeding out of the dead state is a real transition when an assertion can empty a start state:
+      // the next position's seed may live. Without assertions no seed is ever empty, so it stays dead.
+      trans_seeded_.insert(trans_seeded_.end(), alpha_.count, look_ ? no_transition : dead_state);
       state_match_idx_.push_back(no_match_idx);
       state_cut_.push_back(no_transition);
+      state_pending_.push_back(0U);
+      if (look_) {
+        res_.insert(res_.end(), alpha_.count + 2U, dead_state);
+      }
       std::vector<std::int32_t> start;
       std::vector<char>         seen(code_.size(), 0);
-      close_into(0, start, seen);
-      start_state_ = intern_fresh(start);
+      if (look_) {
+        // The start of the text: the context forward_end and anchored_end at 0 ask for.
+        close_look(0, start, seen, ctx_start, key_unknown);
+        if (std::ranges::any_of(start, [this](std::int32_t pc) {
+                                  return code_[static_cast<std::size_t>(pc)].op == opcode::assert_position;
+                                })) {
+          start.push_back(-1 - static_cast<std::int32_t>(ctx_start));
+        }
+        start_state_       = intern_fresh(start);
+        starts_[ctx_start] = start_state_;
+      }
+      else {
+        close_into(0, start, seen);
+        start_state_ = intern_fresh(start);
+      }
     }
 
-    std::span<const instr>      code_;                                                          //!< The byte program, owned by the caller.
-    std::span<const char_class> classes_;                                                       //!< Its byte classes, likewise borrowed.
-    lazy_byte_alphabet          alpha_;                                                         //!< Byte-to-class map; its count is the row stride.
-    bool                        eligible_    {false};                                           //!< \ref compute_eligibility's verdict, fixed at construction.
-    std::uint32_t               start_state_ {0};                                               //!< Id of the closure of pc 0, re-interned by each \ref flush.
+    std::span<const instr>        code_;                                                        //!< The byte program, owned by the caller.
+    std::span<const char_class>   classes_;                                                     //!< Its byte classes, likewise borrowed.
+    lazy_byte_alphabet            alpha_;                                                       //!< Byte-to-class map; its count is the row stride.
+    bool                          eligible_    {false};                                         //!< \ref compute_eligibility's verdict, fixed at construction.
+    bool                          byte_mode_   {true};                                          //!< A match may start at any byte (else only at a code-point start).
+    bool                          word_quit_   {false};                                         //!< Unicode word boundaries carried, quitting next to a non-ASCII byte.
+    bool                          may_quit_    {false};                                         //!< A scan may quit: on a Unicode word boundary next to non-ASCII, and once its cache thrashes.
+    mutable bool                  quit_hit_    {false};                                         //!< Set by holds_ahead() inside one resolve(): that resolution is quit_state.
+    bool                          look_        {false};                                         //!< The program carries position assertions (the look paths).
+    bool                          plain_       {false};                                         //!< Eligible and without assertions: the scans' one-test common path.
+    std::array<std::uint8_t, 256> class_ctx_   {};                                              //!< Class -> the context after one of its bytes (look programs).
+    std::array<std::uint32_t, 8>  starts_      {};                                              //!< Context -> start state, per \ref flush (look programs).
+    std::uint32_t                 start_state_ {0};                                             //!< Id of the closure of pc 0, re-interned by each \ref flush.
 
     // A VECTOR OF VECTORS, one heap block per DFA state. What a first search pays here has been
     // measured twice, and the two measurements DISAGREE because they were taken on different route
@@ -1653,6 +2288,8 @@ namespace real::detail {
     std::vector<std::uint32_t>                                                 trans_seeded_;    //!< flat [state*stride + class] -> next, re-seeding (pre-match).
     std::vector<std::uint32_t>                                                 state_match_idx_; //!< state id -> index of its first accept, or no_match_idx.
     std::vector<std::uint32_t>                                                 state_cut_;       //!< state id -> memoized priority-cut result (no_transition = not yet computed).
+    std::vector<std::uint8_t>                                                  state_pending_;   //!< state id -> it holds a pending assertion (look programs).
+    std::vector<std::uint32_t>                                                 res_;             //!< flat [state*(count+2) + key] -> resolved state (look programs).
     pc_set_cache                                                               cache_;           //!< pc-set -> state id, the memo behind \ref intern.
 
     std::size_t budget_    {state_budget};                                                       //!< Cached states tolerated before a \ref flush.
@@ -1674,6 +2311,8 @@ namespace real::detail {
 
     static constexpr std::uint32_t dead_state    {0};           //!< The empty state: every transition from it stays here.
     static constexpr std::uint32_t no_transition {0xFFFFFFFFU}; //!< A not-yet-computed cached transition.
+    static constexpr std::uint32_t quit_state    {0xFFFFFFFEU}; //!< What resolve() gives when a Unicode word boundary meets a non-ASCII byte; never interned.
+    static constexpr std::size_t   quit_pos      {npos - 1U};   //!< What reverse_start() gives when its scan quit.
     static constexpr std::size_t   state_budget  {4096};        //!< Cached states before a flush (the memory cap).
 
     /*!
@@ -1682,15 +2321,28 @@ namespace real::detail {
      * \param[in] classes      The program's interned byte classes (likewise held as a span).
      * \param[in] budget       Cached states before a flush; defaults to \ref state_budget.
      * \param[in] shared_alpha A precomputed alphabet the caller shares per regex, or null to compute it here.
+     * \param[in] ascii_word   Whether the program's word boundaries use ASCII word-ness: only then does one
+     *                         byte decide them. False, the default, declines any word boundary.
+     * \param[in] word_quit    With Unicode word-ness, carry the word boundaries and quit next to a non-ASCII
+     *                         byte (see \ref lazy_dfa's).
      */
     explicit constexpr reverse_dfa(std::span<const instr>      code,
                                    std::span<const char_class> classes,
                                    std::size_t                 budget       = state_budget,
-                                   const lazy_byte_alphabet*   shared_alpha = nullptr)
+                                   const lazy_byte_alphabet*   shared_alpha = nullptr,
+                                   bool                        ascii_word   = false,
+                                   bool                        word_quit    = false)
       : code_ {code}, classes_ {classes},
         alpha_ {shared_alpha != nullptr ? *shared_alpha : compute_lazy_alphabet(code, classes)},
-        eligible_ {compute_eligibility(code)}, budget_ {budget}
+        eligible_ {compute_eligibility(code, ascii_word || word_quit)}, word_quit_ {word_quit && !ascii_word},
+        look_ {std::ranges::any_of(code, [](const instr& in) { return in.op == opcode::assert_position; })},
+        budget_ {budget}
     {
+      if (look_) {
+        for (unsigned b {0}; b < 256U; ++b) {
+          class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? rctx_nonascii : right_ctx_of(static_cast<std::uint8_t>(b));
+        }
+      }
       // Transpose the program: rev_eps_[x] = the pcs with a forward epsilon edge to x; rev_consume_[x] = the
       // consuming pcs whose successor is x (a byte/klass at pc goes to pc+1).
       // TWO PASSES INTO FOUR BUFFERS, not a vector of vectors. The transpose is an adjacency list, and
@@ -1716,7 +2368,8 @@ namespace real::detail {
             bump(rev_eps_at_, static_cast<std::size_t>(in.secondary_target));
             break;
           case opcode::jump:   bump(rev_eps_at_, static_cast<std::size_t>(in.primary_target)); break;
-          case opcode::save:   bump(rev_eps_at_, static_cast<std::size_t>(pc) + 1); break;
+          case opcode::save:
+          case opcode::assert_position: bump(rev_eps_at_, static_cast<std::size_t>(pc) + 1); break;
           case opcode::match:  match_pc_ = pc; break; // the reverse start
           default:             break;
         }
@@ -1750,6 +2403,7 @@ namespace real::detail {
             put(rev_eps_pool_, eps_cur, rev_eps_at_, static_cast<std::size_t>(in.primary_target), pc);
             break;
           case opcode::save:
+          case opcode::assert_position: // an edge the closure crosses only where the assertion holds
             put(rev_eps_pool_, eps_cur, rev_eps_at_, static_cast<std::size_t>(pc) + 1, pc);
             break;
           default:
@@ -1782,9 +2436,13 @@ namespace real::detail {
                                             std::size_t      e,
                                             std::size_t      resume)
     {
-      std::uint32_t state {start_state_}; // rev-closure of the forward `match`
-      std::size_t   best  {npos};
-      std::size_t   pos   {e};
+      if (look_) {
+        return reverse_start_look(text, e, resume);
+      }
+      std::uint32_t       state {start_state_}; // rev-closure of the forward `match`
+      std::size_t         best  {npos};
+      std::size_t         pos   {e};
+      const std::uint16_t count {alpha_.count};
       while (true) {
         if (state_has_start_[state] != 0) {
           best = pos; // reached the original start: [pos, e] matches; kLongest keeps the smallest pos
@@ -1793,12 +2451,372 @@ namespace real::detail {
           break;
         }
         --pos;
-        state = step(state, static_cast<std::uint8_t>(text[pos]));
+        const auto          byte   {static_cast<std::uint8_t>(text[pos])};
+        const std::uint32_t cached {trans_[(static_cast<std::size_t>(state) * count) + alpha_.of[byte]]};
+        state = cached != no_transition ? cached : step(state, byte); // the cached edge inline; step() on a miss
       }
       return best;
     }
 
   private:
+
+    // Backward, the text to the RIGHT of a position is what the scan has read, and the text to its left is
+    // what it reads next. So the right side is a state's context and the left side is a pending
+    // assertion's key: a byte class, or the start of the text.
+    static constexpr std::uint8_t  rctx_end      {1};       //!< The position is the end of the text.
+    static constexpr std::uint8_t  rctx_newline  {2};       //!< The byte after it is a newline.
+    static constexpr std::uint8_t  rctx_word     {4};       //!< The byte after it is an ASCII word byte.
+    static constexpr std::uint8_t  rctx_final_nl {8};       //!< The byte after it is a newline that ends the text.
+    static constexpr std::uint8_t  rctx_nonascii {6};       //!< The byte after it is not ASCII (word_quit only): newline and word at once, which no ASCII byte is.
+
+    /*!
+     * \brief Whether right context \p ctx says the byte it describes is a newline.
+     * \param[in] ctx Context bits.
+     * \return True for a newline; false for a non-ASCII byte, which also carries the newline bit.
+     */
+    [[nodiscard]] static constexpr bool is_newline_ctx(std::uint8_t ctx)
+    {
+      return (ctx & rctx_nonascii) == rctx_newline;
+    }
+
+    /*!
+     * \brief Whether right context \p ctx says the byte it describes is an ASCII word byte.
+     * \param[in] ctx Context bits.
+     * \return True for an ASCII word byte.
+     */
+    [[nodiscard]] static constexpr bool is_word_ctx(std::uint8_t ctx)
+    {
+      return (ctx & rctx_nonascii) == rctx_word;
+    }
+
+    /*!
+     * \brief Whether right context \p ctx says the byte it describes is not ASCII.
+     * \param[in] ctx Context bits.
+     * \return True for a non-ASCII byte under word_quit.
+     */
+    [[nodiscard]] static constexpr bool is_nonascii_ctx(std::uint8_t ctx)
+    {
+      return (ctx & rctx_nonascii) == rctx_nonascii;
+    }
+
+    static constexpr std::uint16_t key_unknown   {0xFFFFU}; //!< Closing inside a step: the byte to the left is not read yet.
+    // A set's entries: a pc reached; an assertion still to decide, encoded below every context sentinel
+    // (a decided assertion is an ordinary member -- the consuming edge into it must stay findable); and at
+    // most one context sentinel, `-1 - ctx`, whenever something is pending.
+    static constexpr std::int32_t  pending_base  {-17};     //!< An undecided assertion at pc `pc` is `pending_base - pc`.
+
+    /*!
+     * \brief Whether \p entry encodes an undecided assertion.
+     * \param[in] entry A set entry.
+     * \return True for a pending assertion.
+     */
+    [[nodiscard]] static constexpr bool is_pending(std::int32_t entry)
+    {
+      return entry <= pending_base;
+    }
+
+    /*!
+     * \brief The right context a position has when \p b follows it (not the text's last byte).
+     * \param[in] b The byte after the position.
+     * \return Its context bits.
+     */
+    [[nodiscard]] static constexpr std::uint8_t right_ctx_of(std::uint8_t b)
+    {
+      const bool word {(b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'};
+      return static_cast<std::uint8_t>((b == '\n' ? rctx_newline : 0U) | (word ? rctx_word : 0U));
+    }
+
+    /*!
+     * \brief The right context of position \p pos in the whole \p text.
+     * \param[in] text The subject.
+     * \param[in] pos  The position.
+     * \return Its context bits.
+     */
+    [[nodiscard]] std::uint8_t right_ctx_at(std::string_view text,
+                                            std::size_t      pos) const
+    {
+      if (pos >= text.size()) {
+        return rctx_end;
+      }
+      const std::uint8_t ctx {class_ctx_[alpha_.of[static_cast<std::uint8_t>(text[pos])]]};
+      return (text[pos] == '\n' && pos + 1U == text.size()) ? static_cast<std::uint8_t>(ctx | rctx_final_nl) : ctx;
+    }
+
+    /*!
+     * \brief Whether \p kind needs the text to the left of the position (so backward it waits for the next
+     *        byte); an assertion that looks only right is decided by the context.
+     * \param[in] kind The assertion.
+     * \return True for `\A`, `^` and the word boundaries.
+     */
+    [[nodiscard]] static constexpr bool looks_left(assert_kind kind)
+    {
+      return kind == assert_kind::text_start || kind == assert_kind::line_start || kind == assert_kind::word_boundary
+             || kind == assert_kind::not_word_boundary || kind == assert_kind::word_start || kind == assert_kind::word_end;
+    }
+
+    /*!
+     * \brief Whether an assertion that looks only right holds with right context \p ctx.
+     * \param[in] kind The assertion (`\Z`, `$`, `(?m)$`).
+     * \param[in] ctx  The position's right context.
+     * \return True when it holds.
+     */
+    [[nodiscard]] static constexpr bool holds_right(assert_kind  kind,
+                                                    std::uint8_t ctx)
+    {
+      switch (kind) {
+        case assert_kind::text_end:                  return (ctx & rctx_end) != 0U;
+        case assert_kind::text_end_or_final_newline: return (ctx & rctx_end) != 0U || (ctx & rctx_final_nl) != 0U;
+        case assert_kind::line_end:                  return (ctx & rctx_end) != 0U || is_newline_ctx(ctx);
+        default:                                     return false;
+      }
+    }
+
+    /*!
+     * \brief Whether an assertion that looks left holds, given the right context and the key to the left.
+     * \param[in] kind The assertion.
+     * \param[in] ctx  The position's right context.
+     * \param[in] key  The class of the byte before the position, or `alpha_.count` at the start of the text.
+     * \return True when it holds.
+     */
+    [[nodiscard]] bool holds_left(assert_kind   kind,
+                                  std::uint8_t  ctx,
+                                  std::uint16_t key) const
+    {
+      const bool start     {key == alpha_.count};
+      const bool prev_nl   {!start && is_newline_ctx(class_ctx_[key])};
+      const bool prev_word {!start && is_word_ctx(class_ctx_[key])};
+      const bool next_word {is_word_ctx(ctx)};
+      if (word_quit_ && undecidable_word(kind, prev_word, !start && is_nonascii_ctx(class_ctx_[key]), next_word,
+                                         is_nonascii_ctx(ctx))) {
+        quit_hit_ = true; // resolve() turns the whole resolution into quit_state
+        return false;
+      }
+      switch (kind) {
+        case assert_kind::text_start:        return start;
+        case assert_kind::line_start:        return start || prev_nl;
+        case assert_kind::word_boundary:     return prev_word != next_word;
+        case assert_kind::not_word_boundary: return prev_word == next_word;
+        case assert_kind::word_start:        return !prev_word && next_word;
+        case assert_kind::word_end:          return prev_word && !next_word;
+        default:                             return holds_right(kind, ctx);
+      }
+    }
+
+    /*!
+     * \brief \ref rev_closure for a program with position assertions: crossing back over an assertion needs
+     *        it to hold at this position. One that looks only right is decided by \p ctx; one that looks
+     *        left is decided by \p key when known, and otherwise stays in \p set as a pending pc that the
+     *        closure does not cross until \ref resolve reads the byte to the left.
+     * \param[in,out] set  The pc-set to close over, in place (sorted on return; unordered by design).
+     * \param[in,out] seen Per-pc visited marks.
+     * \param[in]     ctx  The position's right context.
+     * \param[in]     key  The byte to the left, or \ref key_unknown.
+     */
+    constexpr void rev_closure_look(std::vector<std::int32_t>& set,
+                                    std::vector<char>&         seen,
+                                    std::uint8_t               ctx,
+                                    std::uint16_t              key) const
+    {
+      stack_.assign(set.begin(), set.end());
+      while (!stack_.empty()) {
+        const std::int32_t pc {stack_.back()};
+        stack_.pop_back();
+        for (std::size_t k = rev_eps_at_[static_cast<std::size_t>(pc)];
+             k < rev_eps_at_[static_cast<std::size_t>(pc) + 1]; ++k) {
+          const std::int32_t pred {rev_eps_pool_[k]};
+          if (seen[static_cast<std::size_t>(pred)] != 0) {
+            continue;
+          }
+          const instr& in {code_[static_cast<std::size_t>(pred)]};
+          if (in.op == opcode::assert_position) {
+            const auto kind {static_cast<assert_kind>(in.arg8)};
+            if (looks_left(kind) && key == key_unknown) {
+              seen[static_cast<std::size_t>(pred)] = 1;
+              set.push_back(pending_base - pred); // undecided: its predecessors are reached once it is decided
+              continue;
+            }
+            if (!(looks_left(kind) ? holds_left(kind, ctx, key) : holds_right(kind, ctx))) {
+              continue; // the edge does not exist at this position
+            }
+          }
+          seen[static_cast<std::size_t>(pred)] = 1;
+          set.push_back(pred);
+          stack_.push_back(pred);
+        }
+      }
+      std::sort(set.begin(), set.end());
+    }
+
+    /*!
+     * \brief Appends \p ctx to \p set as a negative sentinel when \p set holds a pending assertion: the same
+     *        pcs resolve differently in another context, so the context is part of the state.
+     * \param[in,out] set The sorted pc-set.
+     * \param[in]     ctx Its position's right context.
+     */
+    static constexpr void mark_context(std::vector<std::int32_t>& set,
+                                       std::uint8_t               ctx)
+    {
+      if (std::ranges::any_of(set, [](std::int32_t entry) { return is_pending(entry); })) {
+        set.push_back(-1 - static_cast<std::int32_t>(ctx));
+      }
+    }
+
+    /*!
+     * \brief \p state with its pending assertions decided by \p key, the byte to the left (or the start):
+     *        each that holds lets the closure continue past it. A state with nothing pending is its own
+     *        resolution. Cached per (state, key).
+     * \param[in] state The state.
+     * \param[in] key   The class of the byte before its position, or `alpha_.count` at the start.
+     * \return The resolved state.
+     */
+    std::uint32_t resolve(std::uint32_t state,
+                          std::uint16_t key)
+    {
+      if (state_pending_[state] == 0U) {
+        return state;
+      }
+      const std::size_t   slot   {(static_cast<std::size_t>(state) * (alpha_.count + 1U)) + key};
+      const std::uint32_t cached {res_[slot]};
+      if (cached != no_transition) {
+        return cached;
+      }
+      std::vector<std::int32_t> pcs {state_pcs_[state]};                          // copy: intern may realloc
+      const auto                ctx {static_cast<std::uint8_t>(-1 - pcs.back())}; // mark_context appends it last
+      pcs.pop_back();
+      std::vector<char>         seen(code_.size(), 0);
+      std::vector<std::int32_t> set;
+      quit_hit_ = false;
+      for (const std::int32_t entry : pcs) {
+        const std::int32_t pc {is_pending(entry) ? pending_base - entry : entry};
+        seen[static_cast<std::size_t>(pc)] = 1;
+        // A pending assertion the key decides true stays a member: the closure below reaches its predecessors.
+        if (!is_pending(entry) || holds_left(static_cast<assert_kind>(code_[static_cast<std::size_t>(pc)].arg8), ctx, key)) {
+          set.push_back(pc);
+        }
+      }
+      rev_closure_look(set, seen, ctx, key); // no entry pending: the key decides every assertion it meets
+      if (quit_hit_) {
+        res_[slot] = quit_state; // the same state and key meet the same bytes: memoizing it is exact
+        return quit_state;
+      }
+      set.erase(std::unique(set.begin(), set.end()), set.end());
+      const std::size_t   flushes_before {flushes_};
+      const std::uint32_t result         {intern(set)};
+      if (flushes_ == flushes_before) {
+        res_[slot] = result;
+      }
+      return result;
+    }
+
+    /*!
+     * \brief The state that starts the backward scan at a match end with right context \p ctx: the backward
+     *        closure of the forward `match` there.
+     * \param[in] ctx The match end's right context.
+     * \return Its state id.
+     */
+    std::uint32_t start_for(std::uint8_t ctx)
+    {
+      if (starts_[ctx] != no_transition) {
+        return starts_[ctx];
+      }
+      std::vector<std::int32_t> set;
+      std::vector<char>         seen(code_.size(), 0);
+      if (match_pc_ >= 0) {
+        seen[static_cast<std::size_t>(match_pc_)] = 1;
+        set.push_back(match_pc_);
+        rev_closure_look(set, seen, ctx, key_unknown);
+      }
+      mark_context(set, ctx);
+      const std::size_t   flushes_before {flushes_};
+      const std::uint32_t result         {intern(set)};
+      if (flushes_ == flushes_before) {
+        starts_[ctx] = result;
+      }
+      return result;
+    }
+
+    /*!
+     * \brief One backward step for a program with assertions, with the right context given rather than read
+     *        from the byte's class: the step onto the text's last byte, where a newline is final.
+     * \param[in] state The current (resolved) state.
+     * \param[in] byte  The byte consumed.
+     * \param[in] ctx   The right context of the new position.
+     * \return The predecessor state (not cached).
+     */
+    std::uint32_t step_with(std::uint32_t state,
+                            std::uint8_t  byte,
+                            std::uint8_t  ctx)
+    {
+      const std::vector<std::int32_t> pcs {state_pcs_[state]};
+      std::vector<std::int32_t>       next;
+      std::vector<char>               seen(code_.size(), 0);
+      for (const std::int32_t pc : pcs) {
+        for (std::size_t k = rev_consume_at_[static_cast<std::size_t>(pc)];
+             k < rev_consume_at_[static_cast<std::size_t>(pc) + 1]; ++k) {
+          const std::int32_t pred {rev_consume_pool_[k]};
+          if (consumes(pred, byte) && seen[static_cast<std::size_t>(pred)] == 0) {
+            seen[static_cast<std::size_t>(pred)] = 1;
+            next.push_back(pred);
+          }
+        }
+      }
+      rev_closure_look(next, seen, ctx, key_unknown);
+      mark_context(next, ctx);
+      return intern(next);
+    }
+
+    /*!
+     * \brief \ref reverse_start for a program with position assertions: each position's state is resolved by
+     *        the byte to its left before the accept test and the step, and the scan begins with the right
+     *        context the whole text gives the match end.
+     * \param[in] text   Subject.
+     * \param[in] e      The known match end.
+     * \param[in] resume Lower bound the backward scan will not cross.
+     * \return The leftmost start at or after \p resume, or \ref real::npos.
+     */
+    std::size_t reverse_start_look(std::string_view text,
+                                   std::size_t      e,
+                                   std::size_t      resume)
+    {
+      std::uint32_t       state {start_for(right_ctx_at(text, e))};
+      std::size_t         best  {npos};
+      std::size_t         pos   {e};
+      const std::uint16_t count {alpha_.count};
+      while (true) {
+        const std::uint16_t key  {pos == 0 ? alpha_.count : static_cast<std::uint16_t>(alpha_.of[static_cast<std::uint8_t>(text[pos - 1U])])};
+        std::uint32_t       here {state};
+        if (state_pending_[state] != 0U) {
+          // The memoized resolution and the cached edge below are read inline; resolve() and step() only on
+          // a miss (this loop runs once per byte of every match).
+          const std::uint32_t memo {res_[(static_cast<std::size_t>(state) * (count + 1U)) + key]};
+          here = memo != no_transition ? memo : resolve(state, key);
+          if (here == quit_state) {
+            return quit_pos;
+          }
+        }
+        // No start lands inside a code point in text mode, with no test for it: every consuming path of a
+        // text-mode program begins at an ASCII or lead byte, and an empty match sits at an end the forward
+        // pass already aligned.
+        if (state_has_start_[here] != 0) {
+          best = pos;
+        }
+        if (pos <= resume || here == dead_state) {
+          break;
+        }
+        --pos;
+        const auto byte {static_cast<std::uint8_t>(text[pos])};
+        // The class of a newline cannot say whether it is the text's last byte, which `$` asks; that one
+        // step builds its state with the context read from the text.
+        if (byte == '\n' && pos + 1U == text.size()) {
+          state = step_with(here, byte, right_ctx_at(text, pos));
+        }
+        else {
+          const std::uint32_t cached {trans_[(static_cast<std::size_t>(here) * count) + alpha_.of[byte]]};
+          state = cached != no_transition ? cached : step(here, byte);
+        }
+      }
+      return best;
+    }
 
     /*!
      * \brief Saturate \p set with its backward epsilon-closure, then sort it into a canonical key.
@@ -1855,7 +2873,13 @@ namespace real::detail {
           }
         }
       }
-      rev_closure(next, seen);
+      if (look_) {
+        rev_closure_look(next, seen, class_ctx_[cls], key_unknown);
+        mark_context(next, class_ctx_[cls]);
+      }
+      else {
+        rev_closure(next, seen);
+      }
       // Same trap lazy_dfa::step guards against: intern() may flush() mid-call (state_pcs_/trans_ cleared
       // and rebuilt from scratch), which makes `state` -- the CALLER's index, captured before this call --
       // stale for the now-reset trans_. Only cache the edge back into trans_[state] when no flush happened
@@ -1887,18 +2911,26 @@ namespace real::detail {
 
     /*!
      * \brief Scan \p code for an op the transposed program cannot represent.
-     * \param[in] code The program's instruction stream.
+     * \param[in] code       The program's instruction stream.
+     * \param[in] ascii_word Whether a word boundary's word-ness is ASCII (then a byte decides it).
      * \return True when every op is representable.
      */
-    static constexpr bool compute_eligibility(std::span<const instr> code)
+    static constexpr bool compute_eligibility(std::span<const instr> code,
+                                              bool                   ascii_word)
     {
-      // Tier 1's possessive-loop family has no consuming-edge representation here either
-      // (consumes() above only recognizes byte/klass) -- same reasoning as the forward-DFA's
-      // own compute_eligibility.
-      return std::ranges::none_of(code, [](const instr& in) {
-                                    return in.op == opcode::assert_position || in.op == opcode::assert_lookaround
-                                           || in.op == opcode::klass_cp || in.op == opcode::byte_loop_possessive
-                                           || in.op == opcode::klass_loop_possessive || in.op == opcode::klass_cp_loop_possessive;
+      // Tier 1's possessive-loop family has no consuming-edge representation here (consumes() above only
+      // recognizes byte/klass), as in the forward DFA. A position assertion is an edge the closure crosses
+      // where it holds (rev_closure_look), unless no byte decides it.
+      return std::ranges::none_of(code, [ascii_word](const instr& in) {
+                                    if (in.op == opcode::assert_position) {
+                                      const auto kind {static_cast<assert_kind>(in.arg8)};
+                                      const bool word {kind == assert_kind::word_boundary || kind == assert_kind::not_word_boundary
+                                                       || kind == assert_kind::word_start || kind == assert_kind::word_end};
+                                      return in.arg16 != 0 || (word && !ascii_word);
+                                    }
+                                    return in.op == opcode::assert_lookaround || in.op == opcode::klass_cp
+                                           || in.op == opcode::byte_loop_possessive || in.op == opcode::klass_loop_possessive
+                                           || in.op == opcode::klass_cp_loop_possessive;
                                   });
     }
 
@@ -1923,13 +2955,20 @@ namespace real::detail {
       state_pcs_.push_back(pcs);
       trans_.insert(trans_.end(), alpha_.count, no_transition);
       bool has_start {false};
+      bool pending   {false};
       for (const std::int32_t pc : pcs) {
         if (pc == 0) { // pc 0 is the program's save-0 start
           has_start = true;
-          break;
+        }
+        if (is_pending(pc)) {
+          pending = true;
         }
       }
-      state_has_start_.push_back(has_start ? 1 : 0);
+      state_has_start_.push_back(has_start && !pending ? 1 : 0); // a pending state is not an accept until resolved
+      state_pending_.push_back(pending ? 1U : 0U);
+      if (look_) {
+        res_.insert(res_.end(), alpha_.count + 1U, no_transition);
+      }
       cache_.insert(pcs, id);
       return id;
     }
@@ -1943,10 +2982,18 @@ namespace real::detail {
       state_pcs_.clear();
       trans_.clear();
       state_has_start_.clear();
+      state_pending_.clear();
+      res_.clear();
+      starts_.fill(no_transition);
       cache_.clear();
       state_pcs_.emplace_back();                          // dead state 0
       trans_.insert(trans_.end(), alpha_.count, dead_state);
       state_has_start_.push_back(0);
+      state_pending_.push_back(0U);
+      if (look_) {
+        res_.insert(res_.end(), alpha_.count + 1U, dead_state);
+        return; // start states are per right context (start_for), built on first use
+      }
       std::vector<std::int32_t> start;
       std::vector<char>         seen(code_.size(), 0);
       if (match_pc_ >= 0) {
@@ -1961,6 +3008,11 @@ namespace real::detail {
     std::span<const char_class>                                                classes_;                    //!< Its byte classes, likewise borrowed.
     lazy_byte_alphabet                                                         alpha_;                      //!< Byte-to-class map; its count is the row stride.
     bool                                                                       eligible_    {false};        //!< \ref compute_eligibility's verdict, fixed at construction.
+    bool                                                                       word_quit_   {false};        //!< Unicode word boundaries carried, quitting next to a non-ASCII byte.
+    mutable bool                                                               quit_hit_    {false};        //!< Set by holds_left() inside one resolve(): that resolution is quit_state.
+    bool                                                                       look_        {false};        //!< The program carries position assertions (the look paths).
+    std::array<std::uint8_t, 256>                                              class_ctx_   {};             //!< Class -> the right context a byte of it gives (look programs).
+    std::array<std::uint32_t, 16>                                              starts_      {};             //!< Right context -> start state, per \ref flush (look programs).
     std::int32_t                                                               match_pc_    {-1};           //!< The forward `match` pc — this pass's start; -1 when absent.
     std::uint32_t                                                              start_state_ {0};            //!< Id of \ref match_pc_'s backward closure, re-interned by each \ref flush.
     std::size_t                                                                budget_      {state_budget}; //!< Cached states tolerated before a \ref flush.
@@ -1973,6 +3025,8 @@ namespace real::detail {
     std::vector<std::vector<std::int32_t>>                                     state_pcs_;                  //!< state id -> sorted pc-set.
     std::vector<std::uint32_t>                                                 trans_;                      //!< flat [state*stride + class] -> next.
     std::vector<char>                                                          state_has_start_;            //!< state -> reaches the program start (an accept).
+    std::vector<std::uint8_t>                                                  state_pending_;              //!< state -> holds a pending assertion (look programs).
+    std::vector<std::uint32_t>                                                 res_;                        //!< flat [state*(count+1) + key] -> resolved state (look programs).
     pc_set_cache                                                               cache_;                      //!< pc-set -> state id, the memo behind \ref intern.
   };
 } // namespace real::detail

@@ -139,7 +139,7 @@ namespace real::compat {
    * - **Invalid for both backends** (a syntax error): real rejects, and so does std — the exact std
    *   `.code()` is preserved and `what()` keeps std's message, so a syntax error is byte-for-byte `std`.
    * - **Strict-policy rejection** (\ref policy): a pattern real cannot represent linearly but std *could*
-   *   (a backreference, an unbounded lookaround, a POSIX class) — `code()` is `error_complexity` and
+   *   (a backreference, an unbounded lookbehind, a POSIX class) — `code()` is `error_complexity` and
    *   `what()` carries a REAL-identifiable message. Under `policy::fallback` this path delegates to std
    *   instead of throwing, so the only thrown case there is the invalid-for-both one above.
    */
@@ -184,7 +184,7 @@ namespace real::compat {
 
   /*!
    * \brief The drop-in policy for a pattern the linear engine cannot represent (backreferences, an
-   *        unbounded lookaround, a POSIX class, …). `strict` (the default) rejects it, so every accepted
+   *        unbounded lookbehind, a POSIX class, …). `strict` (the default) rejects it, so every accepted
    *        pattern executes each `regex_search`/`regex_match` in time linear in the input — the ReDoS-safety
    *        guarantee (replace/iterate compose O(n) such operations: quadratic worst-case on any linear
    *        engine, never exponential); `fallback` delegates it to `std::regex`, which may accept it but
@@ -987,7 +987,7 @@ namespace real::compat {
         }
         if (detail::grammar_forces_std(f) || detail::pattern_forces_std(sv)) {
           reject_or_fallback(sv, f, "the pattern uses a construct the linear engine does not represent "
-                             "(a backreference, an unbounded lookaround, a POSIX class, or a "
+                             "(a backreference, an unbounded lookbehind, a POSIX class, or a "
                              "grammar that forces std)");
           return;
         }
@@ -1003,7 +1003,7 @@ namespace real::compat {
           // error only when the std-only operation is actually invoked; search/match stay on real).
         }
         catch (const real::regex_error& real_error) {
-          // real cannot represent it (backref / unbounded lookaround / POSIX class). strict rejects;
+          // real cannot represent it (backref / unbounded lookbehind / POSIX class). strict rejects;
           // fallback delegates to std (which may accept it). Invalid for both throws
           // compat::regex_error (emplace_std wraps). A non-ASCII class member used to be on this
           // list and no longer is: under this layer's bytes mode it is a plain byte class, the same

@@ -631,7 +631,8 @@ namespace real {
       // BOTH class routes now accept a `{k,}` minimum. The code-point one had been declined twice on
       // a cost measured in the four-engine harness that does not exist in a consumer-shaped
       // translation unit -- see fill_cp_class_spans's note and docs/MEASUREMENT.md §5.5.
-      const bool cp_class {batchable && no_wrap && prog.hints.greedy_cp_class >= 0
+      // A kept wrap rides along: the filler checks it per run (fill_cp_class_spans's WbKept).
+      const bool cp_class {batchable && prog.hints.greedy_cp_class >= 0
                            && prog.hints.greedy_cp_class_end == 0
       }; // no is_constant_evaluated: see above
 
@@ -689,7 +690,9 @@ namespace real {
       batch_lazy_dfa_  = batchable && no_wrap && !prog.hints.wb_lead_maximal_run
                          && !detail::lazy_dfa_route_disabled()
                          && prog.hints.first_bytes_valid && !prog.hints.empty_match_possible
-                         && prog.slot_count <= 2
+                         // Groups need no filling for a walk that reads none (count_matches): the filler
+                         // hands back spans only, so a pattern's groups need not cost it the batch.
+                         && (prog.slot_count <= 2 || prog.hints.capture_free_walk)
                          && prog.hints.alternation_branch_count < 4
                          && prog.hints.trailing_lookaround < 0
                          && detail::pike_vm<typename Storage::state_type, true>::lazy_dfa_is_the_route(prog.hints)
@@ -999,8 +1002,14 @@ namespace real {
         // through a flag of its own (see the constructor's `cp_class`). Nothing else can arrive here:
         // batch_eligible_ is the disjunction of exactly these four.
         detail::prof::tick_route(detail::prof::route::cp_class_loop);
-        batch_n_ = wb_edge_ ? bvm.template fill_cp_class_spans<true>(text_, pos_, batch_, batch_cap)
-                            : bvm.template fill_cp_class_spans<false>(text_, pos_, batch_, batch_cap);
+        if (wb_kept_) {
+          batch_n_ = wb_edge_ ? bvm.template fill_cp_class_spans_wrapped<true>(text_, pos_, batch_, batch_cap)
+                              : bvm.template fill_cp_class_spans_wrapped<false>(text_, pos_, batch_, batch_cap);
+        }
+        else {
+          batch_n_ = wb_edge_ ? bvm.template fill_cp_class_spans<true>(text_, pos_, batch_, batch_cap)
+                              : bvm.template fill_cp_class_spans<false>(text_, pos_, batch_, batch_cap);
+        }
       }
       batch_i_ = 0;
       return batch_n_ != 0;
@@ -1292,6 +1301,32 @@ namespace real {
                                               std::size_t      endpos = npos) const&
     {
       return run(text, pos, endpos, detail::run_mode::prefix);
+    }
+
+    /*!
+     * \brief Whether `match(text, pos)` could come out differently if \p text continued past its end.
+     *
+     * For text that arrives in pieces: a lexer may commit to the match at \p pos only once no further text
+     * can change it. `[a-z]+` on `"ab"` could still grow; on `"ab "` it cannot. The end of \p text is
+     * treated as a place more text may follow, not as the end of the subject, so `$`, `\b` or a lookahead
+     * that read it make the answer true. Conservative: it may say true where more text would in fact
+     * change nothing, never false where it would. Runs the general matcher, not the fast paths.
+     *
+     * \param[in] text The text available so far.
+     * \param[in] pos  Byte offset the match is anchored at.
+     * \return True when text past the end of \p text could change the match at \p pos.
+     */
+    [[nodiscard]] bool can_extend(std::string_view text,
+                                  std::size_t      pos = 0) const
+    {
+      if (pos > text.size()) {
+        return true; // the anchor lies in text still to come
+      }
+      typename Storage::state_type                        state;
+      const detail::program_view&                         prog {program_.view()};
+      detail::pike_vm<typename Storage::state_type, true> vm(prog, state);
+      typename Storage::slot_storage                      slots;
+      return vm.extends_past_end(text, pos, slots);
     }
 
     /*!

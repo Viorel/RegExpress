@@ -225,6 +225,132 @@ namespace real::detail {
   };
 
   /*!
+   * \brief The bounded backtracker's whole state for one search, on the caller's stack (see
+   *        `pike_vm::run_bounded_backtrack`).
+   *
+   * Rows are positions relative to the search's start. Nothing is zeroed on construction: the search
+   * clears the rows from its first start to the subject's end when it makes that start, so one whose
+   * prefilter finds no start clears nothing. Clearing a row only when the walk reaches it costs a test
+   * per byte consumed, which measured dearer than the words it saves.
+   */
+  // MISRA deviation, documented in docs/MISRA.md: \ref marks, \ref slots and \ref jobs carry no initializer.
+  // A mark is read only in a row the search cleared first, a slot only after the start set it, a job only
+  // below \ref depth; zeroing them would cost 3.3 KiB of stores per search on subjects of a few bytes.
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
+  struct backtrack_frame
+  {
+    /*!
+     * \brief One pending branch: explore instruction `pc` at row `row`, or -- `pc` negative -- restore
+     *        slot `-pc - 1` to `row`, read as a position or \ref unset.
+     */
+    struct job
+    {
+      std::int32_t  pc;  //!< Instruction to explore, or `-(slot + 1)` for a restore.
+      std::uint32_t row; //!< Row to explore at, or the value to restore.
+    };
+
+    static constexpr std::uint32_t unset       {0xFFFFFFFFU};             //!< A restored slot's npos (rows stay far below).
+    static constexpr std::size_t   inline_jobs {256};                     //!< Jobs held before spilling to the heap.
+
+    std::array<std::uint64_t, bounded_backtrack_bits / 64U>    marks;     //!< Bit row x width + pc: entered already.
+    std::array<std::size_t, bounded_backtrack_max_slots>       slots;     //!< The explored branch's capture slots.
+    std::array<job, inline_jobs>                               jobs;      //!< Pending branches, most recent last.
+    std::vector<job>                                           spill;     //!< Pending branches past \ref inline_jobs.
+    std::size_t                                                depth {0}; //!< Jobs held in \ref jobs.
+    std::size_t                                                width {0}; //!< Instructions per row.
+
+    /*!
+     * \brief Clears the marks of rows [\p first, \p rows), in whole words.
+     * \param[in] first The first start's row: no row before it is ever read.
+     * \param[in] rows  Rows the search spans.
+     */
+    void clear(std::size_t first,
+               std::size_t rows)
+    {
+      const auto from {static_cast<std::ptrdiff_t>((first * width) / 64U)};
+      const auto to   {static_cast<std::ptrdiff_t>(((rows * width) + 63U) / 64U)};
+      std::fill(marks.begin() + from, marks.begin() + to, std::uint64_t {0});
+    }
+
+    /*!
+     * \brief Whether (\p pc, \p row) was entered already.
+     * \param[in] pc  Instruction.
+     * \param[in] row Row.
+     * \return True when it was.
+     */
+    [[nodiscard]] bool marked(std::int32_t pc,
+                              std::size_t  row) const
+    {
+      const std::size_t bit {(row * width) + static_cast<std::size_t>(pc)};
+      return ((marks[bit / 64U] >> (bit % 64U)) & 1U) != 0U;
+    }
+
+    /*!
+     * \brief Marks (\p pc, \p row) entered.
+     * \param[in] pc  Instruction.
+     * \param[in] row Row.
+     * \return False when it was entered already.
+     */
+    bool enter(std::int32_t pc,
+               std::size_t  row)
+    {
+      const std::size_t   bit  {(row * width) + static_cast<std::size_t>(pc)};
+      const std::uint64_t mask {std::uint64_t {1} << (bit % 64U)};
+      if ((marks[bit / 64U] & mask) != 0U) {
+        return false;
+      }
+      marks[bit / 64U] |= mask;
+      return true;
+    }
+
+    /*!
+     * \brief Holds a pending branch.
+     * \param[in] j The branch.
+     */
+    void push(job j)
+    {
+      if (depth < inline_jobs) {
+        jobs[depth++] = j;
+      }
+      else {
+        spill.push_back(j);
+      }
+    }
+
+    /*!
+     * \brief Takes the most recent pending branch.
+     * \param[out] j The branch.
+     * \return False when none is pending.
+     */
+    bool pop(job& j)
+    {
+      if (!spill.empty()) {
+        j = spill.back();
+        spill.pop_back();
+        return true;
+      }
+      if (depth == 0) {
+        return false;
+      }
+      j = jobs[--depth];
+      return true;
+    }
+
+    /*!
+     * \brief Sets slot \p slot to \p value, holding its old value to restore when the branch is left.
+     * \param[in] slot  The slot.
+     * \param[in] value Its new value.
+     */
+    void save(std::uint16_t slot,
+              std::size_t   value)
+    {
+      const std::size_t old {slots[slot]};
+      push({.pc   = -static_cast<std::int32_t>(slot) - 1, .row = old == npos ? unset : static_cast<std::uint32_t>(old)});
+      slots[slot] = value;
+    }
+  };
+
+  /*!
    * \brief Copy-on-write pool of capture blocks (COW) — the one capture-slot mechanism for both storages.
    *
    * A per-thread value model would snapshot all `slot_count` capture values every time a thread is stepped
@@ -591,8 +717,44 @@ namespace real::detail {
    */
   struct lookaround_scratch
   {
-    thread_list            lists[2]; //!< Sub-VM thread lists (pcs only; the sub is capture-free).
-    std::vector<eps_entry> stack;    //!< Sub-VM epsilon-closure stack.
+    /*!
+     * \brief One lookbehind's forward walk over the subject: its threads parked at \ref at, and
+     *        whether a match of the sub-pattern ends there.
+     *
+     * The walk starts a thread at every position it passes, so its thread list at \ref at
+     * holds every partial match that could still end later, and a thread reaching `match` at \ref at
+     * is a match ending exactly there. Queried at increasing positions — the order the VM visits them
+     * in — it advances, and every byte is stepped once per search rather than once per candidate
+     * start.
+     */
+    struct behind_walk
+    {
+      const char* text  {nullptr}; //!< The subject walked (data pointer); another subject restarts.
+      std::size_t size  {0};       //!< The subject's length.
+      std::size_t at    {npos};    //!< Where the threads are parked; npos before the first query.
+      bool        holds {false};   //!< A match of the sub-pattern ends exactly at \ref at.
+      thread_list threads;         //!< The sub-pattern's threads parked at \ref at.
+    };
+
+    /*!
+     * \brief One unbounded lookahead's answer at every position of one subject: bit i is set when the
+     *        sub-pattern matches a prefix of the text from i.
+     *
+     * Filled by one backward pass over the subject (\ref pike_vm::unbounded_lookahead_matches), the
+     * first time the lookahead is asked about in a search, and read thereafter.
+     */
+    struct ahead_table
+    {
+      const char*                text {nullptr}; //!< The subject answered for (data pointer).
+      std::size_t                size {npos};    //!< Its length; npos before the first pass.
+      std::vector<std::uint64_t> holds;          //!< Bit i: the lookahead's sub-pattern matches from i.
+    };
+
+    thread_list               lists[2]; //!< Sub-VM thread lists (pcs only; the sub is capture-free).
+    std::vector<eps_entry>    stack;    //!< Sub-VM epsilon-closure stack.
+    std::vector<behind_walk>  behind;   //!< Per lookaround index: its lookbehind walk (unused for lookaheads).
+    std::vector<ahead_table>  ahead;    //!< Per lookaround index: its unbounded lookahead's table.
+    std::vector<std::uint8_t> reach[2]; //!< The backward pass's rows: pc reaches `match` from a position.
   };
 
   /*!
@@ -640,6 +802,44 @@ namespace real::detail {
   // would pin the bound rather than any behaviour the engine has. Namespace-scoped because the DFA
   // fidelity decision (`dfa.hpp`) replays this same closure walk and must read the same bound.
   inline constexpr int max_loop_hops {8};
+
+  /*!
+   * \brief Tells when the anchored walks from candidates should give way to one forward pass and one
+   *        reverse, from what the walks that found no match have cost against the distance crossed.
+   *
+   * Each walk costs a setup and the next candidate's search, then a price per byte it reads; inside a run
+   * of candidate bytes that no match ends, each one also rereads the run the last one crossed. Measured on
+   * 2 MB of prose and of log lines (arm64, instructions retired, 2026-09-26), over 20 pattern and subject
+   * pairs, the walks won wherever at most 0.036 walks per byte crossed found nothing, and lost wherever
+   * 0.4 or more did -- by up to 6x, and by 1.2x even among dense matches. Nothing fell between. The score
+   * `8 * walks + bytes read`, per byte crossed, was at most 0.43 where the walks won and at least 4.65
+   * where they lost; the bound sits at 1.5, a factor of about three from each side. Namespace-scoped so its
+   * verdicts are tested on their own, without a search.
+   */
+  struct anchored_walk_bill
+  {
+    static constexpr std::size_t per_walk      {16};   //!< One walk that found nothing, doubled with the rest.
+    static constexpr std::size_t per_walk_byte {2};    //!< One byte such a walk read.
+    static constexpr std::size_t per_pass_byte {3};    //!< One byte crossed: the bound of 1.5, doubled.
+    static constexpr std::size_t slack         {64};   //!< About four walks before any verdict: a batch of spans starts a fresh bill, and the gap each side is wide.
+
+    std::size_t walks                          {0};    //!< Walks that found no match.
+    std::size_t read                           {0};    //!< Bytes those walks read.
+
+    /*!
+     * \brief Bills one walk that found no match, and tells whether the walks should give way.
+     * \param[in] length  Bytes the walk read.
+     * \param[in] crossed Bytes from where the walks began to the walk's candidate.
+     * \return True once the single pass would clearly cost less.
+     */
+    [[nodiscard]] constexpr bool overspent(std::size_t length,
+                                           std::size_t crossed)
+    {
+      ++walks;
+      read += length;
+      return (per_walk * walks) + (per_walk_byte * read) > slack + (per_pass_byte * crossed);
+    }
+  };
 
   /*!
    * \brief The Pike VM, generic over the scratch-state container policy.
@@ -922,17 +1122,31 @@ namespace real::detail {
             return true;
           }
         }
-        // forbid_empty_until_ != 0 means the iterator just yielded an empty match and the next may not be
-        // empty at the same spot; forward_end does not model that rule, so those searches stay on the Pike
-        // VM (which does). Empty-matching patterns thus alternate DFA/VM across a find_iter; all others route.
         if (!std::is_constant_evaluated() && !lazy_dfa_route_disabled() && mode == run_mode::search
             && sem_ == match_semantics::first // kFirstMatch forward pass; longest uses the general loop below
-            && forbid_empty_until_ == 0 && text.size() - start >= lazy_dfa_min_input) {
-          // noinline out of run() so the shared-DFA body cannot bloat class-loop codegen (x86
-          // witness/wplus regression pattern — same fix shape as ensure_ac_automaton).
-          if (const std::optional<bool> dfa_result {
-            try_shared_lazy_dfa_search<Cascade>(text, start, mode, out_slots)}) {
-            return *dfa_result;
+            && text.size() - start >= lazy_dfa_min_input) {
+          std::size_t dfa_start {start};
+          if (forbid_empty_until_ > start) {
+            // The iterator just yielded an empty match at `start`, and the next may not be empty there. The
+            // DFAs do not model that rule, but it binds one position only: the VM decides whether a non-empty
+            // match starts at `start` (anchored there, the rule applied), and past it the search routes as
+            // any other. Leaving the whole search to the VM had it find every other match of a pattern that
+            // can match empty -- `.*` ran 700 times slower than `.+`.
+            if (run_general<false>(text, start, run_mode::prefix, out_slots)) {
+              return true;
+            }
+            dfa_start = forbid_empty_until_; // the next character boundary, or past the end
+          }
+          if (dfa_start <= text.size() && text.size() - dfa_start >= lazy_dfa_min_input) {
+            const std::size_t forbid {forbid_empty_until_};
+            forbid_empty_until_ = 0;
+            // noinline out of run() so the shared-DFA body cannot bloat class-loop codegen (x86
+            // witness/wplus regression pattern — same fix shape as ensure_ac_automaton).
+            const std::optional<bool> dfa_result {try_shared_lazy_dfa_search<Cascade>(text, dfa_start, mode, out_slots)};
+            forbid_empty_until_ = forbid; // the VM below, if the DFAs declined, applies the rule itself
+            if (dfa_result) {
+              return *dfa_result;
+            }
           }
         }
       }
@@ -958,7 +1172,7 @@ namespace real::detail {
      *                          inner-literal route's linearity backstop.
      * \return True on a match.
      */
-    template <bool Cascade = false, typename OutSlots>
+    template <bool Cascade = false, bool Probe = false, typename OutSlots>
     constexpr bool run_general(std::string_view text,
                                std::size_t      start,
                                run_mode         mode,
@@ -967,6 +1181,13 @@ namespace real::detail {
     {
       text_ = text;
       const std::size_t code_size {prog_.code.size()};
+      // A short subject never amortises the VM's per-position lists and capture pool; a bit per
+      // (instruction, position) is cheaper. The forward-stop contract belongs to the VM's own scan.
+      if (!Probe && !std::is_constant_evaluated() && prog_.hints.bounded_backtrack != 0U && forward_stop == nullptr
+          && sem_ == match_semantics::first && text.size() - start < bounded_backtrack_bits
+          && (text.size() - start + 1U) * code_size <= bounded_backtrack_bits && !bounded_backtrack_route_disabled()) {
+        return run_bounded_backtrack(text, start, mode, out_slots);
+      }
       auto*             clist     {&state_.list_a};
       auto*             nlist     {&state_.list_b};
       clist->reset(code_size);
@@ -992,7 +1213,9 @@ namespace real::detail {
           // away (drop) the seed's own threads here.
           clist->reset(code_size);
         }
-        if (seeding && seed_viable(text, pos, start)) {
+        // A probing run seeds without the prefilter: at the end of the text there is no first byte to test,
+        // which is exactly the case it must see.
+        if (seeding && (Probe || seed_viable(text, pos, start))) {
           // a seed shares the canonical all-npos block (one incref, no allocation); the first save
           // in its closure copies-on-write off it, so block 0 is never mutated.
           if (!prog_.hints.capture_free_walk) {
@@ -1000,8 +1223,8 @@ namespace real::detail {
           }
           // Capture-free: `pos` is what `save 0` at pc 0 will set anyway; passing it keeps the parameter
           // meaningful rather than a sentinel the walk happens to ignore.
-          add_thread(*clist, 0, pos,
-                     prog_.hints.capture_free_walk ? pos : std::size_t {pool_type::npos_block});
+          add_thread<Probe>(*clist, 0, pos,
+                            prog_.hints.capture_free_walk ? pos : std::size_t {pool_type::npos_block});
         }
         if (clist->pcs.empty()) {
           // The seed itself may die in the closure (failed assertion):
@@ -1015,7 +1238,7 @@ namespace real::detail {
           continue;
         }
         detail::prof::tick_thread_count(clist->pcs.size());
-        step(*clist, *nlist, pos, mode, matched, out_slots);
+        step<Probe>(*clist, *nlist, pos, mode, matched, out_slots);
         auto* swap {clist};
         clist = nlist;
         nlist = swap;
@@ -1058,17 +1281,24 @@ namespace real::detail {
         st.fwd_dfa;
       }) {
         if (!lazy_dfa_route_disabled()) {
-          // anchored_end on the shared confirm DFA (under slot.mu). begin_scan mirrors the per-regex design
+          // anchored_end on this thread's confirm DFA (see dfa_lease). begin_scan mirrors the per-regex design
           // forward_end's per-confirm thrash reset; the transition cache itself stays warm across iters.
           std::size_t match_end {npos};
+          bool        looks     {false};
+          bool        quit      {false};
           const bool  dfa_ok    {
             with_search_dfas([&](lazy_dfa& fwd, reverse_dfa& /*rev*/) {
                                fwd.begin_scan();
                                const auto ar {fwd.anchored_end(text, s)};
                                match_end = ar.end;
                                stop      = (ar.end != npos) ? ar.end : ar.scanned_to;
+                               looks     = fwd.looks();
+                               quit      = ar.quit;
                              })};
-          if (dfa_ok) {
+          if (quit) {
+            stop = s; // the walk proved nothing: the VM below confirms from s
+          }
+          if (dfa_ok && !quit) {
             if (match_end == npos) {
               // A bare forward_end miss would set stop = text.size(); keep a floor of s for the IL backstop.
               if (stop < s) {
@@ -1079,12 +1309,26 @@ namespace real::detail {
             }
             const std::size_t e {match_end};
             stop = e;
+            if (prog_.slot_count <= 2) {
+              // No group to fill: the anchored walk's end is the match's, and no engine needs to run. A pattern
+              // whose classes hold its own literal is not one-pass, and fell to the VM here on every candidate.
+              out_slots.assign(2, npos);
+              out_slots[0] = s;
+              out_slots[1] = e;
+              return true;
+            }
             ensure_op_table();
             if (prog_.immut != nullptr && prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()
                 && prog_.immut->op_table->extract(text, s, e, out_slots)) {
               return true;
             }
-            return run_general<false>(text.substr(0, e), s, run_mode::prefix, out_slots, &stop);
+            if (prog_.immut != nullptr && prog_.immut->run_shape && match_run_shape(text, s, e, out_slots)) {
+              return true;
+            }
+            // A program that looks past a position (`$`, `\b`) reads the text beyond e: slicing there would turn
+            // e into an end of text for it.
+            note_vm_window();
+            return run_general<false>(looks ? text : text.substr(0, e), s, run_mode::prefix, out_slots, &stop);
           }
         }
       }
@@ -1259,7 +1503,7 @@ namespace real::detail {
               if (prog_.immut != nullptr && prog_.immut->byte_prog.eligible) {
                 abandon                     = true;
                 state_.il_abandoned         = true; // sticky: dense memmem stream loses to core for this haystack
-                il_density_last_abandoned() = true;
+                il_density_last_abandoned().store(true, std::memory_order_relaxed);
                 return false;
               }
             }
@@ -1324,13 +1568,13 @@ namespace real::detail {
             abandon = true; // no per-regex cache, or the prefix is not byte-DFA-eligible — let the core VM handle it
             return false;
           }
-          // Shared IL-prefix reverse under slot.mu (warmed once per regex via epoch).
+          // This thread's IL-prefix reverse DFA for this regex (built once per thread and program).
           {
-            shared_dfa_slot&                  slot {shared_dfa_for(prog_.immut)};
-            const std::lock_guard<std::mutex> lock {slot.mu};
-            ensure_slot_il_prefix_rev_unlocked(*prog_.immut, slot);
-            if (slot.il_prefix_rev.has_value()) {
-              s = slot.il_prefix_rev->reverse_start(text, h, min_match_start);
+            const dfa_lease dfas {prog_.immut};
+            ensure_set_il_prefix_rev(*prog_.immut, *dfas);
+            shared_dfa_set& set {*dfas};
+            if (set.il_prefix_rev.has_value()) {
+              s = set.il_prefix_rev->reverse_start(text, h, min_match_start);
             }
             else {
               s = npos;
@@ -1429,7 +1673,8 @@ namespace real::detail {
 
     //! \brief Match semantics for the current run (\ref match_semantics::first by default; \ref
     //!        match_semantics::longest is the experimental opt-in). Read by \ref step and the fast-path routing.
-    match_semantics sem_ {match_semantics::first};
+    match_semantics sem_     {match_semantics::first};
+    bool            extends_ {false}; //!< Set by a probing run (\ref extends_past_end) when more text could change the answer.
 
     /*!
      * \brief The concrete thread-list type taken from the bound `State`.
@@ -1628,7 +1873,8 @@ namespace real::detail {
           state_.ac_decided = false;
         }
         if (state_.ac_decided) {
-          ac_density_last_verdict() = state_.ac_dense ? ac_verdict::automaton : ac_verdict::cascade;
+          ac_density_last_verdict().store(state_.ac_dense ? ac_verdict::automaton : ac_verdict::cascade,
+                                          std::memory_order_relaxed);
           return state_.ac_dense;
         }
         const std::size_t branches {static_cast<std::size_t>(prog_.hints.alternation_branch_count)};
@@ -1700,7 +1946,8 @@ namespace real::detail {
                                          && completed * 100U <= cands * ac_completion_pct};
         state_.ac_dense           = work >= want && completion_ok;
         state_.ac_decided         = true;
-        ac_density_last_verdict() = state_.ac_dense ? ac_verdict::automaton : ac_verdict::cascade;
+        ac_density_last_verdict().store(state_.ac_dense ? ac_verdict::automaton : ac_verdict::cascade,
+                                        std::memory_order_relaxed);
         return state_.ac_dense;
       }
       else {
@@ -1728,7 +1975,7 @@ namespace real::detail {
       if (immut->built_for.load(std::memory_order_acquire) == want) {
         return;
       }
-      // Rebuild under a striped lock (not slot.mu / map_mu — reset_shared_dfas re-locks those).
+      // Rebuild under a striped lock (not map_mu / pool_mu — reset_shared_dfas re-locks those).
       const std::lock_guard<std::mutex> lock {detail::immut_build_mu(immut)};
       if (immut->built_for.load(std::memory_order_relaxed) == want) {
         return; // double-check
@@ -1743,10 +1990,19 @@ namespace real::detail {
       if (immut->byte_prog.eligible) {
         immut->alphabet =
           compute_lazy_alphabet(immut->byte_prog.code, immut->byte_prog.classes); // shared by both DFAs
+        immut->look_prog = {};
       }
       else {
         immut->alphabet = {};
+        // Declined on a position assertion, perhaps: the search DFAs can carry anchors and word boundaries
+        // (lazy_dfa::close_look), so they get the Tier-B program. Every other consumer of byte_prog keeps
+        // reading its verdict.
+        immut->look_prog = build_byte_program(prog_, /*keep_assertions=*/ true);
       }
+      immut->look_alphabet = immut->look_prog.eligible
+                               ? compute_lazy_alphabet(immut->look_prog.code, immut->look_prog.classes)
+                               : lazy_byte_alphabet {};
+      immut->run_shape       = prog_.slot_count > 2 && is_run_shape(prog_);
       immut->il_prefix_prog  = {};
       immut->il_min_haystack = 0;
       if (!prog_.prefix_code.empty()) { // IL: expand the inner-literal prefix once per program
@@ -1829,40 +2085,47 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Warm shared search DFAs for \p immut into \p slot (caller holds \p slot.mu).
+     * \brief Builds the search DFAs for \p immut into this thread's leased \p set, once.
      * \param[in]     immut Per-regex immutables naming the program to build for.
-     * \param[in,out] slot  Process-wide DFA slot to populate.
+     * \param[in,out] set   The leased DFA set to populate.
      */
-    void ensure_slot_search_dfas_unlocked(detail::regex_immutables& immut,
-                                          shared_dfa_slot&          slot)
+    void ensure_set_search_dfas(detail::regex_immutables& immut,
+                                shared_dfa_set&           set)
     {
-      if (!immut.byte_prog.eligible) {
+      if (set.fwd.has_value()) {
+        return; // built on this set's first search: every later one returns here
+      }
+      const bool          look {!immut.byte_prog.eligible};
+      const byte_program& bp   {look ? immut.look_prog : immut.byte_prog};
+      if (!bp.eligible) {
         return;
       }
-      if (!slot.fwd.has_value()) {
-        slot.fwd.emplace(immut.byte_prog.code, immut.byte_prog.classes, lazy_dfa::state_budget, &immut.alphabet);
-        slot.rev.emplace(immut.byte_prog.code, immut.byte_prog.classes, reverse_dfa::state_budget, &immut.alphabet);
-      }
+      const lazy_byte_alphabet* alpha {look ? &immut.look_alphabet : &immut.alphabet};
+      // Unicode word boundaries ride along and quit next to a non-ASCII byte; every caller of these DFAs
+      // reads the quit and asks the VM.
+      set.fwd.emplace(bp.code, bp.classes, lazy_dfa::state_budget, alpha, !bp.unicode_word, prog_.byte_mode,
+                      /*word_quit=*/ true);
+      set.rev.emplace(bp.code, bp.classes, reverse_dfa::state_budget, alpha, !bp.unicode_word, /*word_quit=*/ true);
     }
 
     /*!
-     * \brief Warm shared IL-prefix reverse DFA (caller holds \p slot.mu).
+     * \brief Builds the IL-prefix reverse DFA for \p immut into this thread's leased \p set, once.
      * \param[in]     immut Per-regex immutables naming the program to build for.
-     * \param[in,out] slot  Process-wide DFA slot to populate.
+     * \param[in,out] set   The leased DFA set to populate.
      */
-    void ensure_slot_il_prefix_rev_unlocked(detail::regex_immutables& immut,
-                                            shared_dfa_slot&          slot)
+    void ensure_set_il_prefix_rev(detail::regex_immutables& immut,
+                                  shared_dfa_set&           set)
     {
       if (!immut.il_prefix_prog.eligible) {
         return;
       }
-      if (!slot.il_prefix_rev.has_value()) {
-        slot.il_prefix_rev.emplace(immut.il_prefix_prog.code, immut.il_prefix_prog.classes);
+      if (!set.il_prefix_rev.has_value()) {
+        set.il_prefix_rev.emplace(immut.il_prefix_prog.code, immut.il_prefix_prog.classes);
       }
     }
 
     /*!
-     * \brief Run \p fn with the shared search DFAs under the slot lock.
+     * \brief Run \p fn with this thread's search DFAs for the regex (see \ref dfa_lease), taking no lock.
      * \param[in] fn Callable taking `(lazy_dfa& fwd, reverse_dfa& rev)`.
      * \return True when \p fn ran; false when the route must stay on the Pike VM (no immut / ineligible).
      */
@@ -1874,9 +2137,9 @@ namespace real::detail {
         return false; // no cache → no DFA route, same contract as the per-regex design
       }
       // ensure_op_table, not ensure_immutables: \p fn is try_shared_lazy_dfa_search, whose confirm steps
-      // DO extract through op_table. It must be built BEFORE slot.mu is taken -- ensure_op_table locks
-      // immut_build_mu, and reset_shared_dfas walks immut_build_mu -> map_mu/slot.mu, so building it inside
-      // the lambda would invert that order.
+      // DO extract through op_table. It must be built BEFORE the lease is taken -- ensure_op_table locks
+      // immut_build_mu, and reset_shared_dfas walks immut_build_mu -> map_mu/pool_mu, so building it inside
+      // the lambda would take them in the other order.
       // The extractor is built ONLY when there is something to extract. `fn`'s confirm step fills
       // out_slots through op_table, but a 2-slot program has nothing but the span the DFA already
       // found -- and when the table is absent the confirm falls to run_general, which is the same
@@ -1888,18 +2151,26 @@ namespace real::detail {
       else {
         ensure_immutables(); // the DFAs still need the byte program and the shared alphabet
       }
-      shared_dfa_slot&                  slot {shared_dfa_for(immut)};
-      const std::lock_guard<std::mutex> lock {slot.mu};
-      ensure_slot_search_dfas_unlocked(*immut, slot);
-      if (!slot.fwd.has_value() || !slot.rev.has_value() || !slot.fwd->eligible()) {
+      const dfa_lease dfas {immut};
+      shared_dfa_set& set {*dfas};
+      ensure_set_search_dfas(*immut, set);
+      if (!set.fwd.has_value() || !set.rev.has_value()) {
+        return false;
+      }
+      lazy_dfa&    fwd {*set.fwd};
+      reverse_dfa& rev {*set.rev};
+      if (!fwd.eligible()) {
         return false;
       }
       // With per-iterator caches, thrashing re-armed on each new iterator. On a shared slot a sticky thrash
       // flag would permanently decline the DFA route for every later search on this regex — re-arm
       // per logical entry. Callers that walk many candidates (A2) still call begin_scan once more
       // for a single thrash window across that loop; a double-reset here is harmless.
-      slot.fwd->begin_scan();
-      std::forward<Fn>(fn)(*slot.fwd, *slot.rev);
+      // A scan that quits hands only its own search to the VM: the next one tries the DFAs again, since a
+      // quit is local to where a boundary met a non-ASCII byte (on prose with curly quotes, giving the whole
+      // subject to the VM after the first quit cost \b\w+ing\b 44 % more).
+      fwd.begin_scan();
+      std::forward<Fn>(fn)(fwd, rev);
       return true;
     }
 
@@ -1928,7 +2199,8 @@ namespace real::detail {
                            // A2: anchored-from-candidate when first_bytes is sound; else forward_end + reverse.
                            if (prog_.hints.first_bytes_valid) {
                              fwd.begin_scan();
-                             std::size_t c {scan_start};
+                             std::size_t        c    {scan_start};
+                             anchored_walk_bill bill {};
                              while (true) {
                                c = next_candidate(text, c, scan_start);
                                if (c > text.size()) {
@@ -1937,6 +2209,9 @@ namespace real::detail {
                                  return;
                                }
                                const auto anchored {fwd.anchored_end(text, c)};
+                               if (anchored.quit) {
+                                 return; // dfa_result stays empty: the VM answers this search
+                               }
                                prefilter_note_scan(anchored.scanned_to - c);
                                if (anchored.end != npos) {
                                  const std::size_t match_end {anchored.end};
@@ -1955,18 +2230,32 @@ namespace real::detail {
                                    dfa_result = true;
                                    return;
                                  }
+                                 if (prog_.immut != nullptr && prog_.immut->run_shape
+                                     && match_run_shape(text, c, match_end, out_slots)) {
+                                   prof::tick_route(prof::route::run_shape_window);
+                                   dfa_result = true;
+                                   return;
+                                 }
                                  prof::tick_route(prof::route::general_window);
-                                 dfa_result = run_general<Cascade>(text.substr(0, match_end), c, mode, out_slots);
+                                 note_vm_window();
+                                 dfa_result = run_general<Cascade>(fwd.looks() ? text : text.substr(0, match_end), c, mode,
+                                                                   out_slots);
                                  return;
                                }
-                               if (anchored.scanned_to >= text.size()) {
+                               // No match starts at c: the single pass takes over from the next byte when a walk
+                               // reached the end, or when the walks reread the text more than it would.
+                               if (anchored.scanned_to >= text.size()
+                                   || bill.overspent(anchored.scanned_to - c, c - scan_start)) {
                                  scan_start = c + 1;
                                  break;
                                }
                                ++c;
                              }
                            }
-                           const std::size_t match_end {fwd.forward_end(text.substr(scan_start))};
+                           const std::size_t match_end {fwd.forward_end(text, scan_start)};
+                           if (match_end == lazy_dfa::quit_pos) {
+                             return; // dfa_result stays empty: the VM answers this search
+                           }
                            prefilter_note_scan(text.size() - scan_start);
                            if (match_end == npos) {
                              prof::tick_route(prof::route::lazy_dfa_fwd_rev);
@@ -1974,8 +2263,11 @@ namespace real::detail {
                              dfa_result = false;
                              return;
                            }
-                           const std::size_t abs_end   {scan_start + match_end};
+                           const std::size_t abs_end   {match_end};
                            const std::size_t abs_start {rev.reverse_start(text, abs_end, scan_start)};
+                           if (abs_start == reverse_dfa::quit_pos) {
+                             return; // the start is a boundary's to tell: the VM answers this search
+                           }
                            prof::tick_route(prof::route::lazy_dfa_fwd_rev);
                            if (prog_.slot_count <= 2) {
                              out_slots.assign(2, npos);
@@ -1990,8 +2282,16 @@ namespace real::detail {
                              dfa_result = true;
                              return;
                            }
+                           if (prog_.immut != nullptr && prog_.immut->run_shape
+                               && match_run_shape(text, abs_start, abs_end, out_slots)) {
+                             prof::tick_route(prof::route::run_shape_window);
+                             dfa_result = true;
+                             return;
+                           }
                            prof::tick_route(prof::route::general_window);
-                           dfa_result = run_general<Cascade>(text.substr(0, abs_end), abs_start, mode, out_slots);
+                           note_vm_window();
+                           dfa_result = run_general<Cascade>(fwd.looks() ? text : text.substr(0, abs_end), abs_start, mode,
+                                                             out_slots);
                          })};
       if (used && dfa_result.has_value()) {
         return dfa_result;
@@ -3123,8 +3423,9 @@ namespace real::detail {
         out_slots.assign(prog_.slot_count, npos);
         return false;
       }
-      std::size_t match_start {start};
-      std::size_t match_end   {};
+      std::size_t match_start     {start};
+      bool        first_candidate {true}; // the window-edge guard's one candidate
+      std::size_t match_end       {};
       while (true) {
         if (mode == run_mode::search) {
           while (match_start < text.size() && !in_class(match_start)) {
@@ -3136,10 +3437,12 @@ namespace real::detail {
           }
           // the DROP rule window-edge guard: a candidate found by scanning forward past a non-class byte
           // is provably preceded by one (the scan just confirmed it), so the DROP rule’s redundancy
-          // argument holds unconditionally there. The ONE exception is the very first candidate
-          // when it coincides with `start` itself (no forward scan occurred) AND `start > 0` --
-          // see pattern_hints::wb_lead_maximal_run's own doc comment for the full argument.
-          if (prog_.hints.wb_lead_maximal_run && match_start == start && match_start > 0 &&
+          // argument holds unconditionally there. The exception is the first candidate when no whole
+          // code point lies between `start` and it (window_cut_before) AND it is past 0 -- see
+          // pattern_hints::wb_lead_maximal_run's own doc comment for the full argument.
+          const bool edge {first_candidate && match_start > 0 && window_cut_before(text, start, match_start)};
+          first_candidate = false;
+          if (prog_.hints.wb_lead_maximal_run && edge &&
               !assertion_holds(assert_kind::word_boundary, match_start, false)) {
             match_start = scan_end(match_start); // no genuine boundary here: skip this whole run
             continue;
@@ -3453,7 +3756,7 @@ namespace real::detail {
         if constexpr (WbEdge) {
           if (wb_edge) {
             wb_edge = false; // can only ever be the FIRST candidate -- see the pre-loop initialiser
-            if (i == start
+            if (window_cut_before(text, start, i)
                 && !detail::assertion_holds(assert_kind::word_boundary, text, i, !prog_.unicode_word)) {
               i = end; // no genuine boundary here: skip this whole run, as the general route does
               continue;
@@ -3541,8 +3844,7 @@ namespace real::detail {
      * hoists `asc` once for the batch instead of once per match.
      *
      * Narrow by construction, and the guard is the caller's (\ref basic_match_iterator): search
-     * semantics, no `\b`/`\B` wrap, no `{k,}` minimum. Those shapes have bookkeeping this loop does
-     * not reproduce, and batching them would answer a different question than the one asked.
+     * semantics, no `\b`/`\B` wrap (a kept one goes through \ref fill_cp_class_spans_wrapped).
      * \param[in]  text  The subject.
      * \param[in]  start Where to begin.
      * \param[out] out   Buffer for the spans found.
@@ -3660,7 +3962,7 @@ namespace real::detail {
         if constexpr (WbEdge) {
           if (wb_edge) {
             wb_edge = false; // can only ever be the FIRST candidate -- see the pre-loop initialiser
-            if (i == start
+            if (window_cut_before(text, start, i)
                 && !detail::assertion_holds(assert_kind::word_boundary, text, i, !prog_.unicode_word)) {
               i = end; // no genuine boundary here: skip this whole run, as the general route does
               continue;
@@ -3679,6 +3981,62 @@ namespace real::detail {
         }
       }
       return n;
+    }
+
+    /*!
+     * \brief \ref fill_cp_class_spans for a pattern with a kept `\b`/`\B` wrap: its spans, less those whose
+     *        wrap does not hold.
+     *
+     * The plain filler emits every maximal run; the per-match route skips a run whose wrap fails, whole, and
+     * tries the next -- which is dropping that span. So this filters the plain filler's batches and refills
+     * until one span survives or the runs are spent, never handing back an empty batch while runs remain
+     * (the iterator reads an empty one as the end). Kept apart, and cold: a template parameter on the plain
+     * filler instead changed GCC's inlining of its code-point lookup, and `\p{L}+` -- which never has a
+     * wrap -- ran 5.6 % more instructions on x86-64. `\b\w` answered one match per route entry before this,
+     * five times the cost of `\b\w+`, whose `\b` is dropped as redundant.
+     * \param[in]  text  The subject.
+     * \param[in]  start Where to begin.
+     * \param[out] out   Buffer for the spans found.
+     * \param[in]  cap   Capacity of \p out.
+     * \return How many spans were written.
+     */
+    template <bool WbEdge>
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline, cold))
+#endif
+    constexpr std::size_t fill_cp_class_spans_wrapped(std::string_view text,
+                                                      std::size_t      start,
+                                                      cp_span*         out,
+                                                      std::size_t      cap)
+    {
+      const bool        ascii   {!prog_.unicode_word};
+      const assert_kind lead_k  {prog_.hints.wb_lead == 2 ? assert_kind::not_word_boundary : assert_kind::word_boundary};
+      const assert_kind trail_k {prog_.hints.wb_trail == 2 ? assert_kind::not_word_boundary : assert_kind::word_boundary};
+      std::size_t       pos     {start};
+      std::size_t       kept    {0};
+      bool              first   {true}; // only the first refill may sit at a caller-supplied edge
+      while (kept < cap) {
+        // Refill into the free tail, then keep the survivors in place: a batch fills up rather than
+        // returning the one span in four that `\b\w` keeps.
+        const std::size_t got {first ? fill_cp_class_spans<WbEdge>(text, pos, out + kept, cap - kept)
+                                     : fill_cp_class_spans<false>(text, pos, out + kept, cap - kept)};
+        first = false;
+        if (got == 0) {
+          break;
+        }
+        pos = out[kept + got - 1].end;
+        const std::size_t filled {kept + got}; // fixed: `kept` grows inside the loop
+        for (std::size_t k {kept}; k < filled; ++k) {
+          // The free evaluator on this filler's own `text`, for the reason given at fill_cp_class_spans's
+          // WbEdge guard.
+          if ((prog_.hints.wb_lead == 0 || detail::assertion_holds(lead_k, text, out[k].start, ascii))
+              && (prog_.hints.wb_trail == 0 || detail::assertion_holds(trail_k, text, out[k].end, ascii))) {
+            out[kept] = out[k];
+            ++kept;
+          }
+        }
+      }
+      return kept;
     }
 
     /*!
@@ -3923,6 +4281,7 @@ namespace real::detail {
       }
       std::size_t match_start {start};
       std::size_t match_end   {};
+      bool        first       {true}; // the first candidate: the one the window edge can mislead
       while (true) {
         if (mode == run_mode::search) {
           while (match_start < text.size() && !in_class(match_start)) {
@@ -3933,10 +4292,14 @@ namespace real::detail {
           }
           // the DROP rule window-edge guard: a candidate found by scanning forward past a non-class
           // code point is provably preceded by one, so the DROP rule’s redundancy argument holds
-          // unconditionally there. The ONE exception is the very first candidate when it
-          // coincides with `start` itself (no forward scan occurred) AND `start > 0` -- see
+          // unconditionally there. The exception is the first candidate when no whole code point lies
+          // between `start` and it: it coincides with `start` (no forward scan occurred), or the window
+          // begins inside a code point and the scan crossed only its continuation bytes -- the code
+          // point before the candidate then starts before the window and the scan never saw it. See
           // pattern_hints::wb_lead_maximal_run's own doc comment for the full argument.
-          if (prog_.hints.wb_lead_maximal_run && match_start == start && match_start > 0 &&
+          const bool edge {first && match_start > 0 && window_cut_before(text, start, match_start)};
+          first = false;
+          if (prog_.hints.wb_lead_maximal_run && edge &&
               !assertion_holds(assert_kind::word_boundary, match_start, false)) {
             const std::size_t skip {extend_run(match_start)};
             if (skip == npos) {
@@ -4154,7 +4517,8 @@ namespace real::detail {
         write_success(start, end, body_end);
         return true;
       }
-      std::size_t pos {start};
+      bool        first_candidate {true}; // the window-edge guard's one candidate
+      std::size_t pos             {start};
       while (pos <= text.size()) {
         if (min_nonzero) {
           while (pos < text.size() && !in_class(pos)) {
@@ -4164,7 +4528,9 @@ namespace real::detail {
             break;
           }
         }
-        if (pos == start && b1_edge_blocks(pos)) {
+        const bool edge {first_candidate && window_cut_before(text, start, pos)};
+        first_candidate = false;
+        if (edge && b1_edge_blocks(pos)) {
           // No genuine boundary at the window's own edge: skip past this whole run (a candidate
           // reached by scanning forward past a non-class byte is provably preceded by one, so
           // this guard can never re-trigger on a LATER iteration of this same loop).
@@ -4670,6 +5036,216 @@ namespace real::detail {
           break; // reached a trailing \b/\B or match
         }
       }
+    }
+
+    /*!
+     * \brief The one atom of a loop body [\p begin, \p end) that holds nothing else but saves -- a group
+     *        around one atom, repeated: `([aeiou])+`.
+     * \param[in] prog  The program.
+     * \param[in] begin The body's first instruction (the loop split's preferred target).
+     * \param[in] end   The loop split.
+     * \return The atom's instruction, or \ref real::npos when the body is anything else.
+     */
+    [[nodiscard]] static constexpr std::size_t run_shape_loop_atom(const program_view& prog,
+                                                                   std::size_t         begin,
+                                                                   std::size_t         end)
+    {
+      std::size_t atom {npos};
+      for (std::size_t pc {begin}; pc < end;) {
+        const opcode op {prog.code[pc].op};
+        if (op == opcode::save) {
+          ++pc;
+        }
+        else if (atom == npos && (op == opcode::byte || op == opcode::klass || op == opcode::klass_cp)) {
+          atom = pc;
+          pc  += op == opcode::klass_cp ? 4U : 1U;
+        }
+        else {
+          return npos;
+        }
+      }
+      return atom;
+    }
+
+    /*!
+     * \brief Whether \p prog is saves, atoms (a byte, a byte class, a code-point class) and greedy `atom+`
+     *        and `atom*` loops, then `match`: nothing else, no alternation, no lazy loop, no assertion.
+     *
+     * For such a program the walk that takes every loop as far as its atom matches, never backing up, is
+     * the highest-priority path: at each loop it chose the preferred branch whenever that branch could be
+     * taken. So when that walk reaches `match` its groups are the VM's (\ref match_run_shape), and when an
+     * atom fails it, the VM decides.
+     * \param[in] prog The program.
+     * \return True for that shape.
+     */
+    [[nodiscard]] static constexpr bool is_run_shape(const program_view& prog)
+    {
+      std::size_t pc {0};
+      while (pc < prog.code.size()) {
+        const instr& in    {prog.code[pc]};
+        std::size_t  width {0};
+        if (in.op == opcode::save) {
+          ++pc;
+          continue;
+        }
+        if (in.op == opcode::match) {
+          return pc + 1U == prog.code.size();
+        }
+        if (in.op == opcode::split && in.primary_target < static_cast<std::int32_t>(pc)) {
+          // A group around one atom, repeated: the body saves, the atom, saves; the split back to it.
+          if (in.secondary_target != static_cast<std::int32_t>(pc) + 1
+              || run_shape_loop_atom(prog, static_cast<std::size_t>(in.primary_target), pc) == npos) {
+            return false;
+          }
+          ++pc;
+          continue;
+        }
+        if (in.op == opcode::split) {
+          // `atom*`: split(atom, past), atom, jump back to the split.
+          const std::size_t atom {pc + 1U};
+          const std::size_t back {atom + (atom < prog.code.size() && prog.code[atom].op == opcode::klass_cp ? 4U : 1U)};
+          const bool        star {in.primary_target == static_cast<std::int32_t>(atom) && atom < prog.code.size()
+                                  && (prog.code[atom].op == opcode::byte || prog.code[atom].op == opcode::klass
+                                      || prog.code[atom].op == opcode::klass_cp)
+                                  && back < prog.code.size() && prog.code[back].op == opcode::jump
+                                  && prog.code[back].primary_target == static_cast<std::int32_t>(pc)
+                                  && in.secondary_target == static_cast<std::int32_t>(back) + 1};
+          if (!star) {
+            return false; // a lazy loop or an alternation
+          }
+          pc = back + 1U;
+          continue;
+        }
+        if (in.op == opcode::byte || in.op == opcode::klass) {
+          width = 1;
+        }
+        else if (in.op == opcode::klass_cp) {
+          width = 4; // the four-slot construct (see run_cp_class_loop's `pc += 3`)
+        }
+        else {
+          return false;
+        }
+        const std::size_t next {pc + width};
+        // A split back to this atom makes it `atom+`; any other split is the next element's, read there.
+        if (next < prog.code.size() && prog.code[next].op == opcode::split
+            && prog.code[next].primary_target == static_cast<std::int32_t>(pc)) {
+          if (prog.code[next].secondary_target != static_cast<std::int32_t>(next) + 1) {
+            return false;
+          }
+          pc = next + 1U;
+        }
+        else {
+          pc = next;
+        }
+      }
+      return false;
+    }
+
+    /*!
+     * \brief Consumes the atom at \p pc at \p at, within \p e.
+     * \param[in]     text The subject.
+     * \param[in]     pc   The atom's instruction.
+     * \param[in,out] at   The position; advanced past the atom when it matches.
+     * \param[in]     e    The window's end.
+     * \return True when the atom matched.
+     */
+    [[nodiscard]] constexpr bool run_shape_atom(std::string_view text,
+                                                std::size_t      pc,
+                                                std::size_t&     at,
+                                                std::size_t      e) const
+    {
+      if (at >= e) {
+        return false;
+      }
+      const instr& in {prog_.code[pc]};
+      if (in.op == opcode::byte) {
+        if (static_cast<std::uint8_t>(text[at]) != in.arg8) {
+          return false;
+        }
+        ++at;
+        return true;
+      }
+      if (in.op == opcode::klass) {
+        if (!prog_.classes[in.arg16].test(static_cast<std::uint8_t>(text[at]))) {
+          return false;
+        }
+        ++at;
+        return true;
+      }
+      const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, at)};
+      if (!dc.valid || at + dc.length > e || !cp_class_holds(prog_.cp_classes[in.arg16], dc.cp)) {
+        return false;
+      }
+      at += dc.length;
+      return true;
+    }
+
+    /*!
+     * \brief Fills the groups of a match the DFAs found at [\p s, \p e) for a program of \ref is_run_shape
+     *        "run shape", by one walk that takes every loop as far as it goes.
+     * \param[in]  text      The subject.
+     * \param[in]  s         Match start.
+     * \param[in]  e         Match end.
+     * \param[out] out_slots Slots to fill.
+     * \return True when the walk reaches `match` (its groups are the VM's, and it ends at \p e, where the VM's
+     *         path ends); false leaves the answer to the VM.
+     */
+    template <typename OutSlots>
+    [[nodiscard]] constexpr bool match_run_shape(std::string_view text,
+                                                 std::size_t      s,
+                                                 std::size_t      e,
+                                                 OutSlots&        out_slots) const
+    {
+      out_slots.assign(prog_.slot_count, npos);
+      std::size_t at {s};
+      std::size_t pc {0};
+      while (pc < prog_.code.size()) {
+        const instr& in {prog_.code[pc]};
+        if (in.op == opcode::save) {
+          out_slots[static_cast<std::size_t>(in.arg16)] = at;
+          ++pc;
+          continue;
+        }
+        if (in.op == opcode::match) {
+          return true;
+        }
+        if (in.op == opcode::split && in.primary_target < static_cast<std::int32_t>(pc)) {
+          // A group around one atom, repeated (the body ran once to get here). Each further round tries the
+          // atom first: a thread that enters the body and fails the atom dies with the saves it made, so
+          // the groups keep the last round that completed.
+          const auto        begin {static_cast<std::size_t>(in.primary_target)};
+          const std::size_t atom  {run_shape_loop_atom(prog_, begin, pc)};
+          const std::size_t after {atom + (prog_.code[atom].op == opcode::klass_cp ? 4U : 1U)};
+          for (std::size_t probe {at}; run_shape_atom(text, atom, probe, e); at = probe) {
+            for (std::size_t k {begin}; k < atom; ++k) {
+              out_slots[static_cast<std::size_t>(prog_.code[k].arg16)] = at;
+            }
+            for (std::size_t k {after}; k < pc; ++k) {
+              out_slots[static_cast<std::size_t>(prog_.code[k].arg16)] = probe;
+            }
+          }
+          ++pc;
+          continue;
+        }
+        if (in.op == opcode::split) { // `atom*` (is_run_shape vouched for the shape)
+          while (run_shape_atom(text, pc + 1U, at, e)) {}
+          pc = static_cast<std::size_t>(in.secondary_target);
+          continue;
+        }
+        if (!run_shape_atom(text, pc, at, e)) {
+          return false;
+        }
+        const std::size_t next {pc + (in.op == opcode::klass_cp ? 4U : 1U)};
+        if (next < prog_.code.size() && prog_.code[next].op == opcode::split
+            && prog_.code[next].primary_target == static_cast<std::int32_t>(pc)) {
+          while (run_shape_atom(text, pc, at, e)) {}
+          pc = next + 1U;
+        }
+        else {
+          pc = next;
+        }
+      }
+      return false;
     }
 
     /*!
@@ -5698,32 +6274,53 @@ namespace real::detail {
       std::size_t n    {0};
       const bool  used {
         with_search_dfas([&](lazy_dfa& fwd, reverse_dfa& rev) {
-                           // The reverse DFA serves the fallback sub-scan only, which this filler declines; naming it
-                           // keeps the callback signature `with_search_dfas` hands out.
-                           static_cast<void>(rev);
                            fwd.begin_scan();
-                           std::size_t pos {start};
+                           std::size_t        pos      {start};
+                           anchored_walk_bill bill     {};
+                           bool        one_pass {false}; // the walks gave way: forward pass and reverse from here on
                            while (n < cap && pos <= text.size() && text.size() - pos >= lazy_dfa_min_input) {
-                             std::size_t hit {npos};
-                             std::size_t end {npos};
-                             std::size_t c   {pos};
-                             while (true) {
+                             std::size_t hit  {npos};
+                             std::size_t end  {npos};
+                             std::size_t from {pos};
+                             for (std::size_t c {pos}; !one_pass;) {
                                c = next_candidate(text, c, pos);
                                if (c > text.size()) {
                                  partial = false; // PROVEN spent: no candidate byte remains anywhere ahead
                                  return;
                                }
                                const auto anchored {fwd.anchored_end(text, c)};
+                               if (anchored.quit) {
+                                 return; // the per-match route's territory; partial stays set
+                               }
                                prefilter_note_scan(anchored.scanned_to - c);
                                if (anchored.end != npos) {
                                  hit = c;
                                  end = anchored.end;
                                  break;
                                }
-                               if (anchored.scanned_to >= text.size()) {
-                                 return; // the fallback sub-scan's territory; partial stays set
-                               }
                                ++c;
+                               if (anchored.scanned_to >= text.size()
+                                   || bill.overspent(anchored.scanned_to - (c - 1U), c - 1U - start)) {
+                                 // No match starts before c. Handing the rest to the per-match route would walk
+                                 // these candidates again; the pass takes over here instead.
+                                 one_pass = true;
+                                 from     = c;
+                               }
+                             }
+                             if (one_pass) {
+                               end = fwd.forward_end(text, from);
+                               if (end == lazy_dfa::quit_pos) {
+                                 return; // partial stays set
+                               }
+                               prefilter_note_scan((end == npos ? text.size() : end) - from);
+                               if (end == npos) {
+                                 partial = false; // PROVEN spent: the pass seeded every position from here
+                                 return;
+                               }
+                               hit = rev.reverse_start(text, end, from);
+                               if (hit == reverse_dfa::quit_pos) {
+                                 return; // partial stays set
+                               }
                              }
                              if (end == hit) {
                                // A zero-width match carries the find_iter empty-match rule (`forbid_empty_until_`),
@@ -5739,6 +6336,9 @@ namespace real::detail {
                          })};
       if (!used) {
         n = 0; // no shared DFAs on this regex yet: nothing found and nothing proven
+      }
+      if (n != 0) {
+        note_dfa_span_batch();
       }
       return n;
     }
@@ -6053,8 +6653,22 @@ namespace real::detail {
         return find_byte(text, pos, static_cast<char>(hints.single_first));
       }
       if (hints.line_anchored && pos != start) {
-        const std::size_t nl {find_byte(text, pos - 1, '\n')};
-        return nl == npos ? npos : nl + 1;
+        // A line start whose first byte no match can begin with is no candidate: skip to the next line
+        // rather than hand it to a seed or a walk that fails there. `(?m)^\w+` over prose whose lines start
+        // with a space paid a DFA walk's setup per line for nothing.
+        std::size_t from {pos - 1};
+        while (true) {
+          const std::size_t nl {find_byte(text, from, '\n')};
+          if (nl == npos) {
+            return npos;
+          }
+          const std::size_t cand {nl + 1};
+          if (!hints.first_bytes_valid || cand >= text.size()
+              || hints.first_bytes.test(static_cast<std::uint8_t>(text[cand]))) {
+            return cand;
+          }
+          from = cand;
+        }
       }
       if (hints.small_set_size >= 2) {
         // Adaptive: probe a short window with the bitmap loop first (one test per byte — the baseline
@@ -6180,6 +6794,369 @@ namespace real::detail {
     }
 
     /*!
+     * \brief The general loop's answer, by backtracking under a bit per (instruction, position).
+     *
+     * Walks the program depth first in the VM's priority order -- a split's preferred branch first, each
+     * start in turn -- and marks every (instruction, position) it enters; reaching a marked pair again
+     * prunes the branch, as the VM's list drops a thread already present. The first `match` reached is the
+     * VM's answer. A `jump` into a loop head already entered at this position takes the loop's exit, as in
+     * the VM, reading this position's marks -- the VM's `seen` set there, entered in the same order,
+     * because only the walk at a position marks it.
+     *
+     * Marks are kept across starts, and every start the prefilter rules out is skipped, where the VM seeds
+     * one while other threads live and starts a position's list afresh when none does. Neither changes the
+     * answer: the pairs an exploration marked without matching are closed under every transition -- a
+     * split holds both branches, and a jump takes a loop's exit only when the head, and so its body, was
+     * entered -- so none of them reaches a match, and pruning them removes only branches that fail.
+     *
+     * Each pair is entered at most once, so the cost is O(n x m), the VM's bound; the caller holds
+     * n x m under \ref bounded_backtrack_bits.
+     *
+     * \param[in]  text      Subject (already in `text_`).
+     * \param[in]  start     Byte offset to begin at.
+     * \param[in]  mode      Anchoring: full, prefix or search.
+     * \param[out] out_slots Capture slots, filled on a match.
+     * \return True on a match.
+     */
+    template <typename OutSlots>
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
+    bool run_bounded_backtrack(std::string_view text,
+                               std::size_t      start,
+                               run_mode         mode,
+                               OutSlots&        out_slots)
+    {
+      prof::tick_event(prof::event::bounded_backtrack);
+      backtrack_frame   frame;
+      const std::size_t size {text.size()};
+      const bool        cf   {prog_.hints.capture_free_walk};
+      frame.width = prog_.code.size();
+      out_slots.assign(prog_.slot_count, npos);
+      bool        cleared {false}; // before the first start no row is read
+      std::size_t pos     {start};
+      while (true) {
+        if (mode == run_mode::search) {
+          pos = next_candidate(text, pos, start);
+          if (pos > size) {
+            return false; // no further start (npos included)
+          }
+        }
+        if (!cleared) {
+          frame.clear(pos - start, size - start + 1U);
+          cleared = true;
+        }
+        if (seed_viable(text, pos, start) && backtrack_from(frame, pos, start, mode, cf, out_slots)) {
+          return true;
+        }
+        if (mode != run_mode::search || pos >= size) {
+          return false;
+        }
+        ++pos;
+      }
+    }
+
+    /*!
+     * \brief Every branch from `pc 0` at \p seed, in priority order -- one start of \ref run_bounded_backtrack.
+     * \param[in,out] frame     The search's marks, leaf flags, slots and pending branches.
+     * \param[in]     seed      The start.
+     * \param[in]     start     The search's start (row 0).
+     * \param[in]     mode      Anchoring (a full match must end at the text's end).
+     * \param[in]     cf        The program's capture-free walk: only group 0's start is carried.
+     * \param[out]    out_slots Capture slots, filled on a match.
+     * \return True when a branch matched.
+     */
+    template <typename OutSlots>
+    bool backtrack_from(backtrack_frame& frame,
+                        std::size_t      seed,
+                        std::size_t      start,
+                        run_mode         mode,
+                        bool             cf,
+                        OutSlots&        out_slots)
+    {
+      const std::uint16_t slot_count {prog_.slot_count};
+      for (std::uint16_t s {0}; s < slot_count; ++s) {
+        frame.slots[s] = npos;
+      }
+      frame.push({.pc = 0, .row = static_cast<std::uint32_t>(seed - start)});
+      backtrack_frame::job j {};
+      while (frame.pop(j)) {
+        if (j.pc < 0) {
+          frame.slots[static_cast<std::size_t>(-j.pc - 1)] = j.row == backtrack_frame::unset ? npos : j.row;
+          continue;
+        }
+        std::int32_t pc  {j.pc};
+        std::size_t  pos {start + j.row};
+        // Follow the preferred branch until it dies; every other branch waits on the stack.
+        while (frame.enter(pc, pos - start)) {
+          const instr& instruction {prog_.code[static_cast<std::size_t>(pc)]};
+          std::int32_t next        {-1}; // the thread's next instruction; -1 when it dies here
+          switch (instruction.op) {
+            case opcode::jump:
+              {
+                std::int32_t head {instruction.primary_target};
+                for (int hops = 0; hops < max_loop_hops && frame.marked(head, pos - start)
+                     && prog_.code[static_cast<std::size_t>(head)].op == opcode::jump; ++hops) {
+                  head = prog_.code[static_cast<std::size_t>(head)].primary_target;
+                }
+                const instr& head_instruction {prog_.code[static_cast<std::size_t>(head)]};
+                next = frame.marked(head, pos - start) && head_instruction.op == opcode::split
+                         ? head_instruction.secondary_target : instruction.primary_target;
+              }
+              break;
+            case opcode::split:
+              frame.push({.pc = instruction.secondary_target, .row = static_cast<std::uint32_t>(pos - start)});
+              next            = instruction.primary_target;
+              break;
+            case opcode::save:
+              if (!cf) {
+                frame.save(instruction.arg16, pos);
+              }
+              else if (instruction.arg16 == 0U) {
+                frame.save(0, pos);
+              }
+              next = pc + 1;
+              break;
+            case opcode::assert_position:
+              if (assertion_holds(static_cast<assert_kind>(instruction.arg8), pos, instruction.arg16 != 0U)) {
+                next = pc + 1;
+              }
+              break;
+            case opcode::assert_lookaround:
+              break; // not reached: the hint excludes a program with lookarounds
+            case opcode::byte:
+              if (pos < text_.size() && static_cast<std::uint8_t>(text_[pos]) == instruction.arg8) {
+                next = pc + 1;
+                ++pos;
+              }
+              break;
+            case opcode::klass:
+              if (pos < text_.size() && prog_.classes[instruction.arg16].test(static_cast<std::uint8_t>(text_[pos]))) {
+                next = pc + 1;
+                ++pos;
+              }
+              break;
+            case opcode::klass_cp:
+              if (pos < text_.size()) {
+                const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
+                if (dc.valid && cp_class_matches_idx(instruction.arg16, dc.cp)) {
+                  next = pc + 1 + static_cast<std::int32_t>(4 - dc.length);
+                  ++pos;
+                }
+              }
+              break;
+            case opcode::match:
+              if ((mode == run_mode::full && pos != text_.size())
+                  || (pos == frame.slots[0] && frame.slots[0] < forbid_empty_until_)) {
+                break;
+              }
+              if (cf) {
+                out_slots[0] = frame.slots[0];
+                out_slots[1] = pos;
+              }
+              else {
+                for (std::uint16_t s {0}; s < slot_count; ++s) {
+                  out_slots[s] = frame.slots[s];
+                }
+              }
+              return true;
+            case opcode::byte_loop_possessive:
+            case opcode::klass_loop_possessive:
+            case opcode::klass_cp_loop_possessive:
+              next = backtrack_possessive(frame, instruction, pc, pos, cf);
+              break;
+          }
+          if (next < 0) {
+            break;
+          }
+          pc = next;
+        }
+      }
+      return false;
+    }
+
+    /*!
+     * \brief A possessive loop's step in \ref backtrack_from. The VM decides it when the thread arrives, so
+     *        a match consumes (writing the loop's capture, if it has one) and a miss leaves by the exit at
+     *        the same position.
+     * \param[in,out] frame       The search's frame (slots, pending restores).
+     * \param[in]     instruction The possessive instruction.
+     * \param[in]     pc          Its program counter.
+     * \param[in,out] pos         The position; advanced by one on a match.
+     * \param[in]     cf          The program's capture-free walk: the loop's capture is not recorded.
+     * \return The thread's next instruction.
+     */
+    std::int32_t backtrack_possessive(backtrack_frame& frame,
+                                      const instr&     instruction,
+                                      std::int32_t     pc,
+                                      std::size_t&     pos,
+                                      bool             cf)
+    {
+      std::size_t length {0}; // bytes the atom spans; 0 on a miss
+      if (pos < text_.size()) {
+        const auto byte_value {static_cast<std::uint8_t>(text_[pos])};
+        if (instruction.op == opcode::byte_loop_possessive) {
+          length = byte_value == instruction.arg8 ? 1U : 0U;
+        }
+        else if (instruction.op == opcode::klass_loop_possessive) {
+          length = prog_.classes[instruction.arg16].test(byte_value) ? 1U : 0U;
+        }
+        else {
+          const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
+          length = dc.valid && cp_class_matches_idx(instruction.arg16, dc.cp) ? dc.length : 0U;
+        }
+      }
+      if (length == 0U) {
+        return instruction.secondary_target;
+      }
+      if (instruction.primary_target >= 0 && !cf) {
+        const auto slot {static_cast<std::uint16_t>(instruction.primary_target)};
+        frame.save(slot, pos);
+        frame.save(static_cast<std::uint16_t>(slot + 1U), pos + length);
+      }
+      const std::int32_t next {instruction.op == opcode::klass_cp_loop_possessive
+                                 ? pc + 1 + static_cast<std::int32_t>(4 - length) : pc + 1};
+      ++pos;
+      return next;
+    }
+
+    /*!
+     * \brief Whether a match anchored at \p start could come out differently if \p text continued past its
+     *        end: the question a caller lexing text that arrives in pieces must answer before it may commit
+     *        to a token.
+     *
+     * Runs the general loop in prefix mode with probes compiled in (\ref probe_step, \ref probe_closure).
+     * In prefix mode a match cuts every lower-priority thread, so a thread still alive when the text runs
+     * out outranks the match found, and more text can change the answer. So can anything that read the end
+     * of the text as an end: an assertion that looks right (`$`, `\Z`, `\b`, ...), a lookahead whose window
+     * reaches it, a code point cut short by it. The answer is conservative -- true where a closer look
+     * might say false -- never the other way: a caller that waits on a true loses time, not tokens.
+     *
+     * \param[in]  text      The text available so far.
+     * \param[in]  start     Where the match is anchored.
+     * \param[out] out_slots The match on \p text as it stands (prefix mode).
+     * \return True when text past the end could change the match.
+     */
+    template <typename OutSlots>
+    bool extends_past_end(std::string_view text,
+                          std::size_t      start,
+                          OutSlots&        out_slots)
+    {
+      forbid_empty_until_ = 0;
+      sem_                = match_semantics::first;
+      extends_            = false;
+      static_cast<void>(run_general<false, true>(text, start, run_mode::prefix, out_slots));
+      return extends_;
+    }
+
+    /*!
+     * \brief Whether no whole code point lies between \p start and \p candidate: the candidate IS \p start, or
+     *        only continuation bytes separate them.
+     *
+     * The DROP rule's window-edge guard asks it of a search's first candidate. A candidate reached by
+     * scanning forward past a whole non-class character is preceded by that character, so a dropped leading
+     * `\b` holds there. But when the window begins inside a code point, the scan crosses only that code
+     * point's tail, and the character before the candidate is one that started before the window -- which
+     * the scan never saw, and which may be a word character.
+     *
+     * \param[in] text      The subject.
+     * \param[in] start     The window's start.
+     * \param[in] candidate The first candidate, at or after \p start.
+     * \return True when the character before \p candidate is not one the scan crossed.
+     */
+    [[nodiscard]] static constexpr bool window_cut_before(std::string_view text,
+                                                          std::size_t      start,
+                                                          std::size_t      candidate)
+    {
+      for (std::size_t i {start}; i < candidate; ++i) {
+        if ((static_cast<std::uint8_t>(text[i]) & 0xC0U) != 0x80U) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    /*!
+     * \brief Whether the code point at \p pos is not all there: past the end of the text, or a sequence the end
+     *        cuts short -- what a class test or a word boundary at \p pos would read more text to decide.
+     * \param[in] pos The position.
+     * \return True when more text could change what is read at \p pos.
+     */
+    [[nodiscard]] constexpr bool cut_short(std::size_t pos) const
+    {
+      return pos >= text_.size()
+             || (pos + 4U > text_.size() && !detail::decode_codepoint_strict(text_, pos).valid);
+    }
+
+    /*!
+     * \brief \ref extends_past_end's probe on a thread about to consume at \p pos: one alive at the end of the
+     *        text, or at a code point the end cuts short, would read what comes next.
+     * \param[in] instruction The thread's instruction.
+     * \param[in] pos         The position it consumes at.
+     */
+    constexpr void probe_step(const instr& instruction,
+                              std::size_t  pos)
+    {
+      const bool byte_at_end    {(instruction.op == opcode::byte || instruction.op == opcode::klass) && pos >= text_.size()};
+      const bool code_point_cut {instruction.op == opcode::klass_cp && cut_short(pos)};
+      extends_ = extends_ || byte_at_end || code_point_cut;
+    }
+
+    /*!
+     * \brief \ref extends_past_end's probe on an epsilon step at \p pos: an assertion that looks right, a
+     *        lookahead, or a possessive test whose answer the end of the text decides.
+     * \param[in] instruction The instruction the closure walk is at.
+     * \param[in] pos         The position.
+     */
+    constexpr void probe_closure(const instr& instruction,
+                                 std::size_t  pos)
+    {
+      const std::size_t size {text_.size()};
+      bool              open {false};
+      switch (instruction.op) {
+        case opcode::assert_position:
+          switch (static_cast<assert_kind>(instruction.arg8)) {
+            case assert_kind::text_start:
+            case assert_kind::line_start:
+              break; // looks left only
+            case assert_kind::text_end:
+            case assert_kind::line_end:
+              open = pos >= size;
+              break;
+            case assert_kind::text_end_or_final_newline:
+              // `$` also holds just before a FINAL newline, which is final only while nothing follows it.
+              open = pos >= size || (pos + 1U == size && text_[pos] == '\n');
+              break;
+            case assert_kind::word_boundary:
+            case assert_kind::not_word_boundary:
+            case assert_kind::word_start:
+            case assert_kind::word_end:
+              open = cut_short(pos);
+              break;
+          }
+          break;
+        case opcode::assert_lookaround:
+          {
+            // A window that reaches the end may read past it, an assertion at its own end included.
+            const lookaround_sub& sub {prog_.lookarounds[instruction.arg16]};
+            open = sub.direction == look_dir::ahead
+                   && (sub.l_max < 0 || pos + static_cast<std::size_t>(sub.l_max) >= size);
+            break;
+          }
+        case opcode::byte_loop_possessive:
+        case opcode::klass_loop_possessive:
+          open = pos >= size;
+          break;
+        case opcode::klass_cp_loop_possessive:
+          open = cut_short(pos);
+          break;
+        default:
+          break;
+      }
+      extends_ = extends_ || open;
+    }
+
+    /*!
      * \brief Advances every thread of \p clist by the byte at \p pos.
      *
      * Survivors that consumed a byte land in \p nlist. A thread reaching
@@ -6194,7 +7171,7 @@ namespace real::detail {
      * \param[in,out] matched    Set to `true` when a match is recorded.
      * \param[out]    out_slots  Receives the slots of an accepted match.
      */
-    template <typename OutSlots>
+    template <bool Probe = false, typename OutSlots>
     constexpr void step(list_type&  clist,
                         list_type&  nlist,
                         std::size_t pos,
@@ -6206,17 +7183,20 @@ namespace real::detail {
       for (std::size_t i = 0; i < clist.pcs.size(); ++i) {
         const std::int32_t pc          {clist.pcs[i]};
         const instr&       instruction {prog_.code[static_cast<std::size_t>(pc)]};
+        if constexpr (Probe) {
+          probe_step(instruction, pos);
+        }
         switch (instruction.op) {
           case opcode::byte:
             if (pos < text_.size() &&
                 static_cast<std::uint8_t>(text_[pos]) == instruction.arg8) {
-              advance_thread(clist, nlist, i, pc + 1, pos + 1);
+              advance_thread<Probe>(clist, nlist, i, pc + 1, pos + 1);
             }
             break;
           case opcode::klass:
             if (pos < text_.size() &&
                 prog_.classes[instruction.arg16].test(static_cast<std::uint8_t>(text_[pos]))) {
-              advance_thread(clist, nlist, i, pc + 1, pos + 1);
+              advance_thread<Probe>(clist, nlist, i, pc + 1, pos + 1);
             }
             break;
           case opcode::klass_cp:
@@ -6224,8 +7204,8 @@ namespace real::detail {
               const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
               if (dc.valid &&
                   cp_class_matches_idx(instruction.arg16, dc.cp)) {
-                advance_thread(clist, nlist, i,
-                               pc + 1 + static_cast<std::int32_t>(4 - dc.length), pos + 1);
+                advance_thread<Probe>(clist, nlist, i,
+                                      pc + 1 + static_cast<std::int32_t>(4 - dc.length), pos + 1);
               }
             }
             break;
@@ -6239,7 +7219,7 @@ namespace real::detail {
             // rationale (a same-round-convergent alternation sibling could otherwise steal
             // priority from a step()-time exit decision, a real bug this redesign closes).
             tier1_capture_on_match(clist, i, instruction.primary_target, pos, pos + 1);
-            advance_thread(clist, nlist, i, pc + 1, pos + 1);
+            advance_thread<Probe>(clist, nlist, i, pc + 1, pos + 1);
             break;
           case opcode::klass_cp_loop_possessive:
             {
@@ -6248,8 +7228,8 @@ namespace real::detail {
               // second decision.
               const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
               tier1_capture_on_match(clist, i, instruction.primary_target, pos, pos + dc.length);
-              advance_thread(clist, nlist, i,
-                             pc + 1 + static_cast<std::int32_t>(4 - dc.length), pos + 1);
+              advance_thread<Probe>(clist, nlist, i,
+                                    pc + 1 + static_cast<std::int32_t>(4 - dc.length), pos + 1);
               break;
             }
           case opcode::match:
@@ -6363,6 +7343,7 @@ namespace real::detail {
      * \param[in]     next_pc  Program counter the thread continues at.
      * \param[in]     next_pos Text position the thread continues at.
      */
+    template <bool Probe = false>
     constexpr void advance_thread(list_type&   clist,
                                   list_type&   nlist,
                                   std::size_t  i,
@@ -6373,7 +7354,7 @@ namespace real::detail {
         state_.pool.incref(static_cast<std::uint32_t>(clist.slots[i])); // the new closure holds its own ref
       }
       // Capture-free: this is group 0's start, full width, and no ref exists to take.
-      add_thread(nlist, next_pc, next_pos, clist.slots[i]);
+      add_thread<Probe>(nlist, next_pc, next_pos, clist.slots[i]);
     }
 
     /*!
@@ -6454,6 +7435,7 @@ namespace real::detail {
      *                              field would have been. Otherwise the block the walk starts on, on which
      *                              the caller passes an already-owned ref.
      */
+    template <bool Probe = false>
     constexpr void add_thread(list_type&   list,
                               std::int32_t pc0,
                               std::size_t  pos,
@@ -6486,6 +7468,9 @@ namespace real::detail {
         }
         list.mark_seen(pc);
         const instr& instruction {prog_.code[static_cast<std::size_t>(pc)]};
+        if constexpr (Probe) {
+          probe_closure(instruction, pos);
+        }
         switch (instruction.op) {
           case opcode::jump:
             {
@@ -6664,8 +7649,16 @@ namespace real::detail {
           return sub.negative ? !matched : matched;
         }
       }
-      const bool matched {sub.direction == look_dir::behind ? lookbehind_matches(sub, pos)
-                                                            : lookahead_matches(sub, pos)};
+      bool matched {false};
+      if (sub.direction == look_dir::behind) {
+        matched = lookbehind_matches(sub_id, sub, pos);
+      }
+      else if (sub.l_max < 0) {
+        matched = unbounded_lookahead_matches(sub_id, sub, pos);
+      }
+      else {
+        matched = lookahead_matches(sub, pos);
+      }
       return sub.negative ? !matched : matched;
     }
 
@@ -6768,99 +7761,205 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Lookbehind: does the sub-pattern match a window ENDING EXACTLY at \p pos?
+     * \brief Unbounded lookahead: does the sub-pattern match a prefix of the text from \p pos?
      *
-     * The match must finish precisely at \p pos, not merely somewhere inside the window —
-     * the defining correctness trap of lookbehind. Candidate starts run from \p pos backward
-     * to `pos - l_max` (bytes, A1); in non-bytes mode a start may not fall on a UTF-8
-     * continuation byte, which would split a codepoint (A9). The first start whose sub-pattern
-     * fullmatches `[s, pos)` is a witness.
+     * A sub-pattern with no bound (`.*`, `+`, `{n,}`) cannot be run forward from every position — that
+     * is quadratic. Whether it matches from a position depends only on the text after it, so one pass
+     * from the end answers every position: row `pos` says, for each instruction of the sub-program,
+     * whether `match` is reachable from it at `pos`. A consuming instruction reads one byte — a code-point
+     * test decodes the code point and continues into its continuation chain, one byte at a time — so its
+     * entry depends only on row `pos + 1`; `match` holds; and the epsilon instructions (jump, split, a
+     * position assertion evaluated at `pos`) propagate within the row. The answer at `pos` is the
+     * sub-program's entry. The pass runs once per subject, O(n x m) for m instructions, and fills
+     * \ref lookaround_scratch::ahead_table, which every later query reads.
      *
-     * \param[in] sub The lookaround sub-program.
-     * \param[in] pos Position the sub must end exactly at.
-     * \return True when some candidate start in the window fullmatches up to \p pos.
+     * \param[in] sub_id Index of the lookaround in `prog_.lookarounds`.
+     * \param[in] sub    The lookaround sub-program (`l_max < 0`).
+     * \param[in] pos    Position the lookahead is evaluated at.
+     * \return True when the sub-pattern matches from \p pos.
      */
-    [[nodiscard]] constexpr bool lookbehind_matches(const lookaround_sub& sub,
-                                                    std::size_t           pos)
+    [[nodiscard]] constexpr bool unbounded_lookahead_matches(std::uint16_t         sub_id,
+                                                             const lookaround_sub& sub,
+                                                             std::size_t           pos)
     {
-      const std::size_t lmax         {static_cast<std::size_t>(sub.l_max)};
-      const std::size_t window_start {pos > lmax ? pos - lmax : 0};
-      for (std::size_t s {pos};; --s) {
-        // s == pos reads nothing (always a valid boundary); for s < pos the start must begin
-        // a codepoint — not a 0x80–0xBF continuation byte — unless we are in raw-bytes mode.
-        const bool aligned {prog_.byte_mode || s >= pos
-                            || (static_cast<std::uint8_t>(text_[s]) & 0xC0U) != 0x80U};
-        if (aligned && sub_fullmatch_window(sub.code_offset, s, pos)) {
-          return true;
-        }
-        if (s == window_start) {
-          break; // reached the far edge; stop before s underflows past 0
-        }
+      lookaround_scratch& scratch {lookaround_state()};
+      if (scratch.ahead.size() <= sub_id) {
+        scratch.ahead.resize(prog_.lookarounds.size());
       }
-      return false;
+      lookaround_scratch::ahead_table& table {scratch.ahead[sub_id]};
+      if (table.text != text_.data() || table.size != text_.size()) {
+        fill_ahead_table(sub, table);
+      }
+      return ((table.holds[pos / 64U] >> (pos % 64U)) & 1U) != 0U;
     }
 
     /*!
-     * \brief Reports whether the sub-program, run from \p start, reaches `match` EXACTLY at
-     *        \p pos (a fullmatch of `[start, pos)`), on the isolated sub-scratch.
-     *
-     * A `match` reached before \p pos (a shorter window) is deliberately discarded — lookbehind
-     * requires the sub to end at \p pos. Touches only `state_.lookaround`.
-     *
-     * \param[in] code_offset Entry program counter of the sub-program.
-     * \param[in] start       Candidate start offset.
-     * \param[in] pos         Offset the sub must end exactly at.
-     * \return True when the sub matches `[start, pos)` exactly.
+     * \brief Fills \p table with every position's answer, for \ref unbounded_lookahead_matches to read.
+     * \param[in]     sub   The lookaround sub-program.
+     * \param[in,out] table The table to fill for the current subject.
      */
-    [[nodiscard]] constexpr bool sub_fullmatch_window(std::int32_t code_offset,
-                                                      std::size_t  start,
-                                                      std::size_t  pos)
+    constexpr void fill_ahead_table(const lookaround_sub&            sub,
+                                    lookaround_scratch::ahead_table& table)
     {
-      const std::size_t code_size {prog_.code.size()};
-      thread_list*      clist     {&lookaround_state().lists[0]};
-      thread_list*      nlist     {&lookaround_state().lists[1]};
-      clist->reset(code_size);
-      nlist->reset(code_size);
-      bool here {false};
-      sub_add_thread(*clist, code_offset, start, here);
-      if (start == pos) {
-        return here; // empty window: the sub must match the empty string exactly at pos
-      }
-      bool sink {false}; // matches reached before pos: collected then ignored
-      for (std::size_t p {start}; p < pos; ++p) {
-        if (clist->pcs.empty()) {
-          return false;
+      lookaround_scratch&        scratch {lookaround_state()};
+      const std::int32_t         base    {sub.code_offset};
+      const std::size_t          width   {static_cast<std::size_t>(sub.code_length)};
+      std::vector<std::uint8_t>* here    {&scratch.reach[0]};
+      std::vector<std::uint8_t>* after   {&scratch.reach[1]};
+      table.text = text_.data();
+      table.size = text_.size();
+      table.holds.assign((text_.size() / 64U) + 1U, 0U);
+      after->assign(width, 0U); // past the end: no consuming instruction can proceed
+      const auto at {[&](std::int32_t pc) -> std::uint8_t& {
+                       return (*here)[static_cast<std::size_t>(pc - base)];
+                     }};
+      for (std::size_t pos {text_.size() + 1}; pos-- > 0;) {
+        here->assign(width, 0U);
+        const auto set {[&](std::int32_t pc) {
+                          at(pc) = 1U;
+                        }};
+        // Instructions whose answer comes from the next position (or is fixed): the consuming ones and
+        // match. The epsilon ones are derived below from these.
+        for (std::int32_t pc {base}; pc < base + static_cast<std::int32_t>(width); ++pc) {
+          const instr& in {prog_.code[static_cast<std::size_t>(pc)]};
+          if (in.op == opcode::match) {
+            set(pc);
+            continue;
+          }
+          if (pos >= text_.size()) {
+            continue;
+          }
+          const auto byte_value {static_cast<std::uint8_t>(text_[pos])};
+          if (in.op == opcode::klass_cp) {
+            const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, pos)};
+            if (dc.valid && cp_class_matches_idx(in.arg16, dc.cp)
+                && (*after)[static_cast<std::size_t>(pc + 1 + static_cast<std::int32_t>(4 - dc.length) - base)] != 0U) {
+              set(pc);
+            }
+          }
+          else if ((in.op == opcode::byte && byte_value == in.arg8)
+                   || (in.op == opcode::klass && prog_.classes[in.arg16].test(byte_value))) {
+            if ((*after)[static_cast<std::size_t>(pc + 1 - base)] != 0U) {
+              set(pc);
+            }
+          }
         }
-        const bool last       {p + 1 == pos};
-        bool       at_pos     {false};
-        const auto byte_value {static_cast<std::uint8_t>(text_[p])};
-        for (const std::int32_t pc : clist->pcs) {
-          const instr& in      {prog_.code[static_cast<std::size_t>(pc)]};
+        // Propagate within the row: an epsilon instruction reaches match when a successor does. Rounds
+        // run from the last instruction to the first, so an edge that points forward -- the usual
+        // jump and split -- settles in the round that reaches it, and only a loop's edge back needs
+        // another round; the rounds stop when one changes nothing.
+        bool changed {true};
+        while (changed) {
+          changed = false;
+          for (std::int32_t pc {base + static_cast<std::int32_t>(width)}; pc-- > base;) {
+            if (at(pc) != 0U) {
+              continue;
+            }
+            const instr& in      {prog_.code[static_cast<std::size_t>(pc)]};
+            bool         reaches {false};
+            switch (in.op) {
+              case opcode::jump:
+                reaches = at(in.primary_target) != 0U;
+                break;
+              case opcode::split:
+                reaches = at(in.primary_target) != 0U || at(in.secondary_target) != 0U;
+                break;
+              case opcode::save:
+                reaches = at(pc + 1) != 0U;
+                break;
+              case opcode::assert_position:
+                reaches = at(pc + 1) != 0U
+                          && assertion_holds(static_cast<assert_kind>(in.arg8), pos, in.arg16 != 0U);
+                break;
+              default:
+                break;
+            }
+            if (reaches) {
+              at(pc)  = 1U;
+              changed = true;
+            }
+          }
+        }
+        if (at(base) != 0U) {
+          table.holds[pos / 64U] |= std::uint64_t {1} << (pos % 64U);
+        }
+        std::swap(here, after);
+      }
+    }
+
+    /*!
+     * \brief Lookbehind: does the sub-pattern match a window ENDING EXACTLY at \p pos?
+     *
+     * The match must finish precisely at \p pos, not merely somewhere inside the window — the
+     * defining correctness trap of lookbehind. A start may lie anywhere in `[pos - l_max, pos]`, \p pos
+     * itself being the empty window. Outside byte mode a start inside a code point can only match the
+     * empty window: no sub-program consumes from a continuation byte (a code-point op decodes strictly,
+     * a literal begins with its lead byte, and the raw-byte `\C` puts the program in byte mode), so a
+     * start at every position answers the same as starts at code-point boundaries plus the empty window.
+     *
+     * One forward walk per lookbehind (\ref lookaround_scratch::behind_walk) answers every position:
+     * it starts a thread at each position and steps all of them together, so a query at a
+     * later position advances it by the bytes in between. Trying each start separately stepped a
+     * window of up to `l_max` bytes from up to `l_max` starts at every position — O(l_max^2) per
+     * position; the walk steps each byte once per search, and a query that moves backward or leaps
+     * more than `l_max` ahead restarts it at `pos - l_max`, which is as far back as a match ending at
+     * \p pos can begin.
+     *
+     * \param[in] sub_id Index of the lookaround in `prog_.lookarounds`.
+     * \param[in] sub    The lookaround sub-program.
+     * \param[in] pos    Position the sub must end exactly at.
+     * \return True when some start in the window fullmatches up to \p pos.
+     */
+    [[nodiscard]] constexpr bool lookbehind_matches(std::uint16_t         sub_id,
+                                                    const lookaround_sub& sub,
+                                                    std::size_t           pos)
+    {
+      lookaround_scratch& scratch {lookaround_state()};
+      if (scratch.behind.size() <= sub_id) {
+        scratch.behind.resize(prog_.lookarounds.size());
+      }
+      lookaround_scratch::behind_walk& walk      {scratch.behind[sub_id]};
+      const std::size_t                code_size {prog_.code.size()};
+      const std::size_t                lmax      {static_cast<std::size_t>(sub.l_max)};
+      const std::size_t                origin    {pos > lmax ? pos - lmax : 0};
+      if (walk.text != text_.data() || walk.size != text_.size() || walk.at == npos || walk.at > pos
+          || walk.at < origin) {
+        walk.text  = text_.data();
+        walk.size  = text_.size();
+        walk.at    = origin;
+        walk.holds = false;
+        walk.threads.reset(code_size);
+        sub_add_thread(walk.threads, sub.code_offset, origin, walk.holds);
+      }
+      thread_list& next {scratch.lists[1]};
+      while (walk.at < pos) {
+        const std::size_t p          {walk.at};
+        const auto        byte_value {static_cast<std::uint8_t>(text_[p])};
+        bool              holds      {false};
+        next.reset(code_size);
+        for (const std::int32_t pc : walk.threads.pcs) {
+          const instr& in {prog_.code[static_cast<std::size_t>(pc)]};
           if (in.op == opcode::klass_cp) {
             const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, p)};
             if (dc.valid && cp_class_matches_idx(in.arg16, dc.cp)) {
-              sub_add_thread(*nlist, pc + 1 + static_cast<std::int32_t>(4 - dc.length), p + 1,
-                             last ? at_pos : sink);
+              sub_add_thread(next, pc + 1 + static_cast<std::int32_t>(4 - dc.length), p + 1, holds);
             }
             continue;
           }
           // Otherwise the parked pc is a byte/klass; the ternary's else assumes klass.
           assert((in.op == opcode::byte || in.op == opcode::klass) && "lookaround parked a non-consuming op");
-          const bool   consume {in.op == opcode::byte ? byte_value == in.arg8
-                                                      : prog_.classes[in.arg16].test(byte_value)};
+          const bool consume {in.op == opcode::byte ? byte_value == in.arg8
+                                                    : prog_.classes[in.arg16].test(byte_value)};
           if (consume) {
-            sub_add_thread(*nlist, pc + 1, p + 1, last ? at_pos : sink);
+            sub_add_thread(next, pc + 1, p + 1, holds);
           }
         }
-        if (last) {
-          return at_pos; // a match counts only when it ends exactly at pos
-        }
-        thread_list* const done {clist};
-        clist = nlist;
-        nlist = done;
-        nlist->reset(code_size);
+        sub_add_thread(next, sub.code_offset, p + 1, holds); // a start at every position
+        std::swap(walk.threads, next);
+        walk.holds = holds;
+        walk.at    = p + 1;
       }
-      return false; // intentionally uncovered: the p+1==pos iteration always returns above
+      return walk.holds;
     }
 
     /*!
@@ -6871,8 +7970,9 @@ namespace real::detail {
      * epsilon) and no `assert_lookaround` (nesting is rejected at compile time). Touches only
      * `state_.lookaround->stack`, never the main `state_`. Linearity: `mark_seen` dedups
      * epsilon threads within a generation; once `p` advances, the same (pc,p) cannot recur,
-     * so each `assert_lookaround` is evaluated at most once per position → O(n·k·L). No memo
-     * table is needed (it would be redundant and break constexpr).
+     * so each `assert_lookaround` is evaluated at most once per position: a lookahead costs O(L)
+     * there, and a lookbehind advances its forward walk (\ref lookbehind_matches) by the bytes since
+     * its last query.
      *
      * \param[in,out] list    The sub thread list to populate.
      * \param[in]     pc0     The sub-program counter to seed from.
@@ -6929,7 +8029,7 @@ namespace real::detail {
           // distinct reason: the compiler rejects a possessive/atomic quantifier inside a
           // lookaround (emit_possessive_repeat / emit_atomic_group throw on capture_free), so a
           // sub-program never contains one of these either — this dispatcher (and lookahead_
-          // matches'/sub_fullmatch_window's own inline byte/klass/klass_cp-only dispatch) would
+          // matches'/lookbehind_matches's own inline byte/klass/klass_cp-only dispatch) would
           // otherwise silently misread klass_cp_loop_possessive's arg16 against the wrong class
           // table. Folded into this same arm (not a separate one) — bugprone-branch-clone flags
           // adjacent case labels whose bodies are both just `break;`, comments notwithstanding.

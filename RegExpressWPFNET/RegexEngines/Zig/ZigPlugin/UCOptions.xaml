@@ -179,7 +179,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=opt_level}">opt_level:</Label>
+                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=opt_level}">opt__level:</Label>
                     <ComboBox x:Name="opt_level" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding opt_level, FallbackValue='none'}" VerticalAlignment="Center" SelectionChanged="opt_level_SelectionChanged" >
                         <ComboBoxItem Tag="none" IsSelected="True">
                             <ui:TextAndNote Text="none" Note=""/>

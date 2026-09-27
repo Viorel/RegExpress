@@ -121,6 +121,36 @@ namespace real::detail {
     return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(hit), 4)), 0);
   }
 
+  /*!
+   * \brief Mask of the lanes where `buf16[l] == a` -- the single-byte scan (prefilter.hpp's
+   *        `simd_byte_scan`). NEON only, like \ref load_pair_mask, and for the same reason: its caller is
+   *        NEON-gated, x86-64 keeping the platform `memchr`, whose vectors are wider.
+   * \param[in] buf16 16 already-loaded bytes (the caller's MISRA-clean memcpy).
+   * \param[in] a     The byte sought.
+   */
+  inline mask_t load_byte_mask(const std::uint8_t * buf16,
+                               std::uint8_t         a)
+  {
+    const uint8x16_t eq {vceqq_u8(vld1q_u8(buf16), vdupq_n_u8(a))};
+    return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(eq), 4)), 0);
+  }
+
+  /*!
+   * \brief Whether \p a occurs anywhere in the 64 bytes at \p buf64: four compares OR-ed and one horizontal
+   *        max, the reject test of prefilter.hpp's `simd_byte_scan`, which builds the per-block masks
+   *        (\ref load_byte_mask) only when this says there is a hit. NEON only, like its caller.
+   * \param[in] buf64 64 already-loaded bytes (the caller's MISRA-clean memcpy).
+   * \param[in] a     The byte sought.
+   */
+  inline bool any_byte64(const std::uint8_t * buf64,
+                         std::uint8_t         a)
+  {
+    const uint8x16_t needle {vdupq_n_u8(a)};
+    const uint8x16_t lo     {vorrq_u8(vceqq_u8(vld1q_u8(buf64), needle), vceqq_u8(vld1q_u8(buf64 + 16), needle))};
+    const uint8x16_t hi     {vorrq_u8(vceqq_u8(vld1q_u8(buf64 + 32), needle), vceqq_u8(vld1q_u8(buf64 + 48), needle))};
+    return vmaxvq_u8(vorrq_u8(lo, hi)) != 0U;
+  }
+
   /*! \brief `true` if no lane of \p m is set. */
   inline bool empty(mask_t m)
   {

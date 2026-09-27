@@ -806,7 +806,7 @@ namespace real::detail {
    * builds race-free, and assigning onto a warmed regex rebuilds for the new program.
    *
    * The mutable lazy-DFA transition caches live in a process-wide side table (\ref shared_dfa_slot), keyed
-   * by this object's address and guarded by a per-slot mutex — so this struct stays free of
+   * by this object's address, each thread scanning through its own set of them (\ref dfa_lease) — so this struct stays free of
    * \c std::mutex and of the members one would bring. Address reuse of the immutables object invalidates
    * the slot via \ref reset_shared_dfas; a program change at the same address is caught by \ref built_for
    * (see \ref pike_vm::ensure_immutables). The destructor erases this address's map entry, so match-time
@@ -816,6 +816,9 @@ namespace real::detail {
   {
     byte_program           byte_prog;                     //!< klass_cp-expanded byte program (empty until built).
     lazy_byte_alphabet     alphabet;                      //!< byte-class alphabet of byte_prog (shared by both DFAs, else recomputed per scan).
+    byte_program           look_prog;                     //!< byte program with its position assertions kept, built only when byte_prog declined: the search DFAs run it.
+    lazy_byte_alphabet     look_alphabet;                 //!< byte-class alphabet of look_prog.
+    bool                   run_shape {false};             //!< The program is saves, atoms and greedy `atom+` loops only: pike_vm::match_run_shape reads its groups off a window.
     std::optional<onepass> op_table;                      //!< one-pass extractor, present iff the pattern is one-pass.
     byte_program           il_prefix_prog;                //!< IL: the inner-literal prefix's byte program (ineligible until built). Per-regex so the reverse DFA that spans it is a cheap shared wrapper, not a per-find_iter rebuild.
     std::size_t            il_min_haystack {};            //!< IL cold floor: first candidate-scan on this regex only fires at or above this size when the haystack HAS a match (0 = always). Warm scans use \ref il_warm_floor (shared reverse DFA in \ref shared_dfa_slot). Checked ONLY after the first memmem hit — no-match is never gated. Scaled by prefix byte-program size; see \ref pike_vm::run_inner_literal.
@@ -1008,7 +1011,7 @@ namespace real::detail {
 
   /*!
    * \brief Striped rebuild lock for \ref pike_vm::ensure_immutables (not on \ref regex_immutables —
-   *        layout isolation). Distinct from \ref shared_dfa_map_mu / slot.mu so \ref reset_shared_dfas
+   *        layout isolation). Distinct from \ref shared_dfa_map_mu / \ref shared_dfa_slot::pool_mu so \ref reset_shared_dfas
    *        cannot self-deadlock. Different immutables rarely share a stripe.
    * \param[in] immut The cache whose stripe is wanted; hashed by address, never dereferenced.
    * \return The stripe guarding that cache's build.
@@ -1021,18 +1024,34 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Process-wide shared DFA transition caches keyed by \ref regex_immutables*.
+   * \brief One thread's lazy DFAs for one regex: the transition caches a scan fills as it walks.
    *
-   * Thread-safe: map insert/erase under \ref shared_dfa_map_mu, DFA warm/scan under \ref mu. Slots are
-   * \c shared_ptr so a concurrent \ref erase_shared_dfas (from a destructor) cannot free a slot a thread
-   * is still scanning — the slot dies when the last holder, map or thread-local cache, releases it.
+   * A set is used by one thread at a time (see \ref dfa_lease), so a scan takes no lock. It is built
+   * for one program: \ref generation names the \ref shared_dfa_slot::generation it was built under,
+   * and a lease clears a set whose generation is stale before handing it out.
+   */
+  struct shared_dfa_set
+  {
+    std::optional<lazy_dfa>    fwd;                  //!< Forward lazy DFA, absent until a route first needs it.
+    std::optional<reverse_dfa> rev;                  //!< Reverse lazy DFA, for finding a match start from its end.
+    std::optional<reverse_dfa> il_prefix_rev;        //!< Reverse DFA over the inner-literal PREFIX sub-program only.
+    std::uint64_t              generation {0};       //!< The slot generation these DFAs were built under.
+  };
+
+  /*!
+   * \brief Process-wide per-regex DFA state keyed by \ref regex_immutables*: a pool of
+   *        \ref shared_dfa_set, one per thread using the regex, and the flags every thread shares.
+   *
+   * Thread-safe: map insert/erase under \ref shared_dfa_map_mu; the pool under \ref pool_mu, held only
+   * to take or return a set, never during a scan. Slots are \c shared_ptr so a concurrent
+   * \ref erase_shared_dfas (from a destructor) cannot free a slot a thread still holds a set from — the
+   * slot dies when the last holder, map or thread-local lease, releases it.
    */
   struct shared_dfa_slot
   {
-    std::mutex                 mu;            //!< Guards every DFA below: warm-up and scan alike.
-    std::optional<lazy_dfa>    fwd;           //!< Forward lazy DFA, absent until a route first needs it.
-    std::optional<reverse_dfa> rev;           //!< Reverse lazy DFA, for finding a match start from its end.
-    std::optional<reverse_dfa> il_prefix_rev; //!< Reverse DFA over the inner-literal PREFIX sub-program only.
+    std::mutex                                   pool_mu;         //!< Guards \ref free only.
+    std::vector<std::unique_ptr<shared_dfa_set>> free;            //!< Sets no thread holds.
+    std::atomic<std::uint64_t>                   generation {0};  //!< Moves when the program is rebuilt.
     //! \brief True after this regex has been IL-candidate-scanned at least once (any size).
     //!        Cold first scan keeps the high \ref regex_immutables::il_min_haystack floor; warm
     //!        scans use \ref il_warm_floor. Not "il_prefix_rev is built" — a always-<floor corpus
@@ -1159,13 +1178,206 @@ namespace real::detail {
    */
   inline void reset_shared_dfas(regex_immutables* immut)
   {
-    shared_dfa_slot&                  slot {shared_dfa_for(immut)};
-    const std::lock_guard<std::mutex> lock {slot.mu};
-    slot.fwd.reset();
-    slot.rev.reset();
-    slot.il_prefix_rev.reset();
+    shared_dfa_slot& slot {shared_dfa_for(immut)};
+    // A held set is cleared by its next lease, which sees the generation move; the free ones go now.
+    slot.generation.fetch_add(1, std::memory_order_acq_rel);
+    {
+      const std::lock_guard<std::mutex> lock {slot.pool_mu};
+      slot.free.clear();
+    }
     slot.il_warmed.store(false, std::memory_order_relaxed);
   }
+
+  /*!
+   * \brief This thread's DFA set for one regex, for the lifetime of the lease: a scan through it takes
+   *        no lock, so threads sharing a regex no longer queue on its DFAs.
+   *
+   * Each thread keeps the set it last used, with the slot it came from, and gives it back to that
+   * slot's pool when it moves to another regex or exits; a lease on the same regex is then an owner
+   * check and a generation check. A lease taken while this thread's cached set is already leased — a
+   * scan of one regex started from inside a scan of another — takes a separate set from the pool and
+   * returns it on destruction, so the outer scan's set is never handed away under it.
+   */
+  class dfa_lease
+  {
+  public:
+
+    /*!
+     * \brief Leases a DFA set for \p immut, cleared if it was built for an earlier program.
+     * \param[in] immut The regex whose DFAs are wanted.
+     */
+    explicit dfa_lease(regex_immutables* immut)
+    {
+      cache& mine {thread_cache()};
+      if (!mine.busy) {
+        if (!mine.slot || mine.slot->owner.load(std::memory_order_acquire) != immut) {
+          mine.give_back();
+          mine.slot = slot_for(immut);
+          mine.set  = take(*mine.slot);
+        }
+        mine.busy = true;
+        slot_     = mine.slot.get();
+        set_      = mine.set.get();
+        cached_   = true;
+      }
+      else {
+        nested_slot_ = slot_for(immut);
+        nested_set_  = take(*nested_slot_);
+        slot_        = nested_slot_.get();
+        set_         = nested_set_.get();
+      }
+      const std::uint64_t generation {slot_->generation.load(std::memory_order_acquire)};
+      if (set_->generation != generation) {
+        set_->fwd.reset();
+        set_->rev.reset();
+        set_->il_prefix_rev.reset();
+        set_->generation = generation;
+      }
+    }
+
+    dfa_lease(const dfa_lease&)            = delete;
+    dfa_lease& operator=(const dfa_lease&) = delete;
+    dfa_lease(dfa_lease&&)                 = delete;
+    dfa_lease& operator=(dfa_lease&&)      = delete;
+
+    /*!
+     * \brief Ends the lease: the cached set stays with this thread, a nested one goes back to its pool.
+     */
+    ~dfa_lease()
+    {
+      if (cached_) {
+        thread_cache().busy = false;
+      }
+      else {
+        give(*nested_slot_, std::move(nested_set_));
+      }
+    }
+
+    /*!
+     * \brief The leased set.
+     * \return The set.
+     */
+    [[nodiscard]] shared_dfa_set& operator*() const noexcept
+    {
+      return *set_;
+    }
+
+    /*!
+     * \brief The leased set's members.
+     * \return The set.
+     */
+    [[nodiscard]] shared_dfa_set* operator->() const noexcept
+    {
+      return set_;
+    }
+
+  private:
+
+    /*!
+     * \brief The set a thread keeps between leases, and the slot it returns to.
+     */
+    struct cache
+    {
+      std::shared_ptr<shared_dfa_slot> slot;          //!< The slot \ref set came from.
+      std::unique_ptr<shared_dfa_set>  set;           //!< This thread's set for that slot's regex.
+      bool                             busy {false};  //!< A lease holds \ref set.
+
+      cache()                        = default;
+      cache(const cache&)            = delete;
+      cache& operator=(const cache&) = delete;
+      cache(cache&&)                 = delete;
+      cache& operator=(cache&&)      = delete;
+
+      /*!
+       * \brief Returns the set to its slot's pool.
+       */
+      void give_back()
+      {
+        if (slot && set) {
+          give(*slot, std::move(set));
+        }
+        slot.reset();
+        set.reset();
+      }
+
+      /*!
+       * \brief A thread's set outlives none of its uses: it goes back to its pool when the thread ends.
+       */
+      ~cache()
+      {
+        give_back();
+      }
+    };
+
+    /*!
+     * \brief This thread's cache.
+     * \return The cache.
+     */
+    static cache& thread_cache()
+    {
+      thread_local cache mine;
+      return mine;
+    }
+
+    /*!
+     * \brief The slot for \p immut, created on first use (a shared reference: it may be retired).
+     * \param[in] immut The regex whose slot is wanted.
+     * \return The slot.
+     */
+    static std::shared_ptr<shared_dfa_slot> slot_for(regex_immutables* immut)
+    {
+      const std::lock_guard<std::mutex> lock {shared_dfa_map_mu()};
+      std::shared_ptr<shared_dfa_slot>& slot {shared_dfa_map()[immut]};
+      if (!slot) {
+        slot = std::make_shared<shared_dfa_slot>();
+        slot->owner.store(immut, std::memory_order_relaxed); // published by this mutex's release
+      }
+      return slot;
+    }
+
+    /*!
+     * \brief A free set from \p slot's pool, or a new one.
+     * \param[in,out] slot The slot whose pool is drawn from.
+     * \return The set.
+     */
+    static std::unique_ptr<shared_dfa_set> take(shared_dfa_slot& slot)
+    {
+      {
+        const std::lock_guard<std::mutex> lock {slot.pool_mu};
+        if (!slot.free.empty()) {
+          std::unique_ptr<shared_dfa_set> set {std::move(slot.free.back())};
+          slot.free.pop_back();
+          return set;
+        }
+      }
+      return std::make_unique<shared_dfa_set>();
+    }
+
+    /*!
+     * \brief Returns \p set to \p slot's pool, or frees it when the pool cannot take it.
+     *
+     * Called from destructors, so it cannot throw: a lock that fails or a pool that cannot grow leaves
+     * \p set to be freed here instead of pooled, which costs the next lease a rebuild and nothing else.
+     * \param[in,out] slot The slot the set belongs to.
+     * \param[in]     set  The set given back.
+     */
+    static void give(shared_dfa_slot&                slot,
+                     std::unique_ptr<shared_dfa_set> set) noexcept
+    {
+      try {
+        const std::lock_guard<std::mutex> lock {slot.pool_mu};
+        slot.free.push_back(std::move(set));
+      }
+      catch (...) { // NOLINT(bugprone-empty-catch) -- the set is freed with `set`; see above
+      }
+    }
+
+    shared_dfa_slot*                 slot_   {nullptr};     //!< The slot the set belongs to.
+    shared_dfa_set*                  set_    {nullptr};     //!< The leased set.
+    bool                             cached_ {false};       //!< The set is this thread's cached one.
+    std::shared_ptr<shared_dfa_slot> nested_slot_;          //!< The slot of a nested lease.
+    std::unique_ptr<shared_dfa_set>  nested_set_;           //!< The set of a nested lease.
+  };
 
   /*!
    * \brief Test/audit: number of live shared-DFA map entries (process-wide). Not for production.
