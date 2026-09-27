@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" d:DesignWidth="869.529" 
-             Loaded="UserControl_Loaded" Height="1528">
+             Loaded="UserControl_Loaded" Height="1638">
 
     <UserControl.Resources>
         <local:Versions x:Key="versions"/>
@@ -398,7 +398,7 @@
 
             </StackPanel>
 
-            <StackPanel x:Name="pnlRustyExpressionsOptions" Orientation="Vertical">
+            <StackPanel x:Name="pnlRustyExpressionsOptions" Orientation="Vertical" >
 
                 <ui:CheckboxWithNote Prop="case_insensitive" Text="IGNORECASE" Note=""/>
                 <ui:CheckboxWithNote Prop="ignore_whitespace" Text="EXTEND" Note=""/>

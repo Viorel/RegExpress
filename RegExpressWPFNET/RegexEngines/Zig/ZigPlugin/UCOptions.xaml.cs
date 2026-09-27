@@ -90,12 +90,14 @@ namespace ZigPlugin
                 bool is_Pzre = Options.Library == RegexLibraryEnum.Pzre;
                 bool is_EziGex = Options.Library == RegexLibraryEnum.EziGex;
                 bool is_Zoptia0regex = Options.Library == RegexLibraryEnum.Zoptia0regex;
+                bool is_ZRegex = Options.Library == RegexLibraryEnum.ZRegex;
 
                 pnlZigRegexOptions.Display( is_ZigRegex );
                 pnlMvzrOptions.Display( is_Mvzr );
                 pnlPzreOptions.Display( is_Pzre );
                 pnlEziGexOptions.Display( is_EziGex );
                 pnlZoptia0regex.Display( is_Zoptia0regex );
+                pnlZRegex.Display( is_ZRegex );
             }
             finally
             {
@@ -122,6 +124,11 @@ namespace ZigPlugin
         private void tb_TextChanged( object sender, TextChangedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
+        }
+
+        private void opt_level_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
         }
     }
 }

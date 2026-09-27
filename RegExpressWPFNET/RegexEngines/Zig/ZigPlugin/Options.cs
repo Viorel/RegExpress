@@ -8,6 +8,7 @@ enum RegexLibraryEnum
     Pzre,
     EziGex,
     Zoptia0regex,
+    ZRegex,
 }
 
 enum CaseFoldEnum
@@ -33,6 +34,13 @@ enum SimdModeEnum
     off,
 }
 
+enum OptLevelEnum
+{
+    none,
+    basic,
+    aggressive,
+}
+
 class Options
 {
     public RegexLibraryEnum Library { get; set; } = RegexLibraryEnum.ZigRegex;
@@ -53,6 +61,11 @@ class Options
     public bool posix { get; set; }
     public bool longest { get; set; }
     public bool literal { get; set; }
+
+    public OptLevelEnum opt_level { get; set; } = OptLevelEnum.none;
+    public bool sticky { get; set; }
+    public bool v { get; set; } = true;
+    public bool possessive { get; set; }
 
 
     public Options Clone( )
