@@ -11,7 +11,7 @@ class Versions
     public static string Anre { get; } = "2.1.2";
     public static string RealRegex { get; } = "2026.9.9";
     public static string JavaRegex { get; } = "0.1.0";
-    public static string Regexr { get; } = "0.5.0";
+    public static string Regexr { get; } = "0.6.0";
     public static string ReXile { get; } = "0.7.4";
     public static string IRegexpRs { get; } = "0.1.0";
     public static string Ferroni { get; } = "1.5.2";
