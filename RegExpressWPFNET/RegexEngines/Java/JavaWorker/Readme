@@ -19,6 +19,8 @@ or:
     "path to xxx2.jar"
   ]
 
+  (To edit it manually: "%APPDATA%\Code\User\settings.json")
+
 - The new version of RE2J (.jar) can be got from https://github.com/google/re2j/releases.
 
 - The new version of SafeRE (.jar) can be got from https://central.sonatype.com/artifact/org.safere/safere.
@@ -31,6 +33,8 @@ To recompile the "*.java" workers
 --------------------------------------------------------
 
 - Adjust the JDK_ROOT variable in "compile.cmd".
+
+- Adjust the versions of .jar files in "compile.cmd".
 
 - Run "compile.cmd".
 
