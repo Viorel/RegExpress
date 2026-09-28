@@ -486,23 +486,25 @@ namespace real {
     inline constexpr std::uint32_t dfa_no_rule {std::numeric_limits<std::uint32_t>::max()}; //!< \ref dfa_tables::accept's "this state does not accept" marker.
 
     /*!
-     * \brief Every class's move from one state in one pass over the state's PCs: \ref dfa_move for each
-     *        class of \p bc, without rescanning the set once per class.
+     * \brief Every class's seed list from one state in one pass over the state's PCs: the PCs after each
+     *        consuming instruction that class passes, without rescanning the set once per class.
      * \param[in] nfa           The union NFA.
      * \param[in] set           The source state's PC set.
      * \param[in] bc            The byte classes (a byte PC consumes exactly its own byte's class).
      * \param[in] klass_members For each NFA class, the byte-class indices it contains.
-     * \param[in,out] closures  Closures already computed during this construction, by seed list:
-     *            classes and states that consume through the same PCs share one closure.
-     * \return The successor PC set per class, indexed by class.
+     * \param[out] seeds        One list per class, cleared first; the lists keep their capacity, so a
+     *             construction allocates them once rather than once per state.
      */
-    inline std::vector<dfa_set> dfa_move_all(const dfa_nfa&                                 nfa,
-                                             const dfa_set&                                 set,
-                                             const dfa_byte_classes&                        bc,
-                                             const std::vector<std::vector<std::uint8_t>>&  klass_members,
-                                             std::map<std::vector<std::uint32_t>, dfa_set>& closures)
+    inline void dfa_seeds_all(const dfa_nfa&                                nfa,
+                              const dfa_set&                                set,
+                              const dfa_byte_classes&                       bc,
+                              const std::vector<std::vector<std::uint8_t>>& klass_members,
+                              std::vector<std::vector<std::uint32_t>>&      seeds)
     {
-      std::vector<std::vector<std::uint32_t>> seeds(bc.count);
+      seeds.resize(bc.count);
+      for (auto& per_class : seeds) {
+        per_class.clear();
+      }
       for (std::size_t w = 0; w < set.size(); ++w) {
         for (std::uint64_t bits {set[w]}; bits != 0U; bits &= bits - 1U) {
           const std::size_t pc {(w << 6U) + static_cast<std::size_t>(std::countr_zero(bits))};
@@ -517,17 +519,6 @@ namespace real {
           }
         }
       }
-      std::vector<dfa_set> out;
-      out.reserve(bc.count);
-      for (auto& per_class : seeds) {
-        auto found {closures.find(per_class)};
-        if (found == closures.end()) {
-          dfa_set closed {dfa_closure(nfa, per_class, false)}; // post-consumption: text_start is false here
-          found = closures.emplace(std::move(per_class), std::move(closed)).first;
-        }
-        out.push_back(found->second);
-      }
-      return out;
     }
 
     /*!
@@ -616,15 +607,25 @@ namespace real {
           }
         }
       }
-      std::map<std::vector<std::uint32_t>, dfa_set> closures;
+      // The state a seed list leads to, by seed list: the closure, its completion and its place among the
+      // states are functions of the list alone, so each distinct list is closed and looked up once, and
+      // every later (state, class) with the same list reads its target here.
+      std::map<std::vector<std::uint32_t>, std::uint32_t> target_of;
+      std::vector<std::vector<std::uint32_t>>             seeds;
       // Indexed: find_or_add appends to `sets`. A range-for captures end() once
       // and never expands the states it just discovered (UAF under realloc;
       // silent one-state machine otherwise).
       // NOLINTNEXTLINE(modernize-loop-convert)
       for (std::size_t s = 0; s < sets.size(); ++s) {
-        std::vector<dfa_set> moves {dfa_move_all(nfa, sets[s], bc, klass_members, closures)};
+        dfa_seeds_all(nfa, sets[s], bc, klass_members, seeds);
         for (std::size_t c = 0; c < nc; ++c) {
-          trans_pre.push_back(find_or_add(complete(std::move(moves[c]))));
+          auto found {target_of.find(seeds[c])};
+          if (found == target_of.end()) {
+            // post-consumption: text_start is false here
+            const std::uint32_t target {find_or_add(complete(dfa_closure(nfa, seeds[c], false)))};
+            found = target_of.emplace(seeds[c], target).first;
+          }
+          trans_pre.push_back(found->second);
         }
       }
       const std::size_t n_pre {sets.size()};
@@ -638,23 +639,44 @@ namespace real {
         block[s] = mask_ids.try_emplace(mask_pre[s], static_cast<std::int64_t>(mask_ids.size())).first->second;
       }
       std::size_t num_blocks {mask_ids.size()};
+      // Each round splits blocks by signature (own block, then each class's target block). The signatures
+      // sit in one flat table and are grouped by sorting state indices over it: no signature is allocated
+      // per state per round. Blocks are numbered in sorted signature order, which keeps the dead state
+      // block 0: it starts in block 0 (its all-zero mask is seen first) and goes only to itself, so its
+      // signature is all zeros, the least of all, every round.
+      const std::size_t         width {nc + 1};
+      std::vector<std::int64_t> sig(n_pre * width);
+      std::vector<std::size_t>  order(n_pre);
+      std::vector<std::int64_t> new_block(n_pre, 0);
       for (bool changed = true; changed;) {
         changed = false;
-        std::map<std::vector<std::int64_t>, std::int64_t> sig_ids;
-        std::vector<std::int64_t>                         new_block(n_pre, 0);
         for (std::size_t s = 0; s < n_pre; ++s) {
-          std::vector<std::int64_t> sig;
-          sig.reserve(nc + 1);
-          sig.push_back(block[s]);
+          std::int64_t* row {&sig[s * width]};
+          row[0] = block[s];
           for (std::size_t c = 0; c < nc; ++c) {
-            sig.push_back(block[trans_pre[(s * nc) + c]]);
+            row[c + 1] = block[trans_pre[(s * nc) + c]];
           }
-          new_block[s] = sig_ids.try_emplace(std::move(sig), static_cast<std::int64_t>(sig_ids.size())).first->second;
+          order[s] = s;
         }
-        if (sig_ids.size() != num_blocks) {
+        const auto row_less {[&](std::size_t a, std::size_t b) {
+                               return std::lexicographical_compare(sig.begin() + static_cast<std::ptrdiff_t>(a * width),
+                                                                   sig.begin() + static_cast<std::ptrdiff_t>((a + 1) * width),
+                                                                   sig.begin() + static_cast<std::ptrdiff_t>(b * width),
+                                                                   sig.begin() + static_cast<std::ptrdiff_t>((b + 1) * width));
+                             }};
+        std::sort(order.begin(), order.end(), row_less);
+        std::size_t groups {0};
+        for (std::size_t k = 0; k < n_pre; ++k) {
+          if (k > 0 && row_less(order[k - 1], order[k])) {
+            ++groups;
+          }
+          new_block[order[k]] = static_cast<std::int64_t>(groups);
+        }
+        ++groups;
+        if (groups != num_blocks) {
           changed    = true;
-          num_blocks = sig_ids.size();
-          block      = std::move(new_block);
+          num_blocks = groups;
+          block      = new_block;
         }
       }
 

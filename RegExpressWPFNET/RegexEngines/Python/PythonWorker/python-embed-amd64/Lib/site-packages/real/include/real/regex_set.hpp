@@ -5,10 +5,11 @@
  * Which-matched semantics (RE2::Set / rust `RegexSet`): which members match the
  * subject at least once. **Not** \ref real::dfa munch (one winner at the cursor).
  *
- * Two search shapes, chosen at construction. When enough patterns are DFA-eligible,
- * a fused unanchored multi-accept DFA (`dfa_mode::which_matched`) scans once for all
- * of them; ineligible patterns (lookaround, Unicode \\w/\\d/\\s, …) and sets below the
- * threshold walk one pattern at a time through `regex::search`. The public bitset is
+ * Two search shapes. When enough patterns are DFA-eligible, a fused unanchored
+ * multi-accept DFA (`dfa_mode::which_matched`) scans once for all of them — built at
+ * construction for a large set, or once a mid-sized set has walked enough text to pay
+ * for it; ineligible patterns (lookaround, Unicode \\w/\\d/\\s, …) and small sets walk one
+ * pattern at a time through `regex::search`. The public bitset is
  * always in **construction order** — fused rule indices are remapped through an
  * eligible→original map.
  *
@@ -22,7 +23,10 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <functional>
+#include <memory>
+#include <mutex>
 #include <ranges>
 #include <cstddef>
 #include <initializer_list>
@@ -50,13 +54,32 @@ namespace real {
   public:
 
     /*!
-     * \brief Eligible-member count at which the set builds a fused single-pass DFA.
+     * \brief Eligible-member count at which the set builds its fused single-pass DFA at construction.
      *
-     * A calibrated threshold: one fused automaton costs a build and a full
-     * scan; N walks cost N searches that can each stop early. Below this
-     * count every member is searched individually.
+     * One fused automaton costs a build and a full scan; N walks cost N searches that can each stop
+     * early. From this count the fused scan pays on the first subject; between
+     * \ref fused_deferred_min_eligible and here it pays only once enough text has been searched.
      */
     static constexpr std::size_t fused_min_eligible {56};
+
+    /*!
+     * \brief Eligible-member count from which a set builds its fused DFA once it has walked
+     *        \ref fused_deferred_bytes, rather than at construction.
+     *
+     * From about this many members one fused scan of a subject costs less than the walks, but the build
+     * costs milliseconds -- more than a caller that builds a set for one short subject would ever get
+     * back. So such a set starts on walks and builds the fused DFA once, the first time its whole-subject
+     * \ref matches calls have walked \ref fused_deferred_bytes in total: the walks spent by then are about
+     * what the build costs, which bounds the total at about twice the cheaper of the two choices made in
+     * hindsight. Below this count the walks win outright.
+     */
+    static constexpr std::size_t fused_deferred_min_eligible {24};
+
+    /*!
+     * \brief Whole-subject bytes a set of \ref fused_deferred_min_eligible to \ref fused_min_eligible
+     *        members walks before it builds its fused DFA.
+     */
+    static constexpr std::size_t fused_deferred_bytes {std::size_t {1} << 20U};
 
 
     /*!
@@ -141,24 +164,26 @@ namespace real {
     }
 
     /*!
-     * \brief True when a fused single-pass DFA is active (eligible.count ≥ threshold).
+     * \brief True when a fused single-pass DFA is active: built at construction, or since, once the set
+     *        walked \ref fused_deferred_bytes.
      * \return Whether the eligible members share one DFA rather than being searched individually.
      */
     [[nodiscard]] bool uses_fused() const noexcept
     {
-      return fused_.has_value();
+      return ready_fused() != nullptr;
     }
 
     /*!
      * \brief How many members the fused DFA holds, or 0 when \ref uses_fused is false.
      *
-     * Below the threshold every member walks individually, so this is 0 even
-     * for patterns a DFA would have accepted.
+     * Until the fused DFA is active every member walks individually, so this is 0 even
+     * for patterns a DFA would accept.
      * \return The fused subset size, or 0.
      */
     [[nodiscard]] std::size_t eligible_count() const noexcept
     {
-      return eligible_orig_.size();
+      const fused_state* st {ready_fused()};
+      return st == nullptr ? 0U : st->eligible_orig.size();
     }
 
     /*!
@@ -177,8 +202,10 @@ namespace real {
                                 std::size_t      pos    = 0,
                                 std::size_t      endpos = npos) const
     {
-      // Region or no fused path: pure N-walks (any-stop).
-      if (!fused_ || pos != 0 || endpos != npos) {
+      // Region or no fused path: pure N-walks (any-stop). An any-match walk stops at its first hit, so
+      // is_match neither counts toward the deferred build nor triggers it.
+      const fused_state* st {pos == 0 && endpos == npos ? ready_fused() : nullptr};
+      if (st == nullptr) {
         // THE FIRST SERVED MEMBER IS SEARCHED WITHOUT CONSULTING THE FILTER -- the whole difference
         // from `matches` below. If that member matches, the filter cannot have excluded it: a match
         // implies one of its own leading bytes is present in the region. So scanning first would be
@@ -209,10 +236,10 @@ namespace real {
         return false;
       }
       // Fused path: any fused bit or any ineligible hit.
-      if (std::ranges::any_of(fused_->which_matched(text), std::identity {})) {
+      if (std::ranges::any_of(st->fused->which_matched(text), std::identity {})) {
         return true;
       }
-      return std::ranges::any_of(ineligible_orig_, [&](std::size_t oi) {
+      return std::ranges::any_of(st->ineligible_orig, [&](std::size_t oi) {
                                    return members_[oi].search(text).matched();
                                  });
     }
@@ -237,7 +264,8 @@ namespace real {
         return hit;
       }
       // Region: DFA which_matched is whole-subject mid-stream restart — use N-walks.
-      if (!fused_ || pos != 0 || endpos != npos) {
+      const fused_state* st {pos == 0 && endpos == npos ? fused_for(text) : nullptr};
+      if (st == nullptr) {
         // One scan for every member the filter serves; see is_match for why it is on demand.
         bool scanned {false};
         bool skip    {false};
@@ -258,14 +286,14 @@ namespace real {
         return hit;
       }
       // Eligible: single-pass fused (indices 0..E-1) → map to construction order.
-      const auto fbits {fused_->which_matched(text)};
-      for (std::size_t k = 0; k < fbits.size() && k < eligible_orig_.size(); ++k) {
+      const auto fbits {st->fused->which_matched(text)};
+      for (std::size_t k = 0; k < fbits.size() && k < st->eligible_orig.size(); ++k) {
         if (fbits[k]) {
-          hit[eligible_orig_[k]] = true;
+          hit[st->eligible_orig[k]] = true;
         }
       }
       // Ineligible: individual search (lookaround / klass_cp / …).
-      for (const std::size_t oi : ineligible_orig_) {
+      for (const std::size_t oi : st->ineligible_orig) {
         if (members_[oi].search(text)) {
           hit[oi] = true;
         }
@@ -337,37 +365,139 @@ namespace real {
         return;
       }
       arm_byte_filter();
-      // No set smaller than the threshold can ever reach it: the eligible subset is at most the whole
-      // set. Without this return the partition below would build one munch DFA per member and the
-      // `else` branch at the end would throw every one of them away -- a per-pattern construction cost
-      // paid by every small set to conclude what its own size already said.
-      if (members_.size() < fused_min_eligible) {
-        return; // eligible_orig_/ineligible_orig_ stay empty: every member uses N-walks
+      // No set smaller than the deferred threshold can ever reach it: the eligible subset is at most the
+      // whole set. Without this return the partition would build one munch DFA per member only to throw
+      // every one of them away -- a per-pattern construction cost paid by every small set to conclude
+      // what its own size already said.
+      if (members_.size() < fused_deferred_min_eligible) {
+        return; // no fused state: every member uses N-walks
       }
-      // Partition DFA-eligible vs ineligible (try single-pattern munch DFA).
-      std::vector<regex> eligible_rx;
-      eligible_rx.reserve(members_.size());
-      eligible_orig_.reserve(members_.size());
-      ineligible_orig_.reserve(members_.size());
+      auto st {std::make_shared<fused_state>()};
+      if (members_.size() >= fused_min_eligible) {
+        // Large enough that the fused scan may pay on the first subject: partition now, and build now if
+        // the eligible subset is large enough.
+        partition(*st);
+        if (st->eligible_orig.size() >= fused_min_eligible) {
+          build_fused(*st);
+          st->ready.store(true, std::memory_order_release);
+        }
+        else if (st->eligible_orig.size() < fused_deferred_min_eligible) {
+          return; // too few eligibles ever to fuse
+        }
+      }
+      fused_state_ = std::move(st);
+    }
+
+    /*!
+     * \brief The fused scan's state: the DFA, its subset maps, and what the deferred build counts.
+     *
+     * Shared by copies of the set, and written once: at construction, or by the one call that builds it
+     * under \ref once; \ref ready publishes it. Held by pointer because the atomics and the once flag can
+     * be neither copied nor moved, and a set must stay both.
+     */
+    struct fused_state
+    {
+      std::optional<dfa>         fused;               //!< The fused DFA; empty until built, or when it cannot be.
+      std::vector<std::size_t>   eligible_orig;       //!< fused rule k → construction index.
+      std::vector<std::size_t>   ineligible_orig;     //!< construction indices needing search.
+      bool                       partitioned {};      //!< The partition ran at construction.
+      std::atomic<std::uint64_t> walked      {0};     //!< Whole-subject bytes \ref matches walked, until ready.
+      std::atomic<bool>          ready       {false}; //!< The fields above are final (the DFA built or given up).
+      std::once_flag             once;                //!< The deferred build runs once.
+    };
+
+    /*!
+     * \brief Splits the members into the DFA-eligible subset and the rest (a single-pattern munch DFA
+     *        decides eligibility).
+     * \param[in,out] st The state receiving both lists.
+     */
+    void partition(fused_state& st) const
+    {
+      st.eligible_orig.reserve(members_.size());
+      st.ineligible_orig.reserve(members_.size());
       for (std::size_t i = 0; i < members_.size(); ++i) {
         try {
           const real::dfa probe {std::span<const regex> {&members_[i], 1}};
           (void) probe;
-          eligible_rx.push_back(members_[i]);
-          eligible_orig_.push_back(i);
+          st.eligible_orig.push_back(i);
         }
         catch (const dfa_error&) {
-          ineligible_orig_.push_back(i);
+          st.ineligible_orig.push_back(i);
         }
       }
-      // Build fused only when enough eligibles to beat N-walks (calibrated threshold).
-      if (eligible_rx.size() >= fused_min_eligible) {
-        fused_.emplace(std::span<const regex> {eligible_rx}, dfa_mode::which_matched);
+      st.partitioned = true;
+    }
+
+    /*!
+     * \brief Builds the fused which-matched DFA over the eligible members.
+     * \param[in,out] st The partitioned state.
+     * \throws dfa_error when the fused automaton exceeds its state or work bound.
+     */
+    void build_fused(fused_state& st) const
+    {
+      std::vector<regex> eligible_rx;
+      eligible_rx.reserve(st.eligible_orig.size());
+      for (const std::size_t i : st.eligible_orig) {
+        eligible_rx.push_back(members_[i]);
       }
-      else {
-        eligible_orig_.clear(); // fused inactive: all members use N-walks
-        ineligible_orig_.clear();
+      st.fused.emplace(std::span<const regex> {eligible_rx}, dfa_mode::which_matched);
+    }
+
+    /*!
+     * \brief The deferred build: partitions if construction did not, then builds the fused DFA when enough
+     *        members are eligible. A fused DFA past its bounds leaves the set on walks for good, as does
+     *        too small an eligible subset: \ref matches must not throw what construction did not.
+     * \param[in,out] st The state to complete and publish.
+     */
+    void build_deferred(fused_state& st) const
+    {
+      if (!st.partitioned) {
+        partition(st);
       }
+      if (st.eligible_orig.size() >= fused_deferred_min_eligible) {
+        try {
+          build_fused(st);
+        }
+        catch (const dfa_error&) {
+          st.fused.reset();
+        }
+      }
+      st.ready.store(true, std::memory_order_release);
+    }
+
+    /*!
+     * \brief The fused state when its DFA is built, without counting or building anything.
+     * \return The state, or null while the set walks.
+     */
+    [[nodiscard]] const fused_state* ready_fused() const noexcept
+    {
+      const fused_state* st {fused_state_.get()};
+      if (st == nullptr || !st->ready.load(std::memory_order_acquire) || !st->fused) {
+        return nullptr;
+      }
+      return st;
+    }
+
+    /*!
+     * \brief The fused state for a whole-subject \ref matches over \p text: counts \p text toward the
+     *        deferred build, and runs the build once the count reaches \ref fused_deferred_bytes.
+     * \param[in] text The subject about to be searched.
+     * \return The state when its DFA is built, or null while the set walks.
+     */
+    [[nodiscard]] const fused_state* fused_for(std::string_view text) const
+    {
+      fused_state* st {fused_state_.get()};
+      if (st == nullptr) {
+        return nullptr;
+      }
+      if (!st->ready.load(std::memory_order_acquire)) {
+        const std::uint64_t before {st->walked.fetch_add(text.size(), std::memory_order_relaxed)};
+        if (before + text.size() < fused_deferred_bytes) {
+          return nullptr;
+        }
+        std::call_once(st->once, [&] { build_deferred(*st); });
+      }
+      return st->fused ? st : nullptr;
     }
 
     /*!
@@ -490,14 +620,12 @@ namespace real {
       return detail::find_members(region, pos, filter_bytes_, filter_count_) == npos;
     }
 
-    std::vector<regex>          members_;             //!< Every compiled pattern, in construction order.
-    flags                       flags_ {flags::none}; //!< Flags shared by every member.
-    std::optional<dfa>          fused_;               //!< Present when eligible ≥ threshold.
-    std::vector<std::size_t>    eligible_orig_;       //!< fused rule k → construction index.
-    std::vector<std::size_t>    ineligible_orig_;     //!< construction indices needing search.
-    std::vector<std::uint64_t>  sparse_bits_;         //!< Bit i set when the byte filter serves member i.
-    std::array<std::uint8_t, 8> filter_bytes_ {};     //!< The served members' first-byte union, in the mask load's layout.
-    std::uint8_t                filter_count_ {0};    //!< Valid entries in \ref filter_bytes_; 0 = filter off.
+    std::vector<regex>           members_;             //!< Every compiled pattern, in construction order.
+    flags                        flags_ {flags::none}; //!< Flags shared by every member.
+    std::shared_ptr<fused_state> fused_state_;         //!< Null when the set can never fuse.
+    std::vector<std::uint64_t>   sparse_bits_;         //!< Bit i set when the byte filter serves member i.
+    std::array<std::uint8_t, 8>  filter_bytes_ {};     //!< The served members' first-byte union, in the mask load's layout.
+    std::uint8_t                 filter_count_ {0};    //!< Valid entries in \ref filter_bytes_; 0 = filter off.
   };
 } // namespace real
 

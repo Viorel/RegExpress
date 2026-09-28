@@ -84,6 +84,27 @@ namespace real::detail {
   }
 
   /*!
+   * \brief Searches or confirms the lazy DFAs handed to the VM because a scan quit (a Unicode word boundary
+   *        next to a non-ASCII byte, or a thrashing cache), counted for the tests that pin where no scan quits.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& dfa_quits() noexcept
+  {
+    static std::atomic<std::uint64_t> quits {0};
+    return quits;
+  }
+
+  /*!
+   * \brief Bill one quit scan to \ref dfa_quits. A no-op unless the test binary defines \c REAL_TEST_INSTRUMENT.
+   */
+  inline void note_dfa_quit() noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    dfa_quits().fetch_add(1, std::memory_order_relaxed);
+#endif
+  }
+
+  /*!
    * \brief Batches the lazy-DFA span filler produced, counted for the tests that pin which walks it serves.
    * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
    */

@@ -1296,6 +1296,7 @@ namespace real::detail {
                                quit      = ar.quit;
                              })};
           if (quit) {
+            note_dfa_quit();
             stop = s; // the walk proved nothing: the VM below confirms from s
           }
           if (dfa_ok && !quit) {
@@ -2210,6 +2211,7 @@ namespace real::detail {
                                }
                                const auto anchored {fwd.anchored_end(text, c)};
                                if (anchored.quit) {
+                                 note_dfa_quit();
                                  return; // dfa_result stays empty: the VM answers this search
                                }
                                prefilter_note_scan(anchored.scanned_to - c);
@@ -2254,6 +2256,7 @@ namespace real::detail {
                            }
                            const std::size_t match_end {fwd.forward_end(text, scan_start)};
                            if (match_end == lazy_dfa::quit_pos) {
+                             note_dfa_quit();
                              return; // dfa_result stays empty: the VM answers this search
                            }
                            prefilter_note_scan(text.size() - scan_start);
@@ -2266,6 +2269,7 @@ namespace real::detail {
                            const std::size_t abs_end   {match_end};
                            const std::size_t abs_start {rev.reverse_start(text, abs_end, scan_start)};
                            if (abs_start == reverse_dfa::quit_pos) {
+                             note_dfa_quit();
                              return; // the start is a boundary's to tell: the VM answers this search
                            }
                            prof::tick_route(prof::route::lazy_dfa_fwd_rev);
@@ -6290,6 +6294,7 @@ namespace real::detail {
                                }
                                const auto anchored {fwd.anchored_end(text, c)};
                                if (anchored.quit) {
+                                 note_dfa_quit();
                                  return; // the per-match route's territory; partial stays set
                                }
                                prefilter_note_scan(anchored.scanned_to - c);
@@ -6310,6 +6315,7 @@ namespace real::detail {
                              if (one_pass) {
                                end = fwd.forward_end(text, from);
                                if (end == lazy_dfa::quit_pos) {
+                                 note_dfa_quit();
                                  return; // partial stays set
                                }
                                prefilter_note_scan((end == npos ? text.size() : end) - from);
@@ -6319,6 +6325,7 @@ namespace real::detail {
                                }
                                hit = rev.reverse_start(text, end, from);
                                if (hit == reverse_dfa::quit_pos) {
+                                 note_dfa_quit();
                                  return; // partial stays set
                                }
                              }
