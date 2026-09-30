@@ -81,7 +81,7 @@ The following engines are included:
   * [_zig-regex_](https://github.com/zig-utils/zig-regex) 0.2.0, 
   * [_mvzr_](https://github.com/mnemnion/mvzr) 0.3.12,
   * _PZRE_ 0.2.3,
-  * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.6.2,
+  * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.7.0,
   * [_zoptia0regex_](https://github.com/zoptia/zoptia0regex) 0.5.2,
   * [_z-regex_](https://github.com/carlos-sweb/z-regex) 0.7.0.
 * **Go** 1.27.1:

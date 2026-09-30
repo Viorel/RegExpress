@@ -49,7 +49,7 @@ class SubengineEziGex( Options options ) : RegexSubengine
             pattern = pattern,
             text = text,
 
-            // Options cannot be set at runtime in 'ezi-gex' (they are 'comptime')
+            // Options cannot be set at runtime; (they are 'comptime')
 
             //options = new
             //{

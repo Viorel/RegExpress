@@ -5,18 +5,19 @@ const json = std.json;
 const EziGexWorker = @import("EziGexWorker");
 const gex = @import("ezi_gex");
 
-const OPTIONS_TYPE = struct {
-    case_insensitive: bool,
-    multiline: bool,
-    dot_matches_newline: bool,
-    unicode: bool,
-    unicode_word_boundary_in_dfa: bool,
-    prefilter: bool,
-    case_fold: []u8,
-    max_repetition: u32,
-    byte_engine: []u8,
-    simd: []u8,
-};
+// NOTE. Options cannot be set at runtime.
+// const OPTIONS_TYPE = struct {
+//     case_insensitive: bool,
+//     multiline: bool,
+//     dot_matches_newline: bool,
+//     unicode: bool,
+//     unicode_word_boundary_in_dfa: bool,
+//     prefilter: bool,
+//     case_fold: []u8,
+//     max_repetition: u32,
+//     byte_engine: []u8,
+//     simd: []u8,
+// };
 
 const INPUT_TYPE = struct {
     pattern: []u8,
@@ -56,14 +57,14 @@ pub fn main1(init: std.process.Init) !void {
     const text = input_object.text;
 
     const options: gex.Options = .{ .case_fold = .full, .unicode = true };
-    //options.case_insensitive = input_options.case_insensitive;
+    // NOTE. Options cannot be set at runtime.
 
     var diag: gex.Diagnostic = .{};
 
     var re = try gex.compileRuntime(allocator, pattern, &diag, options);
     //defer re.deinit();
 
-    var sc = try @TypeOf(re).Scratch.init(allocator, &re.program);
+    var sc = try re.initScratch(allocator);
     //defer sc.deinit(allocator);
 
     var output_object: OUTPUT = .{ .names = null, .matches = null };
