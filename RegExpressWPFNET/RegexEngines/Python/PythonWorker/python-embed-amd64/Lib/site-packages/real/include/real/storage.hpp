@@ -1144,6 +1144,12 @@ namespace real {
         const void                     *                ac_text             {nullptr}; //!< AC: the haystack \ref ac_dense was decided on.
         bool                                            ac_decided          {false};   //!< AC: the density sample has run on this haystack.
         bool                                            ac_dense            {false};   //!< AC: candidates are dense enough that the automaton wins.
+        const void                     *                lit_text            {nullptr}; //!< Literal search: the haystack the two densities below refer to.
+        literal_density                                 lit_prefix_density  {};        //!< Literal search: what this haystack showed of the prefix's rarest byte.
+        literal_density                                 lit_inner_density   {};        //!< Literal search: the same for the inner literal.
+        const alternation_pairs*                        alt_pairs           {nullptr}; //!< Alternation: the regex's probe pairs (\ref regex_immutables::alt_pairs), null until built.
+        const void                     *                alt_text            {nullptr}; //!< Alternation: the haystack \ref alt_density refers to.
+        alternation_density                             alt_density         {};        //!< Alternation: what this haystack showed of the first bytes.
         //! \brief This storage benefits from the multi-literal route (\ref pike_vm::ac_ready). A marker,
         //!        not a field: the automaton lives per regex in \ref detail::regex_immutables.
         static constexpr bool             supports_aho_corasick {true};

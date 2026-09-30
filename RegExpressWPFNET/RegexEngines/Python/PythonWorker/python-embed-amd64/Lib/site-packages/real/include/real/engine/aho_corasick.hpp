@@ -2,20 +2,30 @@
  * \file aho_corasick.hpp
  * \brief Aho-Corasick multi-literal engine for large pure-literal alternations.
  *
- * A dense-trie automaton (goto-function-as-total-transition-table), built lazily per program from
- * the compiled byte/klass op sequence of a \ref real::detail::pattern_hints::fixed_alternation
- * -shaped program (see prefilter.hpp's `is_fixed_alternation`) once its branch count reaches the
- * threshold where a single O(n) automaton walk beats \ref
- * real::detail::pattern_hints::small_set's 2..8-member memchr-cascade scan — that scan has no fast
- * path at all past 8 distinct first bytes. It complements small_set/fixed_alternation rather than
- * replacing them: an eligible pattern under the threshold stays on its usual route.
+ * Built lazily per program from the compiled byte/klass op sequence of a
+ * \ref real::detail::pattern_hints::fixed_alternation -shaped program (see prefilter.hpp's
+ * `is_fixed_alternation`) once its branch count reaches the threshold where a single O(n) automaton walk
+ * beats the first-byte scans. It complements small_set/fixed_alternation rather than replacing them: an
+ * eligible pattern under the threshold stays on its usual route.
  *
- * Leftmost-first semantics: earliest match start wins; among matches starting at the same
- * position, the FIRST-LISTED branch (smallest declared id) wins, matching REAL's own thread-
- * priority alternation semantics exactly — held to it by a differential rather than by assertion
+ * The trie is built over the program's byte CLASSES (bytes no branch position tells apart share one), so a
+ * case-folded branch is one path rather than one per spelling, in a sparse first-child/next-sibling form
+ * whose size is proportional to the node count. Fail links are computed on that sparse trie; where the
+ * dense table fits \ref real::detail::ac_memory_budget, the states are then numbered so that every state
+ * that reports a match comes first, and the table is allocated once at its exact size. It stores
+ * premultiplied ids (row offset = index * stride), so a step is one class lookup off the dependency chain
+ * and one dependent load, and "does this state report" is one compare.
+ *
+ * Past that, the automaton searches the sparse trie, the shallowest nodes given total dense rows while the
+ * budget lasts; past what the sparse trie itself may take, it is not built, and the caller takes the
+ * ordinary alternation route.
+ *
+ * Leftmost-first semantics: earliest match start wins; among matches starting at the same position, the
+ * FIRST-LISTED branch (smallest declared id) wins, matching REAL's own thread-priority alternation
+ * semantics exactly -- held to it by a differential rather than by assertion
  * (tests/engine/test_fastpath_seam_matrix.cpp, seam_run_aho_corasick).
  *
- * Storage is a std::vector<ac_node> pool throughout — no raw new/delete anywhere in this file.
+ * Storage is std::vector throughout -- no raw new/delete anywhere in this file.
  */
 #ifndef REAL_AHO_CORASICK_HPP
 #define REAL_AHO_CORASICK_HPP
@@ -26,302 +36,606 @@
 
 #include "real/version.hpp"
 
+#include "real/automata/lazy_dfa.hpp"
 #include "real/core/charclass.hpp"
 #include "real/core/program.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
+#include <limits>
 #include <optional>
-#include <queue>
 #include <span>
 #include <string_view>
 #include <vector>
 
 namespace real::detail {
 
+  //! Bytes an automaton may hold by default: every program within \ref max_program_size whose alphabet is
+  //! under 32 classes fits the dense table.
+  inline constexpr std::size_t ac_memory_budget_default {std::size_t {32} << 20U};
+
   /*!
-   * \brief One Aho-Corasick trie/DFA node: a dense 256-entry goto row plus fail/output links.
-   *
-   * \ref goto_ starts as a sparse trie edge set (missing = -1) during \ref ac_automaton::build
-   * and ends as a TOTAL transition function (goto-function-as-DFA): every entry is a valid state
-   * index once construction finishes, so a search-time lookup is a single array read with no
-   * fail-chain walk. Dense only, no sparse or hybrid row: this engine is built for literal
-   * alternations of tens of nodes, where the whole table is a few kilobytes, and a sparse row would
-   * trade that certain cost for a lookup that is no longer one read.
+   * \brief Bytes an automaton may hold: the dense table where it fits, else the sparse trie and as many
+   *        dense rows as the rest allows, else no automaton. A test seam (shrunk to reach the sparse form
+   *        and the decline); \ref ac_memory_budget_default otherwise.
+   * \return A reference to the process-wide budget.
    */
-  struct ac_node
+  inline std::size_t& ac_memory_budget()
   {
-    std::array<std::int32_t, 256> goto_       {};   //!< Trie edge (build) / total DFA transition (post-build).
-    std::int32_t                  fail        {0};  //!< Fail link: the longest proper suffix of this state that is also a trie prefix.
-    std::int32_t                  pattern_id  {-1}; //!< Smallest branch id ending here, or -1.
-    std::int32_t                  pattern_len {0};  //!< Byte length of the pattern ending here; 0 when none does.
-    std::int32_t                  output_link {-1}; //!< Next (strictly shorter) pattern-ending state on the fail chain.
-
-    /*!
-     * \brief A trie node with no edges yet: every \ref goto_ entry is -1 until \ref ac_automaton::build
-     *        makes the row total.
-     */
-    ac_node()
-    {
-      goto_.fill(-1);
-    }
-  };
+    static std::size_t budget {ac_memory_budget_default};
+    return budget;
+  }
 
   /*!
-   * \brief Dense Aho-Corasick automaton for a `fixed_alternation` program's branch set.
-   *
-   * Built once per compiled program (see \ref build_ac_automaton), then reused across every match
-   * on that program via the state cache in \ref pike_state — the same build-once-per-program
-   * discipline the lazy DFA and the inner-literal prefix follow.
+   * \brief Test seam: search the sparse trie even where the dense table fits.
+   * \return A reference to the process-wide flag.
+   */
+  inline bool& ac_dense_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
+  /*!
+   * \brief Test seam: at most this many dense rows in the sparse form below what the budget allows. The
+   *        root keeps its row whatever the cap: a miss there has no fail link to fall along.
+   * \return A reference to the process-wide cap; unbounded by default (the budget decides).
+   */
+  inline std::size_t& ac_sparse_row_cap()
+  {
+    static std::size_t cap {std::numeric_limits<std::size_t>::max()};
+    return cap;
+  }
+
+  /*!
+   * \brief Aho-Corasick automaton for a `fixed_alternation` program's branch set, built once per compiled
+   *        program and reused across every match on it.
    */
   class ac_automaton
   {
   public:
 
     /*!
-     * \brief Adds one branch's literal byte-set sequence, tagged with its source declaration
-     *        order (\p id).
-     *
-     * Multiple calls with the same \p id are legal and expected: icase fan-out means one source
-     * branch containing a `klass` op at some position expands into every concrete byte string
-     * that op accepts, all sharing the branch's single id — the smallest-id-wins tie-break in
-     * \ref search then treats every expansion of one branch as equally (and correctly) that one
-     * branch's priority, regardless of which concrete spelling matched.
-     *
-     * \param[in] bytes One concrete byte string the branch accepts.
-     * \param[in] id    The branch's declaration order.
+     * \brief Starts an empty trie over \p class_count byte classes.
+     * \param[in] byte_class  The class of each byte.
+     * \param[in] class_count How many classes there are: a dense row's width.
      */
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((cold)) // construction-only (once per program): keep this out of the hot TU
-                          // neighborhood of \ref search, which runs per match.
-#endif
-    void add_literal(const std::vector<std::uint8_t>&  bytes,
-                     std::int32_t                      id)
+    constexpr ac_automaton(const std::array<std::uint8_t, 256>& byte_class,
+                           std::uint32_t                        class_count)
+      : cls_ {byte_class}, stride_ {class_count}
     {
-      std::int32_t state {0};
-      for (const std::uint8_t byte : bytes) {
-        // A COPY, not a reference: emplace_back below can reallocate nodes_'s backing storage, and
-        // any reference or pointer into the pool taken before it dangles afterwards. Read the edge
-        // out by value, then write the new index back through a FRESH index into nodes_.
-        // A reference here compiles, passes an ordinary differential, and is a use-after-free.
-        std::int32_t next {nodes_[static_cast<std::size_t>(state)].goto_[byte]};
-        if (next == -1) {
-          next = static_cast<std::int32_t>(nodes_.size());
-          nodes_.emplace_back();
-          nodes_[static_cast<std::size_t>(state)].goto_[byte] = next;
-        }
-        state = next;
-      }
-      ac_node& end {nodes_[static_cast<std::size_t>(state)]};
-      if (end.pattern_id == -1 || id < end.pattern_id) {
-        end.pattern_id  = id;
-        end.pattern_len = static_cast<std::int32_t>(bytes.size());
-      }
-      max_pattern_len_ = std::max(max_pattern_len_, static_cast<std::int32_t>(bytes.size()));
+      trie_.push_back(trie_node {});
     }
 
     /*!
-     * \brief Standard single-pass BFS goto-function-as-DFA construction.
-     *
-     * Every state's fail link points to a strictly shallower state, so by the time a state is
-     * dequeued its fail state's `goto_` row is already total — letting every missing edge be
-     * filled in place as `goto_[state][c] = goto_[fail(state)][c]`, with no separate
-     * fail-chain-walk pass.
+     * \brief Adds one class sequence of branch \p id. Several calls with one \p id are expected: a branch
+     *        whose positions span classes the others tell apart expands into each, all sharing its id, and
+     *        the smallest-id tie-break then reads every one as that branch.
+     * \param[in] classes The sequence.
+     * \param[in] id      The branch's declaration order.
+     * \return False once the sparse trie would pass \ref ac_memory_budget -- the automaton is then not built.
      */
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((cold)) // construction-only, same reasoning as add_literal above.
-#endif
-    void build()
+    bool add_literal(std::span<const std::uint8_t> classes,
+                     std::int32_t                  id)
     {
-      std::queue<std::int32_t> q;
-      for (std::int32_t c {}; c < 256; ++c) {
-        const std::int32_t child {nodes_[0].goto_[static_cast<std::size_t>(c)]};
+      const std::size_t node_cap {ac_memory_budget() / sizeof(trie_node)};
+      std::int32_t      state    {0};
+      for (const std::uint8_t c : classes) {
+        std::int32_t child {sparse_child(state, c)};
         if (child == -1) {
-          nodes_[0].goto_[static_cast<std::size_t>(c)] = 0;
-        }
-        else {
-          nodes_[static_cast<std::size_t>(child)].fail = 0;
-          q.push(child);
-        }
-      }
-      while (!q.empty()) {
-        const std::int32_t state      {q.front()};
-        q.pop();
-        const std::int32_t fail_state {nodes_[static_cast<std::size_t>(state)].fail};
-        for (std::int32_t c {}; c < 256; ++c) {
-          const std::int32_t child {nodes_[static_cast<std::size_t>(state)].goto_[static_cast<std::size_t>(c)]};
-          if (child == -1) {
-            nodes_[static_cast<std::size_t>(state)].goto_[static_cast<std::size_t>(c)] =
-              nodes_[static_cast<std::size_t>(fail_state)].goto_[static_cast<std::size_t>(c)];
+          if (trie_.size() >= node_cap) {
+            return false;
           }
-          else {
-            ac_node& child_node {nodes_[static_cast<std::size_t>(child)]};
-            child_node.fail = nodes_[static_cast<std::size_t>(fail_state)].goto_[static_cast<std::size_t>(c)];
-            const ac_node& f    {nodes_[static_cast<std::size_t>(child_node.fail)]};
-            child_node.output_link = (f.pattern_id != -1) ? child_node.fail : f.output_link;
-            q.push(child);
-          }
+          child = static_cast<std::int32_t>(trie_.size());
+          trie_node n {};
+          n.cls          = c;
+          n.next_sibling = trie_[static_cast<std::size_t>(state)].first_child;
+          trie_.push_back(n);
+          trie_[static_cast<std::size_t>(state)].first_child = child;
         }
+        state = child;
       }
+      trie_node& end {trie_[static_cast<std::size_t>(state)]};
+      if (end.pattern_id == -1 || id < end.pattern_id) {
+        end.pattern_id  = id;
+        end.pattern_len = static_cast<std::int32_t>(classes.size());
+      }
+      max_pattern_len_ = std::max(max_pattern_len_, static_cast<std::int32_t>(classes.size()));
+      return true;
     }
 
-    /*! \brief One AC search outcome: whether/where/which branch matched. */
+    /*!
+     * \brief Computes the fail and output links on the sparse trie, then lays the automaton out: the dense
+     *        table where it fits \ref ac_memory_budget, else the sparse trie with dense rows for the
+     *        shallowest nodes while the budget lasts.
+     */
+    void build()
+    {
+      const std::size_t n {trie_.size()};
+      trie_.shrink_to_fit();
+      // BFS order and fail links on the sparse trie.
+      std::vector<std::int32_t> order;
+      order.reserve(n);
+      order.push_back(0);
+      trie_[0].fail = 0;
+      for (std::size_t head {0}; head < order.size(); ++head) {
+        const std::int32_t s {order[head]};
+        for (std::int32_t u {trie_[static_cast<std::size_t>(s)].first_child}; u != -1;
+             u = trie_[static_cast<std::size_t>(u)].next_sibling) {
+          order.push_back(u);
+          const std::uint8_t c {trie_[static_cast<std::size_t>(u)].cls};
+          std::int32_t       f {0};
+          if (s != 0) {
+            f = trie_[static_cast<std::size_t>(s)].fail;
+            while (true) {
+              const std::int32_t g {sparse_child(f, c)};
+              if (g != -1) {
+                f = g;
+                break;
+              }
+              if (f == 0) {
+                break;
+              }
+              f = trie_[static_cast<std::size_t>(f)].fail;
+            }
+          }
+          trie_node& un       {trie_[static_cast<std::size_t>(u)]};
+          un.fail = f;
+          const trie_node& fn {trie_[static_cast<std::size_t>(f)]};
+          un.output_link = (fn.pattern_id != -1) ? f : fn.output_link;
+        }
+      }
+      // The dense table and the three per-reporting-state arrays, at most one entry per node each.
+      const std::size_t row_bytes {stride_ * sizeof(std::int32_t)};
+      if (ac_dense_disabled() || (n * (row_bytes + (3U * sizeof(std::int32_t)))) > ac_memory_budget()) {
+        sparse_ = true;
+        // A miss falls along the fail chain toward the root, so rows go to the SHALLOWEST nodes first (BFS
+        // order), for as many as the budget leaves after the trie itself.
+        const std::size_t sparse_bytes {n * sizeof(trie_node)};
+        std::size_t       rows_left    {ac_memory_budget() > sparse_bytes ? (ac_memory_budget() - sparse_bytes) / row_bytes : 0U};
+        rows_left = std::min(rows_left, ac_sparse_row_cap());
+        std::size_t rows               {0};
+        for (const std::int32_t u : order) {
+          const bool want {trie_[static_cast<std::size_t>(u)].first_child != -1 && rows_left != 0U};
+          if (u == 0 || want) {
+            trie_[static_cast<std::size_t>(u)].row = static_cast<std::int32_t>(rows++);
+            rows_left                             -= rows_left != 0U ? 1U : 0U;
+          }
+        }
+        rows_.assign(rows * stride_, 0);
+        for (const std::int32_t u : order) { // BFS: a fail target's row is total before it is read
+          const trie_node& t {trie_[static_cast<std::size_t>(u)]};
+          if (t.row < 0) {
+            continue;
+          }
+          std::int32_t* row {rows_.data() + (static_cast<std::size_t>(t.row) * stride_)};
+          for (std::uint32_t c {0}; c < stride_; ++c) {
+            row[c] = u == 0 ? 0 : sparse_next(t.fail, static_cast<std::uint8_t>(c));
+          }
+          for (std::int32_t c {t.first_child}; c != -1; c = trie_[static_cast<std::size_t>(c)].next_sibling) {
+            row[trie_[static_cast<std::size_t>(c)].cls] = c;
+          }
+        }
+        node_count_ = n;
+        return;
+      }
+      // Numbering: every state that reports something first, so the search's test is `id < match_limit_`.
+      std::vector<std::int32_t> index(n, -1);
+      std::int32_t              next {0};
+      for (const std::int32_t u : order) {
+        const trie_node& t {trie_[static_cast<std::size_t>(u)]};
+        if (t.pattern_id != -1 || t.output_link != -1) {
+          index[static_cast<std::size_t>(u)] = next++;
+        }
+      }
+      const std::int32_t matches {next};
+      for (const std::int32_t u : order) {
+        if (index[static_cast<std::size_t>(u)] == -1) {
+          index[static_cast<std::size_t>(u)] = next++;
+        }
+      }
+      const auto stride {static_cast<std::int32_t>(stride_)};
+      match_limit_ = matches * stride;
+      start_       = index[0] * stride;
+      out_pid_.assign(static_cast<std::size_t>(matches), -1);
+      out_len_.assign(static_cast<std::size_t>(matches), 0);
+      out_link_.assign(static_cast<std::size_t>(matches), -1);
+      trans_.assign(n * stride_, 0); // exact: allocated once, at its final size
+      for (const std::int32_t u : order) {
+        const trie_node&   t   {trie_[static_cast<std::size_t>(u)]};
+        const std::int32_t id  {index[static_cast<std::size_t>(u)]};
+        std::int32_t*      row {trans_.data() + (static_cast<std::size_t>(id) * stride_)};
+        if (u == 0) {
+          std::fill(row, row + stride_, start_);
+        }
+        else {
+          const std::int32_t* frow {trans_.data() + (static_cast<std::size_t>(index[static_cast<std::size_t>(t.fail)]) * stride_)};
+          std::memcpy(row, frow, stride_ * sizeof(std::int32_t));
+        }
+        for (std::int32_t c {t.first_child}; c != -1; c = trie_[static_cast<std::size_t>(c)].next_sibling) {
+          row[trie_[static_cast<std::size_t>(c)].cls] = index[static_cast<std::size_t>(c)] * stride;
+        }
+        if (id < matches) {
+          out_pid_[static_cast<std::size_t>(id)]  = t.pattern_id;
+          out_len_[static_cast<std::size_t>(id)]  = t.pattern_len;
+          out_link_[static_cast<std::size_t>(id)] = t.output_link == -1 ? -1 : index[static_cast<std::size_t>(t.output_link)];
+        }
+      }
+      node_count_ = n;
+      std::vector<trie_node> {}.swap(trie_);
+    }
+
+    /*!
+     * \brief One search's answer.
+     */
     struct match_result
     {
-      bool         matched    {}; //!< Whether anything matched; the other fields are meaningful only then.
-      std::size_t  start      {}; //!< Match start offset.
-      std::size_t  end        {}; //!< Match end offset.
-      std::int32_t pattern_id {}; //!< Declaration order of the winning branch.
+      bool         matched    {}; //!< Whether some branch matched.
+      std::size_t  start      {}; //!< The match's start.
+      std::size_t  end        {}; //!< Its end.
+      std::int32_t pattern_id {}; //!< The branch that matched.
     };
 
     /*!
-     * \brief Leftmost-first search over \p text starting at \p start.
-     *
-     * Earliest match start wins; among matches starting at the same position, the smallest
-     * pattern id (first-listed branch) wins — REAL's own alternation semantics.
-     *
-     * \tparam WbOk  `bool(std::size_t match_start, std::size_t match_end)` — the caller's
-     *               word-boundary check (e.g. `pike_vm::wb_boundaries_ok`); always-true when the
-     *               alternation carries no `\b`/`\B` wrap.
-     *
-     * A trail `\b`/`\B` depends only on the END position (identical for every branch ending
-     * there), but a LEAD `\b`/`\B` depends on the START position, which DOES differ across
-     * branches sharing one output-link chain (a shorter suffix starts later) — so a wb-rejected
-     * candidate is not necessarily the chain's last usable one. \p wb_ok is therefore checked
-     * per candidate, walking deeper into the chain only when the shallower one fails it; when
-     * \p wb_ok is trivially true (the common, unwrapped case) this still costs one check and
-     * stops at the first (shallowest) hit, same as the unconstrained walk.
-     *
-     * \param[in] text  Subject.
-     * \param[in] start Byte offset to begin scanning at.
-     * \param[in] wb_ok The caller's word-boundary check, per \c WbOk.
-     * \return The leftmost-first match, or a result whose \ref match_result::matched is false.
+     * \brief The leftmost-first match at or after \p start: earliest start, then smallest branch id.
+     * \tparam WbOk Callable `(start, end) -> bool`: the pattern's lead/trail word-boundary test.
+     * \param[in] text  The subject.
+     * \param[in] start Where to search from.
+     * \param[in] wb_ok The boundary test; a candidate it refuses is passed over.
+     * \return The match, if any.
      */
     template <typename WbOk>
     [[nodiscard]] match_result search(std::string_view text,
                                       std::size_t      start,
                                       const WbOk&      wb_ok) const
     {
-      std::int32_t state      {0};
-      std::int64_t best_start {-1};
-      std::int32_t best_id    {-1};
-      std::int32_t best_len   {0};
-
-      const auto consider = [&](std::int64_t end_pos, std::int32_t pattern_id, std::int32_t pattern_len) {
-                              const std::int64_t start_pos {end_pos - pattern_len + 1};
-                              if (best_start == -1 || start_pos < best_start ||
-                                  (start_pos == best_start && pattern_id < best_id)) {
-                                best_start = start_pos;
-                                best_id    = pattern_id;
-                                best_len   = pattern_len;
-                              }
-                            };
-
-      for (std::size_t i {start}; i < text.size(); ++i) {
-        const auto byte {static_cast<std::uint8_t>(text[i])};
-        state = nodes_[static_cast<std::size_t>(state)].goto_[byte];
-        // Walk the output-link chain from shallowest (longest, earliest start) to deepest, taking
-        // the FIRST candidate whose (start, end) passes wb_ok — output_link chains are strictly
-        // decreasing in depth, hence strictly increasing start_pos, so the shallowest wb-passing
-        // entry is always the best one this position can offer (nothing deeper can have an
-        // earlier start). One check in the common (no-wb) case. The chain is walked forward only and
-        // the scan never returns to an earlier byte, so the search stays linear in the subject even
-        // when the branch set nests suffixes deeply.
-        std::int32_t node_idx {state};
-        while (node_idx != -1) {
-          const ac_node& n {nodes_[static_cast<std::size_t>(node_idx)]};
-          if (n.pattern_id != -1) {
-            const std::int64_t end_pos   {static_cast<std::int64_t>(i)};
-            const std::int64_t start_pos {end_pos - n.pattern_len + 1};
-            if (wb_ok(static_cast<std::size_t>(start_pos), i + 1)) {
-              consider(end_pos, n.pattern_id, n.pattern_len);
-              break;
-            }
-          }
-          node_idx = n.output_link;
-        }
-        // Leftmost-first early exit: once a match starts strictly before the earliest position a
-        // NEW match could still begin, nothing later can beat it.
-        if (best_start != -1 && best_start < static_cast<std::int64_t>(i) - max_pattern_len_ + 1) {
-          break;
-        }
-      }
-      if (best_start == -1) {
-        return {};
-      }
-      return {.matched     = true,
-              .start       = static_cast<std::size_t>(best_start),
-              .end         = static_cast<std::size_t>(best_start + best_len),
-              .pattern_id  = best_id};
+      return sparse_ ? search_sparse(text, start, wb_ok) : search_dense(text, start, wb_ok);
     }
 
     /*!
-     * \brief States in the automaton, root included.
-     * \return The node count.
+     * \brief The trie's node count.
+     * \return The number of states.
      */
     [[nodiscard]] std::size_t node_count() const
     {
-      return nodes_.size();
+      return node_count_;
+    }
+
+    /*!
+     * \brief Whether the automaton searches its sparse trie (the dense table did not fit, or was disabled).
+     * \return True in the sparse form.
+     */
+    [[nodiscard]] bool is_sparse() const
+    {
+      return sparse_;
+    }
+
+    /*!
+     * \brief Dense rows the sparse form was given.
+     * \return The row count; 0 in the dense form.
+     */
+    [[nodiscard]] std::size_t sparse_rows() const
+    {
+      return rows_.size() / stride_;
+    }
+
+    /*!
+     * \brief Heap bytes the automaton holds once built.
+     * \return The bytes.
+     */
+    [[nodiscard]] std::size_t memory_bytes() const
+    {
+      return (trans_.capacity() + out_pid_.capacity() + out_len_.capacity() + out_link_.capacity()
+              + rows_.capacity()) * sizeof(std::int32_t)
+             + trie_.capacity() * sizeof(trie_node);
     }
 
   private:
 
-    std::vector<ac_node>  nodes_           {ac_node {}}; //!< Pool storage; root at index 0. No raw new/delete.
-    std::int32_t          max_pattern_len_ {1};          //!< Longest literal added, bounding how far back a match can start.
+    /*!
+     * \brief One trie node: while the automaton is built, and searched in the sparse form after.
+     */
+    struct trie_node
+    {
+      std::int32_t first_child  {-1}; //!< First child, or -1.
+      std::int32_t next_sibling {-1}; //!< Next child of the same parent, or -1.
+      std::int32_t fail         {0};  //!< The longest proper suffix that is also a trie prefix.
+      std::int32_t output_link  {-1}; //!< The next reporting node on the fail chain, or -1.
+      std::int32_t pattern_id   {-1}; //!< The smallest branch id ending here, or -1.
+      std::int32_t pattern_len  {0};  //!< The length of the sequence ending here.
+      std::int32_t row          {-1}; //!< Sparse form: this node's total dense row, or -1.
+      std::uint8_t cls          {0};  //!< The class on the edge into this node.
+    };
+
+    /*!
+     * \brief Sparse form: the total transition from \p s on class \p c -- the node's dense row where it has
+     *        one, else its children, else along the fail chain (which ends at the root, which has a row).
+     * \param[in] s The state.
+     * \param[in] c The class.
+     * \return The next state.
+     */
+    [[nodiscard]] std::int32_t sparse_next(std::int32_t s,
+                                           std::uint8_t c) const
+    {
+      while (true) {
+        const trie_node& t {trie_[static_cast<std::size_t>(s)]};
+        if (t.row >= 0) {
+          return rows_[(static_cast<std::size_t>(t.row) * stride_) + c];
+        }
+        const std::int32_t child {sparse_child(s, c)};
+        if (child != -1) {
+          return child;
+        }
+        s = t.fail;
+      }
+    }
+
+    /*!
+     * \brief The child of \p s on class \p c.
+     * \param[in] s The node.
+     * \param[in] c The class.
+     * \return The child, or -1.
+     */
+    [[nodiscard]] std::int32_t sparse_child(std::int32_t s,
+                                            std::uint8_t c) const
+    {
+      for (std::int32_t u {trie_[static_cast<std::size_t>(s)].first_child}; u != -1;
+           u = trie_[static_cast<std::size_t>(u)].next_sibling) {
+        if (trie_[static_cast<std::size_t>(u)].cls == c) {
+          return u;
+        }
+      }
+      return -1;
+    }
+
+    /*!
+     * \brief The best match so far: earliest start, then smallest branch id.
+     */
+    struct best_so_far
+    {
+      std::int64_t start {-1}; //!< Its start, or -1 before any.
+      std::int32_t id    {-1}; //!< Its branch.
+      std::int32_t len   {0};  //!< Its length.
+
+      /*!
+       * \brief Keeps the match ending at \p end_pos if it beats the one held.
+       * \param[in] end_pos     Its last byte's position.
+       * \param[in] pattern_id  Its branch.
+       * \param[in] pattern_len Its length.
+       */
+      void consider(std::int64_t end_pos,
+                    std::int32_t pattern_id,
+                    std::int32_t pattern_len)
+      {
+        const std::int64_t start_pos {end_pos - pattern_len + 1};
+        if (start == -1 || start_pos < start || (start_pos == start && pattern_id < id)) {
+          start = start_pos;
+          id    = pattern_id;
+          len   = pattern_len;
+        }
+      }
+    };
+
+    /*!
+     * \brief Dense form: offers \p best the longest match ending at \p i that \p wb_ok passes, down the
+     *        output chain from \p state (longest first, so the first that passes starts earliest).
+     * \tparam WbOk As \ref search.
+     * \param[in]     state The reporting state reached at \p i (premultiplied).
+     * \param[in]     i     The position of the byte just consumed.
+     * \param[in,out] best  The best match so far.
+     * \param[in]     wb_ok The boundary test.
+     */
+    template <typename WbOk>
+    void report_dense(std::int32_t      state,
+                      std::size_t       i,
+                      best_so_far&      best,
+                      const WbOk&       wb_ok) const
+    {
+      std::int32_t k {state / static_cast<std::int32_t>(stride_)};
+      while (k != -1) {
+        const std::int32_t pid {out_pid_[static_cast<std::size_t>(k)]};
+        if (pid != -1) {
+          const std::int32_t len {out_len_[static_cast<std::size_t>(k)]};
+          const std::size_t  s   {i + 1U - static_cast<std::size_t>(len)};
+          if (wb_ok(s, i + 1U)) {
+            best.consider(static_cast<std::int64_t>(i), pid, len);
+            return;
+          }
+        }
+        k = out_link_[static_cast<std::size_t>(k)];
+      }
+    }
+
+    /*!
+     * \brief Dense form of \ref search.
+     * \tparam WbOk As \ref search.
+     * \param[in] text  The subject.
+     * \param[in] start Where to search from.
+     * \param[in] wb_ok The boundary test.
+     * \return The match, if any.
+     */
+    template <typename WbOk>
+    [[nodiscard]] match_result search_dense(std::string_view text,
+                                            std::size_t      start,
+                                            const WbOk&      wb_ok) const
+    {
+      const char* const          p     {text.data()};
+      const std::size_t          sz    {text.size()};
+      const std::int32_t* const  t     {trans_.data()};
+      const std::uint8_t* const  cls   {cls_.data()};
+      const std::int32_t         limit {match_limit_};
+      std::int32_t               state {start_};
+      best_so_far                best  {};
+      std::size_t                i     {start};
+      while (true) {
+        for (; i < sz; ++i) {
+          state = t[state + cls[static_cast<std::uint8_t>(p[i])]];
+          if (state < limit) {
+            break;
+          }
+        }
+        if (i >= sz) {
+          break;
+        }
+        report_dense(state, i, best, wb_ok);
+        ++i;
+        if (best.start != -1) {
+          // Leftmost-first: a later match can still start earlier only while it can reach back to best.start.
+          while (i < sz && static_cast<std::int64_t>(i) < best.start + max_pattern_len_) {
+            state = t[state + cls[static_cast<std::uint8_t>(p[i])]];
+            if (state < limit) {
+              report_dense(state, i, best, wb_ok);
+            }
+            ++i;
+          }
+          break;
+        }
+      }
+      if (best.start == -1) {
+        return {};
+      }
+      return {.matched    = true,
+              .start      = static_cast<std::size_t>(best.start),
+              .end        = static_cast<std::size_t>(best.start + best.len),
+              .pattern_id = best.id};
+    }
+
+    /*!
+     * \brief Sparse form of \ref report_dense.
+     * \tparam WbOk As \ref search.
+     * \param[in]     node  The node reached at \p i.
+     * \param[in]     i     The position of the byte just consumed.
+     * \param[in,out] best  The best match so far.
+     * \param[in]     wb_ok The boundary test.
+     */
+    template <typename WbOk>
+    void report_sparse(std::int32_t node,
+                       std::size_t  i,
+                       best_so_far& best,
+                       const WbOk&  wb_ok) const
+    {
+      std::int32_t k {trie_[static_cast<std::size_t>(node)].pattern_id != -1 ? node : trie_[static_cast<std::size_t>(node)].output_link};
+      while (k != -1) {
+        const trie_node&   tn  {trie_[static_cast<std::size_t>(k)]};
+        const std::size_t  s   {i + 1U - static_cast<std::size_t>(tn.pattern_len)};
+        if (wb_ok(s, i + 1U)) {
+          best.consider(static_cast<std::int64_t>(i), tn.pattern_id, tn.pattern_len);
+          return;
+        }
+        k = tn.output_link;
+      }
+    }
+
+    /*!
+     * \brief Sparse form of \ref search.
+     * \tparam WbOk As \ref search.
+     * \param[in] text  The subject.
+     * \param[in] start Where to search from.
+     * \param[in] wb_ok The boundary test.
+     * \return The match, if any.
+     */
+    template <typename WbOk>
+    [[nodiscard]] match_result search_sparse(std::string_view text,
+                                             std::size_t      start,
+                                             const WbOk&      wb_ok) const
+    {
+      const char* const p     {text.data()};
+      const std::size_t sz    {text.size()};
+      std::int32_t      state {0};
+      best_so_far       best  {};
+      for (std::size_t i {start}; i < sz; ++i) {
+        state = sparse_next(state, cls_[static_cast<std::uint8_t>(p[i])]);
+        const trie_node& tn {trie_[static_cast<std::size_t>(state)]};
+        if (tn.pattern_id != -1 || tn.output_link != -1) {
+          report_sparse(state, i, best, wb_ok);
+        }
+        if (best.start != -1 && best.start < static_cast<std::int64_t>(i) - max_pattern_len_ + 1) {
+          break;
+        }
+      }
+      if (best.start == -1) {
+        return {};
+      }
+      return {.matched    = true,
+              .start      = static_cast<std::size_t>(best.start),
+              .end        = static_cast<std::size_t>(best.start + best.len),
+              .pattern_id = best.id};
+    }
+
+    std::array<std::uint8_t, 256> cls_             {};      //!< Byte to class.
+    std::uint32_t                 stride_          {1};     //!< The class count: a dense row's width.
+    std::vector<std::int32_t>     trans_;                   //!< Dense form: `[state + class]` to the next state, premultiplied.
+    std::int32_t                  match_limit_     {0};     //!< Dense form: states below it report a match.
+    std::int32_t                  start_           {0};     //!< Dense form: the root's id.
+    std::vector<std::int32_t>     out_pid_;                 //!< Dense form: a reporting state's branch, or -1.
+    std::vector<std::int32_t>     out_len_;                 //!< Dense form: its length.
+    std::vector<std::int32_t>     out_link_;                //!< Dense form: the next reporting state on its fail chain, or -1.
+    std::vector<trie_node>        trie_;                    //!< The trie: while building, and searched in the sparse form.
+    std::vector<std::int32_t>     rows_;                    //!< Sparse form: the dense rows granted, `[row * stride + class]`.
+    std::size_t                   node_count_      {0};     //!< The trie's node count.
+    std::int32_t                  max_pattern_len_ {1};     //!< The longest sequence: how far back a match can start.
+    bool                          sparse_          {false}; //!< Searched through the trie.
   };
 
   /*!
-   * \brief Maximum concrete literal strings a single branch may expand into (icase klass fan-out).
-   *
-   * A branch whose combinatorial expansion would exceed this declines AC for the WHOLE pattern,
-   * which then takes the ordinary \ref pattern_hints::fixed_alternation route. The alternative is a
-   * trie whose size is the product of the branch's per-position member counts, with no bound.
+   * \brief Maximum class sequences a single branch may expand into: a branch whose positions span classes the
+   *        others tell apart expands into each combination, and past this the WHOLE pattern declines AC and
+   *        takes the ordinary \ref pattern_hints::fixed_alternation route. Classes, not bytes: a case-folded
+   *        letter is one class unless another branch tells its cases apart.
    */
   inline constexpr std::size_t ac_max_branch_expansion = 64;
 
   /*!
-   * \brief Builds an \ref ac_automaton from a `fixed_alternation`-shaped program's branch set.
+   * \brief Builds an \ref ac_automaton from a `fixed_alternation`-shaped program's branch set, over the
+   *        program's own byte classes (every class it tests is a union of them, so no position is split).
    *
-   * \p code and \p classes are the program's own instruction stream and class table; \p body_pc
-   * is \ref pattern_hints::body_pc (the first branch/split pc, already validated by
-   * `is_fixed_alternation` — this function trusts that shape and does not re-validate it: every
-   * branch is a run of `byte`/`klass` ops terminated by either a `jump` (non-final branch) or
-   * falling straight through (final branch), exactly the shape `is_fixed_alternation` already
-   * proved the program has).
+   * \p body_pc is \ref pattern_hints::body_pc (the first branch/split pc, already validated by
+   * `is_fixed_alternation` -- this function trusts that shape: every branch is a run of `byte`/`klass` ops
+   * terminated by a `jump` or, for the last, falling through).
    *
    * \param[in] code    The program's instruction stream.
-   * \param[in] classes Its byte classes.
-   * \param[in] body_pc The first branch/split pc, per \ref pattern_hints::body_pc.
-   * \return The built automaton, or `std::nullopt` if any branch's icase-fold expansion would exceed
-   *         \ref ac_max_branch_expansion — the caller then takes the general alternation route.
+   * \param[in] classes Its class table.
+   * \param[in] body_pc The first branch/split pc.
+   * \return The automaton, or `std::nullopt` when a branch expands past \ref ac_max_branch_expansion or the
+   *         trie past \ref ac_memory_budget -- the caller then takes the ordinary alternation route.
    */
   [[nodiscard]]
 #if defined(__GNUC__) || defined(__clang__)
-  __attribute__((cold)) // construction-only, same reasoning as ac_automaton::add_literal.
+  __attribute__((cold)) // construction-only (once per program): out of the hot neighbourhood
 #endif
   inline std::optional<ac_automaton> build_ac_automaton(std::span<const instr>       code,
                                                         std::span<const char_class>  classes,
                                                         std::size_t                  body_pc)
   {
-    ac_automaton  automaton;
-    std::size_t   pc {body_pc};
-    std::int32_t  id {};
+    const lazy_byte_alphabet               alpha     {compute_lazy_alphabet(code, classes)};
+    ac_automaton                           automaton {alpha.of, alpha.count};
+    std::size_t                            pc        {body_pc};
+    std::int32_t                           id        {};
+    std::vector<std::vector<std::uint8_t>> positions;
+    std::vector<std::vector<std::uint8_t>> expansions;
+    std::vector<std::vector<std::uint8_t>> next;
     while (true) {
       const bool  is_split  {code[pc].op == opcode::split};
       std::size_t branch_pc {is_split ? static_cast<std::size_t>(code[pc].primary_target) : pc};
 
-      std::vector<std::vector<std::uint8_t>> positions;
+      positions.clear();
       while (code[branch_pc].op == opcode::byte || code[branch_pc].op == opcode::klass) {
         std::vector<std::uint8_t> members;
         if (code[branch_pc].op == opcode::byte) {
-          members.push_back(code[branch_pc].arg8);
+          members.push_back(alpha.of[code[branch_pc].arg8]);
         }
         else {
-          const char_class& kc {classes[code[branch_pc].arg16]};
+          const char_class&     kc   {classes[code[branch_pc].arg16]};
+          std::array<bool, 256> seen {};
           for (int b {}; b <= 255; ++b) {
             if (kc.test(static_cast<std::uint8_t>(b))) {
-              members.push_back(static_cast<std::uint8_t>(b));
+              const std::uint8_t c {alpha.of[static_cast<std::size_t>(b)]};
+              if (!seen[c]) {
+                seen[c] = true;
+                members.push_back(c);
+              }
             }
           }
         }
@@ -329,13 +643,12 @@ namespace real::detail {
         ++branch_pc;
       }
 
-      std::vector<std::vector<std::uint8_t>> expansions {{}};
+      expansions.assign(1, {});
       for (const auto& members : positions) {
         if (expansions.size() * members.size() > ac_max_branch_expansion) {
           return std::nullopt;
         }
-        std::vector<std::vector<std::uint8_t>> next;
-        next.reserve(expansions.size() * members.size());
+        next.clear();
         for (const auto& prefix : expansions) {
           for (const auto member : members) {
             auto copy {prefix};
@@ -343,10 +656,12 @@ namespace real::detail {
             next.push_back(std::move(copy));
           }
         }
-        expansions = std::move(next);
+        expansions.swap(next);
       }
       for (const auto& literal : expansions) {
-        automaton.add_literal(literal, id);
+        if (!automaton.add_literal(literal, id)) {
+          return std::nullopt;
+        }
       }
       ++id;
 

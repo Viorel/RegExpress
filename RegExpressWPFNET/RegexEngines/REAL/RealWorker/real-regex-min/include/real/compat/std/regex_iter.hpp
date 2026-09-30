@@ -24,11 +24,10 @@ namespace real::compat {
   /*!
    * \brief Iterates the non-overlapping matches of a pattern in a sequence (`std::regex_iterator`).
    *
-   * Same per-operation routing as `regex_replace` — a real-backed, non-nullable pattern drives
-   * `real`'s linear traversal (repeated region search — a non-nullable pattern never matches empty,
-   * so the position always advances past the match and the ECMAScript and `real` sequences agree);
-   * the std backend and nullable patterns wrap `std::regex_iterator` (whose empty-match advance is
-   * ECMAScript's). The default-constructed iterator is the end sentinel.
+   * Same per-operation routing as `regex_replace` — a real-backed pattern drives `real`'s traversal,
+   * which advances past an empty match as [re.regiter.incr] does (see
+   * `basic_regex::uses_real_traversal`); the std backend, a constraining flag and a nullable POSIX
+   * pattern wrap `std::regex_iterator`. The default-constructed iterator is the end sentinel.
    *
    * \tparam BidirIt A contiguous iterator into the searched sequence.
    */
@@ -75,7 +74,7 @@ namespace real::compat {
           return;
         }
       }
-      std_it_.emplace(first, last, re.std_engine(), detail::to_std_match(flags));
+      detail::std_call([&] { std_it_.emplace(first, last, re.std_engine(), detail::to_std_match(flags)); });
       sync_std();
     }
 
@@ -92,8 +91,8 @@ namespace real::compat {
      */
     regex_iterator(const regex_iterator& other)
       : begin_(other.begin_), end_(other.end_), re_(other.re_), flags_(other.flags_),
-        real_path_(other.real_path_), real_pos_(other.real_pos_), std_it_(other.std_it_),
-        match_(other.match_), at_end_(other.at_end_)
+        real_path_(other.real_path_), real_pos_(other.real_pos_), matched_(other.matched_),
+        last_empty_(other.last_empty_), std_it_(other.std_it_), match_(other.match_), at_end_(other.at_end_)
     {}
 
     /*!
@@ -105,15 +104,17 @@ namespace real::compat {
     {
       if (this != &other) {
         walker_.reset(); // rebuilt on the next advance, from real_pos_
-        begin_     = other.begin_;
-        end_       = other.end_;
-        re_        = other.re_;
-        flags_     = other.flags_;
-        real_path_ = other.real_path_;
-        real_pos_  = other.real_pos_;
-        std_it_    = other.std_it_;
-        match_     = other.match_;
-        at_end_    = other.at_end_;
+        begin_      = other.begin_;
+        end_        = other.end_;
+        re_         = other.re_;
+        flags_      = other.flags_;
+        real_path_  = other.real_path_;
+        real_pos_   = other.real_pos_;
+        matched_    = other.matched_;
+        last_empty_ = other.last_empty_;
+        std_it_     = other.std_it_;
+        match_      = other.match_;
+        at_end_     = other.at_end_;
       }
       return *this;
     }
@@ -170,7 +171,7 @@ namespace real::compat {
           return *this;
         }
       }
-      ++(*std_it_);
+      detail::std_call([&] { ++(*std_it_); });
       sync_std();
       return *this;
     }
@@ -221,12 +222,14 @@ namespace real::compat {
     using walker_type = real::basic_match_iterator<real::detail::dynamic_storage>;
 
     std::unique_ptr<walker_type>                walker_;                                      //!< Owned, never copied -- see the copy constructor.
-    BidirIt                                     begin_     {};                                //!< Start of the sequence.
-    BidirIt                                     end_       {};                                //!< End of the sequence.
-    const regex_type*                           re_        {nullptr};                         //!< The pattern, borrowed.
-    regex_constants::match_flag_type            flags_     {regex_constants::match_default};  //!< Match flags this iteration was built with.
-    bool                                        real_path_ {false};                           //!< Whether the REAL engine drives the traversal rather than the std backend.
-    std::size_t                                 real_pos_  {};                                //!< REAL path: byte offset the next region search starts at.
+    BidirIt                                     begin_      {};                               //!< Start of the sequence.
+    BidirIt                                     end_        {};                               //!< End of the sequence.
+    const regex_type*                           re_         {nullptr};                        //!< The pattern, borrowed.
+    regex_constants::match_flag_type            flags_      {regex_constants::match_default}; //!< Match flags this iteration was built with.
+    bool                                        real_path_  {false};                          //!< Whether the REAL engine drives the traversal rather than the std backend.
+    std::size_t                                 real_pos_   {};                               //!< REAL path: byte offset the next region search starts at.
+    std::size_t                                 matched_    {};                               //!< REAL path: matches made so far, counted up to 2 (the first one is the one the standard retries without context).
+    bool                                        last_empty_ {};                               //!< REAL path: the current match is empty.
     std::optional<std::regex_iterator<BidirIt>> std_it_;                                      //!< std path: the wrapped iterator (engaged only off the REAL path).
     value_type                                  match_;                                       //!< The current match, refilled by each increment.
     bool                                        at_end_ {true};                               //!< Whether this is the end sentinel.
@@ -253,15 +256,40 @@ namespace real::compat {
       // A POSIX grammar on REAL drives the iteration with leftmost-longest bounds; the ECMAScript
       // default keeps leftmost-first.
       const real::regex&     engine {std::get<real::regex>(re_->engine())};
+      if (matched_ == 1 && last_empty_) {
+        // The standard's retry after a first match that came out empty, made before match_prev_avail
+        // (detail::nonempty_at_without_context); past it, the walker's own advance is the standard's.
+        const std::size_t at {real_pos_};
+        walker_.reset();
+        if (const auto retry {detail::nonempty_at_without_context(engine, sv, at)}; retry.has_value()) {
+          emit(detail::offset_match<real::regex::result_type> {*retry, at});
+          return;
+        }
+        if (at >= sv.size()) {
+          at_end_ = true;
+          return;
+        }
+        // No non-empty match there: the search goes on past it, with its context. real_pos_ stays the
+        // empty match's end, where the next match's prefix starts.
+        auto range {re_->posix_longest() ? engine.find_iter_longest(sv, at + 1) : engine.find_iter(sv, at + 1)};
+        walker_ = std::make_unique<walker_type>(range.begin());
+        if (walker_->exhausted()) {
+          at_end_ = true;
+          return;
+        }
+        emit(**walker_);
+        return;
+      }
       if (walker_ == nullptr) {
         // First advance, or the first after a copy: build the walker at the current position. It is
         // self-contained (program view and text are values/views), so it outlives the range it came
-        // from. `find_iter`'s empty-match rules never come into play here: this path is taken only
-        // for a NON-NULLABLE pattern (see this file's header), which is also why repeated region
-        // searches agreed with it before.
+        // from.
         auto range {re_->posix_longest() ? engine.find_iter_longest(sv, real_pos_)
                                          : engine.find_iter(sv, real_pos_)};
         walker_ = std::make_unique<walker_type>(range.begin());
+        if (last_empty_ && !walker_->exhausted()) {
+          ++(*walker_); // a copy resuming after an empty match: the walker's first match is that one again
+        }
       }
       else {
         ++(*walker_);
@@ -270,13 +298,25 @@ namespace real::compat {
         at_end_ = true;
         return;
       }
-      const auto& result {**walker_};
+      emit(**walker_);
+    }
+
+    /*!
+     * \brief Makes \p result the current match, and the place the next one is searched from.
+     * \tparam RealMatch A match with the subject's offsets.
+     * \param[in] result The match.
+     */
+    template <typename RealMatch>
+    void emit(const RealMatch& result)
+    {
       match_.reset(begin_, end_);
       match_.fill_from_real(result);
       // Iteration: the prefix runs from the previous match end (== real_pos_ here), not the start.
       match_.rebase_prefix(begin_ + static_cast<difference_type>(real_pos_));
-      real_pos_ = result.end(0); // non-nullable: end > start >= pos, so this always advances
-      at_end_   = false;
+      real_pos_   = result.end(0);
+      last_empty_ = result.start(0) == result.end(0);
+      matched_    = matched_ < 2 ? matched_ + 1 : matched_;
+      at_end_     = false;
     }
 
     /*!

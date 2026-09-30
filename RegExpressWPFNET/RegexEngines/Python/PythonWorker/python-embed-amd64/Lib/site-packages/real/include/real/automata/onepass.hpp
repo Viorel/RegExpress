@@ -42,6 +42,7 @@
 #include <vector>
 
 #include "real/engine/aho_corasick.hpp"
+#include "real/engine/prefilter.hpp"
 #include "real/engine/assert_eval.hpp"
 #include "real/automata/lazy_dfa.hpp"
 #include "real/core/program.hpp"
@@ -875,6 +876,13 @@ namespace real::detail {
     //!        cost every other route (see \ref op_table_for).
     std::atomic<const void*> ac_for {nullptr};
 
+    //! \brief The alternation's probe pairs, their splats included, or empty when never built. Per REGEX, not
+    //!        per state: the splats are 512 bytes, and in a state that is fresh per `search()` gcc zeroed them
+    //!        with the rest of the state on every call (check-state-zeroing).
+    std::optional<alternation_pairs> alt_pairs;
+
+    std::atomic<const void*> alt_pairs_for {nullptr}; //!< \c prog.code.data() \ref alt_pairs was built for, or null (its own identity atomic, as \ref ac_for).
+
     //! \brief \c prog.code.data() \ref op_table was built for, or null. Same identity discipline as
     //!        \ref rows_for and for the same reason: the extractor is needed only by the routes that fill
     //!        captures through it, and it is by far the most expensive thing this cache holds — more than
@@ -952,7 +960,7 @@ namespace real::detail {
     /*!
      * \brief Clears EVERY identity key, so nothing built for the old program survives an assignment.
      *
-     * There are four keys and every one of them must be cleared, because the identity check they perform
+     * There are five keys and every one of them must be cleared, because the identity check they perform
      * can PASS on a stale cache: copy-assigning the program's vector reuses its buffer, so `code.data()`
      * is unchanged and a key left pointing at it still matches. A cache kept that way then serves the
      * PREVIOUS pattern's product -- for `ac_for`, the previous alternation's automaton, which answers
@@ -960,13 +968,20 @@ namespace real::detail {
      * answers in both directions, not a crash.
      *
      * That is why the invariant is "an assignment invalidates every cache" rather than "every cache with
-     * a known reproducer": one of the four has no reproducer today and is cleared all the same.
+     * a known reproducer": `alt_pairs_for` was the one left out, and an alternation assigned over another
+     * of the same compiled size then searched with the previous one's fingerprint.
+     *
+     * The automaton is also released, not only unkeyed: it is the one product whose size follows the
+     * pattern's (up to \ref ac_memory_budget), and a regex assigned a small pattern would otherwise hold
+     * the previous one's until its next alternation search rebuilt it.
      */
     void invalidate_all() noexcept
     {
+      ac.reset();
       built_for.store(nullptr, std::memory_order_relaxed);
       rows_for.store(nullptr, std::memory_order_relaxed);
       ac_for.store(nullptr, std::memory_order_relaxed);
+      alt_pairs_for.store(nullptr, std::memory_order_relaxed);
       op_table_for.store(nullptr, std::memory_order_relaxed);
     }
 
@@ -1189,6 +1204,16 @@ namespace real::detail {
   }
 
   /*!
+   * \brief Leases taken, counted for the tests that pin how many a scan takes.
+   * \return A reference to the process-wide counter (relaxed atomic).
+   */
+  inline std::atomic<std::uint64_t>& dfa_leases_taken() noexcept
+  {
+    static std::atomic<std::uint64_t> taken {0};
+    return taken;
+  }
+
+  /*!
    * \brief This thread's DFA set for one regex, for the lifetime of the lease: a scan through it takes
    *        no lock, so threads sharing a regex no longer queue on its DFAs.
    *
@@ -1208,6 +1233,9 @@ namespace real::detail {
      */
     explicit dfa_lease(regex_immutables* immut)
     {
+#if defined(REAL_TEST_INSTRUMENT)
+      dfa_leases_taken().fetch_add(1, std::memory_order_relaxed);
+#endif
       cache& mine {thread_cache()};
       if (!mine.busy) {
         if (!mine.slot || mine.slot->owner.load(std::memory_order_acquire) != immut) {

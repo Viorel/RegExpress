@@ -545,8 +545,10 @@ namespace real::compat {
       const std::basic_regex<CharT, Traits>& std_engine {re.std_engine()}; // lazy-built if real-backed
       std::match_results<BidirIt>            std_m;
       const auto                             sf         {to_std_match(mf)};
-      const bool                             ok         {anchored ? std::regex_match(first, last, std_m, std_engine, sf)
-                              : std::regex_search(first, last, std_m, std_engine, sf)};
+      const bool                             ok         {std_call([&] {
+                                                                    return anchored ? std::regex_match(first, last, std_m, std_engine, sf)
+                                                                                : std::regex_search(first, last, std_m, std_engine, sf);
+                                                                  })};
       if (!ok) {
         m.set_ready_no_match();
         return false;
@@ -582,8 +584,10 @@ namespace real::compat {
       }
       const std::basic_regex<CharT, Traits>& std_engine {re.std_engine()};
       const auto                             sf         {to_std_match(mf)};
-      return anchored ? std::regex_match(first, last, std_engine, sf)
-                      : std::regex_search(first, last, std_engine, sf);
+      return std_call([&] {
+                        return anchored ? std::regex_match(first, last, std_engine, sf)
+                                        : std::regex_search(first, last, std_engine, sf);
+                      });
     }
   } // namespace detail
 
@@ -889,14 +893,127 @@ namespace real::compat {
         }
       }
     }
+
+    /*!
+     * \brief A REAL match found on a suffix of the subject, seen with the subject's offsets: what the
+     *        format expander and the match-results fill read (`size`, `start`, `end`).
+     * \tparam RealMatch The engine's match type.
+     */
+    template <typename RealMatch>
+    class offset_match
+    {
+    public:
+
+      /*!
+       * \brief Sees \p match, found on the suffix starting at \p offset, with the subject's offsets.
+       * \param[in] match  The match; it must outlive this view.
+       * \param[in] offset Where the suffix starts in the subject.
+       */
+      offset_match(const RealMatch& match,
+                   std::size_t      offset) noexcept
+        : match_ {&match}, offset_ {offset}
+      {}
+
+      /*!
+       * \brief The group count, whole match included.
+       * \return The count.
+       */
+      [[nodiscard]] std::size_t size() const noexcept
+      {
+        return match_->size();
+      }
+
+      /*!
+       * \brief Group \p g's start in the subject.
+       * \param[in] g The group.
+       * \return The offset, or `real::npos` when the group took no part.
+       */
+      [[nodiscard]] std::size_t start(std::size_t g) const noexcept
+      {
+        const std::size_t at {match_->start(g)};
+        return at == real::npos ? at : at + offset_;
+      }
+
+      /*!
+       * \brief Group \p g's end in the subject.
+       * \param[in] g The group.
+       * \return The offset, or `real::npos` when the group took no part.
+       */
+      [[nodiscard]] std::size_t end(std::size_t g) const noexcept
+      {
+        const std::size_t at {match_->end(g)};
+        return at == real::npos ? at : at + offset_;
+      }
+
+    private:
+
+      const RealMatch* match_;  //!< The match, found on the suffix.
+      std::size_t      offset_; //!< Where the suffix starts in the subject.
+    };
+
+    /*!
+     * \brief Appends one match's replacement: the text since the previous match (unless `format_no_copy`),
+     *        then the expanded format.
+     * \tparam RealMatch A match with the subject's offsets.
+     * \param[in,out] out      The replacement being built.
+     * \param[in]     match    The match.
+     * \param[in]     fmt      The format.
+     * \param[in]     text     The subject.
+     * \param[in,out] last_end The previous match's end; left at this one's.
+     * \param[in]     no_copy  `format_no_copy`: the text between matches is dropped.
+     */
+    template <typename RealMatch>
+    void append_replacement(std::string&      out,
+                            const RealMatch&  match,
+                            std::string_view  fmt,
+                            std::string_view  text,
+                            std::size_t&      last_end,
+                            bool              no_copy)
+    {
+      const std::size_t prefix_start {last_end};
+      if (!no_copy) {
+        out.append(text.substr(last_end, match.start(0) - last_end));
+      }
+      expand_format(out, match, fmt, text, prefix_start);
+      last_end = match.end(0);
+    }
+
+    /*!
+     * \brief The retry [re.regiter.incr] makes after the iteration's FIRST match came out empty at \p at: a
+     *        non-empty match starting exactly there (`match_not_null | match_continuous`), searched before
+     *        the iterator has granted `match_prev_avail`, so the text before \p at is not its context (a
+     *        `\b`, `^` or lookbehind reads \p at as the start). After that first retry the flag is set for
+     *        good, and `real`'s own advance past an empty match (no empty match again at the same place)
+     *        is the standard's.
+     * \param[in] engine The pattern.
+     * \param[in] text   The subject.
+     * \param[in] at     Where the empty match was.
+     * \return The match on `text.substr(at)`, offsets relative to \p at; empty when there is none.
+     */
+    inline std::optional<real::regex::result_type> nonempty_at_without_context(const real::regex& engine,
+                                                                               std::string_view   text,
+                                                                               std::size_t        at)
+    {
+      // The first match on the suffix may be the empty one at its start; the next one then forbids an
+      // empty match there, so it starts there only if it is the non-empty match sought.
+      for (const auto& match : engine.find_iter(text.substr(at))) {
+        if (match.start(0) != 0) {
+          return std::nullopt;
+        }
+        if (match.end(0) != 0) {
+          return match;
+        }
+      }
+      return std::nullopt;
+    }
   } // namespace detail
 
   /*!
    * \brief Replaces matches of \p re in \p s with the ECMAScript-formatted \p fmt.
    *
-   * Real-backed, non-nullable patterns run the substitution on `real` (linear, ReDoS-safe); the
-   * std backend and nullable real-backed patterns route to `std::regex_replace` (the empty-match
-   * traversal differs between Python `real` and ECMAScript, see `basic_regex::nullable`).
+   * Real-backed patterns run the substitution on `real`, advancing past an empty match as the
+   * standard does (see `basic_regex::uses_real_traversal`); the std backend, a constraining flag, a
+   * `$0` format and a nullable POSIX pattern route to `std::regex_replace`.
    *
    * The other overloads forward here.
    * \param[in] s     The subject.
@@ -913,16 +1030,16 @@ namespace real::compat {
   {
     if constexpr (!detail::real_eligible<CharT, Traits>) {
       // wide / custom-traits: always std (real is not eligible for this CharT).
-      return std::regex_replace(s, re.std_engine(), fmt, detail::to_std_match(flags));
+      return detail::std_call([&] { return std::regex_replace(s, re.std_engine(), fmt, detail::to_std_match(flags)); });
     }
     else {
-      // Route to std when: the pattern is not real-traversable (std/nullable), OR a flag the real
+      // Route to std when: the pattern is not real-traversable (std, nullable POSIX), OR a flag the real
       // expander cannot honor is set (any constraining match flag or format_sed — see
       // detail::replace_stays_real), OR the format uses `$0` (platform-variant, format_forces_std).
       // Only then does the real expander run.
       if (!re.uses_real_traversal() || !detail::replace_stays_real(flags)
           || detail::format_forces_std(std::string_view {fmt})) {
-        return std::regex_replace(s, re.std_engine(), fmt, detail::to_std_match(flags));
+        return detail::std_call([&] { return std::regex_replace(s, re.std_engine(), fmt, detail::to_std_match(flags)); });
       }
       const real::regex&     engine     {std::get<real::regex>(re.engine())};
       const std::string_view text       {s};
@@ -933,20 +1050,42 @@ namespace real::compat {
       bool                   done       {false};
       // A POSIX grammar on REAL iterates with leftmost-longest bounds (find_iter_longest); the
       // ECMAScript default keeps leftmost-first. Both yield the same match type, so the range-for
-      // binds either.
-      const auto matches {re.posix_longest() ? engine.find_iter_longest(text) : engine.find_iter(text)};
-      for (const auto& match : matches) {
-        if (done) {
-          break;
-        }
-        const std::size_t prefix_start {last_end};
-        if (!no_copy) {
-          out.append(text.substr(last_end, match.start() - last_end));
-        }
-        detail::expand_format(out, match, std::string_view {fmt}, text, prefix_start);
-        last_end = match.end();
-        if (first_only) {
-          done = true;
+      // binds either. The walk restarts once at most: after a first match that came out empty, where
+      // the standard's retry is made without the text before it (detail::nonempty_at_without_context).
+      std::size_t from    {0};
+      bool        first   {true};
+      bool        restart {true};
+      while (restart && !done) {
+        restart = false;
+        const auto matches {re.posix_longest() ? engine.find_iter_longest(text, from) : engine.find_iter(text, from)};
+        for (const auto& match : matches) {
+          const bool retry_first {first && match.start(0) == match.end(0)};
+          first = false;
+          detail::append_replacement(out, match, std::string_view {fmt}, text, last_end, no_copy);
+          done = first_only;
+          if (done) {
+            break;
+          }
+          if (retry_first) {
+            const std::size_t at {match.start(0)};
+            if (const auto retry {detail::nonempty_at_without_context(engine, text, at)}; retry.has_value()) {
+              detail::append_replacement(out, detail::offset_match<real::regex::result_type> {*retry, at},
+                                         std::string_view {fmt}, text, last_end, no_copy);
+              done = first_only;
+              if (done) {
+                break;
+              }
+              from = at + retry->end(0);
+            }
+            else if (at < text.size()) {
+              from = at + 1; // no non-empty match there: the search goes on past it, with its context
+            }
+            else {
+              break;         // the empty match was at the end: nothing follows it
+            }
+            restart = true;
+            break;
+          }
         }
       }
       if (!no_copy) {

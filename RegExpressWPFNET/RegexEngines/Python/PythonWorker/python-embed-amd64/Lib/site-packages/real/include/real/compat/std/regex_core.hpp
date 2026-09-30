@@ -14,6 +14,7 @@
 #include <real/version.hpp>
 
 #include <cstddef>
+#include <atomic>
 #include <mutex>
 #include <optional>
 #include <regex>
@@ -696,6 +697,158 @@ namespace real::compat {
       else { s |= sc::ECMAScript; }
       return s;
     }
+
+    /*!
+     * \brief Runs \p call on the std backend and reports its errors as \ref real::compat::regex_error, the
+     *        type every error of this layer has. A `std::basic_regex` can fail while it matches
+     *        (`error_complexity`, `error_stack`), long after it was built.
+     * \tparam Call A callable taking no argument.
+     * \param[in] call The std operation.
+     * \return What \p call returns.
+     * \throws real::compat::regex_error when \p call throws a `std::regex_error`.
+     */
+    template <typename Call>
+    decltype(auto) std_call(Call && call)
+    {
+      try {
+        return std::forward<Call>(call)();
+      }
+      catch (const regex_error&) {
+        throw; // already the compat type (a lazy build's error)
+      }
+      catch (const std::regex_error& std_error) {
+        throw regex_error(std_error);
+      }
+    }
+
+    /*!
+     * \brief A `std::basic_regex` built on first use and published once: a reader after the build takes no
+     *        lock, and a copy made while another thread builds sees either the finished engine or none (the
+     *        copy then builds its own). Copyable, so the regex that holds it stays copyable.
+     * \tparam StdRegex The `std::basic_regex` specialization.
+     */
+    template <typename StdRegex>
+    class lazy_std_engine
+    {
+    public:
+
+      lazy_std_engine() = default;
+
+      /*!
+       * \brief Copies \p other's engine if it is published.
+       * \param[in] other The source.
+       */
+      lazy_std_engine(const lazy_std_engine& other)
+      {
+        copy_from(other);
+      }
+
+      /*!
+       * \brief Takes \p other's engine if it is published; \p other is left without one.
+       * \param[in,out] other The source.
+       */
+      lazy_std_engine(lazy_std_engine&& other) noexcept
+      {
+        if (other.ready_.load(std::memory_order_acquire)) {
+          value_ = std::move(other.value_);
+          ready_.store(true, std::memory_order_relaxed);
+          other.reset();
+        }
+      }
+
+      /*!
+       * \brief Replaces this engine with a copy of \p other's, if published.
+       * \param[in] other The source.
+       * \return This.
+       */
+      lazy_std_engine& operator=(const lazy_std_engine& other)
+      {
+        if (this != &other) {
+          reset();
+          copy_from(other);
+        }
+        return *this;
+      }
+
+      /*!
+       * \brief Replaces this engine with \p other's, if published; \p other is left without one.
+       * \param[in,out] other The source.
+       * \return This.
+       */
+      lazy_std_engine& operator=(lazy_std_engine&& other) noexcept
+      {
+        if (this != &other) {
+          reset();
+          if (other.ready_.load(std::memory_order_acquire)) {
+            value_ = std::move(other.value_);
+            ready_.store(true, std::memory_order_relaxed);
+            other.reset();
+          }
+        }
+        return *this;
+      }
+
+      ~lazy_std_engine() = default;
+
+      /*!
+       * \brief The published engine.
+       * \return It, or null before \ref publish.
+       */
+      [[nodiscard]] const StdRegex* get() const noexcept
+      {
+        return ready_.load(std::memory_order_acquire) ? &*value_ : nullptr;
+      }
+
+      /*!
+       * \brief Publishes \p engine; the caller holds the build lock and has seen \ref get return null.
+       * \param[in] engine The built engine.
+       * \return The published engine.
+       */
+      const StdRegex& publish(StdRegex&& engine) const
+      {
+        value_.emplace(std::move(engine));
+        ready_.store(true, std::memory_order_release);
+        return *value_;
+      }
+
+      /*!
+       * \brief Drops the engine; not concurrent with any other use of this object.
+       */
+      void reset() noexcept
+      {
+        ready_.store(false, std::memory_order_relaxed);
+        value_.reset();
+      }
+
+      /*!
+       * \brief Exchanges the engines; not concurrent with any other use of either object.
+       * \param[in,out] other The other engine.
+       */
+      void swap(lazy_std_engine& other) noexcept
+      {
+        const bool mine {ready_.load(std::memory_order_relaxed)};
+        ready_.store(other.ready_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        other.ready_.store(mine, std::memory_order_relaxed);
+        value_.swap(other.value_);
+      }
+
+    private:
+
+      /*!
+       * \brief Copies \p other's engine if published; this one holds none.
+       * \param[in] other The source.
+       */
+      void copy_from(const lazy_std_engine& other)
+      {
+        if (const StdRegex* engine {other.get()}; engine != nullptr) {
+          value_.emplace(*engine);
+          ready_.store(true, std::memory_order_relaxed);
+        }
+      }
+
+      mutable std::optional<StdRegex> value_;         //!< The engine, set once under the build lock.
+      mutable std::atomic<bool>       ready_ {false}; //!< Released after \ref value_ is set: acquire it before reading.
+    };
   } // namespace detail
 
   /*!
@@ -813,7 +966,7 @@ namespace real::compat {
       std::swap(nullable_, other.nullable_);
       std::swap(nullable_captured_repeat_, other.nullable_captured_repeat_);
       std::swap(posix_longest_, other.posix_longest_);
-      std::swap(lazy_std_, other.lazy_std_);
+      lazy_std_.swap(other.lazy_std_);
       std::swap(policy_, other.policy_);
     }
 
@@ -857,12 +1010,10 @@ namespace real::compat {
     /*!
      * \brief Whether the pattern can match the empty string (real's `empty_match_possible` hint).
      *
-     * Empty-match *traversal* (replace / iterate) follows Python's advance rules in `real`, which
-     * differ from ECMAScript. So a nullable real-backed pattern routes those operations to a lazily
-     * built `std::regex` (\ref std_engine) — per operation, not at construction, so `search`/`match`
-     * keep `real`'s linear-time guarantee even on nullable-ReDoS patterns like `(a*)*`.
-     * \return `true` if it is nullable; `regex_replace` then routes to `std`, whose empty-match
-     *         traversal differs from REAL's Python-lineage one.
+     * A nullable pattern's replace and iteration meet empty matches: `real` advances past them as the
+     * standard does (\ref uses_real_traversal), except under a POSIX grammar, where those operations
+     * route to a lazily built `std::regex` (\ref std_engine).
+     * \return `true` if it is nullable.
      */
     [[nodiscard]] bool nullable() const noexcept
     {
@@ -883,21 +1034,21 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Whether replace/iterate run on the `real` traversal (real-backed AND non-nullable AND no
-     *        nullable captured-repeat group). A nullable pattern delegates replace/iterate to std (the
-     *        empty-match traversal differs; and iterating a nullable pattern whose per-position match
-     *        cost is O(n) is O(n²) on any linear engine, so routing it buys correctness but not a linear
-     *        guarantee — see the nullable note in COMPATIBILITY.md). A pattern with a capturing group
+     * \brief Whether replace/iterate run on the `real` traversal: real-backed, and neither a nullable
+     *        captured-repeat group nor a nullable POSIX pattern. A nullable ECMAScript pattern runs on
+     *        `real` too, advancing past an empty match as [re.regiter.incr] requires (see
+     *        \ref detail::nonempty_at_without_context); a nullable POSIX one stays on std, whose
+     *        leftmost-longest empty-match traversal is not modelled here. A pattern with a capturing group
      *        that is nullable under a quantifier (`(ab|)+a`) is itself non-nullable as a whole, but
      *        real's last-consuming-iteration capture (RE2/Rust/Go lineage) diverges from an ECMAScript
      *        backtracker's extra empty final iteration on that GROUP's span — so it routes too, for the
      *        same reason: `regex_search`/`match` are unaffected (see the nullable-loop group-capture
      *        section of COMPATIBILITY.md — the search residue is intentional, not an oversight).
-     * \return `true` for a real-backed, non-nullable pattern.
+     * \return `true` for a real-backed pattern whose traversal `real` models.
      */
     [[nodiscard]] bool uses_real_traversal() const noexcept
     {
-      return uses_real() && !nullable_ && !nullable_captured_repeat_;
+      return uses_real() && !nullable_captured_repeat_ && !(nullable_ && posix_longest_);
     }
 
     /*!
@@ -905,11 +1056,10 @@ namespace real::compat {
      *        pattern reached via a constraining flag / nullable replace-iterate / `$0`/sed replace).
      *
      * Thread-safe: `std::regex` guarantees concurrent `const` operations on one object are safe, but
-     * this builds `lazy_std_` (a `mutable` member) on demand. A function-local static build mutex
-     * serialises the build (and the read is taken under the same lock), so the guarantee holds for
-     * nullable AND non-nullable real-backed patterns. `std::once_flag` would be lighter but is
-     * non-copyable, and `basic_regex` must stay copyable (`std::regex` is); a static mutex keeps the
-     * value semantics defaulted. The build is per operation, cold relative to matching.
+     * this builds `lazy_std_` on demand. A function-local static mutex serialises the build only: the
+     * engine is published once (\ref detail::lazy_std_engine), and every call after it reads it without
+     * the lock, so operations on patterns that reach std do not queue behind one another. `std::once_flag`
+     * is non-copyable, and `basic_regex` must stay copyable (`std::regex` is).
      * \return The wrapped `std::basic_regex`; compiling one on demand if this pattern is real-backed.
      */
     [[nodiscard]] const std::basic_regex<CharT, Traits>& std_engine() const
@@ -917,11 +1067,15 @@ namespace real::compat {
       if (std::holds_alternative<std::basic_regex<CharT, Traits>>(engine_)) {
         return std::get<std::basic_regex<CharT, Traits>>(engine_);
       }
-      static std::mutex          build_mutex; // one per basic_regex<CharT, Traits> instantiation
-      const std::lock_guard      lock {build_mutex};
-      if (!lazy_std_.has_value()) {
+      if (const auto* built {lazy_std_.get()}; built != nullptr) {
+        return *built; // published: no lock once built
+      }
+      static std::mutex     build_mutex; // one per basic_regex<CharT, Traits> instantiation
+      const std::lock_guard lock {build_mutex};
+      if (const auto* built {lazy_std_.get()}; built == nullptr) {
         try {
-          lazy_std_.emplace(pattern_.data(), pattern_.size(), detail::to_std(flags_));
+          return lazy_std_.publish(std::basic_regex<CharT, Traits>(pattern_.data(), pattern_.size(),
+                                                                   detail::to_std(flags_)));
         }
         catch (const std::regex_error& std_error) {
           // A pattern real accepted but std cannot build (a real superset) reaches std only via a
@@ -930,7 +1084,7 @@ namespace real::compat {
           throw regex_error(std_error);
         }
       }
-      return *lazy_std_;
+      return *lazy_std_.get();
     }
 
   private:
@@ -943,7 +1097,7 @@ namespace real::compat {
     bool                                                                 nullable_                 {};                            //!< empty_match_possible (real-backed).
     bool                                                                 nullable_captured_repeat_ {};                            //!< nullable_captured_repeat (real-backed) — a nullable capturing group under a quantifier; see \ref uses_real_traversal.
     bool                                                                 posix_longest_            {};                            //!< A POSIX grammar translated onto REAL: search uses leftmost-longest bounds.
-    mutable std::optional<std::basic_regex<CharT, Traits>>               lazy_std_;                                               //!< Lazy std for nullable replace/iterate.
+    detail::lazy_std_engine<std::basic_regex<CharT, Traits>>             lazy_std_;                                               //!< Lazy std for nullable replace/iterate.
     compat::policy                                                       policy_                   {policy::strict};              //!< strict rejects ineligible, fallback delegates to std.
 
     /*!

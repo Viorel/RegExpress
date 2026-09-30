@@ -18,8 +18,10 @@
 
 #include "real/version.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <span>
 #include <string_view>
 #include <type_traits>
@@ -101,6 +103,208 @@ namespace real::detail {
   {
 #if defined(REAL_TEST_INSTRUMENT)
     dfa_quits().fetch_add(1, std::memory_order_relaxed);
+#endif
+  }
+
+  /*!
+   * \brief Literal searches the two-byte block filter answered (a dense subject), counted for the tests that
+   *        pin when the adaptive literal search hands over.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& literal_pair_scans() noexcept
+  {
+    static std::atomic<std::uint64_t> scans {0};
+    return scans;
+  }
+
+  /*!
+   * \brief Bill one pair-filter search to \ref literal_pair_scans. A no-op unless the test binary defines
+   *        \c REAL_TEST_INSTRUMENT.
+   */
+  inline void note_literal_pair_scan() noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    literal_pair_scans().fetch_add(1, std::memory_order_relaxed);
+#endif
+  }
+
+  /*!
+   * \brief Test seam: keep the alternation fingerprint on 16-byte blocks where the CPU has AVX2, so a differential
+   *        can compare both widths in one binary. Not for production use.
+   * \return Reference to the process-wide seam flag.
+   */
+  inline bool& alternation_avx2_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
+  /*!
+   * \brief Alternation blocks the fingerprint masked 32 starts at a time (AVX2), counted for the tests that pin
+   *        where the wider scan runs.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& alternation_avx2_blocks() noexcept
+  {
+    static std::atomic<std::uint64_t> blocks {0};
+    return blocks;
+  }
+
+  /*!
+   * \brief Literal filter searches that ran on 32-byte AVX2 blocks, counted for the tests that pin where the
+   *        wider scan is taken.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& literal_avx2_scans() noexcept
+  {
+    static std::atomic<std::uint64_t> scans {0};
+    return scans;
+  }
+
+  /*!
+   * \brief Test seam: keep the literal filter on 16-byte blocks where the CPU has AVX2, so a differential can
+   *        compare both widths in one binary. Not for production use.
+   * \return Reference to the process-wide seam flag.
+   */
+  inline bool& literal_avx2_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
+  /*!
+   * \brief Batches the fixed-shape filler produced, counted for the tests that pin which walks it serves.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& fixed_shape_batches() noexcept
+  {
+    static std::atomic<std::uint64_t> batches {0};
+    return batches;
+  }
+
+  /*!
+   * \brief Literal searches whose first stop failed and that went on out of line, counted for the tests that
+   *        pin that a byte the subject showed rare is the one scanned first.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& literal_rest_scans() noexcept
+  {
+    static std::atomic<std::uint64_t> scans {0};
+    return scans;
+  }
+
+  /*!
+   * \brief Bill one out-of-line literal search to \ref literal_rest_scans. A no-op unless the test binary
+   *        defines \c REAL_TEST_INSTRUMENT.
+   */
+  inline void note_literal_rest_scan() noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    literal_rest_scans().fetch_add(1, std::memory_order_relaxed);
+#endif
+  }
+
+  /*!
+   * \brief Alternation blocks the pair filter masked (a dense subject), counted for the tests that pin when an
+   *        alternation's scan turns to it.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& alternation_pair_blocks() noexcept
+  {
+    static std::atomic<std::uint64_t> blocks {0};
+    return blocks;
+  }
+
+  /*!
+   * \brief Bill one pair-filtered alternation block to \ref alternation_pair_blocks. A no-op unless the test
+   *        binary defines \c REAL_TEST_INSTRUMENT.
+   */
+  inline void note_alternation_pair_block() noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    alternation_pair_blocks().fetch_add(1, std::memory_order_relaxed);
+#endif
+  }
+
+  /*!
+   * \brief Alternation blocks the nibble fingerprint masked (among \ref alternation_pair_blocks), counted for the
+   *        tests that pin when the fingerprint rather than the pairs does it.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& alternation_nibble_blocks() noexcept
+  {
+    static std::atomic<std::uint64_t> blocks {0};
+    return blocks;
+  }
+
+  /*!
+   * \brief Bill one fingerprint-masked block to \ref alternation_nibble_blocks. A no-op unless the test binary
+   *        defines \c REAL_TEST_INSTRUMENT.
+   * \param[in] nibbles Whether the block was masked by the fingerprint.
+   */
+  inline void note_alternation_nibble_block(bool nibbles) noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    if (nibbles) {
+      alternation_nibble_blocks().fetch_add(1, std::memory_order_relaxed);
+    }
+#else
+    static_cast<void>(nibbles);
+#endif
+  }
+
+  /*!
+   * \brief Branch walks the Aho-Corasick gate's completion sample spent, counted for the tests that pin its
+   *        budget.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& ac_completion_walks() noexcept
+  {
+    static std::atomic<std::uint64_t> walks {0};
+    return walks;
+  }
+
+  /*!
+   * \brief Searches a program that is not a fixed alternation took its variants' fingerprint for, counted for
+   *        the tests that pin when it does.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& alternation_variant_scans() noexcept
+  {
+    static std::atomic<std::uint64_t> scans {0};
+    return scans;
+  }
+
+  /*!
+   * \brief Subjects an alternation wider than the small set scanned by the fingerprint, counted for the tests
+   *        that pin when it takes one.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& alternation_wide_scans() noexcept
+  {
+    static std::atomic<std::uint64_t> scans {0};
+    return scans;
+  }
+
+  /*!
+   * \brief Candidates the alternation pair filter left to verify, counted for the tests that pin that its second
+   *        probe does filter.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& alternation_pair_candidates() noexcept
+  {
+    static std::atomic<std::uint64_t> candidates {0};
+    return candidates;
+  }
+
+  /*!
+   * \brief Bill one pair-filter candidate to \ref alternation_pair_candidates. A no-op unless the test binary
+   *        defines \c REAL_TEST_INSTRUMENT.
+   */
+  inline void note_alternation_pair_candidate() noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    alternation_pair_candidates().fetch_add(1, std::memory_order_relaxed);
 #endif
   }
 
@@ -1503,7 +1707,10 @@ namespace real::detail {
       std::int32_t  branch_count {};
       if (is_fixed_alternation(code, &wb_lead, &wb_trail, &body_pc, &branch_count)) {
         hints.fixed_alternation        = true;
-        hints.alternation_branch_count = static_cast<std::uint16_t>(branch_count);
+        // Saturated: a wrapped count would read as a handful of branches to the readers that pick a
+        // per-branch route under a small count.
+        hints.alternation_branch_count = static_cast<std::uint16_t>(
+          std::min<std::int32_t>(branch_count, std::numeric_limits<std::uint16_t>::max()));
         // Only set wb_* here if exact_literal / fixed_shape did not already claim them
         // (a pure literal alternation is rare; prefer not clobbering an earlier path).
         if (!hints.fixed_shape && hints.exact_literal_len == 0) {
@@ -1851,6 +2058,22 @@ namespace real::detail {
       return 10; // 4-byte leads: astral planes and emoji
     }
     return 1; // control bytes and the two never-valid UTF-8 bytes: genuinely rare
+  }
+
+  /*!
+   * \brief Offset of the rarest byte of \p literal by \ref byte_frequency (the first of equals).
+   * \param[in] literal The needle (non-empty).
+   * \return The offset.
+   */
+  constexpr std::uint8_t literal_rarest_offset(std::string_view literal)
+  {
+    std::size_t best {0};
+    for (std::size_t k = 1; k < literal.size() && k <= 0xFFU; ++k) {
+      if (byte_frequency(static_cast<std::uint8_t>(literal[k])) < byte_frequency(static_cast<std::uint8_t>(literal[best]))) {
+        best = k;
+      }
+    }
+    return static_cast<std::uint8_t>(best);
   }
 
   /*!
@@ -2233,6 +2456,9 @@ namespace real::detail {
     // gives a single-byte memchr target far more selective than the first-byte class. Computed last, so it
     // can compare against the finalized first-byte hints. Sound: it only filters candidate starts.
     extract_rare_byte(code, hints);
+    if (hints.prefix_size >= 2) {
+      hints.prefix_rare = literal_rarest_offset(std::string_view {hints.prefix.data(), hints.prefix_size});
+    }
     // Rare discriminant past an optional mono-byte (URL `https?://`): memchr the disc, back-verify
     // prefix+opt+after. Preferable to a weak literal prefix (`http`) when the disc is rarer.
     extract_rare_discriminant(code, hints);
@@ -2246,8 +2472,9 @@ namespace real::detail {
     // This is a measured veto, and the reason it is SEMANTIC rather than an ISA gate. A pattern like
     // `[0-9]{2}:[0-9]{2}` carries `rare_byte = ':'`, so next_candidate memchrs it -- and where the
     // platform's memchr is wider than this filter's 128-bit block, the pair path loses to it, while on the
-    // other ISA it wins. That is the same per-ISA trap the NEON-gated literal filter hit. But unlike that
-    // one, the discriminator here is not the ISA: it is whether a single byte suffices at all. An icase
+    // other ISA it wins. The literal filter met the same trap while it ran on NEON alone, until it learned
+    // to scan the rarest byte first. Here the discriminator is not the ISA either: it is whether a single
+    // byte suffices at all. An icase
     // literal has no single-byte position (`(?i)cafe` is four 2-sets, rare_byte and single_first both -1),
     // so nothing memchrs it and the pair filter wins on BOTH ISAs. Vetoing on the hint keeps that win
     // everywhere instead of surrendering one ISA to a gate.
@@ -2476,10 +2703,10 @@ namespace real::detail {
     return npos;
   }
 
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) || defined(__SSE2__)
   /*!
-   * \brief The multi-byte substring search behind \ref find_prefix / \ref find_literal: a two-byte
-   *        block prefilter, then verify. **NEON only — see the ISA note below.**
+   * \brief The two-byte block filter behind \ref find_literal_adaptive, taken once a needle's rarest byte
+   *        proved common in the subject.
    *
    * One vector compare answers "could the needle start here?" for 16 candidate positions at once, at
    * *two* needle offsets (the first byte and the last) — so a block with no surviving candidate is
@@ -2492,12 +2719,12 @@ namespace real::detail {
    * `simd_fixed_shape_scan` documents: the intrinsics are ISA-exclusive and live in simd.hpp, this
    * loop is the same C++ everywhere and is what the test suite exercises on either leg.
    *
-   * **Why one ISA only.** This filter must beat the platform's own substring search to be worth taking,
-   * and whether it does is genuinely per-ISA -- it is not a portable win. Where the platform search is no
-   * wider than this loop's 128-bit block, the filter wins on every literal row. Where the platform search
-   * is TWICE this width, it loses on every one of them, and gating restores those rows exactly to what
-   * they were before the filter existed. A wider leg would be the honest way to carry this win across; a
-   * 128-bit one is not it, and shipping an unrouted leg would only invite someone to route it.
+   * **When it is taken.** A scan of one byte wins while that byte is rare in the subject: x86-64's `memchr`
+   * is twice this block's width, and on 500 KB of log lines with `x` rare it answers `example.com` in
+   * 0.014 ms against this filter's 0.044. It loses once the byte stops being rare, one call per stop: `the`
+   * 0.25 ms by the first byte against 0.051 here, `error` 0.26 against 0.075 (x86-64, g++ 13.3, 2026-09-27;
+   * arm64 alike, where `find_byte` is a 128-bit loop). So \ref find_literal_adaptive scans the rarest byte
+   * first and hands the subject to this filter once its stops come dense, on both ISAs.
    *
    * Linearity is unchanged from the scalar path it replaces: the block loop advances 16 per iteration
    * and each block verifies at most 16 candidates of \p literal bytes each, so the work stays
@@ -2514,6 +2741,18 @@ namespace real::detail {
                                        std::size_t      pos,
                                        std::string_view literal)
   {
+#if defined(__AVX2__) || (defined(__SSE2__) && (defined(__GNUC__) || defined(__clang__)))
+#  if defined(__AVX2__)
+    if (!literal_avx2_disabled()) {
+#  else
+    if (!literal_avx2_disabled() && cpu_has_avx2()) {
+#  endif
+#  if defined(REAL_TEST_INSTRUMENT)
+      literal_avx2_scans().fetch_add(1, std::memory_order_relaxed);
+#  endif
+      return avx2_literal_scan(text, pos, literal); // twice the block, where the CPU has it
+    }
+#endif
     const std::size_t len {literal.size()};
     if (text.size() < len) {
       return npos;
@@ -2526,7 +2765,7 @@ namespace real::detail {
     std::size_t       p     {pos};
     // Four blocks (64 candidates) per round. A no-match scan spends all its time in the reject test, and
     // libc `memchr` sets the bar there by covering 64 B per round: at one block per round this filter
-    // measured ~13 % SLOWER than the platform `find` it replaces on a pure miss, despite rejecting on two
+    // measured ~13 % SLOWER than the platform `find` on a pure miss, despite rejecting on two
     // bytes instead of one. Four independent load pairs per round (ILP, one branch) turn that into ~2.5x
     // FASTER than memchr — the two-byte selectivity finally paying at memchr's throughput. Masks are
     // consumed in block order, and within a mask in lane order, so candidates are still visited strictly
@@ -2579,15 +2818,417 @@ namespace real::detail {
     return npos;
   }
 
-#endif // __ARM_NEON
+#endif // __ARM_NEON || __SSE2__
+
+  /*!
+   * \brief What the adaptive literal search learned about one subject: whether the needle's rarest byte
+   *        is common there.
+   *
+   * Kept by the caller for the whole subject (a search state resets it when the subject changes), so a
+   * subject found dense takes the pair filter on every later search at once instead of re-proving it per
+   * match. A fresh value per call is correct too; it only re-learns.
+   */
+  struct literal_density
+  {
+    std::uint32_t cands  {};     //!< Distinct stops the rarest-byte scan made on this subject.
+    std::size_t   origin {npos}; //!< Offset of the first of them.
+    std::size_t   last   {npos}; //!< Offset of the furthest of them: a search that starts behind it counts no stop twice.
+    std::size_t   rare   {npos}; //!< Offset scanned instead of the hints' one, once this subject showed it rarer.
+    bool          dense  {};     //!< Sticky: the pair filter takes this subject from here on.
+  };
+
+  inline constexpr std::uint32_t literal_dense_min_cands {8}; //!< Stops the rarest-byte scan makes before its density is judged: fewer say nothing.
+
+  /*!
+   * \brief Mean bytes between stops below which the rarest byte counts as common: under it, a stop costs
+   *        more than the pair filter spends crossing that many bytes.
+   *
+   * Per ISA, since the single-byte scan is not the same width. Over 1 MB with the byte recurring every
+   * `gap` bytes and no match (2026-09-27, best of 15): x86-64's `memchr` (g++ 13.3) equals the filter near
+   * 70 bytes (0.097 against 0.089 ms at 64, 0.067 against 0.089 at 96); arm64's 128-bit loop (Apple clang)
+   * near 190 (0.067 against 0.050 at 128, 0.048 against 0.049 at 192).
+   */
+#if defined(__ARM_NEON)
+  inline constexpr std::size_t literal_dense_gap {192};
+#else
+  inline constexpr std::size_t literal_dense_gap {64};
+#endif
+
+  /*!
+   * \brief Writes the adaptive search's local density back (\ref find_literal_adaptive_rest keeps it in
+   *        locals while it scans).
+   * \param[out] density The subject's density.
+   * \param[in]  cands   Distinct stops counted.
+   * \param[in]  origin  Offset of the first.
+   * \param[in]  next    First offset not yet counted (0: none counted).
+   */
+  constexpr void store_literal_density(literal_density& density,
+                                       std::uint32_t    cands,
+                                       std::size_t      origin,
+                                       std::size_t      next) noexcept
+  {
+    density.cands  = cands;
+    density.origin = origin;
+    density.last   = next == 0U ? npos : next - 1U;
+  }
+
+  /*!
+   * \brief The body of \ref find_literal_adaptive past its first stop: the pair filter for a dense subject,
+   *        else the rarest-byte scan that counts its stops and judges their density.
+   *
+   * Out of line: its callers include next_candidate, which the class and rare-byte routes run per candidate
+   * without ever reaching a literal. Inlined there, it cost `\d{4}-\d{2}-\d{2}` 7 % on arm64.
+   * \param[in]     text    The subject text.
+   * \param[in]     pos     Index to start from (a stop the caller saw fail, or where a dense search starts).
+   * \param[in]     literal The needle (>= 2 bytes).
+   * \param[in]     rare    Offset of its rarest byte by the hints.
+   * \param[in,out] density What this subject has shown so far.
+   * \return The index of the first occurrence at or after \p pos, else \ref real::npos.
+   */
+#if defined(__GNUC__) || defined(__clang__)
+  __attribute__((noinline))
+#endif
+  inline std::size_t find_literal_adaptive_rest(std::string_view text,
+                                                std::size_t      pos,
+                                                std::string_view literal,
+                                                std::size_t      rare,
+                                                literal_density& density)
+  {
+    note_literal_rest_scan();
+    const std::size_t len {literal.size()};
+#if defined(__ARM_NEON) || defined(__SSE2__)
+    if (density.dense) {
+      note_literal_pair_scan();
+      return simd_literal_scan(text, pos, literal);
+    }
+#endif
+    const std::size_t last {text.size() - len}; // last index a match could start at
+    if (density.rare != npos) {
+      rare = density.rare;
+    }
+    char              byte   {literal[rare]};
+    const char* const base   {text.data()};
+    std::size_t       p      {pos};
+    // The density in locals: the scan calls out on every stop, and fields behind a reference would be
+    // reloaded after each call. Written back on every way out.
+    std::uint32_t     cands  {density.cands};
+    std::size_t       origin {density.origin};
+    std::size_t       next   {density.last == npos ? 0U : density.last + 1U}; // first offset not yet counted
+    while (p <= last) {
+      // The rarest byte of a candidate starting at or before `last` sits at or before `last + rare`.
+#if defined(__ARM_NEON)
+      const std::size_t hit   {simd_byte_scan(text.substr(0, last + rare + 1), p + rare, static_cast<std::uint8_t>(byte))};
+#else
+      const void* const found {std::memchr(base + p + rare, byte, last - p + 1)};
+      const std::size_t hit   {found == nullptr ? npos : static_cast<std::size_t>(static_cast<const char*>(found) - base)};
+#endif
+      if (hit == npos) {
+        store_literal_density(density, cands, origin, next);
+        return npos;
+      }
+      const std::size_t cand {hit - rare};
+      if (std::memcmp(base + cand, literal.data(), len) == 0) {
+        store_literal_density(density, cands, origin, next);
+        return cand;
+      }
+      p = cand + 1;
+      // Searches on one subject may start behind one another (a batch fills ahead, a per-match search
+      // resumes behind it): a stop counts once, or re-counted stops would read as density.
+      if (cand < next) {
+        continue;
+      }
+      origin = cands == 0U ? cand : origin;
+      next   = cand + 1;
+      ++cands;
+      if (cands >= literal_dense_min_cands && cand - origin < cands * literal_dense_gap) {
+        // The static rank chose a byte this subject uses often. Before giving up on a single byte, count
+        // each needle byte over the stretch these stops crossed: one rare there is scanned instead, once
+        // per subject; none rare enough, and the pair filter takes over.
+        if (density.rare == npos) {
+          const std::string_view         seen       {text.substr(origin, cand + len - origin)};
+          std::size_t                    best       {rare};
+          std::size_t                    best_count {cands};
+          std::array<std::uint32_t, 256> counts     {}; // one pass over the stretch, whatever the needle's length
+          for (const char c : seen) {
+            ++counts[static_cast<std::uint8_t>(c)];
+          }
+          for (std::size_t k = 0; k < len; ++k) {
+            const std::size_t count {counts[static_cast<std::uint8_t>(literal[k])]};
+            if (count < best_count) {
+              best       = k;
+              best_count = count;
+            }
+          }
+          if (best != rare && best_count * literal_dense_gap < seen.size()) {
+            density.rare = best; // the byte this subject is scanned by from here
+            cands        = 0;
+            rare         = best;
+            byte         = literal[best];
+            continue;
+          }
+          density.rare = rare; // judged, and none rarer: not judged again on this subject
+        }
+#if defined(__ARM_NEON) || defined(__SSE2__)
+        store_literal_density(density, cands, origin, next);
+        density.dense = true;
+        note_literal_pair_scan();
+        return simd_literal_scan(text, cand + 1, literal);
+#endif
+        // No pair filter on this target: the single-byte scan goes on.
+      }
+    }
+    store_literal_density(density, cands, origin, next);
+    return npos;
+  }
+
+  /*!
+   * \brief Index of the first occurrence of \p literal in `text[pos..)`, or \ref real::npos, by its rarest
+   *        byte while that byte is rare in the subject and by the two-byte block filter once it is not.
+   *
+   * The rarest byte (offset \p rare) is scanned with `memchr` on x86-64 and `simd_byte_scan` on NEON,
+   * each stop verified. Once \ref literal_dense_min_cands stops sit less than \ref literal_dense_gap bytes
+   * apart on average, \p density turns dense and `simd_literal_scan` takes over from the stop after
+   * the last one -- from the stop's START plus one, so an occurrence overlapping it is still found. The
+   * decision depends on the subject's bytes only: the same subject always takes the same route. Every
+   * position is a candidate at most once and a verify costs `O(|literal|)`, so the search stays linear.
+   * Billed once per call to the test work counter, as \ref find_prefix always was.
+   *
+   * \param[in]     text    The subject text.
+   * \param[in]     pos     Index to start searching from.
+   * \param[in]     literal The needle (>= 2 bytes).
+   * \param[in]     rare    Offset of its rarest byte (\ref literal_rarest_offset), below `literal.size()`.
+   * \param[in,out] density What this subject has shown so far.
+   * \return The index of the first occurrence at or after \p pos, else \ref real::npos.
+   */
+  inline std::size_t find_literal_adaptive(std::string_view text,
+                                           std::size_t      pos,
+                                           std::string_view literal,
+                                           std::size_t      rare,
+                                           literal_density& density)
+  {
+    const std::size_t len {literal.size()};
+    if (len > text.size() || pos > text.size() - len) {
+      return npos;
+    }
+#if defined(REAL_TEST_INSTRUMENT)
+    prefilter_note_scan(text.size() - pos);
+#endif
+    // A dense subject goes to the pair filter inline, as the lead-pair search always did; the first stop of a
+    // sparse one inline too, since where matches are dense most searches end on it. The rest, out of line.
+#if defined(__ARM_NEON) || defined(__SSE2__)
+    if (density.dense) {
+      note_literal_pair_scan();
+      return simd_literal_scan(text, pos, literal);
+    }
+#endif
+    {
+      const std::size_t k     {density.rare != npos ? density.rare : rare};
+      const std::size_t last  {text.size() - len};
+#if defined(__ARM_NEON)
+      const std::size_t hit   {simd_byte_scan(text.substr(0, last + k + 1), pos + k, static_cast<std::uint8_t>(literal[k]))};
+#else
+      const void* const found {std::memchr(text.data() + pos + k, literal[k], last - pos + 1)};
+      const std::size_t hit   {found == nullptr ? npos : static_cast<std::size_t>(static_cast<const char*>(found) - text.data())};
+#endif
+      if (hit == npos) {
+        return npos;
+      }
+      if (std::memcmp(text.data() + hit - k, literal.data(), len) == 0) {
+        return hit - k;
+      }
+      pos = hit - k; // the stop failed: the rest finds it again and counts it
+    }
+    return find_literal_adaptive_rest(text, pos, literal, rare, density);
+  }
+
+  /*!
+   * \brief Two probe bytes per branch of a literal alternation: the branch's first byte and one byte further
+   *        in it, for the pair filter an alternation's block scan turns to once the first bytes prove common.
+   *
+   * Built from the program once per regex (not kept in the hints, which every search copies). `count` is 0 when
+   * a branch starts with neither a byte nor a class, or the alternation has more branches than the arrays; a
+   * nonzero `count` carries the pairs, the fingerprint, or both (\ref pairs, \ref nibbles).
+   */
+  struct alternation_pairs
+  {
+    std::uint8_t                                count       {}; //!< Branches planned; 0 means no plan.
+    std::uint8_t                                max_d       {}; //!< Largest probe offset: a block reads up to this far past its 16 starts.
+    std::array<std::uint8_t, 16>                lead        {}; //!< Each branch's first byte (valid with \ref pairs).
+    std::array<std::uint8_t, 16>                probe       {}; //!< Each branch's second probe byte.
+    std::array<std::uint8_t, 16>                delta       {}; //!< Its offset in the branch (at most 15; 0 probes the first byte twice).
+    std::array<byte_splat, 16>                  lead_splat  {}; //!< \ref lead, each in all 16 lanes: a block loads rather than broadcasts it.
+    std::array<byte_splat, 16>                  probe_splat {}; //!< \ref probe, likewise.
+    bool                                        nibbles     {}; //!< \ref nibble_lo and \ref nibble_hi are valid: every branch is at least two bytes wide.
+    bool                                        pairs       {}; //!< \ref lead, \ref probe and \ref delta are valid: every branch starts with a byte.
+    std::array<std::array<std::uint8_t, 16>, 3> nibble_lo   {}; //!< Per fingerprint byte, low nibble to the bits of the buckets (branch index mod 8) it admits.
+    std::array<std::array<std::uint8_t, 16>, 3> nibble_hi   {}; //!< The same for the high nibble.
+  };
+
+  /*!
+   * \brief Whether an alternation's first bytes are dense in one subject, decided once from a sample of it.
+   */
+  struct alternation_density
+  {
+    bool decided {}; //!< The sample has run on this subject.
+    bool dense   {}; //!< Its first bytes stop often enough that the pair filter takes the subject.
+  };
+
+  /*!
+   * \brief Whether the nibble fingerprint can run here: AArch64 always, x86 when the build enables SSSE3 or, with
+   *        gcc or clang, when the running CPU has it. A plan built elsewhere never claims one: the fingerprint's
+   *        reach is shorter than the pairs', and a scan that bounded its blocks by it while masking by the pairs
+   *        would read past the subject.
+   * \return True when a plan may carry the fingerprint.
+   */
+  inline bool alternation_nibbles_supported()
+  {
+#if defined(__aarch64__) || defined(__SSSE3__)
+    return true;
+#elif defined(__SSE2__) && (defined(__GNUC__) || defined(__clang__))
+    return cpu_has_ssse3();
+#else
+    return false;
+#endif
+  }
+
+  //! \brief Fewest branches for which the fingerprint replaces the pairs. Two pairs are two compares a block, a
+  //!        fingerprint six table lookups: on x86 (SSSE3) `cat|dog` measured +13 % by the fingerprint and three
+  //!        branches break even; AArch64's lookups are cheap enough that two branches already gain.
+#if defined(__aarch64__)
+  inline constexpr std::size_t alternation_nibbles_min_branches {2};
+#else
+  inline constexpr std::size_t alternation_nibbles_min_branches {3};
+#endif
+
+  inline constexpr std::size_t alternation_sample_min        {4096}; //!< Shorter rests are scanned by the first bytes, unsampled (at least the sample and its reach).
+  inline constexpr std::size_t alternation_sample_bytes      {512};  //!< Bytes sampled for the first bytes' density.
+  inline constexpr std::size_t alternation_wide_min_branches {2};    //!< Fewest branches the wide route considers: branches that open on classes outgrow the small set with a few.
+  inline constexpr std::size_t alternation_wide_max_branches {16};   //!< Most branches the fingerprint's plan holds.
+  inline constexpr std::size_t alternation_wide_false_budget {256};  //!< Past this many false candidates times branches in a sample, the automaton scans cheaper than the fingerprint and its verifier.
+
+  //! \brief Mean bytes between first-byte hits in the sample below which the pair filter takes over (both
+  //!        ISAs, where the prototype's first-byte scan and pair filter crossed on 500 KB of log lines).
+  inline constexpr std::size_t alternation_dense_gap {32};
+
+  //! \brief The same threshold for a plan that masks by the nibble fingerprint, whose cost per block is fixed:
+  //!        against the first-byte loop it crossed at 256-512 bytes between false stops (1 MB subjects with no
+  //!        match, arm64 and x86-64 AVX2, 3 to 10 branches, 2026-09-29), and at 128 its worst ratio measured
+  //!        0.77 of the loop's time.
+  inline constexpr std::size_t alternation_dense_gap_nibbles {128};
+
+#if defined(__ARM_NEON) || defined(__SSE2__)
+  /*!
+   * \brief Mask of the 16 starts at \p at where some branch's two probe bytes both sit.
+   *
+   * Every branch's pair is a necessary condition of that branch, so a start no pair marks matches no branch;
+   * the caller verifies the marked ones in branch order, as it does the first-byte candidates.
+   * \param[in] at   The first of the 16 starts; `at + 15 + plan.max_d` must be inside the subject.
+   * \param[in] plan The branches' probes.
+   * \return The mask.
+   */
+  inline mask_t alternation_pair_mask(const char*              at,
+                                      const alternation_pairs& plan)
+  {
+    return load_pairs_mask(at, plan.lead_splat.data(), plan.probe_splat.data(), plan.delta.data(), plan.count);
+  }
+
+  /*!
+   * \brief The block filter a dense alternation's scan runs: the nibble fingerprint of each branch's first three
+   *        bytes where \p nibbles (a table lookup per nibble, a cost per block that does not grow with the
+   *        branches; see \ref alternation_nibbles_supported), else the byte pairs. The sample's filter: the scan
+   *        runs its own loop for each (pike_vm::alternation_nibble_scan).
+   *
+   * Both mark a superset of the starts where some branch matches, and neither says which: the caller verifies
+   * every marked start in branch order, so priority does not depend on how branches share a bucket.
+   * \param[in] at      The first of the 16 starts; `plan.max_d` bytes past its 16 are read (two for the
+   *                    fingerprint).
+   * \param[in] plan    The branches' probes and fingerprint.
+   * \param[in] nibbles Whether to take the fingerprint (`plan.nibbles`, and the seam not set).
+   * \return The mask.
+   */
+  inline mask_t alternation_filter_mask(const char*              at,
+                                        const alternation_pairs& plan,
+                                        bool                     nibbles)
+  {
+#if defined(__aarch64__) || defined(__SSSE3__) || (defined(__SSE2__) && (defined(__GNUC__) || defined(__clang__)))
+    if (nibbles) {
+      return load_nibble3_mask(at, plan.nibble_lo, plan.nibble_hi); // a call where it is built for SSSE3 alone
+    }
+#else
+    static_cast<void>(nibbles);
+#endif
+    return alternation_pair_mask(at, plan);
+  }
+
+  /*!
+   * \brief The first-byte mask of 16 bytes against \p cnt members, with the fewest unrolled compares that cover
+   *        them: four, six or eight slots, the unused ones repeating a member.
+   * \param[in] buf16 16 already-loaded bytes.
+   * \param[in] mem   The members, padded to eight by repeating one.
+   * \param[in] cnt   How many are distinct (1..8).
+   * \return The mask.
+   */
+  inline mask_t load_members_padded_mask(const std::uint8_t * buf16,
+                                         const std::uint8_t * mem,
+                                         std::size_t          cnt)
+  {
+    if (cnt <= 4) {
+      return load_members4_mask(buf16, mem);
+    }
+    if (cnt <= 6) {
+      return load_members6_mask(buf16, mem);
+    }
+    return load_members8_mask(buf16, mem);
+  }
+
+  /*!
+   * \brief What a sample of a subject shows an alternation's two filters stopping on.
+   */
+  struct alternation_sample
+  {
+    std::size_t first_bytes {}; //!< Starts the first-byte mask marks.
+    std::size_t pairs       {}; //!< Starts the pair mask marks: the matches, and the false stops the pairs keep.
+  };
+
+  /*!
+   * \brief Counts, over \ref alternation_sample_bytes bytes at \p at, the starts each filter would stop on.
+   * \param[in] at      The sample's start; \ref alternation_sample_bytes + `plan.max_d` bytes (two for the
+   *                    fingerprint) must follow it.
+   * \param[in] mem     The first bytes, padded to eight by repeating one (the members compares read all of them).
+   * \param[in] cnt     How many of \p mem are distinct members.
+   * \param[in] plan    The branches' probe pairs.
+   * \param[in] nibbles Whether the block filter is the fingerprint (\ref alternation_filter_mask).
+   * \return Both counts.
+   */
+  inline alternation_sample alternation_sample_hits(const char*              at,
+                                                    const std::uint8_t *     mem,
+                                                    std::size_t              cnt,
+                                                    const alternation_pairs& plan,
+                                                    bool                     nibbles)
+  {
+    alternation_sample sample {};
+    for (std::size_t off = 0; off < alternation_sample_bytes; off += 16) {
+      std::array<std::uint8_t, 16> buf {};
+      std::memcpy(buf.data(), at + off, 16); // MISRA-clean byte load (no pointer type-pun)
+      for (mask_t mask {load_members_padded_mask(buf.data(), mem, cnt)}; !empty(mask); mask = clear_first(mask)) {
+        ++sample.first_bytes;
+      }
+      for (mask_t mask {alternation_filter_mask(at + off, plan, nibbles)}; !empty(mask); mask = clear_first(mask)) {
+        ++sample.pairs;
+      }
+    }
+    return sample;
+  }
+
+#endif
 
   /*!
    * \brief Index of the first occurrence of \p literal in `text[pos..)`, or \ref real::npos.
    *
-   * The substring search behind the inner-literal prefilter. A single byte delegates to \ref find_byte (one
-   * `memchr`). For a multi-byte literal it scans for the lead byte with `memchr` (SIMD at run time) and
-   * verifies the tail — a portable substring search that needs no `memmem` (absent on MSVC), and stays a
-   * plain loop during constant evaluation.
+   * A single byte delegates to \ref find_byte (one `memchr`). A multi-byte literal takes
+   * \ref find_literal_adaptive with its rarest byte found here and a density that lasts this call only;
+   * the engine's routes keep one per subject and pass the rarest offset their hints computed. No
+   * platform `memmem` (absent on MSVC); a plain loop during constant evaluation.
    *
    * \param[in] text    The subject text.
    * \param[in] pos     Index to start searching from.
@@ -2607,12 +3248,11 @@ namespace real::detail {
     if (text.size() < literal.size()) {
       return npos;
     }
-#if defined(__ARM_NEON)
     if (!std::is_constant_evaluated()) {
-      return simd_literal_scan(text, pos, literal); // two-byte block filter; the loop below is its oracle
+      literal_density density {};
+      return find_literal_adaptive(text, pos, literal, literal_rarest_offset(literal), density);
     }
-#endif
-    const std::size_t last_start {text.size() - literal.size()};
+    const std::size_t last_start {text.size() - literal.size()}; // the oracle of the adaptive search
     std::size_t       i          {pos};
     while (i <= last_start) {
       const std::size_t hit {find_byte(text, i, literal.front())};
@@ -2630,8 +3270,9 @@ namespace real::detail {
   /*!
    * \brief First position >= \p pos where \p prefix occurs in \p text, or npos.
    *
-   * A thin wrapper over the platform's substring search, which is correct and
-   * well tuned for the short prefixes (<= 16 bytes) the analyzer extracts.
+   * One byte is \ref find_byte's `memchr`; a longer prefix takes \ref find_literal_adaptive with its rarest
+   * byte found here and a density that lasts this call. The engine's routes keep a density per subject
+   * and pass the offset their hints computed.
    *
    * \param[in] text   The subject text.
    * \param[in] pos    Index to start searching from.
@@ -2649,20 +3290,14 @@ namespace real::detail {
       return npos;
     }
     if (!std::is_constant_evaluated()) {
-#if defined(REAL_TEST_INSTRUMENT)
-      // Bill remaining haystack once per call. Correct O(n) literal miss → ~1× size;
-      // per-position restart of find_prefix → sum(N..1) ≈ N²/2 (smoke margin 25×).
-      prefilter_note_scan(text.size() - pos);
-#endif
-#if defined(__ARM_NEON)
-      // Two-byte block filter (NEON only -- see simd_literal_scan's ISA note; x86 falls through to the
-      // platform `find`, whose AVX2 implementation beats a 128-bit block loop). A single byte has no
-      // second probe to AND, so it stays on find_byte's one memchr either way.
+      // A single byte has no second probe to AND, so it stays on find_byte's one memchr. A longer prefix
+      // takes the adaptive search, billed once per call there (a correct O(n) miss bills ~1x the size; a
+      // per-position restart would bill ~N^2/2).
       if (prefix.size() >= 2U) {
-        return simd_literal_scan(text, pos, prefix);
+        literal_density density {};
+        return find_literal_adaptive(text, pos, prefix, literal_rarest_offset(prefix), density);
       }
       return find_byte(text, pos, prefix.front());
-#endif
     }
     const auto off {text.substr(pos).find(prefix)};
     if (off == std::string_view::npos) {

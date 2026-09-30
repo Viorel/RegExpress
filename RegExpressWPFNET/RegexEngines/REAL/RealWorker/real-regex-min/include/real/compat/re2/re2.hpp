@@ -108,9 +108,13 @@ namespace real::compat::re2 {
       Options() = default;
 
       /*!
-       * \brief Approximate memory budget RE2 uses for its compiled program/DFA cache. Stored for API
-       *        shape; REAL has its own, unrelated internal budget knobs and does not consult this.
-       * \return The stored budget, in bytes.
+       * \brief The memory budget for the compiled pattern, as RE2's: two thirds of it bound the program,
+       *        and a pattern past that fails to compile (`ErrorPatternTooLarge`). Measured in bytes of REAL's
+       *        program, which differ from RE2's (12 per instruction against 8, no shared prefixes), so a
+       *        lowered budget does not reject exactly the patterns RE2 rejects. At most 1, RE2 bounds the
+       *        program to 100 000 instructions instead, and so does this. The default rejects no pattern
+       *        REAL compiles: its largest program is well inside it.
+       * \return The budget, in bytes.
        */
       [[nodiscard]] std::int64_t max_mem() const noexcept
       {
@@ -355,7 +359,7 @@ namespace real::compat::re2 {
 
     private:
 
-      std::int64_t  max_mem_       {8 << 20};      //!< RE2's own default budget; unused by REAL.
+      std::int64_t  max_mem_       {8 << 20};      //!< RE2's default budget (see \ref max_mem).
       Encoding      encoding_      {EncodingUTF8}; //!< The pattern/text encoding.
       bool          posix_syntax_  {false};        //!< POSIX egrep syntax restriction.
       bool          longest_match_ {false};        //!< Leftmost-longest vs leftmost-first.
@@ -377,9 +381,10 @@ namespace real::compat::re2 {
      */
     enum class ErrorCode : std::uint8_t
     {
-      NoError,          //!< `ok() == true`.
-      ErrorSyntax,      //!< The pattern is malformed (rejected by RE2 too).
-      ErrorUnsupported, //!< Well-formed, but outside this layer's supported subset (see `error()`).
+      NoError,              //!< `ok() == true`.
+      ErrorSyntax,          //!< The pattern is malformed (rejected by RE2 too).
+      ErrorUnsupported,     //!< Well-formed, but outside this layer's supported subset (see `error()`).
+      ErrorPatternTooLarge, //!< The compiled pattern exceeds `max_mem`, or REAL's own program bound (RE2's text: "pattern too large - compile failed").
     };
 
     /*!
@@ -435,7 +440,8 @@ namespace real::compat::re2 {
         std::string wrapped {anchor_wrap(pattern)};
         try {
           const real::regex probe(wrapped, RE2::options_to_flags(options_));
-          (void) probe;
+          program_bytes_        += RE2::program_bytes(probe);
+          program_instructions_ += probe.raw_program().code.size();
         } catch (const real::regex_error& e) {
           if (error != nullptr) {
             *error = e.what();
@@ -449,11 +455,14 @@ namespace real::compat::re2 {
 
       /*!
        * \brief Compiles every buffered pattern into one `real::regex_set`.
-       * \return `true` on success. `false` should not happen if every `Add` already succeeded
-       *         (each pattern was already probe-compiled individually); kept for API fidelity.
+       * \return `true` on success; `false` when the members together exceed `max_mem`, as RE2's own
+       *         `Compile` fails (each member was already probe-compiled by `Add`).
        */
       bool Compile()
       {
+        if (!RE2::within_budget(program_bytes_, program_instructions_, options_.max_mem())) {
+          return false;
+        }
         try {
           set_.emplace(patterns_, RE2::options_to_flags(options_));
         } catch (const real::regex_error&) {
@@ -506,10 +515,12 @@ namespace real::compat::re2 {
         }
       }
 
-      Options                             options_;  //!< Options shared by every member.
-      Anchor                              anchor_;   //!< The anchor mode every member is matched with.
-      std::vector<std::string>            patterns_; //!< Buffered, already anchor-wrapped member patterns.
-      std::optional<real::regex_set>      set_;      //!< Engaged once `Compile` succeeds.
+      Options                             options_;                  //!< Options shared by every member.
+      Anchor                              anchor_;                   //!< The anchor mode every member is matched with.
+      std::vector<std::string>            patterns_;                 //!< Buffered, already anchor-wrapped member patterns.
+      std::optional<real::regex_set>      set_;                      //!< Engaged once `Compile` succeeds.
+      std::size_t                         program_bytes_        {0}; //!< The members' programs, in bytes (\ref RE2::program_bytes).
+      std::size_t                         program_instructions_ {0}; //!< The members' instructions.
     };
 
     /*!
@@ -817,6 +828,42 @@ namespace real::compat::re2 {
 
   private:
 
+    static constexpr std::string_view pattern_too_large {"pattern too large - compile failed"}; //!< RE2's text for `ErrorPatternTooLarge`.
+
+    /*!
+     * \brief The bytes of \p re's compiled program: every table it holds, as RE2 counts its program (the
+     *        pattern's own copy and the tables' spare capacity are not counted).
+     * \param[in] re A compiled pattern.
+     * \return Its size in bytes.
+     */
+    [[nodiscard]] static std::size_t program_bytes(const real::regex& re) noexcept
+    {
+      const real::detail::program_view p {re.raw_program()};
+      return sizeof(real::detail::dynamic_program) + p.code.size_bytes() + p.classes.size_bytes()
+             + p.names.size_bytes() + p.lookarounds.size_bytes() + p.cp_classes.size_bytes() + p.cp_ranges.size_bytes()
+             + p.prefix_code.size_bytes() + p.prefix_classes.size_bytes() + p.prefix_cp_classes.size_bytes()
+             + p.prefix_cp_ranges.size_bytes();
+    }
+
+    /*!
+     * \brief Whether a program of \p bytes and \p instructions fits \p max_mem as RE2 bounds it: two thirds
+     *        of the budget for the program, and 100 000 instructions when those two thirds are not positive.
+     * \param[in] bytes        The program's size (\ref program_bytes).
+     * \param[in] instructions Its instruction count.
+     * \param[in] max_mem      The budget (\ref Options::max_mem).
+     * \return True when it fits.
+     */
+    [[nodiscard]] static constexpr bool within_budget(std::size_t  bytes,
+                                                      std::size_t  instructions,
+                                                      std::int64_t max_mem) noexcept
+    {
+      const std::int64_t program_budget {(max_mem / 3 * 2) + (max_mem % 3 * 2 / 3)}; // max_mem * 2 / 3, no overflow
+      if (program_budget <= 0) {
+        return instructions <= 100000U;
+      }
+      return bytes <= static_cast<std::uint64_t>(program_budget);
+    }
+
     /*!
      * \brief Translates the `Options` fields this layer honors into `real::flags`.
      * \param[in] options The options to translate.
@@ -879,9 +926,20 @@ namespace real::compat::re2 {
       try {
         regex_.emplace(effective, options_to_flags(options));
       } catch (const real::regex_error& e) {
+        if (e.cause() == real::detail::program_too_large) {
+          error_      = std::string {pattern_too_large};
+          error_code_ = ErrorCode::ErrorPatternTooLarge;
+          return;
+        }
         error_      = e.what();
         error_code_ = e.kind() == real::error_kind::unsupported ? ErrorCode::ErrorUnsupported
                                                                  : ErrorCode::ErrorSyntax;
+        return;
+      }
+      if (!within_budget(program_bytes(*regex_), regex_->raw_program().code.size(), options.max_mem())) {
+        regex_.reset();
+        error_      = std::string {pattern_too_large};
+        error_code_ = ErrorCode::ErrorPatternTooLarge;
         return;
       }
       num_captures_ = static_cast<int>(regex_->group_count());

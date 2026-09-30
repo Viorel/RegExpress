@@ -7,6 +7,10 @@
 // out_slots are the enclosing function's parameters/locals; asc, width, in_class and extend_run are
 // consumed by the word-boundary tail that follows this splice in pike.hpp.
 
+#if !defined(REAL_CPCLASS_FRAGMENT_SITE)
+#  error "real/engine/cpclass_gcc_loop.hpp is a fragment of real/engine/pike.hpp, not a header: include <real/real.hpp>"
+#endif
+
 const std::uint8_t* const asc {cp_ascii_table(cp_index)};
 const auto                width = [&](std::size_t i) -> std::size_t {
                                     const auto lead {static_cast<std::uint8_t>(text[i])};

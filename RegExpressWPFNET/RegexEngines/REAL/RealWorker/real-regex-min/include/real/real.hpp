@@ -718,8 +718,10 @@ namespace real {
                          && !detail::inner_literal_route_disabled()
                          && !prog.hints.empty_match_possible && prog.slot_count == 2
                          && detail::pike_vm<typename Storage::state_type, true>::inner_literal_is_the_route(prog);
+      batch_fixed_     = batchable && prog.slot_count == 2 && !prog.hints.empty_match_possible
+                         && detail::pike_vm<typename Storage::state_type, true>::fixed_shape_is_the_route(prog);
       batch_eligible_  = batch_bytes_ || batch_cp_ascii_ || batch_single_cl_ || cp_class || batch_alt_
-                         || batch_lazy_dfa_ || batch_exact_lit_ || batch_inner_lit_;
+                         || batch_lazy_dfa_ || batch_exact_lit_ || batch_inner_lit_ || batch_fixed_;
     }
 
     /*!
@@ -893,6 +895,7 @@ namespace real {
     //! \brief Batch the inner-literal route (%pike.hpp's `fill_inner_literal_spans`) — the seventh, and the
     //!        second to need \ref batch_partial_ (its guards abandon).
     bool                                                                  batch_inner_lit_  {};
+    bool                                                                  batch_fixed_      {}; //!< Batch the fixed-shape route (\ref detail::pike_vm::fill_fixed_shape_spans).
     //! \brief That filler stopped WITHOUT proving the subject spent, so an empty buffer means "resume on
     //!        the per-match path", not "the walk is over". Never set by the other four fillers, whose
     //!        scans cover the whole subject and for which an empty buffer IS exhaustion.
@@ -982,6 +985,10 @@ namespace real {
       else if (batch_exact_lit_) {
         detail::prof::tick_route(detail::prof::route::exact_literal);
         batch_n_ = bvm.fill_exact_literal_spans(text_, pos_, batch_, batch_cap);
+      }
+      else if (batch_fixed_) {
+        detail::prof::tick_route(detail::prof::route::fixed_shape);
+        batch_n_ = bvm.fill_fixed_shape_spans(text_, pos_, batch_, batch_cap);
       }
       else if (batch_inner_lit_) {
         detail::prof::tick_route(detail::prof::route::inner_literal);
@@ -1201,6 +1208,19 @@ namespace real {
     match_semantics      sem_   {match_semantics::first}; //!< leftmost-first (default) or longest.
   };
 
+  namespace detail {
+    /*!
+     * \brief A C string as a subject; a null pointer reads as the empty subject, as the C API treats it, where
+     *        constructing a `std::string_view` from it is undefined.
+     * \param[in] text A NUL-terminated string, or null.
+     * \return The view.
+     */
+    [[nodiscard]] constexpr std::string_view c_string_subject(const char* text) noexcept
+    {
+      return text == nullptr ? std::string_view {} : std::string_view {text};
+    }
+  } // namespace detail
+
   /*!
    * \brief A compiled regular expression, parameterized on its storage policy.
    *
@@ -1366,7 +1386,7 @@ namespace real {
      */
     [[nodiscard]] constexpr result_type match(const char* text) const&
     {
-      return match(std::string_view(text));
+      return match(detail::c_string_subject(text));
     }
 
     /*!
@@ -1376,7 +1396,7 @@ namespace real {
      */
     [[nodiscard]] constexpr result_type fullmatch(const char* text) const&
     {
-      return fullmatch(std::string_view(text));
+      return fullmatch(detail::c_string_subject(text));
     }
 
     /*!
@@ -1386,7 +1406,7 @@ namespace real {
      */
     [[nodiscard]] constexpr result_type search(const char* text) const&
     {
-      return search(std::string_view(text));
+      return search(detail::c_string_subject(text));
     }
 
     // Region forms for string literals. Without these a bare literal is AMBIGUOUS with `pos`: a
@@ -1409,7 +1429,7 @@ namespace real {
                                               std::size_t pos,
                                               std::size_t endpos = npos) const&
     {
-      return match(std::string_view(text), pos, endpos);
+      return match(detail::c_string_subject(text), pos, endpos);
     }
 
     /*!
@@ -1423,7 +1443,7 @@ namespace real {
                                                   std::size_t pos,
                                                   std::size_t endpos = npos) const&
     {
-      return fullmatch(std::string_view(text), pos, endpos);
+      return fullmatch(detail::c_string_subject(text), pos, endpos);
     }
 
     /*!
@@ -1437,7 +1457,7 @@ namespace real {
                                                std::size_t pos,
                                                std::size_t endpos = npos) const&
     {
-      return search(std::string_view(text), pos, endpos);
+      return search(detail::c_string_subject(text), pos, endpos);
     }
 
     // Single attempts on a TEMPORARY regex. These stay callable, unlike find_iter and find_all: the
@@ -1536,7 +1556,7 @@ namespace real {
     [[nodiscard]]
     constexpr owning_result_type match(const char* text) const&&
     {
-      return std::move(*this).match(std::string_view(text));
+      return std::move(*this).match(detail::c_string_subject(text));
     }
 
     /*!
@@ -1547,7 +1567,7 @@ namespace real {
     [[nodiscard]]
     constexpr owning_result_type fullmatch(const char* text) const&&
     {
-      return std::move(*this).fullmatch(std::string_view(text));
+      return std::move(*this).fullmatch(detail::c_string_subject(text));
     }
 
     /*!
@@ -1558,7 +1578,7 @@ namespace real {
     [[nodiscard]]
     constexpr owning_result_type search(const char* text) const&&
     {
-      return std::move(*this).search(std::string_view(text));
+      return std::move(*this).search(detail::c_string_subject(text));
     }
 
     /*!
@@ -1573,7 +1593,7 @@ namespace real {
                                        std::size_t pos,
                                        std::size_t endpos = npos) const&&
     {
-      return std::move(*this).match(std::string_view(text), pos, endpos);
+      return std::move(*this).match(detail::c_string_subject(text), pos, endpos);
     }
 
     /*!
@@ -1588,7 +1608,7 @@ namespace real {
                                            std::size_t pos,
                                            std::size_t endpos = npos) const&&
     {
-      return std::move(*this).fullmatch(std::string_view(text), pos, endpos);
+      return std::move(*this).fullmatch(detail::c_string_subject(text), pos, endpos);
     }
 
     /*!
@@ -1603,7 +1623,7 @@ namespace real {
                                         std::size_t pos,
                                         std::size_t endpos = npos) const&&
     {
-      return std::move(*this).search(std::string_view(text), pos, endpos);
+      return std::move(*this).search(detail::c_string_subject(text), pos, endpos);
     }
 
     /*!
@@ -1632,7 +1652,7 @@ namespace real {
      */
     [[nodiscard]] constexpr basic_match_range<Storage> find_iter(const char* text) const&
     {
-      return find_iter(std::string_view(text));
+      return find_iter(detail::c_string_subject(text));
     }
 
     /*!
@@ -1646,7 +1666,7 @@ namespace real {
                                                                  std::size_t pos,
                                                                  std::size_t endpos = npos) const&
     {
-      return find_iter(std::string_view(text), pos, endpos);
+      return find_iter(detail::c_string_subject(text), pos, endpos);
     }
 
     /*!
@@ -1699,7 +1719,7 @@ namespace real {
                                                                          std::size_t pos    = 0,
                                                                          std::size_t endpos = npos) const&
     {
-      return find_iter_longest(std::string_view(text), pos, endpos);
+      return find_iter_longest(detail::c_string_subject(text), pos, endpos);
     }
 
     /*!
@@ -1822,7 +1842,7 @@ namespace real {
      */
     [[nodiscard]] constexpr std::vector<result_type> find_all(const char* text) const&
     {
-      return find_all(std::string_view(text));
+      return find_all(detail::c_string_subject(text));
     }
 
     /*!
@@ -1908,7 +1928,7 @@ namespace real {
     [[nodiscard]] constexpr std::vector<std::string_view> split(const char* text,
                                                                 std::size_t max_splits = 0) const
     {
-      return split(std::string_view(text), max_splits);
+      return split(detail::c_string_subject(text), max_splits);
     }
 
     // Searched text must outlive the result: reject temporary std::string.
@@ -2496,7 +2516,7 @@ namespace real {
      */
     [[nodiscard]] result_type search_longest(const char* text) const&
     {
-      return search_longest(std::string_view(text));
+      return search_longest(detail::c_string_subject(text));
     }
 
     /*!
@@ -2511,7 +2531,7 @@ namespace real {
      */
     [[nodiscard]] owning_result_type search_longest(const char* text) const&&
     {
-      return std::move(*this).search_longest(std::string_view(text));
+      return std::move(*this).search_longest(detail::c_string_subject(text));
     }
 
     /*!
@@ -2525,7 +2545,7 @@ namespace real {
                                              std::size_t pos,
                                              std::size_t endpos = npos) const&
     {
-      return search_longest(std::string_view(text), pos, endpos);
+      return search_longest(detail::c_string_subject(text), pos, endpos);
     }
 
     /*!
@@ -2539,7 +2559,7 @@ namespace real {
                                                     std::size_t pos,
                                                     std::size_t endpos = npos) const&&
     {
-      return std::move(*this).search_longest(std::string_view(text), pos, endpos);
+      return std::move(*this).search_longest(detail::c_string_subject(text), pos, endpos);
     }
 
     // Same predicate as every borrowing form above: the searched text must outlive the result, so a

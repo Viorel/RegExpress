@@ -26,6 +26,10 @@
 // rows the change CANNOT reach: a mechanism keeps its sign across toolchains, a budget artefact does
 // not. See \ref g_inlinebudget before citing a figure about this file.
 
+#if !defined(REAL_CPCLASS_FRAGMENT_SITE)
+#  error "real/engine/cpclass_gcc.hpp is a fragment of real/engine/pike.hpp, not a header: include <real/real.hpp>"
+#endif
+
 /*!
  * \brief Non-ASCII width for run_cp_class_loop (byte >= 0x80 only): decode + page-bitmap / range
  *        membership. Left to gcc's own inlining judgement, which it takes at every call site — see the

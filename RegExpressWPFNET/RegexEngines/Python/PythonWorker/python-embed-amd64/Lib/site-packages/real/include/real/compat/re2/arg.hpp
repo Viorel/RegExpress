@@ -130,7 +130,9 @@ namespace real::compat::re2 {
     }
 
     /*!
-     * \brief Parses into an integral type via `std::from_chars` (base 10, locale-free).
+     * \brief Parses into an integral type via `std::from_chars` (base 10, locale-free). One leading `+` is
+     *        accepted, as RE2's `strtol`-based parse accepts it; `std::from_chars` alone rejects it. A `-` on an
+     *        unsigned destination is rejected, as RE2 rejects it.
      * \tparam    T      An integral destination type.
      * \param[in]  text   The submatch's first byte.
      * \param[in]  length The submatch's length in bytes.
@@ -142,6 +144,13 @@ namespace real::compat::re2 {
                                std::size_t length,
                                T&          out)
     {
+      if (length != 0 && text[0] == '+') {
+        ++text; // a sign `std::from_chars` does not take
+        --length;
+        if (length != 0 && text[0] == '-') {
+          return false; // `+-12`: one sign only, as `strtol` reads it
+        }
+      }
       if (length == 0) {
         return false;
       }
@@ -153,9 +162,9 @@ namespace real::compat::re2 {
      * \brief Parses into a floating-point type via the `strto*` matching \p T, on a NUL-terminated buffer.
      *
      * Not `std::from_chars`: some standard libraries explicitly delete its floating-point overload, so
-     * the `strto*` family is the portable floor rather than a preference. They are locale-sensitive in
-     * general, but this call site only ever sees digits, `.`, `e`, `+` and `-` from a regex submatch, and
-     * on those every locale agrees with "C".
+     * the `strto*` family is the portable floor rather than a preference. They read the decimal separator
+     * of the C locale in force: under a locale whose separator is `,`, `"1,5"` parses and `"1.5"` does not.
+     * RE2 parses through the same functions and behaves the same way, which this keeps.
      *
      * The conversion is picked to match \p T rather than always going through `double`: parsing a `float`
      * with `strtod` would accept a value the destination cannot hold and silently narrow it to infinity,
