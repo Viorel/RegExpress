@@ -51,7 +51,6 @@ class SubengineZRegex( Options options ) : RegexSubengine
             text = text,
             options = new
             {
-                opt_level = Enum.GetName( options.opt_level ),
                 case_insensitive = options.case_insensitive,
                 multiline = options.multiline,
                 dot_all = options.dot_all,

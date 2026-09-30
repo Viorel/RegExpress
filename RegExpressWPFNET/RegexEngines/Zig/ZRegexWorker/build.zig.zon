@@ -64,8 +64,8 @@
 
     
         .zregex = .{
-            .url = "https://github.com/carlos-sweb/z-regex/archive/refs/tags/v0.4.0.tar.gz",
-            .hash = "zregex-0.4.0-c2ExGzvHQABHz1JR97B4-i5OzU1Adn_1rYciVAfo-lUI",
+            .url = "https://github.com/carlos-sweb/z-regex/archive/refs/tags/v0.7.0.tar.gz",
+            .hash = "zregex-0.7.0-c2ExG0GdrQD6P46YEx3nIlxd_QojOuTiAWEEasgatRb2",
         },
     
     },

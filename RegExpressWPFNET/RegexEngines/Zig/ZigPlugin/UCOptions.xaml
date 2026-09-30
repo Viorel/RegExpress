@@ -160,47 +160,13 @@
             </StackPanel>
 
             <StackPanel x:Name="pnlZRegex">
-
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 0">
-                    <Grid.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </Grid.LayoutTransform>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=opt_level}">opt__level:</Label>
-                    <ComboBox x:Name="opt_level" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding opt_level, FallbackValue='none'}" VerticalAlignment="Center" SelectionChanged="opt_level_SelectionChanged" >
-                        <ComboBoxItem Tag="none" IsSelected="True">
-                            <ui:TextAndNote Text="none" Note=""/>
-                        </ComboBoxItem>
-                        <ComboBoxItem Tag="basic">
-                            <ui:TextAndNote Text="basic" Note=""/>
-                        </ComboBoxItem>
-                        <ComboBoxItem Tag="aggressive">
-                            <ui:TextAndNote Text="aggressive" Note=""/>
-                        </ComboBoxItem>
-                    </ComboBox>
-                    <!--<TextBlock Grid.Column="2" Grid.Row="0" Text="– matching semantics" Style="{StaticResource note}" />-->
-
-                </Grid>
                 
                 <ui:CheckboxWithNote Prop="case_insensitive" Text="case_insensitive" Note="Case insensitive matching"/>
                 <ui:CheckboxWithNote Prop="multiline" Text="multiline" Note="^ and $ match line boundaries"/>
                 <ui:CheckboxWithNote Prop="dot_all" Text="dot_all" Note="Dot matches newline"/>
                 <ui:CheckboxWithNote Prop="sticky" Text="sticky" Note="Never scanning ahead"/>
                 <ui:CheckboxWithNote Prop="unicode" Text="unicode" Note="Stricter escape-sequence syntax validation"/>
-                <ui:CheckboxWithNote Prop="v" Text="v" Note="(unfinished)"/>
+                <ui:CheckboxWithNote Prop="v" Text="v" Note="Unicode Sets mode"/>
                 <ui:CheckboxWithNote Prop="possessive" Text="possessive" Note="Match greedily, never give back"/>
 
             </StackPanel>

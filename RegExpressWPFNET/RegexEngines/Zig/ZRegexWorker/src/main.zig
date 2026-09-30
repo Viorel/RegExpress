@@ -6,7 +6,6 @@ const json = std.json;
 const zregex = @import("zregex");
 
 const OPTIONS_TYPE = struct {
-    opt_level: ?[]const u8 = null,
     case_insensitive: bool = false,
     multiline: bool = false,
     dot_all: bool = false,
@@ -62,11 +61,6 @@ pub fn main1(init: std.process.Init) !void {
 
     var compile_options: zregex.CompileOptions = .{};
 
-    if (options.opt_level == null) {
-        compile_options.opt_level = zregex.OptLevel.none;
-    } else {
-        compile_options.opt_level = std.meta.stringToEnum(zregex.OptLevel, options.opt_level.?) orelse return Error.InvalidOptLevel;
-    }
     compile_options.case_insensitive = options.case_insensitive;
     compile_options.multiline = options.multiline;
     compile_options.dot_all = options.dot_all;
@@ -105,10 +99,7 @@ pub fn main1(init: std.process.Init) !void {
         try matches_arr.append(allocator, groups_arr.items);
     }
 
-    var output_object: OUTPUT = .{ .names = null, .matches = null };
-
-    output_object.names = names_arr.items;
-    output_object.matches = matches_arr.items;
+    const output_object: OUTPUT = .{ .names = names_arr.items, .matches = matches_arr.items };
 
     const json_options: std.json.Stringify.Options = .{ .whitespace = .minified, .escape_unicode = true };
     const output_json = try std.fmt.allocPrint(allocator, "{f}\n", .{std.json.fmt(output_object, json_options)});
