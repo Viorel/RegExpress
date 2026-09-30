@@ -76,7 +76,7 @@ fn main()
                 "OnigSyntaxPosixExtended" => &ferroni::regsyntax::OnigSyntaxPosixExtended,
                 "OnigSyntaxPython" => &ferroni::regsyntax::OnigSyntaxPython,
                 "OnigSyntaxRuby" => &ferroni::regsyntax::OnigSyntaxRuby,
-                _ => panic!("Invalid syntax")
+                _ => panic!("Invalid syntax: '{}'", options["syntax"].as_str().unwrap_or( ""))
             });
 
         let n = options["timeout"].as_u64();
