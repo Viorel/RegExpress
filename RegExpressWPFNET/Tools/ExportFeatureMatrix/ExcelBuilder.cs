@@ -1,22 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Windows;
-using DocumentFormat.OpenXml;
+﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using ExportFeatureMatrix.Fluency;
 using RegExpressLibrary;
-using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using System.Windows;
 
 namespace ExportFeatureMatrix;
 
-partial class ExporterToExcel
+internal partial class ExcelBuilder
 {
+    class EngineData
+    {
+        public required RegexEngine Engine { get; init; }
+        public required (uint index, FeatureMatrixVariant variant)[] Matrices { get; init; }
+    }
+
+
     WorksheetPart? WorksheetPart = null;
     SharedStringTable? SharedStringTable = null;
 
@@ -158,116 +160,54 @@ partial class ExporterToExcel
 
             // body
 
-            int total_features = FeatureMatrixDetails.AllFeatureMatrixDetails.SelectMany( d => d.Details ).Count( );
+            int total_features = ExportFeatureMatrix.Fluency.TreeData.Tree.Categories.SelectMany( c => c.Indicators ).Count( );
             int feature_index = 0;
 
-            foreach( FeatureMatrixGroup group in FeatureMatrixDetails.AllFeatureMatrixDetails )
+            foreach( CategoryObj category in ExportFeatureMatrix.Fluency.TreeData.Tree.Categories )
             {
-                // name of the group, on separate row
+                // category, on separate row
 
-                cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, group.Name );
+                cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, category.Name );
                 cell1.StyleIndex = STYLE_ID_FEATURE_GROUP;
                 cell2 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + total_variants + 1 ), row_index, "" );
                 MergeExistingCells( cell1, cell2 );
 
                 ++row_index;
 
-                foreach( FeatureMatrixDetails details in group.Details )
+                foreach( Indicator indicator in category.Indicators )
                 {
-                    progressOnFeatures?.Invoke( $"{details.ShortDesc} ({details.Desc})", feature_index, total_features );
+                    progressOnFeatures?.Invoke( $"{indicator.ShortDesc} ({indicator.Desc})", feature_index, total_features );
 
                     ++feature_index;
 
-                    cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, details.ShortDesc );
+                    cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN ), row_index, indicator.ShortDesc );
                     cell1.StyleIndex = STYLE_ID_FEATURE;
-                    cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + 1 ), row_index, details.Desc ?? "" );
+                    cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + 1 ), row_index, indicator.Desc ?? "" );
                     cell1.StyleIndex = STYLE_ID_DESCRIPTION;
 
                     for( int engine_index = 0; engine_index < engines_data.Length; engine_index++ )
                     {
                         EngineData engine_data = engines_data[engine_index];
 
-                        foreach( var m in engine_data.Matrices )
+                        foreach( (uint index, FeatureMatrixVariant variant) m in engine_data.Matrices )
                         {
                             progressOnEngines?.Invoke( $"{engine_data.Engine.Name} {m.variant.Name}", engine_index, engines_data.Length );
 
-                            bool flag_is_true = details.ValueGetter( m.variant.RegexEngine!, m.variant.FeatureMatrix );
+                            IndicatorData? result = indicator.Exec( verify, m.variant.RegexEngine!, m.variant.FeatureMatrix );
 
-                            if( !verify || m.variant.RegexEngine == null || details.Rules.Count == 0 )
+                            if( result != null && ( result.Colour != ColourEnum.None || !string.IsNullOrWhiteSpace( result.Text ) ) )
                             {
-                                cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, flag_is_true ? "+" : "" );
-                                if( flag_is_true ) cell1.StyleIndex = STYLE_ID_PLUS;
-                            }
-                            else
-                            {
-                                bool satisfied = false;
-
-                                foreach( var rule in details.Rules )
+                                cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, result.Text ?? "" );
+                                switch( result.Colour )
                                 {
-                                    if( rule.Pattern != null )
-                                    {
-                                        if( rule.TextToMatch != null )
-                                        {
-                                            try
-                                            {
-                                                m.variant.RegexEngine.SetIgnoreCase( rule.IgnoreCase );
-                                                m.variant.RegexEngine.SetIgnorePatternWhitespace( rule.IgnorePatternWhitespace );
-
-                                                RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, rule.Pattern, rule.TextToMatch );
-
-                                                if( rule.ExpectedResult == null )
-                                                {
-                                                    satisfied = matches.Count > 0;
-                                                }
-                                                else
-                                                {
-                                                    satisfied = matches.Count > 0 && matches.Matches.First( ).Value == rule.ExpectedResult;
-                                                }
-
-                                            }
-                                            catch( Exception )
-                                            {
-                                                // ignore
-                                            }
-                                        }
-                                        if( satisfied && rule.TextToNotMatch != null )
-                                        {
-                                            try
-                                            {
-                                                m.variant.RegexEngine.SetIgnoreCase( rule.IgnoreCase );
-                                                m.variant.RegexEngine.SetIgnorePatternWhitespace( rule.IgnorePatternWhitespace );
-
-                                                RegexMatches matches = m.variant.RegexEngine.GetMatches( ICancellable.NonCancellable, rule.Pattern, rule.TextToNotMatch );
-                                                satisfied = matches.Count == 0;
-                                            }
-                                            catch( Exception )
-                                            {
-                                                satisfied = true;
-                                                // ignore
-                                            }
-                                        }
-                                    }
-                                    else if( rule.DirectCheck != null )
-                                    {
-                                        m.variant.RegexEngine.SetIgnoreCase( rule.IgnoreCase );
-                                        m.variant.RegexEngine.SetIgnorePatternWhitespace( rule.IgnorePatternWhitespace );
-
-                                        satisfied = rule.DirectCheck( m.variant.RegexEngine, m.variant.FeatureMatrix );
-                                    }
-
-                                    if( satisfied ) break;
+                                case ColourEnum.None:
+                                    break;
+                                case ColourEnum.Green:
+                                    cell1.StyleIndex = STYLE_ID_PLUS;
+                                    break;
+                                default:
+                                    break;
                                 }
-
-                                if( flag_is_true )
-                                {
-                                    cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, satisfied ? "+" : "+???" );
-                                }
-                                else
-                                {
-                                    cell1 = SetCell( ColumnNameFromIndex( START_ENGINES_COLUMN + m.index ), row_index, !satisfied ? "" : "???" );
-                                }
-
-                                if( flag_is_true ) cell1.StyleIndex = STYLE_ID_PLUS;
                             }
                         }
                     }
@@ -714,11 +654,7 @@ partial class ExporterToExcel
     [GeneratedRegex( "(?i)([a-z]+)([1-9][0-9]*)", RegexOptions.None, "" )]
     private static partial Regex RegexSplitColumn( );
 
+
 }
 
 
-class EngineData
-{
-    public required RegexEngine Engine { get; init; }
-    public required (uint index, FeatureMatrixVariant variant)[] Matrices { get; init; }
-}

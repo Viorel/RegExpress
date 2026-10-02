@@ -1,18 +1,10 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Win32;
+using RegExpressLibrary;
+using System.Diagnostics;
 using System.IO;
 using System.Media;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using Microsoft.Win32;
-using RegExpressLibrary;
 using Path = System.IO.Path;
 
 namespace ExportFeatureMatrix
@@ -273,9 +265,8 @@ namespace ExportFeatureMatrix
                                     taskBarItemInfo.ProgressState = System.Windows.Shell.TaskbarItemProgressState.Indeterminate;
                                 } );
 
-                                ExporterToExcel exporter = new( );
-
-                                exporter.Export( output_file, plugins!, is_verify, ShowProgressOnFeatures, ShowProgressOnEngines );
+                                ExcelBuilder excel_builder = new( );
+                                excel_builder.Export( output_file, plugins!, is_verify, ShowProgressOnFeatures, ShowProgressOnEngines );
 
                                 // if the file existed, the time remains unchanged; set the current time
                                 //File.SetCreationTimeUtc( output_file, DateTime.UtcNow); 

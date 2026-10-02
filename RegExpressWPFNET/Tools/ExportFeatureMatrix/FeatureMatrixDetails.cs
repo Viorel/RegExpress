@@ -1,14 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using RegExpressLibrary;
+using RegExpressLibrary.SyntaxColouring;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DocumentFormat.OpenXml.Bibliography;
-using RegExpressLibrary;
-using RegExpressLibrary.Matches;
-using RegExpressLibrary.SyntaxColouring;
 
 namespace ExportFeatureMatrix;
 
