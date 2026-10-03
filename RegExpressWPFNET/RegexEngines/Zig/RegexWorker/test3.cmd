@@ -1,2 +1,2 @@
-echo BAD | ZigRegexWorker.exe
-echo { "pattern": "(BAD", "text": "abc", "flags": { } } | ZigRegexWorker.exe
+echo BAD | zig-out\bin\RegexWorker.exe
+echo { "pattern": "(BAD", "text": "abc", "flags": { } } | zig-out\bin\RegexWorker.exe

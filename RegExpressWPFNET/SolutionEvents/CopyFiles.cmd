@@ -262,7 +262,7 @@ rem -- Zig --
 
 set BasePath=%SolutionDir%\RegexEngines\Zig
 xcopy /D /R /Y "%BasePath%\ZigPlugin\bin\%Configuration%\%TargetDir%\ZigPlugin.dll" "%EnginesTargetPath%\Zig\*"
-xcopy /D /R /Y "%BasePath%\RegexWorker\ZigRegexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
+xcopy /D /R /Y "%BasePath%\RegexWorker\zig-out\bin\RegexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 xcopy /D /R /Y "%BasePath%\MvzrWorker\ZigMvzrWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 xcopy /D /R /Y "%BasePath%\PzreWorker\zig-out\bin\ZigPzreWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 xcopy /D /R /Y "%BasePath%\EziGexWorker\zig-out\bin\EziGexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"

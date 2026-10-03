@@ -77,13 +77,13 @@ The following engines are included:
 * [**QRegularExpression**](https://doc.qt.io/qt-6/qregularexpression.html) class (based on PCRE2) from Qt 6.9.3 (in C++).
 * [**compile-time-regular-expressions (CTRE)**](https://github.com/hanickadot/compile-time-regular-expressions)[^2] 3.11.0  (in C++).
 * **GRETA** 2.6.4 (in C++).
-* **Zig** 0.16.0:
-  * [_zig-regex_](https://github.com/zig-utils/zig-regex) 0.2.0, 
+* **Zig** 0.17.0:
+  * [_zig-regex_](https://github.com/zig-utils/zig-regex) 0.2.1, 
   * [_mvzr_](https://github.com/mnemnion/mvzr) 0.3.12,
   * _PZRE_ 0.2.3,
-  * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.7.0,
-  * [_zoptia0regex_](https://github.com/zoptia/zoptia0regex) 0.5.2,
-  * [_z-regex_](https://github.com/carlos-sweb/z-regex) 0.7.0.
+  * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.8.0,
+  * [_zoptia0regex_](https://github.com/zoptia/zoptia0regex) 0.6.0,
+  * [_z-regex_](https://github.com/carlos-sweb/z-regex) 0.8.0.
 * **Go** 1.27.1:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.5,
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.8.0,

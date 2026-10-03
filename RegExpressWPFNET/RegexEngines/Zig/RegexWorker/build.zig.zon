@@ -6,7 +6,7 @@
     //
     // It is redundant to include "zig" in this name because it is already
     // within the Zig package namespace.
-    .name = .EziGexWorker,
+    .name = .RegexWorker,
     // This is a [Semantic Version](https://semver.org/).
     // In a future version of Zig it will be used for package deduplication.
     .version = "0.0.0",
@@ -22,7 +22,7 @@
     // original project's identity. Thus it is recommended to leave the comment
     // on the following line intact, so that it shows up in code reviews that
     // modify the field.
-    .fingerprint = 0x36c966e864ad4f08, // Changing this has security and trust implications.
+    .fingerprint = 0x2ac9dd345442dd22, // Changing this has security and trust implications.
     // Tracks the earliest Zig version that the package considers to be a
     // supported use case.
     .minimum_zig_version = "0.17.0",
@@ -60,11 +60,12 @@
         //    .lazy = false,
         //},
 
-        .ezi_gex = .{
-            .url = "https://github.com/shaik-abdul-thouhid/ezi-gex/archive/refs/tags/v0.8.0.tar.gz",
-            .hash = "ezi_gex-0.8.0-fTQAPA9qKQA7mCilJYQta0IEhAr06iMvsCcSzImz6GRb",
+    
+        .regex = .{
+            .url = "https://github.com/zig-utils/zig-regex/archive/refs/tags/v0.2.1.tar.gz",
+            .hash = "zig_regex-0.2.1-omky0ZgdGQA1p3_ZDMPQ2PxIxqVzXZH8NhVTeHal08R3",
         },
-
+    
     },
     // Specifies the set of files and directories that are included in this package.
     // Only files and directories listed here are included in the `hash` that

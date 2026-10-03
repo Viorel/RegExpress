@@ -4,9 +4,9 @@ const std = @import("std");
 const Io = std.Io;
 const json = std.json;
 
-const Regex0 = @import("zig-regex/src/regex.zig");
-const RegexCommon = @import("zig-regex/src/common.zig");
+const Regex0 = @import("regex");
 const Regex = Regex0.Regex;
+const RegexCommon = Regex0.common;
 
 // NOTE. 'defer' is not always used; memory will be freed automatically at the end.
 

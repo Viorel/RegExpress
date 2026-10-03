@@ -22,10 +22,10 @@
     // original project's identity. Thus it is recommended to leave the comment
     // on the following line intact, so that it shows up in code reviews that
     // modify the field.
-    .fingerprint = 0x2584e80e0e6804a0, // Changing this has security and trust implications.
+    .fingerprint = 0x2584e80edf4ae549, // Changing this has security and trust implications.
     // Tracks the earliest Zig version that the package considers to be a
     // supported use case.
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.0",
     // This field is optional.
     // Each dependency must either provide a `url` and `hash`, or a `path`.
     // `zig build --fetch` can be used to fetch all dependencies of a package, recursively.
@@ -47,8 +47,6 @@
         //    // This field is the source of truth; packages do not come from a `url`; they
         //    // come from a `hash`. `url` is just one of many possible mirrors for how to
         //    // obtain a package matching this `hash`.
-        //    //
-        //    // Uses the [multihash](https://multiformats.io/multihash/) format.
         //    .hash = "...",
         //
         //    // When this is provided, the package is found in a directory relative to the
@@ -63,9 +61,10 @@
         //},
 
         .zoptia0regex = .{
-            .url = "https://github.com/zoptia/zoptia0regex/archive/refs/tags/v0.5.2.tar.gz",
-            .hash = "zoptia0regex-0.5.2-DssccV6YaAC6nfXqeYXrP09bbUwPPH5VOlbg06RtZl_J",
+            .url = "https://github.com/zoptia/zoptia0regex/archive/refs/tags/v0.6.0.tar.gz",
+            .hash = "zoptia0regex-0.6.0-DssccfPacwBkqgdanAGXeJ_hDMYFU8oIaF4hSgO4rMNg",
         },
+    
     },
     // Specifies the set of files and directories that are included in this package.
     // Only files and directories listed here are included in the `hash` that

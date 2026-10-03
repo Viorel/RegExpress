@@ -101,7 +101,7 @@ class Engine : RegexEngine
 
         Engine engine;
 
-        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex } };
+        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex, unicode = false } };
         variants.Add( new FeatureMatrixVariant( "zig-regex", engine ) );
 
         engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Mvzr } };

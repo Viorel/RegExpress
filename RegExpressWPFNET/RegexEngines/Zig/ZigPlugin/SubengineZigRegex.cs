@@ -138,7 +138,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
-        return RegexEngineCapabilityEnum.NoGroupIndex;
+        return RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag;
     }
 
     public override SyntaxOptions GetSyntaxOptions( )
@@ -147,7 +147,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
 
         return new SyntaxOptions
         {
-            XLevel = XLevelEnum.none,
+            XLevel = options.extended ? XLevelEnum.x : XLevelEnum.none,
             FeatureMatrix = fm,
         };
     }
@@ -268,7 +268,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_exe = Path.Combine( assembly_dir, @"ZigRegexWorker.bin" );
+        string worker_exe = Path.Combine( assembly_dir, @"RegexWorker.bin" );
 
         return worker_exe;
     }
@@ -286,14 +286,14 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             AlternationOnSeparateLines = false,
 
             InlineComments = false,
-            XModeComments = false,
+            XModeComments = true,
             InsideSets_XModeComments = false,
 
-            Flags = false,
-            ScopedFlags = false,
+            Flags = true,
+            ScopedFlags = true,
             CircumflexFlags = false,
             ScopedCircumflexFlags = false,
-            XFlag = false,
+            XFlag = true,
             XXFlag = false,
 
             Literal_QE = false,
@@ -303,48 +303,48 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             Esc_a = false,
             Esc_b = false,
             Esc_e = false,
-            Esc_f = false,
+            Esc_f = true,
             Esc_n = true,
             Esc_r = true,
             Esc_t = true,
-            Esc_v = false,
-            Esc_Octal = FeatureMatrix.OctalEnum.None,
+            Esc_v = true,
+            Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
             Esc_Octal0_1_3 = false,
             Esc_oBrace = false,
-            Esc_x2 = false,
+            Esc_x2 = true,
             Esc_xBrace = false,
-            Esc_u4 = false,
+            Esc_u4 = true,
             Esc_U8 = false,
             Esc_uBrace = false,
             Esc_UBrace = false,
-            Esc_c1 = false,
+            Esc_c1 = true,
             Esc_C1 = false,
             Esc_CMinus = false,
             Esc_NBrace = false,
-            GenericEscape = false,
+            GenericEscape = true,
 
             InsideSets_Esc_a = false,
-            InsideSets_Esc_b = false,
+            InsideSets_Esc_b = true,
             InsideSets_Esc_e = false,
-            InsideSets_Esc_f = false,
+            InsideSets_Esc_f = true,
             InsideSets_Esc_n = true,
             InsideSets_Esc_r = true,
             InsideSets_Esc_t = true,
-            InsideSets_Esc_v = false,
-            InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
+            InsideSets_Esc_v = true,
+            InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
             InsideSets_Esc_Octal0_1_3 = false,
             InsideSets_Esc_oBrace = false,
-            InsideSets_Esc_x2 = false,
+            InsideSets_Esc_x2 = true,
             InsideSets_Esc_xBrace = false,
-            InsideSets_Esc_u4 = false,
+            InsideSets_Esc_u4 = true,
             InsideSets_Esc_U8 = false,
-            InsideSets_Esc_uBrace = false,
+            InsideSets_Esc_uBrace = true,
             InsideSets_Esc_UBrace = false,
-            InsideSets_Esc_c1 = false,
+            InsideSets_Esc_c1 = true,
             InsideSets_Esc_C1 = false,
             InsideSets_Esc_CMinus = false,
             InsideSets_Esc_NBrace = false,
-            InsideSets_GenericEscape = false,
+            InsideSets_GenericEscape = true,
 
             Class_Dot = true,
             Class_Cbyte = false,
@@ -363,22 +363,22 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             Class_wW = true,
             Class_X = false,
             Class_pP = false,
-            Class_pPBrace = false,
+            Class_pPBrace = true,
 
-            InsideSets_Class_dD = false,
+            InsideSets_Class_dD = true,
             InsideSets_Class_hHhexa = false,
             InsideSets_Class_hHhorspace = false,
             InsideSets_Class_lL = false,
             InsideSets_Class_R = false,
-            InsideSets_Class_sS = false,
+            InsideSets_Class_sS = true,
             InsideSets_Class_sSx = false,
             InsideSets_Class_uU = false,
             InsideSets_Class_vV = false,
-            InsideSets_Class_wW = false,
+            InsideSets_Class_wW = true,
             InsideSets_Class_X = false,
             InsideSets_Class_pP = false,
-            InsideSets_Class_pPBrace = false,
-            InsideSets_Class_Name = false,
+            InsideSets_Class_pPBrace = true,
+            InsideSets_Class_Name = true,
             InsideSets_Equivalence = false,
             InsideSets_Collating = false,
 
@@ -422,7 +422,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             PositiveLookahead = true,
             NegativeLookahead = true,
             PositiveLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
-            NegativeLookbehind = FeatureMatrix.LookModeEnum.BoundedLength, // (has defects)
+            NegativeLookbehind = FeatureMatrix.LookModeEnum.AnyLength, // (has defects)
             NestedLookaround = true,
             AtomicGroup = false,
             BranchReset = false,
@@ -431,9 +431,9 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             AbsentOperator = false,
             AllowSpacesInGroups = false,
 
-            Backref_Num = FeatureMatrix.BackrefEnum.OneDigit,
+            Backref_Num = FeatureMatrix.BackrefEnum.Any,
             Backref_kApos = false,
-            Backref_kLtGt = false,
+            Backref_kLtGt = true,
             Backref_kBrace = false,
             Backref_kNum = false,
             Backref_kNegNum = false,
@@ -458,7 +458,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
-            Quantifier_LowAbbrev = true,
+            Quantifier_LowAbbrev = false,
             Quantifier_Lazy = true,
             Quantifier_Possessive = false,
 
@@ -482,14 +482,14 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             EmptySet = true,
             EmptySetAny = true,
 
-            Unicode_Class_Dot = false, // ('unicode' flag not yet implemented)
+            Unicode_Class_Dot = true, // ('unicode' flag not yet implemented)
             Unicode_Class_vW = false,
-            InsideSets_Unicode = false,
-            UnicodeCaseFolding = false,
+            InsideSets_Unicode = true,
+            UnicodeCaseFolding = true,
             KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
-            Σσς = false,
+            Σσς = true,
             ßSS = false,
         };
     }

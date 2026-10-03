@@ -13,7 +13,7 @@ static class TreeData
         Tree
 
             .Category( @"General" )
-#if false
+
                 .Flag( @"(…)", @"Grouping constructs", ( e, fm ) => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal )
                     .Test( @"(x)", "x", null, "x" )
                 .Flag( @"\(…\)", @"Grouping constructs", ( e, fm ) => fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed )
@@ -761,7 +761,7 @@ static class TreeData
                     .Test( ( e, fm ) => SimpleReDosChecker.CheckCatastrophicPattern( e, fm ) == SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Passed )
                 .Flag( "Reject ReDoS", "Give error on possible ReDoS", ( e, fm ) => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Reject )
                     .Test( ( e, fm ) => SimpleReDosChecker.CheckCatastrophicPattern( e, fm ) == SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Error )
-#endif
+
             .Category( @"Specific extensions" )
 
                 .Flag( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", ( e, fm ) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams )
