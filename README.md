@@ -86,7 +86,7 @@ The following engines are included:
   * [_z-regex_](https://github.com/carlos-sweb/z-regex) 0.8.0.
 * **Go** 1.27.1:
   * [_regexp_](https://pkg.go.dev/regexp) 1.26.5,
-  * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.8.0,
+  * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.8.2,
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
   * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.25,
   * [_onigmo go-regexp_](https://pkg.go.dev/github.com/go-regexp/engine) 0.1.3.

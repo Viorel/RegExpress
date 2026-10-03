@@ -2,4 +2,4 @@ module Regexp2Worker
 
 go 1.27.1
 
-require github.com/dlclark/regexp2/v2 v2.8.0
+require github.com/dlclark/regexp2/v2 v2.8.2
