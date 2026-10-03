@@ -62,6 +62,8 @@ fn main()
             .dot_matches_newline( options["dot_matches_newline"].as_bool().unwrap_or( false))
             .multi_line_anchors( options["multi_line_anchors"].as_bool().unwrap_or( false))
             .extended( options["extended"].as_bool().unwrap_or( false))
+            .reject_backtracking_risks(options["reject_backtracking_risks"].as_bool().unwrap_or( false))
+            .optimize_backtracking(options["optimize_backtracking"].as_bool().unwrap_or( false))
             .syntax( match options["syntax"].as_str().unwrap_or( "")
             {
                 "OnigSyntaxASIS" => &ferroni::regsyntax::OnigSyntaxASIS,

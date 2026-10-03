@@ -129,11 +129,13 @@ class Options
 
     public MatchModeEnum MatchMode { get; set; } = MatchModeEnum.Full;
 
-    // Ferrony
+    // Ferroni
 
     public OnigSyntaxTypeEnum OnigSyntaxType { get; set; } = OnigSyntaxTypeEnum.OnigSyntaxOniguruma; // (also 'RustyExpressions')
     public string timeout { get; set; }
     public string? match_stack_limit { get; set; }
+    public bool reject_backtracking_risks { get; set; }
+    public bool optimize_backtracking { get; set; }
 
     // RustyExpressions
 

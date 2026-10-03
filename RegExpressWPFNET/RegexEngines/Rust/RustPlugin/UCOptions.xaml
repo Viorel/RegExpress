@@ -314,6 +314,8 @@
                 <ui:CheckboxWithNote Prop="dot_matches_new_line" Text="dot_matches_newline" Note="`.` matches `\n`"/>
                 <ui:CheckboxWithNote Prop="multi_line" Text="multi_line_anchors" Note="`^`/`$` matching at every line boundary"/>
                 <ui:CheckboxWithNote Prop="ignore_whitespace" Text="extended" Note="whitespace and `#` comments ignored"/>
+                <ui:CheckboxWithNote Prop="reject_backtracking_risks" Text="reject_backtracking_risks" Note="fail to compile a pattern that the backtracking check flags"/>
+                <ui:CheckboxWithNote Prop="optimize_backtracking" Text="optimize_backtracking" Note="enable conservative AST rewrites for backtracking-prone patterns"/>
 
                 <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 0">
                     <Grid.LayoutTransform>
