@@ -1025,6 +1025,9 @@ namespace real {
 
     /*!
      * \brief Builds the DFA from compiled programs (the embedder path).
+     * \warning An advanced, unstable extension point: \ref detail::program_view is an implementation type, and
+     *          its members may change in any release. Build from regexes instead unless the programs come from
+     *          an embedder that already holds them.
      * \param[in] programs The patterns' programs, in priority order (see \ref regex::raw_program).
      * \param[in] mode     Munch (default) or which-matched unanchored multi-accept.
      * \throws real::dfa_error for a pattern that is not DFA-able (see \ref dfa_error).

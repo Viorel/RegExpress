@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <limits>
 #include <ranges>
 #include <bit>
 #include <cstddef>
@@ -714,6 +715,221 @@ namespace real::detail {
     }
   }
 
+  //! Branches from which a literal alternation is factored into a trie in the byte program: below it the
+  //! flat alternation's states are small, and its byte program stays the one every smaller pattern has.
+  inline constexpr std::size_t alternation_trie_min_branches {64};
+
+  /*!
+   * \brief Test seam: build the byte program's literal alternations flat, so a differential can hold the trie
+   *        against them in one binary. Not for production use.
+   * \return A reference to the process-wide flag.
+   */
+  inline bool& alternation_trie_disabled()
+  {
+    static bool disabled {false};
+    return disabled;
+  }
+
+  /*!
+   * \brief A literal alternation (every branch a run of `byte` ops converging on one exit) factored into a trie
+   *        that keeps leftmost-first priority.
+   *
+   * A flat alternation of N words puts all N first bytes in the start state and all N threads in every state
+   * a search seeds, so a state of a 14 500-word alternation held 15 000 pcs (60 KB) and its cache filled in a
+   * few hundred states. Factored, a state holds one pc per live trie node.
+   *
+   * Priority is kept by chunks: a node's items are grouped into chunks, a branch ending at a node closes the
+   * node's current chunk with an END item (a jump to the exit), and a later branch merges only into the last
+   * chunk. Two items of one chunk are on distinct bytes, so no text reaches both; items of different chunks
+   * keep the branches' declared order.
+   */
+  struct literal_alt_trie
+  {
+    /*!
+     * \brief One alternative of a node: a byte leading to a child, or the END of a branch.
+     */
+    struct item
+    {
+      std::int16_t byte  {-1}; //!< The byte, or -1 for END (the jump to the exit).
+      std::int32_t child {-1}; //!< The child node of a byte item.
+    };
+
+    /*!
+     * \brief One trie node: its alternatives in priority order.
+     */
+    struct node
+    {
+      std::vector<item> items;           //!< Alternatives, highest priority first.
+      std::uint32_t     chunk_begin {0}; //!< First item a later branch may merge into.
+    };
+
+    std::vector<node>         nodes {node {}}; //!< The trie; node 0 is the root.
+    std::vector<std::int32_t> order;           //!< Emission order, root first.
+    std::vector<std::int32_t> node_pc;         //!< Each node's pc, relative to the trie's first.
+    std::vector<bool>         falls;           //!< The node's last item falls through into its child (no jump).
+    std::size_t               size {0};        //!< Instructions the trie emits.
+
+    /*!
+     * \brief Adds the branch whose bytes are `code[b, e)`.
+     * \param[in] code The program.
+     * \param[in] b    The branch's first `byte`.
+     * \param[in] e    One past its last.
+     */
+    constexpr void insert(std::span<const instr> code,
+                          std::size_t            b,
+                          std::size_t            e)
+    {
+      std::size_t at {0};
+      for (std::size_t pc {b}; pc < e; ++pc) {
+        const auto   byte  {static_cast<std::int16_t>(code[pc].arg8)};
+        std::int32_t child {-1};
+        for (std::size_t i {nodes[at].chunk_begin}; i < nodes[at].items.size(); ++i) {
+          if (nodes[at].items[i].byte == byte) {
+            child = nodes[at].items[i].child;
+            break;
+          }
+        }
+        if (child < 0) {
+          child                            = static_cast<std::int32_t>(nodes.size());
+          nodes[at].items.push_back({.byte = byte, .child = child});
+          nodes.emplace_back();
+        }
+        at = static_cast<std::size_t>(child);
+      }
+      node& end {nodes[at]};
+      if (end.items.empty() || end.items.back().byte >= 0) { // a second END in a row is the same exit
+        end.items.push_back({.byte = -1, .child = -1});
+      }
+      end.chunk_begin = static_cast<std::uint32_t>(end.items.size());
+    }
+
+    /*!
+     * \brief Orders the nodes and sizes the emission: preorder with each node's last child right after it, so a
+     *        chain of one-child nodes is a straight run of `byte` ops.
+     */
+    constexpr void layout()
+    {
+      std::vector<std::int32_t> stack {0};
+      while (!stack.empty()) {
+        const std::int32_t id {stack.back()};
+        stack.pop_back();
+        order.push_back(id);
+        for (const item& it : nodes[static_cast<std::size_t>(id)].items) { // first to last: the last child pops next
+          if (it.byte >= 0) {
+            stack.push_back(it.child);
+          }
+        }
+      }
+      node_pc.assign(nodes.size(), 0);
+      falls.assign(nodes.size(), false);
+      std::size_t off {0};
+      for (std::size_t k {0}; k < order.size(); ++k) {
+        const auto  id {static_cast<std::size_t>(order[k])};
+        const node& nd {nodes[id]};
+        node_pc[id] = static_cast<std::int32_t>(off);
+        std::size_t sz {nd.items.size() - 1U}; // a split before every item but the last
+        for (const item& it : nd.items) {
+          sz += it.byte >= 0 ? 2U : 1U;        // byte + jump, or the END jump
+        }
+        if (nd.items.back().byte >= 0 && k + 1U < order.size() && order[k + 1U] == nd.items.back().child) {
+          falls[id] = true;
+          --sz;
+        }
+        off += sz;
+      }
+      size = off;
+    }
+
+    /*!
+     * \brief Emits the trie at the end of \p bp.
+     * \param[in,out] bp    The byte program.
+     * \param[in]     after The exit's pc in \p bp.
+     */
+    constexpr void emit(byte_program& bp,
+                        std::int32_t  after) const
+    {
+      const auto base {static_cast<std::int32_t>(bp.code.size())};
+      for (const std::int32_t id : order) {
+        const node&       nd {nodes[static_cast<std::size_t>(id)]};
+        const std::size_t k  {nd.items.size()};
+        for (std::size_t j {0}; j < k; ++j) {
+          const item&        it   {nd.items[j]};
+          const auto         here {static_cast<std::int32_t>(bp.code.size())};
+          const std::int32_t body {it.byte >= 0 ? 2 : 1};
+          if (j + 1U < k) {
+            bp.code.push_back({.op = opcode::split, .primary_target = here + 1, .secondary_target = here + 1 + body});
+          }
+          if (it.byte >= 0) {
+            bp.code.push_back({.op = opcode::byte, .arg8 = static_cast<std::uint8_t>(it.byte)});
+            if (j + 1U != k || !falls[static_cast<std::size_t>(id)]) {
+              bp.code.push_back({.op = opcode::jump, .primary_target = base + node_pc[static_cast<std::size_t>(it.child)]});
+            }
+          }
+          else {
+            bp.code.push_back({.op = opcode::jump, .primary_target = after});
+          }
+        }
+      }
+    }
+  };
+
+  /*!
+   * \brief The literal alternation starting at a `split`: its exit and each branch's bytes.
+   */
+  struct literal_alt_chain
+  {
+    std::size_t                                      exit {0}; //!< The pc every branch reaches.
+    std::vector<std::pair<std::size_t, std::size_t>> words;    //!< Each branch's `[first byte, one past last)`.
+  };
+
+  /*!
+   * \brief Whether `[pc, exit)` is a chain of `split`s whose branches are runs of `byte` ops jumping forward to
+   *        one exit, the last branch falling through to it.
+   * \param[in]  code The program.
+   * \param[in]  pc   The candidate first `split`.
+   * \param[out] out  The chain, when it is one.
+   * \return True when it is.
+   */
+  constexpr bool detect_literal_alt(std::span<const instr> code,
+                                    std::size_t            pc,
+                                    literal_alt_chain&     out)
+  {
+    out.words.clear();
+    if (code[pc].op != opcode::split || code[pc].primary_target != static_cast<std::int32_t>(pc) + 1) {
+      return false;
+    }
+    std::size_t  s    {pc};
+    std::int64_t exit {-1};
+    while (true) {
+      const instr& in {code[s]};
+      if (in.op == opcode::split && in.primary_target == static_cast<std::int32_t>(s) + 1) {
+        std::size_t j {s + 1U};
+        while (j < code.size() && code[j].op == opcode::byte) {
+          ++j;
+        }
+        if (j < code.size() && code[j].op == opcode::jump && (exit < 0 || code[j].primary_target == exit)
+            && in.secondary_target == static_cast<std::int32_t>(j) + 1 && code[j].primary_target > static_cast<std::int32_t>(j)) {
+          exit = code[j].primary_target;
+          out.words.emplace_back(s + 1U, j);
+          s = j + 1U;
+          continue;
+        }
+      }
+      break; // `s` opens the last branch: bytes up to the exit
+    }
+    if (exit < 0 || out.words.empty() || static_cast<std::size_t>(exit) < s) {
+      return false;
+    }
+    for (std::size_t j {s}; j < static_cast<std::size_t>(exit); ++j) {
+      if (code[j].op != opcode::byte) {
+        return false;
+      }
+    }
+    out.words.emplace_back(s, static_cast<std::size_t>(exit));
+    out.exit = static_cast<std::size_t>(exit);
+    return true;
+  }
+
   //! Cap on the expanded byte-program's instruction count (the running `cur` total below, checked as it
   //! grows). Each `klass_cp` occurrence gets its OWN freshly-built UTF-8 trie here (unshared even when many
   //! occurrences reference the identical class — e.g. every copy of a `{k}`-repeated `\w`), so a large
@@ -844,8 +1060,38 @@ namespace real::detail {
     std::vector<bool>             class_built(prog.cp_classes.size(), false);
     std::vector<const utf8_trie*> tries(n, nullptr);              // the trie for each klass_cp pc
     std::size_t                   cur {0};
+    // Literal alternations of many branches, factored (see literal_alt_trie). Only at run time: the
+    // compile-time storage keeps the flat program it has always built.
+    std::vector<literal_alt_trie> alt_tries;
+    std::vector<std::size_t>      alt_exit;
+    std::vector<std::int32_t>     alt_at;
+    bool                          alt_on {false}; // assigned, not initialized: a `const bool` initializer is itself constant-evaluated
+    if (!std::is_constant_evaluated()) {
+      alt_on = !alternation_trie_disabled();
+    }
+    if (alt_on) {
+      alt_at.assign(n, -1);
+    }
+    literal_alt_chain chain;
     for (std::size_t pc = 0; pc < n; ++pc) {
       map[pc] = static_cast<std::int32_t>(cur);
+      if (alt_on && prog.code[pc].op == opcode::split && detect_literal_alt(prog.code, pc, chain)
+          && chain.words.size() >= alternation_trie_min_branches) {
+        literal_alt_trie trie;
+        for (const auto& [b, e] : chain.words) {
+          trie.insert(prog.code, b, e);
+        }
+        trie.layout();
+        alt_at[pc] = static_cast<std::int32_t>(alt_tries.size());
+        alt_exit.push_back(chain.exit);
+        for (std::size_t t {pc + 1U}; t < chain.exit; ++t) {
+          map[t] = static_cast<std::int32_t>(cur);
+        }
+        cur += trie.size;
+        alt_tries.push_back(std::move(trie));
+        pc = chain.exit - 1U;
+        continue;
+      }
       if (prog.code[pc].op == opcode::klass_cp) {
         const std::size_t ci {static_cast<std::size_t>(prog.code[pc].arg16)};
         if (!class_built[ci]) {
@@ -876,6 +1122,12 @@ namespace real::detail {
                       }};
     for (std::size_t pc = 0; pc < n; ++pc) {
       const instr& in {prog.code[pc]};
+      if (alt_on && alt_at[pc] >= 0) {
+        const auto k {static_cast<std::size_t>(alt_at[pc])};
+        alt_tries[k].emit(bp, map[alt_exit[k]]);
+        pc = alt_exit[k] - 1U;
+        continue;
+      }
       if (in.op == opcode::klass_cp) {
         emit_utf8_trie(bp, *tries[pc], map[pc + 4], range_intern);
         pc += 3;
@@ -900,6 +1152,18 @@ namespace real::detail {
     std::array<std::uint8_t, 256> of    {};    //!< byte -> class index.
     std::uint16_t                 count {0};   //!< number of distinct classes.
   };
+
+  /*!
+   * \brief Whether \p in is an ECMAScript line assertion, whose line ends at `\r` as well as `\n`.
+   * \param[in] in An instruction.
+   * \return True for `line_start_cr` / `line_end_cr`.
+   */
+  [[nodiscard]] constexpr bool is_cr_line_assert(const instr& in)
+  {
+    return in.op == opcode::assert_position
+           && (in.arg8 == static_cast<std::uint8_t>(assert_kind::line_start_cr)
+               || in.arg8 == static_cast<std::uint8_t>(assert_kind::line_end_cr));
+  }
 
   /*!
    * \brief Partition 0..255 by the program's consuming predicates (every `klass` test, every `byte`
@@ -983,6 +1247,9 @@ namespace real::detail {
     if (std::ranges::any_of(code, [](const instr& in) { return in.op == opcode::assert_position; })) {
       char_class newline;
       newline.set(static_cast<std::uint8_t>('\n'));
+      if (std::ranges::any_of(code, is_cr_line_assert)) {
+        newline.set(static_cast<std::uint8_t>('\r')); // an ECMAScript line ends at either
+      }
       char_class word;
       word.set_range(static_cast<std::uint8_t>('a'), static_cast<std::uint8_t>('z'));
       word.set_range(static_cast<std::uint8_t>('A'), static_cast<std::uint8_t>('Z'));
@@ -1173,10 +1440,58 @@ namespace real::detail {
       case assert_kind::text_end:
       case assert_kind::text_end_or_final_newline:
       case assert_kind::line_start:
-      case assert_kind::line_end:          return false;
+      case assert_kind::line_end:
+      case assert_kind::line_start_cr:
+      case assert_kind::line_end_cr:       return false;
     }
     return false;
   }
+
+  /*!
+   * \brief The pcs one closure computation has entered, by generation: starting a computation bumps the
+   *        generation instead of clearing a mark per pc, so a cache miss costs its closure, not the program's
+   *        size. A byte program of a large alternation runs to hundreds of thousands of instructions.
+   */
+  struct visit_marks
+  {
+    std::vector<std::uint32_t> mark;     //!< Per pc: the generation that last entered it.
+    std::uint32_t              gen {0};  //!< The current computation's generation.
+
+    /*!
+     * \brief Starts a computation over \p size pcs: none is entered yet.
+     * \param[in] size The program's size.
+     */
+    constexpr void begin(std::size_t size)
+    {
+      if (mark.size() != size) {
+        mark.assign(size, 0U);
+        gen = 0;
+      }
+      if (++gen == 0U) { // wrapped: the marks of 2^32 computations ago would read as entered
+        std::ranges::fill(mark, 0U);
+        gen = 1;
+      }
+    }
+
+    /*!
+     * \brief Whether \p pc was entered in this computation.
+     * \param[in] pc The pc.
+     * \return True when it was.
+     */
+    [[nodiscard]] constexpr bool test(std::int32_t pc) const
+    {
+      return mark[static_cast<std::size_t>(pc)] == gen;
+    }
+
+    /*!
+     * \brief Marks \p pc entered in this computation.
+     * \param[in] pc The pc.
+     */
+    constexpr void set(std::int32_t pc)
+    {
+      mark[static_cast<std::size_t>(pc)] = gen;
+    }
+  };
 
   /*!
    * \brief A lazy priority-preserving forward DFA over a Pike program (the kFirstMatch forward pass).
@@ -1205,19 +1520,23 @@ namespace real::detail {
     static constexpr std::size_t   quit_pos       {npos - 1U};   //!< What forward_end() gives when its scan quit (see \ref anchored_result::quit).
     static constexpr std::uint32_t no_match_idx   {0xFFFFFFFFU}; //!< A state whose ordered set holds no accept.
     static constexpr std::uint32_t pending_idx    {0xFFFFFFFEU}; //!< A state whose accept waits on a pending assertion: only resolve() decides it.
-    static constexpr std::size_t   state_budget   {4096};        //!< Cached states before a flush (the memory cap).
-    static constexpr std::size_t   thrash_flushes {2};           //!< Flushes within one scan that trip \ref thrashing.
+    static constexpr std::size_t   state_budget   {65536};       //!< Cached states before a flush; the memory cap is \ref lazy_dfa_byte_budget.
+    static constexpr std::size_t   thrash_flushes {2};           //!< Flushes within one scan that trip \ref thrashing, where the scan may not quit.
+    //! Bytes read per cached state below which a DFA that may quit refuses its next flush and quits instead: a cache
+    //! that fills again before it has read ten bytes per state costs more to rebuild than the VM costs to scan.
+    static constexpr std::size_t   quit_bytes_per_state {10};
 
     /*!
      * \brief Cache-behaviour counters, for the policy tests and later tuning.
      */
     struct counters
     {
-      std::size_t hits         {0};   //!< Transitions served from the cached row.
-      std::size_t misses       {0};   //!< Transitions that had to run subset construction.
-      std::size_t flushes      {0};   //!< Cache flushes over this object's lifetime.
-      std::size_t scan_flushes {0};   //!< flushes in the current scan (reset by \ref begin_scan).
-      std::size_t byte_flushes {0};   //!< Of \ref flushes, those the byte budget called, the state budget not reached.
+      std::size_t hits            {0}; //!< Transitions served from the cached row.
+      std::size_t misses          {0}; //!< Transitions that had to run subset construction.
+      std::size_t flushes         {0}; //!< Cache flushes over this object's lifetime.
+      std::size_t scan_flushes    {0}; //!< flushes in the current scan (reset by \ref begin_scan).
+      std::size_t byte_flushes    {0}; //!< Of \ref flushes, those the byte budget called, the state budget not reached.
+      std::size_t refused_flushes {0}; //!< Flushes refused for want of progress: the scan quit instead.
     };
 
     /*!
@@ -1266,8 +1585,9 @@ namespace real::detail {
       if (look_) {
         // The alphabet splits on newline, ASCII word bytes and non-ASCII bytes when the program carries
         // assertions (compute_lazy_alphabet), so any byte of a class tells that class's properties.
+        const bool cr {std::ranges::any_of(code, is_cr_line_assert)};
         for (unsigned b {0}; b < 256U; ++b) {
-          class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? ctx_nonascii : ctx_of(static_cast<std::uint8_t>(b));
+          class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? ctx_nonascii : ctx_of(static_cast<std::uint8_t>(b), cr);
         }
       }
       flush();                 // seeds the dead state (0) and the start state (1)
@@ -1311,7 +1631,8 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Whether this scan crossed \ref thrash_flushes flushes — the cache is not paying for it.
+     * \brief Whether this scan stopped paying: its cache filled again before reading \ref quit_bytes_per_state
+     *        bytes per state (or, for a DFA that may not quit, crossed \ref thrash_flushes flushes).
      * \return True once the caller should abandon the DFA and finish the search on the Pike VM.
      */
     [[nodiscard]] bool thrashing() const
@@ -1372,6 +1693,7 @@ namespace real::detail {
       std::size_t         best_end {npos};
       bool                matched  {false};
       std::size_t         pos      {start};
+      scan_origin_ = start;
       while (true) {
         // Both tables carry the accept word, so the walk before a match reads one row per byte.
         const std::uint32_t midx {(matched ? trans_ : trans_seeded_)[state + accept_col]};
@@ -1394,10 +1716,12 @@ namespace real::detail {
           state = cached;
         }
         else {
-          state = matched ? step(state, byte) : step_seeded(state, byte);
+          miss_pos_ = pos;
+          state     = matched ? step(state, byte) : step_seeded(state, byte);
         }
         ++pos;
       }
+      window_bytes_ += pos - scan_origin_;
       return (thrashing_ && may_quit_) ? quit_pos : best_end;
     }
 
@@ -1464,6 +1788,7 @@ namespace real::detail {
       std::uint32_t state    {start_state_};
       std::size_t   best_end {npos};
       std::size_t   pos      {start};
+      scan_origin_ = start;
       while (true) {
         const std::uint32_t midx {trans_[state + accept_col]};
         if (midx != no_match_idx) {
@@ -1480,9 +1805,16 @@ namespace real::detail {
         const std::uint8_t  byte  {static_cast<std::uint8_t>(text[pos])};
         const std::uint8_t  cls   {alpha_.of[byte]};
         const std::uint32_t trans {trans_[state + trans_col + cls]};  // the state id is its row's offset: no multiply on the chain
-        state = (trans != no_transition) ? trans : step(state, byte); // anchored: never re-seed -- a match starts at `start` or not at all
+        if (trans != no_transition) {
+          state = trans;
+        }
+        else {
+          miss_pos_ = pos;
+          state     = step(state, byte); // anchored: never re-seed -- a match starts at `start` or not at all
+        }
         ++pos;
       }
+      window_bytes_ += pos - scan_origin_;
       if (thrashing_ && may_quit_) {
         return {.end = npos, .scanned_to = pos, .quit = true};
       }
@@ -1530,16 +1862,16 @@ namespace real::detail {
       }
       ++stats_.misses;
       std::vector<std::int32_t> next;
-      std::vector<char>         seen(code_.size(), 0);
-      const std::uint8_t        ctx {class_ctx_[cls]};
+      visit_marks&              seen {begin_visit()};
+      const std::uint8_t        ctx  {class_ctx_[cls]};
       for (const std::int32_t pc : state_pcs_[state / stride_]) {
         if (consumes(pc, byte)) {
           close_any(pc + consumed_width(pc), next, seen, ctx);
         }
       }
-      const std::size_t   flushes_before {stats_.flushes};
+      const std::size_t   flushes_before {epoch_};
       const std::uint32_t result         {intern_any(std::move(next), ctx)}; // may grow/flush the tables — do not hold a reference
-      if (stats_.flushes == flushes_before) {
+      if (epoch_ == flushes_before) {
         trans_[state + trans_col + cls] = result;   // no flush: `state` is still valid, so cache the edge
       }
       // On a flush mid-step the caller's `state` id is stale; `result` is a fresh post-flush id, and the
@@ -1549,6 +1881,16 @@ namespace real::detail {
     }
 
   private:
+
+    /*!
+     * \brief Starts a closure computation on this DFA's marks.
+     * \return The marks, none entered.
+     */
+    constexpr visit_marks& begin_visit()
+    {
+      marks_.begin(code_.size());
+      return marks_;
+    }
 
     /*!
      * \brief Like \ref step, but re-seeds: the unanchored-search variant appends pc 0's closure at the
@@ -1568,19 +1910,19 @@ namespace real::detail {
         return cached;
       }
       ++stats_.misses;
-      const std::vector<std::int32_t> pcs {state_pcs_[state / stride_]}; // copy: intern() below may realloc state_pcs_
+      const std::vector<std::int32_t> pcs  {state_pcs_[state / stride_]}; // copy: intern() below may realloc state_pcs_
       std::vector<std::int32_t>       next;
-      std::vector<char>               seen(code_.size(), 0);
-      const std::uint8_t              ctx {class_ctx_[cls]};
+      visit_marks&                    seen {begin_visit()};
+      const std::uint8_t              ctx  {class_ctx_[cls]};
       for (const std::int32_t pc : pcs) {
         if (consumes(pc, byte)) {
           close_any(pc + consumed_width(pc), next, seen, ctx);
         }
       }
       close_any(0, next, seen, ctx); // re-seed at the lowest priority (deduped against the advanced threads)
-      const std::size_t   flushes_before {stats_.flushes};
+      const std::size_t   flushes_before {epoch_};
       const std::uint32_t result         {intern_any(std::move(next), ctx)};
-      if (stats_.flushes == flushes_before) {
+      if (epoch_ == flushes_before) {
         trans_seeded_[state + trans_col + cls] = result;
       }
       return (thrashing_ && may_quit_) ? dead_state : result; // see step()
@@ -1621,9 +1963,9 @@ namespace real::detail {
       if (memo != no_transition) {
         return memo;
       }
-      const std::size_t   flushes_before {stats_.flushes};
+      const std::size_t   flushes_before {epoch_};
       const std::uint32_t result         {cut(state, trans_[state + accept_col])}; // intern may flush/realloc
-      if (stats_.flushes == flushes_before) {
+      if (epoch_ == flushes_before) {
         trans_[state + cut_col] = result; // no flush: `state` is still valid, memoise the edge
       }
       return (thrashing_ && may_quit_) ? dead_state : result; // see step()
@@ -1755,13 +2097,16 @@ namespace real::detail {
 
     /*!
      * \brief The context a position has after \p b.
-     * \param[in] b The byte before the position.
+     * \param[in] b  The byte before the position.
+     * \param[in] cr The program's line assertions are ECMAScript's, which end a line at `\r` too.
      * \return Its context bits.
      */
-    [[nodiscard]] static constexpr std::uint8_t ctx_of(std::uint8_t b)
+    [[nodiscard]] static constexpr std::uint8_t ctx_of(std::uint8_t b,
+                                                       bool         cr)
     {
       const bool word {(b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'};
-      return static_cast<std::uint8_t>((b == '\n' ? ctx_newline : 0U) | (word ? ctx_word : 0U));
+      const bool nl   {b == '\n' || (cr && b == '\r')};
+      return static_cast<std::uint8_t>((nl ? ctx_newline : 0U) | (word ? ctx_word : 0U));
     }
 
     /*!
@@ -1791,10 +2136,21 @@ namespace real::detail {
     [[nodiscard]] static constexpr bool holds_behind(assert_kind  kind,
                                                      std::uint8_t ctx)
     {
-      if (kind == assert_kind::text_start) {
-        return (ctx & ctx_start) != 0U;
+      // Every kind named, so a new one is a compile error here (-Wswitch) rather than a silent answer.
+      switch (kind) {
+        case assert_kind::text_start:    return (ctx & ctx_start) != 0U;
+        case assert_kind::line_start:
+        case assert_kind::line_start_cr: return (ctx & ctx_start) != 0U || is_newline_ctx(ctx); // the context says which bytes end a line
+        case assert_kind::text_end:
+        case assert_kind::text_end_or_final_newline:
+        case assert_kind::line_end:
+        case assert_kind::line_end_cr:
+        case assert_kind::word_boundary:
+        case assert_kind::not_word_boundary:
+        case assert_kind::word_start:
+        case assert_kind::word_end:      return false; // not decided by the left context alone
       }
-      return (ctx & ctx_start) != 0U || is_newline_ctx(ctx); // line_start
+      return false;
     }
 
     /*!
@@ -1821,13 +2177,15 @@ namespace real::detail {
       switch (kind) {
         case assert_kind::text_end:                  return end;
         case assert_kind::text_end_or_final_newline: return end || final_nl;
-        case assert_kind::line_end:                  return end || next_nl;
+        case assert_kind::line_end:
+        case assert_kind::line_end_cr:               return end || next_nl;
         case assert_kind::word_boundary:             return prev_word != next_word;
         case assert_kind::not_word_boundary:         return prev_word == next_word;
         case assert_kind::word_start:                return !prev_word && next_word;
         case assert_kind::word_end:                  return prev_word && !next_word;
         case assert_kind::text_start:
-        case assert_kind::line_start:                return holds_behind(kind, ctx);
+        case assert_kind::line_start:
+        case assert_kind::line_start_cr:             return holds_behind(kind, ctx);
       }
       return false;
     }
@@ -1839,7 +2197,20 @@ namespace real::detail {
      */
     [[nodiscard]] static constexpr bool looks_behind_only(assert_kind kind)
     {
-      return kind == assert_kind::text_start || kind == assert_kind::line_start;
+      switch (kind) {
+        case assert_kind::text_start:
+        case assert_kind::line_start:
+        case assert_kind::line_start_cr:             return true;
+        case assert_kind::text_end:
+        case assert_kind::text_end_or_final_newline:
+        case assert_kind::line_end:
+        case assert_kind::line_end_cr:
+        case assert_kind::word_boundary:
+        case assert_kind::not_word_boundary:
+        case assert_kind::word_start:
+        case assert_kind::word_end:                  return false;
+      }
+      return false;
     }
 
     /*!
@@ -1879,7 +2250,7 @@ namespace real::detail {
      */
     constexpr void close_into(std::int32_t               pc,
                               std::vector<std::int32_t>& out,
-                              std::vector<char>&         seen) const
+                              visit_marks&               seen) const
     {
       // Structurally unreachable through the only two callers (step/step_seeded, both private): every pc
       // they pass is either 0 (the program start) or pc+1 of a consuming instruction's own valid pc, and a
@@ -1900,10 +2271,10 @@ namespace real::detail {
       while (!stack_.empty()) {
         const std::int32_t cur {stack_.back()};
         stack_.pop_back();
-        if (cur < 0 || static_cast<std::size_t>(cur) >= code_.size() || seen[static_cast<std::size_t>(cur)] != 0) {
+        if (cur < 0 || static_cast<std::size_t>(cur) >= code_.size() || seen.test(cur)) {
           continue;
         }
-        seen[static_cast<std::size_t>(cur)] = 1;
+        seen.set(cur);
         const instr& in {code_[static_cast<std::size_t>(cur)]};
         switch (in.op) {
           case opcode::byte:
@@ -1936,16 +2307,16 @@ namespace real::detail {
      * \return The pc to continue at.
      */
     [[nodiscard]] constexpr std::int32_t loop_exit_target(const instr&             in,
-                                                          const std::vector<char>& seen) const
+                                                          const visit_marks&       seen) const
     {
       std::int32_t head {in.primary_target};
-      for (int hops {0}; hops < max_loop_hops && seen[static_cast<std::size_t>(head)] != 0
+      for (int hops {0}; hops < max_loop_hops && seen.test(head)
            && code_[static_cast<std::size_t>(head)].op == opcode::jump;
            ++hops) {
         head = code_[static_cast<std::size_t>(head)].primary_target;
       }
       const instr& target {code_[static_cast<std::size_t>(head)]};
-      return seen[static_cast<std::size_t>(head)] != 0 && target.op == opcode::split ? target.secondary_target
+      return seen.test(head) && target.op == opcode::split ? target.secondary_target
                                                                                    : in.primary_target;
     }
 
@@ -1961,7 +2332,7 @@ namespace real::detail {
      */
     constexpr void close_look(std::int32_t               pc,
                               std::vector<std::int32_t>& out,
-                              std::vector<char>&         seen,
+                              visit_marks&               seen,
                               std::uint8_t               ctx,
                               std::uint16_t              key) const
     {
@@ -1969,10 +2340,10 @@ namespace real::detail {
       while (!stack_.empty()) {
         const std::int32_t cur {stack_.back()};
         stack_.pop_back();
-        if (cur < 0 || static_cast<std::size_t>(cur) >= code_.size() || seen[static_cast<std::size_t>(cur)] != 0) {
+        if (cur < 0 || static_cast<std::size_t>(cur) >= code_.size() || seen.test(cur)) {
           continue;
         }
-        seen[static_cast<std::size_t>(cur)] = 1;
+        seen.set(cur);
         const instr& in {code_[static_cast<std::size_t>(cur)]};
         switch (in.op) {
           case opcode::byte:
@@ -2022,7 +2393,7 @@ namespace real::detail {
      */
     constexpr void close_any(std::int32_t               pc,
                              std::vector<std::int32_t>& out,
-                             std::vector<char>&         seen,
+                             visit_marks&               seen,
                              std::uint8_t               ctx) const
     {
       if (look_) {
@@ -2074,7 +2445,7 @@ namespace real::detail {
       const auto                ctx {static_cast<std::uint8_t>(-1 - pcs.back())};
       pcs.pop_back();
       std::vector<std::int32_t> out;
-      std::vector<char>         seen(code_.size(), 0);
+      visit_marks&              seen {begin_visit()};
       quit_hit_ = false;
       for (const std::int32_t pc : pcs) {
         const instr& in {code_[static_cast<std::size_t>(pc)]};
@@ -2083,8 +2454,8 @@ namespace real::detail {
             close_look(pc + 1, out, seen, ctx, key);
           }
         }
-        else if (seen[static_cast<std::size_t>(pc)] == 0) {
-          seen[static_cast<std::size_t>(pc)] = 1;
+        else if (!seen.test(pc)) {
+          seen.set(pc);
           out.push_back(pc);
         }
       }
@@ -2092,9 +2463,9 @@ namespace real::detail {
         res_[slot] = quit_state; // the same state and key meet the same byte: memoizing it is exact
         return quit_state;
       }
-      const std::size_t   flushes_before {stats_.flushes};
+      const std::size_t   flushes_before {epoch_};
       const std::uint32_t result         {intern(out)};
-      if (stats_.flushes == flushes_before) {
+      if (epoch_ == flushes_before) {
         res_[slot] = result;
       }
       return result;
@@ -2115,11 +2486,11 @@ namespace real::detail {
         return starts_[ctx];
       }
       std::vector<std::int32_t> pcs;
-      std::vector<char>         seen(code_.size(), 0);
+      visit_marks&              seen     {begin_visit()};
       close_look(0, pcs, seen, ctx, key_unknown);
-      const std::size_t   flushes_before {stats_.flushes};
+      const std::size_t   flushes_before {epoch_};
       const std::uint32_t result         {intern_any(std::move(pcs), ctx)};
-      if (stats_.flushes == flushes_before) {
+      if (epoch_ == flushes_before) {
         starts_[ctx] = result;
       }
       return result;
@@ -2155,6 +2526,7 @@ namespace real::detail {
       std::size_t   best_end {npos};
       bool          matched  {false};
       std::size_t   pos      {start};
+      scan_origin_ = start;
       while (true) {
         // Only a state holding a pending assertion reads what follows it; the rest are their own resolution.
         std::uint32_t here {state};
@@ -2192,7 +2564,8 @@ namespace real::detail {
           state = cached;
         }
         else {
-          state = seed ? step_seeded(here, byte) : step(here, byte);
+          miss_pos_ = pos;
+          state     = seed ? step_seeded(here, byte) : step(here, byte);
           if (thrashing_ && may_quit_) {
             return quit_pos; // before a match the dead state keeps seeding, so the loop would not end on it
           }
@@ -2200,6 +2573,7 @@ namespace real::detail {
         ++pos;
       }
       // As the other scans: a cut that flushed hands back the dead state, which ends the loop as a match's end.
+      window_bytes_ += pos - scan_origin_;
       return (thrashing_ && may_quit_) ? quit_pos : best_end;
     }
 
@@ -2230,6 +2604,7 @@ namespace real::detail {
       std::uint32_t state    {start_for(ctx_at(text, start))};
       std::size_t   best_end {npos};
       std::size_t   pos      {start};
+      scan_origin_ = start;
       while (true) {
         std::uint32_t here {state};
         std::uint32_t word {trans_[state + accept_col]};
@@ -2257,9 +2632,16 @@ namespace real::detail {
         }
         const auto          byte   {static_cast<std::uint8_t>(text[pos])};
         const std::uint32_t cached {trans_[here + trans_col + alpha_.of[byte]]};
-        state = cached != no_transition ? cached : step(here, byte);
+        if (cached != no_transition) {
+          state = cached;
+        }
+        else {
+          miss_pos_ = pos;
+          state     = step(here, byte);
+        }
         ++pos;
       }
+      window_bytes_ += pos - scan_origin_;
       if (thrashing_ && may_quit_) {
         return {.end = npos, .scanned_to = pos, .quit = true};
       }
@@ -2283,6 +2665,15 @@ namespace real::detail {
       }
       const bool by_states {state_pcs_.size() >= budget_};
       if (by_states || bytes_ >= byte_budget_) {
+        // Past its first fill, a cache that filled again before reading ten bytes per state is not paying: the
+        // scan quits to the VM and the full cache is kept, so the next search's first miss asks again.
+        const std::size_t window {window_bytes_ + (miss_pos_ >= scan_origin_ ? miss_pos_ - scan_origin_ : 0U)};
+        if (may_quit_ && stats_.flushes != 0U && window < quit_bytes_per_state * state_pcs_.size()) {
+          ++stats_.refused_flushes;
+          thrashing_ = true;
+          ++epoch_; // the caller's state ids stay valid, but the dead state handed back must not be cached
+          return dead_state;
+        }
         stats_.byte_flushes += by_states ? 0U : 1U;
         flush();
         return intern_fresh(pcs);   // rebuild from empty; the seeded start remains reachable
@@ -2344,9 +2735,12 @@ namespace real::detail {
       if (!first) {
         ++stats_.flushes;
         ++stats_.scan_flushes;
-        if (stats_.scan_flushes >= thrash_flushes) {
-          thrashing_ = true;
+        ++epoch_;
+        if (!may_quit_ && stats_.scan_flushes >= thrash_flushes) {
+          thrashing_ = true; // informational where the scan may not quit; a scan that may, quits on its progress
         }
+        window_bytes_ = 0;
+        scan_origin_  = miss_pos_;
       }
       bytes_ = 0;
       state_pcs_.clear();
@@ -2370,7 +2764,7 @@ namespace real::detail {
         res_.insert(res_.end(), stride_, dead_state);
       }
       std::vector<std::int32_t> start;
-      std::vector<char>         seen(code_.size(), 0);
+      visit_marks&              seen {begin_visit()};
       if (look_) {
         // The start of the text: the context forward_end and anchored_end at 0 ask for.
         close_look(0, start, seen, ctx_start, key_unknown);
@@ -2442,19 +2836,24 @@ namespace real::detail {
     // allocations of 16 146 and cost 98 KB, and FLATTENING this into one pool with an offset per
     // state -- the fix the trie builder uses -- changed the count by exactly ZERO. Whether they
     // still hold on today's scaffolding-dominated cost is unknown until that attribution exists.
-    mutable std::vector<std::int32_t>                                          stack_;          //!< close_into's work stack, hoisted: it ran once per pc of the source state.
-    std::vector<std::vector<std::int32_t>>                                     state_pcs_;      //!< state id -> ordered pc-set.
-    std::vector<std::uint32_t>                                                 trans_;          //!< [state + accept_col] accept word, [state + cut_col] memoized cut, [state + trans_col + class] next, unseeded (post-match).
-    std::vector<std::uint32_t>                                                 trans_seeded_;   //!< The same rows re-seeding (pre-match); its accept word repeats trans_'s, its cut cell is unused.
-    std::vector<std::uint32_t>                                                 res_;            //!< [state + key] -> resolved state (look programs); a key spans the row's count + 2 cells.
-    pc_set_cache                                                               cache_;          //!< pc-set -> row index, the memo behind \ref intern.
+    mutable std::vector<std::int32_t>                                          stack_;        //!< close_into's work stack, hoisted: it ran once per pc of the source state.
+    std::vector<std::vector<std::int32_t>>                                     state_pcs_;    //!< state id -> ordered pc-set.
+    std::vector<std::uint32_t>                                                 trans_;        //!< [state + accept_col] accept word, [state + cut_col] memoized cut, [state + trans_col + class] next, unseeded (post-match).
+    std::vector<std::uint32_t>                                                 trans_seeded_; //!< The same rows re-seeding (pre-match); its accept word repeats trans_'s, its cut cell is unused.
+    std::vector<std::uint32_t>                                                 res_;          //!< [state + key] -> resolved state (look programs); a key spans the row's count + 2 cells.
+    pc_set_cache                                                               cache_;        //!< pc-set -> row index, the memo behind \ref intern.
 
-    std::uint32_t stride_      {2};                                                             //!< Cells per row, alpha_.count + 2: a state id is its row's offset.
-    std::size_t   budget_      {state_budget};                                                  //!< Cached states tolerated before a \ref flush.
-    std::size_t   byte_budget_ {lazy_dfa_default_byte_budget};                                  //!< Cached bytes tolerated before a \ref flush.
-    std::size_t   bytes_       {0};                                                             //!< Bytes the cached states hold (pc-sets, rows, hash entries).
-    counters      stats_       {};                                                              //!< Live counters, exposed by \ref stats.
-    bool          thrashing_   {false};                                                         //!< Set once this scan crossed \ref thrash_flushes flushes.
+    std::uint32_t stride_       {2};                                                          //!< Cells per row, alpha_.count + 2: a state id is its row's offset.
+    std::size_t   budget_       {state_budget};                                               //!< Cached states tolerated before a \ref flush.
+    std::size_t   byte_budget_  {lazy_dfa_default_byte_budget};                               //!< Cached bytes tolerated before a \ref flush.
+    std::size_t   bytes_        {0};                                                          //!< Bytes the cached states hold (pc-sets, rows, hash entries).
+    counters      stats_        {};                                                           //!< Live counters, exposed by \ref stats.
+    std::size_t   epoch_        {0};                                                          //!< Bumped by every flush and every refused one: a caller's cached ids went stale.
+    std::size_t   scan_origin_  {0};                                                          //!< Where the bytes the current scan has read are counted from.
+    std::size_t   miss_pos_     {0};                                                          //!< Position of the scan's latest cache miss.
+    std::size_t   window_bytes_ {0};                                                          //!< Bytes read since the last flush by scans that have ended.
+    visit_marks   marks_        {};                                                           //!< The pcs the closure being computed has entered (\ref begin_visit).
+    bool          thrashing_    {false};                                                      //!< Set once this scan stopped paying: a refused flush, or \ref thrash_flushes flushes where it may not quit.
   };
 
   /*!
@@ -2473,7 +2872,7 @@ namespace real::detail {
     static constexpr std::uint32_t no_transition {0xFFFFFFFFU}; //!< A not-yet-computed cached transition.
     static constexpr std::uint32_t quit_state    {0xFFFFFFFEU}; //!< What resolve() gives when a Unicode word boundary meets a non-ASCII byte; never interned.
     static constexpr std::size_t   quit_pos      {npos - 1U};   //!< What reverse_start() gives when its scan quit.
-    static constexpr std::size_t   state_budget  {4096};        //!< Cached states before a flush (the memory cap).
+    static constexpr std::size_t   state_budget  {65536};       //!< Cached states before a flush; the memory cap is \ref lazy_dfa_byte_budget.
 
     /*!
      * \brief Builds the (initially empty) reverse DFA, transposing the program's edges as it goes.
@@ -2501,8 +2900,9 @@ namespace real::detail {
         budget_ {budget}, byte_budget_ {byte_budget}
     {
       if (look_) {
+        const bool cr {std::ranges::any_of(code, is_cr_line_assert)};
         for (unsigned b {0}; b < 256U; ++b) {
-          class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? rctx_nonascii : right_ctx_of(static_cast<std::uint8_t>(b));
+          class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? rctx_nonascii : right_ctx_of(static_cast<std::uint8_t>(b), cr);
         }
       }
       // Transpose the program: rev_eps_[x] = the pcs with a forward epsilon edge to x; rev_consume_[x] = the
@@ -2640,6 +3040,16 @@ namespace real::detail {
 
   private:
 
+    /*!
+     * \brief Starts a closure computation on this DFA's marks.
+     * \return The marks, none entered.
+     */
+    constexpr visit_marks& begin_visit()
+    {
+      marks_.begin(code_.size());
+      return marks_;
+    }
+
     // Backward, the text to the RIGHT of a position is what the scan has read, and the text to its left is
     // what it reads next. So the right side is a state's context and the left side is a pending
     // assertion's key: a byte class, or the start of the text.
@@ -2697,13 +3107,16 @@ namespace real::detail {
 
     /*!
      * \brief The right context a position has when \p b follows it (not the text's last byte).
-     * \param[in] b The byte after the position.
+     * \param[in] b  The byte after the position.
+     * \param[in] cr The program's line assertions are ECMAScript's, which end a line at `\r` too.
      * \return Its context bits.
      */
-    [[nodiscard]] static constexpr std::uint8_t right_ctx_of(std::uint8_t b)
+    [[nodiscard]] static constexpr std::uint8_t right_ctx_of(std::uint8_t b,
+                                                             bool         cr)
     {
       const bool word {(b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'};
-      return static_cast<std::uint8_t>((b == '\n' ? rctx_newline : 0U) | (word ? rctx_word : 0U));
+      const bool nl   {b == '\n' || (cr && b == '\r')};
+      return static_cast<std::uint8_t>((nl ? rctx_newline : 0U) | (word ? rctx_word : 0U));
     }
 
     /*!
@@ -2730,8 +3143,20 @@ namespace real::detail {
      */
     [[nodiscard]] static constexpr bool looks_left(assert_kind kind)
     {
-      return kind == assert_kind::text_start || kind == assert_kind::line_start || kind == assert_kind::word_boundary
-             || kind == assert_kind::not_word_boundary || kind == assert_kind::word_start || kind == assert_kind::word_end;
+      switch (kind) {
+        case assert_kind::text_start:
+        case assert_kind::line_start:
+        case assert_kind::line_start_cr:
+        case assert_kind::word_boundary:
+        case assert_kind::not_word_boundary:
+        case assert_kind::word_start:
+        case assert_kind::word_end:                  return true;
+        case assert_kind::text_end:
+        case assert_kind::text_end_or_final_newline:
+        case assert_kind::line_end:
+        case assert_kind::line_end_cr:               return false;
+      }
+      return false;
     }
 
     /*!
@@ -2746,9 +3171,17 @@ namespace real::detail {
       switch (kind) {
         case assert_kind::text_end:                  return (ctx & rctx_end) != 0U;
         case assert_kind::text_end_or_final_newline: return (ctx & rctx_end) != 0U || (ctx & rctx_final_nl) != 0U;
-        case assert_kind::line_end:                  return (ctx & rctx_end) != 0U || is_newline_ctx(ctx);
-        default:                                     return false;
+        case assert_kind::line_end:
+        case assert_kind::line_end_cr:               return (ctx & rctx_end) != 0U || is_newline_ctx(ctx);
+        case assert_kind::text_start:
+        case assert_kind::line_start:
+        case assert_kind::line_start_cr:
+        case assert_kind::word_boundary:
+        case assert_kind::not_word_boundary:
+        case assert_kind::word_start:
+        case assert_kind::word_end:                  return false; // decided on the left, by holds_left
       }
+      return false;
     }
 
     /*!
@@ -2773,13 +3206,18 @@ namespace real::detail {
       }
       switch (kind) {
         case assert_kind::text_start:        return start;
-        case assert_kind::line_start:        return start || prev_nl;
+        case assert_kind::line_start:
+        case assert_kind::line_start_cr:     return start || prev_nl;
         case assert_kind::word_boundary:     return prev_word != next_word;
         case assert_kind::not_word_boundary: return prev_word == next_word;
         case assert_kind::word_start:        return !prev_word && next_word;
         case assert_kind::word_end:          return prev_word && !next_word;
-        default:                             return holds_right(kind, ctx);
+        case assert_kind::text_end:
+        case assert_kind::text_end_or_final_newline:
+        case assert_kind::line_end:
+        case assert_kind::line_end_cr:       return holds_right(kind, ctx);
       }
+      return false;
     }
 
     /*!
@@ -2793,7 +3231,7 @@ namespace real::detail {
      * \param[in]     key  The byte to the left, or \ref key_unknown.
      */
     constexpr void rev_closure_look(std::vector<std::int32_t>& set,
-                                    std::vector<char>&         seen,
+                                    visit_marks&               seen,
                                     std::uint8_t               ctx,
                                     std::uint16_t              key) const
     {
@@ -2804,14 +3242,14 @@ namespace real::detail {
         for (std::size_t k = rev_eps_at_[static_cast<std::size_t>(pc)];
              k < rev_eps_at_[static_cast<std::size_t>(pc) + 1]; ++k) {
           const std::int32_t pred {rev_eps_pool_[k]};
-          if (seen[static_cast<std::size_t>(pred)] != 0) {
+          if (seen.test(pred)) {
             continue;
           }
           const instr& in {code_[static_cast<std::size_t>(pred)]};
           if (in.op == opcode::assert_position) {
             const auto kind {static_cast<assert_kind>(in.arg8)};
             if (looks_left(kind) && key == key_unknown) {
-              seen[static_cast<std::size_t>(pred)] = 1;
+              seen.set(pred);
               set.push_back(pending_base - pred); // undecided: its predecessors are reached once it is decided
               continue;
             }
@@ -2819,7 +3257,7 @@ namespace real::detail {
               continue; // the edge does not exist at this position
             }
           }
-          seen[static_cast<std::size_t>(pred)] = 1;
+          seen.set(pred);
           set.push_back(pred);
           stack_.push_back(pred);
         }
@@ -2860,15 +3298,15 @@ namespace real::detail {
       if (cached != no_transition) {
         return cached;
       }
-      std::vector<std::int32_t> pcs {state_pcs_[state]};                          // copy: intern may realloc
-      const auto                ctx {static_cast<std::uint8_t>(-1 - pcs.back())}; // mark_context appends it last
+      std::vector<std::int32_t> pcs  {state_pcs_[state]};                          // copy: intern may realloc
+      const auto                ctx  {static_cast<std::uint8_t>(-1 - pcs.back())}; // mark_context appends it last
       pcs.pop_back();
-      std::vector<char>         seen(code_.size(), 0);
+      visit_marks&              seen {begin_visit()};
       std::vector<std::int32_t> set;
       quit_hit_ = false;
       for (const std::int32_t entry : pcs) {
         const std::int32_t pc {is_pending(entry) ? pending_base - entry : entry};
-        seen[static_cast<std::size_t>(pc)] = 1;
+        seen.set(pc);
         // A pending assertion the key decides true stays a member: the closure below reaches its predecessors.
         if (!is_pending(entry) || holds_left(static_cast<assert_kind>(code_[static_cast<std::size_t>(pc)].arg8), ctx, key)) {
           set.push_back(pc);
@@ -2900,9 +3338,9 @@ namespace real::detail {
         return starts_[ctx];
       }
       std::vector<std::int32_t> set;
-      std::vector<char>         seen(code_.size(), 0);
+      visit_marks&              seen {begin_visit()};
       if (match_pc_ >= 0) {
-        seen[static_cast<std::size_t>(match_pc_)] = 1;
+        seen.set(match_pc_);
         set.push_back(match_pc_);
         rev_closure_look(set, seen, ctx, key_unknown);
       }
@@ -2927,15 +3365,15 @@ namespace real::detail {
                             std::uint8_t  byte,
                             std::uint8_t  ctx)
     {
-      const std::vector<std::int32_t> pcs {state_pcs_[state]};
+      const std::vector<std::int32_t> pcs  {state_pcs_[state]};
       std::vector<std::int32_t>       next;
-      std::vector<char>               seen(code_.size(), 0);
+      visit_marks&                    seen {begin_visit()};
       for (const std::int32_t pc : pcs) {
         for (std::size_t k = rev_consume_at_[static_cast<std::size_t>(pc)];
              k < rev_consume_at_[static_cast<std::size_t>(pc) + 1]; ++k) {
           const std::int32_t pred {rev_consume_pool_[k]};
-          if (consumes(pred, byte) && seen[static_cast<std::size_t>(pred)] == 0) {
-            seen[static_cast<std::size_t>(pred)] = 1;
+          if (consumes(pred, byte) && !seen.test(pred)) {
+            seen.set(pred);
             next.push_back(pred);
           }
         }
@@ -3005,7 +3443,7 @@ namespace real::detail {
      * \param[in,out] seen Per-pc visited marks, sized to the program.
      */
     constexpr void rev_closure(std::vector<std::int32_t>& set,
-                               std::vector<char>&         seen) const
+                               visit_marks&               seen) const
     {
       // Member stack, same reason as close_into's: one heap block per call otherwise. Seeded from the
       // whole set here rather than a single pc, since the reverse closure starts from all of them.
@@ -3016,8 +3454,8 @@ namespace real::detail {
         for (std::size_t k = rev_eps_at_[static_cast<std::size_t>(pc)];
              k < rev_eps_at_[static_cast<std::size_t>(pc) + 1]; ++k) {
           const std::int32_t pred {rev_eps_pool_[k]};
-          if (seen[static_cast<std::size_t>(pred)] == 0) {
-            seen[static_cast<std::size_t>(pred)] = 1;
+          if (!seen.test(pred)) {
+            seen.set(pred);
             set.push_back(pred);
             stack_.push_back(pred);
           }
@@ -3040,15 +3478,15 @@ namespace real::detail {
       if (cached != no_transition) {
         return cached;
       }
-      const std::vector<std::int32_t> pcs {state_pcs_[state]}; // copy: intern may realloc
+      const std::vector<std::int32_t> pcs  {state_pcs_[state]}; // copy: intern may realloc
       std::vector<std::int32_t>       next;
-      std::vector<char>               seen(code_.size(), 0);
+      visit_marks&                    seen {begin_visit()};
       for (const std::int32_t pc : pcs) {
         for (std::size_t k = rev_consume_at_[static_cast<std::size_t>(pc)];
              k < rev_consume_at_[static_cast<std::size_t>(pc) + 1]; ++k) {
           const std::int32_t pred {rev_consume_pool_[k]};
-          if (consumes(pred, byte) && seen[static_cast<std::size_t>(pred)] == 0) {
-            seen[static_cast<std::size_t>(pred)] = 1;
+          if (consumes(pred, byte) && !seen.test(pred)) {
+            seen.set(pred);
             next.push_back(pred);
           }
         }
@@ -3182,9 +3620,9 @@ namespace real::detail {
         return; // start states are per right context (start_for), built on first use
       }
       std::vector<std::int32_t> start;
-      std::vector<char>         seen(code_.size(), 0);
+      visit_marks&              seen {begin_visit()};
       if (match_pc_ >= 0) {
-        seen[static_cast<std::size_t>(match_pc_)] = 1;
+        seen.set(match_pc_);
         start.push_back(match_pc_);
         rev_closure(start, seen);
       }
@@ -3203,6 +3641,7 @@ namespace real::detail {
     std::int32_t                                                               match_pc_     {-1};                           //!< The forward `match` pc — this pass's start; -1 when absent.
     std::uint32_t                                                              start_state_  {0};                            //!< Id of \ref match_pc_'s backward closure, re-interned by each \ref flush.
     std::size_t                                                                budget_       {state_budget};                 //!< Cached states tolerated before a \ref flush.
+    visit_marks                                                                marks_        {};                             //!< The pcs the closure being computed has entered (\ref begin_visit).
     std::size_t                                                                flushes_      {0};                            //!< bumped by flush(); step()'s stale-state guard against a mid-call reset.
     std::size_t                                                                byte_budget_  {lazy_dfa_default_byte_budget}; //!< Cached bytes tolerated before a \ref flush.
     std::size_t                                                                bytes_        {0};                            //!< Bytes the cached states hold.

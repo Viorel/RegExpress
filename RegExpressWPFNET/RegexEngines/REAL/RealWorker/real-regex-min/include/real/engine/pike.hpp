@@ -764,28 +764,27 @@ namespace real::detail {
   {
     //! \brief Isolated sub-scratch for bounded lookaround evaluation, built on first use — see
     //!        \ref real::detail::dynamic_storage::state_type for the measurement that made it lazy.
-    std::optional<lookaround_scratch> lookaround;
-    capture_pool                      pool;                          //!< copy-on-write capture blocks (heap-backed).
-    std::optional<lazy_dfa>           fwd_dfa;                       //!< Fallback when immut is null; prefer shared_fwd_dfa.
-    std::optional<reverse_dfa>        rev_dfa;                       //!< Fallback reverse; prefer shared_rev_dfa.
-    const void       *                dfa_program         {nullptr}; //!< Program the per-state DFAs were built for (fallback).
-    std::optional<reverse_dfa>        il_prefix_rev;                 //!< Fallback IL prefix reverse; prefer shared_il_prefix_rev.
-    const void       *                il_prefix_for       {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
-    const void       *                il_text             {nullptr}; //!< IL: the haystack \ref il_abandoned refers to (reset the flag when it changes).
-    bool                              il_abandoned        {false};   //!< IL: a linearity/density guard tripped on this haystack — stay on the core.
-    std::uint32_t                     il_density_cands    {};        //!< IL candidates seen on this haystack (density sample).
-    std::size_t                       il_density_origin   {npos};    //!< Byte offset of the first IL candidate this haystack.
-    const void       *                rare_disc_text      {nullptr}; //!< Rare-disc: haystack \ref rare_disc_abandoned refers to.
-    bool                              rare_disc_abandoned {false};   //!< Rare-disc density guard: stay on prefix for this haystack.
-    const void       *                ac_text             {nullptr}; //!< AC: the haystack \ref ac_dense was decided on.
-    bool                              ac_decided          {false};   //!< AC: the density sample has run on this haystack.
-    bool                              ac_dense            {false};   //!< AC: candidates are dense enough that the automaton wins.
-    const void       *                lit_text            {nullptr}; //!< Literal search: the haystack the two densities below refer to.
-    literal_density                   lit_prefix_density  {};        //!< Literal search: what this haystack showed of the prefix's rarest byte.
-    literal_density                   lit_inner_density   {};        //!< Literal search: the same for the inner literal.
-    const alternation_pairs*          alt_pairs           {nullptr}; //!< Alternation: the regex's probe pairs (\ref regex_immutables::alt_pairs), null until built.
-    const void       *                alt_text            {nullptr}; //!< Alternation: the haystack \ref alt_density refers to.
-    alternation_density               alt_density         {};        //!< Alternation: what this haystack showed of the first bytes.
+    std::optional<lookaround_scratch>  lookaround;
+    capture_pool                       pool;                          //!< copy-on-write capture blocks (heap-backed).
+    std::optional<lazy_dfa>            fwd_dfa;                       //!< Fallback when immut is null; prefer shared_fwd_dfa.
+    std::optional<reverse_dfa>         rev_dfa;                       //!< Fallback reverse; prefer shared_rev_dfa.
+    const void        *                dfa_program         {nullptr}; //!< Program the per-state DFAs were built for (fallback).
+    std::optional<reverse_dfa>         il_prefix_rev;                 //!< Fallback IL prefix reverse; prefer shared_il_prefix_rev.
+    const void        *                il_prefix_for       {nullptr}; //!< Fallback: prefix program il_prefix_rev was built for.
+    const void        *                il_text             {nullptr}; //!< IL: the haystack \ref il_abandoned refers to (reset the flag when it changes).
+    bool                               il_abandoned        {false};   //!< IL: a linearity/density guard tripped on this haystack — stay on the core.
+    std::uint32_t                      il_density_cands    {};        //!< IL candidates seen on this haystack (density sample).
+    std::size_t                        il_density_origin   {npos};    //!< Byte offset of the first IL candidate this haystack.
+    const void        *                rare_disc_text      {nullptr}; //!< Rare-disc: haystack \ref rare_disc_abandoned refers to.
+    bool                               rare_disc_abandoned {false};   //!< Rare-disc density guard: stay on prefix for this haystack.
+    const void        *                ac_text             {nullptr}; //!< AC: the haystack \ref ac_dense was decided on.
+    bool                               ac_decided          {false};   //!< AC: the density sample has run on this haystack.
+    bool                               ac_dense            {false};   //!< AC: candidates are dense enough that the automaton wins.
+    const void        *                lit_text            {nullptr}; //!< Literal search: the subject \ref lit_memo refers to.
+    std::optional<literal_memo>        lit_memo;                      //!< Literal search: that subject's densities, built at its first literal search.
+    const alternation_pairs *          alt_pairs           {nullptr}; //!< Alternation: the regex's probe pairs (\ref regex_immutables::alt_pairs), null until built.
+    const void        *                alt_text            {nullptr}; //!< Alternation: the subject \ref alt_density refers to.
+    alternation_density                alt_density         {};        //!< Alternation: that subject's first-byte density (two flags, cheap to build with every state).
     // AC fields placed LAST (own reason as pattern_hints::alternation_branch_count): inserting
     // here right after il_prefix_for would shift il_text/
     // il_abandoned/il_density_cands/il_density_origin (the inner-literal density-gate fields, read
@@ -1344,9 +1343,11 @@ namespace real::detail {
               return true;
             }
             // A program that looks past a position (`$`, `\b`) reads the text beyond e: slicing there would turn
-            // e into an end of text for it.
+            // e into an end of text for it. The walk proved the match ends at e, so `stop` is already its reach,
+            // and without a forward-stop to report the window may go to the bounded backtracker, which fills a
+            // short window's groups without the VM's lists.
             note_vm_window();
-            return run_general<false>(looks ? text : text.substr(0, e), s, run_mode::prefix, out_slots, &stop);
+            return run_general<false>(looks ? text : text.substr(0, e), s, run_mode::prefix, out_slots);
           }
         }
       }
@@ -1379,14 +1380,13 @@ namespace real::detail {
         return inner ? find_literal(text, pos, lit) : find_prefix(text, pos, lit);
       }
       if constexpr (requires(State & st) {
-        st.lit_prefix_density;
+        st.lit_memo;
       }) {
-        if (state_.lit_text != static_cast<const void*>(text.data())) {
-          state_.lit_prefix_density = {}; // a fresh haystack: its bytes are judged anew
-          state_.lit_inner_density  = {};
-          state_.lit_text           = static_cast<const void*>(text.data());
+        if (!state_.lit_memo.has_value() || state_.lit_text != static_cast<const void*>(text.data())) {
+          state_.lit_memo.emplace(); // a fresh haystack: its bytes are judged anew
+          state_.lit_text = static_cast<const void*>(text.data());
         }
-        return find_literal_adaptive(text, pos, lit, rare, inner ? state_.lit_inner_density : state_.lit_prefix_density);
+        return find_literal_adaptive(text, pos, lit, rare, inner ? state_.lit_memo->inner : state_.lit_memo->prefix);
       }
       else {
         literal_density density {};
@@ -1597,6 +1597,15 @@ namespace real::detail {
           else {
             const cp_class& cc {prog_.cp_classes[static_cast<std::size_t>(prog_.hints.il_rev_class)]};
             while (s > min_match_start) {
+              // An ASCII byte is its own code point: tested here, so the walk does not hang on whether the
+              // decoder is inlined into this function, which the unit's inlining budget decides.
+              if (const auto prev {static_cast<std::uint8_t>(text[s - 1])}; prev < 0x80U) {
+                if (!cc.ascii.test(prev)) {
+                  break;
+                }
+                --s;
+                continue;
+              }
               const std::size_t               w  {detail::codepoint_retreat(text, s, min_match_start)};
               const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, s - w)};
               if (!dc.valid || dc.length != w || !cp_class_holds(cc, dc.cp)) {
@@ -1669,6 +1678,13 @@ namespace real::detail {
           else {
             const cp_class& cc {prog_.cp_classes[static_cast<std::size_t>(prog_.hints.il_fwd_class)]};
             while (e < text.size()) {
+              if (const auto next {static_cast<std::uint8_t>(text[e])}; next < 0x80U) { // as the reverse run
+                if (!cc.ascii.test(next)) {
+                  break;
+                }
+                ++e;
+                continue;
+              }
               const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, e)};
               if (!dc.valid || !cp_class_holds(cc, dc.cp)) {
                 break;
@@ -2570,14 +2586,18 @@ namespace real::detail {
                                                 };
       if (immut != nullptr) {
         if (immut->ac_for.load(std::memory_order_acquire) == program) {
-          return immut->ac.has_value() ? &*immut->ac : nullptr;         // hot path: one acquire load, no mutex
+          return immut->ac.empty() ? nullptr : &immut->ac.front();      // hot path: one acquire load, no mutex
         }
         const std::lock_guard<std::mutex> lock {detail::immut_build_mu(immut)};
         if (immut->ac_for.load(std::memory_order_relaxed) != program) { // double-check
-          immut->ac = build();
+          std::optional<ac_automaton> built {build()};
+          immut->ac.clear();
+          if (built.has_value()) {
+            immut->ac.push_back(std::move(*built));
+          }
           immut->ac_for.store(program, std::memory_order_release);
         }
-        return immut->ac.has_value() ? &*immut->ac : nullptr;
+        return immut->ac.empty() ? nullptr : &immut->ac.front();
       }
       // No per-regex cache to hold it: decline, and the caller falls back to run_alternation. Line
       // coverage is what settled that this is safe rather than the trap it looked like -- the meta-seam
@@ -2607,11 +2627,12 @@ namespace real::detail {
         const std::lock_guard<std::mutex> lock {detail::immut_build_mu(immut)};
         if (immut->alt_pairs_for.load(std::memory_order_relaxed) != program) { // double-check
           // A fixed alternation's plan (pairs and fingerprint); any other program's is its variants' fingerprint.
-          immut->alt_pairs = prog_.hints.fixed_alternation ? build_alternation_pairs() : build_cp_alternation_plan();
+          immut->alt_pairs.clear();
+          immut->alt_pairs.push_back(prog_.hints.fixed_alternation ? build_alternation_pairs() : build_cp_alternation_plan());
           immut->alt_pairs_for.store(program, std::memory_order_release);
         }
       }
-      return immut->alt_pairs.has_value() ? &*immut->alt_pairs : nullptr;
+      return immut->alt_pairs.empty() ? nullptr : &immut->alt_pairs.front();
     }
 
     //! \brief The capture-block pool type of the bound `State` (COW) — heap-backed for dynamic,
@@ -5959,22 +5980,50 @@ namespace real::detail {
                                             const MatchAt&                     match_at) const
     {
       const std::size_t sz     {text.size()};
+      const std::size_t first  {pos};
       nibble3_tables    tables {};
+      nibble3_carry     carry  {};
       load_nibble3_tables(pairs.nibble_lo, pairs.nibble_hi, tables);
-      for (; pos + 18 <= sz; pos += 16) { // the fingerprint reads two bytes past a block's starts
+      // A block at `pos` completes the starts `pos - 2 .. pos + 13` (nibble3_step); the first block's carry is
+      // zero, so nothing before `first` is marked. Four blocks a round are tested at once (nibble3_round), and
+      // their masks narrowed only in a round that marks a start: candidates are rare against blocks.
+      nibble3_hits      hits   {};
+      for (; pos + 64 <= sz; pos += 64) {
+        for (std::size_t b = 0; b < 4; ++b) {
+          note_alternation_pair_block();
+          note_alternation_nibble_block(true);
+        }
+        if (!nibble3_round(text.data() + pos, tables, carry, hits)) {
+          continue;
+        }
+        for (std::size_t b = 0; b < 4; ++b) {
+          mask_t mask {nibble3_mask_of(hits, b)};
+          while (!empty(mask)) {
+            note_alternation_pair_candidate();
+            const std::size_t at {pos + (b * 16) + first_lane(mask) - 2U};
+            const std::size_t me {match_at(at)};
+            if (me != npos) {
+              return alternation_hit {.start = at, .end = me, .resume = at};
+            }
+            mask = clear_first(mask);
+          }
+        }
+      }
+      for (; pos + 16 <= sz; pos += 16) {
         note_alternation_pair_block();
         note_alternation_nibble_block(true);
-        mask_t mask {load_nibble3_mask(text.data() + pos, tables)};
+        mask_t mask {nibble3_step(text.data() + pos, tables, carry)};
         while (!empty(mask)) {
           note_alternation_pair_candidate();
-          const std::size_t lane {first_lane(mask)};
-          const std::size_t me   {match_at(pos + lane)};
+          const std::size_t at {pos + first_lane(mask) - 2U};
+          const std::size_t me {match_at(at)};
           if (me != npos) {
-            return alternation_hit {.start = pos + lane, .end = me, .resume = pos};
+            return alternation_hit {.start = at, .end = me, .resume = at};
           }
           mask = clear_first(mask);
         }
       }
+      pos = pos == first ? first : pos - 2U; // the last two starts of the last block are the tail's
       if constexpr (MemberTail) {
         return alternation_members_tail(text, pos, mem, cnt, match_at);
       }
@@ -6080,6 +6129,30 @@ namespace real::detail {
 #endif
 
     /*!
+     * \brief This subject's alternation density, judged anew when the state last sampled another subject.
+     * \param[in] text The subject.
+     * \return The density, kept in the state.
+     */
+    [[nodiscard]] alternation_density& alternation_density_for(std::string_view text) const
+    {
+      if (state_.alt_text != static_cast<const void*>(text.data())) {
+        state_.alt_density = {}; // a fresh haystack: sampled anew
+        state_.alt_text    = static_cast<const void*>(text.data());
+      }
+      return state_.alt_density;
+    }
+
+    /*!
+     * \brief The alternation density the state holds for this subject, without sampling it.
+     * \param[in] text The subject.
+     * \return The density, or null when the state holds none for this subject.
+     */
+    [[nodiscard]] const alternation_density* alternation_density_seen(std::string_view text) const
+    {
+      return state_.alt_text == static_cast<const void*>(text.data()) ? &state_.alt_density : nullptr;
+    }
+
+    /*!
      * \brief The alternation's probe pairs when this subject's first bytes are dense, for the block scans of
      *        \ref run_alternation and \ref fill_alternation_spans; null otherwise, or when the storage keeps no
      *        state for them (a compile-time one), or no plan fits.
@@ -6104,9 +6177,9 @@ namespace real::detail {
       if constexpr (requires(State & st) {
         st.alt_pairs;
       }) {
-        if (state_.alt_text == static_cast<const void*>(text.data()) && state_.alt_density.decided
-            && !alternation_pairs_disabled()) {
-          return state_.alt_density.dense ? state_.alt_pairs : nullptr;
+        const alternation_density* const seen {alternation_density_seen(text)};
+        if (seen != nullptr && seen->decided && !alternation_pairs_disabled()) {
+          return seen->dense ? state_.alt_pairs : nullptr;
         }
       }
       return alternation_plan_decide(text, pos, mem, cnt);
@@ -6130,11 +6203,7 @@ namespace real::detail {
       if (cnt < 2 || cnt > 8) {
         return false; // no block scan for this alternation: nothing to keep
       }
-      std::array<std::uint8_t, 8> mem {};
-      for (std::size_t i = 0; i < mem.size(); ++i) {
-        // The unused slots repeat a member, as the block scans pad them.
-        mem[i] = static_cast<std::uint8_t>(prog_.hints.small_set[i < cnt ? i : 0]);
-      }
+      const std::array<std::uint8_t, 8> mem {std::bit_cast<std::array<std::uint8_t, 8>>(prog_.hints.small_set)}; // spare lanes repeat a member
       return alternation_plan(text, start, mem, cnt) != nullptr;
 #else
       static_cast<void>(text);
@@ -6168,12 +6237,9 @@ namespace real::detail {
         if (alternation_pairs_disabled()) {
           return nullptr;
         }
-        if (state_.alt_text != static_cast<const void*>(text.data())) {
-          state_.alt_density = {}; // a fresh haystack: its first bytes are judged anew
-          state_.alt_text    = static_cast<const void*>(text.data());
-        }
-        if (state_.alt_density.decided) {
-          return state_.alt_density.dense ? state_.alt_pairs : nullptr;
+        alternation_density& density {alternation_density_for(text)};
+        if (density.decided) {
+          return density.dense ? state_.alt_pairs : nullptr;
         }
         if (pos >= text.size() || text.size() - pos < alternation_sample_min) {
           return nullptr; // a short rest: the first bytes, unsampled
@@ -6183,16 +6249,16 @@ namespace real::detail {
         }
         // Dense first bytes are worth the pairs only when most of their stops are false: where they are the
         // matches themselves, the pairs stop as often and the first bytes' loop is the cheaper one.
-        state_.alt_density.decided = true;
+        density.decided = true;
         const bool nibbles {state_.alt_pairs != nullptr && state_.alt_pairs->nibbles && !alternation_nibbles_disabled()};
         if (state_.alt_pairs != nullptr && state_.alt_pairs->count != 0U && (nibbles || state_.alt_pairs->pairs)) {
           const alternation_sample sample  {alternation_sample_hits(text.data() + pos, mem.data(), cnt, *state_.alt_pairs,
                                                                     nibbles)};
           const std::size_t        gap     {nibbles ? alternation_dense_gap_nibbles : alternation_dense_gap};
-          state_.alt_density.dense = sample.first_bytes * gap > alternation_sample_bytes
-                                     && sample.pairs * 2U < sample.first_bytes;
+          density.dense = sample.first_bytes * gap > alternation_sample_bytes
+                          && sample.pairs * 2U < sample.first_bytes;
         }
-        return state_.alt_density.dense ? state_.alt_pairs : nullptr;
+        return density.dense ? state_.alt_pairs : nullptr;
       }
       else {
         static_cast<void>(text);
@@ -6228,8 +6294,8 @@ namespace real::detail {
             || branches < alternation_wide_min_branches || branches > alternation_wide_max_branches) {
           return false;
         }
-        return state_.alt_text != static_cast<const void*>(text.data()) || !state_.alt_density.decided
-               || state_.alt_density.dense;
+        const alternation_density* const seen {alternation_density_seen(text)};
+        return seen == nullptr || !seen->decided || seen->dense;
       }
       else {
         static_cast<void>(text);
@@ -6283,23 +6349,20 @@ namespace real::detail {
                                   pc = static_cast<std::size_t>(code[pc].secondary_target);
                                 }
                               };
-        if (state_.alt_text != static_cast<const void*>(text.data())) {
-          state_.alt_density = {}; // a fresh haystack: sampled anew
-          state_.alt_text    = static_cast<const void*>(text.data());
-        }
-        if (!state_.alt_density.decided) {
+        alternation_density& density {alternation_density_for(text)};
+        if (!density.decided) {
           if (start >= text.size() || text.size() - start < alternation_sample_min) {
             return std::nullopt; // a short rest: left to the automaton's gate, and a longer rest may still sample
           }
           if (state_.alt_pairs == nullptr) {
             state_.alt_pairs = alternation_pairs_ready();
           }
-          state_.alt_density.decided = true;
-          state_.alt_density.dense   = state_.alt_pairs != nullptr && state_.alt_pairs->count != 0U
-                                       && state_.alt_pairs->nibbles
-                                       && alternation_wide_sample_sparse(text, start, *state_.alt_pairs, match_at);
+          density.decided = true;
+          density.dense   = state_.alt_pairs != nullptr && state_.alt_pairs->count != 0U
+                            && state_.alt_pairs->nibbles
+                            && alternation_wide_sample_sparse(text, start, *state_.alt_pairs, match_at);
         }
-        if (!state_.alt_density.dense) {
+        if (!density.dense) {
           return std::nullopt;
         }
 #  if defined(REAL_TEST_INSTRUMENT)
@@ -6406,23 +6469,20 @@ namespace real::detail {
       }) {
         const pattern_hints& h {prog_.hints};
         if (h.fixed_alternation || h.anchored_start || h.rare_disc >= 0 || h.prefix_size >= 2 || h.rare_byte >= 0
-            || h.single_first >= 0 || h.line_anchored || !h.first_bytes_valid || alternation_pairs_disabled()
+            || h.single_first >= 0 || h.line_anchored != 0U || !h.first_bytes_valid || alternation_pairs_disabled()
             || alternation_nibbles_disabled()) {
           return nullptr;
         }
-        if (state_.alt_text != static_cast<const void*>(text.data())) {
-          state_.alt_density = {}; // a fresh haystack: sampled anew
-          state_.alt_text    = static_cast<const void*>(text.data());
-        }
-        if (!state_.alt_density.decided) {
+        alternation_density& density {alternation_density_for(text)};
+        if (!density.decided) {
           if (start >= text.size() || text.size() - start < alternation_sample_min) {
             return nullptr; // a short rest: the first bytes, and a longer rest may still sample
           }
           if (state_.alt_pairs == nullptr) {
             state_.alt_pairs = alternation_pairs_ready();
           }
-          state_.alt_density.decided = true;
-          state_.alt_density.dense   = false;
+          density.decided = true;
+          density.dense   = false;
           if (state_.alt_pairs != nullptr && state_.alt_pairs->count != 0U && state_.alt_pairs->nibbles) {
             // Worth it where the first bytes stop often and the fingerprint rarely: the same rule the
             // alternation's own fingerprint takes a subject by (alternation_plan_decide).
@@ -6438,11 +6498,11 @@ namespace real::detail {
                 marked += h.first_bytes.test(static_cast<std::uint8_t>(at[first_lane(m)])) ? 1U : 0U;
               }
             }
-            state_.alt_density.dense = first * alternation_dense_gap_nibbles > alternation_sample_bytes
-                                       && marked * 2U < first;
+            density.dense = first * alternation_dense_gap_nibbles > alternation_sample_bytes
+                            && marked * 2U < first;
           }
         }
-        if (!state_.alt_density.dense) {
+        if (!density.dense) {
           return nullptr;
         }
 #  if defined(REAL_TEST_INSTRUMENT)
@@ -6841,14 +6901,10 @@ namespace real::detail {
       // bodies, dead weight on whichever ISA a given CI runner isn't; see simd_fixed_shape_scan's
       // comment for the same fix applied there). Scalar tail (< 16, the net-0-33 pins this boundary).
       if (!std::is_constant_evaluated() && prog_.hints.small_set_size >= 2 && prog_.hints.small_set_size <= 8) {
-        const std::size_t           cnt {prog_.hints.small_set_size};
-        std::array<std::uint8_t, 8> mem {};
-        for (std::size_t i = 0; i < mem.size(); ++i) {
-          // The unused slots repeat a member, for the unrolled eight-way compare.
-          mem[i] = static_cast<std::uint8_t>(prog_.hints.small_set[i < cnt ? i : 0]);
-        }
-        const std::size_t sz  {text.size()};
-        std::size_t       pos {start};
+        const std::size_t                 cnt {prog_.hints.small_set_size};
+        const std::array<std::uint8_t, 8> mem {std::bit_cast<std::array<std::uint8_t, 8>>(prog_.hints.small_set)}; // spare lanes repeat a member
+        const std::size_t                 sz  {text.size()};
+        std::size_t                       pos {start};
         // A subject whose first bytes are dense goes to each branch's byte pair, out of line; the others keep
         // the first-byte loop exactly as it was.
         if (const alternation_pairs* pairs {alternation_plan(text, pos, mem, cnt)}; pairs != nullptr) {
@@ -6898,6 +6954,31 @@ namespace real::detail {
         return fail();
       }
       return true;
+    }
+
+    /*!
+     * \brief Whether `run()`'s cascade would hand this subject's search at \p start to the Aho-Corasick automaton
+     *        rather than to `run_alternation`: the gate's conditions in the same order, on the same per-subject
+     *        state, whose verdicts are sticky, so that a batched walk (\ref fill_alternation_spans) asks once and
+     *        never overrules a routing decision that was measured. The fingerprint `run()` tries first needs
+     *        more first bytes than the small set holds, which that walk's eligibility excludes.
+     * \param[in] text  The subject.
+     * \param[in] start Where the walk begins.
+     * \return True when the automaton would take the subject.
+     */
+    [[nodiscard]] bool alternation_automaton_claims(std::string_view text,
+                                                    std::size_t      start)
+    {
+      if constexpr (requires { State::supports_aho_corasick; }) {
+        return !aho_corasick_route_disabled() && prog_.hints.alternation_branch_count >= ac_branch_floor
+               && !alternation_filter_takes(text, start) && ac_density_favours_automaton(text, start)
+               && ac_ready() != nullptr;
+      }
+      else {
+        static_cast<void>(text);
+        static_cast<void>(start);
+        return false;
+      }
     }
 
     /*!
@@ -6953,15 +7034,11 @@ namespace real::detail {
                                 pc = static_cast<std::size_t>(code[pc].secondary_target);
                               }
                             };
-      const std::size_t           cnt {prog_.hints.small_set_size};
-      std::array<std::uint8_t, 8> mem {};
-      for (std::size_t i = 0; i < mem.size(); ++i) {
-        // The unused slots repeat a member, for the unrolled eight-way compare.
-        mem[i] = static_cast<std::uint8_t>(prog_.hints.small_set[i < cnt ? i : 0]);
-      }
-      const std::size_t sz                 {text.size()};
-      std::size_t       n                  {0};
-      std::size_t       pos                {start};
+      const std::size_t                 cnt                {prog_.hints.small_set_size};
+      const std::array<std::uint8_t, 8> mem                {std::bit_cast<std::array<std::uint8_t, 8>>(prog_.hints.small_set)}; // spare lanes repeat a member
+      const std::size_t                 sz                 {text.size()};
+      std::size_t                       n                  {0};
+      std::size_t                       pos                {start};
 #if defined(__ARM_NEON) || defined(__SSE2__)
       // Decided once for the whole fill, not per span: matches may be only bytes apart.
       const alternation_pairs* const pairs {std::is_constant_evaluated() ? nullptr : alternation_plan(text, pos, mem, cnt)};
@@ -7831,17 +7908,22 @@ namespace real::detail {
       if (hints.single_first >= 0) {
         return find_byte(text, pos, static_cast<char>(hints.single_first));
       }
-      if (hints.line_anchored && pos != start) {
+      if (hints.line_anchored != 0U && pos != start) {
         // A line start whose first byte no match can begin with is no candidate: skip to the next line
         // rather than hand it to a seed or a walk that fails there. `(?m)^\w+` over prose whose lines start
         // with a space paid a DFA walk's setup per line for nothing.
         std::size_t from {pos - 1};
         while (true) {
-          const std::size_t nl {find_byte(text, from, '\n')};
+          // An ECMAScript line (line_anchored 2) also ends at `\r`: both bytes in one pass.
+          const std::size_t nl {hints.line_anchored == 2U ? find_line_end_cr(text, from) : find_byte(text, from, '\n')};
           if (nl == npos) {
             return npos;
           }
-          const std::size_t cand {nl + 1};
+          std::size_t cand {nl + 1};
+          if (hints.line_anchored == 2U && text[nl] == '\r' && cand < text.size() && text[cand] == '\n'
+              && hints.first_bytes_valid && !hints.first_bytes.test(std::uint8_t {'\n'})) {
+            ++cand; // `\r\n`: the empty line between them starts no match that cannot begin with `\n`
+          }
           if (!hints.first_bytes_valid || cand >= text.size()
               || hints.first_bytes.test(static_cast<std::uint8_t>(text[cand]))) {
             return cand;
@@ -8007,6 +8089,7 @@ namespace real::detail {
                                OutSlots&        out_slots)
     {
       prof::tick_event(prof::event::bounded_backtrack);
+      note_bounded_backtrack();
       backtrack_frame   frame;
       const std::size_t size {text.size()};
       const bool        cf   {prog_.hints.capture_free_walk};
@@ -8297,9 +8380,11 @@ namespace real::detail {
           switch (static_cast<assert_kind>(instruction.arg8)) {
             case assert_kind::text_start:
             case assert_kind::line_start:
+            case assert_kind::line_start_cr:
               break; // looks left only
             case assert_kind::text_end:
             case assert_kind::line_end:
+            case assert_kind::line_end_cr:
               open = pos >= size;
               break;
             case assert_kind::text_end_or_final_newline:
@@ -8988,6 +9073,9 @@ namespace real::detail {
       table.text = text_.data();
       table.size = text_.size();
       table.holds.assign((text_.size() / 64U) + 1U, 0U);
+      if (!std::is_constant_evaluated()) {
+        note_ahead_table_rows(text_.size() + 1U);
+      }
       after->assign(width, 0U); // past the end: no consuming instruction can proceed
       const auto at {[&](std::int32_t pc) -> std::uint8_t& {
                        return (*here)[static_cast<std::size_t>(pc - base)];
@@ -9111,6 +9199,9 @@ namespace real::detail {
         sub_add_thread(walk.threads, sub.code_offset, origin, walk.holds);
       }
       thread_list& next {scratch.lists[1]};
+      if (!std::is_constant_evaluated() && walk.at < pos) {
+        note_behind_walk_steps(pos - walk.at);
+      }
       while (walk.at < pos) {
         const std::size_t p          {walk.at};
         const auto        byte_value {static_cast<std::uint8_t>(text_[p])};

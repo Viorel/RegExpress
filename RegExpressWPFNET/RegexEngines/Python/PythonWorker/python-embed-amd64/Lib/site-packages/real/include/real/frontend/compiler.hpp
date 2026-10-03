@@ -1312,13 +1312,18 @@ namespace real::detail {
       assert_kind result    {};
       switch (anchor) {
         case anchor_kind::caret:
-          result = multiline ? assert_kind::line_start : assert_kind::text_start;
+          if (multiline) {
+            result = has_flag(flags_, flags::ecma) ? assert_kind::line_start_cr : assert_kind::line_start;
+          }
+          else {
+            result = assert_kind::text_start;
+          }
           break;
         case anchor_kind::dollar:
           // Default (Python): `$` matches at end OR just before a final `\n`. With the ecma OR dollar_endonly
           // flag, `$` (no multiline) matches only at the very end — ECMAScript / Rust (`\z`) semantics.
           if (multiline) {
-            result = assert_kind::line_end;
+            result = has_flag(flags_, flags::ecma) ? assert_kind::line_end_cr : assert_kind::line_end;
           }
           else if (has_flag(flags_, flags::ecma) || has_flag(flags_, flags::dollar_endonly)) {
             result = assert_kind::text_end;
@@ -1689,6 +1694,7 @@ namespace real::detail {
         throw regex_error("nested lookaround is not supported", 0, error_kind::unsupported);
       }
       const std::int32_t lmax {l_max_bytes(node.child)};
+      static_assert(max_lookaround_length == 255, "the two messages below name the bound");
       if (lmax < 0 && node.direction == look_dir::behind) {
         // Names the rewrite, not just the constraint: `(?=.*[A-Z])` is the shape people arrive with,
         // and "use a fixed repeat count" does not tell them `.*` becomes `.{0,N}`. The ceiling is
@@ -1699,7 +1705,10 @@ namespace real::detail {
                           0, error_kind::unsupported);
       }
       if (lmax > max_lookaround_length) {
-        throw regex_error("lookaround sub-pattern too long", 0, error_kind::unsupported);
+        // Says the unit: the bound is in bytes, and a non-ASCII character takes two to four of them.
+        throw regex_error("lookaround sub-pattern too long (it may match at most 255 bytes; a non-ASCII "
+                          "character takes up to 4)",
+                          0, error_kind::unsupported);
       }
       const std::size_t sub_id {prog.lookarounds.size()};
       if (sub_id > 0xFFFF) {

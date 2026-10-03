@@ -21,15 +21,44 @@
  *        serve the pattern, and by `std::regex` otherwise, never by a silent divergence.
  */
 namespace real::compat {
+  namespace detail {
+
+    /*!
+     * \brief What a `regex_iterator` over contiguous storage keeps of its range for REAL: nothing, REAL
+     *        searches the range where it lies.
+     */
+    struct in_place_subject
+    {};
+
+    /*!
+     * \brief What a `regex_iterator` over a non-contiguous range keeps for REAL: the range's ONE copy, shared by
+     *        the copies of the iterator (a post-increment copies), and the cursor that maps its offsets back.
+     *        Shared and on the heap because the walker's view points into it: a copy held by value would move
+     *        with the iterator, and a short one moves its characters along.
+     * \tparam BidirIt The caller's iterator.
+     */
+    template <typename BidirIt>
+    struct copied_subject
+    {
+      std::shared_ptr<const std::string> text; //!< The copy of `[begin_, end_)`.
+      offset_cursor<BidirIt>             at;   //!< At the last offset mapped; never past the next match.
+    };
+
+    //! \brief The subject a `regex_iterator` over \p BidirIt keeps for REAL.
+    template <typename BidirIt>
+    using subject_for = std::conditional_t<std::contiguous_iterator<BidirIt>, in_place_subject, copied_subject<BidirIt>>;
+  } // namespace detail
+
   /*!
    * \brief Iterates the non-overlapping matches of a pattern in a sequence (`std::regex_iterator`).
    *
    * Same per-operation routing as `regex_replace` — a real-backed pattern drives `real`'s traversal,
    * which advances past an empty match as [re.regiter.incr] does (see
    * `basic_regex::uses_real_traversal`); the std backend, a constraining flag and a nullable POSIX
-   * pattern wrap `std::regex_iterator`. The default-constructed iterator is the end sentinel.
+   * pattern wrap `std::regex_iterator`. The default-constructed iterator is the end sentinel. Over a
+   * non-contiguous range REAL walks one copy of it, made by the constructor and shared by the copies.
    *
-   * \tparam BidirIt A contiguous iterator into the searched sequence.
+   * \tparam BidirIt A bidirectional iterator into the searched sequence.
    */
   template <typename BidirIt,
             typename CharT  = typename std::iterator_traits<BidirIt>::value_type,
@@ -70,6 +99,9 @@ namespace real::compat {
       if constexpr (detail::real_eligible<CharT, Traits>) {
         if (re.uses_real_traversal() && detail::real_honors(flags)) {
           real_path_ = true;
+          if constexpr (!std::contiguous_iterator<BidirIt>) {
+            subject_ = {.text = std::make_shared<const std::string>(first, last), .at = {first, 0}};
+          }
           next_real();
           return;
         }
@@ -90,7 +122,7 @@ namespace real::compat {
      * \param[in] other The iterator to copy.
      */
     regex_iterator(const regex_iterator& other)
-      : begin_(other.begin_), end_(other.end_), re_(other.re_), flags_(other.flags_),
+      : subject_(other.subject_), begin_(other.begin_), end_(other.end_), re_(other.re_), flags_(other.flags_),
         real_path_(other.real_path_), real_pos_(other.real_pos_), matched_(other.matched_),
         last_empty_(other.last_empty_), std_it_(other.std_it_), match_(other.match_), at_end_(other.at_end_)
     {}
@@ -104,6 +136,7 @@ namespace real::compat {
     {
       if (this != &other) {
         walker_.reset(); // rebuilt on the next advance, from real_pos_
+        subject_    = other.subject_;
         begin_      = other.begin_;
         end_        = other.end_;
         re_         = other.re_;
@@ -221,18 +254,19 @@ namespace real::compat {
     //!        the source of truth, so a null walker costs correctness nothing and only speed.
     using walker_type = real::basic_match_iterator<real::detail::dynamic_storage>;
 
-    std::unique_ptr<walker_type>                walker_;                                      //!< Owned, never copied -- see the copy constructor.
-    BidirIt                                     begin_      {};                               //!< Start of the sequence.
-    BidirIt                                     end_        {};                               //!< End of the sequence.
-    const regex_type*                           re_         {nullptr};                        //!< The pattern, borrowed.
-    regex_constants::match_flag_type            flags_      {regex_constants::match_default}; //!< Match flags this iteration was built with.
-    bool                                        real_path_  {false};                          //!< Whether the REAL engine drives the traversal rather than the std backend.
-    std::size_t                                 real_pos_   {};                               //!< REAL path: byte offset the next region search starts at.
-    std::size_t                                 matched_    {};                               //!< REAL path: matches made so far, counted up to 2 (the first one is the one the standard retries without context).
-    bool                                        last_empty_ {};                               //!< REAL path: the current match is empty.
-    std::optional<std::regex_iterator<BidirIt>> std_it_;                                      //!< std path: the wrapped iterator (engaged only off the REAL path).
-    value_type                                  match_;                                       //!< The current match, refilled by each increment.
-    bool                                        at_end_ {true};                               //!< Whether this is the end sentinel.
+    [[no_unique_address]] detail::subject_for<BidirIt> subject_;                                     //!< Non-contiguous range: the copy REAL walks; declared before the walker, which views it.
+    std::unique_ptr<walker_type>                       walker_;                                      //!< Owned, never copied -- see the copy constructor.
+    BidirIt                                            begin_      {};                               //!< Start of the sequence.
+    BidirIt                                            end_        {};                               //!< End of the sequence.
+    const regex_type       *                           re_         {nullptr};                        //!< The pattern, borrowed.
+    regex_constants::match_flag_type                   flags_      {regex_constants::match_default}; //!< Match flags this iteration was built with.
+    bool                                               real_path_  {false};                          //!< Whether the REAL engine drives the traversal rather than the std backend.
+    std::size_t                                        real_pos_   {};                               //!< REAL path: byte offset the next region search starts at.
+    std::size_t                                        matched_    {};                               //!< REAL path: matches made so far, counted up to 2 (the first one is the one the standard retries without context).
+    bool                                               last_empty_ {};                               //!< REAL path: the current match is empty.
+    std::optional<std::regex_iterator<BidirIt>>        std_it_;                                      //!< std path: the wrapped iterator (engaged only off the REAL path).
+    value_type                                         match_;                                       //!< The current match, refilled by each increment.
+    bool                                               at_end_ {true};                               //!< Whether this is the end sentinel.
 
     /*!
      * \brief Advances the real path: one step of the walker, built on first use at \ref real_pos_.
@@ -251,8 +285,13 @@ namespace real::compat {
      */
     void next_real()
     {
-      const std::string_view sv     {std::to_address(begin_),
-                                     static_cast<std::size_t>(std::distance(begin_, end_))};
+      std::string_view       sv;
+      if constexpr (std::contiguous_iterator<BidirIt>) {
+        sv = {std::to_address(begin_), static_cast<std::size_t>(std::distance(begin_, end_))};
+      }
+      else {
+        sv = *subject_.text;
+      }
       // A POSIX grammar on REAL drives the iteration with leftmost-longest bounds; the ECMAScript
       // default keeps leftmost-first.
       const real::regex&     engine {std::get<real::regex>(re_->engine())};
@@ -310,9 +349,17 @@ namespace real::compat {
     void emit(const RealMatch& result)
     {
       match_.reset(begin_, end_);
-      match_.fill_from_real(result);
       // Iteration: the prefix runs from the previous match end (== real_pos_ here), not the start.
-      match_.rebase_prefix(begin_ + static_cast<difference_type>(real_pos_));
+      if constexpr (std::contiguous_iterator<BidirIt>) {
+        match_.fill_from_real(result);
+        match_.rebase_prefix(begin_ + static_cast<difference_type>(real_pos_));
+      }
+      else {
+        // real_pos_ is the smallest offset this match maps: the cursor walks forward from it, once.
+        const BidirIt prefix_first {subject_.at.to(real_pos_)};
+        match_.fill_from_real_at(result, subject_.at);
+        match_.rebase_prefix(prefix_first);
+      }
       real_pos_   = result.end(0);
       last_empty_ = result.start(0) == result.end(0);
       matched_    = matched_ < 2 ? matched_ + 1 : matched_;
@@ -352,7 +399,7 @@ namespace real::compat {
    * **iff it is non-empty** (std's rule; an empty field *between* adjacent matches is still produced,
    * the asymmetry std pins). With `-1` and no match at all, the whole sequence is the single token.
    *
-   * \tparam BidirIt A contiguous iterator into the searched sequence.
+   * \tparam BidirIt A bidirectional iterator into the searched sequence.
    */
   template <typename BidirIt,
             typename CharT  = typename std::iterator_traits<BidirIt>::value_type,
@@ -442,6 +489,28 @@ namespace real::compat {
     {}
 
     /*!
+     * \brief Selects the fields of a C array (e.g. `const int fields[] {1, 2}`).
+     * \tparam N The number of fields.
+     * \param[in] first      Start of the character sequence.
+     * \param[in] last       End of the character sequence.
+     * \param[in] re         The pattern; it must outlive this iterator.
+     * \param[in] submatches The fields to cycle through.
+     * \param[in] flags      Match flags, defaulting to \c regex_constants::match_default.
+     */
+    template <std::size_t N>
+    regex_token_iterator(BidirIt                          first,
+                         BidirIt                          last,
+                         const regex_type&                re,
+                         const int (&submatches)[N],
+                         regex_constants::match_flag_type flags = regex_constants::match_default)
+      : regex_token_iterator(first,
+                             last,
+                             re,
+                             std::vector<int>(std::begin(submatches), std::end(submatches)),
+                             flags)
+    {}
+
+    /*!
      * \brief Constructing from a temporary regex would dangle (std::regex_token_iterator parity).
      */
     regex_token_iterator(BidirIt                          first,
@@ -453,6 +522,17 @@ namespace real::compat {
                          BidirIt                          last,
                          const regex_type&&               re,
                          const std::vector<int>&          submatches,
+                         regex_constants::match_flag_type flags = regex_constants::match_default) = delete; //!< \overload
+    regex_token_iterator(BidirIt                          first,
+                         BidirIt                          last,
+                         const regex_type&&               re,
+                         std::initializer_list<int>       submatches,
+                         regex_constants::match_flag_type flags = regex_constants::match_default) = delete; //!< \overload
+    template <std::size_t N>
+    regex_token_iterator(BidirIt                          first,
+                         BidirIt                          last,
+                         const regex_type&&               re,
+                         const int (&submatches)[N],
                          regex_constants::match_flag_type flags = regex_constants::match_default) = delete; //!< \overload
 
     /*!

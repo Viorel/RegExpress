@@ -9,6 +9,7 @@
 
 #include "real/version.hpp"
 
+#include <cassert>
 #include <iterator>
 #include <optional>
 #include <span>
@@ -599,7 +600,7 @@ namespace real {
       bool batchable {};
       batchable = !std::is_constant_evaluated() && sem == match_semantics::first
                   && !detail::class_fastpath_disabled()
-                  && !prog.hints.anchored_start && !prog.hints.line_anchored;
+                  && !prog.hints.anchored_start && prog.hints.line_anchored == 0U;
       // A KEPT `\b`/`\B` wrap is handled by the BYTE class filler and by nothing else, so the other
       // routes still require its absence. The assertion is one a word-SUBSET class genuinely needs: a
       // maximal `[a-z]+` run can start after `_` or a digit, so unlike `\b\w+\b`'s this one is not
@@ -641,17 +642,13 @@ namespace real {
       // route declines rather than growing a second body there). Its cost is almost entirely per MATCH
       // rather than per byte, which is what makes batching it worth a route at all.
       // fixed_alternation already excludes captures and asserts by construction, so slot_count is 2.
-      // Branch count BELOW the Aho-Corasick floor, and that bound is the load-bearing one. The AC
-      // gate is consulted inside `run()`, which a batched walk bypasses entirely, so batching a
-      // shape the gate could claim would silently overrule a routing decision that was measured --
-      // and the gate takes the automaton below twelve branches too when the subject is dense enough
-      // (tests/engine/test_ac_density_gate.cpp pins exactly that). Under four branches the automaton
-      // is never considered at all, so nothing is overruled. That subset is also the common one and
-      // contains §A's own `alt the|fox|dog` row. Batching the AC route is a separate piece of work,
-      // not a widening of this condition.
+      // From \ref detail::pike_vm::ac_branch_floor branches up, `run()` may hand the subject to the
+      // Aho-Corasick automaton instead, on the subject's own density, and a batched walk bypasses that gate;
+      // so the first refill asks the cascade the same question on the same state
+      // (pike_vm::alternation_automaton_claims, whose verdicts are sticky per subject) and, where the
+      // automaton would take it, disarms the batch for the walk and leaves every search to `run()`.
       batch_alt_       = batchable && no_wrap && prog.hints.fixed_alternation
                          && prog.hints.alternation_branch_count > 0
-                         && prog.hints.alternation_branch_count < 4
                          && prog.hints.small_set_size >= 2 && prog.hints.small_set_size <= 8
                          && prog.hints.greedy_class_loop < 0 && prog.hints.greedy_cp_class < 0
                          && prog.hints.codepoint_class_ascii < 0 && prog.hints.single_class < 0;
@@ -720,6 +717,7 @@ namespace real {
                          && detail::pike_vm<typename Storage::state_type, true>::inner_literal_is_the_route(prog);
       batch_fixed_     = batchable && prog.slot_count == 2 && !prog.hints.empty_match_possible
                          && detail::pike_vm<typename Storage::state_type, true>::fixed_shape_is_the_route(prog);
+      batch_alt_asks_  = batch_alt_;
       batch_eligible_  = batch_bytes_ || batch_cp_ascii_ || batch_single_cl_ || cp_class || batch_alt_
                          || batch_lazy_dfa_ || batch_exact_lit_ || batch_inner_lit_ || batch_fixed_;
     }
@@ -886,6 +884,7 @@ namespace real {
     //! \brief Batch the fixed-alternation route (\ref real::detail::pike_vm::fill_alternation_spans).
     //!        Its per-match return was 99 % of the row at density -- see that filler's own note.
     bool                                                                  batch_alt_        {};
+    bool                                                                  batch_alt_asks_   {}; //!< The alternation batch has yet to ask whether the automaton takes the subject.
     //! \brief Batch the lazy-DFA route (%pike.hpp's `fill_lazy_dfa_spans`) — the fifth, and the
     //!        one shape recognition never reaches.
     bool                                                                  batch_lazy_dfa_   {};
@@ -975,6 +974,17 @@ namespace real {
         batch_n_ = bvm.fill_single_class_spans(text_, pos_, batch_, batch_cap);
       }
       else if (batch_alt_) {
+        if (batch_alt_asks_) {
+          batch_alt_asks_ = false;
+          if (bvm.alternation_automaton_claims(text_, pos_)) {
+            // The automaton takes this subject: every search goes through `run()`, which hands it there.
+            batch_alt_      = false;
+            batch_eligible_ = false;
+            batch_partial_  = true;
+            batch_n_        = 0;
+            return false;
+          }
+        }
         detail::prof::tick_route(detail::prof::route::alternation);
         batch_n_ = bvm.fill_alternation_spans(text_, pos_, batch_, batch_cap);
       }
@@ -1210,15 +1220,19 @@ namespace real {
 
   namespace detail {
     /*!
-     * \brief A C string as a subject; a null pointer reads as the empty subject, as the C API treats it, where
-     *        constructing a `std::string_view` from it is undefined.
-     * \param[in] text A NUL-terminated string, or null.
+     * \brief A C string as a subject. A null pointer is a caller's bug: a debug build stops on it, and a release
+     *        build reads it as the empty subject, as the C API does, where constructing a `std::string_view` from
+     *        it is undefined.
+     * \param[in] text A NUL-terminated string; null only by mistake.
      * \return The view.
      */
     [[nodiscard]] constexpr std::string_view c_string_subject(const char* text) noexcept
     {
+      assert(text != nullptr && "a null C string: pass \"\" for an empty subject");
       return text == nullptr ? std::string_view {} : std::string_view {text};
     }
+
+    struct non_empty_access;
   } // namespace detail
 
   /*!
@@ -1983,6 +1997,9 @@ namespace real {
      * Lets an embedder (e.g. the Python binding) drive `detail::pike_vm` with
      * caller-owned reusable scratch. Valid as long as this regex is alive.
      *
+     * \warning An advanced, unstable extension point for bindings and embedders: \ref detail::program_view is
+     *          an implementation type, and its members may change in any release. Code that only matches has no
+     *          use for it.
      * \return A non-owning \ref detail::program_view.
      */
     [[nodiscard]] constexpr detail::program_view raw_program() const
@@ -2444,6 +2461,38 @@ namespace real {
       return out;
     }
 
+    friend struct detail::non_empty_access;
+
+    /*!
+     * \brief \ref run that accepts no empty match: the leftmost position where a non-empty match starts, and there
+     *        the match the leftmost-first priority prefers among the non-empty ones (`match_not_null`). The DFAs do
+     *        not model the rule, so the VM decides the search; it stays linear. Kept apart from \ref run, whose
+     *        every caller is a hot path.
+     * \param[in] text The subject (must outlive the result).
+     * \param[in] pos  Byte offset to start at.
+     * \param[in] mode Search, or anchored at \p pos (prefix).
+     * \return The match result, with offsets absolute in \p text.
+     */
+    [[nodiscard]] result_type run_non_empty(std::string_view text,
+                                            std::size_t      pos,
+                                            detail::run_mode mode) const
+    {
+      if (pos > text.size()) {
+        return result_type {};
+      }
+      typename Storage::state_type                        state;
+      const detail::program_view&                         prog    {program_.view()};
+      result_type                                         out     {text, pattern(), prog.names};
+      detail::pike_vm<typename Storage::state_type, true> vm(prog, state);
+      const std::size_t                                   nowhere {text.size() + 1}; // empty refused everywhere
+      const bool                                          matched {
+        prog.hints.stop_set_size >= 1
+          ? vm.template run<true>(text, pos, mode, out.engine_slots(), nowhere, match_semantics::first)
+          : vm.template run<false>(text, pos, mode, out.engine_slots(), nowhere, match_semantics::first)};
+      out.engine_set_matched(matched);
+      return out;
+    }
+
   public:
 
     /*!
@@ -2575,6 +2624,47 @@ namespace real {
    * \brief The runtime-compiled regex type — the primary entry point.
    */
   using regex = basic_regex<detail::dynamic_storage>;
+
+  namespace detail {
+    /*!
+     * \brief The searches that accept no empty match (`std::regex_constants::match_not_null`), for the std drop-in;
+     *        not part of REAL's own interface.
+     */
+    struct non_empty_access
+    {
+      /*!
+       * \brief Leftmost search from \p pos that accepts no empty match.
+       * \tparam Storage The regex's storage policy.
+       * \param[in] re   The pattern.
+       * \param[in] text The subject (must outlive the result).
+       * \param[in] pos  Byte offset to start at; the text before it is context.
+       * \return The match, offsets absolute in \p text.
+       */
+      template <typename Storage>
+      [[nodiscard]] static auto search(const basic_regex<Storage>& re,
+                                       std::string_view            text,
+                                       std::size_t                 pos)
+      {
+        return re.run_non_empty(text, pos, run_mode::search);
+      }
+
+      /*!
+       * \brief Match anchored at \p pos that accepts no empty match.
+       * \tparam Storage The regex's storage policy.
+       * \param[in] re   The pattern.
+       * \param[in] text The subject (must outlive the result).
+       * \param[in] pos  Byte offset the match starts at; the text before it is context.
+       * \return The match, offsets absolute in \p text.
+       */
+      template <typename Storage>
+      [[nodiscard]] static auto match(const basic_regex<Storage>& re,
+                                      std::string_view            text,
+                                      std::size_t                 pos)
+      {
+        return re.run_non_empty(text, pos, run_mode::prefix);
+      }
+    };
+  } // namespace detail
 
   /*!
    * \brief The result type of the default, runtime-compiled \ref real::regex.

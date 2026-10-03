@@ -40,12 +40,13 @@ namespace real::detail {
   /*!
    * \brief Prefilter work counter for the O(n) vs O(n²) smoke test.
    *        Always declared (clang-tidy / tests see the symbol). Billing is a no-op unless
-   *        \c REAL_TEST_INSTRUMENT is defined on the test binary — wheel/prod pay nothing.
+   *        \c REAL_TEST_INSTRUMENT is defined on the test binary — wheel/prod pay nothing. Relaxed atomic,
+   *        as the other counters: threads searching at once bill it concurrently.
    * \return A reference to the process-wide counter.
    */
-  inline std::uint64_t& prefilter_work_units() noexcept
+  inline std::atomic<std::uint64_t>& prefilter_work_units() noexcept
   {
-    static std::uint64_t units {0};
+    static std::atomic<std::uint64_t> units {0};
     return units;
   }
 
@@ -57,7 +58,7 @@ namespace real::detail {
   inline void prefilter_note_scan(std::size_t n) noexcept
   {
 #if defined(REAL_TEST_INSTRUMENT)
-    prefilter_work_units() += static_cast<std::uint64_t>(n);
+    prefilter_work_units().fetch_add(static_cast<std::uint64_t>(n), std::memory_order_relaxed);
 #else
     (void) n;
 #endif
@@ -82,6 +83,27 @@ namespace real::detail {
   {
 #if defined(REAL_TEST_INSTRUMENT)
     vm_window_runs().fetch_add(1, std::memory_order_relaxed);
+#endif
+  }
+
+  /*!
+   * \brief Bounded-backtracker runs, counted for the tests that pin which windows it fills rather than the VM.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& bounded_backtrack_runs() noexcept
+  {
+    static std::atomic<std::uint64_t> runs {0};
+    return runs;
+  }
+
+  /*!
+   * \brief Bill one bounded-backtracker run to \ref bounded_backtrack_runs. A no-op unless the test binary
+   *        defines \c REAL_TEST_INSTRUMENT.
+   */
+  inline void note_bounded_backtrack() noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    bounded_backtrack_runs().fetch_add(1, std::memory_order_relaxed);
 #endif
   }
 
@@ -305,6 +327,52 @@ namespace real::detail {
   {
 #if defined(REAL_TEST_INSTRUMENT)
     alternation_pair_candidates().fetch_add(1, std::memory_order_relaxed);
+#endif
+  }
+
+  /*!
+   * \brief Rows the unbounded-lookahead tables were filled with: one per position of each subject a table was
+   *        built for, counted for the test that pins one pass per subject rather than one per position.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& ahead_table_rows() noexcept
+  {
+    static std::atomic<std::uint64_t> rows {0};
+    return rows;
+  }
+
+  /*!
+   * \brief Bill \p rows table rows to \ref ahead_table_rows. A no-op unless the test binary defines
+   *        \c REAL_TEST_INSTRUMENT.
+   * \param[in] rows The rows one fill wrote.
+   */
+  inline void note_ahead_table_rows([[maybe_unused]] std::size_t rows) noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    ahead_table_rows().fetch_add(rows, std::memory_order_relaxed);
+#endif
+  }
+
+  /*!
+   * \brief Bytes the lookbehind walks stepped, counted for the test that pins one step per byte and search
+   *        whatever the lookbehind's bound, rather than one window per start.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& behind_walk_steps() noexcept
+  {
+    static std::atomic<std::uint64_t> steps {0};
+    return steps;
+  }
+
+  /*!
+   * \brief Bill \p steps walk steps to \ref behind_walk_steps. A no-op unless the test binary defines
+   *        \c REAL_TEST_INSTRUMENT.
+   * \param[in] steps The bytes one query stepped.
+   */
+  inline void note_behind_walk_steps([[maybe_unused]] std::size_t steps) noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    behind_walk_steps().fetch_add(steps, std::memory_order_relaxed);
 #endif
   }
 
@@ -894,7 +962,15 @@ namespace real::detail {
     if (code[pc].op == opcode::assert_position) {
       const auto kind {static_cast<assert_kind>(code[pc].arg8)};
       hints.anchored_start = kind == assert_kind::text_start;
-      hints.line_anchored  = kind == assert_kind::line_start;
+      if (kind == assert_kind::line_start) {
+        hints.line_anchored = 1U;
+      }
+      else if (kind == assert_kind::line_start_cr) {
+        hints.line_anchored = 2U; // an ECMAScript line also starts after `\r`
+      }
+      else {
+        hints.line_anchored = 0U;
+      }
     }
   }
 
@@ -2396,6 +2472,9 @@ namespace real::detail {
         hints.single_first = static_cast<std::int16_t>(static_cast<unsigned char>(members[0]));
       }
       else if (count >= 2 && count <= 8) {
+        for (auto k = static_cast<std::size_t>(count); k < members.size(); ++k) {
+          members[k] = members[0]; // the block scans compare eight lanes: a spare one repeats a member
+        }
         hints.small_set      = members;
         hints.small_set_size = static_cast<std::uint8_t>(count);
       }
@@ -2488,7 +2567,7 @@ namespace real::detail {
     // run by here. See pattern_hints::literal_one_search for why this is one precomputed bit and not
     // a per-match condition chain.
     if (hints.exact_literal_len >= 2 && hints.prefix_size == hints.exact_literal_len
-        && !hints.anchored_start && !hints.line_anchored && hints.rare_disc < 0) {
+        && !hints.anchored_start && hints.line_anchored == 0U && hints.rare_disc < 0) {
       bool no_assert {true};
       for (const instr& instruction : code) {
         if (instruction.op == opcode::assert_position) {
@@ -2770,24 +2849,24 @@ namespace real::detail {
     // FASTER than memchr — the two-byte selectivity finally paying at memchr's throughput. Masks are
     // consumed in block order, and within a mask in lane order, so candidates are still visited strictly
     // left to right: the first verified hit is the leftmost, which the callers require.
+    // A round is rejected by ONE test on the OR of its four blocks (any_pair64); the per-block masks are
+    // narrowed only in a round that holds a candidate, which on NEON saves four mask moves a round.
     constexpr std::size_t unroll {4};
     while (p + (unroll * 16) <= last + 1) {
-      std::array<mask_t, unroll> masks {};
-      for (std::size_t u = 0; u < unroll; ++u) {
-        std::array<std::uint8_t, 16> blk_lead  {};
-        std::array<std::uint8_t, 16> blk_trail {};
-        std::memcpy(blk_lead.data(), base + p + (u * 16), 16); // MISRA-clean byte loads (no type-pun)
-        std::memcpy(blk_trail.data(), base + p + (u * 16) + delta, 16);
-        masks[u] = load_pair_mask(blk_lead.data(), lead, blk_trail.data(), trail);
-      }
-      for (std::size_t u = 0; u < unroll; ++u) {
-        mask_t mask {masks[u]};
-        while (!empty(mask)) {
-          const std::size_t cand {p + (u * 16) + first_lane(mask)};
-          if (std::memcmp(base + cand, literal.data(), len) == 0) {
-            return cand;
+      std::array<std::uint8_t, unroll * 16> blk_lead  {};
+      std::array<std::uint8_t, unroll * 16> blk_trail {};
+      std::memcpy(blk_lead.data(), base + p, unroll * 16); // MISRA-clean byte loads (no type-pun)
+      std::memcpy(blk_trail.data(), base + p + delta, unroll * 16);
+      if (any_pair64(blk_lead.data(), lead, blk_trail.data(), trail)) {
+        for (std::size_t u = 0; u < unroll; ++u) {
+          mask_t mask {load_pair_mask(blk_lead.data() + (u * 16), lead, blk_trail.data() + (u * 16), trail)};
+          while (!empty(mask)) {
+            const std::size_t cand {p + (u * 16) + first_lane(mask)};
+            if (std::memcmp(base + cand, literal.data(), len) == 0) {
+              return cand;
+            }
+            mask = clear_first(mask);
           }
-          mask = clear_first(mask);
         }
       }
       p += unroll * 16;
@@ -2835,6 +2914,17 @@ namespace real::detail {
     std::size_t   last   {npos}; //!< Offset of the furthest of them: a search that starts behind it counts no stop twice.
     std::size_t   rare   {npos}; //!< Offset scanned instead of the hints' one, once this subject showed it rarer.
     bool          dense  {};     //!< Sticky: the pair filter takes this subject from here on.
+  };
+
+  /*!
+   * \brief The two literal densities of one subject. A search state keeps them in a `std::optional` beside the
+   *        subject they refer to, built at its first literal search: constructing a state, which every search
+   *        does, then writes a pointer and a flag for them, not two densities.
+   */
+  struct literal_memo
+  {
+    literal_density prefix {}; //!< What the subject showed of the prefix's rarest byte.
+    literal_density inner  {}; //!< The same for the inner literal.
   };
 
   inline constexpr std::uint32_t literal_dense_min_cands {8}; //!< Stops the rarest-byte scan makes before its density is judged: fewer say nothing.
@@ -3072,6 +3162,7 @@ namespace real::detail {
     bool decided {}; //!< The sample has run on this subject.
     bool dense   {}; //!< Its first bytes stop often enough that the pair filter takes the subject.
   };
+
 
   /*!
    * \brief Whether the nibble fingerprint can run here: AArch64 always, x86 when the build enables SSSE3 or, with
@@ -3377,6 +3468,27 @@ namespace real::detail {
         if (byte == mem[i]) {
           return at;
         }
+      }
+    }
+    return npos;
+  }
+
+  /*!
+   * \brief Where an ECMAScript line ends: the index of the first `\n` or `\r` in `text[pos..)`, or \ref real::npos.
+   * \param[in] text The subject.
+   * \param[in] pos  Index to start scanning from.
+   * \return The least index at or after \p pos holding either byte, else npos.
+   */
+  constexpr std::size_t find_line_end_cr(std::string_view text,
+                                         std::size_t      pos)
+  {
+    if (!std::is_constant_evaluated()) {
+      constexpr std::array<std::uint8_t, 8> ends {'\n', '\r'};
+      return find_members(text, pos, ends, 2U);
+    }
+    for (std::size_t i {pos}; i < text.size(); ++i) {
+      if (text[i] == '\n' || text[i] == '\r') {
+        return i;
       }
     }
     return npos;

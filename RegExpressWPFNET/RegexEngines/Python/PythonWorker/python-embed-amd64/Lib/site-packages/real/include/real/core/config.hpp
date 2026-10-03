@@ -27,7 +27,7 @@ namespace real::detail {
    * Bounds the compiler's bounded-repeat unrolling: without it, nested
    * `{1000}` quantifiers expand to hundreds of millions of instructions. Caps
    * the program to a few MiB at the limit; what a match builds from it has its own bounds: per lazy DFA,
-   * per direction and per thread, 4 096 states or \ref lazy_dfa_default_byte_budget, whichever comes first;
+   * per direction and per thread, 65 536 states or \ref lazy_dfa_default_byte_budget, whichever comes first;
    * the Aho-Corasick automaton's \ref ac_memory_budget per regex.
    */
   inline constexpr std::size_t max_program_size       {262144};

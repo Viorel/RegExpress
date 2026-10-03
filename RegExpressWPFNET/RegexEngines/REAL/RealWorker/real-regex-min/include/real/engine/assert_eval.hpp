@@ -117,6 +117,12 @@ namespace real::detail {
       case assert_kind::line_end:
         result = pos == len || byte_at(pos) == '\n';
         break;
+      case assert_kind::line_start_cr:
+        result = pos == 0 || byte_at(pos - 1) == '\n' || byte_at(pos - 1) == '\r';
+        break;
+      case assert_kind::line_end_cr:
+        result = pos == len || byte_at(pos) == '\n' || byte_at(pos) == '\r';
+        break;
       case assert_kind::word_boundary:
       case assert_kind::not_word_boundary:
         {

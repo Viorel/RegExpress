@@ -864,11 +864,13 @@ namespace real::detail {
     //!        the DFA caches.
     std::atomic<const void*> rows_for {nullptr};
 
-    //! \brief The multi-literal automaton for a `fixed_alternation` past the branch threshold, or empty
+    //! \brief The multi-literal automaton for a `fixed_alternation` past the branch threshold, or null
     //!        when never built or declined (a pathological icase-fold expansion). Per REGEX, not per state:
     //!        a state is fresh per `search()`, so holding it there rebuilds the whole automaton on every
-    //!        call — a fast path costing orders of magnitude more than the route it replaces.
-    std::optional<ac_automaton> ac;
+    //!        call — a fast path costing orders of magnitude more than the route it replaces. At most one
+    //!        element, on the heap: every regex carries this object and few build an automaton, whose header
+    //!        alone is 432 bytes; a vector, not a `unique_ptr`, so that this type stays literal.
+    std::vector<ac_automaton> ac;
 
     //! \brief \c prog.code.data() \ref ac was built for, or null. Its OWN identity atomic, deliberately
     //!        not folded into \ref built_for — only the alternation route consults the automaton, and this
@@ -876,10 +878,11 @@ namespace real::detail {
     //!        cost every other route (see \ref op_table_for).
     std::atomic<const void*> ac_for {nullptr};
 
-    //! \brief The alternation's probe pairs, their splats included, or empty when never built. Per REGEX, not
+    //! \brief The alternation's probe pairs, their splats included, or null when never built. Per REGEX, not
     //!        per state: the splats are 512 bytes, and in a state that is fresh per `search()` gcc zeroed them
-    //!        with the rest of the state on every call (check-state-zeroing).
-    std::optional<alternation_pairs> alt_pairs;
+    //!        with the rest of the state on every call (check-state-zeroing). At most one element, on the heap,
+    //!        as \ref ac is, since only an alternation builds them.
+    std::vector<alternation_pairs> alt_pairs;
 
     std::atomic<const void*> alt_pairs_for {nullptr}; //!< \c prog.code.data() \ref alt_pairs was built for, or null (its own identity atomic, as \ref ac_for).
 
@@ -977,7 +980,8 @@ namespace real::detail {
      */
     void invalidate_all() noexcept
     {
-      ac.reset();
+      ac.clear();
+      ac.shrink_to_fit();
       built_for.store(nullptr, std::memory_order_relaxed);
       rows_for.store(nullptr, std::memory_order_relaxed);
       ac_for.store(nullptr, std::memory_order_relaxed);
@@ -1051,6 +1055,35 @@ namespace real::detail {
     std::optional<reverse_dfa> rev;                  //!< Reverse lazy DFA, for finding a match start from its end.
     std::optional<reverse_dfa> il_prefix_rev;        //!< Reverse DFA over the inner-literal PREFIX sub-program only.
     std::uint64_t              generation {0};       //!< The slot generation these DFAs were built under.
+
+    /*!
+     * \brief Sets alive, counted for the tests that pin when a destroyed regex's DFAs are freed.
+     * \return A reference to the process-wide counter (relaxed atomic).
+     */
+    static std::atomic<std::int64_t>& alive() noexcept
+    {
+      static std::atomic<std::int64_t> count {0};
+      return count;
+    }
+
+    shared_dfa_set()
+    {
+#if defined(REAL_TEST_INSTRUMENT)
+      alive().fetch_add(1, std::memory_order_relaxed);
+#endif
+    }
+
+    shared_dfa_set(const shared_dfa_set&)            = delete;
+    shared_dfa_set& operator=(const shared_dfa_set&) = delete;
+    shared_dfa_set(shared_dfa_set&&)                 = delete;
+    shared_dfa_set& operator=(shared_dfa_set&&)      = delete;
+
+    ~shared_dfa_set()
+    {
+#if defined(REAL_TEST_INSTRUMENT)
+      alive().fetch_sub(1, std::memory_order_relaxed);
+#endif
+    }
   };
 
   /*!
@@ -1124,34 +1157,6 @@ namespace real::detail {
     static auto* m {
       new std::unordered_map<const regex_immutables*, std::shared_ptr<shared_dfa_slot>>}; // REAL_ALLOW_STD_HASH
     return *m;
-  }
-
-  /*!
-   * \brief Retire this regex's slot (called from \c ~regex_immutables). Concurrent scans that still hold
-   *        a \c shared_ptr via TLS keep the slot object alive until they release; clearing
-   *        \ref shared_dfa_slot::owner is what makes their cached copy stop matching, so a new regex
-   *        landing on this address can never be served the retired slot.
-   *
-   * The owner store is release and \ref shared_dfa_for's check is acquire. That pairing is what a new
-   * regex at a REUSED address relies on: the allocator handing the address out again orders this
-   * erase before that construction, and a thread can only reach the new regex through some
-   * synchronization with its constructor, so the null is visible by the time it asks.
-   * The map entry drops under the lock; the last \c shared_ptr reference is released outside it.
-   * \param[in] immut The regex being destroyed, whose slot is retired.
-   */
-  inline void erase_shared_dfas(const regex_immutables* immut)
-  {
-    std::shared_ptr<shared_dfa_slot> retired;
-    {
-      const std::lock_guard<std::mutex> lock  {shared_dfa_map_mu()};
-      const auto                        found {shared_dfa_map().find(immut)};
-      if (found == shared_dfa_map().end()) {
-        return; // this regex never took a DFA route — nothing was ever inserted
-      }
-      retired = std::move(found->second);
-      shared_dfa_map().erase(found);
-    }
-    retired->owner.store(nullptr, std::memory_order_release);
   }
 
   /*!
@@ -1282,6 +1287,20 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Frees this thread's cached set if it came from \p slot and no lease holds it: the slot's regex is
+     *        gone, so no lease will ask for it again.
+     * \param[in] slot The retired slot.
+     */
+    static void drop_thread_set(const shared_dfa_slot& slot) noexcept
+    {
+      cache& mine {thread_cache()};
+      if (!mine.busy && mine.slot.get() == &slot) {
+        mine.set.reset();
+        mine.slot.reset();
+      }
+    }
+
+    /*!
      * \brief The leased set.
      * \return The set.
      */
@@ -1394,7 +1413,11 @@ namespace real::detail {
     {
       try {
         const std::lock_guard<std::mutex> lock {slot.pool_mu};
-        slot.free.push_back(std::move(set));
+        // Checked under the pool's lock, which the retiring erase takes after it clears the owner: a set given
+        // back after the drain sees the null and is freed with `set`, never pooled on a slot nothing reads.
+        if (slot.owner.load(std::memory_order_acquire) != nullptr) {
+          slot.free.push_back(std::move(set));
+        }
       }
       catch (...) { // NOLINT(bugprone-empty-catch) -- the set is freed with `set`; see above
       }
@@ -1406,6 +1429,44 @@ namespace real::detail {
     std::shared_ptr<shared_dfa_slot> nested_slot_;          //!< The slot of a nested lease.
     std::unique_ptr<shared_dfa_set>  nested_set_;           //!< The set of a nested lease.
   };
+
+  /*!
+   * \brief Retire this regex's slot (called from \c ~regex_immutables). Concurrent scans that still hold
+   *        a \c shared_ptr via TLS keep the slot object alive until they release; clearing
+   *        \ref shared_dfa_slot::owner is what makes their cached copy stop matching, so a new regex
+   *        landing on this address can never be served the retired slot.
+   *
+   * The owner store is release and \ref shared_dfa_for's check is acquire. That pairing is what a new
+   * regex at a REUSED address relies on: the allocator handing the address out again orders this
+   * erase before that construction, and a thread can only reach the new regex through some
+   * synchronization with its constructor, so the null is visible by the time it asks.
+   * The map entry drops under the lock; the last \c shared_ptr reference is released outside it. Its pooled
+   * sets and this thread's cached one are freed here (\ref dfa_lease::drop_thread_set).
+   * \param[in] immut The regex being destroyed, whose slot is retired.
+   */
+  inline void erase_shared_dfas(const regex_immutables* immut)
+  {
+    std::shared_ptr<shared_dfa_slot> retired;
+    {
+      const std::lock_guard<std::mutex> lock  {shared_dfa_map_mu()};
+      const auto                        found {shared_dfa_map().find(immut)};
+      if (found == shared_dfa_map().end()) {
+        return; // this regex never took a DFA route — nothing was ever inserted
+      }
+      retired = std::move(found->second);
+      shared_dfa_map().erase(found);
+    }
+    retired->owner.store(nullptr, std::memory_order_release);
+    // Nothing leases from a retired slot again, so its pooled sets and this thread's cached one -- the thread
+    // destroying the regex is the one likeliest to have used it -- are freed now rather than when the slot's
+    // last holder moves on. Another thread's cached set goes when that thread next leases or exits.
+    std::vector<std::unique_ptr<shared_dfa_set>> drained;
+    {
+      const std::lock_guard<std::mutex> lock {retired->pool_mu};
+      drained.swap(retired->free);
+    }
+    dfa_lease::drop_thread_set(*retired);
+  }
 
   /*!
    * \brief Test/audit: number of live shared-DFA map entries (process-wide). Not for production.

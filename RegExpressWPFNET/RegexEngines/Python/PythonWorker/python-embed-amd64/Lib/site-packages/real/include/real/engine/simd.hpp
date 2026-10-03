@@ -192,6 +192,32 @@ namespace real::detail {
   }
 
   /*!
+   * \brief Whether one of the 64 starts at \p lead64 has \p a there and \p b at the matching byte of \p trail64:
+   *        four pair compares OR-ed and one horizontal max, the reject test of prefilter.hpp's
+   *        `simd_literal_scan`, which narrows the per-block masks (\ref load_pair_mask) only when this says a
+   *        block holds a candidate. NEON has no movemask, so a mask per block costs a narrowing shift and a lane
+   *        move each, four a round, where a round without a candidate needs none.
+   * \param[in] lead64  64 already-loaded bytes at the candidate starts (the caller's MISRA-clean memcpy).
+   * \param[in] a       The needle byte expected at the first probe offset.
+   * \param[in] trail64 64 already-loaded bytes at the candidate starts + delta.
+   * \param[in] b       The needle byte expected at the second probe offset.
+   * \return True when some start holds both bytes.
+   */
+  inline bool any_pair64(const std::uint8_t * lead64,
+                         std::uint8_t         a,
+                         const std::uint8_t * trail64,
+                         std::uint8_t         b)
+  {
+    const uint8x16_t va  {vdupq_n_u8(a)};
+    const uint8x16_t vb  {vdupq_n_u8(b)};
+    const uint8x16_t h0  {vandq_u8(vceqq_u8(vld1q_u8(lead64), va), vceqq_u8(vld1q_u8(trail64), vb))};
+    const uint8x16_t h1  {vandq_u8(vceqq_u8(vld1q_u8(lead64 + 16), va), vceqq_u8(vld1q_u8(trail64 + 16), vb))};
+    const uint8x16_t h2  {vandq_u8(vceqq_u8(vld1q_u8(lead64 + 32), va), vceqq_u8(vld1q_u8(trail64 + 32), vb))};
+    const uint8x16_t h3  {vandq_u8(vceqq_u8(vld1q_u8(lead64 + 48), va), vceqq_u8(vld1q_u8(trail64 + 48), vb))};
+    return vmaxvq_u8(vorrq_u8(vorrq_u8(h0, h1), vorrq_u8(h2, h3))) != 0U;
+  }
+
+  /*!
    * \brief Mask of the 16 starts at \p at where some pair `(lead[i] at the start, probe[i] at start + delta[i])`
    *        sits: the pairs' hits OR-ed as vectors and narrowed once, rather than one mask per pair.
    * \param[in] at    The first of the 16 starts; `at + 15 + delta[i]` must be readable for every pair.
@@ -282,6 +308,110 @@ namespace real::detail {
     std::memcpy(&b2, at + 2, 16);
     const uint8x16_t hit    {vandq_u8(vandq_u8(nibble_lookup(b0, t.lo0, t.hi0), nibble_lookup(b1, t.lo1, t.hi1)),
                                       nibble_lookup(b2, t.lo2, t.hi2))};
+    const uint8x16_t marked {vtstq_u8(hit, hit)};
+    return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(marked), 4)), 0);
+  }
+
+  /*!
+   * \brief The fingerprint's first two lookups of the previous block, which \ref nibble3_step aligns against the
+   *        current block's: zero before the first block, so that no start before it is marked.
+   */
+  struct nibble3_carry
+  {
+    uint8x16_t r0 {}; //!< Bucket bits the first fingerprint byte allowed, per byte of the previous block.
+    uint8x16_t r1 {}; //!< The same for the second.
+  };
+
+  /*!
+   * \brief A round's four blocks of bucket bits (\ref nibble3_round), named rather than an array: a vector type as a template argument loses its attributes, which GCC reports.
+   */
+  struct nibble3_hits
+  {
+    uint8x16_t h0 {}; //!< The first block's.
+    uint8x16_t h1 {}; //!< The second's.
+    uint8x16_t h2 {}; //!< The third's.
+    uint8x16_t h3 {}; //!< The fourth's.
+  };
+
+  /*!
+   * \brief One block's bucket bits for the starts `at - 2 .. at + 13`, \p carry advanced: \ref nibble3_step's work
+   *        before its mask is narrowed, for \ref nibble3_round to test four at once.
+   * \param[in]     at    The block; `at + 15` must be readable.
+   * \param[in]     t     The tables.
+   * \param[in,out] carry The previous block's first two lookups, replaced by this block's.
+   * \return The bucket bits per start.
+   */
+  inline uint8x16_t nibble3_block(const char          * at,
+                                  const nibble3_tables& t,
+                                  nibble3_carry&        carry)
+  {
+    uint8x16_t b         {};
+    std::memcpy(&b, at, 16); // MISRA-clean byte load (no pointer type-pun)
+    const uint8x16_t r0  {nibble_lookup(b, t.lo0, t.hi0)};
+    const uint8x16_t r1  {nibble_lookup(b, t.lo1, t.hi1)};
+    const uint8x16_t hit {vandq_u8(nibble_lookup(b, t.lo2, t.hi2), vandq_u8(vextq_u8(carry.r1, r1, 15), vextq_u8(carry.r0, r0, 14)))};
+    carry.r0 = r0;
+    carry.r1 = r1;
+    return hit;
+  }
+
+  /*!
+   * \brief One block of the fingerprint scan, loaded once: its three lookups run on the same 16 bytes, and the
+   *        first two are shifted by one and two lanes against the previous block's (\p carry), so the mask marks
+   *        the 16 starts `at - 2 .. at + 13`. A start's bytes are thus read once, where \ref load_nibble3_mask
+   *        loads three overlapping blocks and splits each into nibbles.
+   * \param[in]     at    The block; `at + 15` must be readable.
+   * \param[in]     t     The tables.
+   * \param[in,out] carry The previous block's first two lookups, replaced by this block's.
+   * \return The mask, lane `l` for the start `at - 2 + l`.
+   */
+  inline mask_t nibble3_step(const char          * at,
+                             const nibble3_tables& t,
+                             nibble3_carry&        carry)
+  {
+    const uint8x16_t hit    {nibble3_block(at, t, carry)};
+    const uint8x16_t marked {vtstq_u8(hit, hit)};
+    return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(marked), 4)), 0);
+  }
+
+  /*!
+   * \brief Four blocks of \ref nibble3_step at \p at, `at + 16`, `at + 32` and `at + 48`, kept as vectors, and
+   *        whether any of them marks a start: one horizontal max for the four, where a mask per block costs a
+   *        narrowing shift and a move to a general register each (NEON has no movemask).
+   * \param[in]     at    The first block; `at + 63` must be readable.
+   * \param[in]     t     The tables.
+   * \param[in,out] carry As \ref nibble3_step, across the four.
+   * \param[out]    hits  The four blocks' bucket bits, for \ref nibble3_mask_of.
+   * \return True when some start of the four blocks is marked.
+   */
+  inline bool nibble3_round(const char          * at,
+                            const nibble3_tables& t,
+                            nibble3_carry&        carry,
+                            nibble3_hits&         hits)
+  {
+    hits.h0 = nibble3_block(at, t, carry);
+    hits.h1 = nibble3_block(at + 16, t, carry);
+    hits.h2 = nibble3_block(at + 32, t, carry);
+    hits.h3 = nibble3_block(at + 48, t, carry);
+    return vmaxvq_u8(vorrq_u8(vorrq_u8(hits.h0, hits.h1), vorrq_u8(hits.h2, hits.h3))) != 0U;
+  }
+
+  /*!
+   * \brief The mask of block \p k of a round's bucket bits from \ref nibble3_round.
+   * \param[in] hits The round's bucket bits.
+   * \param[in] k    The block, 0 to 3.
+   * \return The mask, lane `l` for the start `block - 2 + l`.
+   */
+  inline mask_t nibble3_mask_of(const nibble3_hits& hits,
+                                std::size_t         k)
+  {
+    uint8x16_t hit {hits.h3};
+    switch (k) {
+      case 0: hit = hits.h0; break;
+      case 1: hit = hits.h1; break;
+      case 2: hit = hits.h2; break;
+      default: break;
+    }
     const uint8x16_t marked {vtstq_u8(hit, hit)};
     return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(marked), 4)), 0);
   }
@@ -638,6 +768,118 @@ namespace real::detail {
   }
 
   /*!
+   * \brief The fingerprint's first two lookups of the previous block, as the NEON twin's: zero before the first.
+   */
+  struct nibble3_carry
+  {
+    __m128i r0 {}; //!< Bucket bits the first fingerprint byte allowed, per byte of the previous block.
+    __m128i r1 {}; //!< The same for the second.
+  };
+
+  /*!
+   * \brief A round's four blocks of bucket bits (\ref nibble3_round), named, as the NEON twin's: a vector type as a template argument loses its attributes.
+   */
+  struct nibble3_hits
+  {
+    __m128i h0 {}; //!< The first block's.
+    __m128i h1 {}; //!< The second's.
+    __m128i h2 {}; //!< The third's.
+    __m128i h3 {}; //!< The fourth's.
+  };
+
+  /*!
+   * \brief One block's bucket bits for the starts `at - 2 .. at + 13`, as the NEON twin's. Built for SSSE3 alone
+   *        where the build lacks it, like \ref load_nibble3_mask.
+   * \param[in]     at    The block; `at + 15` must be readable.
+   * \param[in]     t     The tables.
+   * \param[in,out] carry The previous block's first two lookups, replaced by this block's.
+   * \return The bucket bits per start.
+   */
+#  if !defined(__SSSE3__)
+  __attribute__((target("ssse3")))
+#  endif
+  inline __m128i nibble3_block(const char          * at,
+                               const nibble3_tables& t,
+                               nibble3_carry&        carry)
+  {
+    __m128i b         {};
+    std::memcpy(&b, at, 16); // MISRA-clean byte load (no pointer type-pun)
+    const __m128i r0  {nibble_lookup(b, t.lo0, t.hi0)};
+    const __m128i r1  {nibble_lookup(b, t.lo1, t.hi1)};
+    const __m128i hit {_mm_and_si128(nibble_lookup(b, t.lo2, t.hi2), _mm_and_si128(_mm_alignr_epi8(r1, carry.r1, 15), _mm_alignr_epi8(r0, carry.r0, 14)))};
+    carry.r0 = r0;
+    carry.r1 = r1;
+    return hit;
+  }
+
+  /*!
+   * \brief One block of the fingerprint scan, loaded once, as the NEON twin's: the mask marks the starts
+   *        `at - 2 .. at + 13`. Built for SSSE3 alone where the build lacks it, like \ref load_nibble3_mask.
+   * \param[in]     at    The block; `at + 15` must be readable.
+   * \param[in]     t     The tables.
+   * \param[in,out] carry The previous block's first two lookups, replaced by this block's.
+   * \return The mask, lane `l` for the start `at - 2 + l`.
+   */
+#  if !defined(__SSSE3__)
+  __attribute__((target("ssse3")))
+#  endif
+  inline mask_t nibble3_step(const char          * at,
+                             const nibble3_tables& t,
+                             nibble3_carry&        carry)
+  {
+    const mask_t empty_lanes {static_cast<mask_t>(_mm_movemask_epi8(_mm_cmpeq_epi8(nibble3_block(at, t, carry), _mm_setzero_si128())))};
+    return (~empty_lanes) & 0xFFFFU;
+  }
+
+  /*!
+   * \brief Four blocks of \ref nibble3_step, as the NEON twin's: kept as vectors, and whether any marks a start.
+   *        Built for SSSE3 alone where the build lacks it, like \ref load_nibble3_mask.
+   * \param[in]     at    The first block; `at + 63` must be readable.
+   * \param[in]     t     The tables.
+   * \param[in,out] carry As \ref nibble3_step, across the four.
+   * \param[out]    hits  The four blocks' bucket bits, for \ref nibble3_mask_of.
+   * \return True when some start of the four blocks is marked.
+   */
+#  if !defined(__SSSE3__)
+  __attribute__((target("ssse3")))
+#  endif
+  inline bool nibble3_round(const char          * at,
+                            const nibble3_tables& t,
+                            nibble3_carry&        carry,
+                            nibble3_hits&         hits)
+  {
+    hits.h0 = nibble3_block(at, t, carry);
+    hits.h1 = nibble3_block(at + 16, t, carry);
+    hits.h2 = nibble3_block(at + 32, t, carry);
+    hits.h3 = nibble3_block(at + 48, t, carry);
+    const __m128i any {_mm_or_si128(_mm_or_si128(hits.h0, hits.h1), _mm_or_si128(hits.h2, hits.h3))};
+    return _mm_movemask_epi8(_mm_cmpeq_epi8(any, _mm_setzero_si128())) != 0xFFFF;
+  }
+
+  /*!
+   * \brief The mask of block \p k of a round's bucket bits from \ref nibble3_round.
+   * \param[in] hits The round's bucket bits.
+   * \param[in] k    The block, 0 to 3.
+   * \return The mask, lane `l` for the start `block - 2 + l`.
+   */
+#  if !defined(__SSSE3__)
+  __attribute__((target("ssse3")))
+#  endif
+  inline mask_t nibble3_mask_of(const nibble3_hits& hits,
+                                std::size_t         k)
+  {
+    __m128i hit {hits.h3};
+    switch (k) {
+      case 0: hit = hits.h0; break;
+      case 1: hit = hits.h1; break;
+      case 2: hit = hits.h2; break;
+      default: break;
+    }
+    const mask_t empty_lanes {static_cast<mask_t>(_mm_movemask_epi8(_mm_cmpeq_epi8(hit, _mm_setzero_si128())))};
+    return (~empty_lanes) & 0xFFFFU;
+  }
+
+  /*!
    * \brief \ref load_nibble3_mask's x86 leg, on the SSSE3 byte shuffle, which is not in the x86-64 floor. Where
    *        the build enables SSSE3 it is an ordinary function; elsewhere it is built for SSSE3 alone and may run
    *        only once \ref cpu_has_ssse3 said so -- and it inlines only into a caller built the same way.
@@ -941,6 +1183,34 @@ namespace real::detail {
     const __m128i eq_a {_mm_cmpeq_epi8(va, _mm_set1_epi8(static_cast<char>(a)))};
     const __m128i eq_b {_mm_cmpeq_epi8(vb, _mm_set1_epi8(static_cast<char>(b)))};
     return static_cast<mask_t>(_mm_movemask_epi8(_mm_and_si128(eq_a, eq_b)));
+  }
+
+  /*!
+   * \brief Whether one of the 64 starts at \p lead64 has \p a there and \p b at the matching byte of \p trail64:
+   *        the NEON twin's reject test, four pair compares OR-ed and one movemask, so that
+   *        prefilter.hpp's `simd_literal_scan` is the same loop on both ISAs.
+   * \param[in] lead64  64 already-loaded bytes at the candidate starts (the caller's MISRA-clean memcpy).
+   * \param[in] a       The needle byte expected at the first probe offset.
+   * \param[in] trail64 64 already-loaded bytes at the candidate starts + delta.
+   * \param[in] b       The needle byte expected at the second probe offset.
+   * \return True when some start holds both bytes.
+   */
+  inline bool any_pair64(const std::uint8_t * lead64,
+                         std::uint8_t         a,
+                         const std::uint8_t * trail64,
+                         std::uint8_t         b)
+  {
+    const __m128i va  {_mm_set1_epi8(static_cast<char>(a))};
+    const __m128i vb  {_mm_set1_epi8(static_cast<char>(b))};
+    __m128i       any {_mm_setzero_si128()};
+    for (std::size_t k = 0; k < 64; k += 16) {
+      __m128i la {};
+      __m128i tb {};
+      std::memcpy(&la, lead64 + k, 16); // MISRA-clean byte loads (no pointer type-pun)
+      std::memcpy(&tb, trail64 + k, 16);
+      any = _mm_or_si128(any, _mm_and_si128(_mm_cmpeq_epi8(la, va), _mm_cmpeq_epi8(tb, vb)));
+    }
+    return _mm_movemask_epi8(any) != 0;
   }
 
   /*! \brief `true` if no lane of \p m is set. */

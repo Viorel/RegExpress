@@ -347,6 +347,8 @@ namespace real {
       not_word_boundary,         //!< `\B`.
       word_start,                //!< `\<` (non-word/start on the left, word on the right).
       word_end,                  //!< `\>` (word on the left, non-word/end on the right).
+      line_start_cr,             //!< `^` with multiline under ecma: the text start, or after `\n` or `\r`.
+      line_end_cr,               //!< `$` with multiline under ecma: the text end, or before `\n` or `\r`.
     };
 
     /*!
@@ -474,7 +476,7 @@ namespace real {
       std::array<char, 16> prefix                   {};   //!< Required literal prefix (possibly truncated).
       std::uint8_t         prefix_size              {};   //!< Valid bytes in \ref prefix.
       bool                 anchored_start           {};   //!< `\A` / `^` (no multiline): only position 0.
-      bool                 line_anchored            {};   //!< `^` multiline: position 0 or after `\n`.
+      std::uint8_t         line_anchored            {};   //!< `^` multiline: 0 none, 1 position 0 or after `\n`, 2 also after `\r` (ecma).
       bool                 first_bytes_valid        {};   //!< False when an empty match is possible.
       bool                 empty_match_possible     {};   //!< The pattern can match the empty string (the nullable gate; conservative: assertions/lookarounds pass through, so e.g. `^$` is flagged nullable).
       bool                 nullable_captured_repeat {};   //!< The pattern contains a CAPTURING group (not `(?:...)`) whose body is nullable, transitively under a quantifier (any quantifier, `?` included) — e.g. `(ab|)+a`. AST-derived (compiler.hpp, not analyze_program/prefilter.hpp): real's engine captures the loop's last CONSUMING iteration (RE2/Rust/Go lineage) while an ECMAScript backtracker captures an extra empty final one, so `real::compat` routes replace/iterate to std for these patterns (\ref real::compat::basic_regex::uses_real_traversal); conservative over-approximation (assertions/lookarounds count as nullable), so sur-flagging is safe.
