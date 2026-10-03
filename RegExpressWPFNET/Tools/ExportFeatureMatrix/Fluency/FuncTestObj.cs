@@ -12,7 +12,7 @@ class FuncTestObj : BoolStep
         this.func = func;
     }
 
-    public override bool Exec( RegexEngine engine, FeatureMatrix fm )
+    public override bool Exec( RegexEngine engine, FeatureMatrix fm, ExecContext execContext )
     {
         return func( engine, fm );
     }

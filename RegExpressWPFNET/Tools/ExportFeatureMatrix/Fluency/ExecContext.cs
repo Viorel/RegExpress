@@ -1,8 +1,6 @@
 ﻿namespace ExportFeatureMatrix.Fluency;
 
-enum ColourEnum
+internal class ExecContext
 {
-    None,
-    Green,
-    Info,
+
 }

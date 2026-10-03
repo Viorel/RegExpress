@@ -5,5 +5,5 @@ namespace ExportFeatureMatrix.Fluency;
 
 abstract class BoolStep
 {
-    public abstract bool Exec( RegexEngine engine, FeatureMatrix fm );
+    public abstract bool Exec( RegexEngine engine, FeatureMatrix fm, ExecContext exec_context );
 }

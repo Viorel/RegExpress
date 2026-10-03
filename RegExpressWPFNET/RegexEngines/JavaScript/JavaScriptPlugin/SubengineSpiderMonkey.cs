@@ -457,6 +457,8 @@ partial class SubengineSpiderMonkey( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = true,
             ßSS = false,
+
+            Ext_Ph1 = true,
         };
     }
 }

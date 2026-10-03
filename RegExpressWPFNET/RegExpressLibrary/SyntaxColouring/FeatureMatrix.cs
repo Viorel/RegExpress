@@ -303,6 +303,7 @@
         public bool Ext_Operator_Intersection { get; init; }                // '&' in RE#
         public bool Ext_Operator_Complement { get; init; }                  // '~()' in RE#
         public bool Ext_AlternativeLanguage { get; init; }                  // also support alternative syntax
+        public bool Ext_Ph1 { get; init; }                                  // "a(b)?\1" matches "ab"
 
     }
 }

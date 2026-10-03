@@ -19,7 +19,7 @@ class PatternTestObj : BoolStep
         this.expected = expected;
     }
 
-    public override bool Exec( RegexEngine engine, FeatureMatrix fm )
+    public override bool Exec( RegexEngine engine, FeatureMatrix fm, ExecContext execContext )
     {
         bool match_satisfied = false;
         bool nomatch_satisfied = false;

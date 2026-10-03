@@ -17,9 +17,9 @@ class CategoryObj
         Name = name;
     }
 
-    public FlagObj Flag( string shortDesc, string desc, Func<RegexEngine, FeatureMatrix, bool> flagGetter )
+    public FlagObj Flag( string shortDesc, string desc, Func<RegexEngine, FeatureMatrix, bool> flagGetter, bool isInfo = false )
     {
-        FlagObj flag = new( this, shortDesc, desc, flagGetter );
+        FlagObj flag = new( this, shortDesc, desc, flagGetter, isInfo );
         indicators.Add( flag );
 
         return flag;

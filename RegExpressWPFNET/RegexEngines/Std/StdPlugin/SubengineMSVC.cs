@@ -382,6 +382,8 @@ class SubengineMSVC( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
             Σσς = false,
             ßSS = false,
+
+            Ext_Ph1 = grammar == GrammarEnum.ECMAScript,
         };
     }
 }

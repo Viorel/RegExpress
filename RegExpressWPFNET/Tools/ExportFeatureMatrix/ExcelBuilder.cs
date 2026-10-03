@@ -28,6 +28,7 @@ internal partial class ExcelBuilder
     uint STYLE_ID_FEATURE = 0;
     uint STYLE_ID_DESCRIPTION = 0;
     uint STYLE_ID_PLUS = 0;
+    uint STYLE_ID_PLUS_INFO = 0;
     uint STYLE_ID_BOTTOM_ROW = 0;
 
     public void Export( string outputExcelPath, IReadOnlyList<RegexPlugin> plugins, bool verify, Action<string, int, int>? progressOnFeatures, Action<string, int, int>? progressOnEngines )
@@ -204,6 +205,9 @@ internal partial class ExcelBuilder
                                     break;
                                 case ColourEnum.Green:
                                     cell1.StyleIndex = STYLE_ID_PLUS;
+                                    break;
+                                case ColourEnum.Info:
+                                    cell1.StyleIndex = STYLE_ID_PLUS_INFO;
                                     break;
                                 default:
                                     break;
@@ -400,6 +404,22 @@ internal partial class ExcelBuilder
             };
             cell_formats.Append( cell_format );
             STYLE_ID_PLUS = (uint)cell_formats.ChildElements.Count - 1;
+        }
+
+        // the "+", info
+
+        {
+            Font font = new( );
+            fonts.Append( font );
+
+            CellFormat cell_format = new( )
+            {
+                FontId = (uint)fonts.ChildElements.Count - 1,
+                ApplyAlignment = true,
+                Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Center, Vertical = VerticalAlignmentValues.Center },
+            };
+            cell_formats.Append( cell_format );
+            STYLE_ID_PLUS_INFO = (uint)cell_formats.ChildElements.Count - 1;
         }
 
         // bottom row

@@ -1,6 +1,4 @@
-﻿using DocumentFormat.OpenXml.Drawing;
-using RegExpressLibrary;
-using RegExpressLibrary.SyntaxColouring;
+﻿using RegExpressLibrary.SyntaxColouring;
 
 namespace ExportFeatureMatrix.Fluency;
 
@@ -11,7 +9,7 @@ static class TreeData
     static TreeData( )
     {
         Tree
-
+#if true
             .Category( @"General" )
 
                 .Flag( @"(…)", @"Grouping constructs", ( e, fm ) => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal )
@@ -785,46 +783,44 @@ static class TreeData
                 .Flag( @"~(…)", @"Complement (pattern must not match)", ( e, fm ) => fm.Ext_Operator_Complement )
                     .Test( @"ab~(x)c", "abc", null, "abc" )
                 .Flag( @"Alt. syntax", @"Support alternative syntax", ( e, fm ) => fm.Ext_AlternativeLanguage )
-
-            /*
+#endif
             .Category( @"Philosophical aspects" )
 
-                //.Flag( @"""a(b)?\1"" ∋ ""a""", @"""a(b)?\1"" matches ""a""", ( e, fm ) => false )
+                //.Flag( @"a(b)?\1", @"“a(b)?\1” matches “a”", ( e, fm ) => fm.Ext_Ph1, isInfo: true )
                 //    .Test( @"a(b)?\1", "a" )
                 //    .Test( @"a\(b\)?\1", "a" )
-                .Flag( @"""a(b)?\1"" ∋ ""ab""", @"""a(b)?\1"" matches ""ab""", ( e, fm ) => false )
+                .Flag( @"a(b)?\1", @"“a(b)?\1” matches “ab”", ( e, fm ) => fm.Ext_Ph1, isInfo: true )
                     .Test( @"a(b)?\1", "ab" )
                     .Test( @"a\(b\)?\1", "ab" )
-                .Flag( @"""(a*)*"" gr. ""a""", @"Group 1 is ""a""", ( e, fm ) => false )
-                    .Test( ( e, fm ) =>
-                    {
-                        return
-                            fm.Parentheses == RegExpressLibrary.SyntaxColouring.FeatureMatrix.PunctuationEnum.Normal && Check( @"(a*)*", "a", "a" ) ||
-                            fm.Parentheses == RegExpressLibrary.SyntaxColouring.FeatureMatrix.PunctuationEnum.Backslashed && Check( @"\(a*\)*", "a", "a" );
+            //.Flag( @"""(a*)*"" gr. ""a""", @"Group 1 is ""a""", ( e, fm ) => ???, isInfo: true )
+            //    .Test( ( e, fm ) =>
+            //    {
+            //        return
+            //            fm.Parentheses == RegExpressLibrary.SyntaxColouring.FeatureMatrix.PunctuationEnum.Normal && Check( @"(a*)*", "a", "a" ) ||
+            //            fm.Parentheses == RegExpressLibrary.SyntaxColouring.FeatureMatrix.PunctuationEnum.Backslashed && Check( @"\(a*\)*", "a", "a" );
 
-                        bool Check( string pattern, string text, string g1 )
-                        {
-                            try
-                            {
-                                var matches = e.GetMatches( ICancellable.NonCancellable, pattern, text );
+            //        bool Check( string pattern, string text, string g1 )
+            //        {
+            //            try
+            //            {
+            //                var matches = e.GetMatches( ICancellable.NonCancellable, pattern, text );
 
-                                if( matches.Count > 0 )
-                                {
-                                    var match = matches.Matches.First( );
+            //                if( matches.Count > 0 )
+            //                {
+            //                    var match = matches.Matches.First( );
 
-                                    return match.Groups.Count( ) > 1 && match.Groups.ElementAt( 1 ).Value == g1;
-                                }
-                            }
-                            catch
-                            {
-                                // ignore
-                            }
+            //                    return match.Groups.Count( ) > 1 && match.Groups.ElementAt( 1 ).Value == g1;
+            //                }
+            //            }
+            //            catch
+            //            {
+            //                // ignore
+            //            }
 
-                            return false;
-                        }
-                    }
-                    )
-            */
+            //            return false;
+            //        }
+            //    }
+            //    )
             ;
     }
 }

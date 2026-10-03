@@ -8,11 +8,13 @@ class FlagObj : Indicator
 {
     readonly List<BoolStep> boolSteps = [];
     readonly Func<RegexEngine, FeatureMatrix, bool> flagGetter;
+    readonly bool isInfo;
 
-    public FlagObj( CategoryObj categoryObj, string shortDesc, string desc, Func<RegexEngine, FeatureMatrix, bool> flagGetter )
+    public FlagObj( CategoryObj categoryObj, string shortDesc, string desc, Func<RegexEngine, FeatureMatrix, bool> flagGetter, bool isInfo )
         : base( categoryObj, shortDesc, desc )
     {
         this.flagGetter = flagGetter;
+        this.isInfo = isInfo;
     }
 
     public FlagObj IgnoreCase( bool yes = true )
@@ -77,6 +79,7 @@ class FlagObj : Indicator
     {
         bool fm_value = flagGetter( engine, fm );
         bool? exec_value = null;
+        ExecContext exec_context = new( );
 
         if( validate )
         {
@@ -86,23 +89,25 @@ class FlagObj : Indicator
 
                 foreach( BoolStep step in boolSteps )
                 {
-                    exec_value = step.Exec( engine, fm );
+                    exec_value = step.Exec( engine, fm, exec_context );
 
                     if( exec_value == true ) break;
                 }
             }
         }
 
-        return GetIndicatorData( validate, fm_value, exec_value );
+        return GetIndicatorData( validate, fm_value, exec_value, exec_context );
     }
 
-    IndicatorData GetIndicatorData( bool validate, bool fm_value, bool? exec_value )
+    IndicatorData GetIndicatorData( bool validate, bool fm_value, bool? exec_value, ExecContext exec_context )
     {
+        ColourEnum colour = isInfo ? ColourEnum.Info : ColourEnum.Green;
+
         if( !validate )
         {
             if( fm_value )
             {
-                return new IndicatorData( ColourEnum.Green, "+" );
+                return new IndicatorData( colour, "+" );
             }
             else
             {
@@ -117,7 +122,7 @@ class FlagObj : Indicator
 
                 if( fm_value )
                 {
-                    return new IndicatorData( ColourEnum.Green, "+?" );
+                    return new IndicatorData( colour, "+?" );
                 }
                 else
                 {
@@ -128,7 +133,7 @@ class FlagObj : Indicator
             {
                 if( fm_value )
                 {
-                    return new IndicatorData( ColourEnum.Green, exec_value.Value ? "+" : "+???" );
+                    return new IndicatorData( colour, exec_value.Value ? "+" : "+???" );
                 }
                 else
                 {

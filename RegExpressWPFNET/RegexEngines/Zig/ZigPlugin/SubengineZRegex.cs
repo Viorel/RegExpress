@@ -373,6 +373,8 @@ class SubengineZRegex( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = v ? FeatureMatrix.CatastrophicBacktrackingEnum.Reject : FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = true,
             ßSS = false,
+
+            Ext_Ph1 = true,
         };
     }
 }

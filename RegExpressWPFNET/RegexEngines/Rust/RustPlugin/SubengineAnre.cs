@@ -372,6 +372,7 @@ class SubengineAnre( Options options ) : RegexSubengine
             ßSS = false,
 
             Ext_AlternativeLanguage = true,
+            Ext_Ph1 = true,
         };
     }
 }

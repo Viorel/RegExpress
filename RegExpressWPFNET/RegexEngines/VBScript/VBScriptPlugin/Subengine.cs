@@ -427,6 +427,8 @@ partial class Subengine( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = false,
             ßSS = false,
+
+            Ext_Ph1 = true,
         };
     }
 

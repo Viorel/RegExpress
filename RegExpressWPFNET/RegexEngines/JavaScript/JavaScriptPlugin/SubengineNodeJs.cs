@@ -447,6 +447,8 @@ partial class SubengineNodeJs( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = true,
             ßSS = false,
+
+            Ext_Ph1 = true,
         };
     }
 }
