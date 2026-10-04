@@ -515,9 +515,34 @@ namespace real::detail {
               while (end < prog.code.size() && prog.code[end].op == opcode::save) {
                 ++end;
               }
-              if (end + 1 == prog.code.size() && prog.code[end].op == opcode::match) {
+              // The two runs place the literal where the prefix run stops, which is where the greedy prefix
+              // leaves it only if the literal cannot occur inside that run: `[abx]+ba[ab]+` over
+              // "aaaxbabaaxbab" wants the LAST `ba`, and the first one answered [0,9) for [0,13). When it
+              // can, the span still holds if the suffix run crosses every byte the prefix and the literal
+              // hold -- it then ends where the greedy match does -- but the groups must split at the last
+              // occurrence (il_fwd_last): `(\w+)_(\w+)` over "a_b_c" gave "a" and "b_c" for "a_b" and "c".
+              const auto class_bytes {[&](std::size_t at, bool cp) {
+                                        std::array<bool, 256> bytes {};
+                                        for (unsigned b {0}; b < 256U; ++b) {
+                                          bytes[b] = cp ? (b >= 0x80U || prog.cp_classes[prog.code[at].arg16].ascii.test(static_cast<std::uint8_t>(b)))
+                                : prog.classes[prog.code[at].arg16].test(static_cast<std::uint8_t>(b));
+                                        }
+                                        return bytes;
+                                      }};
+              const std::array<bool, 256> run_bytes   {class_bytes(atom, is_cp)};
+              const std::array<bool, 256> tail_bytes  {class_bytes(suffix, tail_cp)};
+              bool                        tail_covers {true};
+              for (unsigned b {0}; b < 256U && tail_covers; ++b) {
+                tail_covers = !run_bytes[b] || tail_bytes[b];
+              }
+              for (std::size_t i {0}; i < il.len && tail_covers; ++i) {
+                tail_covers = tail_bytes[il.bytes[i]];
+              }
+              if (end + 1 == prog.code.size() && prog.code[end].op == opcode::match
+                  && (!inner_literal_detail::can_occur_in_prefix(il, run_bytes) || tail_covers)) {
                 prog.hints.il_fwd_class = static_cast<std::int32_t>(prog.code[suffix].arg16);
                 prog.hints.il_fwd_is_cp = tail_cp;
+                prog.hints.il_fwd_last  = inner_literal_detail::can_occur_in_prefix(il, run_bytes);
               }
             }
           }

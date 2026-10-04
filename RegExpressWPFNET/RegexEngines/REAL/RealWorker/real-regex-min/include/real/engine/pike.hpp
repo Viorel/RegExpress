@@ -1696,7 +1696,7 @@ namespace real::detail {
             out_slots.assign(prog_.slot_count, npos);
             out_slots[0] = s;
             out_slots[1] = e;
-            fill_two_run_saves(s, h, lit_end, e, out_slots);
+            fill_two_run_saves(text, s, h, lit_end, e, out_slots);
             return true;
           }
           // No suffix member: this candidate cannot match. min_pre_start is not advanced -- the walk reports
@@ -5516,27 +5516,88 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Where the two-run shape's prefix class run, continued forward from \p from, stops.
+     * \param[in] text  The subject.
+     * \param[in] from  A position inside or at the end of the run.
+     * \param[in] limit Where to stop at the latest.
+     * \return The first position at or after \p from that is not a member, or \p limit.
+     */
+    [[nodiscard]] constexpr std::size_t prefix_run_end(std::string_view text,
+                                                       std::size_t      from,
+                                                       std::size_t      limit) const
+    {
+      std::size_t r {from};
+      if (!prog_.hints.il_rev_is_cp) {
+        const char_class& cc {prog_.classes[static_cast<std::size_t>(prog_.hints.il_rev_class)]};
+        while (r < limit && cc.test(static_cast<std::uint8_t>(text[r]))) {
+          ++r;
+        }
+        return r;
+      }
+      const cp_class& cc {prog_.cp_classes[static_cast<std::size_t>(prog_.hints.il_rev_class)]};
+      while (r < limit) {
+        if (const auto next {static_cast<std::uint8_t>(text[r])}; next < 0x80U) {
+          if (!cc.ascii.test(next)) {
+            break;
+          }
+          ++r;
+          continue;
+        }
+        const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text, r)};
+        if (!dc.valid || !cp_class_holds(cc, dc.cp)) {
+          break;
+        }
+        r += dc.length;
+      }
+      return r;
+    }
+
+    /*!
      * \brief Fills capture slots for a `class+ <literal> class+` match, by anchor rather than by offset.
      *
      * The two-run shape has no fixed widths, so \ref fill_fixed_saves's running offset does not apply — but
      * every `save` in it still lands on one of four positions, and which one is decided by where the save
      * sits relative to the two loops and the literal. Walking the program once per MATCH is the same trick
      * \ref fill_fixed_saves uses, and the program is a dozen instructions.
+     * When the literal can occur inside the prefix run (\ref pattern_hints::il_fwd_last), the greedy prefix
+     * gives back only down to the LAST occurrence that still leaves the suffix a member, so the literal is
+     * moved there first: the span is the candidate's, the groups split later.
+     *
+     * \param[in]  text     The subject.
      * \param[in]  s        Match start (the prefix run's beginning).
-     * \param[in]  h        The literal's own start.
-     * \param[in]  lit_end  One past the literal.
+     * \param[in]  h        The candidate literal's start.
+     * \param[in]  lit_end  One past the candidate literal.
      * \param[in]  e        Match end (the suffix run's end).
      * \param[out] out_slots Slots to fill.
      */
     template <typename OutSlots>
-    constexpr void fill_two_run_saves(std::size_t s,
-                                      std::size_t h,
-                                      std::size_t lit_end,
-                                      std::size_t e,
-                                      OutSlots&   out_slots) const
+    constexpr void fill_two_run_saves(std::string_view text,
+                                      std::size_t      s,
+                                      std::size_t      h,
+                                      std::size_t      lit_end,
+                                      std::size_t      e,
+                                      OutSlots&        out_slots) const
     {
-      if (prog_.slot_count <= 2) {
-        return;
+      if (prog_.slot_count <= 2 || prog_.hints.capture_free_walk) {
+        return; // no group to place, or a walk that reads none (count_matches)
+      }
+      if (prog_.hints.il_fwd_last) {
+        const std::size_t len {lit_end - h};
+        std::size_t       r   {prefix_run_end(text, h, e)};
+        if (r + len >= e) {
+          r = e - len - 1; // the suffix needs one member past the literal
+        }
+        for (std::size_t p {r}; p > h; --p) {
+          std::size_t i {0};
+          while (i < len && static_cast<std::uint8_t>(text[p + i]) == prog_.hints.inner_literal[i]) {
+            ++i;
+          }
+          if (i == len) {
+            h = p;
+            break;
+          }
+        }
+        lit_end = h + len;
       }
       std::size_t anchor        {s};
       bool        after_literal {false};
@@ -6304,6 +6365,30 @@ namespace real::detail {
     }
 
     /*!
+     * \brief The fingerprint buckets the three bytes at \p at admit, as the vector scans compute them for a block: a
+     *        bucket's bit survives where both nibbles of each byte carry it. Every bucket where fewer than three
+     *        bytes remain, as the scans leave those starts to the first-byte table.
+     * \param[in] plan The fingerprint (its `nibbles` valid).
+     * \param[in] text The subject.
+     * \param[in] at   The start.
+     * \return The bucket bits.
+     */
+    [[nodiscard]] static std::uint8_t nibble3_buckets(const alternation_pairs& plan,
+                                                      std::string_view         text,
+                                                      std::size_t              at)
+    {
+      if (at + 3 > text.size()) {
+        return 0xFF;
+      }
+      unsigned bits {0xFFU};
+      for (std::size_t k = 0; k < 3; ++k) {
+        const unsigned b {static_cast<unsigned char>(text[at + k])};
+        bits &= static_cast<unsigned>(plan.nibble_lo[k][b & 0x0FU]) & static_cast<unsigned>(plan.nibble_hi[k][b >> 4U]);
+      }
+      return static_cast<std::uint8_t>(bits);
+    }
+
+    /*!
      * \brief Search route for an alternation of literals with more first bytes than the small set holds: the
      *        blocks the nibble fingerprint marks, verified in branch order (priority unchanged), then the last
      *        bytes by the first-byte table. Taken per subject on a sample: where false candidates are dense
@@ -6312,8 +6397,13 @@ namespace real::detail {
      * \tparam OutSlots Output slot container.
      * \param[in]  text      The subject.
      * \param[in]  start     Where the search starts.
-     * \param[out] out_slots The span, on a match.
-     * \return Matched or not when the route took the search; empty when it declined.
+     * \param[out] out_slots The span, on a match (a single search).
+     * \param[out] spans     Non-null for a batched walk: the matches from \p start, each from the previous one's end,
+     *                       instead of one search's span.
+     * \param[in]  cap       Capacity of \p spans.
+     * \param[out] filled    With \p spans: how many were written, fewer than \p cap only at the end of the subject.
+     * \return Matched or not when the route took the search (with \p spans: whether any was written); empty when
+     *         it declined.
      */
     template <typename OutSlots>
 #if defined(__GNUC__) || defined(__clang__)
@@ -6321,7 +6411,10 @@ namespace real::detail {
 #endif
     std::optional<bool> run_alternation_wide(std::string_view text,
                                              std::size_t      start,
-                                             OutSlots&        out_slots)
+                                             OutSlots&        out_slots,
+                                             cp_span*         spans  = nullptr,
+                                             std::size_t      cap    = 0,
+                                             std::size_t*     filled = nullptr)
     {
 #if (defined(__ARM_NEON) || defined(__SSE2__)) && (defined(__aarch64__) || defined(__SSSE3__) || (defined(__SSE2__) && (defined(__GNUC__) || defined(__clang__))))
       if constexpr (requires(State & st) {
@@ -6331,17 +6424,28 @@ namespace real::detail {
           return std::nullopt;
         }
         const auto& code {prog_.code};
-        // As run_alternation's: the first branch in source order that matches at the start, boundaries included.
+        if (state_.alt_pairs == nullptr) {
+          state_.alt_pairs = alternation_pairs_ready();
+        }
+        const alternation_pairs* const plan {state_.alt_pairs};
+        // As run_alternation's: the first branch in source order that matches at the start, boundaries included --
+        // among the branches whose fingerprint bucket (branch index mod 8) the start's three bytes admit. A
+        // branch that matches there admits them, so the others cannot, and skipping them keeps the priority.
         const auto match_at = [&](std::size_t match_start) -> std::size_t {
-                                std::size_t pc {prog_.hints.body_pc == 0
-                                                  ? std::size_t {1}
-                                                  : static_cast<std::size_t>(prog_.hints.body_pc)};
-                                while (true) {
-                                  const bool        is_split  {code[pc].op == opcode::split};
-                                  const std::size_t branch    {is_split ? static_cast<std::size_t>(code[pc].primary_target) : pc};
-                                  const std::size_t match_end {match_byte_klass_run(text, branch, match_start)};
-                                  if (match_end != npos && wb_boundaries_ok(match_start, match_end)) {
-                                    return match_end;
+                                const unsigned buckets {plan != nullptr && plan->nibbles
+                                                          ? unsigned {nibble3_buckets(*plan, text, match_start)}
+                                                          : 0xFFU};
+                                std::size_t        pc      {prog_.hints.body_pc == 0
+                                                              ? std::size_t {1}
+                                                              : static_cast<std::size_t>(prog_.hints.body_pc)};
+                                for (std::size_t index {0};; ++index) {
+                                  const bool        is_split {code[pc].op == opcode::split};
+                                  const std::size_t branch   {is_split ? static_cast<std::size_t>(code[pc].primary_target) : pc};
+                                  if (((buckets >> (index % 8U)) & 1U) != 0U) {
+                                    const std::size_t match_end {match_byte_klass_run(text, branch, match_start)};
+                                    if (match_end != npos && wb_boundaries_ok(match_start, match_end)) {
+                                      return match_end;
+                                    }
                                   }
                                   if (!is_split) {
                                     return npos;
@@ -6365,31 +6469,52 @@ namespace real::detail {
         if (!density.dense) {
           return std::nullopt;
         }
-#  if defined(REAL_TEST_INSTRUMENT)
-        alternation_wide_scans().fetch_add(1, std::memory_order_relaxed);
-#  endif
         const alternation_pairs&          pairs {*state_.alt_pairs};
         const std::array<std::uint8_t, 8> mem   {}; // the scans' first-byte tail is not taken here
-        alternation_hit                   found {};
-#  if defined(__AVX2__)
-        found = alternation_avx2_disabled() ? alternation_nibble_scan<false>(text, start, pairs, mem, 0, match_at)
-                                            : alternation_nibble_scan_avx2<false>(text, start, pairs, mem, 0, match_at);
-#  elif defined(__SSE2__) && (defined(__GNUC__) || defined(__clang__))
-        found = !alternation_avx2_disabled() && cpu_has_avx2()
-                  ? alternation_nibble_scan_avx2<false>(text, start, pairs, mem, 0, match_at)
-                  : alternation_nibble_scan<false>(text, start, pairs, mem, 0, match_at);
-#  else
-        found = alternation_nibble_scan<false>(text, start, pairs, mem, 0, match_at);
+        const auto                        find  {[&](std::size_t from) {
+#  if defined(REAL_TEST_INSTRUMENT)
+                                                   alternation_wide_scans().fetch_add(1, std::memory_order_relaxed);
 #  endif
-        // The last bytes, where a block's fingerprint would read past the subject: by the first-byte table.
-        for (std::size_t pos {found.resume}; found.start == npos && pos < text.size(); ++pos) {
-          if (prog_.hints.first_bytes.test(static_cast<std::uint8_t>(text[pos]))) {
-            const std::size_t me {match_at(pos)};
-            if (me != npos) {
-              found = alternation_hit {.start = pos, .end = me, .resume = pos};
+                                                   alternation_hit found {};
+#  if defined(__AVX2__)
+                                                   found = alternation_avx2_disabled() ? alternation_nibble_scan<false>(text, from, pairs, mem, 0, match_at)
+                                              : alternation_nibble_scan_avx2<false>(text, from, pairs, mem, 0, match_at);
+#  elif defined(__SSE2__) && (defined(__GNUC__) || defined(__clang__))
+                                                   found = !alternation_avx2_disabled() && cpu_has_avx2()
+                    ? alternation_nibble_scan_avx2<false>(text, from, pairs, mem, 0, match_at)
+                    : alternation_nibble_scan<false>(text, from, pairs, mem, 0, match_at);
+#  else
+                                                   found = alternation_nibble_scan<false>(text, from, pairs, mem, 0, match_at);
+#  endif
+                                                   // The last bytes, where a block's fingerprint would read past the subject: by the first-byte table.
+                                                   for (std::size_t pos {found.resume}; found.start == npos && pos < text.size(); ++pos) {
+                                                     if (prog_.hints.first_bytes.test(static_cast<std::uint8_t>(text[pos]))) {
+                                                       const std::size_t me {match_at(pos)};
+                                                       if (me != npos) {
+                                                         found = alternation_hit {.start = pos, .end = me, .resume = pos};
+                                                       }
+                                                     }
+                                                   }
+                                                   return found;
+                                                 }};
+        if (spans != nullptr) {
+          // A batched walk: the next matches from each match's end, the plan and the verdict already in hand. A
+          // branch is a non-empty run, so the end is past the start and the walk cannot stall.
+          std::size_t n    {0};
+          std::size_t from {start};
+          while (n < cap) {
+            const alternation_hit found {find(from)};
+            if (found.start == npos) {
+              break;
             }
+            spans[n] = cp_span {.start = found.start, .end = found.end};
+            ++n;
+            from = found.end;
           }
+          *filled = n;
+          return n != 0;
         }
+        const alternation_hit found {find(start)};
         if (found.start == npos) {
           out_slots.assign(2, npos);
           return false;
@@ -6403,6 +6528,9 @@ namespace real::detail {
       static_cast<void>(text);
       static_cast<void>(start);
       static_cast<void>(out_slots);
+      static_cast<void>(spans);
+      static_cast<void>(cap);
+      static_cast<void>(filled);
       return std::nullopt;
     }
 
@@ -6954,6 +7082,41 @@ namespace real::detail {
         return fail();
       }
       return true;
+    }
+
+    /*!
+     * \brief Fills up to \p cap matches of an alternation with more first bytes than the small set holds, from
+     *        \p start, by \ref run_alternation_wide's scan run from each match's end, without re-entering `run()`.
+     *
+     * `run()` hands such an alternation to that route where \ref alternation_wide_may_take says so and the route
+     * takes the subject on its sample (a verdict sticky per subject); otherwise the automaton's gate decides. The
+     * filler asks the same questions, and where either declines it writes nothing and says so through
+     * \p disarm: the walk leaves every later search to `run()`.
+     * \param[in]  text    The subject.
+     * \param[in]  start   Where to begin.
+     * \param[out] out     Buffer for the spans found.
+     * \param[in]  cap     Capacity of \p out.
+     * \param[out] partial The fill stopped without proving the subject spent.
+     * \param[out] disarm  The route declined this subject: batch no more of it.
+     * \return How many spans were written.
+     */
+    std::size_t fill_alternation_wide_spans(std::string_view text,
+                                            std::size_t      start,
+                                            cp_span*         out,
+                                            std::size_t      cap,
+                                            bool&            partial,
+                                            bool&            disarm)
+    {
+      partial = false;
+      disarm  = false;
+      std::vector<std::size_t> unused;
+      std::size_t              n {0};
+      if (!alternation_wide_may_take(text) || !run_alternation_wide(text, start, unused, out, cap, &n).has_value()) {
+        partial = true;
+        disarm  = true;
+        return 0;
+      }
+      return n;
     }
 
     /*!

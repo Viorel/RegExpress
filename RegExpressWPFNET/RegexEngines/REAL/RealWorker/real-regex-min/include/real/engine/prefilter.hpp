@@ -87,6 +87,26 @@ namespace real::detail {
   }
 
   /*!
+   * \brief Calls a batched walk made to its filler, counted for the tests that pin how often a walk scans.
+   * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
+   */
+  inline std::atomic<std::uint64_t>& batch_fills() noexcept
+  {
+    static std::atomic<std::uint64_t> fills {0};
+    return fills;
+  }
+
+  /*!
+   * \brief Bill one filler call to \ref batch_fills. A no-op unless the test binary defines \c REAL_TEST_INSTRUMENT.
+   */
+  inline void note_batch_fill() noexcept
+  {
+#if defined(REAL_TEST_INSTRUMENT)
+    batch_fills().fetch_add(1, std::memory_order_relaxed);
+#endif
+  }
+
+  /*!
    * \brief Bounded-backtracker runs, counted for the tests that pin which windows it fills rather than the VM.
    * \return A reference to the process-wide counter (relaxed atomic, as \ref vm_window_runs).
    */

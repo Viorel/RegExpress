@@ -772,6 +772,9 @@ namespace real {
        */
       std::int32_t il_fwd_class {-1};
       bool         il_fwd_is_cp {}; //!< \ref il_fwd_class indexes `cp_classes` rather than `classes`.
+      //! \brief The literal can occur inside the prefix run, so the greedy prefix leaves it at its LAST
+      //!        occurrence before the suffix, not at the candidate: the span is the same, the groups are not.
+      bool         il_fwd_last {};
 
       /*!
        * \brief IL fixed code-point shape: the whole pattern is a fixed SEQUENCE of code-point atoms and

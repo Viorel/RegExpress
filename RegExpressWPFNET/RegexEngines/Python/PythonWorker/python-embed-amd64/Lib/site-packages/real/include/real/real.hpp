@@ -718,7 +718,17 @@ namespace real {
       batch_fixed_     = batchable && prog.slot_count == 2 && !prog.hints.empty_match_possible
                          && detail::pike_vm<typename Storage::state_type, true>::fixed_shape_is_the_route(prog);
       batch_alt_asks_  = batch_alt_;
-      batch_eligible_  = batch_bytes_ || batch_cp_ascii_ || batch_single_cl_ || cp_class || batch_alt_
+      // An alternation with MORE first bytes than the small set holds: run() tries the fingerprint route for it
+      // (run_alternation_wide) ahead of the automaton's gate, and the filler asks run()'s own questions once,
+      // disarming where the route declines. Exclusive of the other batched shapes.
+      batch_wide_      = batchable && no_wrap && prog.hints.fixed_alternation && prog.hints.small_set_size == 0
+                         && prog.hints.alternation_branch_count > 0 && prog.hints.first_bytes_valid
+                         && !prog.hints.empty_match_possible
+                         && prog.hints.greedy_class_loop < 0 && prog.hints.greedy_cp_class < 0
+                         && prog.hints.codepoint_class_ascii < 0 && prog.hints.single_class < 0
+                         && !batch_bytes_ && !batch_cp_ascii_ && !batch_single_cl_ && !cp_class && !batch_alt_
+                         && !batch_lazy_dfa_;
+      batch_eligible_  = batch_bytes_ || batch_cp_ascii_ || batch_single_cl_ || cp_class || batch_alt_ || batch_wide_
                          || batch_lazy_dfa_ || batch_exact_lit_ || batch_inner_lit_ || batch_fixed_;
     }
 
@@ -885,6 +895,8 @@ namespace real {
     //!        Its per-match return was 99 % of the row at density -- see that filler's own note.
     bool                                                                  batch_alt_        {};
     bool                                                                  batch_alt_asks_   {}; //!< The alternation batch has yet to ask whether the automaton takes the subject.
+    bool                                                                  batch_wide_       {}; //!< Batch the wide alternation route (\ref detail::pike_vm::fill_alternation_wide_spans).
+    bool                                                                  batch_spent_      {}; //!< The last fill stopped short of the buffer at the end of the subject.
     //! \brief Batch the lazy-DFA route (%pike.hpp's `fill_lazy_dfa_spans`) — the fifth, and the
     //!        one shape recognition never reaches.
     bool                                                                  batch_lazy_dfa_   {};
@@ -941,6 +953,15 @@ namespace real {
 #endif
     constexpr bool refill_batch()
     {
+      // Every filler stops short of the buffer only at the end of the subject, unless it says it stopped
+      // without proving that (`batch_partial_`): a short fill that did not say so proved the rest spent, and
+      // the refill after it ends the walk instead of scanning from the last match to the end a second time.
+      if (batch_spent_) {
+        batch_n_ = 0;
+        batch_i_ = 0;
+        return false;
+      }
+      detail::note_batch_fill();
       detail::pike_vm<typename Storage::state_type, true> bvm {prog_, state_};
       if (batch_bytes_) {
         // Four instantiations, chosen once per walk. `wb_edge_` is nearly always false, and when it
@@ -988,6 +1009,16 @@ namespace real {
         detail::prof::tick_route(detail::prof::route::alternation);
         batch_n_ = bvm.fill_alternation_spans(text_, pos_, batch_, batch_cap);
       }
+      else if (batch_wide_) {
+        detail::prof::tick_route(detail::prof::route::alternation);
+        bool disarm {false};
+        batch_n_ = bvm.fill_alternation_wide_spans(text_, pos_, batch_, batch_cap, batch_partial_, disarm);
+        if (disarm) {
+          // The route declined the subject: every further search goes through `run()`, which takes it elsewhere.
+          batch_wide_     = false;
+          batch_eligible_ = false;
+        }
+      }
       else if (batch_lazy_dfa_) {
         detail::prof::tick_route(detail::prof::route::lazy_dfa_anchored);
         batch_n_ = bvm.fill_lazy_dfa_spans(text_, pos_, batch_, batch_cap, batch_partial_);
@@ -1028,7 +1059,8 @@ namespace real {
                               : bvm.template fill_cp_class_spans<false>(text_, pos_, batch_, batch_cap);
         }
       }
-      batch_i_ = 0;
+      batch_spent_ = !batch_partial_ && batch_n_ < batch_cap;
+      batch_i_     = 0;
       return batch_n_ != 0;
     }
 

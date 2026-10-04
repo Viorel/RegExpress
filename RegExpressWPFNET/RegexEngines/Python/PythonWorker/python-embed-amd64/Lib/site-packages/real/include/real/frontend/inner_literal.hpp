@@ -30,9 +30,9 @@ namespace real::detail {
   /*!
    * \brief The best required inner literal of a pattern (the memmem candidate).
    *
-   * `len == 0` means the pattern declined: a non-literal alternation, an optional (`?`/`*`/`{0,n}`), a
-   * lookaround or a non-wb anchor at the level walked, or simply no literal run — anything that would make a
-   * required literal unsound. Top-level `\b`/`\B` are peeled: they set \ref wb_lead / \ref wb_trail and
+   * `len == 0` means the pattern declined: a non-literal alternation, an optional (`?`/`*`/`{0,n}`) not
+   * preceded by a rare inner run, a lookaround or a non-wb anchor at the level walked, or simply no literal
+   * run — anything that would make a required literal unsound, or the route slower than the one it replaces. Top-level `\b`/`\B` are peeled: they set \ref wb_lead / \ref wb_trail and
    * \ref prefix_skip so the reverse-prefix excludes them (asserts are not byte-DFA-eligible) while
    * `confirm_at` still runs the full program (boundaries checked there).
    *
@@ -71,7 +71,16 @@ namespace real::detail {
     }
   };
 
-  inline constexpr std::size_t inner_literal_max {16}; //!< The most bytes an inner literal keeps; past this a longer needle costs storage without shrinking the candidate set much.
+  //! \brief The least \ref inner_literal::score an inner run needs to be kept when an optional follows it.
+  //!
+  //! Past an optional the confirm can only be the full engine, once per candidate, so the literal's density
+  //! decides whether the route pays. A single byte clears the bound at a frequency of 200 or less (`,` `.`
+  //! `:` `=` `@`); a space (1500) or an `e` (1000) does not. Over a 200 KB log, arm64: `\w+, ?\w+`
+  //! 400 -> 31 us and `\d+\.\d*` 320 -> 61 us were kept, while `\w+ \w*` 763 -> 1026 us and
+  //! `[a-z]+ [a-z]*s` 597 -> 814 us are what the bound refuses.
+  inline constexpr std::uint32_t optional_tail_min_score {1800};
+
+  inline constexpr std::size_t inner_literal_max         {16}; //!< The most bytes an inner literal keeps; past this a longer needle costs storage without shrinking the candidate set much.
 
   /*! \brief Helpers for \ref real::detail::extract_inner_literal; not part of any interface. */
   namespace inner_literal_detail {
@@ -82,10 +91,11 @@ namespace real::detail {
      */
     struct walk_state
     {
-      std::vector<std::uint8_t> run;           //!< Literal bytes accumulated since the last \ref flush.
-      inner_literal             best;          //!< Best run scored so far; `best.len == 0` until one is kept.
-      std::int32_t              run_top  {-1}; //!< Top-level child where the current run began (-1 = nested).
-      std::int32_t              best_top {-1}; //!< Top-level child where the winning run began.
+      std::vector<std::uint8_t> run;              //!< Literal bytes accumulated since the last \ref flush.
+      inner_literal             best;             //!< Best run scored so far; `best.len == 0` until one is kept.
+      std::int32_t              run_top  {-1};    //!< Top-level child where the current run began (-1 = nested).
+      std::int32_t              best_top {-1};    //!< Top-level child where the winning run began.
+      bool                      frozen   {false}; //!< An optional was met after an inner run: nothing later is taken.
     };
 
     /*!
@@ -117,6 +127,10 @@ namespace real::detail {
      */
     constexpr void flush(walk_state& st)
     {
+      if (st.frozen) {
+        st.run.clear();
+        return;
+      }
       if (!st.run.empty()) {
         const std::size_t   len        {st.run.size() < inner_literal_max ? st.run.size() : inner_literal_max};
         const std::uint32_t s          {score_run(std::span<const std::uint8_t>(st.run.data(), len))};
@@ -230,18 +244,20 @@ namespace real::detail {
      *
      * Every byte appended is present in *every* match; the confirming scan then verifies the surrounding
      * context. Pure-literal alternations \ref flush and continue (no branch bytes) so a later unconditional
-     * run can still arm. An optional declines the whole extraction, which is a choice and not a
-     * requirement: flushing past it would be sound, since bytes after an optional are still required, but
-     * it would take `https?://` off its head literal `http`, and a required HEAD is a stronger filter than
-     * an inner scan for `://`.
+     * run can still arm. An optional ends the walk: what was found before it is kept when it is an inner
+     * run scoring at least \ref optional_tail_min_score, and nothing after it is taken. Otherwise it
+     * declines the whole extraction, which is a choice and not a requirement: flushing past it would be
+     * sound, since bytes after an optional are still required, but it would take `https?://` off its head
+     * literal `http`, and a required HEAD is a stronger filter than an inner scan for `://`. Taking only
+     * what PRECEDES the optional leaves that head alone, since a head run is never kept here.
      * \param[in]     tree      The AST holding the node.
      * \param[in]     idx       Node index; a negative index is the empty subtree and succeeds trivially.
      * \param[in,out] st        Walk state the run accumulates into.
      * \param[in]     top_child The top-level concat child index this node belongs to, or -1 when nested in a
      *                          group/repeat — a run starting there has no clean top-level prefix boundary.
      * \return `false` to DECLINE the whole extraction: a non-literal alternation, an optional (`repeat` with
-     *         min 0), a lookaround or an anchor would make a required inner literal unsound, since a path
-     *         could bypass it.
+     *         min 0) with no rare inner run before it, a lookaround or an anchor would make a required inner
+     *         literal unsound, since a path could bypass it, or the route a loss.
      */
     constexpr bool walk(const ast&   tree,
                         std::int32_t idx,
@@ -276,7 +292,12 @@ namespace real::detail {
           return walk(tree, n.child, st, -1);
         case node_kind::repeat: {
             if (n.min == 0) {
-              return false; // ? * {0,n}: DECLINE -- see this function's own doc for why, and why not flush
+              flush(st);
+              if (st.best.len == 0 || st.best_top < 1 || st.best.score < optional_tail_min_score) {
+                return false; // ? * {0,n}: DECLINE unless a rare inner run precedes it -- see this function's own doc
+              }
+              st.frozen = true;
+              return true;
             }
             flush(st);                        // the repeat's width is variable; break the run around it
             if (!walk(tree, n.child, st, -1)) { // a guaranteed literal inside the first (min) copy, nested
@@ -408,6 +429,143 @@ namespace real::detail {
       }
       return true;
     }
+
+    /*!
+     * \brief Width in bytes of a subtree \ref is_pure_byte_run accepted.
+     * \param[in] tree The AST holding the node.
+     * \param[in] idx  Node index; a negative index is the empty subtree, of width 0.
+     * \return The number of `byte` nodes under \p idx.
+     */
+    [[nodiscard]] constexpr std::size_t byte_run_width(const ast&   tree,
+                                                       std::int32_t idx) noexcept
+    {
+      if (idx < 0) {
+        return 0;
+      }
+      const ast_node& n {tree.nodes[static_cast<std::size_t>(idx)]};
+      if (n.kind == node_kind::byte) {
+        return 1;
+      }
+      if (n.kind == node_kind::group) {
+        return byte_run_width(tree, n.child);
+      }
+      std::size_t w {0};
+      if (n.kind == node_kind::concat) {
+        for (std::int32_t c = n.child; c >= 0; c = tree.nodes[static_cast<std::size_t>(c)].next) {
+          w += byte_run_width(tree, c);
+        }
+      }
+      return w;
+    }
+
+    /*!
+     * \brief Whether a subtree matches exactly one unit: a byte, a class or `.`, groups looked through.
+     * \param[in] tree The AST holding the node.
+     * \param[in] idx  Node index; a negative index is the empty subtree, which is not a unit.
+     * \return True for such a single atom.
+     */
+    [[nodiscard]] constexpr bool is_unit(const ast&   tree,
+                                         std::int32_t idx) noexcept
+    {
+      while (idx >= 0 && tree.nodes[static_cast<std::size_t>(idx)].kind == node_kind::group) {
+        idx = tree.nodes[static_cast<std::size_t>(idx)].child;
+      }
+      if (idx < 0) {
+        return false;
+      }
+      const node_kind k {tree.nodes[static_cast<std::size_t>(idx)].kind};
+      return k == node_kind::byte || k == node_kind::klass || k == node_kind::any;
+    }
+
+    /*!
+     * \brief Marks in \p bytes every byte a match of the subtree can contain, and says whether the subtree
+     *        has a RIGID variable width: an alternation whose branches differ in width, or a repeat of
+     *        anything wider than one unit whose count is not fixed.
+     *
+     * \param[in]     tree  The AST holding the node.
+     * \param[in]     idx   Node index; a negative index is the empty subtree.
+     * \param[in,out] bytes One flag per byte value, set for each byte the subtree can match.
+     * \return Whether such a construct occurs under \p idx.
+     */
+    constexpr bool scan_prefix(const ast&             tree,
+                               std::int32_t           idx,
+                               std::array<bool, 256>& bytes)
+    {
+      if (idx < 0) {
+        return false;
+      }
+      const ast_node& n {tree.nodes[static_cast<std::size_t>(idx)]};
+      switch (n.kind) {
+        case node_kind::byte:
+          bytes[n.byte] = true;
+          return false;
+        case node_kind::klass: {
+            const class_def& cd {tree.classes[static_cast<std::size_t>(n.klass)]};
+            for (unsigned b {0}; b < 256U; ++b) {
+              // Every non-ASCII byte is taken: over-marking only declines, never admits.
+              const bool member {cd.ascii.test(static_cast<std::uint8_t>(b))};
+              if (b >= 0x80U || member != n.negated) {
+                bytes[b] = true;
+              }
+            }
+            return false;
+          }
+        case node_kind::any:
+          bytes.fill(true);
+          return false;
+        case node_kind::alternation: {
+            bool        rigid {false};
+            std::size_t width {npos};
+            for (std::int32_t b = n.child; b >= 0; b = tree.nodes[static_cast<std::size_t>(b)].next) {
+              rigid = scan_prefix(tree, b, bytes) || rigid;
+              const std::size_t w {byte_run_width(tree, b)};
+              rigid = rigid || (width != npos && w != width);
+              width = w;
+            }
+            return rigid;
+          }
+        case node_kind::repeat:
+          // A loop over one unit (a byte, a class, `.`) reaches every start; a loop over anything wider
+          // shrinks by the width of its body, so it is rigid unless its count is fixed.
+          return scan_prefix(tree, n.child, bytes) || (n.max != n.min && !is_unit(tree, n.child));
+        case node_kind::group:
+          return scan_prefix(tree, n.child, bytes);
+        case node_kind::concat: {
+            bool rigid {false};
+            for (std::int32_t c = n.child; c >= 0; c = tree.nodes[static_cast<std::size_t>(c)].next) {
+              rigid = scan_prefix(tree, c, bytes) || rigid;
+            }
+            return rigid;
+          }
+        case node_kind::empty:
+        case node_kind::lookaround:
+        case node_kind::anchor:
+          return false;
+      }
+      return false;
+    }
+
+    /*!
+     * \brief Whether an occurrence of \p lit can begin inside a prefix whose matches hold only the bytes
+     *        flagged in \p bytes.
+     *
+     * Wholly inside takes every byte of the literal. Straddling the prefix's end needs nothing more: the
+     * part past the end overlaps the literal itself, so it repeats the literal's head, which lies in the
+     * prefix -- every byte is then flagged anyway.
+     * \param[in] lit   The inner literal.
+     * \param[in] bytes One flag per byte value the prefix can match.
+     * \return False only when no occurrence can begin inside the prefix's text.
+     */
+    [[nodiscard]] constexpr bool can_occur_in_prefix(const inner_literal&         lit,
+                                                     const std::array<bool, 256>& bytes) noexcept
+    {
+      for (std::size_t i {0}; i < lit.len; ++i) {
+        if (!bytes[lit.bytes[i]]) {
+          return false;
+        }
+      }
+      return true;
+    }
   } // namespace inner_literal_detail
 
   /*!
@@ -474,6 +632,21 @@ namespace real::detail {
                              || (wb_lead == 1 && st.best_top == 1 && inner_literal_detail::is_word_only_run(tree, kids[lo]))};
       if (!sound_lead) {
         return inner_literal {};
+      }
+      // The scan confirms each literal occurrence from the LEFTMOST start its prefix reaches. An occurrence
+      // inside an earlier match's own prefix text can then reach back only to a later start, through a
+      // shorter way of matching the prefix, and confirm there: `(xab|a)bb` over "xabbb" answered [1,4)
+      // where the match is [0,5). That takes a prefix whose width can shrink in fixed steps (a class loop
+      // reaches every start, a fixed width none), and a literal that can occur in the prefix's text.
+      if (st.best_top >= 1) {
+        std::array<bool, 256> bytes {};
+        bool                  rigid {false};
+        for (std::int32_t k {0}; k < st.best_top; ++k) {
+          rigid = inner_literal_detail::scan_prefix(tree, kids[lo + static_cast<std::size_t>(k)], bytes) || rigid;
+        }
+        if (rigid && inner_literal_detail::can_occur_in_prefix(st.best, bytes)) {
+          return inner_literal {};
+        }
       }
       st.best.prefix_child_count = st.best_top;
       st.best.prefix_skip        = static_cast<std::int32_t>(lo);

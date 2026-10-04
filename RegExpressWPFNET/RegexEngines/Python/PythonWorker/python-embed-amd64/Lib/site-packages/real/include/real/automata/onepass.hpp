@@ -63,12 +63,23 @@ namespace real::detail {
   };
 
   /*!
+   * \brief One edge of the flattened table \ref onepass::extract walks: \ref onepass_edge with the target
+   *        given as the offset of its row, so a step is one load from one array.
+   */
+  struct onepass_step
+  {
+    std::uint32_t row         {0};     //!< Offset of the target node's row in the flat table; \ref onepass::no_row when unassigned.
+    std::uint32_t assert_mask {0};     //!< As \ref onepass_edge::assert_mask.
+    std::uint64_t cap_mask    {0};     //!< As \ref onepass_edge::cap_mask.
+  };
+
+  /*!
    * \brief A one-pass node: one edge per byte-class, plus whether the run may end here and with what
    *        captures. Nodes are the points the automaton can be in *between* byte reads.
    */
   struct onepass_node
   {
-    std::vector<onepass_edge> edge;                      //!< Indexed by byte-class.
+    std::vector<onepass_edge> edge;                      //!< Indexed by byte-class; emptied into \ref onepass_step rows once built.
     bool                      matches           {false}; //!< Reaching `match` from here (via epsilon).
     std::uint64_t             match_cap_mask    {0};     //!< Slots written when the match is taken.
     std::uint32_t             match_assert_mask {0};     //!< Assertions that must hold at the end for the match (Tier-B).
@@ -89,6 +100,7 @@ namespace real::detail {
   public:
 
     static constexpr std::uint32_t no_node          {0xFFFFFFFFU};  //!< "No node yet" sentinel in the pc->node map.
+    static constexpr std::uint32_t no_row           {0xFFFFFFFFU};  //!< \ref onepass_step::row of an unassigned edge.
     static constexpr std::size_t   max_nodes        {65000};        //!< Node cap (RE2's), a memory/DoS bound.
     static constexpr std::size_t   max_slots        {10};           //!< Slot-pointer cap: group 0 + four user groups.
     // SIZING, not behaviour: a dedup hash width. A collision costs a comparison, never an answer, so
@@ -130,9 +142,9 @@ namespace real::detail {
       // \ref classes_ view \p bp, and one caller -- the Tier-B branch of pike_vm::ensure_op_table --
       // passes a byte_program LOCAL to its own block, so those spans dangle from the closing brace.
       // Nothing dereferences them: every reader (build, minimize, build_edges, follow_jumps, node_of)
-      // is private and runs above, and \ref extract answers from \ref nodes_ alone. That made the
-      // hazard latent rather than live, but it made it true by AUDIT -- the next member that reads
-      // code_ after construction turns it into a use-after-free with nothing to catch it.
+      // is private and runs above, and \ref extract answers from \ref steps_ and \ref nodes_ alone. That
+      // made the hazard latent rather than live, but it made it true by AUDIT -- the next member that
+      // reads code_ after construction turns it into a use-after-free with nothing to catch it.
       // Emptying them here makes it true by CONSTRUCTION: such a read becomes an empty span, which
       // is deterministic and debuggable, not undefined.
       code_    = {};
@@ -176,7 +188,8 @@ namespace real::detail {
     }
 
     /*!
-     * \brief The table itself, for a runtime that walks it (and for tests that pin its shape).
+     * \brief The nodes, for tests that pin the table's shape. A built table keeps its edges in \ref steps_
+     *        alone, so each node's \ref onepass_node::edge row is empty once the build is over.
      * \return The nodes, indexed by node id; node 0 is the start.
      */
     [[nodiscard]] const std::vector<onepass_node>& nodes() const
@@ -228,21 +241,22 @@ namespace real::detail {
         return false;
       }
       out.assign(slot_count_, npos);
-      std::uint32_t node {0}; // node 0 is the start (the closure of pc 0)
+      const onepass_step* const flat {steps_.data()};
+      std::uint32_t             row  {0}; // node 0 is the start (the closure of pc 0)
       for (std::size_t pos = s; pos < e; ++pos) {
-        const std::uint8_t  cls  {alpha_.of[static_cast<std::uint8_t>(text[pos])]};
-        const onepass_edge& edge {nodes_[node].edge[cls]};
-        if (!edge.assigned) {
+        const onepass_step& step {flat[row + alpha_.of[static_cast<std::uint8_t>(text[pos])]]};
+        if (step.row == no_row) {
           return false;                                             // no outgoing edge for this byte — the span does not match
         }
-        if (edge.assert_mask != 0 && !asserts_hold(edge.assert_mask, text, pos)) {
+        if (step.assert_mask != 0 && !asserts_hold(step.assert_mask, text, pos)) {
           return false;                                             // an assertion on this edge does not hold here (Tier-B)
         }
-        for (std::uint64_t m = edge.cap_mask; m != 0; m &= m - 1) {
+        for (std::uint64_t m = step.cap_mask; m != 0; m &= m - 1) {
           out[static_cast<std::size_t>(std::countr_zero(m))] = pos; // saves crossed before this byte take pos
         }
-        node = edge.next;
+        row = step.row;
       }
+      const std::uint32_t node {row / alpha_.count};
       if (!nodes_[node].matches) {
         return false;                                           // reached e but not at an accept
       }
@@ -422,6 +436,19 @@ namespace real::detail {
       }
       if (bytes > max_bytes_) {
         bail("one-pass table too large after minimization (MB)", static_cast<std::int32_t>(bytes >> 20));
+        return;
+      }
+      const std::size_t width {alpha_.count};
+      steps_.assign(nodes_.size() * width, onepass_step {no_row, 0, 0});
+      for (std::size_t n = 0; n < nodes_.size(); ++n) {
+        for (std::size_t c = 0; c < width; ++c) {
+          const onepass_edge& edge {nodes_[n].edge[c]};
+          if (edge.assigned) {
+            steps_[n * width + c] = {static_cast<std::uint32_t>(edge.next * width), edge.assert_mask, edge.cap_mask};
+          }
+        }
+        // The rows now live in steps_ alone: kept here as well, every eligible regex would carry its table twice.
+        nodes_[n].edge = {};
       }
     }
 
@@ -778,6 +805,7 @@ namespace real::detail {
     std::vector<std::uint32_t>              pc_to_node_;     //!< pc -> node id (or no_node).
     std::vector<onepass_node>               nodes_;          //!< The table, node 0 being the start; empty until built.
     std::size_t                             slot_count_ {0}; //!< Capture slots the program uses (\ref slot_count).
+    std::vector<onepass_step>               steps_;          //!< \ref nodes_' edges in one array, row by row: what \ref extract walks.
 
     //! \brief Table-memory cap; a larger table declines. Constructor parameter, so a test can exercise the
     //!        cap without a pattern big enough to reach \ref max_table_bytes.
