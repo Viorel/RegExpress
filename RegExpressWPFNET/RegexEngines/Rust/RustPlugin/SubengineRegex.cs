@@ -374,6 +374,8 @@ class SubengineRegex( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = isUnicode,
             ßSS = false,
+
+            Ext_Ph2 = true,
         };
     }
 }

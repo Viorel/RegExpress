@@ -416,6 +416,7 @@ partial class SubengineRegexPlus( Options options ) : RegexSubengine
             ßSS = false,
 
             Ext_Ph1 = true,
+            Ext_Ph2 = true,
         };
     }
 }

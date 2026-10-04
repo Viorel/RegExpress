@@ -366,6 +366,8 @@ class SubengineReXile( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = false,
             ßSS = false,
+
+            Ext_Ph2 = true,
         };
     }
 }

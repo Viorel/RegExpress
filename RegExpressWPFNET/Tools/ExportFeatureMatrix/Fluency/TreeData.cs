@@ -1,4 +1,5 @@
-﻿using RegExpressLibrary.SyntaxColouring;
+﻿using RegExpressLibrary;
+using RegExpressLibrary.SyntaxColouring;
 
 namespace ExportFeatureMatrix.Fluency;
 
@@ -792,35 +793,56 @@ static class TreeData
                 .Flag( @"a(b)?\1", @"“a(b)?\1” matches “ab”", ( e, fm ) => fm.Ext_Ph1, isInfo: true )
                     .Test( @"a(b)?\1", "ab" )
                     .Test( @"a\(b\)?\1", "ab" )
-            //.Flag( @"""(a*)*"" gr. ""a""", @"Group 1 is ""a""", ( e, fm ) => ???, isInfo: true )
-            //    .Test( ( e, fm ) =>
-            //    {
-            //        return
-            //            fm.Parentheses == RegExpressLibrary.SyntaxColouring.FeatureMatrix.PunctuationEnum.Normal && Check( @"(a*)*", "a", "a" ) ||
-            //            fm.Parentheses == RegExpressLibrary.SyntaxColouring.FeatureMatrix.PunctuationEnum.Backslashed && Check( @"\(a*\)*", "a", "a" );
+                .Flag( @"(a*)* group 1", @"Group 1 is “a”, not empty", ( e, fm ) => fm.Ext_Ph2, isInfo: true )
+                    .Test( ( e, fm ) =>
+                    {
+                        return
+                            fm.Parentheses == RegExpressLibrary.SyntaxColouring.FeatureMatrix.PunctuationEnum.Normal && Check( @"(a*)*", "a", "a" ) ||
+                            fm.Parentheses == RegExpressLibrary.SyntaxColouring.FeatureMatrix.PunctuationEnum.Backslashed && Check( @"\(a*\)*", "a", "a" );
 
-            //        bool Check( string pattern, string text, string g1 )
-            //        {
-            //            try
-            //            {
-            //                var matches = e.GetMatches( ICancellable.NonCancellable, pattern, text );
+                        bool Check( string pattern, string text, string g1 )
+                        {
+                            bool result = false;
+                            SimpleCancellable cnc = new( );
 
-            //                if( matches.Count > 0 )
-            //                {
-            //                    var match = matches.Matches.First( );
+                            var t = new Thread( ( ) =>
+                            {
+                                try
+                                {
+                                    var matches = e.GetMatches( cnc, pattern, text );
 
-            //                    return match.Groups.Count( ) > 1 && match.Groups.ElementAt( 1 ).Value == g1;
-            //                }
-            //            }
-            //            catch
-            //            {
-            //                // ignore
-            //            }
+                                    if( matches.Count > 0 )
+                                    {
+                                        var match = matches.Matches.First( );
 
-            //            return false;
-            //        }
-            //    }
-            //    )
+                                        result = match.Groups.Count( ) > 1 && match.Groups.ElementAt( 1 ).Value == g1;
+                                    }
+                                }
+                                catch
+                                {
+                                    // ignore
+                                }
+                            } )
+                            {
+                                IsBackground = true
+                            };
+
+                            t.SetApartmentState( ApartmentState.STA );
+                            t.Start( );
+
+                            bool no_timeout = t.Join( 4444 );
+                            cnc.SetCancel( );
+
+                            if( !no_timeout )
+                            {
+                                t.Join( 1111 );
+                                t.Interrupt( );
+                                t.Join( 1111 );
+                            }
+
+                            return result;
+                        }
+                    } )
             ;
     }
 }

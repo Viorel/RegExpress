@@ -373,6 +373,8 @@ class SubengineEziGex( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = true,
             ßSS = true,
+
+            Ext_Ph2 = true,
         };
     }
 }

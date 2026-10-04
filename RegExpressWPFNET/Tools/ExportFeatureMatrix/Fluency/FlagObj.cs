@@ -65,9 +65,9 @@ class FlagObj : Indicator
         return this;
     }
 
-    public FlagObj Flag( string shortDesc, string desc, Func<RegexEngine, FeatureMatrix, bool> flagGetter )
+    public FlagObj Flag( string shortDesc, string desc, Func<RegexEngine, FeatureMatrix, bool> flagGetter, bool isInfo = false )
     {
-        return CategoryObj.Flag( shortDesc, desc, flagGetter );
+        return CategoryObj.Flag( shortDesc, desc, flagGetter, isInfo );
     }
 
     public CategoryObj Category( string name )

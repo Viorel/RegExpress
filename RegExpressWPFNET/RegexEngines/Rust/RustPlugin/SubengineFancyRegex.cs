@@ -420,6 +420,8 @@ internal partial class SubengineFancyRegex( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = isUnicode,
             ßSS = false,
+
+            Ext_Ph2 = true,
         };
     }
 

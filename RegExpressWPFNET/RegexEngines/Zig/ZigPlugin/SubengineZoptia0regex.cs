@@ -381,6 +381,8 @@ class SubengineZoptia0regex( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = !posix,
             ßSS = false,
+
+            Ext_Ph2 = true,
         };
     }
 }

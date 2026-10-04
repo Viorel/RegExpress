@@ -384,6 +384,7 @@ class SubengineMSVC( Options options ) : RegexSubengine
             ßSS = false,
 
             Ext_Ph1 = grammar == GrammarEnum.ECMAScript,
+            Ext_Ph2 = true,
         };
     }
 }

@@ -441,6 +441,12 @@ partial class Subengine( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
             Σσς = false,
             ßSS = false,
+
+            Ext_Ph2 = is_POSIX_extended ||
+                grammar == GrammarEnum.basic ||
+                grammar == GrammarEnum.sed ||
+                grammar == GrammarEnum.grep,
+
         };
     }
 

@@ -361,6 +361,7 @@ class Subengine( Options options ) : RegexSubengine
             ßSS = false,
 
             Ext_Ph1 = isExtended,
+            Ext_Ph2 = true,
         };
     }
 }
