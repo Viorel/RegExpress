@@ -55,6 +55,11 @@ namespace TinyRegexCPlugin
             Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
         }
 
+        private void cbxImplementation_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
@@ -77,5 +82,6 @@ namespace TinyRegexCPlugin
                 --ChangeCounter;
             }
         }
+
     }
 }

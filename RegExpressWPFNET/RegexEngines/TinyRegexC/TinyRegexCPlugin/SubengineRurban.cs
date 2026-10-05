@@ -5,6 +5,7 @@ using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -12,7 +13,7 @@ using System.Text;
 
 namespace TinyRegexCPlugin;
 
-class Subengine( Options options ) : RegexSubengine
+class SubengineRurban( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
@@ -36,6 +37,8 @@ class Subengine( Options options ) : RegexSubengine
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
     {
+        Debug.Assert( options.Implementation == ImplementationEnum.rurban );
+
         try
         {
             _ = StrictAsciiEncoding.GetBytes( pattern );
@@ -121,7 +124,7 @@ class Subengine( Options options ) : RegexSubengine
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_exe = Path.Combine( assembly_dir, @"TinyRegexCWorker.bin" );
+        string worker_exe = Path.Combine( assembly_dir, @"TinyRegexCWorker_Rurban.bin" );
 
         return worker_exe;
     }

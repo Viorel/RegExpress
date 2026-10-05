@@ -217,7 +217,9 @@ rem -- tiny-regex-c --
 
 set BasePath=%SolutionDir%\RegexEngines\TinyRegexC
 xcopy /D /R /Y "%BasePath%\TinyRegexCPlugin\bin\%Configuration%\%TargetDir%\TinyRegexCPlugin.dll" "%EnginesTargetPath%\TinyRegexC\*"
-xcopy /D /R /Y "%BasePath%\TinyRegexCWorker\bin\%Configuration%\%Platform%\TinyRegexCWorker.exe" "%EnginesTargetPath%\TinyRegexC\*.bin"
+xcopy /D /R /Y "%BasePath%\TinyRegexCWorker_Kokke\bin\%Configuration%\%Platform%\TinyRegexCWorker_Kokke.exe" "%EnginesTargetPath%\TinyRegexC\*.bin"
+xcopy /D /R /Y "%BasePath%\TinyRegexCWorker_Rurban\bin\%Configuration%\%Platform%\TinyRegexCWorker_Rurban.exe" "%EnginesTargetPath%\TinyRegexC\*.bin"
+xcopy /D /R /Y "%BasePath%\TinyRegexCWorker_Gyrovorbis\bin\%Configuration%\%Platform%\TinyRegexCWorker_Gyrovorbis.exe" "%EnginesTargetPath%\TinyRegexC\*.bin"
 
 
 rem -- Ada --

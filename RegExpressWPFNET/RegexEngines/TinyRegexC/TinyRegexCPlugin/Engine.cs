@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Windows.Controls;
+using System.Windows.Navigation;
 
 
 namespace TinyRegexCPlugin;
@@ -44,11 +45,11 @@ class Engine : RegexEngine
 
     public override string Kind => "TinyRegexC";
 
-    public override string Version => Versions.TinyRegexC;
+    public override string Version => ""; // (versions are displayed for each implementation)
 
     public override string Name => "tiny-regex-c";
 
-    public override string Subtitle => $"{Name}";
+    public override string Subtitle => $"Tiny ({Enum.GetName( Options.Implementation )})";
 
     public override string? NoteForCaptures => null;
 
@@ -90,7 +91,9 @@ class Engine : RegexEngine
     {
         return
             [
-                new FeatureMatrixVariant( null, new Engine() )
+                new FeatureMatrixVariant( "kokke", new Engine { Options = new Options{ Implementation = ImplementationEnum.kokke} } ),
+                new FeatureMatrixVariant( "rurban", new Engine { Options = new Options{ Implementation = ImplementationEnum.rurban } } ),
+                new FeatureMatrixVariant( "gyrovorbis", new Engine { Options = new Options{ Implementation = ImplementationEnum.gyrovorbis } } ),
             ];
     }
 
@@ -108,7 +111,13 @@ class Engine : RegexEngine
 
     public override RegexSubengine GetSubengine( )
     {
-        return new Subengine( Options );
+        return Options.Implementation switch
+        {
+            ImplementationEnum.kokke => new SubengineKokke( Options ),
+            ImplementationEnum.rurban => new SubengineRurban( Options ),
+            ImplementationEnum.gyrovorbis => new SubengineGyrovorbis( Options ),
+            _ => throw new NotImplementedException( )
+        };
     }
 
     #endregion

@@ -129,9 +129,13 @@
   </Folder>
   <Folder Name="/RegexEngines/TinyRegexC/">
     <Project Path="RegexEngines/TinyRegexC/TinyRegexCPlugin/TinyRegexCPlugin.csproj">
-      <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker/TinyRegexCWorker.vcxproj" />
+      <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker_Gyrovorbis/TinyRegexCWorker_Gyrovorbis.vcxproj" />
+      <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker_Kokke/TinyRegexCWorker_Kokke.vcxproj" />
+      <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker_Rurban/TinyRegexCWorker_Rurban.vcxproj" />
     </Project>
-    <Project Path="RegexEngines/TinyRegexC/TinyRegexCWorker/TinyRegexCWorker.vcxproj" Id="5cac2b8b-1a6a-425c-b406-039a1c3d0f3f" />
+    <Project Path="RegexEngines/TinyRegexC/TinyRegexCWorker_Gyrovorbis/TinyRegexCWorker_Gyrovorbis.vcxproj" />
+    <Project Path="RegexEngines/TinyRegexC/TinyRegexCWorker_Kokke/TinyRegexCWorker_Kokke.vcxproj" />
+    <Project Path="RegexEngines/TinyRegexC/TinyRegexCWorker_Rurban/TinyRegexCWorker_Rurban.vcxproj" Id="5cac2b8b-1a6a-425c-b406-039a1c3d0f3f" />
   </Folder>
   <Folder Name="/RegexEngines/TRE/">
     <Project Path="RegexEngines/TRE/TRE/TRE/win32/tre.vcxproj" Id="69258b5d-ecae-40e4-8f64-5f063b05c998" />
@@ -152,7 +156,7 @@
   </Folder>
   <Project Path="RegExpressCppLibrary/RegExpressCppLibrary.vcxproj" Id="0a96a479-5737-4d64-8f1a-2cc87ca675e2" />
   <Project Path="RegExpressLibrary/RegExpressLibrary.csproj" />
-  <Project Path="RegExpressWPFNET/RegExpressWPFNET.csproj" DefaultStartup="true">
+  <Project Path="RegExpressWPFNET/RegExpressWPFNET.csproj">
     <BuildDependency Project="SolutionEvents/SolutionEvents.vcxproj" />
   </Project>
   <Project Path="SolutionEvents/SolutionEvents.vcxproj" Id="886c3f35-3ef7-4cc7-9274-244d45a1ba5a">
@@ -199,7 +203,9 @@
     <BuildDependency Project="RegexEngines/SubReg/SubRegPlugin/SubRegPlugin.csproj" />
     <BuildDependency Project="RegexEngines/SubReg/SubRegWorker/SubRegWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCPlugin/TinyRegexCPlugin.csproj" />
-    <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker/TinyRegexCWorker.vcxproj" />
+    <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker_Gyrovorbis/TinyRegexCWorker_Gyrovorbis.vcxproj" />
+    <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker_Kokke/TinyRegexCWorker_Kokke.vcxproj" />
+    <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker_Rurban/TinyRegexCWorker_Rurban.vcxproj" />
     <BuildDependency Project="RegexEngines/TRE/TRE/TRE/win32/tre.vcxproj" />
     <BuildDependency Project="RegexEngines/TRE/TREPlugin/TREPlugin.csproj" />
     <BuildDependency Project="RegexEngines/TRE/TREWorker/TREWorker.vcxproj" />
