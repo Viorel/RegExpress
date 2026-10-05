@@ -45,6 +45,8 @@ class Options
     public string? MaxLiterals { get; set; }
     public string? MaxRecursionDepth { get; set; }
 
+    public string? TimeoutNs { get; set; }
+
     public bool FindAll { get; set; } = true;
 
     public Options Clone( )

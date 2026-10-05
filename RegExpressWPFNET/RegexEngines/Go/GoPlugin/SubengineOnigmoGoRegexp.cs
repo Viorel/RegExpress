@@ -29,7 +29,7 @@ class SubengineOnigmoGoRegexp( Options options ) : RegexSubengine
 
         return new SyntaxOptions
         {
-            XLevel = fm.XModeComments && options.IgnorePatternWhitespace ? XLevelEnum.x : XLevelEnum.none,
+            XLevel = XLevelEnum.none,
             FeatureMatrix = fm,
         };
     }
@@ -50,6 +50,7 @@ class SubengineOnigmoGoRegexp( Options options ) : RegexSubengine
             text,
 
             options.FindAll,
+            TimeoutNs = ValidationUtilities.ParseInt64( "Timeout", options.TimeoutNs ),
         };
 
         string json = JsonSerializer.Serialize( data );

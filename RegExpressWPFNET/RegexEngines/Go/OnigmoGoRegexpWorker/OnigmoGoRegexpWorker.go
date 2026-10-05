@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	//regexp "regexp"
 
@@ -16,7 +17,8 @@ type inputStruct struct {
 	Pattern string
 	Text    string
 
-	FindAll bool
+	FindAll   bool
+	TimeoutNs *int64
 }
 
 type outputStruct struct {
@@ -48,8 +50,6 @@ func main() {
 
 	//fmt.Printf("Input struct: {%+v}\n", input)
 
-	var output outputStruct
-
 	pattern := input.Pattern
 	text := input.Text
 
@@ -61,6 +61,10 @@ func main() {
 		return
 	}
 
+	if input.TimeoutNs != nil {
+		re = re.WithTimeout(time.Duration(*input.TimeoutNs))
+	}
+
 	names := re.SubexpNames() // []string
 	//fmt.Printf( "names: %q\n", names)
 
@@ -70,7 +74,13 @@ func main() {
 
 	for start := 0; start <= len(text); {
 
-		matches := re.FindStringSubmatchIndex(text[start:]) // []int, example: [0,1,0,1,-1,-1] (first group succeeded, second group failed)
+		matches, err := re.FindStringSubmatchIndexErr(text[start:]) // []int, example: [0,1,0,1,-1,-1] (first group succeeded, second group failed)
+
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+
+			return
+		}
 
 		if len(matches) < 2 { // ('len(nil)' works too and is zero)
 			break
@@ -100,6 +110,8 @@ func main() {
 			start = new_start
 		}
 	}
+
+	var output outputStruct
 
 	output.Names = names
 	output.Matches = all_matches

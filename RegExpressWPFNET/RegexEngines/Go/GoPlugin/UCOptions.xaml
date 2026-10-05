@@ -178,7 +178,33 @@
 
             <!-- onigma -->
             <StackPanel x:Name="pnlOnigma" Orientation="Vertical">
+
                 <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
+
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" >
+                    <Grid.LayoutTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Grid.LayoutTransform>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto" MinWidth="77"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=TimeoutNs}" Content="Timeout:"/>
+                    <TextBox x:Name="TimeoutNs" Grid.Column="1" Grid.Row="0" Text="{Binding TimeoutNs, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="0" Text="ns" Style="{StaticResource note}" />
+
+                </Grid>
+                
             </StackPanel>
 
             <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>

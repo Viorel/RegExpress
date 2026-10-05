@@ -133,8 +133,8 @@
       <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker_Kokke/TinyRegexCWorker_Kokke.vcxproj" />
       <BuildDependency Project="RegexEngines/TinyRegexC/TinyRegexCWorker_Rurban/TinyRegexCWorker_Rurban.vcxproj" />
     </Project>
-    <Project Path="RegexEngines/TinyRegexC/TinyRegexCWorker_Gyrovorbis/TinyRegexCWorker_Gyrovorbis.vcxproj" />
-    <Project Path="RegexEngines/TinyRegexC/TinyRegexCWorker_Kokke/TinyRegexCWorker_Kokke.vcxproj" />
+    <Project Path="RegexEngines/TinyRegexC/TinyRegexCWorker_Gyrovorbis/TinyRegexCWorker_Gyrovorbis.vcxproj" Id="734ae13c-88ab-4169-89c0-71eacd38f09d" />
+    <Project Path="RegexEngines/TinyRegexC/TinyRegexCWorker_Kokke/TinyRegexCWorker_Kokke.vcxproj" Id="4531c81d-f7ea-4b4b-bd8e-9a525d5ddca0" />
     <Project Path="RegexEngines/TinyRegexC/TinyRegexCWorker_Rurban/TinyRegexCWorker_Rurban.vcxproj" Id="5cac2b8b-1a6a-425c-b406-039a1c3d0f3f" />
   </Folder>
   <Folder Name="/RegexEngines/TRE/">
