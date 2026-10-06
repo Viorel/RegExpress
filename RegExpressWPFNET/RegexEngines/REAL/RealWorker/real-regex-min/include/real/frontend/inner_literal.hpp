@@ -30,16 +30,12 @@ namespace real::detail {
   /*!
    * \brief The best required inner literal of a pattern (the memmem candidate).
    *
-   * `len == 0` means the pattern declined: a non-literal alternation, an optional (`?`/`*`/`{0,n}`) not
-   * preceded by a rare inner run, a lookaround or a non-wb anchor at the level walked, or simply no literal
-   * run — anything that would make a required literal unsound, or the route slower than the one it replaces. Top-level `\b`/`\B` are peeled: they set \ref wb_lead / \ref wb_trail and
-   * \ref prefix_skip so the reverse-prefix excludes them (asserts are not byte-DFA-eligible) while
-   * `confirm_at` still runs the full program (boundaries checked there).
-   *
-   * A pure-literal alternation (`info|error|warn`) does not abort the walk: it flushes and continues, so a
-   * later required run (`req=`) can still arm. No branch's bytes are ever appended — none are shared.
-   * Mono-byte optionals (`s?`) stay declined; see \ref real::detail::inner_literal_detail::walk for why
-   * continuing past one is sound and still not wanted.
+   * `len == 0` means the pattern declined: a non-literal alternation, an optional (`?`/`*`/`{0,n}`) after a
+   * head run or around a literal too common to pay, a lookaround or a non-wb anchor at the level walked, or
+   * no literal run: anything that would make a required literal unsound, or the route slower than the one
+   * it replaces (see \ref real::detail::inner_literal_detail::walk). Top-level `\b`/`\B` are peeled into
+   * \ref wb_lead / \ref wb_trail and \ref prefix_skip, so the reverse-prefix excludes them (asserts are not
+   * byte-DFA-eligible) while `confirm_at` runs the full program and checks them.
    */
   struct inner_literal
   {
@@ -48,10 +44,10 @@ namespace real::detail {
     std::array<std::uint8_t, 16> bytes              {};
     std::uint8_t                 len                {0};  //!< Bytes held in \ref bytes; 0 means the pattern declined.
     std::uint32_t                score              {0};  //!< Selectivity: higher = rarer/longer = fewer memmem candidates.
-    //! \brief Top-level concat children BEFORE the literal — the sub-pattern the prefix-reverse matches
-    //!        backwards from a candidate to find the match start. 0 = the literal is at the head (identity:
-    //!        start = candidate). -1 = the literal is nested in a group/repeat, so no clean top-level prefix
-    //!        boundary exists (the prefix-reverse does not apply; the memmem candidate still does).
+    //! \brief Top-level concat children BEFORE the literal: the sub-pattern the prefix-reverse matches
+    //!        backwards from a candidate to find the match start. 0 = the literal is at the head (start =
+    //!        candidate); -1 = nested in a group/repeat, so no top-level prefix boundary (the memmem
+    //!        candidate still applies).
     std::int32_t                 prefix_child_count {-1};
 
     //! \brief Leading top-level children to skip when building the reverse-prefix (peeled lead `\b`/`\B`).
@@ -71,16 +67,15 @@ namespace real::detail {
     }
   };
 
-  //! \brief The least \ref inner_literal::score an inner run needs to be kept when an optional follows it.
+  //! \brief The least \ref inner_literal::score an inner run needs to be kept when an optional precedes or
+  //!        follows it.
   //!
-  //! Past an optional the confirm can only be the full engine, once per candidate, so the literal's density
-  //! decides whether the route pays. A single byte clears the bound at a frequency of 200 or less (`,` `.`
-  //! `:` `=` `@`); a space (1500) or an `e` (1000) does not. Over a 200 KB log, arm64: `\w+, ?\w+`
-  //! 400 -> 31 us and `\d+\.\d*` 320 -> 61 us were kept, while `\w+ \w*` 763 -> 1026 us and
-  //! `[a-z]+ [a-z]*s` 597 -> 814 us are what the bound refuses.
-  inline constexpr std::uint32_t optional_tail_min_score {1800};
+  //! Past an optional the confirm is the full engine once per candidate, so the literal's density decides
+  //! whether the route pays. A single byte clears the bound at a frequency of 200 or less (`,` `.` `:` `=`
+  //! `@`); a space (1500) or an `e` (1000) does not (`\w+ \w*`, 200 KB log, arm64: 763 -> 1026 us with the route).
+  inline constexpr std::uint32_t optional_literal_min_score {1800};
 
-  inline constexpr std::size_t inner_literal_max         {16}; //!< The most bytes an inner literal keeps; past this a longer needle costs storage without shrinking the candidate set much.
+  inline constexpr std::size_t inner_literal_max            {16}; //!< The most bytes an inner literal keeps; past this a longer needle costs storage without shrinking the candidate set much.
 
   /*! \brief Helpers for \ref real::detail::extract_inner_literal; not part of any interface. */
   namespace inner_literal_detail {
@@ -96,6 +91,7 @@ namespace real::detail {
       std::int32_t              run_top  {-1};    //!< Top-level child where the current run began (-1 = nested).
       std::int32_t              best_top {-1};    //!< Top-level child where the winning run began.
       bool                      frozen   {false}; //!< An optional was met after an inner run: nothing later is taken.
+      bool                      optional {false}; //!< An optional was met before any run was kept: the kept run must pay.
     };
 
     /*!
@@ -154,10 +150,8 @@ namespace real::detail {
     /*!
      * \brief Whether \p idx is a pure fixed byte run: only `byte` / nested concat / group of the same.
      *
-     * Used to decide whether an alternation may be skipped (flush+continue) without appending any branch
-     * bytes — every branch is fixed-width literal text, so the reverse-prefix can still represent the alt as
-     * a deterministic byte DFA. Anything else (klass, repeat, nested alt, lookaround, …) keeps the
-     * conservative decline.
+     * Decides whether an alternation may be flushed past: with every branch literal text, the reverse-prefix
+     * still represents it as a deterministic byte DFA. Anything else (klass, repeat, nested alt, …) declines.
      * \param[in] tree The AST holding the node.
      * \param[in] idx  Node index; a negative index is the empty subtree and counts as pure.
      * \return `true` if every node in the subtree is a fixed byte, a concat of such, or a group of such.
@@ -196,13 +190,9 @@ namespace real::detail {
     /*!
      * \brief Whether a byte-run subtree can match the empty string — i.e. holds no byte at all.
      *
-     * Only meaningful on a subtree \ref is_pure_byte_run has already accepted, where the only kinds
-     * reachable are `empty`, `byte`, `concat` and `group`; the others decline, which is the safe
-     * answer for a caller that uses this to refuse. `is_pure_byte_run` asks whether the shape is a
-     * run of literal bytes and answers yes for an EMPTY one — correct for its other callers, where an
-     * empty node sits beside bytes in a concat that is non-empty overall. An alternation BRANCH is
-     * the case where that is not enough: a zero-width branch makes the whole alternation nullable,
-     * and a nullable segment cannot stand in a reverse-prefix, which must consume what it spans.
+     * Meaningful only on a subtree \ref is_pure_byte_run accepted; other kinds answer true, the safe refusal.
+     * \ref is_pure_byte_run accepts an EMPTY run, which an alternation branch must not be: a zero-width
+     * branch makes the alternation nullable, and a reverse-prefix must consume what it spans.
      * \param[in] tree The AST holding the node.
      * \param[in] idx  Node index; a negative index is the empty subtree, which is empty.
      * \return Whether the subtree matches the empty string.
@@ -242,14 +232,13 @@ namespace real::detail {
     /*!
      * \brief Walk one node, appending guaranteed-present literal bytes to \ref walk_state::run.
      *
-     * Every byte appended is present in *every* match; the confirming scan then verifies the surrounding
-     * context. Pure-literal alternations \ref flush and continue (no branch bytes) so a later unconditional
-     * run can still arm. An optional ends the walk: what was found before it is kept when it is an inner
-     * run scoring at least \ref optional_tail_min_score, and nothing after it is taken. Otherwise it
-     * declines the whole extraction, which is a choice and not a requirement: flushing past it would be
-     * sound, since bytes after an optional are still required, but it would take `https?://` off its head
-     * literal `http`, and a required HEAD is a stronger filter than an inner scan for `://`. Taking only
-     * what PRECEDES the optional leaves that head alone, since a head run is never kept here.
+     * Every byte appended is present in *every* match; the confirming scan verifies the context. Pure-literal
+     * alternations \ref flush and continue (no branch bytes), so a later run (`req=`) can still arm. An
+     * optional breaks the run, as a class does. Met before any kept run, the walk goes on; after an inner
+     * run, the walk ends with that run kept; after a HEAD run, the extraction declines by choice (`https?://`
+     * keeps its head literal `http`, a stronger filter than an inner scan for `://`). Past an optional the
+     * literal must score at least \ref optional_literal_min_score. An optional over a body wider than one unit
+     * in the prefix is left to extract_inner_literal's rigid-prefix decline: `(ab)?bb` is `(ab|)bb`.
      * \param[in]     tree      The AST holding the node.
      * \param[in]     idx       Node index; a negative index is the empty subtree and succeeds trivially.
      * \param[in,out] st        Walk state the run accumulates into.
@@ -293,8 +282,12 @@ namespace real::detail {
         case node_kind::repeat: {
             if (n.min == 0) {
               flush(st);
-              if (st.best.len == 0 || st.best_top < 1 || st.best.score < optional_tail_min_score) {
-                return false; // ? * {0,n}: DECLINE unless a rare inner run precedes it -- see this function's own doc
+              if (st.best.len == 0) {
+                st.optional = true; // nothing kept yet: a later run is still required in every match
+                return true;
+              }
+              if (st.best_top < 1 || st.best.score < optional_literal_min_score) {
+                return false; // ? * {0,n} after a head run or a common one: DECLINE -- see this function's own doc
               }
               st.frozen = true;
               return true;
@@ -311,16 +304,10 @@ namespace real::detail {
           flush(st); // a non-byte guaranteed segment breaks the run
           return true;
         case node_kind::alternation: {
-            // Pure-literal alt (`info|error|warn`) — every branch is fixed bytes, so the alt is a
-            // representable reverse-prefix segment. Flush (do not append any branch's bytes: none are
-            // shared) and continue. A branch with klass/repeat/nested-alt declines the whole extract.
-            //
-            // "Fixed bytes" has to mean AT LEAST ONE byte. An empty branch — `(ab|)`, `(a|(?:))` —
-            // makes the alternation nullable, and a nullable segment cannot stand in a reverse-prefix:
-            // the prefix confirms at width 0 wherever the literal is found, so the scan accepts a
-            // candidate the pattern only reaches later and never considers the leftmost match. Measured
-            // on `(ab|)bb` over "abbbbbbbbbbbb": once the immutables are built, search answered [1,3]
-            // ("bb") where the general VM answers [0,4] ("abbb") — a silent wrong answer, not a slow one.
+            // Pure-literal alt (`info|error|warn`): a representable reverse-prefix segment, so flush (no
+            // branch's bytes are shared) and continue. Each branch needs AT LEAST ONE byte: an empty branch
+            // (`(ab|)`) makes the alt nullable, the prefix confirms at width 0 and misses the leftmost match
+            // (`(ab|)bb` over "abbbbbbbbbbbb" answered [1,3] where the VM answers [0,4]).
             for (std::int32_t b = n.child; b >= 0; b = tree.nodes[static_cast<std::size_t>(b)].next) {
               if (!is_pure_byte_run(tree, b) || byte_run_is_empty(tree, b)) {
                 return false;
@@ -331,9 +318,8 @@ namespace real::detail {
           }
         case node_kind::lookaround:
         case node_kind::anchor:
-          // Top-level `\b`/`\B` are peeled by extract_inner_literal before the walk; any anchor that
-          // still reaches here (mid-body wb, ^, $, nested) would make a required inner literal unsound
-          // or a reverse-prefix non-byte — decline.
+          // Top-level `\b`/`\B` are peeled before the walk; any other anchor here would make the literal
+          // unsound or the reverse-prefix non-byte.
           return false;
       }
       return false;
@@ -623,21 +609,21 @@ namespace real::detail {
         }
       }
       inner_literal_detail::flush(st);
-      // A peeled lead boundary is checked by confirm_at at ONE start: the leftmost the reverse prefix
-      // finds. Where the prefix can start at several places, a later one may satisfy the boundary while the
-      // leftmost does not -- `\B\w+e` over "99e" wants the start inside the run -- and the match is lost.
-      // Only a lone word-only run makes the leftmost the one start that can (is_word_only_run); anything
-      // else before the literal declines the route.
+      // confirm_at checks a peeled lead boundary at ONE start, the leftmost the reverse prefix finds; a later
+      // start may satisfy it while the leftmost does not (`\B\w+e` over "99e"). Only a lone word-only run
+      // makes the leftmost the sole candidate (is_word_only_run); anything else declines.
       const bool sound_lead {wb_lead == 0 || st.best_top == 0
                              || (wb_lead == 1 && st.best_top == 1 && inner_literal_detail::is_word_only_run(tree, kids[lo]))};
       if (!sound_lead) {
         return inner_literal {};
       }
-      // The scan confirms each literal occurrence from the LEFTMOST start its prefix reaches. An occurrence
-      // inside an earlier match's own prefix text can then reach back only to a later start, through a
-      // shorter way of matching the prefix, and confirm there: `(xab|a)bb` over "xabbb" answered [1,4)
-      // where the match is [0,5). That takes a prefix whose width can shrink in fixed steps (a class loop
-      // reaches every start, a fixed width none), and a literal that can occur in the prefix's text.
+      if (st.optional && st.best.score < optional_literal_min_score) {
+        return inner_literal {}; // past an optional the confirm is the full engine: a common literal does not pay
+      }
+      // The scan confirms each occurrence from the LEFTMOST start its prefix reaches, so an occurrence inside
+      // an earlier match's prefix text can confirm at a later start through a shorter prefix match
+      // (`(xab|a)bb` over "xabbb" answered [1,4), not [0,5)). That needs a rigid prefix (width shrinking in
+      // fixed steps; a class loop reaches every start) and a literal that can occur in the prefix's text.
       if (st.best_top >= 1) {
         std::array<bool, 256> bytes {};
         bool                  rigid {false};

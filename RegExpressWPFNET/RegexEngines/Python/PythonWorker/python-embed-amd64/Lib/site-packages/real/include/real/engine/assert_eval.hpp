@@ -3,10 +3,9 @@
  * \brief Zero-width assertion evaluation (`^ $ \b \B \A \Z \< \>`) as free functions over a subject and a
  *        position, shared by the Pike VM and the one-pass extractor.
  *
- * The multiline / trailing-newline subtleties are resolved at compile time into the \ref real::detail::assert_kind
- * carried by an `assert_position` op, so evaluation here is a pure predicate on `(text, pos)` plus the word-ness
- * mode. Both callers read these functions — the Pike VM per instruction, the one-pass runtime per edge
- * condition — so their notion of a boundary agrees by construction rather than by review.
+ * Multiline and trailing-newline semantics are resolved at compile time into the \ref real::detail::assert_kind,
+ * so each test is a pure predicate on `(text, pos)` and the word-ness mode. One definition keeps both callers'
+ * boundaries in agreement.
  */
 #ifndef REAL_ASSERT_EVAL_HPP
 #define REAL_ASSERT_EVAL_HPP
@@ -42,15 +41,14 @@ namespace real::detail {
       return false;
     }
     const auto prev {static_cast<std::uint8_t>(text[pos - 1])};
-    // ASCII fast path: an ASCII byte is a whole one-byte code point, and is_word_cp agrees with
-    // is_ascii_word_byte on it — so the common case skips the back-decode entirely.
+    // An ASCII byte is a whole code point, on which is_word_cp agrees with is_ascii_word_byte.
     if (prev < 0x80U || ascii_word) {
       return is_ascii_word_byte(prev);
     }
     std::size_t i     {pos - 1};
     std::size_t steps {0};
-    // Walk back over continuation bytes, bounded to the longest UTF-8 sequence: a longer run is
-    // malformed by definition, and the bound is what keeps one boundary test from scanning the subject.
+    // At most 3 continuation bytes back: a longer run is malformed, and the bound keeps one test from
+    // scanning the subject.
     while (i > 0 && (static_cast<std::uint8_t>(text[i]) & 0xC0U) == 0x80U && steps < 3) {
       --i;
       ++steps;

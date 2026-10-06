@@ -2,16 +2,13 @@
  * \file profile.hpp
  * \brief Optional route-attribution counters — the profiling substrate.
  *
- * **Codegen-invisible when OFF** (default): tick helpers are empty \c always_inline
- * functions — no branch, no thread_local touch, no object-layout change. Counters and
- * harness helpers (\c tls / \c reset / \c snapshot / name tables) exist only under
- * \c -DREAL_PROFILE so coverage builds never see dead instrumented paths.
+ * **Codegen-invisible when OFF** (default): tick helpers are empty \c always_inline functions — no
+ * branch, no thread_local touch, no layout change. Counters and harness helpers exist only under
+ * \c -DREAL_PROFILE, so coverage builds never see dead instrumented paths. When ON, increments skip
+ * constant evaluation.
  *
- * Protocol: ns/B is always measured on a profile-OFF build; route counters come
- * from a profile-ON build of the same (pattern, corpus, surface). Never mix.
- *
- * Constexpr-safe when ON: increments run only outside constant evaluation
- * (guarded so static_regex stays pure).
+ * Measure ns/B on a profile-OFF build and route counters on a profile-ON build of the same
+ * (pattern, corpus, surface). Never mix.
  */
 #ifndef REAL_CORE_PROFILE_HPP
 #define REAL_CORE_PROFILE_HPP
@@ -27,7 +24,7 @@
 namespace real::detail::prof {
 
   /*!
-   * \brief Named once-per-dispatch routes (Tier 1). Always visible so tick call sites compile OFF.
+   * \brief Named once-per-dispatch routes. Always visible so tick call sites compile OFF.
    */
   enum class route : std::uint8_t
   {
@@ -42,7 +39,7 @@ namespace real::detail::prof {
     aho_corasick,      //!< multi-literal automaton, past the branch-count threshold.
     onepass_full,
     onepass_window,
-    run_shape_window,  //!< Groups read by one greedy walk over a window the DFAs found (`pike_vm::match_run_shape`).
+    run_shape_window,  //!< Groups read by one greedy walk over the DFAs' window (`pike_vm::match_run_shape`).
     lazy_dfa_anchored, //!< first-byte candidate + anchored_end
     lazy_dfa_fwd_rev,  //!< unanchored forward + reverse
     general_full,
@@ -85,19 +82,14 @@ namespace real::detail::prof {
     std::uint64_t prefilter_candidates                            {};
     std::uint64_t prefilter_rejected                              {};
     std::uint64_t run_len_hist[8]                                 {}; //!< log2 buckets for maximal class/cp runs
-    //! \brief log2 buckets for the LIVE THREAD COUNT the general VM carries into each `step()`.
+    //! \brief log2 buckets for the live thread count the general VM carries into each `step()`.
     //!
-    //! The question this exists for: the general VM costs an order of magnitude more per byte than a
-    //! routed loop, and whether that is the thread-list machinery or genuine NFA parallelism depends on
-    //! how many threads are actually live. One thread per position means the cost is overhead the shape
-    //! does not need; many means it is the automaton doing real work.
+    //! One thread per position means the VM's per-byte cost is list overhead the shape does not need;
+    //! many means real NFA parallelism.
     std::uint64_t thread_hist[8]                                  {};
   };
 
-  // Harness side, profile-ON only: the thread-local block, its reset/read pair, the record_* helpers the
-  // tick_* wrappers below call, and the name tables a reader prints. The two histogram helpers bucket by
-  // log2 and saturate in the eighth bucket, so a run longer than the last boundary is not lost, only
-  // merged.
+  // Harness side, profile-ON only. Histograms bucket by log2 and saturate in the eighth bucket.
   [[nodiscard]] inline counters& tls() noexcept
   {
     static thread_local counters c;
@@ -272,12 +264,9 @@ namespace real::detail::prof {
   /*!
    * \brief Bill one candidate a prefilter produced. Erased entirely unless \c REAL_PROFILE is defined.
    *
-   * SCOPE, STATED because a counter whose meaning is guessed is barely better than a dead one:
-   * `counters::prefilter_candidates` and `counters::prefilter_rejected` (named here as code because they
-   * exist only in a \c REAL_PROFILE build) cover the INNER-LITERAL route's memmem loop and nothing else.
-   * One candidate is one hit `find_literal` returned; one rejection is one hit whose reverse walk reached
-   * no match start, so the loop advanced. Other routes have their own notion of a candidate and are
-   * deliberately not folded in, so a zero here is not a statement about them.
+   * `counters::prefilter_candidates` / `counters::prefilter_rejected` cover the inner-literal route's
+   * literal scan only: a candidate is one `find_literal` hit, a rejection one whose reverse walk reached
+   * no match start. Other routes are not folded in, so a zero says nothing about them.
    */
   constexpr void tick_prefilter_candidate() noexcept
   {

@@ -2,14 +2,12 @@
  * \file storage.hpp
  * \brief Storage policies: where a program lives and how scratch is allocated.
  *
- * - \ref real::detail::dynamic_storage — everything sized at run time,
- *   exactly once, on the heap (backs `real::regex`).
- * - \ref real::detail::static_storage — the pattern is compiled at compile
- *   time into static constexpr arrays of exact size, and match scratch lives
- *   on the stack: zero allocations (backs `real::static_regex`).
+ * - \ref real::detail::dynamic_storage (backs `real::regex`): sized once at run time, on the heap.
+ * - \ref real::detail::static_storage (backs `real::static_regex`): compiled at compile time into
+ *   exactly sized static constexpr arrays, match scratch on the stack, zero allocations.
  *
- * Exact sizing uses C++20 transient constexpr allocation: the program is
- * built once to measure each array, then rebuilt to fill it.
+ * Exact sizing uses C++20 transient constexpr allocation: the program is built once to measure each
+ * array, then rebuilt to fill it.
  */
 #ifndef REAL_STORAGE_HPP
 #define REAL_STORAGE_HPP
@@ -53,10 +51,7 @@ namespace real {
     char data[N] = {}; //!< The captured characters, including the trailing NUL.
 
     /*!
-     * \brief Captures a string literal.
-     *
-     * Implicit by design: it is what lets a string literal be a non-type
-     * template argument; marking it `explicit` would defeat the purpose.
+     * \brief Captures a string literal. Implicit, so a string literal can be the template argument.
      *
      * \param[in] literal The string literal to capture.
      */
@@ -82,13 +77,11 @@ namespace real {
   namespace detail {
 
     /*!
-     * \brief Fixed-capacity vector backed by an inline array (no heap).
+     * \brief Fixed-capacity vector backed by an inline array (no heap): the subset of `std::vector` the
+     *        Pike VM uses, for the static storage mode.
      *
-     * The subset of `std::vector` the Pike VM uses, for the static storage mode.
-     * Overflow cannot happen for the engine's own containers: `static_storage` sizes each
-     * one exactly via its measure pass, so the `length_error` guards are an unreachable
-     * structural safety net — kept deliberately, and never hit at run time (hence not
-     * covered by the runtime coverage report).
+     * \ref static_storage bounds every engine container from its measure pass, so the `length_error`
+     * guards are an unreachable safety net (hence absent from run-time coverage).
      *
      * \tparam T   Element type.
      * \tparam Cap Inline capacity.
@@ -101,11 +94,8 @@ namespace real {
       /*!
        * \brief Value-initializes \ref data_ during constant evaluation only.
        *
-       * MSVC's constant evaluator refuses an object with an indeterminate subobject even when nothing
-       * reads it: `static_regex`'s compile-time `static_assert`s failed with C2131 (`expression did not
-       * evaluate to a constant`) when this storage was left trivially initialized everywhere. clang and
-       * gcc accept it (C++20 P1331R2), so the runtime path — where the whole point is not paying for the
-       * clear — keeps the trivial initialization on every toolchain.
+       * MSVC's constant evaluator rejects an indeterminate subobject even when unread (C2131); the run-time
+       * path keeps the trivial initialization (P1331R2), which is the point of \ref data_.
        */
       constexpr static_vec() noexcept
       {
@@ -157,10 +147,10 @@ namespace real {
       /*!
        * \brief Ensures at least \p count live elements without re-filling or shrinking.
        *
-       * find_iter reuses capture storage; after the first match \c size already equals
-       * the program slot count and the fast path overwrites every used index — a full
-       * \ref assign of \c npos is dead work. Never shrinks (a multi-group path may have
-       * already sized to \c slot_count > 2 before a span write).
+       * Reused capture storage already holds the slot count after the first match and the writer
+       * overwrites every used index, so a full \ref assign of \c npos would be dead work. New elements
+       * are NOT written: the caller writes every slot it later reads. Never shrinks: a multi-group path
+       * may already be sized to \c slot_count before a span write.
        *
        * \param[in] count Minimum size.
        * \throws std::length_error if \p count exceeds the capacity `Cap`.
@@ -220,7 +210,7 @@ namespace real {
        */
       [[nodiscard]] constexpr T& back()
       {
-        assert(size_ > 0 && "back() on an empty static_vec"); // debug precondition; no-op under NDEBUG
+        assert(size_ > 0 && "back() on an empty static_vec");
         return data_[size_ - 1];
       }
 
@@ -238,40 +228,25 @@ namespace real {
       /*!
        * \brief Inline element storage, deliberately NOT value-initialized at run time.
        *
-       * `static_regex` is stateless (`sizeof` 1), so a `search()` builds a fresh state on the stack every
-       * call, and value-initializing here zeroed the whole worst-case capacity each time -- a cost the
-       * dynamic storage does not pay, since its state lives in the regex object and is reused. Nothing
-       * reads above \ref size_, which starts at 0, so the zeros were never observed. C++20 permits the
-       * trivial default initialization even in a constant expression (P1331R2); reading an element before
-       * writing it would be diagnosed there rather than silently returning garbage.
-       *
-       * On a short subject this is most of the cost of a search: the clear is proportional to the
-       * worst-case capacity while the work is proportional to the subject.
+       * A stateless `static_regex` builds a fresh state per `search()`, and clearing the worst-case
+       * capacity each call would be most of a short-subject search. Nothing reads above \ref size_; in a
+       * constant expression a read before a write is diagnosed.
        */
       std::array<T, Cap> data_;
       std::size_t        size_ {}; //!< Number of elements in use.
     };
 
     /*!
-     * \brief Small-buffer-optimized vector for the dynamic hot paths.
+     * \brief Small-buffer-optimized vector for the dynamic hot paths: up to `InlineCapacity` elements
+     *        inline, spilling to the heap beyond that.
      *
-     * Keeps up to `InlineCapacity` elements inline (no heap), spilling to the
-     * heap beyond that — so the common small-group match avoids allocation
-     * entirely. Used for capture slots and working state in the dynamic mode.
+     * \note \p T must be trivially destructible (`static_assert`): no element destructor ever runs.
      *
-     * \note \p T must be **trivially destructible** (enforced by a `static_assert`):
-     *       small_vec runs no element destructors — inline elements in particular are
-     *       never individually destroyed — which suits its POD-like VM use and keeps the
-     *       hot path allocation- and bookkeeping-free.
-     *
-     * \warning **Run-time invariant — the inline buffer is left UNINITIALIZED** (value-initialized
-     *          only under `std::is_constant_evaluated()`, in the `Storage` union constructor). Every
-     *          element's lifetime is begun by `std::construct_at` (placement-new) before it is read,
-     *          and reads stay within `[0, size_)`. Any accessor added here must preserve that
-     *          write-before-read order, or it reads indeterminate memory — a silent UB
-     *          value-init would mask. MemorySanitizer is the detector — the CI sanitize leg is
-     *          ASan/UBSan, which does not catch this — so run an MSan build when changing how small_vec
-     *          accesses its elements.
+     * \warning At run time the inline buffer is UNINITIALIZED (value-initialized only under constant
+     *          evaluation, in the `Storage` constructor). Every element's lifetime begins with
+     *          `std::construct_at` before it is read, and reads stay within `[0, size_)`; a new accessor
+     *          must keep that write-before-read order. Only MemorySanitizer detects a breach (the CI
+     *          sanitize leg is ASan/UBSan): run an MSan build when changing element access.
      *
      * \tparam T              Element type.
      * \tparam InlineCapacity Number of elements held inline before spilling.
@@ -280,33 +255,25 @@ namespace real {
     class small_vec
     {
       static_assert(InlineCapacity > 0, "InlineCapacity must be positive");
-      // small_vec runs no element destructors — inline elements in particular are never
-      // destroyed (cleanup() only frees the heap block). That is correct only for
-      // trivially-destructible types, which is its sole use (POD-like VM state).
       static_assert(std::is_trivially_destructible_v<T>,
                     "small_vec is for trivially-destructible types only");
 
-      // size_ and capacity_ are ALWAYS std::size_t — never a type narrowed on
-      // InlineCapacity. small_vec spills to the heap and routinely holds far more than
-      // its inline capacity (up to code_size in the VM: ~3·code_size epsilon entries, the
-      // live thread count of a wide alternation, the 2·(groups+1) capture slots). A
-      // uint8_t / uint16_t counter would truncate: at 256 / 65536, static_cast wraps the
-      // capacity to 0, reserve() then sees new_cap ≤ capacity_ and no-ops, so the buffer
-      // is rewritten in place and back() indexes out of bounds. The inline buffer
-      // dominates sizeof, so the wide counter is free.
+      // size_ and capacity_ stay std::size_t, never narrowed on InlineCapacity: a spilled vector holds
+      // far more than inline (~3·code_size eps entries), and a narrow counter wraps the capacity to 0 at
+      // 256 / 65536, so reserve() no-ops and back() indexes out of bounds. The inline buffer dominates
+      // sizeof anyway.
       std::size_t size_     {};               //!< Number of elements in use.
       std::size_t capacity_ {InlineCapacity}; //!< Current capacity.
       bool        is_heap_  {};               //!< True once spilled to the heap.
 
       /*!
-       * \brief Inline element block. A struct (not a bare C array) so the union ctor can activate it as a
-       *        whole with \c construct_at in a constant expression, while \ref inline_data still indexes a
-       *        plain C array — which the static analyzer can bound (a \c std::array's `operator[]` hides
-       *        the extent and trips a false out-of-bounds on \ref transfer_range).
+       * \brief Inline element block: a struct so the union constructor can activate it whole with
+       *        \c construct_at in a constant expression, holding a plain C array the static analyzer can
+       *        bound (`std::array::operator[]` trips a false out-of-bounds on \ref transfer_range).
        */
       struct inline_block
       {
-        T elems[InlineCapacity]; //!< The inline elements, as a plain C array the analyzer can bound.
+        T elems[InlineCapacity]; //!< The inline elements.
       };
 
       /*!
@@ -321,16 +288,9 @@ namespace real {
         /*!
          * \brief Starts in the inline state.
          *
-         * At **run time** the inline buffer is left UNINITIALIZED: small_vec writes every
-         * element through \c std::construct_at (placement-new) before any read (push_back and
-         * assign), so the value-init is pure overhead — and a tokenizing walk builds a fresh slot
-         * buffer per match, of which two slots serve, so it is overhead per match.
-         * At **compile time** the member must be active and initialized for the constexpr
-         * matching path (which assigns through \ref inline_data while it is the active member), so
-         * it is value-initialized there via \c construct_at on the whole \ref inline_block —
-         * activating a class-type member is what a constexpr union allows (an element-wise or bare
-         * C-array activation is not). A constant-evaluated spill switches the active member to
-         * \ref Storage::heap_ptr through \ref adopt_heap, and \ref revert_to_inline switches back.
+         * Run time leaves the inline buffer uninitialized (see the class warning). Constant evaluation
+         * activates the whole \ref inline_block (a constexpr union can activate a class-type member, not
+         * a bare C array); \ref adopt_heap and \ref revert_to_inline switch the active member.
          */
         constexpr Storage() noexcept
         {
@@ -341,26 +301,19 @@ namespace real {
 
         constexpr ~Storage() {} //!< Destruction handled by \ref cleanup.
 
-        // Rule of Five, made explicit. The union holds a possibly non-trivial T, so
-        // copy/move would be implicitly deleted anyway; small_vec manages copy, move
-        // and element lifetimes itself (is_heap_-aware) and never copies Storage by
-        // value. Declaring these deleted is also a safety guard: a defaulted copy
-        // would byte-copy the union and inherit the wrong active member (double-free).
+        // small_vec copies and moves the elements itself; a defaulted copy would byte-copy the union
+        // with the wrong active member (double free).
         Storage(const Storage&)             = delete;
         Storage& operator=(const Storage&)  = delete;
         Storage(Storage &&)                 = delete;
         Storage& operator=(Storage&&)       = delete;
       } storage_ {}; //!< The active storage, inline or heap.
 
-      // Run-time cache of the active storage base (inline buffer or heap block), refreshed on
-      // every state change via \ref refresh_data. The hot accessors (operator[], back, push_back)
-      // index through it, so they avoid the per-access `is_heap_` branch that the profile showed
-      // dominating add_thread. NOT used during constant evaluation: a pointer to a subobject of
-      // *this is not a usable constant across copies, so the constexpr path keeps the is_heap_
-      // branch (guarded by std::is_constant_evaluated). A dynamic `real::regex` IS constant-
-      // evaluable and does use small_vec, heap spill included, so that branch is live rather than
-      // theoretical -- it is the compile-time path's only way to reach the elements.
-      T* data_ {}; //!< Cached base of the active storage; see the note above, and \ref refresh_data.
+      // Run-time cache of the active storage base, refreshed on every state change (refresh_data): the
+      // hot accessors skip the per-access is_heap_ branch, which dominated add_thread. Unused under
+      // constant evaluation (a pointer into *this is no constant across copies), where the is_heap_
+      // branch stays live: a constant-evaluated real::regex spills too.
+      T* data_ {}; //!< Cached base of the active storage (run time only); see \ref refresh_data.
 
       /*!
        * \brief Refreshes \ref data_ to the active storage base (run time only).
@@ -408,8 +361,7 @@ namespace real {
             return;
           }
         }
-        // Element-wise transfer: the constexpr path, and the run-time path for a
-        // non-trivially-copyable T (the VM's POD element types take the memcpy above).
+        // Element-wise: constant evaluation, or a non-trivially-copyable T.
         for (std::size_t i = 0; i < count; ++i) {
           if constexpr (Move) {
             std::construct_at(&dest[i], std::move(src[i]));
@@ -423,11 +375,8 @@ namespace real {
       /*!
        * \brief Transfers \p other's inline elements into this vector's inline buffer.
        *
-       * The copy/move paths use this when \p other has not spilled. The count is
-       * clamped to `InlineCapacity` — a no-op on the value, since this runs only when
-       * the elements are inline (`size_ <= InlineCapacity`) — but it lets the optimizer
-       * see the inline buffer cannot overflow. Without it, g++ -O3 value-propagates a
-       * spilled source's large `size_` into this then-dead branch and reports a spurious
+       * Runs only when \p other has not spilled, so clamping the count to `InlineCapacity` changes no
+       * value; it stops g++ -O3 propagating a spilled source's `size_` into this branch and warning
        * `-Wstringop-overflow` on the memcpy in \ref transfer_range.
        *
        * \tparam Move If true, move-construct the elements; otherwise copy-construct.
@@ -441,11 +390,10 @@ namespace real {
       }
 
       /*!
-       * \brief Obtains storage for \p n elements, from whichever allocator the current regime allows.
+       * \brief Obtains storage for \p n elements from the allocator the current regime allows.
        *
-       * A raw allocation operator cannot be called in a constant expression, so constant evaluation
-       * goes through `std::allocator`, which C++20 makes usable there. Its blocks are *transient*:
-       * every one must be released before the evaluation ends, which \ref cleanup does.
+       * Constant evaluation cannot call a raw allocation operator, so it uses `std::allocator`, whose
+       * transient blocks must all be released before the evaluation ends (\ref cleanup does).
        *
        * \param[in] n Element count.
        * \return Uninitialized storage for \p n elements.
@@ -477,9 +425,8 @@ namespace real {
       /*!
        * \brief Points the union at \p p, making \ref Storage::heap_ptr the active member.
        *
-       * Constant evaluation has no inactive-member assignment: switching to the pointer requires
-       * beginning its lifetime, which ends the inline buffer's. The run-time statement is left as a
-       * plain assignment — it is on the spill path of every container in the VM.
+       * Constant evaluation must begin the pointer's lifetime (ending the inline buffer's); run time keeps
+       * a plain assignment, on every VM container's spill path.
        *
        * \param[in] p The heap block to adopt.
        */
@@ -495,8 +442,8 @@ namespace real {
       /*!
        * \brief Makes the inline buffer the active union member again, after the heap block is gone.
        *
-       * The moved-from side of a move needs this: it is left inline, so a later constant-evaluated
-       * read through \ref inline_data would otherwise touch an inactive member.
+       * Required wherever a spilled vector returns inline (a moved-from source, an assignment target):
+       * a later constant-evaluated \ref inline_data read would otherwise touch an inactive member.
        */
       constexpr void revert_to_inline() noexcept
       {
@@ -508,9 +455,7 @@ namespace real {
       }
 
       /*!
-       * \brief Frees the heap block, if any. \p T is trivially destructible (see the class
-       *        `static_assert`), so no element destructors run — and inline storage needs no
-       *        cleanup at all.
+       * \brief Frees the heap block, if any; no element destructor runs (\p T is trivially destructible).
        */
       constexpr void cleanup() noexcept
       {
@@ -549,8 +494,7 @@ namespace real {
        */
       constexpr ~small_vec()
       {
-        // Unconditional: a constant-evaluated spill allocates a transient block, and leaving it
-        // unreleased makes the whole constant expression ill-formed.
+        // Unconditional: an unreleased transient block makes the constant expression ill-formed.
         cleanup();
       }
 
@@ -572,8 +516,7 @@ namespace real {
           }
         }
         else {
-          // size_ < capacity_ holds here (checked above); the analyzer cannot relate the active
-          // block's allocation size to size_. data_ is the active base (branchless).
+          // size_ < capacity_ here; the analyzer cannot relate the active block's size to size_.
           // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound)
           std::construct_at(&data_[size_], value);
         }
@@ -594,8 +537,7 @@ namespace real {
         }
         for (std::size_t i = 0; i < count; ++i) {
           if (std::is_constant_evaluated()) {
-            // Compile time: the inline buffer is value-initialized, so assign through it;
-            // the heap path is never taken in a constant expression.
+            // Compile time: no data_ cache; write through the active member.
             if (is_heap_) {
               std::construct_at(&storage_.heap_ptr[i], value);
             }
@@ -604,9 +546,7 @@ namespace real {
             }
           }
           else {
-            // Run time: the inline buffer is uninitialized (see \ref Storage), so this is the
-            // first write — placement-new begins each element's lifetime. data_ is the active
-            // base (inline or heap), branchless like push_back.
+            // Run time: the first write to an uninitialized element begins its lifetime.
             std::construct_at(&data_[i], value);
           }
         }
@@ -616,11 +556,7 @@ namespace real {
       /*!
        * \brief Ensures at least \p count live elements without re-filling or shrinking.
        *
-       * Fast-path find_iter: after the first match, \c size already equals the program
-       * slot count and the writer overwrites every used index — a full \ref assign of \c npos
-       * is dead work. Growing default-constructs only the new tail (caller must write every
-       * slot it later reads). Never shrinks — multi-group fixed-shape may already be sized
-       * to \c slot_count before a span-only write of slots 0/1.
+       * Same contract as \ref static_vec::ensure_size, except that the new tail is value-initialized.
        *
        * \param[in] count Minimum size.
        */
@@ -706,7 +642,7 @@ namespace real {
        */
       [[nodiscard]] constexpr T& back() noexcept
       {
-        assert(size_ > 0 && "back() on an empty small_vec"); // debug precondition; no-op under NDEBUG
+        assert(size_ > 0 && "back() on an empty small_vec");
         if (std::is_constant_evaluated()) {
           return is_heap_ ? storage_.heap_ptr[size_ - 1] : inline_data()[size_ - 1];
         }
@@ -728,9 +664,6 @@ namespace real {
 
       /*!
        * \brief Removes the last element. Precondition: the vector is non-empty.
-       *
-       * For VM-internal use (POD types like size_t, eps_entry) explicit destroy is unnecessary;
-       * full cleanup happens in the destructor / clear when on the heap.
        */
       constexpr void pop_back() noexcept
       {
@@ -753,10 +686,10 @@ namespace real {
         if (is_heap_) {
           deallocate_block(storage_.heap_ptr, capacity_);
         }
-        adopt_heap(new_data); // reads of old_data are done; this ends the inline buffer's lifetime
+        adopt_heap(new_data); // after the last old_data read: this ends the inline buffer's lifetime
         capacity_         = new_capacity;
         is_heap_          = true;
-        refresh_data();       // run-time path only (constexpr threw above); data_ now points at the heap block
+        refresh_data();       // no-op under constant evaluation
       }
 
       /*!
@@ -815,7 +748,7 @@ namespace real {
       }
 
       /*!
-       * \brief Copy constructor (needed for `vector<match_result>` in find_all).
+       * \brief Copy constructor.
        * \param[in] other The vector to copy.
        */
       constexpr small_vec(const small_vec& other)
@@ -867,12 +800,8 @@ namespace real {
     /*!
      * \brief The name-resolution context a result owns when it must outlive the regex it came from.
      *
-     * A result resolves a group name by comparing it against the pattern text at the offsets its
-     * named-group table records, so it borrows BOTH from the regex. The borrow is free and correct
-     * while the regex is alive, which is the documented contract; on a temporary regex it is a read
-     * of freed memory. A result produced from an rvalue regex copies both here instead. The copy is
-     * shared, so copying such a result shares the context rather than duplicating it, and the cost
-     * lands only where a pattern was just compiled -- which allocates far more than this.
+     * A result resolves a name against the pattern text and named-group table it borrows from its regex;
+     * one produced from an rvalue regex owns copies here instead, the borrow reading freed memory.
      */
     struct owned_name_context
     {
@@ -884,15 +813,9 @@ namespace real {
      * \brief A uniquely-owning, deep-copying box for \ref owned_name_context that survives constant
      *        evaluation.
      *
-     * `std::shared_ptr` is the obvious handle here and cannot be used: a `real::regex` is
-     * constant-evaluable, so the result type it yields must stay literal, and no standard smart
-     * pointer is. `std::allocator` is the only constexpr-usable source in C++20 -- the same reason
-     * \ref small_vec grows through it -- and its blocks are transient, so this releases
-     * unconditionally.
-     *
-     * Deep copy rather than shared: the box is null on every result that borrows, which is every
-     * result a walk or an lvalue regex produces, so nothing on the path that matters ever copies
-     * one. What the borrowing path pays is a pointer and a null test.
+     * No standard smart pointer is literal, and a constant-evaluable `real::regex` needs a literal result;
+     * `std::allocator` is the only constexpr-usable source, and its blocks are transient. Deep copy, not
+     * shared: the box is null on every borrowing result, so that path pays a pointer and a null test.
      */
     class name_context_box
     {
@@ -990,10 +913,8 @@ namespace real {
       /*!
        * \brief Allocates and copy-constructs a context from \p src.
        *
-       * Cold: only a result detached from a temporary regex ever owns a context, and only a copy of one
-       * ever reaches here. Left warm it bids for the translation unit's inline budget against the scan
-       * routes, and takes it from them -- the same non-monotonic budget effect \ref build_byte_program is
-       * annotated for.
+       * Reached only behind an `[[unlikely]]` test, by a copy of a result detached from a temporary regex:
+       * a warm path here would bid for the unit's inline budget against the scan routes.
        *
        * \param[in] src The context to copy.
        */
@@ -1006,8 +927,7 @@ namespace real {
       /*!
        * \brief Releases the owned context. Precondition: the box owns one.
        *
-       * Split out of \ref reset, and cold for the same reason as the copy path above: every result on the
-       * borrowing path runs the null test and nothing else.
+       * Split out of \ref reset, behind its `[[unlikely]]` test: a borrowing result runs the null test only.
        */
       constexpr void release() noexcept
       {
@@ -1032,10 +952,8 @@ namespace real {
     /*!
      * \brief The compile-time policy's name owner: there is nothing to own.
      *
-     * `static_storage` keeps its pattern and its named-group table in `static constexpr` objects,
-     * which outlive every result by construction, so a result from a temporary `static_regex`
-     * borrows safely and owns nothing. The type must also stay literal: a result is constructed
-     * during constant evaluation on this path, and `std::shared_ptr` cannot be.
+     * `static_storage` keeps its pattern and named-group table in `static constexpr` objects, which
+     * outlive every result, so a result from a temporary `static_regex` borrows safely.
      */
     struct borrowed_names
     {
@@ -1073,59 +991,27 @@ namespace real {
       struct state_type : basic_pike_state<
                             basic_thread_list<small_vec<std::int32_t, 64>,
                                               small_vec<std::size_t, 256>,
-                                              // SBO like its two siblings, and it was the last heap
-                                              // container in a thread list. What this buys is not
-                                              // the avoided allocation -- it shows up on searches
-                                              // that never allocate -- but keeping `std::vector`'s
-                                              // destructor out of a state that every standalone
-                                              // `search()` builds and tears down. The inline
-                                              // capacity is deliberately small: growing the state
-                                              // is what costs gcc/x86 its class-scan codegen, and
-                                              // the saving does not depend on the capacity.
-                                              //
-                                              // RAISING IT TO 16 WAS TRIED AND REFUSED, on the
-                                              // measurement rather than on the argument. Eight sits
-                                              // below every program that reaches the general VM, so
-                                              // sixteen would close only the narrow band just above
-                                              // it -- and it charges every per-call row for the
-                                              // wider state, which is the side that measured worse
-                                              // than the target row measured better. The tier that
-                                              // would actually cover the general VM's own range is
-                                              // several times larger again, a worse version of the
-                                              // same trade, so it was not attempted.
+                                              // SBO, keeping `std::vector`'s destructor out of the
+                                              // state every standalone `search()` builds. Small on
+                                              // purpose: a wider state costs gcc/x86 its class-scan
+                                              // codegen, and 16 lost more on per-call rows than it won.
                                               small_vec<std::uint64_t, 8>>,
                             small_vec<eps_entry, 32>>
       {
         /*!
          * \brief Isolated sub-scratch for bounded lookaround evaluation, built on first use.
          *
-         * Two thread lists and an epsilon stack, each with their own containers. A `search()` builds a
-         * fresh state, so constructing and destroying all of that landed on every search — for the
-         * overwhelming majority of patterns, which have no lookaround at all. Lazy: the `requires` gates
-         * that gate the lookaround routes still see the member, and the sub-VM emplaces it when it first
-         * actually runs.
+         * Lazy, since every `search()` builds a fresh state and most patterns have no lookaround; the
+         * `requires` gates of the lookaround routes still see the member.
          */
         std::optional<lookaround_scratch> lookaround;
         /*!
-         * \brief Copy-on-write capture blocks, SBO rather than `pike.hpp`'s heap-vector alias.
+         * \brief Copy-on-write capture blocks, SBO rather than `pike.hpp`'s heap-vector alias (which sits
+         *        below this header and cannot reach `small_vec`).
          *
-         * The pool's own `reset` comment records collapsing a general-VM search's heap allocations by
-         * reserving a block budget up front. Of the handful that remain, counted by size and by symbol,
-         * MOST ARE THIS POOL -- its `data`, `refcount` and `free_list` -- and they recur on every call at
-         * every subject length, which is what a per-call fixed cost looks like. The rest are the thread
-         * lists' `mark`.
-         *
-         * `pike.hpp` cannot fix this itself: it sits BELOW this header in the layering contract, so its
-         * `capture_pool` alias has no `small_vec` to reach for. The pool is not a member of
-         * \ref real::detail::basic_pike_state either — each concrete state declares its own — so
-         * choosing the container here is the whole change.
-         *
-         * The inline capacity is the SMALLEST that covers the reserve: `reset` asks for
-         * `slot_count * 8`, and a capture-free pattern has `slot_count == 2`, so sixteen values fit a
-         * groupless walk exactly. Patterns WITH groups still spill, deliberately — growing this state is
-         * what has repeatedly cost gcc/x86 its class-scan codegen (see the `mark` capacity note in the
-         * thread list above), and a bigger inline block would trade a measured regression on routes
-         * that never build a pool for an allocation on patterns that do.
+         * Most of a general-VM search's per-call allocations were this pool. Sixteen inline values cover
+         * `reset`'s `slot_count * 8` reserve for a groupless walk; patterns with groups spill on purpose,
+         * since a wider state costs gcc/x86 its class-scan codegen.
          */
         basic_capture_pool<small_vec<std::size_t, 16>,
                            small_vec<std::int32_t, 8>,
@@ -1176,23 +1062,13 @@ namespace real {
       {
         const ast   tree      {detail::parse(pattern, compile_flags)};
         const flags effective {compile_flags | tree.inline_flags};
-        // What the COMPILER is handed stays `effective` (added only) -- deliberately not the
-        // removal-adjusted set. The parser already applied any `(?-flags)` removal to its own base scope,
-        // so every folding and tokenization decision was made under the right flags; narrowing what
-        // `compile` sees here would change a behaviour that is already correct. What is REPORTED is the
-        // set in force, so the accessor and the engine agree on a global removal.
+        // The compiler gets `effective` (additions only): the parser already applied any `(?-flags)` removal
+        // to its scopes. What is reported is the set in force.
         dynamic_program prog {detail::compile(tree, effective)};
-        // The fixed-shape test seam is applied HERE, once per regex, and NOT in run()'s dispatch gate.
-        // It was in that gate first, and the cost is why it moved: this route enters `run()` once per
-        // MATCH, where a batched route enters once per batch, so a handful of instructions in the gate is
-        // paid per match here and amortised everywhere else. The seven other route seams do sit in gates
-        // and cost nothing measurable, for exactly that reason.
-        // Clearing the hint takes the route out with no per-match test at all, and `fs_pair_width` goes
-        // with it exactly as prefilter.hpp's lookaround wipe pairs them.
-        //
-        // The AGGREGATE return below is required, not stylistic: a named local returned by value needs
-        // dynamic_storage's own constructor, which is not constexpr, and `real::regex` IS used in constant
-        // evaluation (tests/engine/test_prefilter.cpp's static_asserts caught exactly that).
+        // The fixed-shape seam is applied here, once per regex, not in run()'s gate: that route enters
+        // `run()` once per match, so a gate test is paid per match. `fs_pair_width` goes with it.
+        // The aggregate return is required: dynamic_storage's own constructor is not constexpr, and
+        // `real::regex` is constant-evaluated (tests/engine/test_prefilter.cpp).
         if (!std::is_constant_evaluated() && detail::fixed_shape_route_disabled()) {
           prog.hints.fixed_shape   = false;
           prog.hints.fs_pair_width = 0;
@@ -1205,24 +1081,10 @@ namespace real {
       /*!
        * \brief Returns a non-owning view of the compiled program.
        *
-       * \note **Returning by value here is deliberate, and the alternatives are priced.** The
-       *       compile-time storage hands back a reference and explains why; this one builds the view per
-       *       call, and `view()` runs once per `search()`. Two ways to remove that were prototyped and
-       *       refused, each on its own ground:
-       *       - *Materialise the view* behind an identity guard, so the construction happens once per
-       *         program. It enlarges every regex object by the size of a view, which is the wrong
-       *         direction for anyone holding many patterns, and the guard is subtler than it looks: a
-       *         MOVE leaves `program.code.data()` unchanged, so a guard testing only the program's
-       *         identity validates a view still pointing into the moved-from object. The obvious
-       *         one-condition form aborts the lifetime tests as a double free; a correct guard must also
-       *         test `view_.immut != &immut_`.
-       *       - *Carry `pattern_hints` by pointer* instead of copying it into the view. This shrinks the
-       *         construction rather than removing it, so it can win at most a fraction of what removing
-       *         it wins -- against an indirection on every hot hint read, at every site that reads one.
-       *
-       *       The whole prize is a few nanoseconds per search, and both standing proposals were competing
-       *       for that same budget. The dynamic path's real gap to the compile-time one is several times
-       *       larger than the prize, so most of it is somewhere else entirely.
+       * \note By value, deliberately, though `view()` runs once per `search()`. A view materialised behind
+       *       an identity guard enlarges every regex, and the guard must also test `view_.immut != &immut_`
+       *       (a move keeps `program.code.data()`); `pattern_hints` by pointer adds an indirection to every
+       *       hint read. The prize is a few nanoseconds per search.
        *
        * \return The view; valid as long as this storage is alive.
        */
@@ -1276,15 +1138,9 @@ namespace real {
     /*!
      * \brief Rounds a program length up to the scratch capacity tier it shares with its neighbours.
      *
-     * Sharing \ref static_pike_scratch is by exact template arguments, so keying it on the exact
-     * `code_size` means two patterns one instruction apart still instantiate every Pike VM route twice.
-     * Rounding to powers of two collapses neighbours onto one type while keeping the over-allocation
-     * bounded by a factor of two, where a coarse ladder would multiply the smallest patterns' scratch
-     * several times over. The floor of 8 keeps the ladder from splintering at the bottom, where the
-     * patterns are densest and the absolute sizes smallest.
-     *
-     * Rounding UP only: every capacity derived from this is a bound the exact size must not exceed, so a
-     * tier is always safe where the measured value was.
+     * \ref static_pike_scratch is shared by exact template arguments: keyed on the exact `code_size`, two
+     * patterns one instruction apart would instantiate every Pike VM route twice. Powers of two (floor 8)
+     * collapse neighbours with at most 2x over-allocation. Rounding up only: each capacity is a bound.
      *
      * \param[in] code_size The program's exact instruction count.
      * \return The tier capacity, a power of two and at least 8.
@@ -1326,10 +1182,8 @@ namespace real {
     {
       //! \brief Worst-case live capture blocks: every reference (a DFS stack frame or a thread in either
       //!        list) could point at a distinct block, and the stack is `(3*CodeSize)+4` with each list
-      //!        holding up to `CodeSize` threads. Freed blocks recycle through the pool's free list, so
-      //!        the pool never grows past this. Derived from `CodeSize` HERE rather than passed in, so it
-      //!        cannot disagree with the tier: a bound computed from the exact program length would vary
-      //!        between two patterns sharing a tier and split them back into separate types.
+      //!        holding up to `CodeSize` threads; freed blocks recycle. Derived from the tier, not the exact
+      //!        length, so patterns sharing a tier share the type.
       static constexpr std::size_t max_blocks {(5 * CodeSize) + 8};
 
       basic_capture_pool<static_vec<std::size_t, max_blocks * SlotCount>,
@@ -1400,18 +1254,8 @@ namespace real {
     public:
 
       /*!
-       * \brief Everything \ref build yields that is NOT a range, measured in ONE evaluation.
-       *
-       * The two-phase this class is built on -- measure, then freeze, because C++20 forbids persistent
-       * constexpr allocation -- does not say how many times to measure, and the measuring had grown to
-       * SEVEN separate `build()` calls: one per size, one per scalar, each its own top-level constant
-       * expression re-running the whole compiler front end. Collapsed here to one, halving the number of
-       * `build()` evaluations the class costs (the five range members below are the rest).
-       *
-       * That is a compile-time change with no run-time surface: the frozen arrays are byte-identical,
-       * because they are produced by the same \ref take calls from the same builder. What it buys is
-       * headroom against the per-expression constexpr step budget -- the ceiling \ref class_tables below
-       * is already annotated for, and the reason `build_byte_program` reaches only byte classes.
+       * \brief Everything \ref build yields that is not a range, measured in one evaluation: each `build()`
+       *        re-runs the compiler front end, against the constexpr step budget and compile time.
        */
       struct measured
       {
@@ -1456,11 +1300,8 @@ namespace real {
                                                            .slot_count     = p.slot_count};
                                         }()};
 
-      //! \brief The flag set in force: \c F plus what a leading `(?imsxaU)` group added, minus what a
-      //!        `(?flags-flags)` removal cleared. Mirrors \ref dynamic_storage::compile, so the two
-      //!        storages report the same thing for the same pattern. Parsed ONCE -- the two-call form
-      //!        this replaces ran the parser twice for one answer, the same defect as the seven-call
-      //!        measure above in miniature.
+      //! \brief The flag set in force: \c F plus a leading group's additions, minus its removals, as
+      //!        \ref dynamic_storage::compile reports it. Parsed once.
       static constexpr flags         effective_flags            {[] {
                                                                    const auto parsed {detail::parse(Pat.view(), F)};
                                                                    return flags_without(F | parsed.inline_flags,
@@ -1485,17 +1326,8 @@ namespace real {
         take<code_range, cp_range_count>(build().cp_ranges);                                                     //!< Flat range buffer.
 
       //! \brief Flat byte-class membership tables, built at compile time: `class_tables[i*256 + b]`.
-      //!        Reuses the \ref classes member rather than calling \ref build again — an extra `build()` per
-      //!        table pushes the whole instantiation past clang's constexpr step budget.
-      //!
-      //! \note **A pack-expansion `tabulate<N>(f)` here was written, measured and REFUSED.** The loop
-      //!       below cannot be one pass: constant evaluation rejects indeterminate subobjects, so the
-      //!       array is zeroed and then overwritten — 2N element operations where a pack expansion needs
-      //!       N. The argument is sound and buys nothing. Compile time is indistinguishable between the
-      //!       two forms, with the direction flipping between paired runs; and bisecting
-      //!       `-fconstexpr-steps` to the failure point gives the SAME budget for both, so there is no
-      //!       headroom in it either — the compiler's own cost for a large pack cancels the halved
-      //!       element count. The loop stays: same speed, same budget, no helper to maintain.
+      //!        Reads \ref classes rather than calling \ref build again, which would pass clang's constexpr
+      //!        step budget. A pack-expansion form (N writes, not 2N) measured the same time and budget.
       static constexpr std::array < std::uint8_t, (class_count == 0 ? 1 : class_count) * 256 > class_tables {[] {
                                                                                                                std::array < std::uint8_t, (class_count == 0 ? 1 : class_count) * 256 > t {};
                                                                                                                for (std::size_t i = 0; i < class_count; ++i) {
@@ -1542,8 +1374,7 @@ namespace real {
 
       //! \brief Capture-slot storage, sized exactly to the program's slot count (no heap).
       using slot_storage = static_vec<std::size_t, slot_count>;
-      //! \brief IL guard fields for this storage — lifted to \ref static_il_guard_fields, which carries
-      //!        the rationale; kept as a name here because \ref wants_inner_literal reads next to it.
+      //! \brief IL guard fields for this storage (see \ref static_il_guard_fields).
       using il_guard_fields = static_il_guard_fields;
 
       //! \brief No IL fields: the route is not compiled for this pattern (see \ref wants_inner_literal).
@@ -1552,17 +1383,10 @@ namespace real {
       /*!
        * \brief Whether the inner-literal route is worth compiling into this pattern's `run()`.
        *
-       * A required literal at offset >= 1 is necessary but not sufficient. `fixed_shape` means the core
-       * already has an arithmetic-width scan for the whole pattern, and then memmem has nothing to add;
-       * without it the core falls to the general VM, which is what the literal sweep rescues. The shape
-       * of the result is the same on every pattern measured: a non-fixed-shape pattern gains by orders of
-       * magnitude on a subject with NO match -- where the literal scan rejects the whole corpus and the
-       * general VM would walk it -- and is neutral once matches are dense enough that the scan finds one
-       * immediately. A fixed_shape pattern gains nothing and pays for the attempt.
-       *
-       * Excluding it HERE rather than at run time is what keeps the cost off the patterns that do not use
-       * the route: compiling the block into `run()` at all is measurable on a pattern with no inner
-       * literal, which never enters it.
+       * A required literal at offset >= 1 is necessary, not sufficient: a `fixed_shape` pattern already has
+       * an arithmetic-width scan and gains nothing, while others gain orders of magnitude on a subject with
+       * no match. Decided here, not at run time: compiling the block into `run()` costs patterns that never
+       * enter it.
        */
       static constexpr bool wants_inner_literal {hints.inner_literal_len > 0 && hints.inner_literal_prefix >= 1
                                                  && !hints.fixed_shape};
@@ -1571,25 +1395,16 @@ namespace real {
        * \brief This pattern's VM scratch — nothing but \ref static_pike_scratch at this pattern's
        *        dimensions, so two patterns of the same shape name the same type.
        *
-       * Nothing here depends on the pattern's *value* any more. The three byte-class table addresses that
-       * used to live in this type now travel in \ref real::detail::program_view, which is where runtime
-       * program data belongs; they remain `static constexpr` arrays, so a constant-folding compiler still
-       * reaches them without a load. What that buys, and what it cost to establish, is in
-       * \ref g_inlinebudget.
+       * Nothing here may depend on the pattern's value: the table addresses travel in
+       * \ref real::detail::program_view (see \ref g_inlinebudget).
        */
       using state_type = static_pike_scratch<scratch_code_tier (code_size), slot_count, wants_inner_literal>;
 
       /*!
        * \brief Returns a non-owning view of the compile-time program, by reference.
        *
-       * Every field is a compile-time constant here — the spans point at `static constexpr` arrays and
-       * `immut` is null — so the whole view is one too, and handing back a reference costs nothing where
-       * returning by value copied the whole thing per call. 232 of its 432 bytes are \ref pattern_hints,
-       * and `view()` is called once per `search()`: line-level profiling of a single `[a-z]+` search put
-       * that one aggregate initialiser at 93 of the ~325 instructions the call spends, against 17 for the
-       * class scan itself. The measurement was taken at 408 bytes, before the three table bases moved into
-       * the view; the dynamic storage still returns by value and so still pays a construction of that size
-       * once per search — the one place this reasoning has not been applied.
+       * Every field is a compile-time constant, so a reference costs nothing where a by-value return copied
+       * the view per `search()`: 93 of the ~325 instructions of one `[a-z]+` search, against 17 for the scan.
        *
        * \return A reference to the single compile-time view; it outlives every caller.
        */
@@ -1607,10 +1422,8 @@ namespace real {
                                            .lookarounds       = {}, // static_regex rejects lookarounds at compile (always empty)
                                            .cp_classes        = cp_classes,
                                            .cp_ranges         = cp_ranges,
-                                                                    // IL: no prefix sub-program. This storage never runs the reverse confirm (that needs the
-                                                                    // per-regex immutables it has none of), and a second compile inside a constant expression
-                                                                    // is what the budget cannot afford -- it pushed tests/frontend/test_constexpr.cpp's
-                                                                    // flag_cases() past clang's step limit. See \ref wants_inner_literal.
+                                                                    // No prefix sub-program: no reverse confirm runs here, and a second
+                                                                    // constexpr compile passes clang's step limit.
                                            .prefix_code       = {},
                                            .prefix_classes    = {},
                                            .prefix_cp_classes = {},
@@ -1620,10 +1433,8 @@ namespace real {
                                            .unicode_word      = !has_flag(effective_flags, flags::bytes) && !has_flag(effective_flags, flags::ascii),
                                            .hints             = hints,
                                            .immut             = nullptr,
-                                           // The three table bases travel in the VIEW, not in the state type: a state
-                                           // naming this pattern's arrays cannot be shared, and every route is then
-                                           // instantiated per pattern. These stay `static constexpr` addresses, so a
-                                           // constant-folding compiler still reaches them without a load.
+                                           // In the view, not the state type: a state naming this pattern's arrays
+                                           // would instantiate every route per pattern.
                                            .class_tables      = class_tables.data(),
                                            .cp_ascii_tables   = cp_ascii_tables.data(),
                                            .cp_page_tables    = cp_page_tables.data()};

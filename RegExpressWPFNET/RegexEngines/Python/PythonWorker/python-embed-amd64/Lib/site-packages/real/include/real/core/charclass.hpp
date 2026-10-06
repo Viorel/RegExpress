@@ -2,11 +2,9 @@
  * \file charclass.hpp
  * \brief 256-bit byte set with O(1) membership, fully constexpr.
  *
- * The engine only ever tests bitmaps: negation and "one whole codepoint"
- * semantics are resolved at compile time (see compiler.hpp), never at match
- * time. Also holds the ASCII sets behind `\d`, `\w` and `\s`, the UTF-8
- * lead/continuation byte sets that `.` and negated classes expand to, and the
- * per-lead bounds that reject a malformed sequence without decoding it.
+ * Negation and whole-codepoint semantics are resolved at compile time; match time only tests
+ * bitmaps. Also holds the ASCII sets behind `\d`, `\w`, `\s`, the UTF-8 lead/continuation sets,
+ * and the per-lead bounds that reject a malformed sequence without decoding it.
  */
 #ifndef REAL_CHARCLASS_HPP
 #define REAL_CHARCLASS_HPP
@@ -26,8 +24,7 @@ namespace real::detail {
   /*!
    * \brief A set of byte values (0–255) as a 256-bit bitmap.
    *
-   * Membership, insertion and complement are all O(1) or O(256) and constexpr.
-   * All bit manipulation uses unsigned operands (MISRA forbids signed bitwise).
+   * Bit manipulation uses unsigned operands only (MISRA forbids signed bitwise).
    */
   struct char_class
   {
@@ -52,17 +49,16 @@ namespace real::detail {
                              std::uint8_t high)
     {
       if (low > high) {
-        return; // callers pass low <= high (the parser rejects [z-a]); keeps the word math total
+        return; // callers pass low <= high; keeps the word math total
       }
-      // Set whole 64-bit words at once (4 iterations) instead of looping byte by byte.
       for (unsigned word = 0; word < bits.size(); ++word) {
         const unsigned word_low  {word * 64U};
         const unsigned word_high {word_low + 63U};
         if (high < word_low || low > word_high) {
-          continue; // this word holds no byte of [low, high]
+          continue;
         }
-        const unsigned a {low > word_low ? low - word_low : 0U};     // first bit set, within the word
-        const unsigned b {high < word_high ? high - word_low : 63U}; // last bit set, within the word
+        const unsigned a {low > word_low ? low - word_low : 0U};     // first bit, within the word
+        const unsigned b {high < word_high ? high - word_low : 63U}; // last bit, within the word
         bits[word] |= (b - a == 63U)
                       ? ~std::uint64_t {0}
                       : (((std::uint64_t {1} << (b - a + 1U)) - 1U) << a);
@@ -83,8 +79,7 @@ namespace real::detail {
     /*!
      * \brief Complements the ASCII half (bytes 0–127) only.
      *
-     * Bytes >= 0x80 are left untouched; the compiler handles non-ASCII
-     * codepoints as explicit UTF-8 multi-byte alternatives instead.
+     * Bytes >= 0x80 are untouched: the compiler expands non-ASCII codepoints to UTF-8 sequences.
      */
     constexpr void invert_ascii()
     {
@@ -93,7 +88,7 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Full 256-bit complement (binary mode: raw bytes, no UTF-8).
+     * \brief Full 256-bit complement (bytes mode only).
      */
     constexpr void invert()
     {
@@ -132,9 +127,7 @@ namespace real::detail {
   /*!
    * \brief Closes \p klass under ASCII case folding.
    *
-   * Whenever a letter is present its other-case twin is added. Applied to a
-   * class \e before negation, so `[^a]` with `icase` rejects both
-   * 'a' and 'A', matching Python.
+   * Apply \e before negation: `[^a]` with `icase` then rejects both 'a' and 'A', as Python does.
    *
    * \param[in,out] klass The class to fold in place.
    */
@@ -191,11 +184,8 @@ namespace real::detail {
    * \brief The ASCII whitespace set behind `\s` under `flags::ascii` / `flags::bytes`.
    * \return The set `[ \t\n\r\f\v]`.
    *
-   * \note NOT `str.isspace()`, which is the broader Unicode-aware predicate and agrees instead with
-   *       Python's *text*-mode `\s`. The difference is FS/GS/RS/US (`U+001C`–`U+001F`): text mode
-   *       accepts them, ASCII mode does not. They belong in the generated `space_ranges` table, which
-   *       lists them; adding them here would make ASCII-mode `\s` accept four bytes Python's own
-   *       ASCII `\s` rejects.
+   * \note Not `str.isspace()`: Python's ASCII `\s` rejects FS/GS/RS/US (`U+001C`–`U+001F`), which
+   *       text mode accepts through the generated `space_ranges` table.
    */
   constexpr char_class space_set()
   {
@@ -210,9 +200,8 @@ namespace real::detail {
   }
 
   // --- UTF-8 byte-class sets -------------------------------------------------
-  // The single source of truth for how `.` and negated classes expand to bytes:
-  // the compiler emits these sets (compiler.hpp) and the prefilter recognizes
-  // the same shape (prefilter.hpp). Keeping them here keeps the two in lock-step.
+  // Shared by the compiler (continuation slots of a code-point class) and the prefilter (lead bytes
+  // as the first-byte superset of one): one definition keeps the two in lock-step.
 
   /*!
    * \brief The UTF-8 continuation-byte set `10xxxxxx`.
@@ -269,8 +258,7 @@ namespace real::detail {
   };
 
   /*!
-   * \brief Builds \ref utf8_second_byte_bounds_table (a plain function so the 256-entry table is
-   *        four lines of exceptions, not a 256-line literal).
+   * \brief Builds \ref utf8_second_byte_bounds_table.
    * \return The table, indexed by lead byte.
    */
   constexpr std::array<utf8_second_byte_bounds, 256> make_utf8_second_byte_bounds_table()
@@ -287,23 +275,14 @@ namespace real::detail {
   }
 
   /*!
-   * \brief First-continuation-byte bounds indexed by lead byte (0–255; only 0xC2–0xF4 are ever
-   *        consulted). `inline constexpr`: computed once at compile time, one instance across TUs.
+   * \brief First-continuation-byte bounds indexed by lead byte (only 0xC2–0xF4 are consulted).
    *
-   * Every lead byte defaults to the generic continuation range `[0x80, 0xBF]`; four narrow it
-   * (Unicode Table 3-7) to exclude an overlong, surrogate, or beyond-`U+10FFFF` encoding: `0xE0`
-   * (3-byte, excludes the 3-byte overlong region `[0x80, 0x9F]`), `0xED` (3-byte, excludes the
-   * `U+D800-U+DFFF` surrogate block `[0xA0, 0xBF]`), `0xF0` (4-byte, excludes the 4-byte overlong
-   * region `[0x80, 0x8F]`), `0xF4` (4-byte, excludes code points past `U+10FFFF`, `[0x90, 0xBF]`).
-   * The 2-byte case needs no narrowing here: excluding `0xC0`/`0xC1` from \ref utf8_lead2_set
-   * already rules out every 2-byte overlong encoding.
+   * Default `[0x80, 0xBF]`; four leads narrow it (Unicode Table 3-7): `0xE0` drops the overlong
+   * `[0x80, 0x9F]`, `0xED` the surrogates `[0xA0, 0xBF]`, `0xF0` the overlong `[0x80, 0x8F]`, `0xF4`
+   * past-`U+10FFFF` `[0x90, 0xBF]`. 2-byte overlongs are already excluded by \ref utf8_lead2_set.
    *
-   * This is the single source of truth for rejecting those four encodings WITHOUT decoding the
-   * full code point (unlike \ref real::detail::decode_codepoint_strict, which accumulates the
-   * code point via shifts and checks it against `min_cp`/the surrogate block after the fact --
-   * correct, but too costly for a hot per-byte scan). Shared by every consumer that needs the
-   * rejection at scan speed: pike.hpp's `.` fast path and compiler.hpp's canonical byte-range
-   * expansion both read this table, so a narrowing here can never diverge between routes.
+   * Rejects those encodings without decoding, for a per-byte scan (pike.hpp's `.` fast path) where
+   * \ref real::detail::decode_codepoint_strict is too costly.
    */
   inline constexpr std::array<utf8_second_byte_bounds, 256> utf8_second_byte_bounds_table {
     make_utf8_second_byte_bounds_table()};

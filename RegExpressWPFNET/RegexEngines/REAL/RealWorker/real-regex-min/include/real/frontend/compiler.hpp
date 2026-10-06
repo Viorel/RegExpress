@@ -2,17 +2,10 @@
  * \file compiler.hpp
  * \brief AST → NFA program, via Thompson construction.
  *
- * The emitted program always has the shape `save 0, <body>, save 1,
- * match`, so slots 0/1 delimit group 0 (the whole match).
- *
- * Multi-codepoint semantics are compiled down to byte-level alternatives
- * (RE2-style): `.` and negated classes expand to UTF-8 lead/continuation
- * byte classes joined by split/jump, so the engine itself only ever steps one
- * byte at a time, in lock-step — which preserves linear time.
- *
- * Branch targets are emitted as placeholders and patched only through the
- * `patch_primary` / `patch_secondary` helpers, never by rewriting emitted instructions
- * wholesale.
+ * The program always has the shape `save 0, <body>, save 1, match`: slots 0/1 delimit group 0.
+ * Multi-byte code points compile to UTF-8 byte classes joined by split/jump, so the engine steps one
+ * byte at a time in lock-step (linear time). Branch targets are emitted as placeholders and patched
+ * only through `patch_primary` / `patch_secondary`.
  */
 #ifndef REAL_COMPILER_HPP
 #define REAL_COMPILER_HPP
@@ -39,9 +32,6 @@
 
 namespace real::detail {
 
-  // The code-point-range → UTF-8 byte-range algorithm (utf8_byte_seq, utf8_range_sequences,
-  // encode_utf8_bytes) now lives in utf8_ranges.hpp, shared with the lazy DFA's klass_cp expansion.
-
   /*!
    * \brief Whether \p ranges is exactly the whole non-ASCII space `[U+0080, U+10FFFF]` — the
    *        "any non-ASCII code point" shape emitted by \ref compiler::emit_any_codepoint_class.
@@ -54,27 +44,12 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Whether \p ranges satisfies what every consumer of a \ref cp_class already requires of
-   *        it: each range non-empty, and the sequence strictly ascending with no touching or
-   *        overlapping neighbours.
+   * \brief Whether \p ranges is what every consumer of a \ref cp_class requires: each range
+   *        non-empty, the sequence strictly ascending and disjoint.
    *
-   * The requirement is not a preference. Two independent match-time paths split at U+07FF and BOTH
-   * read the order as meaning: `cp_page_table` and `fill_cp_page_row` build the U+0080..U+07FF bitmap
-   * with a loop that STOPS at the first range past `cp_page_max` ("ranges are sorted: nothing more
-   * falls in the page"), and `cp_class_matches` binary-searches everything above it. A list that
-   * arrives out of order therefore loses members on both sides of that boundary at once, silently and
-   * with no wrong instruction anywhere to find — the program's SHAPE is identical either way, so the
-   * only visible symptom is an answer.
-   *
-   * Every producer normalises through \ref coalesce_ranges, which yields exactly this. That was true
-   * of all of them by construction rather than by contract, and one producer that collected ranges in
-   * source order instead satisfied it only for inputs that happened to be sorted already. Hence a
-   * predicate, asked at the single point every class passes through.
-   *
-   * ORDER AND DISJOINTNESS, not minimality. `coalesce_ranges` additionally merges neighbours that
-   * merely touch (`prev.hi + 1 == next.lo`), so its output always satisfies this predicate, but a
-   * touching pair is refused by neither consumer -- both read the sequence, and a redundant split
-   * costs a comparison, never an answer. Demanding minimality here would reject a correct class.
+   * Both match-time paths rely on the order (`fill_cp_page_row` stops at the first range past the page,
+   * `cp_class_matches` binary-searches above it): an unsorted list loses members silently. Not
+   * minimality: a touching pair costs a comparison, never an answer.
    *
    * \param[in] ranges The class's non-ASCII ranges, in the order they would be interned.
    * \return Whether they are ordered as the matchers require.
@@ -86,7 +61,7 @@ namespace real::detail {
         return false; // an inverted or empty range names no code point
       }
       if (i > 0 && ranges[i - 1].hi >= ranges[i].lo) {
-        return false; // out of order, touching, or overlapping
+        return false; // out of order or overlapping
       }
     }
     return true;
@@ -95,17 +70,10 @@ namespace real::detail {
   /*!
    * \brief Expands a character class to its Unicode simple case-fold closure (text-mode `icase`).
    *
-   * The fold acts on the WHOLE class, cross-boundary in both directions, before
-   * negation:
-   *   - **Bitmap (iterate-members-lookup):** each ASCII member (< 0x80) contributes its fold partners
-   *     (ASCII partners re-enter the bitmap; non-ASCII partners like `k`↦Kelvin become code-point
-   *     ranges). This is also the path the ASCII-letter literal fold takes, so there is one route.
-   *   - **Ranges (intersect-entries):** every fold entry whose code point falls inside a class range
-   *     contributes its partners (so a range attracts its ASCII partners, e.g. `[K…]`↦`k`, and
-   *     `[U+0080-U+10FFFF]` attracts `k`/`K` back into the bitmap).
-   *
-   * Idempotent on ASCII-only orbits (`[a]`↦`{a, A}`, no non-ASCII contamination). Partners that are
-   * already present are harmlessly re-added (the compiler tolerates redundant ranges).
+   * The fold acts on the whole class, across the ASCII boundary both ways, before negation: each
+   * ASCII member contributes its partners (`k`↦Kelvin becomes a range), and each fold entry inside a
+   * class range contributes its partners (`[U+0080-U+10FFFF]` pulls `k`/`K` into the bitmap). The
+   * ASCII-letter literal fold takes this same route.
    *
    * \param[in] in The class as written.
    * \return Its case-fold closure: the folded ASCII bitmap plus the coalesced non-ASCII ranges.
@@ -134,16 +102,9 @@ namespace real::detail {
         }
       }
     }
-    // Walk the fold table PER RANGE, not the whole table per class. The table is sorted by code point
-    // (\ref find_fold_index binary-searches it), so each range seeks its first entry and walks forward
-    // while the entry is still inside. Scanning the whole table and asking `any_of` over the ranges cost
-    // O(table x ranges) instead, and a wide class carries hundreds of ranges against a table of over a
-    // thousand entries -- so a single icase `\w` is a six-figure comparison count, and a `{k}` repeat
-    // folds the same class once per copy. The sanitized fuzzing build reached that as a timeout.
-    //
-    // The accepted set is unchanged. Overlapping input ranges can now visit one entry more than once
-    // where `any_of` short-circuited, which only pushes a duplicate degenerate {p, p} that
-    // `coalesce_ranges` below already merges.
+    // Walk the sorted fold table per range (seek, then forward), never the whole table per class:
+    // O(table x ranges) made one icase `\w` cost six figures of comparisons, times each `{k}` copy.
+    // Overlapping ranges may revisit an entry; the duplicate {p, p} is merged below.
     for (const code_range& r : in.ranges) {
       for (std::size_t i {find_fold_lower_bound(r.lo)}; i < unicode_fold_table_size; ++i) {
         const fold_entry& entry {unicode_fold_table[i]};
@@ -155,22 +116,14 @@ namespace real::detail {
         }
       }
     }
-    // Coalesce: the fold adds many degenerate {cp, cp} ranges (a class's own members' partners, and
-    // partners of members just outside the class); merging overlapping/adjacent ranges collapses that
-    // fragmentation without changing the accepted set — pure size optimisation.
+    // The fold adds many degenerate {cp, cp} ranges; coalescing also yields the order consumers need.
     out.ranges = coalesce_ranges(std::move(ranges));
     return out;
   }
 
   /*!
-   * \brief True if the AST subtree rooted at \p idx can match the empty string. `concat`: every
-   *        child nullable; `alternation`: some branch nullable; `group`: its body nullable;
-   *        `repeat`: `min == 0` or its body nullable; `byte`/`klass`/`any`: never (they always
-   *        consume exactly one unit). `empty`/`anchor`/`lookaround` are always zero-width by
-   *        construction — never consuming input as part of the surrounding match — so they are
-   *        always nullable here; not an approximation for those three, the exact contribution of
-   *        those node kinds to the enclosing match's width. Used by \ref
-   *        ast_has_nullable_captured_repeat to decide whether a capturing group's body is nullable.
+   * \brief True if the AST subtree rooted at \p idx can match the empty string. `empty`, `anchor`
+   *        and `lookaround` are zero-width, so exactly nullable; `byte`/`klass`/`any` never are.
    * \param[in] tree The AST.
    * \param[in] idx  Root of the subtree; a negative index reads as nullable (an absent body).
    * \return Whether the subtree can match the empty string.
@@ -214,12 +167,8 @@ namespace real::detail {
   }
 
   /*!
-   * \brief True if the AST subtree rooted at \p idx contains a CAPTURING group (`group >= 0`, i.e.
-   *        not `(?:...)`) whose own body is nullable (\ref node_nullable). Descends through every
-   *        node kind that can nest a group (including a further `repeat`/`lookaround`) so a group
-   *        need not be the direct child of the `repeat` this is called from — only transitively
-   *        underneath it. Used only from \ref ast_has_nullable_captured_repeat, on a `repeat`
-   *        node's subtree.
+   * \brief True if the AST subtree rooted at \p idx contains, at any depth, a capturing group
+   *        (`group >= 0`) whose body is nullable (\ref node_nullable).
    * \param[in] tree The AST.
    * \param[in] idx  Root of the subtree.
    * \return Whether a capturing group with a nullable body sits anywhere underneath.
@@ -259,16 +208,9 @@ namespace real::detail {
   }
 
   /*!
-   * \brief True if the AST rooted at \p idx contains a capturing group with a nullable body,
-   *        transitively under a quantifier (any quantifier, `?` included) — the frontend source of
-   *        \ref pattern_hints::nullable_captured_repeat (compiler::compile() reads this after
-   *        `analyze_program`, the same AST-derived-hint slot as the inner-literal fields below).
-   *        At each `repeat` node, checks its whole subtree for a nullable capturing group (\ref
-   *        subtree_has_nullable_capturing_group) — the group need not be the repeat's immediate
-   *        child — and independently keeps walking for any other `repeat` elsewhere in the tree.
-   *        Safe over-approximation: it does not prove the loop's empty iteration actually surfaces
-   *        a divergent capture, only that the shape can (e.g. `(\b|x)+` counts: `\b` is nullable by
-   *        \ref node_nullable, conservatively, same posture as `empty_match_possible`).
+   * \brief True if a capturing group with a nullable body sits anywhere under a quantifier (`?`
+   *        included): the source of \ref pattern_hints::nullable_captured_repeat. A safe
+   *        over-approximation: it flags the shape (`(\b|x)+` counts), not a proven divergent capture.
    * \param[in] tree The AST.
    * \param[in] idx  Root to walk from.
    * \return Whether some quantifier in the tree has a nullable capturing group under it.
@@ -327,40 +269,27 @@ namespace real::detail {
 
   private:
 
-    //! \brief Ways in the case-fold cache \ref effective_class keeps. Four is enough for a repeat to hit
-    //!        its own way every time; a pattern alternating more distinct folded classes than this simply
-    //!        misses, which is what every pattern did before.
-    // SIZING, not behaviour: a cache width whose MISS is already the documented fallback -- a pattern
-    // alternating more distinct folded classes than this simply folds them again. Nothing here is worth
-    // a test: no value of it can change an answer.
-    static constexpr std::size_t fold_cache_ways {4};
+    static constexpr std::size_t fold_cache_ways {4}; //!< Ways of the \ref effective_class fold cache; a miss only folds again.
 
-    //! \brief Cache tag per way: the (class index, fold mode, negated) key held there, or -1 for empty.
-    //!
-    //!        `mutable` because the emit path reaches \ref effective_class through const member functions,
-    //!        and WRITTEN ONLY outside constant evaluation. MSVC's constant evaluator has rejected this
-    //!        header before over an indeterminate subobject, and a `static_regex` gains nothing from the
-    //!        cache anyway: its budget problem is the fold's step count, not its repetition.
+    /*!
+     * \brief Cache tag per way: the (class index, fold mode, negated) key, or -1 for empty.
+     *
+     * `mutable`: the emit path reaches \ref effective_class through const members. Written only
+     * outside constant evaluation: MSVC's constant evaluator rejects an indeterminate subobject here,
+     * and a `static_regex` gains nothing from the cache (its budget is the fold's step count).
+     */
     mutable std::array<std::int32_t, fold_cache_ways> fold_key_ {-1, -1, -1, -1};
 
-    //! \brief Cached FINISHED class per way -- folded, coalesced and negated. Default-constructed, so an
-    //!        unused way holds an empty \ref class_def and costs no allocation.
-    mutable std::array<class_def, fold_cache_ways> fold_val_ {};
+    mutable std::array<class_def, fold_cache_ways> fold_val_    {}; //!< Finished (folded, coalesced, negated) class per way.
 
   public:
 
     /*!
-     * \brief True when the FULL inner literal starts at \p pc as consecutive `byte` ops.
+     * \brief True when the full inner literal starts at \p pc as consecutive `byte` ops.
      *
-     * Both hint anchors below used to ask only whether `code[pc]` equalled `inner_literal[0]`, and a
-     * byte equal to the literal's FIRST byte is not the literal. `(?:a){2}ax` has the literal `ax` and
-     * two `a` bytes in front of it, so the prefix's own `a` was taken for the literal's start: the
-     * derived hint then described the wrong distance and the route walked back to the wrong place.
-     *
-     * The result was a SILENT FALSE NEGATIVE wherever the route actually runs — `static_regex` at any
-     * subject size, and a dynamic regex past the size floor. It is invisible on a short dynamic
-     * subject, because the small-haystack guard abandons to the core VM before the bad hint is used,
-     * which is why a probe on short subjects reports the pattern as fine.
+     * A byte equal to the literal's first byte is not the literal: in `(?:a){2}ax` the prefix's `a`
+     * would anchor the hint at the wrong distance, a silent false negative wherever the route runs
+     * (`static_regex` at any size, dynamic past the size floor; short dynamic subjects never reach it).
      *
      * \param[in] prog The program being built.
      * \param[in] pc   Index of the candidate first `byte` op.
@@ -416,12 +345,9 @@ namespace real::detail {
       prog.hints        = analyze_program(prog.code, prog.classes, prog.cp_classes, prog.cp_ranges,
                                           prog.codepoint_mark_ascii, prog.codepoint_mark_offset,
                                           prog.codepoint_mark_end, prog.lookarounds);
-      // AND slot_count == 2 -- which analyze_program cannot see, because it is handed the CODE and a program
-      // can record captures WITHOUT `save` opcodes: a Tier-1 possessive with a `\b` wrap (`\b(\w)*+`) writes
-      // its group from the fast path. The save scan alone therefore called that pattern capture-free and lost
-      // both its group AND group 0's start; tests/engine/test_fixed_shape_wb_captures.cpp caught it on the
-      // first run. Placed AFTER the assignment above for the reason the first attempt got wrong: `prog.hints`
-      // is overwritten wholesale there, so a condition applied before it silently does nothing.
+      // capture_free_walk also needs slot_count == 2: analyze_program sees only the code, and a possessive
+      // with a `\b` wrap (`\b(\w)*+`) writes its group from the fast path with no `save`. Must follow the
+      // assignment above, which overwrites `prog.hints` wholesale.
       if (prog.slot_count != 2U) {
         prog.hints.capture_free_walk = false;
       }
@@ -429,9 +355,7 @@ namespace real::detail {
       // positions out of order -- which a lookbehind walk pays for by restarting. The VM keeps those.
       prog.hints.bounded_backtrack = static_cast<std::uint8_t>(prog.lookarounds.empty()
                                                                && prog.slot_count <= bounded_backtrack_max_slots);
-      // The required inner literal + its prefix boundary (a single AST walk). Recorded in hints for the
-      // inner-literal search route (pike_vm::run dispatches to run_inner_literal); kept off the program
-      // code, so byte-identity is untouched.
+      // The required inner literal and its prefix boundary go to the hints only, never into the code.
       const inner_literal il {extract_inner_literal(tree_)};
       prog.hints.inner_literal             = il.bytes;
       prog.hints.inner_literal_len         = il.len;
@@ -443,24 +367,15 @@ namespace real::detail {
         prog.hints.inner_literal_rare = literal_rarest_offset(std::string_view {chars.data(), il.len});
       }
       prog.hints.inner_literal_prefix      = il.prefix_child_count;
-      // Peel-lead skip for the reverse-prefix (see build_prefix_ast). Non-zero only when the
-      // IL route is live. confirm_at still runs the full program (lead/trail `\b`/`\B` checked there).
+      // Peel-lead skip for the reverse prefix (build_prefix_ast), non-zero only when the IL route is live;
+      // confirm_at still runs the full program, lead/trail `\b`/`\B` included.
       prog.hints.inner_literal_prefix_skip =
         (il.len > 0 && il.prefix_child_count >= 1 && il.prefix_skip > 0)
           ? static_cast<std::uint8_t>(il.prefix_skip)
           : std::uint8_t {0};
-      // Nullable-captured-repeat: another AST-derived hint (same slot as inner_literal above, not
-      // analyze_program/prefilter.hpp — that epsilon-walk sees the compiled program, not the AST's
-      // group-under-quantifier structure). Drives real::compat's uses_real_traversal(): a real-backed
-      // pattern in this class captures a nullable loop's last CONSUMING iteration (RE2/Rust/Go
-      // lineage), which diverges from an ECMAScript backtracker's extra empty final iteration, so
-      // compat routes replace/iterate to std for it (regex_core.hpp). regex_search/match are
-      // unaffected by this hint — see COMPATIBILITY.md's nullable-loop group-capture section.
-      // IL reverse-by-class (hints.il_rev_class): recognise the shape `save… <class atom> split(back, out)
-      // save… byte(literal)` at the head of the program — one greedy class loop, then the required literal.
-      // Read off the COMPILED code rather than the AST because the answer is a class INDEX, which only
-      // exists after emission. A fixed repeat count emits the atom N times with no `split`, so `\d{4}-…`
-      // falls out here and keeps the general path.
+      // il_rev_class: the program opens with `save… <class atom> split(back, out) save… byte(literal)`.
+      // Read off the code, not the AST, because the answer is a class index. A fixed count (`\d{4}-…`)
+      // emits no `split` and keeps the general path.
       if (il.len > 0 && il.prefix_child_count == 1) {
         std::size_t pc {0};
         while (pc < prog.code.size() && prog.code[pc].op == opcode::save) {
@@ -487,10 +402,8 @@ namespace real::detail {
             prog.hints.il_rev_class = static_cast<std::int32_t>(prog.code[atom].arg16);
             prog.hints.il_rev_is_cp = is_cp;
 
-            // Keep reading: if the LITERAL is followed by one greedy class loop and then nothing but saves
-            // and `match`, the whole pattern is `class+ <literal> class+` and a confirmed candidate needs no
-            // match engine — see pattern_hints::il_fwd_class. Every op is checked, so an assertion, a
-            // lookaround or any trailing structure leaves the hint clear and the general confirm in place.
+            // il_fwd_class: the whole pattern is `class+ <literal> class+` (then only saves and `match`).
+            // Every op is checked, so any assertion or trailing structure leaves the hint clear.
             std::size_t tail {lit};
             while (tail < prog.code.size() && prog.code[tail].op == opcode::byte) {
               ++tail; // a multi-byte literal is several `byte` ops
@@ -515,12 +428,11 @@ namespace real::detail {
               while (end < prog.code.size() && prog.code[end].op == opcode::save) {
                 ++end;
               }
-              // The two runs place the literal where the prefix run stops, which is where the greedy prefix
-              // leaves it only if the literal cannot occur inside that run: `[abx]+ba[ab]+` over
-              // "aaaxbabaaxbab" wants the LAST `ba`, and the first one answered [0,9) for [0,13). When it
-              // can, the span still holds if the suffix run crosses every byte the prefix and the literal
-              // hold -- it then ends where the greedy match does -- but the groups must split at the last
-              // occurrence (il_fwd_last): `(\w+)_(\w+)` over "a_b_c" gave "a" and "b_c" for "a_b" and "c".
+              // The runs place the literal where the prefix run stops, which is the greedy answer only if
+              // the literal cannot occur inside that run (`[abx]+ba[ab]+` over "aaaxbabaaxbab" wants the
+              // last `ba`). When it can, the span still holds if the suffix run covers every prefix and
+              // literal byte, but groups must split at the last occurrence (il_fwd_last: `(\w+)_(\w+)`
+              // over "a_b_c" is "a_b" and "c").
               const auto class_bytes {[&](std::size_t at, bool cp) {
                                         std::array<bool, 256> bytes {};
                                         for (unsigned b {0}; b < 256U; ++b) {
@@ -548,10 +460,8 @@ namespace real::detail {
           }
         }
       }
-      // IL fixed code-point shape (hints.il_cp_shape_eligible): the whole program is saves plus a fixed
-      // sequence of code-point atoms and literal bytes, with no split, jump or assertion anywhere. The
-      // The byte-width-fixed case belongs to `fixed_shape` and its own route; this hint is the one a
-      // `klass_cp` puts out of that route's reach, which is why it exists separately.
+      // il_cp_shape_eligible: saves plus a fixed sequence of code-point atoms and literal bytes, no split,
+      // jump or assertion. It covers the `klass_cp` shapes the byte-width `fixed_shape` route cannot.
       if (il.len > 0 && il.prefix_child_count >= 1) {
         std::size_t pc          {0};
         std::size_t cps         {0};
@@ -572,9 +482,7 @@ namespace real::detail {
           }
           else if (op == opcode::byte) {
             if (!hit_literal) {
-              // The WHOLE literal must start here, not merely a byte equal to its first: a prefix
-              // that repeats that byte (`(?:a){2}ax`) would otherwise be mistaken for the literal and
-              // the count would not describe the distance the route walks back from a candidate.
+              // The whole literal, not a byte equal to its first (see inner_literal_starts_at).
               ok          = inner_literal_starts_at(prog, pc);
               hit_literal = true;
             }
@@ -593,12 +501,14 @@ namespace real::detail {
           prog.hints.il_cp_prefix_cps     = static_cast<std::uint8_t>(cps);
         }
       }
+      // Read off the AST (the program loses the group-under-quantifier structure). The compat layer
+      // routes replace/iterate to std for such patterns: their nullable loop captures the last consuming
+      // iteration, where an ECMAScript backtracker adds an empty one.
       prog.hints.nullable_captured_repeat = ast_has_nullable_captured_repeat(tree_, tree_.root);
-      // In text mode a match never starts on a UTF-8 continuation byte (pike_vm::seed_viable). A pattern that can
-      // open on one -- a raw `\x80`-`\xBF` at its lead -- is left to the VM and the DFAs, which hold that rule; the
-      // literal, alternation and loop routes find the byte wherever it sits. Last, so no route hint set above
-      // survives it; the facts the compat layer reads about the pattern are kept. Under allow_raw_byte a `\C` lead
-      // may start inside a code point, as RE2's does, and keeps its routes.
+      // In text mode a match never starts on a UTF-8 continuation byte (pike_vm::seed_viable). A pattern
+      // that can open on one is left to the VM and the DFAs, which hold that rule; the literal, alternation
+      // and loop routes do not. Last, so it clears every route hint set above; the compat-layer facts stay.
+      // Under allow_raw_byte a `\C` lead may start inside a code point, as in RE2, and keeps its routes.
       prog.hints.raw_byte_starts = has_flag(flags_, flags::allow_raw_byte);
       if (!prog.byte_mode && !prog.hints.raw_byte_starts && prog.hints.first_bytes_valid
           && opens_on_continuation(prog.hints.first_bytes)) {
@@ -633,12 +543,9 @@ namespace real::detail {
     /*!
      * \brief Appends one instruction, enforcing the program-size cap.
      *
-     * The check lives inside `emit` so it fires \e during a large unroll loop,
-     * before the vector grows to the full bad size — this is the central
-     * defense (\ref max_program_size) against the DoS where tiny nested bounded
-     * quantifiers expand to hundreds of millions of instructions. It is
-     * constexpr-friendly: exceeding the cap fails compilation for a
-     * `static_regex`, or throws at run time.
+     * The check lives here so it fires during a large unroll, before the vector reaches the bad size:
+     * the defense against nested bounded quantifiers expanding to hundreds of millions of
+     * instructions. Exceeding the cap fails compilation of a `static_regex`, or throws at run time.
      *
      * \param[in,out] prog        The program being built.
      * \param[in]     instruction The instruction to append.
@@ -704,9 +611,7 @@ namespace real::detail {
     /*!
      * \brief Interns \p klass into `prog.classes` (deduplicating), returning its index.
      *
-     * Factored out of \ref emit_klass so Tier 1's `klass_loop_possessive` can share the exact same
-     * interning without emitting the ordinary single-consume opcode. Identical bitmaps share one
-     * slot, so the UTF-8 continuation class is stored once however often it is emitted.
+     * Shared by \ref emit_klass and `klass_loop_possessive`. Identical bitmaps share one slot.
      *
      * \param[in,out] prog  The program being built.
      * \param[in]     klass The class bitmap to intern.
@@ -748,43 +653,23 @@ namespace real::detail {
     /*!
      * \brief Interns \p cd into `prog.cp_classes`/`prog.cp_ranges` (deduplicating), returning its index.
      *
-     * Factored out of \ref emit_klass_cp so Tier 1's `klass_cp_loop_possessive` can share the exact
-     * same interning for ANY effective class (predicate or not, negated or not, `.` included) without
-     * emitting the ordinary opcode or its continuation chain.
+     * Shared by \ref emit_klass_cp and `klass_cp_loop_possessive`, for any effective class.
      *
      * \param[in,out] prog The program being built.
      * \param[in]     cd   The effective code-point class (ASCII bitmap + non-ASCII ranges).
      * \return Its index in `prog.cp_classes`.
      */
-    // Reachable on purpose. `compiler` lives in `real::detail` and promises nothing outward, and the
-    // gate below is only a gate if omitting it can be SEEN to go wrong -- which takes a test that
-    // interns a list of its own making, since no pattern can produce an unordered one once every
-    // producer normalises. Widening the access IS the hook: no macro, no build-mode branch, nothing
-    // here that a release build compiles differently from the one the tests run.
+    // Public so a test can intern an unordered list (no pattern produces one) and see the gate fire;
+    // nothing here differs between release and test builds.
 
   public:
 
     static constexpr std::uint16_t intern_cp_class(dynamic_program& prog,
                                                    const class_def& cd)
     {
-      // THE SINGLE GATE. Every code-point class in every program is interned here, which is the one
-      // place where the ordering the matchers require can be demanded once instead of trusted from
-      // each producer in turn. \ref cp_ranges_are_normalised says what the requirement is and why a
-      // violation is silent; what matters here is that this is the choke point, so a producer that
-      // forgets \ref coalesce_ranges fails loudly instead of answering wrongly at match time.
-      //
-      // A throw, not an assertion: the message has to exist in a release build, and it has to exist
-      // during constant evaluation too -- a `static_regex` whose class arrived unordered must stop
-      // being a constant expression. Same vehicle as the class-count ceiling below, for that reason.
-      //
-      // Asked on the NEW-class path only, below, and that is not a weakening: the dedup compares
-      // content, so a class that matches an existing one is bit-identical to a class already checked
-      // when it was first recorded, and an unordered list can only match another unordered list --
-      // which could never have been recorded. Every distinct class is therefore still checked exactly
-      // once, before it exists. Asking on every call instead cost a full range scan per emission on a
-      // path that interns the same class per repetition: `(?i:\w{256})\w{256}` compiles ~512 classes
-      // over `\w`'s range table, and the redundant pass added 36% to it (517 -> 705 us), which the
-      // compile-scaling probes measure as a ratio against a 16x bound and read as a regression.
+      // The one gate every code-point class passes: a producer that skips coalesce_ranges fails loudly. A
+      // throw, not an assert, so it fires in release and stops an unordered `static_regex`. New classes
+      // only: checking every call added 36% to `(?i:\w{256})\w{256}` against the compile-scaling bound.
       std::size_t index {prog.cp_classes.size()};
       for (std::size_t i = 0; i < prog.cp_classes.size(); ++i) {
         const cp_class& existing {prog.cp_classes[i]};
@@ -795,10 +680,7 @@ namespace real::detail {
         for (std::uint32_t k = 0; k < existing.range_count; ++k) {
           const code_range& a {prog.cp_ranges[existing.range_begin + k]};
           if (a.lo != cd.ranges[k].lo || a.hi != cd.ranges[k].hi) {
-            // Two code-point classes with the SAME ASCII bitmap and range COUNT but different ranges:
-            // the interner must not merge them. In practice the shorthand classes (\w/\d/\s and their
-            // complements) have distinct bitmaps and counts, so this range mismatch is a defensive
-            // arm of the dedup, not hit by the current emitters (hence uncovered by the runtime report).
+            // Same bitmap and count, different ranges: never merge. No current emitter reaches this arm.
             same = false;
             break;
           }
@@ -819,9 +701,8 @@ namespace real::detail {
         for (const code_range& r : cd.ranges) {
           prog.cp_ranges.push_back(r);
         }
-        const auto n {static_cast<std::uint32_t>(cd.ranges.size())};
-        // Fingerprint once from the just-appended span (same content as cd.ranges); match-time
-        // cp_hi cache reads this field — never re-hashes per codepoint (the \p{} hot path).
+        const auto n           {static_cast<std::uint32_t>(cd.ranges.size())};
+        // Fingerprinted once here; the match-time cp_hi cache reads it and never re-hashes.
         const std::uint64_t fp {fingerprint_cp_class_content(
                                   cd.ascii, n == 0 ? nullptr : &prog.cp_ranges[begin], n)};
         prog.cp_classes.push_back({.ascii       = cd.ascii,
@@ -835,13 +716,9 @@ namespace real::detail {
   private:
 
     /*!
-     * \brief Emits a match-time code-point predicate for a Unicode shorthand (`\w \d \s` and their
-     *        negations) in text mode: a `klass_cp` over the interned code-point class, followed by a
-     *        three-instruction continuation chain (`klass utf8_cont` ×3). At match time `klass_cp`
-     *        decodes one code point and, on membership, enters the chain at a computed skip so the
-     *        remaining continuation bytes are walked one per step — see pike.hpp. The class is the
-     *        already-effective set (the fold and any external negation were materialised by
-     *        \ref effective_class), so membership is a plain positive test.
+     * \brief Emits a code-point class in text mode: `klass_cp`, then three `klass utf8_cont` slots.
+     *        `klass_cp` decodes one code point and, on membership, enters the chain at a computed skip.
+     *        \p cd is already effective (fold and negation applied), so membership is a positive test.
      *
      * \param[in,out] prog The program being built.
      * \param[in]     cd   The effective code-point class (ASCII bitmap + non-ASCII ranges).
@@ -858,30 +735,18 @@ namespace real::detail {
     static constexpr std::size_t fixed_width_class_max_members {8}; //!< Most members a \ref try_emit_fixed_width_class candidate may have.
 
     /*!
-     * \brief Emits a small non-ASCII class as FIXED-WIDTH bytes, when every member encodes to the
-     *        same length and they differ in exactly one byte position. Returns false otherwise.
+     * \brief Emits a small non-ASCII class as fixed-width bytes when every member encodes to the same
+     *        length and they differ in exactly one byte position. Returns false otherwise.
      *
-     * This is the shape an icase fold makes of an accented Latin letter: `é`/`É` are `C3 A9` and
-     * `C3 89` — two bytes, one shared lead, one differing continuation — so the class is really
-     * `byte C3` followed by a two-member BYTE class, which is fixed width. Sent through
-     * \ref emit_klass_cp instead it becomes variable width, and that is what stops the prefilter's
-     * fixed-offset walk and the literal routes behind it — the difference between a routed scan and the
-     * general VM on accented prose.
-     *
-     * DELIBERATELY NARROW, because the neighbouring wide shape is already known to be a trap: an icase
-     * ASCII class like `(?i)[a-z]` gains the long s and the Kelvin sign, whose encodings are 2 and 3
-     * bytes, so expressing it byte-wise needs an ALTERNATION — which is slower than the `klass_cp` it
-     * would replace (see the emission site's note), and slower again than the class form here.
-     * Requiring one common length AND a single varying
-     * position is exactly what excludes every alternation-shaped case: no branch is ever emitted,
-     * only a run of `byte` with one `klass` among them.
+     * An icase accented letter (`é`/`É` = `C3 A9`/`C3 89`) becomes `byte C3` plus a byte class: fixed
+     * width, so the prefilter's fixed-offset walk and the literal routes still apply. Deliberately
+     * narrow: a class needing mixed lengths (`(?i)[a-z]` gains 2- and 3-byte members) would need an
+     * alternation, slower than `klass_cp`. One length and one varying position never emit a branch.
      *
      * \param[in,out] prog The program being built.
      * \param[in]     eff  The effective class (ASCII bitmap + non-ASCII ranges).
-     * \param[in]     probe_only When `true`, answers whether the shape matches and emits nothing.
-     *                 \ref emit_unbounded_body needs the ANSWER without the emission -- under an
-     *                 unbounded quantifier this form is the wrong one, and asking here rather than
-     *                 restating the condition keeps one source of truth for the shape.
+     * \param[in]     probe_only When `true`, answers whether the shape matches and emits nothing
+     *                 (\ref emit_unbounded_body asks, as this form is wrong under an unbounded quantifier).
      * \return `true` if the class was emitted here (or matches, when probing); `false` if the caller
      *         must emit it otherwise.
      */
@@ -963,19 +828,12 @@ namespace real::detail {
     /*!
      * \brief Emits "one codepoint matching \p ascii, or any non-ASCII codepoint".
      *
-     * The non-ASCII branches go through \ref emit_class_codepoints for the code-point
-     * range `[U+0080, U+10FFFF]` — the SAME canonical-splitting algorithm (`utf8_range_sequences`,
-     * RE2-style) already used for `\p{...}`, so the emitted branches narrow each lead byte's first
-     * continuation byte to the sub-range that excludes overlong and surrogate encodings (`0xE0`,
-     * `0xED`, `0xF0`, `0xF4` each get their own branch; every other lead byte keeps the generic
-     * `[0x80,0xBF]` continuation, same as before). This replaces a hand-written 4-branch/16-
-     * instruction block with flat lead-byte classes (charclass.hpp's `utf8_lead2/3/4_set` /
-     * `utf8_cont_set`) that DIDN'T narrow the first continuation byte — a since-fixed correctness
-     * gap (overlong/surrogate byte sequences read as one valid codepoint).
+     * The non-ASCII part goes through \ref emit_class_codepoints, whose canonical splitting narrows
+     * the first continuation byte after `0xE0`, `0xED`, `0xF0` and `0xF4`, so overlong and surrogate
+     * encodings never read as a code point. Flat lead/continuation classes would accept them.
      *
      * \param[in,out] prog  The program being built.
-     * \param[in]     ascii The accepted ASCII bytes (the non-ASCII branches are
-     *                      always included).
+     * \param[in]     ascii The accepted ASCII bytes (non-ASCII is always included).
      */
     constexpr void emit_any_codepoint_class(dynamic_program&  prog,
                                             const char_class& ascii) const
@@ -984,25 +842,17 @@ namespace real::detail {
       emit_class_codepoints(prog, ascii, {{.lo = 0x80U, .hi = 0x10FFFFU}});
       const std::int32_t block_end   {here(prog)};
 
-      // Record the marker (start/end offsets + ASCII sub-class index) so analyze_program reads
-      // it instead of reverse-engineering this block's bytecode shape. The ASCII sub-class sits
-      // at code[block_start+1] whenever `ascii` is non-empty (emit_byte_sequences's first branch
-      // is exactly {ascii}, a single klass step, right after that branch's split) -- true for `.`
-      // always (its accepted ASCII set is never fully empty) and for all but a pathological
-      // negated-ASCII-only class (`[^\x00-\x7F]`, which negates ALL of ASCII); in that one case
-      // this reads a byte-range class's index instead, which the prefilter's content guard (it
-      // must hold ASCII bytes only) then correctly rejects.
+      // The marker spares analyze_program from reverse-engineering this block. The ASCII sub-class
+      // sits at code[block_start + 1] whenever `ascii` is non-empty (always for `.`); for
+      // `[^\x00-\x7F]` this reads a byte-range class, which the prefilter's ASCII-only guard rejects.
       prog.codepoint_mark_offset = block_start;
       prog.codepoint_mark_end    = block_end;
       prog.codepoint_mark_ascii  = static_cast<std::int32_t>(prog.code[static_cast<std::size_t>(block_start) + 1].arg16);
     }
 
     /*!
-     * \brief Emits an alternation of byte-range sequences (`branches`) as split/jump. Each branch
-     *        is a chain of `klass` steps; the leftmost matching branch wins. The shared backbone of
-     *        \ref emit_class_codepoints (used for both `\p{...}`-style specific code-point ranges
-     *        and, via \ref emit_any_codepoint_class, the single `[U+0080, U+10FFFF]` "any non-ASCII"
-     *        range `.`/negated-ASCII-only classes need).
+     * \brief Emits an alternation of byte-range sequences as split/jump; each branch is a chain of
+     *        `klass` steps and the leftmost matching branch wins.
      *
      * \param[in,out] prog     The program being built.
      * \param[in]     branches One byte-range chain per branch, tried in order.
@@ -1030,9 +880,8 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Emits a code-point class: the ASCII bitmap (one byte, if any) OR the canonical UTF-8
-     *        byte sequences of each code-point range. \ref emit_any_codepoint_class is a thin
-     *        wrapper over this for the specific `[U+0080, U+10FFFF]` "any non-ASCII" range.
+     * \brief Emits a code-point class: the ASCII bitmap (if any) OR the canonical UTF-8 byte
+     *        sequences of each code-point range.
      *
      * \param[in,out] prog   The program being built.
      * \param[in]     ascii  The class's ASCII bitmap; skipped when empty.
@@ -1058,8 +907,7 @@ namespace real::detail {
         }
       }
       if (branches.empty()) {
-        // An impossible class (e.g. the negation of the whole code-point space): match nothing. An
-        // empty bitmap rejects every byte, so the thread dies — a never-match, not a crash.
+        // An impossible class (the negation of every code point): an empty bitmap never matches.
         emit_klass(prog, char_class {});
         return;
       }
@@ -1068,42 +916,31 @@ namespace real::detail {
 
     /*!
      * \brief The class a `node_kind::klass` node effectively accepts, after negation, icase folding
-     *        and the bytes/code-point split. This is the ONE source of truth consumed by both
-     *        \ref emit_node and \ref l_max_bytes, so what is emitted and its measured width can never
-     *        disagree. Positive: as written. Negated: the ASCII complement plus, in code-point mode,
-     *        the code-point complement over `[U+0080, U+10FFFF]` minus surrogates.
+     *        and the bytes/code-point split. The one source for both \ref emit_node and
+     *        \ref l_max_bytes, so the emission and its measured width cannot disagree.
      *
      * \param[in] node The `node_kind::klass` node.
      * \return The set it accepts, after negation, folding and the bytes/code-point split.
      */
     [[nodiscard]] constexpr class_def effective_class(const ast_node& node) const
     {
-      // icase and ascii are read from the node's own scope (stamped by the parser from the flag-scope
-      // stack), so a scoped (?i:...) / (?a:...) folds and picks tables per scope. bytes is not scopable
-      // and stays global.
+      // icase and ascii come from the node's own scope; bytes is not scopable and stays global.
       const flags node_flags {static_cast<flags>(node.effective_flags)};
       const auto  klass_idx  {static_cast<std::size_t>(node.klass)};
 
-      // Fold mode: 0 none, 1 ASCII-only, 2 full Unicode. It is a function of the node's scope, so the
-      // same class under the same scope always folds to the same thing.
+      // Fold mode: 0 none, 1 ASCII-only, 2 full Unicode.
       std::size_t mode {0};
       if (has_flag(node_flags, flags::icase)) {
         mode = (has_flag(flags_, flags::bytes) || has_flag(node_flags, flags::ascii)) ? 1U : 2U;
       }
 
-      // A bounded repeat holds ONE class node and emits it once per REPETITION, so `\w{500}` asked for
-      // the same fold 500 times. Mode 2 walks the fold table per range of the class -- `\w` carries 771 --
-      // and that repetition was the whole of the cost.
-      //
-      // Four ways, direct-mapped, in a fixed array: a repeat hits the same way every time and nothing is
-      // allocated. A vector sized by the class table was tried first and cost 5 % to 19 % on patterns that
-      // fold once -- they paid its allocation and never read it. Keyed by (class index, mode) because a
-      // scoped `(?i:...)` can fold one class two ways in one pattern.
+      // A bounded repeat emits its one class node per repetition (`\w{500}` folds 500 times), so the
+      // fold is cached: four direct-mapped ways in a fixed array. Keep it unallocated: a vector sized by
+      // the class table cost patterns that fold once up to 19 %. Keyed by (class, mode, negated): a
+      // scoped `(?i:...)` can fold one class two ways.
       if (mode != 0 && !std::is_constant_evaluated()) {
-        // The FINISHED class is what is cached, negation included -- a repeat's copies share one node, so
-        // they share its negation too. Caching only the fold left `finish_class`'s `coalesce_ranges` sort
-        // running per repetition, which is why `[a-z]` with icase still cost 24x its plain marginal per
-        // repetition when the fold alone was memoized.
+        // Cache the finished class, negation included: caching only the fold leaves finish_class's
+        // coalesce_ranges sort per repetition (icase `[a-z]` cost 24x its plain marginal).
         const auto        key {static_cast<std::int32_t>((klass_idx * 6U) + (mode * 2U) + (node.negated ? 1U : 0U))};
         const std::size_t way {static_cast<std::size_t>(key) % fold_cache_ways};
         if (fold_key_[way] == key) {
@@ -1132,9 +969,6 @@ namespace real::detail {
 
     /*!
      * \brief Applies negation (and its mode-dependent complement) to an already-folded class.
-     *
-     * Split out of \ref effective_class so the fold can be memoized while this stays per node: negation is
-     * a property of the node, the fold a property of (class, scope).
      * \param[in] node   The class node being emitted.
      * \param[in] folded Its class after any case fold.
      * \return The class as the node means it.
@@ -1142,13 +976,10 @@ namespace real::detail {
     [[nodiscard]] constexpr class_def finish_class(const ast_node& node,
                                                    class_def       folded) const
     {
-      // The fold is applied BEFORE negation (Python order): [^k] under icase is the complement of
-      // {k, K, Kelvin}, so it rejects Kelvin.
+      // Fold before negation (Python order): icase [^k] is the complement of {k, K, Kelvin}.
       if (!node.negated) {
-        // Members accumulate in PARSE order — a predicate's range table (`\d`/`\w`/`\p{…}`), then any literal
-        // or range that follows it — but `klass_cp` binary-searches the ranges at match time, so they must be
-        // sorted and merged. Without this, a non-ASCII member after a predicate (`[\dЩ]`, `[\w\W]`) landed out
-        // of order and was silently missed. The negated path already coalesces via complement_code_ranges.
+        // Members arrive in parse order (`[\dЩ]`), and the matchers need them sorted and merged. The
+        // negated path is normalised by complement_code_ranges.
         folded.ranges = coalesce_ranges(std::move(folded.ranges));
         return folded;
       }
@@ -1179,73 +1010,47 @@ namespace real::detail {
         case node_kind::empty:
           break;
         case node_kind::byte:
-          // A `byte` node is a raw byte with byte provenance (a `\xHH` / octal escape, or a non-cased
-          // literal), never case-folded: under icase a cased literal was promoted to a foldable
-          // singleton class at the parser, so it never reaches here. This preserves the deliberate
-          // `\xHH` provenance split (see emit_literal_codepoint / divergences.dox).
+          // Never case-folded: under icase the parser turns a cased literal into a singleton class, so a
+          // `byte` node is an escape or a non-cased literal (the `\xHH` provenance split, divergences.dox).
           emit(prog, {.op = opcode::byte, .arg8 = node.byte});
           break;
         case node_kind::klass:
           {
-            // A text-mode class with a Unicode-shorthand contribution (\w/\d/\s, bare or in a class):
-            // a match-time code-point predicate, not the byte-NFA. effective_class materialises the
-            // fold and the external negation, so the stored cp_class needs no negation flag -- this is
-            // also what gives [^\W] == \w, [^\D] == \d, [^\S] == \s.
+            // A Unicode shorthand (\w/\d/\s) in text mode: a match-time code-point predicate. The stored
+            // class is already effective, so it carries no negation flag ([^\W] == \w).
             if (tree_.classes[static_cast<std::size_t>(node.klass)].codepoint_predicate) {
               emit_klass_cp(prog, effective_class(node));
               break;
             }
             const class_def eff {effective_class(node)};
             if (has_flag(flags_, flags::bytes) || eff.ranges.empty()) {
-              // Bytes mode is a single 256-bit bitmap; a code-point class with no non-ASCII members is
-              // just its ASCII bitmap. An empty bitmap here (impossible class) is a never-match.
+              // Bytes mode, or no non-ASCII member: one bitmap (empty = never-match).
               emit_klass(prog, eff.ascii);
               break;
             }
             if (is_any_non_ascii(eff.ranges)) {
-              // "ASCII bitmap OR any non-ASCII code point" (`.`-family, `[^x]`): the
-              // emit_any_codepoint_class shape the prefilter fast path recognizes.
+              // `.`-family / `[^x]`: the shape the prefilter's codepoint_class_ascii route recognises.
               emit_any_codepoint_class(prog, eff.ascii);
               break;
             }
-            // An ASCII bitmap with a FEW non-ASCII members -- what an icase fold makes of an ASCII class,
-            // since `[a-z]` gains the long s and the Kelvin sign -- is a code-point class, and emitting it
-            // as one is what lets the class-loop route take it. Expanded to a byte-level alternation
-            // instead (one branch for the bitmap, one per UTF-8 sequence), `(?i)[a-z]+` matches no route
-            // at all and falls to the lazy DFA, several times slower than its unfolded form. As one
-            // `klass_cp` it is a handful of instructions and keeps the class route. Two rare fold partners
-            // were otherwise costing the whole route.
-            //
-            // One-pass eligibility does not suffer and in places improves: `klass_cp` reaches
-            // build_utf8_trie, whose disjoint per-node transitions are what make a Unicode class one-pass,
-            // so `(?i)[àé]+` goes from "byte-class conflict" to one-pass. `real::dfa` builds these too --
-            // dfa_flatten expands `klass_cp` through the same byte program the lazy DFA uses, which is
-            // what this change required and which widened that API rather than narrowing it.
-            //
-            // The `.`-family above keeps its own emission: it has a dedicated hint and route
-            // (codepoint_class_ascii), which this shape has not.
-            //
-            // One shape IS better off byte-wise, and it is the one the paragraph above does not
-            // cover: members that all encode to the SAME length and differ in exactly ONE byte, so
-            // no alternation is needed at all. `(?i)é` is that -- `C3 A9` / `C3 89` -- and staying
-            // fixed-width there is what keeps the prefilter's fixed-offset walk alive.
+            // A bitmap plus a few non-ASCII members (icase `[a-z]` gains the long s and Kelvin) stays a
+            // `klass_cp`: as a byte-level alternation `(?i)[a-z]+` loses the class-loop route and falls to
+            // the lazy DFA, several times slower. `klass_cp` also keeps one-pass eligibility
+            // (build_utf8_trie) and `real::dfa` (dfa_flatten). Same-length members differing in one byte
+            // (`(?i)é`) go fixed-width instead (try_emit_fixed_width_class).
             emit_effective_class(prog, eff);
             break;
           }
         case node_kind::any:
           if (node.raw_byte) {
-            // \C (RE2's raw-byte escape, parser-restricted to flags::bytes): the plain 256-bit "any byte"
-            // klass -- the same shape bytes-mode `.` emits below, but unconditional (no dotall exclusion:
-            // \C matches a literal '\n' byte too, RE2's own semantics).
+            // \C (RE2's raw-byte escape): any byte, '\n' included regardless of dotall.
             char_class all;
             all.set_range(0x00, 0xFF);
             emit_klass(prog, all);
             break;
           }
           {
-            // dotall is read from this node's own scope (a scoped (?s:.) matches \n inside the island
-            // only); bytes and ecma are not scopable and stay global. A non-scoped node carries the
-            // global dotall, so its emitted class is byte-identical to before.
+            // dotall comes from the node's own scope; bytes and ecma are not scopable and stay global.
             const flags node_flags {static_cast<flags>(node.effective_flags)};
             char_class  head;
             head.set_range(0x00, 0x7F);
@@ -1270,10 +1075,8 @@ namespace real::detail {
           }
         case node_kind::anchor:
           {
-            // The assert_kind for ^/$ follows this node's own multiline (a scoped (?m:...)); \b \B \< \>
-            // additionally carry a per-instruction FLIP bit: 1 when this node's word-ness differs from
-            // the program default (a scoped (?a:...) / (?-a:...) island), else 0. A non-scoped pattern
-            // is all-0 here and maps to the same assert_kinds, so its program is byte-identical.
+            // ^/$ follow the node's own multiline. arg16 is a flip bit: 1 when the node's word-ness
+            // differs from the program default (a scoped (?a:...) / (?-a:...) island).
             const flags node_flags   {static_cast<flags>(node.effective_flags)};
             const bool  prog_unicode {!has_flag(flags_, flags::bytes) && !has_flag(flags_, flags::ascii)};
             const bool  node_unicode {!has_flag(flags_, flags::bytes) && !has_flag(node_flags, flags::ascii)};
@@ -1296,8 +1099,7 @@ namespace real::detail {
           break;
         case node_kind::group:
           if (node.possessive) {
-            // Atomic group `(?>...)` — never capturing at its own level (group == -1, like
-            // `(?:...)`), but its body may contain its own numbered captures, which stay live.
+            // Atomic group `(?>...)`: not capturing itself, but captures in its body stay live.
             emit_atomic_group(prog, node, capture_free);
           }
           else if (node.group >= 0 && !capture_free) {
@@ -1319,20 +1121,16 @@ namespace real::detail {
     /*!
      * \brief Maps an AST \ref anchor_kind to the runtime \ref assert_kind.
      *
-     * `^` and `$` depend on the multiline flag; everything else maps
-     * one-to-one.
+     * `^` and `$` depend on multiline (from the anchor's scope) and the global ecma flag; everything
+     * else maps one-to-one.
      *
      * \param[in] anchor     The AST anchor kind.
-     * \param[in] node_flags The flag set in force at this anchor's scope; its `multiline` selects the
-     *                       line-relative vs absolute form of `^`/`$` (a scoped `(?m:...)`).
+     * \param[in] node_flags The flags in force at this anchor's scope.
      * \return The assertion the engine should evaluate.
      */
     [[nodiscard]] constexpr assert_kind assert_kind_for(anchor_kind anchor,
                                                         flags       node_flags) const
     {
-      // multiline is read from the anchor node's own scope (a scoped (?m:^...$) is line-relative inside
-      // the island only); ecma is not scopable and stays global. A non-scoped node carries the global
-      // multiline, so `^`/`$` map to the same assert_kind as before — byte-identical.
       const bool  multiline {has_flag(node_flags, flags::multiline)};
       assert_kind result    {};
       switch (anchor) {
@@ -1345,8 +1143,7 @@ namespace real::detail {
           }
           break;
         case anchor_kind::dollar:
-          // Default (Python): `$` matches at end OR just before a final `\n`. With the ecma OR dollar_endonly
-          // flag, `$` (no multiline) matches only at the very end — ECMAScript / Rust (`\z`) semantics.
+          // Python: end or before a final `\n`; ecma or dollar_endonly: the very end only.
           if (multiline) {
             result = has_flag(flags_, flags::ecma) ? assert_kind::line_end_cr : assert_kind::line_end;
           }
@@ -1382,15 +1179,9 @@ namespace real::detail {
     /*!
      * \brief The class an alternation of single ATOMS is, when it is one.
      *
-     * `(?:a|b|c)` is `[abc]` written the long way, and `(?:é|à|è)` is `[éàè]` — the split chain
-     * matches no shape recognizer while the class does. EXACT rather than approximate: every branch
-     * consumes exactly one atom and none captures, so leftmost-first preference among them has no
-     * observable effect, the span being the same whichever branch a backtracker would have picked.
-     *
-     * Asked from BOTH emission sites — \ref emit_alternation and \ref emit_unbounded_body — because
-     * the right class emission differs between them (the quantifier body wants a code-point class,
-     * the bare form wants whatever a hand-written class gets), while the QUESTION is the same one.
-     * Two places restating it is the drift this file has paid for before.
+     * `(?:é|à|è)` is `[éàè]`, which the shape recognisers see and a split chain hides. Exact: every
+     * branch consumes one atom and none captures, so leftmost-first preference is unobservable. Both
+     * \ref emit_alternation and \ref emit_unbounded_body ask here; they differ only in how they emit.
      *
      * \param[in]  node The alternation node.
      * \param[out] out  The fused class, valid only when this returns `true`.
@@ -1408,9 +1199,7 @@ namespace real::detail {
         }
         else if (const std::uint32_t cp {single_codepoint_atom(tree_, scan)};
                  cp != not_a_single_codepoint && !has_flag(flags_, flags::bytes)) {
-          // A non-ASCII branch is a concat of UTF-8 bytes spelling exactly one character: a member
-          // like any other, one encoding wider. The same predicate the parser and
-          // emit_unbounded_body ask, so all three agree on "one atom" by construction.
+          // UTF-8 bytes spelling one character; the parser and emit_unbounded_body ask the same predicate.
           out.ranges.push_back({.lo = cp, .hi = cp});
         }
         else {
@@ -1422,19 +1211,9 @@ namespace real::detail {
       if (n < 2) {
         return false; // one branch is not an alternation to fuse
       }
-      // SORTED AND MERGED, like every other class this compiler hands to the matchers. Branch order is
-      // the author's spelling and carries nothing here, but a `cp_class`'s ranges are REQUIRED
-      // ascending and non-overlapping, in two independent places that split at U+07FF:
-      // `cp_page_table` / `fill_cp_page_row` fill the U+0080..U+07FF bitmap with a loop that STOPS at
-      // the first range past `cp_page_max` ("ranges are sorted: nothing more falls in the page"), and
-      // everything above is answered by `cp_class_matches`, a binary search. So a descending list
-      // loses members on BOTH sides of that boundary at once -- the bitmap never reaches the low one,
-      // the search cannot find the high one -- and `\U0001F968|é` matches neither of its own branches.
-      //
-      // \ref finish_class normalises through this same call, which is what makes `(?:é|à|è)` and
-      // `[éàè]` one program instead of two spellings. Instruction SHAPE cannot check that here: both
-      // forms emit the same opcodes in the same counts and differ only in the interned range order, so
-      // the property has to be asserted on answers.
+      // Branch order is the author's spelling; the matchers need sorted, disjoint ranges
+      // (cp_ranges_are_normalised: unsorted, `\U0001F968|é` matches neither branch). Same call as
+      // finish_class, so `(?:é|à|è)` and `[éàè]` become one program.
       out.ranges = coalesce_ranges(std::move(out.ranges));
       return true;
     }
@@ -1442,19 +1221,9 @@ namespace real::detail {
     /*!
      * \brief Emits an already-materialised class the one way this compiler emits classes.
      *
-     * Extracted so the alternation fusion cannot diverge from a class written by hand: `(?:é|à|è)`
-     * and `[éàè]` are the same language and must become the same program. Emitting the fused set
-     * directly as a code-point class instead measured FASTER on the bare form, precisely because it took
-     * a different route -- a licence for one spelling to compile differently from the other, not a
-     * reason, and refused for that.
-     *
-     * That observation was then chased on its own terms and REFUTED, so it is not retried: the two
-     * supported ISAs DISAGREE about which emission a STANDALONE non-ASCII class wants -- one prefers the
-     * code-point class, the other the fixed-width form, on the same patterns and by comparable margins.
-     * No single choice wins on both, which removes the argument for choosing at all.
-     *
-     * Where a literal PRECEDES the class they agree emphatically, and that is the case the fixed-width
-     * form was introduced for and the one it keeps.
+     * `(?:é|à|è)` and `[éàè]` must become the same program, so fusion emits through here. Do not
+     * special-case a standalone non-ASCII class: arm64 prefers `klass_cp` and x86 the fixed-width form
+     * by comparable margins, so no choice wins on both. After a literal both prefer fixed width.
      *
      * \param[in,out] prog The program being built.
      * \param[in]     eff  The effective class (ASCII bitmap + non-ASCII ranges).
@@ -1489,9 +1258,7 @@ namespace real::detail {
                                     const ast_node&  node,
                                     bool             capture_free) const
     {
-      // An alternation of single atoms IS a class; see \ref fuse_single_atom_alternation for why
-      // that is exact. Emitted the way a hand-written class is, so `(?:é|à|è)` and `[éàè]` become the
-      // same program rather than two spellings with two routes.
+      // An alternation of single atoms is a class (fuse_single_atom_alternation), emitted as one.
       {
         class_def fused;
         if (fuse_single_atom_alternation(node, fused)) {
@@ -1525,14 +1292,9 @@ namespace real::detail {
      * \brief Emits an UNBOUNDED quantifier's body, promoting a bare literal byte to a one-member
      *        byte class so the shape routes can see it.
      *
-     * A bare `a+` compiles its body to a `byte` op, and the class-loop recognizer matches on `klass`
-     * only — so without this promotion a quantifier over a single character reaches no fast route at all,
-     * while the semantically identical `[a]+` does, and the two spellings differ by more than an order of
-     * magnitude. A byte IS a one-member class; nothing but the opcode is in the way.
-     *
-     * Only for `max == -1` (`+`, `*`, `{n,}`), which is exactly what the class loop serves. A bounded
-     * form like `a{3}` keeps its bytes: those copies are a fixed literal run, and the literal routes
-     * that read them would not recognise three classes.
+     * The class-loop recognizer matches `klass` only, so a bare `a+` would miss every fast route that
+     * `[a]+` takes (over an order of magnitude). Only for `max == -1`: a bounded `a{3}` keeps its bytes,
+     * a literal run the literal routes read.
      *
      * \param[in,out] prog         The program being built.
      * \param[in]     child        The quantifier's body node.
@@ -1542,13 +1304,8 @@ namespace real::detail {
                                        std::int32_t     child,
                                        bool             capture_free) const
     {
-      // Peel transparent wrappers first. A NON-CAPTURING, non-atomic group changes nothing any route
-      // cares about -- there is no slot to save and no give-back rule to honour -- but it hides the atom
-      // from the promotion below, so without this peel a pair of parentheses alone costs the pattern its
-      // route. Scoped flags survive the peel because `effective_flags` is stamped on every
-      // node as it is parsed, so the child already carries the scope it was written in.
-      //
-      // `(?>...)` is excluded: `possessive` on a group means atomic, which is a real semantic.
+      // Peel non-capturing, non-atomic groups, which would hide the atom from the promotions below.
+      // Scoped flags survive: every node carries its own `effective_flags`. `(?>...)` is semantic.
       std::int32_t atom {child};
       while (atom >= 0) {
         const ast_node& w {tree_.nodes[static_cast<std::size_t>(atom)]};
@@ -1568,17 +1325,9 @@ namespace real::detail {
         emit_klass(prog, one);
         return;
       }
-      // A quantifier over a multi-byte literal CODE POINT has the same problem from the other
-      // direction, and the same answer. `é` in text mode is parsed to its UTF-8 bytes wrapped in a
-      // `concat` (emit_codepoint_utf8), so `é+` repeats the two-byte sequence `C3 A9` -- which no
-      // route recognises, and which dispatched `lazy_dfa_anchored` once per match. It is exactly
-      // `[é]+`, a one-member code-point class, and as one the cp-class route takes it. This is the
-      // bare-byte promotion just above, lifted from bytes to code points: same reasoning, one
-      // encoding wider.
-      //
-      // The strict decode is what keeps it honest, and it is why no separate length check is needed:
-      // a concat holding MORE than one code point (`(?:ab)+`, `(?:éé)+`) decodes shorter than the
-      // chain, so it is refused -- promoting it would change what the quantifier repeats.
+      // A literal code point (`é` is a concat of its UTF-8 bytes) is `[é]`: a one-member code-point
+      // class takes the cp-class route, where a repeated byte sequence takes the lazy DFA per match.
+      // The strict decode refuses a concat of more than one code point (`(?:ab)+`, `(?:éé)+`).
       if (c.next < 0 && !has_flag(flags_, flags::bytes)) {
         const std::uint32_t cp {single_codepoint_atom(tree_, atom)};
         if (cp != not_a_single_codepoint) {
@@ -1588,12 +1337,8 @@ namespace real::detail {
           return;
         }
       }
-      // An alternation of single atoms under an unbounded quantifier wants the SAME treatment as a
-      // class does here, and for the same reason: fused through the bare-class path it becomes the
-      // fixed-width byte form, which is the shape with no route -- several times slower than the same
-      // set emitted as a code-point class. The fusion test is shared with \ref
-      // emit_alternation; only the emission differs, which is the whole point of asking rather than
-      // restating.
+      // A fused single-atom alternation goes `klass_cp` here too: the bare-class path would give the
+      // fixed-width form, which has no route under a loop (several times slower).
       if (c.kind == node_kind::alternation && c.next < 0) {
         class_def fused;
         if (fuse_single_atom_alternation(c, fused) && !fused.ranges.empty()) {
@@ -1601,18 +1346,9 @@ namespace real::detail {
           return;
         }
       }
-      // A non-ASCII class that \ref try_emit_fixed_width_class would take must NOT take it here. That
-      // form is right for a bare class -- `(?i)é` becomes `byte C3` + a two-member byte class, which
-      // keeps the prefilter's fixed-offset walk and routes as an exact literal. Under an UNBOUNDED
-      // quantifier it is the wrong trade: `é+` becomes a repeat of a two-BYTE sequence, and no route
-      // recognises that, so it fell to the lazy DFA once per match. Measured with the route counters,
-      // which name it rather than timing it: `é+` / `[é]+` / `[éàèùç]+` dispatched
-      // `lazy_dfa_anchored` 18 896 times on a 180 KB corpus, while `[à-ÿ]+` -- a RANGE, which the
-      // fixed-width shape refuses -- stayed on the batch counting path with no per-match dispatch at
-      // all. The witness that settles the cause is `[éa]+`: one ASCII member breaks the common length,
-      // the fixed-width form declines, and the row is fast again. As one `klass_cp` the class reaches
-      // build_utf8_trie and the cp-class route, which is the same reason the fold-widened ASCII
-      // classes above are emitted that way.
+      // A class try_emit_fixed_width_class would take must not take it under an unbounded quantifier:
+      // `é+` as a repeated two-byte sequence has no route and dispatches `lazy_dfa_anchored` once per
+      // match (route counters), while one `klass_cp` keeps the cp-class route.
       if (c.kind == node_kind::klass && c.next < 0
           && !has_flag(flags_, flags::bytes)
           && !tree_.classes[static_cast<std::size_t>(c.klass)].codepoint_predicate) {
@@ -1629,9 +1365,8 @@ namespace real::detail {
     /*!
      * \brief Emits a quantifier (Thompson construction).
      *
-     * Greedy prefers `split.primary_target` (enter the body); lazy swaps the branches.
-     * Counted forms unroll: `min` mandatory copies, then either a loop
-     * (`max == -1`) or optional copies sharing one exit.
+     * Greedy prefers `split.primary_target` (enter the body); lazy swaps the branches. Counted forms
+     * unroll: `min` mandatory copies, then a loop (`max == -1`) or optional copies sharing one exit.
      *
      * \param[in,out] prog         The program being built.
      * \param[in]     node         The \ref node_kind::repeat node.
@@ -1647,8 +1382,7 @@ namespace real::detail {
       }
       for (std::int32_t i = 0; i < node.min; ++i) {
         if (node.max == -1 && i == node.min - 1) {
-          // Last mandatory copy doubles as the loop body: e+ patterns
-          // emit the body exactly once.
+          // The last mandatory copy doubles as the loop body: `e+` emits it once.
           const std::int32_t body {here(prog)};
           emit_unbounded_body(prog, node.child, capture_free);
           const std::int32_t s    {emit_split(prog)};
@@ -1656,8 +1390,8 @@ namespace real::detail {
           patch_secondary(prog, s, node.lazy ? body : here(prog));
           return;
         }
-        // `{k,}`'s mandatory copies must match the loop body's shape: the recognizer counts
-        // CONSECUTIVE identical `klass` ops to read the minimum off, so a byte here would hide it.
+        // `{k,}`'s copies match the loop body's shape: the recognizer reads the minimum off consecutive
+        // identical `klass` ops.
         if (node.max == -1) {
           emit_unbounded_body(prog, node.child, capture_free);
         }
@@ -1697,10 +1431,9 @@ namespace real::detail {
      * \brief Emits a bounded lookaround: an `assert_lookaround` whose sub-program is a
      *        capture-free region the main flow jumps over.
      *
-     * Layout: `assert_lookaround sub_id; jump AFTER; [sub-program] match; AFTER: …`. The
-     * main VM only steps the `assert_lookaround` (epsilon) and the skip-`jump`; the sub
-     * region is entered solely by the sub-VM at `code_offset`. The sub-pattern must be
-     * bounded (L_max in bytes ≤ \ref max_lookaround_length) — the linear-time guarantee.
+     * Layout: `assert_lookaround sub_id; jump AFTER; [sub-program] match; AFTER: …`; only the sub-VM
+     * enters the region, at `code_offset`. The sub-pattern must be bounded (L_max in bytes ≤
+     * \ref max_lookaround_length): the linear-time guarantee.
      *
      * \param[in,out] prog         The program being built.
      * \param[in]     node         The \ref node_kind::lookaround node.
@@ -1712,35 +1445,28 @@ namespace real::detail {
                                    bool             capture_free) const
     {
       if (capture_free) {
-        // intentionally uncovered: fail-loud net for a parser-guaranteed invariant. The
-        // parser rejects nested lookarounds first, so capture_free is never true here; a
-        // nested lookaround reaching the compiler would break the linear-time guarantee,
-        // so a throw beats a silent miscompile if that parser guard ever regresses.
+        // Unreachable (the parser rejects nesting first); a nested lookaround would break linear time.
         throw regex_error("nested lookaround is not supported", 0, error_kind::unsupported);
       }
       const std::int32_t lmax {l_max_bytes(node.child)};
       static_assert(max_lookaround_length == 255, "the two messages below name the bound");
       if (lmax < 0 && node.direction == look_dir::behind) {
-        // Names the rewrite, not just the constraint: `(?=.*[A-Z])` is the shape people arrive with,
-        // and "use a fixed repeat count" does not tell them `.*` becomes `.{0,N}`. The ceiling is
-        // max_lookaround_length BYTES of L_max, so a bound in characters can still be refused above
-        // (a UTF-8 `.` is up to 4 bytes) -- hence an example well under it rather than the maximum.
+        // Name the rewrite (`.*` -> `.{0,N}`). The ceiling is in bytes and a UTF-8 `.` takes up to 4,
+        // so the example stays well under it.
         throw regex_error("unbounded lookbehind is not supported (bound the repetition, e.g. "
                           ".* -> .{0,32}; the sub-pattern must match at most 255 bytes)",
                           0, error_kind::unsupported);
       }
       if (lmax > max_lookaround_length) {
-        // Says the unit: the bound is in bytes, and a non-ASCII character takes two to four of them.
+        // Say the unit: bytes, two to four per non-ASCII character.
         throw regex_error("lookaround sub-pattern too long (it may match at most 255 bytes; a non-ASCII "
                           "character takes up to 4)",
                           0, error_kind::unsupported);
       }
       const std::size_t sub_id {prog.lookarounds.size()};
       if (sub_id > 0xFFFF) {
-        // The instruction carries this index in a uint16. Truncating it silently retargets the
-        // assertion at a DIFFERENT sub-pattern: `(?=)`x65536 then `(?=b)a` matched "a", where the
-        // 'b' the pattern demands does not occur at all. Reachable under max_program_size because
-        // an empty lookaround costs only three instructions. Same guard as the class tables.
+        // arg16 holds the index; truncation would retarget the assertion at another sub-pattern.
+        // Reachable under max_program_size: an empty lookaround costs three instructions.
         throw regex_error("too many lookarounds", 0);
       }
       prog.lookarounds.push_back({});                  // placeholder, filled once the region is emitted
@@ -1761,8 +1487,7 @@ namespace real::detail {
      * \brief Upper bound, in bytes, on what the sub-AST at \p index can consume; -1 if
      *        unbounded (a `*`, `+` or `{n,}` repeat) or if it nests a lookaround.
      *
-     * Codepoint-consuming shapes (`.`, a negated class outside bytes mode) count as one
-     * codepoint = up to 4 bytes (A1); a literal byte or an ASCII class is one byte.
+     * `.` counts 4 bytes outside bytes mode; a class counts its widest encoding; a literal byte, 1.
      *
      * \param[in] index Index of the sub-AST node.
      * \return The byte upper bound, or -1 when not statically bounded.
@@ -1778,10 +1503,8 @@ namespace real::detail {
           return 1;
         case node_kind::klass:
           {
-            // Widest UTF-8 encoding the class can match, from the SAME effective (post-negation) class
-            // that emit_node compiles — so width and emission never disagree. Bytes mode: one byte.
-            // Otherwise 1 for any ASCII member, plus the widest code-point range (2/3/4 by top code
-            // point); an impossible class matches nothing, reported as 1 (harmless — it never matches).
+            // Widest encoding of the same effective class emit_node compiles: 1 for an ASCII member,
+            // 2/3/4 by a range's top code point.
             if (has_flag(flags_, flags::bytes)) {
               return 1;
             }
@@ -1799,10 +1522,8 @@ namespace real::detail {
                 width = w;
               }
             }
-            // An impossible (never-match) class contributes 0: it consumes nothing, so a dead branch
-            // in a bounded lookaround (the negation of the whole code-point space, repeated) does not
-            // inflate the width -- the alternation `a | <impossible>{300}` stays width 1.
-            // Its emitted never-match still makes the branch fail — a width of 0 is not an empty match.
+            // An impossible class counts 0, so `a|<impossible>{300}` stays width 1; its emitted
+            // never-match still fails the branch.
             return width;
           }
         case node_kind::any:
@@ -1845,10 +1566,8 @@ namespace real::detail {
               return -1;
             }
             if (body > 0 && node.max > max_lookaround_length / body) {
-              // Bounded but over the lookaround cap (e.g. \w{64} = 256 B > 255). Saturate so
-              // emit_lookaround takes the "too long" path — not -1/"unbounded", which would
-              // wrongly advise "use a fixed repeat count" on a count that is already fixed.
-              // max_lookaround_length + 1 is tiny: no int32 overflow.
+              // Bounded but over the cap (`\w{64}` = 256 B): saturate, so the error reads "too long",
+              // not "unbounded".
               return max_lookaround_length + 1;
             }
             return node.max * body;
@@ -1856,16 +1575,13 @@ namespace real::detail {
         case node_kind::group:
           return l_max_bytes(node.child);
         case node_kind::lookaround:
-          // intentionally uncovered: -Wswitch exhaustiveness arm; the parser rejects nested
-          // lookarounds first, so l_max_bytes never recurses into one. Treated as unbounded.
+          // Unreachable (the parser rejects a nested lookaround); read as unbounded.
           return -1;
       }
       return -1;
     }
 
-    // --- atomic groups / possessive quantifiers (Tier 1 -- bare atom or single-captured
-    //     atom; a general "Tier 1.5" for compound bodies was scoped out — see
-    //     emit_possessive_repeat's own note on the VM-architecture wall this sidesteps) -------
+    // --- atomic groups / possessive quantifiers (Tier 1: a bare atom, or one in a capturing group) ---
 
     /*!
      * \brief Is \p index a bare, unwrapped single atom (a literal byte, a character class, or
@@ -1884,9 +1600,7 @@ namespace real::detail {
      * \brief Tier 1 eligibility: is \p index a bare single atom, or an ordinary (non-atomic)
      *        capturing group wrapping exactly one (`X*+`, `(a)*+`, `(?>X*)`, …)?
      *
-     * The dominant real-world shape — the loop carries its own failure locally, within ONE
-     * opcode dispatch (see \ref emit_possessive_repeat's note on why this is what stays
-     * VM-integration-safe when a general compound body does not).
+     * Such a loop fails within one opcode dispatch (see \ref emit_possessive_repeat).
      *
      * \param[in] index Index of the sub-AST node.
      * \return `true` if \p index is Tier 1 eligible.
@@ -1926,28 +1640,12 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Would compiling the sub-AST at \p index ever emit a `split` opcode?
+     * \brief Whether compiling the sub-AST at \p index emits no `split` reachable from the outer flow.
      *
-     * Used ONLY by \ref emit_atomic_group's no-outer-repeat shape: a ONE-SHOT atomic group
-     * (`(?>ab)`, `(?>)`, any fixed/deterministic body with no repetition at all) has NOTHING to
-     * give back regardless of how compound its body is, so compiling it inline via ordinary
-     * \ref emit_node is unconditionally safe — zero new opcodes touched, zero VM risk. This is
-     * NOT the same question as Tier 1.5's (a REPEATED compound body, which \ref
-     * emit_possessive_repeat's own note explains is genuinely unsafe in this VM regardless of
-     * determinism) — a one-shot atomic group never loops, so there is no exit-thread/silent-
-     * death concern to sidestep in the first place.
-     *
-     * Mirrors the ACTUAL compiled shape of each node kind, not an approximation:
-     * - `alternation`: always emits `split` — a genuine choice an outer give-back could still
-     *   backtrack into, so `false` here correctly routes to a real rejection, not silent
-     *   miscompilation.
-     * - `repeat`, non-possessive: emits `split` UNLESS it is an exact bounded count (`min ==
-     *   max`, `max != -1`) — `emit_repeat`'s own "optional copies" loop runs zero times then.
-     * - `group`: an atomic group (`possessive == true`) is always opaque-deterministic from the
-     *   outer view — it either compiles deterministically or the compiler rejects it outright,
-     *   so it never leaks a `split`. An ordinary group is transparent.
-     * - `lookaround`: zero-width from the outer view; any `split` inside its own sub-pattern is
-     *   isolated in a separate, bounded sub-VM region, never part of the outer flow.
+     * Asked only for a one-shot atomic group (\ref emit_atomic_group), which then has nothing to give
+     * back. Mirrors the emitted shape: an alternation always splits; a non-possessive repeat splits
+     * unless `min == max`; an atomic group (deterministic or rejected) and a lookaround (its own
+     * sub-region) are opaque to the outer flow.
      *
      * \param[in] index Index of the sub-AST node.
      * \return `true` if compiling \p index introduces no `split` reachable from the outer flow.
@@ -1985,24 +1683,13 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Emits a Tier 1 atom-test instruction (`byte_loop_possessive`/`klass_loop_
-     *        possessive`/`klass_cp_loop_possessive`), with a placeholder `secondary_target`
-     *        (the on-no-match exit — patch before use) and `primary_target` set to \p
-     *        capture_start_slot (-1 for uncaptured, else the capture group's start slot; the
-     *        end slot is always start+1).
+     * \brief Emits a Tier 1 atom test (`byte_loop_possessive` / `klass_loop_possessive` /
+     *        `klass_cp_loop_possessive`): `secondary_target` is a placeholder for the no-match exit,
+     *        `primary_target` the capture start slot (-1 for none; the end slot is start + 1).
      *
-     * On a match, the opcode itself (pike.hpp's `step()`) writes BOTH capture slots directly,
-     * using the position before the test (start) and after it (end) — rather than a separate
-     * `save` emitted BEFORE the test, which would have to fire speculatively before knowing the
-     * test succeeds. A possessive loop always attempts one more repetition after every success,
-     * so a plain leading `save` would overwrite a PRIOR successful iteration's start the moment
-     * the NEXT (ultimately failing) attempt began — corrupting the capture with a torn
-     * [new-but-failed-start, old-end) pair. Writing both slots atomically with the consume, only
-     * on confirmed success, avoids that. `klass_cp_loop_possessive` still emits the ordinary
-     * 3-slot UTF-8 continuation chain right after itself (identical layout to \ref
-     * emit_klass_cp) — the membership decision is already fully made at the first byte; the
-     * chain is the architecture's mandatory one-byte-per-round validation of the remaining
-     * bytes either way, and the capture write happens once, at the first byte's dispatch.
+     * The opcode writes both capture slots itself, on a match only: a leading `save` would fire on the
+     * failing attempt a possessive loop always makes last and tear the last good capture. The cp form
+     * keeps the three-slot continuation chain of \ref emit_klass_cp.
      *
      * \param[in,out] prog               The program being built.
      * \param[in]     atom               Index of the single-atom AST node (`byte`/`klass`/`any`).
@@ -2022,9 +1709,7 @@ namespace real::detail {
       }
       if (node.kind == node_kind::any) {
         if (node.raw_byte) {
-          // \C (parser-restricted to flags::bytes, so this branch's own bytes-mode klass_loop_possessive
-          // shape already applies): the full 256-bit set, unconditionally -- no dotall/newline exclusion,
-          // matching emit_node's own \C case.
+          // \C: any byte, newline included, as in emit_node.
           char_class all;
           all.set_range(0x00, 0xFF);
           emit(prog, {.op             = opcode::klass_loop_possessive, .arg16 = intern_class(prog, all),
@@ -2086,16 +1771,9 @@ namespace real::detail {
      * \brief Emits a Tier 1 possessive loop over a single atom, optionally wrapped in one
      *        capturing group.
      *
-     * Mandatory copies (up to \p min) are ordinary, unconditional emission — identical to how a
-     * bare atom, or a capturing group wrapping one, already compiles (via \ref emit_node):
-     * failure there needs no exit path, since \p min is required and the thread simply dies,
-     * exactly like any plain consuming instruction. The optional tail is either a genuine
-     * self-loop (`max == -1`: `jump` back to the tail's own start on a match) or a chain of
-     * unrolled optional copies (bounded: natural pc+1 fallthrough chains them, no `jump`
-     * needed) — each copy is one \ref emit_tier1_atom_test, whose `secondary_target` (on no
-     * match) is collected and patched to the construct's shared exit once everything is
-     * emitted, matching the pattern \ref emit_alternation already uses for its own forward
-     * jump targets.
+     * Mandatory copies (\p min) are ordinary emission: a failure there kills the thread. The optional
+     * tail is a self-loop (`max == -1`) or unrolled copies, each one \ref emit_tier1_atom_test whose
+     * no-match exit is patched to the shared exit.
      *
      * \param[in,out] prog          The program being built.
      * \param[in]     atom          Index of the single-atom body (`byte`, `klass`, or `any`).
@@ -2150,40 +1828,22 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Dispatches a possessive quantifier body to Tier 1 or a clean rejection — shared by
-     *        \ref emit_repeat (`X*+`/`X++`/`X?+`/`X{n,m}+`, `(a)*+`-style single-captured-atom
-     *        bodies) and \ref emit_atomic_group's `(?>X*)`-style desugaring.
+     * \brief Dispatches a possessive quantifier body to Tier 1 or a clean rejection; shared by
+     *        \ref emit_repeat and \ref emit_atomic_group.
      *
-     * A general "Tier 1.5" for arbitrary compound deterministic bodies (`(?:ab)*+`, `(?:X++)*+`)
-     * is OUT OF SCOPE against a verified VM-architecture wall, not an assumed one:
-     * `basic_thread_list` (pike.hpp) stores one uniform position per round for its whole thread
-     * list — no per-thread position. A possessive loop's "give up, exit" transition for a
-     * compound body would need to be offered ONLY once the body's own internal attempt has
-     * DEFINITIVELY failed, at whatever round that happens to be — but a Pike-VM thread that
-     * fails simply dies silently; it cannot redirect to an external exit target from wherever
-     * inside the body it died, unless every leaf-emitting instruction in the compiler (byte/
-     * klass/klass_cp/save/assert_position/assert_lookaround) carries that redirect — real new
-     * infrastructure, not "new opcodes only." A bare atom (or one wrapped in exactly one
-     * capturing group) sidesteps this entirely because it fails ONLY within its own single
-     * dispatch — the opcode IS its own fail-redirect, with nothing to propagate. Deferred to a
-     * future design (bounded compound bodies may fit the same priority-kill sub-VM approach
-     * lookaround already uses; unbounded compound bodies will likely stay rejected, the same
-     * boundary as lookbehind's own unbounded rejection).
+     * A compound body (`(?:ab)*+`) is out of scope: the thread list keeps one position per round, and a
+     * thread that fails inside a compound body dies without reaching an exit, so the loop could not
+     * offer its exit only once the body has definitively failed. A single atom fails within its own
+     * dispatch: the opcode is its own fail-redirect.
      *
      * \param[in,out] prog         The program being built.
      * \param[in]     body         Index of the quantified body.
      * \param[in]     min          Minimum repetition count.
      * \param[in]     max          Maximum repetition count (-1 = unbounded).
      * \param[in]     capture_free Whether captures are suppressed here (inside a lookaround).
-     * \throws real::regex_error when \p body is not Tier 1 eligible, or \p capture_free is
-     *         true (a possessive/atomic construct inside a lookaround) — the lookaround
-     *         sub-VM's own dispatch (pike.hpp's `lookahead_matches`/`lookbehind_matches`/
-     *         `sub_add_thread`) hard-assumes only `byte`/`klass`/`klass_cp` ever appear in a
-     *         sub-region; `klass_cp_loop_possessive` there would silently read the WRONG class
-     *         table (`classes` instead of `cp_classes`, since `in.arg16` means something
-     *         different in each) — a latent corruption, not just a missed optimization, so this
-     *         is a hard compile-time reject rather than an attempt to thread the new opcodes
-     *         through three separate hand-written dispatchers as well.
+     * \throws real::regex_error when \p body is not Tier 1 eligible, or \p capture_free is true:
+     *         the lookaround sub-VM's dispatchers know only `byte`/`klass`/`klass_cp`, and would read
+     *         a `klass_cp_loop_possessive`'s index in the wrong class table.
      */
     constexpr void emit_possessive_repeat(dynamic_program& prog,
                                           std::int32_t     body,
@@ -2205,21 +1865,12 @@ namespace real::detail {
     /*!
      * \brief Emits an atomic group `(?>...)`.
      *
-     * Three shapes, in order:
-     * 1. The child is itself an ordinary `repeat` over a Tier-1-eligible body (a bare atom, or
-     *    one wrapped in exactly one capturing group) — `(?>X*)`, `(?>(a)+)`, … — "upgraded" to
-     *    possessive regardless of that inner repeat's own flag, detected BEFORE any
-     *    bounded-width check, so `(?>[^"]*)`/`(?>\d+)` compile (a measured detection-order requirement).
-     *    This is a REPEATED construct, so it is subject to the same Tier-1-only restriction (and
-     *    the same lookaround rejection) as \ref emit_possessive_repeat.
-     * 2. No outer repeat at all, and the body is deterministic (\ref is_deterministic) — `(?>ab)`,
-     *    `(?>)`, any fixed/compound-but-split-free body: nothing to give back regardless of how
-     *    compound the body is (it never loops), so this is unconditionally safe compiled inline
-     *    via ordinary \ref emit_node — zero new opcodes touched, safe even inside a lookaround.
-     * 3. Otherwise (a genuine choice with no outer repeat, e.g. `(?>ab|a)`): an outer give-back
-     *    could still backtrack INTO the alternation's own choice via its `split` even with no
-     *    repeat wrapping it, so inline compilation would be a silent correctness bug, not just a
-     *    missed optimization — the clean rejection \ref emit_possessive_repeat documents.
+     * 1. A child `repeat` over a Tier 1 body (`(?>X*)`, `(?>(a)+)`) becomes possessive whatever its own
+     *    flag, tested before any width check so `(?>[^"]*)` compiles; same restrictions as
+     *    \ref emit_possessive_repeat.
+     * 2. Else a deterministic body (\ref is_deterministic, `(?>ab)`) never gives back, so ordinary
+     *    emission is exact, even inside a lookaround.
+     * 3. Else (`(?>ab|a)`) inline emission would let a give-back reach the inner `split`: rejected.
      *
      * \param[in,out] prog         The program being built.
      * \param[in]     node         The \ref node_kind::group node (`possessive == true`).
@@ -2259,10 +1910,8 @@ namespace real::detail {
                                     flags      compile_flags)
   {
     dynamic_program prog {compiler(tree, compile_flags).compile()};
-    // IL: compile the inner-literal prefix sub-program (the part before the literal) for the reverse
-    // start-finder. Dynamic-only — a static_regex compiles in a constant-evaluated context and keeps the core
-    // search, sidestepping the constexpr budget of a second compile (the "dynamic-only if it would blow the
-    // budget" choice, taken up front). The prefix program is a subset, so this does not recurse into itself.
+    // The inner-literal prefix sub-program, for the reverse start-finder. Dynamic only: a second compile
+    // would pass a static_regex's constexpr budget.
     if (!std::is_constant_evaluated() && prog.hints.inner_literal_prefix >= 1) {
       const dynamic_program pp {
         compiler(build_prefix_ast(tree, prog.hints.inner_literal_prefix,
@@ -2273,12 +1922,6 @@ namespace real::detail {
       prog.prefix_classes    = pp.classes;
       prog.prefix_cp_classes = pp.cp_classes;
       prog.prefix_cp_ranges  = pp.cp_ranges;
-      // IL-FUSION IS GONE, and it was gone before it was removed: its two branches in
-      // run_inner_literal read `il_fused_eligible`, which only this site set and only under
-      // `fixed_shape` -- while the inner-literal route's own gate requires `!fixed_shape`, because the
-      // fixed-shape route beats it (see that gate's note). So the flag could never be true where it was
-      // read. The compiled prefix sub-program `pp` above is still used by the reverse-DFA confirm; only
-      // the arithmetic-verify shortcut, which nothing could reach, is retired.
     }
     return prog;
   }

@@ -1,22 +1,18 @@
 /*!
  * \file simd.hpp
- * \brief A uniform 16-lane mask interface over two ISAs (NEON, SSE2), so the decision/loop logic that
- *        consumes it (pike.hpp) is written ONCE, with no `#if` ISA branch of its own.
+ * \brief A uniform 16-lane mask interface over NEON and SSE2, so the loops that consume it (pike.hpp,
+ *        prefilter.hpp) carry no `#if` ISA branch of their own.
  *
- * `mask_t` is opaque and per-ISA (a nibble-packed `std::uint64_t` on NEON, a bit-packed
- * `std::uint32_t` on SSE2) — the loop that drives it never touches the raw bits, only the primitives
- * below, so nothing in pike.hpp needs to know which packing is behind a given build. Two "load" entry
- * points build a mask from 16 already-loaded bytes (a small first-byte set, or a homogeneous <= 2-range
- * class); the rest — `empty`, `first_lane`, `clear_first`, `window_all_set`, `first_clear_lane`,
- * `next_set_lane` — are what a block-scan-then-verify loop needs and nothing more.
+ * `mask_t` is opaque and per-ISA (nibble-packed `std::uint64_t` on NEON, bit-packed `std::uint32_t` on
+ * SSE2): callers touch it only through the lane primitives at the end (`empty`, `first_lane`, `clear_first`,
+ * `mask_or`, `window_all_set`, `first_clear_lane`, `next_set_lane`). The load functions build masks from
+ * member sets, byte ranges, byte pairs and nibble fingerprints, loading bytes by memcpy (MISRA: no pointer
+ * type-pun). The x86 SSSE3 and AVX2 functions are built per function (`target`) where the build lacks the
+ * extension, and run only after a `cpuid` check; `avx2_literal_scan` is the one whole scan loop here.
  *
- * Every function here is either intrinsics-only or a few bit ops over an opaque scalar — no eligibility
- * decision, no candidate/skip loop, no memcpy of the SUBJECT text (the caller owns that, MISRA-clean).
- * That split keeps the loop logic in pike.hpp the same C++ on every ISA, exercised by the ordinary test
- * suite whichever leg compiled. The primitives here are ISA-exclusive by construction — the NEON body
- * never compiles on x86, nor SSE2 on aarch64 — so no single runner can line-cover both; hence this
- * file's `COV_FLOOR_IGNORE` in the Makefile, the contract being guarded instead by sanitize, the fuzz
- * corpus and the twin ISA's own runs over the identical interface.
+ * No runner compiles both the NEON and the x86 bodies, so none line-covers both: hence this file's
+ * `COV_FLOOR_IGNORE` in the Makefile, the contract being guarded by sanitize, the fuzz corpus and each
+ * ISA's own runs over the identical interface.
  */
 #ifndef REAL_SIMD_HPP
 #define REAL_SIMD_HPP
@@ -52,9 +48,8 @@
 
 namespace real::detail {
 
-  //! \brief One byte in all 16 lanes, stored as bytes: built once, loaded by every block that compares against
-  //!         it. Not a vector type, so it sits in `std::array` with no attribute to drop, and in a plan that
-  //!         targets without vectors also carry.
+  //! \brief One byte in all 16 lanes, as plain bytes: not a vector type, so it sits in `std::array` with no
+  //!        attribute to drop, and in plans that targets without vectors also carry.
   using byte_splat = std::array<std::uint8_t, 16>;
 
 #if defined(__ARM_NEON)
@@ -82,9 +77,8 @@ namespace real::detail {
 
   /*!
    * \brief \ref load_members_mask against exactly eight members, unrolled: a caller with fewer repeats one of
-   *        them in the unused slots (an OR with itself changes nothing). No loop is left for the compiler to
-   *        unroll or not, which it decides by the size of the function around it -- in a scan loop that
-   *        decision halved the speed of a six-member set.
+   *        them in the unused slots. Unrolled by hand because the compiler decides by the size of the
+   *        surrounding function, and in a scan loop its choice halved a six-member set's speed.
    * \param[in] buf16   16 already-loaded bytes (the caller's MISRA-clean memcpy).
    * \param[in] members Eight member bytes.
    * \return The 16-lane mask.
@@ -169,12 +163,9 @@ namespace real::detail {
    * \brief Mask of the lanes where `buf16_a[l] == a` AND `buf16_b[l] == b` — the two-byte substring
    *        prefilter (prefilter.hpp's `simd_literal_scan`).
    *
-   * The two windows are the SAME 16 candidate starts probed at two needle offsets: the caller loads
-   * \p buf16_a at the candidate positions and \p buf16_b shifted by the offset delta, so lane `l`
-   * answers "could the needle start at candidate `l`?" for both probes at once. Two bytes rejects far
-   * more than one, and the survivors still get a full verify.
-   *
-   * Its SSE2 twin below serves the same caller: the literal scan runs on both ISAs.
+   * The two windows are the SAME 16 candidate starts probed at two needle offsets (\p buf16_b shifted by
+   * the offset delta), so lane `l` answers "could the needle start at candidate `l`?" for both probes;
+   * survivors still get a full verify. Its SSE2 twin below serves the same caller.
    * \param[in] buf16_a 16 already-loaded bytes at the candidate starts (the caller's MISRA-clean memcpy).
    * \param[in] a       The needle byte expected at the first probe offset.
    * \param[in] buf16_b 16 already-loaded bytes at the candidate starts + delta (same, shifted).
@@ -194,9 +185,8 @@ namespace real::detail {
   /*!
    * \brief Whether one of the 64 starts at \p lead64 has \p a there and \p b at the matching byte of \p trail64:
    *        four pair compares OR-ed and one horizontal max, the reject test of prefilter.hpp's
-   *        `simd_literal_scan`, which narrows the per-block masks (\ref load_pair_mask) only when this says a
-   *        block holds a candidate. NEON has no movemask, so a mask per block costs a narrowing shift and a lane
-   *        move each, four a round, where a round without a candidate needs none.
+   *        `simd_literal_scan`. NEON has no movemask (a narrowing shift and a lane move per mask), so per-block
+   *        masks (\ref load_pair_mask) are built only for a round this says holds a candidate.
    * \param[in] lead64  64 already-loaded bytes at the candidate starts (the caller's MISRA-clean memcpy).
    * \param[in] a       The needle byte expected at the first probe offset.
    * \param[in] trail64 64 already-loaded bytes at the candidate starts + delta.
@@ -260,7 +250,7 @@ namespace real::detail {
 
   /*!
    * \brief Loads the fingerprint's six tables for \ref load_nibble3_mask, once per scan: read from the plan
-   *        per block, they were loaded again on every block where the compiler did not hoist them.
+   *        per block, they reload on every block the compiler does not hoist them from.
    * \param[in]  lo  Three 16-byte tables, low nibble to bucket bits, one per fingerprint byte.
    * \param[in]  hi  The same for the high nibble.
    * \param[out] out The tables in registers.
@@ -323,7 +313,8 @@ namespace real::detail {
   };
 
   /*!
-   * \brief A round's four blocks of bucket bits (\ref nibble3_round), named rather than an array: a vector type as a template argument loses its attributes, which GCC reports.
+   * \brief A round's four blocks of bucket bits (\ref nibble3_round), named rather than an array: a vector type
+   *        as a template argument loses its attributes (a GCC warning).
    */
   struct nibble3_hits
   {
@@ -356,10 +347,9 @@ namespace real::detail {
   }
 
   /*!
-   * \brief One block of the fingerprint scan, loaded once: its three lookups run on the same 16 bytes, and the
-   *        first two are shifted by one and two lanes against the previous block's (\p carry), so the mask marks
-   *        the 16 starts `at - 2 .. at + 13`. A start's bytes are thus read once, where \ref load_nibble3_mask
-   *        loads three overlapping blocks and splits each into nibbles.
+   * \brief One block of the fingerprint scan, loaded once: its three lookups run on the same 16 bytes, the
+   *        first two shifted by one and two lanes against the previous block's (\p carry), so the mask marks the
+   *        starts `at - 2 .. at + 13`, each byte read once (\ref load_nibble3_mask loads three overlapping blocks).
    * \param[in]     at    The block; `at + 15` must be readable.
    * \param[in]     t     The tables.
    * \param[in,out] carry The previous block's first two lookups, replaced by this block's.
@@ -376,8 +366,7 @@ namespace real::detail {
 
   /*!
    * \brief Four blocks of \ref nibble3_step at \p at, `at + 16`, `at + 32` and `at + 48`, kept as vectors, and
-   *        whether any of them marks a start: one horizontal max for the four, where a mask per block costs a
-   *        narrowing shift and a move to a general register each (NEON has no movemask).
+   *        whether any marks a start: one horizontal max for the four (NEON has no movemask; see \ref any_pair64).
    * \param[in]     at    The first block; `at + 63` must be readable.
    * \param[in]     t     The tables.
    * \param[in,out] carry As \ref nibble3_step, across the four.
@@ -419,8 +408,8 @@ namespace real::detail {
   /*!
    * \brief Mask of the 16 starts at \p at whose three bytes all fall in one bucket's fingerprint: for byte `k`
    *        of a start, a bucket bit is set where both `lo[k][byte & 15]` and `hi[k][byte >> 4]` carry it, and a
-   *        start is marked when some bit survives all three bytes. A table lookup per nibble (`tbl`, AArch64
-   *        only), so the cost per block does not grow with the number of branches.
+   *        start is marked when some bit survives all three bytes. One table lookup per nibble (`tbl`, AArch64
+   *        only), so the cost per block does not grow with the branch count.
    * \param[in] at The first of the 16 starts; `at + 17` must be readable.
    * \param[in] lo Three 16-byte tables, low nibble to bucket bits, one per fingerprint byte.
    * \param[in] hi The same for the high nibble.
@@ -439,8 +428,7 @@ namespace real::detail {
 
   /*!
    * \brief Mask of the lanes where `buf16[l] == a` -- the single-byte scan (prefilter.hpp's
-   *        `simd_byte_scan`). NEON only, like \ref load_pair_mask, and for the same reason: its caller is
-   *        NEON-gated, x86-64 keeping the platform `memchr`, whose vectors are wider.
+   *        `simd_byte_scan`). NEON only: x86-64 keeps the platform `memchr`, whose vectors are wider.
    * \param[in] buf16 16 already-loaded bytes (the caller's MISRA-clean memcpy).
    * \param[in] a     The byte sought.
    */
@@ -453,8 +441,8 @@ namespace real::detail {
 
   /*!
    * \brief Whether \p a occurs anywhere in the 64 bytes at \p buf64: four compares OR-ed and one horizontal
-   *        max, the reject test of prefilter.hpp's `simd_byte_scan`, which builds the per-block masks
-   *        (\ref load_byte_mask) only when this says there is a hit. NEON only, like its caller.
+   *        max, the reject test of prefilter.hpp's `simd_byte_scan`, which builds per-block masks
+   *        (\ref load_byte_mask) only on a hit. NEON only, like its caller.
    * \param[in] buf64 64 already-loaded bytes (the caller's MISRA-clean memcpy).
    * \param[in] a     The byte sought.
    */
@@ -467,66 +455,13 @@ namespace real::detail {
     return vmaxvq_u8(vorrq_u8(lo, hi)) != 0U;
   }
 
-  /*! \brief `true` if no lane of \p m is set. */
-  inline bool empty(mask_t m)
-  {
-    return m == 0U;
-  }
-
-  /*! \brief Index (0..15) of the first set lane of \p m. UB if `empty(m)`. */
-  inline std::size_t first_lane(mask_t m)
-  {
-    return static_cast<std::size_t>(std::countr_zero(m)) >> 2U;
-  }
+  inline constexpr unsigned lane_shift {2U};          //!< log2 of the bits a lane takes in \ref mask_t.
+  inline constexpr mask_t   full_mask  {~mask_t {0}}; //!< Every one of the 16 lanes set.
 
   /*! \brief \p m with its first set lane cleared. */
   inline mask_t clear_first(mask_t m)
   {
-    const std::size_t lane {first_lane(m)};
-    return m & ~(static_cast<mask_t>(0xF) << (4U * lane));
-  }
-
-  /*! \brief The lanes set in \p a or \p b. */
-  inline mask_t mask_or(mask_t a,
-                        mask_t b)
-  {
-    return a | b;
-  }
-
-  /*!
-   * \brief `true` if every lane in `[start, start + len)` of \p m is set. The caller clamps \p len to
-   *        `16 - start`; a \p len reaching lane 16 reads as the mask's full width.
-   */
-  inline bool window_all_set(mask_t      m,
-                             std::size_t start,
-                             std::size_t len)
-  {
-    const mask_t want {len >= 16 ? ~mask_t {0} : ((mask_t {1} << (4U * len)) - 1U)};
-    return ((m >> (4U * start)) & want) == want;
-  }
-
-  /*!
-   * \brief Index (0..15, absolute — not relative to \p start) of the first CLEAR lane in
-   *        `[start, start + len)` of \p m. UB if `window_all_set(m, start, len)`.
-   */
-  inline std::size_t first_clear_lane(mask_t      m,
-                                      std::size_t start,
-                                      std::size_t len)
-  {
-    const mask_t want  {len >= 16 ? ~mask_t {0} : ((mask_t {1} << (4U * len)) - 1U)};
-    const mask_t fails {(~(m >> (4U * start))) & want};
-    return start + (static_cast<std::size_t>(std::countr_zero(fails)) >> 2U);
-  }
-
-  /*! \brief Index (0..15) of the first set lane of \p m at or after \p from, or 16 if none. */
-  inline std::size_t next_set_lane(mask_t      m,
-                                   std::size_t from)
-  {
-    if (from >= 16U) {
-      return 16U;
-    }
-    const mask_t shifted {m >> (4U * from)};
-    return shifted == 0U ? 16U : from + (static_cast<std::size_t>(std::countr_zero(shifted)) >> 2U);
+    return m & ~(static_cast<mask_t>(0xF) << (4U * (static_cast<std::size_t>(std::countr_zero(m)) >> 2U)));
   }
 
 #elif defined(__SSE2__)
@@ -639,8 +574,8 @@ namespace real::detail {
   }
 
   /*!
-   * \brief The pairs' mask of 16 starts, OR-ed as vectors with one movemask. SSE2 leg of the NEON overload above,
-   *        where splatting in the loop cost four instructions per byte (no byte shuffle before SSSE3).
+   * \brief The pairs' mask of 16 starts, OR-ed as vectors with one movemask. SSE2 leg of the NEON overload above;
+   *        the splats come pre-built, as splatting costs four instructions per byte without SSSE3's shuffle.
    * \param[in] at    The first of the 16 starts; `at + 15 + delta[i]` must be readable for every pair.
    * \param[in] lead  Each pair's first byte, splatted.
    * \param[in] probe Each pair's second byte, splatted.
@@ -705,8 +640,7 @@ namespace real::detail {
   };
 
   /*!
-   * \brief Loads the fingerprint's six tables for \ref load_nibble3_mask, once per scan: read from the plan
-   *        per block, they were loaded again on every block where the compiler did not hoist them.
+   * \brief Loads the fingerprint's six tables for \ref load_nibble3_mask once per scan, as the NEON twin's.
    * \param[in]  lo  Three 16-byte tables, low nibble to bucket bits, one per fingerprint byte.
    * \param[in]  hi  The same for the high nibble.
    * \param[out] out The tables in registers.
@@ -743,8 +677,7 @@ namespace real::detail {
   }
 
   /*!
-   * \brief \ref load_nibble3_mask on tables \ref load_nibble3_tables loaded. Built for SSSE3 alone where the
-   *        build lacks it, like the other overload.
+   * \brief \ref load_nibble3_mask on tables \ref load_nibble3_tables loaded.
    * \param[in] at The first of the 16 starts; `at + 17` must be readable.
    * \param[in] t  The tables.
    * \return The mask.
@@ -777,7 +710,7 @@ namespace real::detail {
   };
 
   /*!
-   * \brief A round's four blocks of bucket bits (\ref nibble3_round), named, as the NEON twin's: a vector type as a template argument loses its attributes.
+   * \brief A round's four blocks of bucket bits (\ref nibble3_round), named, as the NEON twin's.
    */
   struct nibble3_hits
   {
@@ -788,8 +721,7 @@ namespace real::detail {
   };
 
   /*!
-   * \brief One block's bucket bits for the starts `at - 2 .. at + 13`, as the NEON twin's. Built for SSSE3 alone
-   *        where the build lacks it, like \ref load_nibble3_mask.
+   * \brief One block's bucket bits for the starts `at - 2 .. at + 13`, as the NEON twin's.
    * \param[in]     at    The block; `at + 15` must be readable.
    * \param[in]     t     The tables.
    * \param[in,out] carry The previous block's first two lookups, replaced by this block's.
@@ -814,7 +746,7 @@ namespace real::detail {
 
   /*!
    * \brief One block of the fingerprint scan, loaded once, as the NEON twin's: the mask marks the starts
-   *        `at - 2 .. at + 13`. Built for SSSE3 alone where the build lacks it, like \ref load_nibble3_mask.
+   *        `at - 2 .. at + 13`.
    * \param[in]     at    The block; `at + 15` must be readable.
    * \param[in]     t     The tables.
    * \param[in,out] carry The previous block's first two lookups, replaced by this block's.
@@ -833,7 +765,6 @@ namespace real::detail {
 
   /*!
    * \brief Four blocks of \ref nibble3_step, as the NEON twin's: kept as vectors, and whether any marks a start.
-   *        Built for SSSE3 alone where the build lacks it, like \ref load_nibble3_mask.
    * \param[in]     at    The first block; `at + 63` must be readable.
    * \param[in]     t     The tables.
    * \param[in,out] carry As \ref nibble3_step, across the four.
@@ -996,8 +927,7 @@ namespace real::detail {
 
   /*!
    * \brief The fingerprint's six tables for \ref avx2_nibble3_mask, each repeated in both 128-bit lanes (the
-   *        256-bit byte shuffle works within a lane). Filled once per scan: read from the plan per block, the
-   *        tables were loaded and broadcast again on every block where the compiler did not hoist them.
+   *        256-bit byte shuffle works within a lane). Filled once per scan, as \ref load_nibble3_tables.
    */
   struct avx2_nibble3_tables
   {
@@ -1010,8 +940,7 @@ namespace real::detail {
   };
 
   /*!
-   * \brief Fills \p out from the plan's 16-byte tables. Built for AVX2 where the build lacks it, like
-   *        \ref avx2_literal_scan.
+   * \brief Fills \p out from the plan's 16-byte tables.
    * \param[in]  lo  Three 16-byte tables, low nibble to bucket bits, one per fingerprint byte.
    * \param[in]  hi  The same for the high nibble.
    * \param[out] out The tables, broadcast.
@@ -1060,7 +989,7 @@ namespace real::detail {
 
   /*!
    * \brief \ref load_nibble3_mask on 32 starts: the same six lookups, on tables \ref avx2_nibble3_broadcast
-   *        filled. Built for AVX2 where the build lacks it, like \ref avx2_literal_scan.
+   *        filled.
    * \param[in] at The first of the 32 starts; `at + 33` must be readable.
    * \param[in] t  The broadcast tables.
    * \return One bit per start.
@@ -1113,10 +1042,10 @@ namespace real::detail {
     std::size_t       p     {pos};
     // A block covers candidates [p, p + 32): the furthest reads its trail byte at p + 31 + delta, which
     // `p + 32 <= last + 1` keeps inside the text. Masks are consumed in block then lane order, so the first
-    // verified hit is the leftmost.
-    // Four blocks a round, OR-ed and tested once: a round with no candidate costs no narrowing at all, the
-    // shape of a `memchr` that covers 128 bytes per test.
+    // verified hit is the leftmost. Four blocks a round, OR-ed and tested once: a round with no candidate
+    // narrows nothing.
     while (p + 128 <= last + 1) {
+      // Named, not an array of four: gcc drops the vector type's attributes as a template argument.
       __m256i h0 {};
       __m256i h1 {};
       __m256i h2 {};
@@ -1127,7 +1056,6 @@ namespace real::detail {
       avx2_pair_hits(base + p + 96, delta, lead, trail, h3);
       const __m256i any {_mm256_or_si256(_mm256_or_si256(h0, h1), _mm256_or_si256(h2, h3))};
       if (_mm256_testz_si256(any, any) == 0) {
-        // Named, not an array of four: gcc drops the vector type's attributes as a template argument.
         const std::uint32_t masks[4] {static_cast<std::uint32_t>(_mm256_movemask_epi8(h0)), // NOLINT(*-avoid-c-arrays)
                                       static_cast<std::uint32_t>(_mm256_movemask_epi8(h1)),
                                       static_cast<std::uint32_t>(_mm256_movemask_epi8(h2)),
@@ -1213,6 +1141,21 @@ namespace real::detail {
     return _mm_movemask_epi8(any) != 0;
   }
 
+  inline constexpr unsigned lane_shift {0U};      //!< log2 of the bits a lane takes in \ref mask_t.
+  inline constexpr mask_t   full_mask  {0xFFFFU}; //!< Every one of the 16 lanes set.
+
+  /*! \brief \p m with its first set lane cleared. */
+  inline mask_t clear_first(mask_t m)
+  {
+    return m & (m - 1U);
+  }
+
+#endif
+
+#if defined(__ARM_NEON) || defined(__SSE2__)
+  // The lane helpers both masks share: a lane is (1 << lane_shift) bits, so each shift scales by it.
+  inline constexpr unsigned lane_bits {1U << lane_shift}; //!< Bits a lane takes in \ref mask_t.
+
   /*! \brief `true` if no lane of \p m is set. */
   inline bool empty(mask_t m)
   {
@@ -1222,13 +1165,7 @@ namespace real::detail {
   /*! \brief Index (0..15) of the first set lane of \p m. UB if `empty(m)`. */
   inline std::size_t first_lane(mask_t m)
   {
-    return static_cast<std::size_t>(std::countr_zero(m));
-  }
-
-  /*! \brief \p m with its first set lane cleared. */
-  inline mask_t clear_first(mask_t m)
-  {
-    return m & (m - 1U);
+    return static_cast<std::size_t>(std::countr_zero(m)) >> lane_shift;
   }
 
   /*! \brief The lanes set in \p a or \p b. */
@@ -1246,8 +1183,8 @@ namespace real::detail {
                              std::size_t start,
                              std::size_t len)
   {
-    const mask_t want {len >= 16 ? 0xFFFFU : ((mask_t {1} << len) - 1U)};
-    return ((m >> start) & want) == want;
+    const mask_t want {len >= 16 ? full_mask : ((mask_t {1} << (lane_bits * len)) - 1U)};
+    return ((m >> (lane_bits * start)) & want) == want;
   }
 
   /*!
@@ -1258,9 +1195,9 @@ namespace real::detail {
                                       std::size_t start,
                                       std::size_t len)
   {
-    const mask_t want  {len >= 16 ? 0xFFFFU : ((mask_t {1} << len) - 1U)};
-    const mask_t fails {(~(m >> start)) & want};
-    return start + static_cast<std::size_t>(std::countr_zero(fails));
+    const mask_t want  {len >= 16 ? full_mask : ((mask_t {1} << (lane_bits * len)) - 1U)};
+    const mask_t fails {(~(m >> (lane_bits * start))) & want};
+    return start + (static_cast<std::size_t>(std::countr_zero(fails)) >> lane_shift);
   }
 
   /*! \brief Index (0..15) of the first set lane of \p m at or after \p from, or 16 if none. */
@@ -1270,8 +1207,8 @@ namespace real::detail {
     if (from >= 16U) {
       return 16U;
     }
-    const mask_t shifted {m >> from};
-    return shifted == 0U ? 16U : from + static_cast<std::size_t>(std::countr_zero(shifted));
+    const mask_t shifted {m >> (lane_bits * from)};
+    return shifted == 0U ? 16U : from + (static_cast<std::size_t>(std::countr_zero(shifted)) >> lane_shift);
   }
 
 #endif

@@ -2,34 +2,26 @@
  * \file dfa.hpp
  * \brief `real::dfa` — a maximal-munch DFA over a set of patterns (opt-in).
  *
- * A lexer matches many rules at every position; running each rule's Pike VM in
- * turn is linear but re-scans the input once per candidate rule. `real::dfa`
- * fuses a set of patterns into one deterministic automaton that recognizes the
- * winning rule in a single left-to-right pass (longest match; ties to the earliest
- * rule), reached far faster when many rules share leading bytes. It is built from
- * the patterns' compiled programs, runs at run time (the tables are heap-allocated
- * once and then immutable), and is the accelerated rule-dispatch path SciLex opts
- * into.
+ * A lexer matches many rules at every position; running each rule's Pike VM in turn re-scans the input once
+ * per candidate rule. `real::dfa` fuses a rule set into one deterministic automaton that finds the winning
+ * rule in a single left-to-right pass (longest match; ties to the earliest rule). It is built at run time
+ * from the patterns' compiled programs; the tables are heap-allocated once, then immutable.
  *
  * \note NOT the internal `real::detail::lazy_dfa` (`automata/lazy_dfa.hpp`): that one is a private,
  *       *priority-preserving* forward DFA that finds a single pattern's match boundary for the Pike route.
  *       This `real::dfa` is a public, capture-free *maximal-munch* recognizer over a whole rule set.
  *
- * Scope: a pattern is DFA-able iff its program holds no zero-width assertion other
- * than a leading `\A`/`^` (a no-op under anchored scanning), no lookaround, no
- * possessive quantifier or atomic group, and a byte expansion small enough to build.
- * Anything else throws \ref real::dfa_error rather than silently mis-recognizing —
- * the caller keeps such rules on the Pike VM.
+ * Scope: a pattern is DFA-able iff its program holds no zero-width assertion other than a leading `\A`/`^`
+ * (a no-op under anchored scanning), no lookaround, no possessive quantifier or atomic group, and a byte
+ * expansion small enough to build. Anything else throws \ref real::dfa_error, never a silent
+ * mis-recognition; the caller keeps such rules on the Pike VM.
  *
- * **DFA-able is not the same as faithful.** A DFA recognizes a pattern's *language*
- * and takes the LONGEST match, while `regex::match()` takes the match its priority
- * order prefers. The two agree for many patterns and disagree for others, and the
- * difference is not visible in the syntax: `a|ab` on `"ab"` matches 1 byte and the
- * DFA takes 2; so does the greedy, longer-branch-first `(?:ab|a)(?:bc)?` on
- * `"abc"`, while the lazy `x*?y` agrees on every input. So a caller that needs the
- * DFA to reproduce a per-rule `match()` munch asks \ref real::dfa_faithful, which
- * DECIDES the question for each pattern and names an input that separates the two
- * when they differ. Include this header explicitly; `real.hpp` does not.
+ * **DFA-able is not faithful.** A DFA takes the LONGEST match of the pattern's language, `regex::match()`
+ * the one its priority order prefers, and the syntax does not show which patterns differ: `a|ab` on `"ab"`
+ * matches 1 byte where the DFA takes 2, as does `(?:ab|a)(?:bc)?` on `"abc"`, while `x*?y` agrees on every
+ * input. A caller that needs the DFA to reproduce a per-rule `match()` munch asks
+ * \ref real::dfa_faithful, which decides it per pattern and names a separating input. Include this header
+ * explicitly; `real.hpp` does not.
  */
 #ifndef REAL_DFA_HPP
 #define REAL_DFA_HPP
@@ -61,13 +53,11 @@ namespace real {
   /*!
    * \brief Thrown when a pattern cannot be represented as a DFA.
    *
-   * Five causes: a zero-width assertion other than a leading `\A`/`^` (`$`,
-   * `\b`, `\B`, multiline anchors), a lookaround, a possessive quantifier /
-   * atomic group, a code-point class whose UTF-8 expansion is too large (text-mode
-   * `\w`, or a class repeated many times — narrower classes such as `\d`,
-   * `\p{Greek}` or `[àé]` build), or an automaton past the state cap (65 536 states).
-   * `real::dfa` never falls back silently — a violated contract is an error the
-   * caller handles (e.g. by keeping that rule on the Pike VM).
+   * Five causes: a zero-width assertion other than a leading `\A`/`^` (`$`, `\b`, `\B`, multiline anchors),
+   * a lookaround, a possessive quantifier / atomic group, a code-point class whose UTF-8 expansion is too
+   * large (text-mode `\w`, or a class repeated many times; `\d`, `\p{Greek}` or `[àé]` build), or an
+   * automaton past the state cap (65 536 states). Never a silent fallback: the caller decides, e.g. by
+   * keeping that rule on the Pike VM.
    */
   class dfa_error : public std::runtime_error
   {
@@ -117,15 +107,10 @@ namespace real {
     /*!
      * \brief Cap on a pattern's expanded byte program before subset construction runs on it.
      *
-     * \ref max_dfa_states bounds the RESULT; this bounds the WORK to reach it. Subset construction is
-     * superlinear in its input, so an expansion an order of magnitude larger costs two orders of magnitude
-     * more time -- a text-mode `\w+` expands into thousands of byte instructions and turns a
-     * sub-millisecond build into a fraction of a second, which under a sanitized fuzzing build is a
-     * timeout rather than a slow test.
-     *
-     * The cap sits above every shape that builds in about a millisecond and below the ones that do not. A
-     * pattern past it declines with a message naming the cause, which is what the caller needs to keep
-     * that rule on the Pike VM.
+     * \ref max_dfa_states bounds the RESULT; this bounds the WORK. Subset construction is superlinear: a
+     * text-mode `\w+` expands into thousands of byte instructions and turns a sub-millisecond build into a
+     * fraction of a second, a timeout under sanitized fuzzing. The cap sits above every shape that builds
+     * in about a millisecond; past it the pattern declines with a message naming the cause.
      */
     inline constexpr std::size_t max_dfa_byte_program {512};
 
@@ -144,13 +129,12 @@ namespace real {
       for (std::size_t r = 0; r < programs.size(); ++r) {
         const program_view& prog {programs[r]};
 
-        // The AUDIT runs over the pattern's own program, so every message names what the user wrote.
-        // A `klass_cp` is not among the refusals: it is expanded below.
+        // Audited on the pattern's own program, so every message names what the user wrote. A `klass_cp`
+        // is not refused: it is expanded below.
         for (const instr& in : prog.code) {
           if (in.op == opcode::assert_position && in.arg8 != static_cast<std::uint8_t>(assert_kind::text_start)) {
-            // text_start (`\A`/`^`) is handled as a conditional ε in the closure (true at the cursor,
-            // false after any byte — exactly its anchored meaning). Any other assertion ($, \b, \B,
-            // multiline ^/$, …) cannot be a pure DFA.
+            // text_start (`\A`/`^`) is a conditional ε in the closure (true at the cursor, false after any
+            // byte); any other assertion cannot be a pure DFA.
             throw dfa_error("pattern has a zero-width assertion that no DFA can represent "
                             "(only \\A/^ is allowed)");
           }
@@ -159,22 +143,16 @@ namespace real {
           }
           if (in.op == opcode::byte_loop_possessive || in.op == opcode::klass_loop_possessive ||
               in.op == opcode::klass_cp_loop_possessive) {
-            // A Tier 1 possessive loop's on-no-match transition is an in-place, same-position epsilon
-            // splice resolved by the Pike VM's step() (see pike.hpp) -- not a pure byte transition a DFA
-            // state machine can represent, and its primary_target is a capture-slot index, not a branch
-            // pc (copying it unremapped would corrupt the DFA).
+            // A Tier 1 possessive loop's on-no-match transition is a same-position epsilon splice resolved
+            // by the Pike VM's step(), not a byte transition; its primary_target is a capture-slot index,
+            // not a pc, so copying it would corrupt the DFA.
             throw dfa_error("pattern has a possessive quantifier or atomic group, which no DFA can represent");
           }
         }
 
-        // A code-point class matches a whole code point, which is not a byte transition -- so it is
-        // replaced by the deterministic UTF-8 trie that recognises the same set, the same way the lazy DFA
-        // does it. This is `build_byte_program`, the expansion the byte automata already run on, targets
-        // remapped and all, which is what lets text-mode `\w`/`\d`/`\s` and case-folded ASCII classes
-        // build here at all.
-        //
-        // `keep_assertions`: the audit above already accepted only a head `\A`/`^`, and the closure below
-        // resolves it. Stripping assertions here instead would silently drop that anchor.
+        // A code-point class is not a byte transition: build_byte_program replaces it with the deterministic
+        // UTF-8 trie, targets remapped, as for the lazy DFA. Assertions are kept: the audit admitted only a
+        // head `\A`/`^`, which the closure resolves, and stripping it would drop that anchor.
         const byte_program bp {build_byte_program(prog, true, max_dfa_byte_program)};
         if (!bp.eligible) {
           throw dfa_error("pattern's byte expansion is too large for a DFA (a wide code-point class such "
@@ -473,9 +451,8 @@ namespace real {
       std::size_t                   num_states {0};     //!< States in the minimized machine, including the dead state 0.
       std::size_t                   rule_count {0};     //!< Rules the tables were built for.
       bool                          unanchored {false}; //!< Built for which-matched mid-stream restart.
-      //! Set-level first-byte skip for \ref dfa::which_matched -- union of each rule's
-      //! \c first_bytes. Disabled if any rule has \c first_bytes_valid == false (empty match /
-      //! can start anywhere). Applied only when the walk is in \ref start (no partial in flight).
+      //! Set-level first-byte skip for \ref dfa::which_matched over the union of the rules' \c first_bytes;
+      //! off if any rule lacks a valid set. Applied only while the walk is in \ref start.
       bool                          skip_first_enabled  {false};
       char_class                    skip_first_bytes;         //!< Union of rule first-bytes (valid iff enabled).
       std::int16_t                  skip_single_first   {-1}; //!< Unique union member, else -1.
@@ -524,14 +501,13 @@ namespace real {
     /*!
      * \brief Subset construction over byte-classes, then Moore minimization.
      *
-     * Initial partition keys on the **full accept mask** (which-matched), not only the
-     * min-rule munch tag — two states with the same earliest rule but different accept
-     * sets must not merge. \p unanchored unions mid-stream pattern starts into every
-     * post-move set (self-restart) so a single scan can discover matches at any offset.
+     * The initial partition keys on the **full accept mask**, not only the min-rule munch tag: two states
+     * with the same earliest rule but different accept sets must not merge. \p unanchored unions the pattern
+     * starts into every post-move set, so one scan finds matches at any offset.
      *
      * \param[in] programs   The flattened NFA programs.
      * \param[in] state_cap  Maximum DFA states before \ref dfa_error.
-     * \param[in] unanchored Mid-stream restart for which-matched (Stage-2); munch uses false.
+     * \param[in] unanchored Mid-stream restart for which-matched; munch uses false.
      * \return The baked tables.
      * \throws real::dfa_error when construction exceeds \p state_cap, or when \ref dfa_flatten refuses a
      *         pattern.
@@ -570,8 +546,7 @@ namespace real {
                              return s;
                            }};
 
-      // Known sets by content, so a lookup is a logarithmic search rather than a comparison with every
-      // state.
+      // Known sets by content: a logarithmic lookup, not a comparison with every state.
       std::map<dfa_set, std::uint32_t> index;
       const auto                       find_or_add {[&](dfa_set s) -> std::uint32_t {
                                                       if (const auto known {index.find(s)}; known != index.end()) {
@@ -607,14 +582,12 @@ namespace real {
           }
         }
       }
-      // The state a seed list leads to, by seed list: the closure, its completion and its place among the
-      // states are functions of the list alone, so each distinct list is closed and looked up once, and
-      // every later (state, class) with the same list reads its target here.
+      // The target state per seed list: closure, completion and lookup depend on the list alone, so each
+      // distinct list is closed once.
       std::map<std::vector<std::uint32_t>, std::uint32_t> target_of;
       std::vector<std::vector<std::uint32_t>>             seeds;
-      // Indexed: find_or_add appends to `sets`. A range-for captures end() once
-      // and never expands the states it just discovered (UAF under realloc;
-      // silent one-state machine otherwise).
+      // Indexed: find_or_add appends to `sets`. A range-for captures end() once and never expands the
+      // states it discovers (UAF under realloc, else a silent one-state machine).
       // NOLINTNEXTLINE(modernize-loop-convert)
       for (std::size_t s = 0; s < sets.size(); ++s) {
         dfa_seeds_all(nfa, sets[s], bc, klass_members, seeds);
@@ -630,20 +603,18 @@ namespace real {
       }
       const std::size_t n_pre {sets.size()};
 
-      // Moore: initial partition by FULL accept mask (not min-rule alone).
-      // Blocks are numbered in first-seen order, looked up through an ordered index: a comparison with
-      // every block seen so far made each round quadratic in the state count.
+      // Moore: initial partition by FULL accept mask (not min-rule alone), blocks numbered in first-seen
+      // order through an ordered index (comparing with every block seen is quadratic in the state count).
       std::vector<std::int64_t>                             block(n_pre, 0);
       std::map<std::vector<std::uint64_t>, std::int64_t>    mask_ids;
       for (std::size_t s = 0; s < n_pre; ++s) {
         block[s] = mask_ids.try_emplace(mask_pre[s], static_cast<std::int64_t>(mask_ids.size())).first->second;
       }
       std::size_t num_blocks {mask_ids.size()};
-      // Each round splits blocks by signature (own block, then each class's target block). The signatures
-      // sit in one flat table and are grouped by sorting state indices over it: no signature is allocated
-      // per state per round. Blocks are numbered in sorted signature order, which keeps the dead state
-      // block 0: it starts in block 0 (its all-zero mask is seen first) and goes only to itself, so its
-      // signature is all zeros, the least of all, every round.
+      // Each round splits blocks by signature (own block, then each class's target block), grouped by sorting
+      // state indices over one flat table: nothing is allocated per state per round. Sorted numbering keeps
+      // the dead state block 0: it starts there (its all-zero mask is seen first) and goes only to itself,
+      // so its all-zero signature is the least every round.
       const std::size_t         width {nc + 1};
       std::vector<std::int64_t> sig(n_pre * width);
       std::vector<std::size_t>  order(n_pre);
@@ -708,8 +679,8 @@ namespace real {
       }
       out.start = static_cast<std::uint32_t>(block[out.start]);
 
-      // Set-level first-byte union for the which_matched skip (unanchored only).
-      // Any rule without a sound first-byte set disables the skip (correctness).
+      // Set-level first-byte union for the which_matched skip (unanchored only); any rule without a sound
+      // first-byte set disables it.
       if (unanchored && !programs.empty()) {
         bool                  ok {true};
         char_class            uni;
@@ -755,12 +726,11 @@ namespace real {
      *        appended to \p out in priority order, and reaching a `match` stops the walk, because a thread
      *        list is cut below its first accepting thread.
      *
-     * This replays `pike_vm::add_thread` over the flattened byte program, and it must stay the SAME walk:
-     * DFS order (primary before secondary), a pc dropped once \p seen in this generation, and the
-     * empty-iteration routing -- a jump back to a loop head already seen exits the loop through the head's
-     * secondary, at this thread's own priority. Without that routing `(?:c??)*` on `"c"` reads as faithful
-     * while the engine answers the empty match. `dfa_fidelity_agrees_with_the_engine` in
-     * `tests/automata/test_dfa_fidelity.cpp` holds the two walks together.
+     * It must stay the SAME walk as `pike_vm::add_thread`: DFS order (primary before secondary), a pc
+     * dropped once \p seen in this generation, and the empty-iteration routing (a jump back to a loop head
+     * already seen exits through the head's secondary, at this thread's priority; without it `(?:c??)*` on
+     * `"c"` reads as faithful while the engine answers the empty match). `dfa_fidelity_agrees_with_the_engine`
+     * in `tests/automata/test_dfa_fidelity.cpp` holds the two walks together.
      *
      * \param[in]     nfa      The union NFA (one rule).
      * \param[in]     seed     The pc to close over.
@@ -832,13 +802,12 @@ namespace real {
     /*!
      * \brief Decides whether \p prog's priority match equals its longest match on every input.
      *
-     * The search walks the PRODUCT of two simulations over the same byte program: the priority one (the
-     * ordered thread list above the current best, as \ref dfa_priority_closure builds it, and whether a
-     * best exists) and the set one (every live pc, as the DFA sees it). A reachable product state whose set
-     * accepts at a byte where the priority list does not is a divergence, and the path to it is an input
-     * on which `match()` stops short of the longest match. Conversely, every divergence has such a state:
-     * the priority best only moves forward, so at the longest match's end the set accepts and the list
-     * did not. The search is therefore exact, and bounded only by \p budget.
+     * The search walks the PRODUCT of two simulations over one byte program: the priority one (the ordered
+     * threads above the current best, as \ref dfa_priority_closure builds them, and whether a best exists)
+     * and the set one (every live pc, as the DFA sees it). A reachable product state whose set accepts at a
+     * byte where the priority list does not is a divergence, its path a witness input. Conversely every
+     * divergence reaches one (the priority best only moves forward, so at the longest match's end the set
+     * accepts and the list did not), so the search is exact, bounded only by \p budget.
      *
      * \param[in] prog   The pattern's program.
      * \param[in] budget Product states explored before the answer is "undecided".
@@ -915,14 +884,12 @@ namespace real {
   } // namespace detail
 
   /*!
-   * \brief Build mode for \c real::dfa.
-   *
-   * \c munch — maximal-munch at the cursor (lexer; default, SciLex).
-   * \c which_matched — unanchored multi-accept single-pass (Stage-2 RegexSet fused).
+   * \brief Build mode for \c real::dfa: maximal munch at the cursor (a lexer; the default), or an
+   *        unanchored multi-accept single pass (which patterns match anywhere).
    */
   enum class dfa_mode : std::uint8_t
   {
-    munch          = 0, //!< One winner at the start of the subject (existing contract).
+    munch          = 0, //!< One winner at the start of the subject.
     which_matched  = 1, //!< Mid-stream restart; full accept-mask per state for which-matched.
   };
 
@@ -949,17 +916,15 @@ namespace real {
    *        costs O(states × length) instead of O(length²) (Reps, "Maximal-munch tokenization in linear
    *        time", 1998).
    *
-   * A munch from an offset walks the DFA until it dies or the subject ends, then answers the last
-   * accepting position. Every (state, position) the walk visited AFTER that position leads to no
-   * accept -- that is why the walk went on without answering -- so a later munch reaching the same
-   * pair can stop there with the answer it already holds. The next munch starts at or after the
-   * previous answer's end, so without this a rule like `a*b` beside `a` rescans the rest of `aaa…`
-   * from every position.
+   * A munch walks the DFA until it dies or the subject ends, then answers its last accepting position.
+   * Every (state, position) visited after that position leads to no accept, so a later munch reaching the
+   * same pair can stop there with the answer it holds. Without this, a rule like `a*b` beside `a` rescans
+   * the rest of `aaa…` from every position.
    *
    * Bound to one \ref dfa and one subject: pass it to \ref dfa::match(std::string_view, std::size_t,
    * dfa_munch_memo&) const with the same pair every time. Memory is one bit per remembered state per
-   * position of the subject, allocated for a state the first time it is remembered, and nothing else: a
-   * walk replays the stretch after its last accept to mark it rather than holding it.
+   * subject position, allocated on a state's first mark; a walk replays its dead stretch to mark it rather
+   * than holding it.
    */
   class dfa_munch_memo
   {
@@ -1015,9 +980,8 @@ namespace real {
    * \brief A multi-rule DFA: maximal-munch (\c dfa_mode::munch) or which-matched
    *        unanchored scan (\c dfa_mode::which_matched).
    *
-   * Built once (heap-allocated tables), then immutable and cheap to copy-share.
-   * \ref match is the lexer munch. \ref which_matched is Stage-2 multi-accept
-   * (only valid when built with \ref dfa_mode::which_matched).
+   * Built once (heap-allocated tables), then immutable. \ref match is the lexer munch;
+   * \ref which_matched is valid only when built with \ref dfa_mode::which_matched.
    */
   class dfa
   {
@@ -1061,22 +1025,7 @@ namespace real {
      */
     [[nodiscard]] std::optional<dfa_match> match(std::string_view rest) const noexcept
     {
-      std::uint32_t             state {tables_.start};
-      std::optional<dfa_match>  best;
-      for (std::size_t i = 0; i < rest.size();) {
-        const auto          byte {static_cast<std::uint8_t>(rest[i])};
-        const std::size_t   cls  {tables_.byte_class[byte]};
-        state = tables_.trans[(static_cast<std::size_t>(state) * tables_.num_classes) + cls];
-        if (state == 0U) { // dead state
-          break;
-        }
-        ++i;
-        const std::uint32_t rule {tables_.accept[state]};
-        if (rule != detail::dfa_no_rule) {
-          best = dfa_match {.rule_index = rule, .length = i};
-        }
-      }
-      return best;
+      return answer(walk<false>(rest, 0, nullptr), 0);
     }
 
     /*!
@@ -1112,49 +1061,25 @@ namespace real {
       if (!memo.marked_.empty()) [[unlikely]] {
         return match_armed(subject, offset, memo);
       }
-      // Unarmed: the plain walk, plus one comparison at the end. Only a walk that ran more than
-      // short_stretch steps past its last accept arms the memo, so an ordinary tokenization pays nothing.
-      std::uint32_t state     {tables_.start};
-      std::uint32_t best_rule {detail::dfa_no_rule};
-      std::size_t   best_end  {offset};
-      std::size_t   i         {offset};
-      while (i < subject.size()) {
-        state = tables_.trans[(static_cast<std::size_t>(state) * tables_.num_classes)
-                              + tables_.byte_class[static_cast<std::uint8_t>(subject[i])]];
-        if (state == 0U) { // dead state
-          break;
-        }
-        ++i;
-        const std::uint32_t rule {tables_.accept[state]};
-        if (rule != detail::dfa_no_rule) {
-          best_rule = rule;
-          best_end  = i;
-        }
+      // Unarmed: the plain walk plus one comparison (see dfa_munch_memo::short_stretch).
+      const walk_end w {walk<false>(subject, offset, nullptr)};
+      if (w.stop - w.best_end > dfa_munch_memo::short_stretch) [[unlikely]] {
+        mark_dead_stretch(subject, state_at(subject, offset, w.best_end), w.best_end, w.stop, memo);
       }
-      if (i - best_end > dfa_munch_memo::short_stretch) [[unlikely]] {
-        mark_dead_stretch(subject, state_at(subject, offset, best_end), best_end, i, memo);
-      }
-      memo.transitions_ += i - offset;
-      if (best_rule == detail::dfa_no_rule) {
-        return std::nullopt;
-      }
-      return dfa_match {.rule_index = best_rule, .length = best_end - offset};
+      memo.transitions_ += w.stop - offset;
+      return answer(w, offset);
     }
 
     /*!
      * \brief Which patterns match the subject at least once (single-pass).
      *
-     * Requires a build with \ref dfa_mode::which_matched. Returns a bitset of length
-     * \ref rule_count in construction order. Early-exits when every pattern has hit.
-     * A rule that accepts the EMPTY string is credited: the start state's accept mask is folded in
-     * before the walk, so a nullable member answers true on an empty subject as this type's N-walk
-     * oracle does. Only that one position is added — every other accept still comes from a
-     * post-move mask.
+     * Requires a build with \ref dfa_mode::which_matched. Early-exits when every pattern has hit. The start
+     * state's accept mask is folded in before the walk, so a rule accepting the EMPTY string answers true
+     * on an empty subject, as N separate walks would; every other accept comes from a post-move mask.
      *
      * \param[in] text            Subject text.
-     * \param[in] first_byte_skip When true (default), fast-forward over bytes that cannot
-     *                            start any rule while the walk is in the start state (a pure
-     *                            optimization). Pass false to disable for equivalence tests.
+     * \param[in] first_byte_skip When true (default), fast-forward over bytes that cannot start any rule
+     *                            while the walk is in the start state; false is for equivalence tests.
      * \return One bool per rule, in construction order, true where that pattern matched.
      */
     [[nodiscard]] std::vector<bool> which_matched(std::string_view text,
@@ -1194,14 +1119,8 @@ namespace real {
                             }
                           };
 
-      // A rule that accepts the EMPTY string has already accepted before any byte is read, and the
-      // loop below only folds POST-MOVE masks -- so on an empty subject it never ran at all and
-      // every nullable rule answered false, against this type's own N-walk oracle. The start
-      // state's own mask is that answer and the only place it lives.
-      //
-      // On a non-empty subject this is not a second crediting: `acc` starts at zero, and the loop's
-      // own fold is idempotent (`m & ~acc[w]`), so a rule already credited here contributes no new
-      // bit when the walk re-enters an accepting state.
+      // Nullable rules accept before any byte, and the loop folds only post-move masks. Not a double
+      // count: the fold is idempotent (`m & ~acc[w]`).
       absorb(state);
       for (std::size_t i = 0; i < text.size() && pending != 0;) {
         // At start (no partial in flight), jump to the next set-first-byte candidate.
@@ -1308,6 +1227,92 @@ namespace real {
   private:
 
     /*!
+     * \brief The state the DFA moves to from \p state on byte \p c (0 is the dead state).
+     * \param[in] state The current state.
+     * \param[in] c     The byte read.
+     * \return The next state.
+     */
+    [[nodiscard]] std::uint32_t next_state(std::uint32_t state,
+                                           char          c) const noexcept
+    {
+      return tables_.trans[(static_cast<std::size_t>(state) * tables_.num_classes)
+                           + tables_.byte_class[static_cast<std::uint8_t>(c)]];
+    }
+
+    /*!
+     * \brief Where a munch walk stopped and the last accept it passed.
+     */
+    struct walk_end
+    {
+      std::uint32_t rule;     //!< The last accepting rule, or detail::dfa_no_rule.
+      std::size_t   best_end; //!< Where that accept ended (the walk's start when none).
+      std::size_t   stop;     //!< Where the walk stopped: a dead state, a proven-dead pair, or the end.
+      std::uint32_t resume;   //!< Armed walks only: the state at \ref best_end, where a dead stretch begins.
+    };
+
+    /*!
+     * \brief The munch walk from the start state at \p offset until the DFA dies or the subject ends.
+     * \tparam Armed Also stop at a (state, position) pair \p memo proved dead, and track the state at the
+     *               last accept; unarmed, the walk is the plain one plus nothing.
+     * \param[in] subject The text.
+     * \param[in] offset  Where the walk starts.
+     * \param[in] memo    The armed memo (Armed only; null otherwise).
+     * \return Where it stopped and its last accept.
+     * \note Force-inlined: out of line, the memo-taking \ref match's per-token walk costs 5-9 % more.
+     */
+    template <bool Armed>
+    [[nodiscard]]
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((always_inline))
+#endif
+    walk_end walk(std::string_view      subject,
+                  std::size_t           offset,
+                  const dfa_munch_memo* memo) const noexcept
+    {
+      std::uint32_t state     {tables_.start};
+      std::uint32_t best_rule {detail::dfa_no_rule};
+      std::size_t   best_end  {offset};
+      std::uint32_t resume    {state};
+      std::size_t   i         {offset};
+      while (i < subject.size()) {
+        state = next_state(state, subject[i]);
+        if (state == 0U) { // dead state
+          break;
+        }
+        ++i;
+        const std::uint32_t rule {tables_.accept[state]};
+        if (rule != detail::dfa_no_rule) {
+          best_rule = rule;
+          best_end  = i;
+          if constexpr (Armed) {
+            resume = state;
+          }
+        }
+        else if constexpr (Armed) {
+          if (memo->marked_[state] != 0U && memo->dead_after_[state][i]) {
+            break; // an earlier walk proved no accept follows this pair
+          }
+        }
+      }
+      return walk_end {.rule = best_rule, .best_end = best_end, .stop = i, .resume = resume};
+    }
+
+    /*!
+     * \brief The public answer for a walk started at \p offset.
+     * \param[in] w      The walk.
+     * \param[in] offset Where it started.
+     * \return The winning rule and length, or `std::nullopt`.
+     */
+    [[nodiscard]] static std::optional<dfa_match> answer(const walk_end& w,
+                                                         std::size_t     offset) noexcept
+    {
+      if (w.rule == detail::dfa_no_rule) {
+        return std::nullopt;
+      }
+      return dfa_match {.rule_index = w.rule, .length = w.best_end - offset};
+    }
+
+    /*!
      * \brief The state a walk from the start state at \p from reaches at \p to (a replay, only on the
      *        rare path that arms a memo).
      * \param[in] subject The text.
@@ -1321,8 +1326,7 @@ namespace real {
     {
       std::uint32_t state {tables_.start};
       for (std::size_t at = from; at < to; ++at) {
-        state = tables_.trans[(static_cast<std::size_t>(state) * tables_.num_classes)
-                              + tables_.byte_class[static_cast<std::uint8_t>(subject[at])]];
+        state = next_state(state, subject[at]);
       }
       return state;
     }
@@ -1343,37 +1347,12 @@ namespace real {
                                          std::size_t      offset,
                                          dfa_munch_memo&  memo) const
     {
-      std::uint32_t state        {tables_.start};
-      std::uint32_t best_rule    {detail::dfa_no_rule};
-      std::size_t   best_end     {offset};
-      std::uint32_t resume_state {state}; // the state at best_end: where the dead stretch begins
-      std::size_t   i            {offset};
-      while (i < subject.size()) {
-        state = tables_.trans[(static_cast<std::size_t>(state) * tables_.num_classes)
-                              + tables_.byte_class[static_cast<std::uint8_t>(subject[i])]];
-        if (state == 0U) { // dead state
-          break;
-        }
-        ++i;
-        const std::uint32_t rule {tables_.accept[state]};
-        if (rule != detail::dfa_no_rule) {
-          best_rule    = rule;
-          best_end     = i;
-          resume_state = state;
-          continue;
-        }
-        if (memo.marked_[state] != 0U && memo.dead_after_[state][i]) {
-          break; // an earlier walk proved no accept follows this pair
-        }
+      const walk_end w {walk<true>(subject, offset, &memo)};
+      if (w.stop - w.best_end > dfa_munch_memo::short_stretch) {
+        mark_dead_stretch(subject, w.resume, w.best_end, w.stop, memo);
       }
-      if (i - best_end > dfa_munch_memo::short_stretch) {
-        mark_dead_stretch(subject, resume_state, best_end, i, memo);
-      }
-      memo.transitions_ += i - offset;
-      if (best_rule == detail::dfa_no_rule) {
-        return std::nullopt;
-      }
-      return dfa_match {.rule_index = best_rule, .length = best_end - offset};
+      memo.transitions_ += w.stop - offset;
+      return answer(w, offset);
     }
 
     /*!
@@ -1400,8 +1379,7 @@ namespace real {
         memo.marked_.assign(tables_.num_states, 0U);
       }
       for (std::size_t at = from; at < to; ++at) {
-        state = tables_.trans[(static_cast<std::size_t>(state) * tables_.num_classes)
-                              + tables_.byte_class[static_cast<std::uint8_t>(subject[at])]];
+        state = next_state(state, subject[at]);
         std::vector<bool>& known {memo.dead_after_[state]};
         if (memo.marked_[state] == 0U) {
           known.resize(memo.size_ + 1, false);

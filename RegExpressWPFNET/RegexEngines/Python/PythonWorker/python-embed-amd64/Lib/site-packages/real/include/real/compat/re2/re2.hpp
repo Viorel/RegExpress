@@ -2,60 +2,30 @@
  * \file re2/re2.hpp
  * \brief `real::compat::re2` — an RE2-compatible drop-in, the `RE2` class surface.
  *
- * `#include <real/compat/re2/re2.hpp>` is the one public entry point (it pulls in `re2/arg.hpp`
- * for `RE2::Arg`). Mirrors real RE2's own `re2.h` naming exactly — `FullMatch`, `PartialMatch`,
- * `QuoteMeta`, `set_longest_match`, `ANCHOR_START`, … — spelled the way an RE2 user already
- * types them, not translated to REAL's own naming conventions; that is the entire point of a
- * drop-in.
+ * Names follow RE2's `re2.h` exactly (`FullMatch`, `set_longest_match`, `ANCHOR_START`, …). This wraps
+ * `real::regex` and `real::regex_set`: no RE2 dependency at run time.
  *
- * REAL is a near-total syntax superset of RE2: it compiles everything RE2 compiles, plus bounded
- * lookarounds and possessive quantifiers (which RE2 rejects outright) and a wider Unicode property
- * set — namespaced `\p{gc=…}`/`\p{sc=…}`/`\p{scx=…}` and the UCD binary properties
- * (`\p{Alphabetic}`, `\p{Emoji}`, …), which RE2's `\p{…}` grammar lacks. Two constructs are the
- * deliberate exceptions where REAL is intentionally *stricter* than RE2 — principled divergences,
- * not unimplemented gaps: (1) **duplicate capturing-group names** (`(?P<n>…)(?P<n>…)`) — RE2
- * tolerates them; REAL rejects them because its named-capture lookup (match-by-name) would be
- * ambiguous with a repeated name (capture-safety); (2) **surrogate code points** in
- * `\x{…}`/`\u`/`\U`/`\N` (e.g. `\x{D800}`) — RE2 does not validate them, REAL rejects them through
- * the same Unicode-scalar validation it applies to every code-point escape. Both surface as a
- * clean `ok() == false`, and are the only two entries in this layer's `fuzz_re2` KNOWN-GAP ledger.
- * So this wraps `real::regex` / `real::regex_set` directly: **no RE2 dependency at runtime**
- * (header-only, zero-dep; RE2 is a test-time oracle only, never linked by this header or anything
- * it includes).
+ * REAL compiles everything RE2 compiles, plus bounded lookarounds, possessive quantifiers and wider Unicode
+ * properties (`\p{sc=…}`, `\p{Emoji}`, …). It is deliberately stricter in two places: duplicate group names
+ * (match-by-name would be ambiguous) and surrogate code points in `\x{…}`, `\u`, `\U`, `\N` (not Unicode
+ * scalars). Both surface as `ok() == false`.
  *
- * **No fallback policy.** The `std::regex` compat layer can delegate an ineligible pattern to
- * `std::regex` (`policy::fallback`) because `std::regex` is always there. RE2 is not a runtime
- * dependency here, so there is nothing to fall back to: a pattern or option this layer cannot
- * honor is a clean, immediate rejection (`ok() == false`, `error()` explains why) — the same
- * shape RE2 itself uses for a syntax error, so callers already know how to handle it. RE2 itself
- * has no exceptions (`RE2 re("(broken"); if (!re.ok()) …`); this layer follows that contract
- * rather than std::regex's throwing one.
+ * **No fallback, no exceptions.** A pattern or option this layer cannot honor is rejected as RE2 rejects a
+ * syntax error: `ok() == false`, with `error()` saying why.
  *
- * **Scope.** Matches RE2's *default* mode (`Options::posix_syntax() == false`,
- * `Options::encoding() == Options::EncodingUTF8`) — REAL's own text mode is the documented parity
- * point (codepoint-aware, `flags::ecma`-free since RE2 is Perl-flavored, not ECMAScript-flavored).
- * `posix_syntax`, Latin-1, `never_nl`, and `never_capture` have no REAL-side equivalent and are
- * rejected at construction (`ErrorUnsupported`) rather than silently ignored; `perl_classes`,
- * `word_boundary`, and `one_line` are inert here for the same reason they are inert in real RE2
- * outside `posix_syntax` mode (its own documented behavior, not a new divergence). `longest_match`
- * is honored by every unanchored-search operation — `PartialMatch`, `FindAndConsume`, `Replace`,
- * `GlobalReplace` — via `real::regex::search_longest()`/`find_iter_longest()`, REAL's own,
- * pre-existing, documented RE2 `set_longest_match` equivalents; `FullMatch`/`Consume`'s anchored
- * boundaries do not depend on it (matching text is matching text end-to-end either way), and its
- * effect on capture tie-breaking inside an ambiguous alternation is the same non-POSIX-submatch
- * caveat RE2 itself documents as shared, not a new one.
+ * **Scope.** RE2's default mode: UTF-8, no `posix_syntax`. `posix_syntax`, Latin-1, `never_nl` and
+ * `never_capture` are rejected at construction (`ErrorUnsupported`), never ignored; `perl_classes`,
+ * `word_boundary` and `one_line` are inert, as in RE2 outside `posix_syntax`. `longest_match` is honored by
+ * every unanchored search (`PartialMatch`, `FindAndConsume`, `Replace`, `GlobalReplace`); captures inside
+ * an ambiguous alternation then carry RE2's own non-POSIX caveat.
  *
- * **`\C` (RE2's raw-byte escape) is accepted**, matching real RE2's own default-mode behavior
- * exactly: it consumes exactly one byte, unconditionally, possibly landing mid-codepoint. Safe
- * here specifically because this layer's whole API is byte-offset C++ (mirroring RE2's own) — the
- * char-offset hazard that keeps `\C` gated to `flags::bytes` on REAL-native, char-offset surfaces
- * (e.g. the Python `str` binding, which cannot reach this flag) never applies to `real::compat::re2`.
+ * **`\C` is accepted**, as in RE2: exactly one byte, possibly mid-codepoint. Safe here because this API is
+ * byte-offset, as RE2's is; REAL's char-offset surfaces keep it behind `flags::bytes`.
  */
 #ifndef REAL_RE2_RE2_HPP
 #define REAL_RE2_RE2_HPP
 
-// A public entry point: #include <real/compat/re2/re2.hpp>. It pulls in re2/arg.hpp, which is
-// internal and carries the usual banner.
+// A public entry point; the re2/arg.hpp it includes is internal.
 
 #include <real/version.hpp>
 
@@ -78,10 +48,8 @@ namespace real::compat::re2 {
   /*!
    * \brief RE2-compatible drop-in for `RE2`. Backed by `real::regex` — linear-time, ReDoS-safe.
    *
-   * Copyable and movable (real RE2 deletes both, for pointer-stability reasons this wrapper does
-   * not share — `real::regex` copies cheaply). A pattern this layer cannot honor does not throw:
-   * construction always succeeds syntactically, and `ok()`/`error()`/`error_code()` report the
-   * rejection, exactly mirroring how RE2 itself reports a syntax error.
+   * Copyable and movable, where RE2 deletes both (`real::regex` copies cheaply). A rejected pattern does not
+   * throw: `ok()`, `error()` and `error_code()` report it, as RE2 does.
    */
   class RE2
   {
@@ -134,12 +102,10 @@ namespace real::compat::re2 {
       {}
 
       /*!
-       * \brief The memory budget for the compiled pattern, as RE2's: two thirds of it bound the program,
-       *        and a pattern past that fails to compile (`ErrorPatternTooLarge`). Measured in bytes of REAL's
-       *        program, which differ from RE2's (12 per instruction against 8, no shared prefixes), so a
-       *        lowered budget does not reject exactly the patterns RE2 rejects. At most 1, RE2 bounds the
-       *        program to 100 000 instructions instead, and so does this. The default rejects no pattern
-       *        REAL compiles: its largest program is well inside it.
+       * \brief The compiled-pattern budget, as RE2's: a program past two thirds of it fails with
+       *        `ErrorPatternTooLarge` (at most 1, a 100 000-instruction bound applies instead). Counted in
+       *        REAL's program bytes (12 per instruction against RE2's 8, no shared prefixes), so a lowered
+       *        budget does not reject exactly what RE2 rejects; the default rejects nothing REAL compiles.
        * \return The budget, in bytes.
        */
       [[nodiscard]] std::int64_t max_mem() const noexcept
@@ -175,8 +141,7 @@ namespace real::compat::re2 {
       }
 
       /*!
-       * \brief Whether the pattern is restricted to POSIX egrep syntax. Always rejected here (no
-       *        REAL-side equivalent grammar mode) if set to `true`.
+       * \brief Whether the pattern is restricted to POSIX egrep syntax; `true` is rejected at construction.
        * \return Whether POSIX-ERE syntax is selected.
        */
       [[nodiscard]] bool posix_syntax() const noexcept
@@ -194,8 +159,7 @@ namespace real::compat::re2 {
       }
 
       /*!
-       * \brief Whether to search for the longest match instead of the first. Honored for
-       *        `PartialMatch` (via `real::regex::search_longest()`); see the file-level doc comment.
+       * \brief Whether to search for the longest match instead of the first; honored by every unanchored search.
        * \return Whether leftmost-longest semantics are selected.
        */
       [[nodiscard]] bool longest_match() const noexcept
@@ -223,9 +187,8 @@ namespace real::compat::re2 {
       }
 
       /*!
-       * \brief Sets `log_errors`. Only an explicit `set_log_errors(true)` arms the logging -- the message RE2
-       *        writes to stderr on a failed compile, "Error parsing" with the pattern and the error -- so code that never
-       *        asked for it sees nothing new; `set_log_errors(false)` disarms it.
+       * \brief Sets `log_errors`. Only an explicit `set_log_errors(true)` arms RE2's stderr message on a failed
+       *        compile; `set_log_errors(false)` disarms it.
        * \param[in] value The new setting.
        */
       void set_log_errors(bool value) noexcept
@@ -254,8 +217,7 @@ namespace real::compat::re2 {
       }
 
       /*!
-       * \brief Whether the pattern must never match `\n`, even where the pattern text says it
-       *        should. Always rejected here (no REAL-side equivalent) if set to `true`.
+       * \brief Whether the pattern must never match `\n`; `true` is rejected at construction.
        * \return Whether `.` and negated classes are barred from matching a newline.
        */
       [[nodiscard]] bool never_nl() const noexcept
@@ -291,9 +253,8 @@ namespace real::compat::re2 {
       }
 
       /*!
-       * \brief Whether every `(...)` parses as non-capturing. Always rejected here (this layer
-       *        always captures every group; honoring `true` silently would change
-       *        `NumberOfCapturingGroups()` and which `Arg` extractions succeed) if set to `true`.
+       * \brief Whether every `(...)` parses as non-capturing; `true` is rejected at construction, since ignoring
+       *        it would change `NumberOfCapturingGroups()` and the `Arg` extractions.
        * \return Whether capturing groups are demoted to non-capturing.
        */
       [[nodiscard]] bool never_capture() const noexcept
@@ -311,8 +272,7 @@ namespace real::compat::re2 {
       }
 
       /*!
-       * \brief Whether matching is case-sensitive by default (overridable per-pattern with `(?i)`,
-       *        same interaction RE2 itself documents). Honored via `flags::icase` when `false`.
+       * \brief Whether matching is case-sensitive (a pattern's `(?i)` overrides it, as in RE2).
        * \return Whether matching is case-sensitive.
        */
       [[nodiscard]] bool case_sensitive() const noexcept
@@ -330,8 +290,7 @@ namespace real::compat::re2 {
       }
 
       /*!
-       * \brief Only consulted by real RE2 under `posix_syntax`, which this layer rejects — inert
-       *        here for the same reason it is inert in real RE2 outside `posix_syntax` mode.
+       * \brief Read by RE2 only under `posix_syntax`, which this layer rejects: inert, as in RE2 without it.
        * \return Whether Perl classes (`\\d`, `\\s`, `\\w`) are enabled.
        */
       [[nodiscard]] bool perl_classes() const noexcept
@@ -349,8 +308,7 @@ namespace real::compat::re2 {
       }
 
       /*!
-       * \brief Only consulted by real RE2 under `posix_syntax`, which this layer rejects — inert
-       *        here for the same reason it is inert in real RE2 outside `posix_syntax` mode.
+       * \brief Inert, as \ref perl_classes is.
        * \return Whether `\\b` and `\\B` are enabled.
        */
       [[nodiscard]] bool word_boundary() const noexcept
@@ -368,8 +326,7 @@ namespace real::compat::re2 {
       }
 
       /*!
-       * \brief Only consulted by real RE2 under `posix_syntax`, which this layer rejects — inert
-       *        here for the same reason it is inert in real RE2 outside `posix_syntax` mode.
+       * \brief Inert, as \ref perl_classes is.
        * \return Whether `^`/`$` match only at the text edges.
        */
       [[nodiscard]] bool one_line() const noexcept
@@ -407,16 +364,15 @@ namespace real::compat::re2 {
     };
 
     /*!
-     * \brief A coarse error taxonomy — this layer does not reproduce RE2's fine-grained,
-     *        14-value `ErrorCode` (REAL's own parser has a different internal classification);
-     *        `error()` always carries the human-readable detail.
+     * \brief A coarse error taxonomy, not RE2's 14 codes (REAL's parser classifies differently); `error()`
+     *        carries the detail.
      */
     enum class ErrorCode : std::uint8_t
     {
       NoError,              //!< `ok() == true`.
       ErrorSyntax,          //!< The pattern is malformed (rejected by RE2 too).
       ErrorUnsupported,     //!< Well-formed, but outside this layer's supported subset (see `error()`).
-      ErrorPatternTooLarge, //!< The compiled pattern exceeds `max_mem`, or REAL's own program bound (RE2's text: "pattern too large - compile failed").
+      ErrorPatternTooLarge, //!< The compiled pattern exceeds `max_mem`, or REAL's own program bound.
     };
 
     /*!
@@ -439,13 +395,8 @@ namespace real::compat::re2 {
     static constexpr ErrorCode ErrorPatternTooLarge {ErrorCode::ErrorPatternTooLarge}; //!< As RE2's `RE2::ErrorPatternTooLarge`.
 
     /*!
-     * \brief `RE2::Set` — a set of patterns tested together. Mirrors real RE2's `Set`: buffer
-     *        patterns with `Add`, `Compile` once, then `Match` repeatedly. Maps directly onto
-     *        REAL's native `real::regex_set::which()` (index-list semantics match exactly).
-     *
-     * `Anchor` is synthesized by wrapping each added pattern (`^(?:…)`/`^(?:…)$`) before compiling,
-     * since `real::regex_set` itself is natively unanchored-search only — documented here rather
-     * than silently assumed.
+     * \brief `RE2::Set`: `Add` patterns, `Compile` once, then `Match` repeatedly, on `real::regex_set::which()`.
+     *        The anchor is applied by wrapping each pattern, `real::regex_set` being unanchored.
      */
     class Set
     {
@@ -562,7 +513,7 @@ namespace real::compat::re2 {
       Anchor                              anchor_;                   //!< The anchor mode every member is matched with.
       std::vector<std::string>            patterns_;                 //!< Buffered, already anchor-wrapped member patterns.
       std::optional<real::regex_set>      set_;                      //!< Engaged once `Compile` succeeds.
-      std::size_t                         program_bytes_        {0}; //!< The members' programs, in bytes (\ref RE2::program_bytes).
+      std::size_t                         program_bytes_        {0}; //!< The members' programs, in bytes (`RE2::program_bytes`).
       std::size_t                         program_instructions_ {0}; //!< The members' instructions.
     };
 
@@ -579,11 +530,8 @@ namespace real::compat::re2 {
     /*!
      * \brief Compiles \p pattern with default options. Implicit; see the `const char*` overload.
      *
-     * A separate overload from the `std::string_view` one below, not merely a call site of it:
-     * `std::string`'s own conversion to `std::string_view` is itself user-defined, and C++ allows
-     * at most one user-defined conversion in an implicit sequence, so a lone `string_view`
-     * constructor would make `FullMatch(text, some_std_string, &arg)` stop compiling implicitly
-     * (real RE2 keeps the same three-constructor split for the same reason).
+     * Not mergeable into the `std::string_view` overload: a `std::string` would then need two user-defined
+     * conversions to become an `RE2`, and `FullMatch(text, some_string, &arg)` would stop compiling.
      * \param[in] pattern The pattern text.
      */
     RE2(const std::string& pattern)
@@ -796,10 +744,8 @@ namespace real::compat::re2 {
      * \p rewrite may reference groups RE2-style: `\0` (whole match), `\1`…`\9`, `\\` for a literal
      * backslash.
      *
-     * Empty-match policy matches real RE2's `GlobalReplace`: a zero-width match whose start
-     * equals the end of the previous (accepted) match is skipped — it abuts the prior match and
-     * must not produce a second rewrite (e.g. `a*` on `"aa"` yields one replacement, not two).
-     * Legitimate non-abutting empty matches (e.g. `a*` on `"bbb"` → `#b#b#b#`) are still applied.
+     * As in RE2, an empty match starting where the previous match ended is skipped (`a*` over `aa` gives one
+     * replacement); other empty matches are replaced (`a*` over `bbb` gives `#b#b#b#`).
      * \param[in,out] str     The subject; rewritten in place only if every match's \p rewrite
      *                        expansion succeeds.
      * \param[in]     re      The pattern (an `RE2`, or a pattern text implicitly converted to one).
@@ -821,8 +767,6 @@ namespace real::compat::re2 {
       std::size_t  prev_end       {};
       const auto   matches        {re.longest_match_ ? re.regex_->find_iter_longest(*str) : re.regex_->find_iter(*str)};
       for (const auto& match : matches) {
-        // RE2 empty-abut skip: do not rewrite a zero-width match that starts exactly where the
-        // previous accepted match ended (nullable quantifier trailing empty after a greedy run).
         if (match.start() == match.end() && have_prev_end && match.start() == prev_end) {
           continue;
         }
@@ -910,14 +854,11 @@ namespace real::compat::re2 {
     /*!
      * \brief Translates the `Options` fields this layer honors into `real::flags`.
      * \param[in] options The options to translate.
-     * \return The equivalent `real::flags` set.
+     * \return The equivalent \ref real::flags set.
      */
     [[nodiscard]] static real::flags options_to_flags(const Options& options)
     {
-      // allow_raw_byte, unconditionally: this layer's whole API is byte-offset C++ (mirroring RE2's
-      // own), so \C landing mid-codepoint is exactly as safe here as it is under flags::bytes -- the
-      // char-offset hazard the gate protects against (e.g. the Python str binding) never applies to
-      // real::compat::re2. Widens the *gate* only; \C still always consumes exactly one raw byte.
+      // allow_raw_byte always: `\C` is safe on this byte-offset API (see the file comment).
       real::flags result {real::flags::allow_raw_byte};
       if (!options.case_sensitive()) {
         result = result | real::flags::icase;

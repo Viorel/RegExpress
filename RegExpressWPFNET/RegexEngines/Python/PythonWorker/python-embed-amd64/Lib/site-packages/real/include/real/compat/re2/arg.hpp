@@ -2,17 +2,13 @@
  * \file re2/arg.hpp
  * \brief `real::compat::re2` — `RE2::Arg`, the type-erased submatch-parser cell.
  *
- * Mirrors real RE2's own mechanism (`re2.h`, `class RE2::Arg`): a `void*` destination plus a
- * function-pointer parser, so `FullMatch`/`PartialMatch`/`Consume`/`FindAndConsume` can accept a
- * heterogeneous, variadic list of output pointers (`&i`, `&s`, `&d`, …) without a virtual call or
- * an `any`-style allocation.
+ * As RE2's: a `void*` destination and a function-pointer parser, so the match functions take a variadic
+ * list of output pointers (`&i`, `&s`, …) without a virtual call or an allocation.
  */
 #ifndef REAL_RE2_ARG_HPP
 #define REAL_RE2_ARG_HPP
 
-// Internal — do not include directly.
-// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
-// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
+// Internal — do not include directly; the entry point is <real/compat/re2/re2.hpp>.
 
 #include <real/version.hpp>
 
@@ -27,13 +23,9 @@
 namespace real::compat::re2 {
 
   /*!
-   * \brief A type-erased destination for one captured submatch, built implicitly from `T*`.
-   *
-   * Constructed implicitly from a pointer to any supported destination type (`std::string`,
-   * `std::string_view`, `bool`, or an integral/floating-point type), or from `nullptr` to skip a
-   * group without extracting it. `FullMatch`/`PartialMatch`/`Consume`/`FindAndConsume` take these
-   * by value in a variadic pack; each successful `parse` writes into the pointee, a failed one
-   * (a submatch that does not convert, e.g. text into an `int`) fails the whole match call.
+   * \brief A type-erased destination for one captured submatch, built implicitly from a pointer to
+   *        `std::string`, `std::string_view`, `bool` or an arithmetic type, or from `nullptr` to skip the
+   *        group. A submatch that does not convert fails the whole match call.
    */
   class Arg
   {
@@ -130,9 +122,8 @@ namespace real::compat::re2 {
     }
 
     /*!
-     * \brief Parses into an integral type via `std::from_chars` (base 10, locale-free). One leading `+` is
-     *        accepted, as RE2's `strtol`-based parse accepts it; `std::from_chars` alone rejects it. A `-` on an
-     *        unsigned destination is rejected, as RE2 rejects it.
+     * \brief Parses into an integral type, base 10, locale-free. As RE2's `strtol`-based parse, one leading `+`
+     *        is accepted (`std::from_chars` alone rejects it) and a `-` on an unsigned destination is not.
      * \tparam    T      An integral destination type.
      * \param[in]  text   The submatch's first byte.
      * \param[in]  length The submatch's length in bytes.
@@ -159,16 +150,12 @@ namespace real::compat::re2 {
     }
 
     /*!
-     * \brief Parses into a floating-point type via the `strto*` matching \p T, on a NUL-terminated buffer.
+     * \brief Parses into a floating-point type with the `strto*` matching \p T, on a NUL-terminated copy.
      *
-     * Not `std::from_chars`: some standard libraries explicitly delete its floating-point overload, so
-     * the `strto*` family is the portable floor rather than a preference. They read the decimal separator
-     * of the C locale in force: under a locale whose separator is `,`, `"1,5"` parses and `"1.5"` does not.
-     * RE2 parses through the same functions and behaves the same way, which this keeps.
-     *
-     * The conversion is picked to match \p T rather than always going through `double`: parsing a `float`
-     * with `strtod` would accept a value the destination cannot hold and silently narrow it to infinity,
-     * where `strtof` reports the overflow through `ERANGE`. RE2 dispatches the same way.
+     * Not `std::from_chars`, whose floating-point overload some standard libraries delete. As in RE2, the C
+     * locale's decimal separator applies (under a `,` locale, 1,5 parses and 1.5 does not), and the function
+     * follows \p T: `strtod` into a `float` would narrow an out-of-range value to infinity, where `strtof`
+     * reports `ERANGE`.
      * \tparam    T      A floating-point destination type.
      * \param[in]  text   The submatch's first byte.
      * \param[in]  length The submatch's length in bytes.

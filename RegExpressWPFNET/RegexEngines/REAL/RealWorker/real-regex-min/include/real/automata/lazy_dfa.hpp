@@ -2,16 +2,10 @@
  * \file lazy_dfa.hpp
  * \brief A lazy, priority-preserving forward DFA over the Pike program (the kFirstMatch forward pass + cache).
  *
- * DISTINCT from \ref real::dfa (`<real/dfa.hpp>`): that one is a capture-free *maximal-munch* recognizer
- * over unordered NFA-state sets (a lexer's rule dispatch). This one memoizes the *leftmost-first* Pike
- * closure — its DFA states are **ordered** NFA-state sets, so a `kFirstMatch` forward pass reports the same
- * match boundary the Pike VM would. It reuses only the byte-class idea (an alphabet smaller than 256), not
- * that engine's subset construction.
- *
- * \note The forward pass (`forward_end`), the reverse start-finder (`reverse_dfa`) and the byte-program
- *       that makes a Unicode `klass_cp` DFA-representable are wired into the matcher: pike.hpp routes an
- *       eligible search through them (forward end + reverse start, then the Pike VM on the located window).
- *       Dynamic only: the cache is mutable, so it never participates in constant evaluation.
+ * Not \ref real::dfa (`<real/dfa.hpp>`), a maximal-munch recognizer over unordered NFA-state sets. Here a
+ * DFA state is an **ordered** NFA-state set memoizing the leftmost-first Pike closure, so the forward pass
+ * reports the boundary the Pike VM would. pike.hpp routes an eligible search through the forward end, the
+ * reverse start (`reverse_dfa`), then the VM on the located window. Dynamic only: the cache is mutable.
  */
 #ifndef REAL_LAZY_DFA_HPP
 #define REAL_LAZY_DFA_HPP
@@ -38,19 +32,14 @@
 
 namespace real::detail {
 
-  //! \brief Cap on how far a jump chain is followed to a loop head (empty-iteration exit routing);
-  //!        a loop join reaches its split in one hop, so this is a generous bound, never a hot cost.
-  // A GENEROUS BOUND on an unreachable path, not a tuning knob: a loop join reaches its split in one
-  // hop, so eight is headroom against a shape the compiler does not emit. Nothing guards its value,
-  // because no pattern gets near it -- which is the intent, and a test manufacturing a nine-hop chain
-  // would pin the bound rather than any behaviour the engine has. Namespace-scoped because every closure
-  // walk -- the VM's, the backtracker's, the lazy DFA's, the DFA fidelity decision's -- reads the same bound.
+  //! \brief Cap on how far a jump chain is followed to a loop head (empty-iteration exit routing), shared
+  //!        by every closure walk; a loop join reaches its split in one hop, so eight is headroom, not a knob.
   inline constexpr int max_loop_hops {8};
 
   /*!
    * \brief Test seam: force the matcher off the lazy-DFA route onto the pure Pike VM, so a differential can
-   *        assert that routed and unrouted searches give identical results within one binary. Not for
-   *        production use — the routing is transparent by contract, and this only exists to prove it.
+   *        assert routed and unrouted searches agree in one binary. Not for production use (applies to every
+   *        `*_disabled` seam below).
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& lazy_dfa_route_disabled()
@@ -59,9 +48,8 @@ namespace real::detail {
     return disabled;
   }
 
-  //! Bytes one lazy DFA's state cache may hold by default (pc-sets, rows, hash entries), per direction: past
-  //! it the cache flushes as it does past its state budget. Above what any alternation of 2 000 words builds
-  //! without thrashing (30 MB); a pattern past it flushes, and a scan that keeps flushing quits to the VM.
+  //! Default bytes one lazy DFA's state cache may hold per direction; past it the cache flushes, and a scan
+  //! that keeps flushing quits to the VM. Above the 30 MB a 2 000-word alternation builds without thrashing.
   inline constexpr std::size_t lazy_dfa_default_byte_budget {std::size_t {64} << 20U};
 
   /*!
@@ -76,8 +64,7 @@ namespace real::detail {
 
   /*!
    * \brief Test seam: force the general loop off the bounded backtracker onto the Pike VM, so a
-   *        differential can assert that both give the same answer on every small subject. Not for production
-   *        use -- the backtracker reproduces the VM's priority order by contract, and this proves it.
+   *        differential can assert both agree on every small subject.
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& bounded_backtrack_route_disabled()
@@ -87,10 +74,8 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test seam: force the matcher off the inner-literal search route onto the core search, so a
-   *        differential can assert routed and unrouted searches agree. Not for production use — the route is
-   *        transparent by contract (its reverse bound never advances mid-search, so it cannot miss a leftmost
-   *        match), and this only exists to prove it.
+   * \brief Test seam: force the matcher off the inner-literal search route onto the core search. The route
+   *        cannot miss a leftmost match because its reverse bound never advances mid-search.
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& inner_literal_route_disabled()
@@ -100,8 +85,8 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test seam: force off the rare-discriminant prefilter (`https?://` memchr-`:` route)
-   *        onto prefix/first-byte search, so a differential can assert routed and unrouted agree.
+   * \brief Test seam: force off the rare-discriminant prefilter (`https?://` memchr-`:` route) onto
+   *        prefix/first-byte search.
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& rare_disc_route_disabled()
@@ -111,12 +96,10 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test seam: force the inner-literal small-haystack guard off, so the route fires on any size. In
-   *        production the guard uses a cold floor (\ref regex_immutables::il_min_haystack) on the first
-   *        candidate-scan and \ref il_warm_floor thereafter (shared reverse DFA in \ref shared_dfa_slot).
-   *        Correctness suites use tiny inputs, so they set this to exercise the route rather than the core
-   *        fallback. Not for production use.
-   * \return Reference to the process-wide seam flag; set it to true to take the route out.
+   * \brief Test seam: force the inner-literal small-haystack guard off, so the route fires on any size and
+   *        tiny correctness inputs exercise it. The guard uses \ref regex_immutables::il_min_haystack on the
+   *        first candidate scan and \ref il_warm_floor thereafter.
+   * \return Reference to the process-wide seam flag; set it to true to take the guard out.
    */
   inline bool& inner_literal_guard_disabled()
   {
@@ -125,9 +108,7 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test seam: force the matcher off the trailing-lookaround class+ route onto the pure Pike VM, so a
-   *        differential can assert routed and unrouted searches agree. Not for production use — the route is
-   *        transparent by contract (same leftmost-first spans as the general loop on the eligible shape).
+   * \brief Test seam: force the matcher off the trailing-lookaround class+ route onto the pure Pike VM.
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& trailing_la_route_disabled()
@@ -138,10 +119,7 @@ namespace real::detail {
 
   /*!
    * \brief Test seam: force the matcher off the heterogeneous fixed-shape pair-filter route onto the
-   *        ordinary \c run_fixed_shape walk, so a differential can assert routed and unrouted agree.
-   *        The route is transparent by contract (it only *filters* candidates; the same
-   *        `match_fixed_body_wb` verify decides every one of them), and this seam is what proves it.
-   *        Not for production use.
+   *        ordinary \c run_fixed_shape walk. The route only filters; `match_fixed_body_wb` decides each candidate.
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& fixed_shape_pair_route_disabled()
@@ -152,16 +130,8 @@ namespace real::detail {
 
   /*!
    * \brief Test seam: force the matcher off the fixed-shape walk (\c run_fixed_shape) onto the general
-   *        Pike loop, so a differential can assert routed and unrouted agree.
-   *
-   *        This route had NO seam, and that gap was not harmless: it is what `date`
-   *        (`[0-9]{4}-[0-9]{2}-[0-9]{2}`, docs/BENCHMARKS.md §A's weakest row) actually takes, and the
-   *        test that claimed to cover the shape reached for \ref inner_literal_route_disabled instead --
-   *        which does nothing for a `fixed_shape` pattern, because the inner-literal gate excludes them.
-   *        Both arms of that differential therefore ran the same code and asserted nothing. Verified with
-   *        the route counters: routed and unrouted both billed `fixed_shape` 3092 times over 3091
-   *        matches.
-   *        Not for production use.
+   *        Pike loop. \ref inner_literal_route_disabled does not reach a `fixed_shape` pattern (the
+   *        inner-literal gate excludes it); a differential on one needs this seam.
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& fixed_shape_route_disabled()
@@ -171,10 +141,8 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test/profile seam: skip dedicated class-scan fast paths (byte class-loop, cp-class-loop,
-   *        and codepoint_class / negated-class `.`/`[^,]+`) so a pattern that would take them falls
-   *        through to lazy-DFA / general (dispatch-optimality audit; matrix4d class-scan rows). Not for
-   *        production — same contract as the other route-disabled seams.
+   * \brief Test/profile seam: skip the dedicated class-scan fast paths (byte class-loop, cp-class-loop,
+   *        codepoint_class, negated-class `.`/`[^,]+`), so such a pattern falls through to lazy-DFA / general.
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& class_fastpath_disabled()
@@ -184,10 +152,8 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test/profile seam : force the matcher off the possessive-loop fast paths
-   *        (bare/suffixed/delimited `X*+`/`X++`) onto the general VM, so a differential can assert
-   *        route-auto and forced-general agree on every input — the route-agreement pattern applied to the new
-   *        recognizers. Not for production use — same contract as the other route-disabled seams.
+   * \brief Test/profile seam: force the matcher off the possessive-loop fast paths
+   *        (bare/suffixed/delimited `X*+`/`X++`) onto the general VM.
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& possessive_fastpath_disabled()
@@ -197,10 +163,8 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test seam : force the matcher off the Aho-Corasick multi-literal route (past the
-   *        branch-count threshold) onto the existing \ref pattern_hints::fixed_alternation
-   *        `run_alternation` path, so a differential can assert routed and unrouted searches agree.
-   *        Not for production use — same contract as the other route-disabled seams.
+   * \brief Test seam: force the matcher off the Aho-Corasick multi-literal route onto the
+   *        \ref pattern_hints::fixed_alternation `run_alternation` path.
    * \return Reference to the process-wide seam flag; set it to true to take the route out.
    */
   inline bool& aho_corasick_route_disabled()
@@ -210,9 +174,8 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test seam: keep an alternation's block scans on its first bytes, whatever its subject's density, so a
-   *        differential can assert the pair filter and the first-byte scan find the same matches in one binary.
-   *        Not for production use — same contract as the other route-disabled seams.
+   * \brief Test seam: keep an alternation's block scans on its first bytes whatever the subject's density,
+   *        so a differential can compare the pair filter with the first-byte scan.
    * \return Reference to the process-wide seam flag; set it to true to take the pair filter out.
    */
   inline bool& alternation_pairs_disabled()
@@ -222,9 +185,8 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test seam: mask a dense alternation's blocks by its byte pairs rather than by the nibble fingerprint,
-   *        so a differential can assert both filters find the same matches in one binary. Same contract as the
-   *        other route-disabled seams.
+   * \brief Test seam: mask a dense alternation's blocks by its byte pairs rather than by the nibble
+   *        fingerprint, so a differential can compare both filters.
    * \return Reference to the process-wide seam flag; set it to true to take the fingerprint out.
    */
   inline bool& alternation_nibbles_disabled()
@@ -234,15 +196,10 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test seam : take the Aho-Corasick DENSITY gate out, so the route is chosen on branch
-   *        count alone — the behaviour that shipped before the gate existed.
+   * \brief Test seam: take the Aho-Corasick density gate out, so the route is chosen on branch count alone.
    *
-   * Distinct from \ref aho_corasick_route_disabled, and both are needed to say anything about the
-   * gate: that one answers "cascade or automaton", this one answers "who decided". Without it a
-   * harness setting `aho_corasick_route_disabled() = false` is not forcing the automaton at all, it
-   * is merely declining to forbid it, and the gate then routes the subject wherever it likes — so a
-   * column labelled "AC on" silently becomes a column measuring the gate. That happened, and the
-   * numbers looked like a regression in the automaton rather than a mislabelled arm.
+   * `aho_corasick_route_disabled() = false` only declines to forbid the automaton; the gate still decides.
+   * A harness forcing the automaton needs this seam too.
    *
    * \return Reference to the process-wide seam flag; set it to true to route on branch count alone.
    */
@@ -253,18 +210,11 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Test observability : whether the inner-literal density gate last abandoned the route.
+   * \brief Test observability: whether the inner-literal density gate last abandoned the route.
    *
-   * The gate decides only which of two routes runs, and both produce identical spans by contract --
-   * which is what leaves `tests/engine/test_il_density_gate.cpp` unable to see it at all. That file
-   * pins semantic transparency, correctly and thoroughly, and therefore cannot react to
-   * \ref real::detail::pike_vm::il_density_milli_threshold moving: the spans are equal whichever way
-   * the gate goes. That is why the constant has no test guarding its value -- there is nothing semantic
-   * to assert, and this seam is what makes the two routes comparable at all.
-   *
-   * One store, on a path that already writes two sticky fields beside it. Atomic because every search
-   * that abandons writes it, from whatever thread runs the search: a plain `bool` is a data race between
-   * two threads searching at once. The store is relaxed, which compiles to the plain store it replaces.
+   * Both routes give identical spans, so no span test can see the gate or
+   * \ref real::detail::pike_vm::il_density_milli_threshold; this flag is what a test asserts. Atomic because
+   * concurrent searches all write it; the relaxed store costs a plain store.
    *
    * \return Reference to the process-wide flag; clear it before a search to arm it.
    */
@@ -285,19 +235,12 @@ namespace real::detail {
   };
 
   /*!
-   * \brief Test observability : the AC density gate's most recent verdict.
+   * \brief Test observability: the AC density gate's most recent verdict.
    *
-   * The gate decides only which of two routes runs, and both produce identical spans by contract --
-   * which is exactly what makes it untestable from the outside. The obvious substitute, asserting
-   * that the guarded run is much faster than the forced one, is not portable across build
-   * configurations: the margin is ~5.9x optimised and 1.4x under ASan/UBSan, because sanitizer
-   * overhead is additive per operation and so dilutes the advantage of a route whose whole merit is
-   * SKIPPING bytes. That assertion turned the sanitize leg red while the engine was correct. Timing
-   * belongs in `benchmarks/ac_regime.cpp`; a test asserts the decision.
-   *
-   * One store per search, on the same path as the guard fields it reports on. Atomic for the reason
-   * \ref il_density_last_abandoned is: searches on different threads all write it. Relaxed, so the store
-   * costs what the plain one did.
+   * Both routes give identical spans, so a test asserts this decision, never a speed-up: the margin is
+   * ~5.9x optimised but 1.4x under ASan/UBSan (sanitizer cost is per operation, diluting a byte-skipping
+   * route). Timing belongs in `benchmarks/ac_regime.cpp`. Atomic and relaxed as
+   * \ref il_density_last_abandoned.
    *
    * \return Reference to the process-wide verdict; assign \ref ac_verdict::not_consulted to arm it.
    */
@@ -308,11 +251,9 @@ namespace real::detail {
   }
 
   /*!
-   * \brief A byte-level program derived from a Pike program for the DFA passes: every `klass_cp` construct
-   *        is expanded into UTF-8 byte-range split/klass chains, so the whole thing is byte-transition-only
-   *        and a forward DFA can represent it. The Pike program itself is untouched (byte-identity); this
-   *        is a private recognition view the DFAs own. `eligible` is false when an op no DFA can represent
-   *        (a position assertion or a lookaround) is present — the caller then keeps the Pike VM.
+   * \brief A byte-level view of a Pike program for the DFA passes: every `klass_cp` is expanded into UTF-8
+   *        byte-range split/klass chains, so a forward DFA can represent it; the Pike program is untouched.
+   *        `eligible` is false when an op no DFA can represent is present — the caller keeps the Pike VM.
    */
   struct byte_program
   {
@@ -324,30 +265,19 @@ namespace real::detail {
   };
 
   /*!
-   * \brief One node of a minimal deterministic UTF-8 trie for a code-point class. Its transitions are byte
-   *        ranges that are pairwise **disjoint**, so at most one edge matches any byte — that determinism is
-   *        what makes the byte-program one-pass-friendly. A target `>= 0` is a node id; `-1` is accept (a
-   *        code point ends here — the run continues at the construct's successor).
+   * \brief One node of a minimal deterministic UTF-8 trie for a code-point class. Its byte-range transitions
+   *        are pairwise **disjoint** (at most one edge matches a byte), which makes the byte-program
+   *        one-pass-friendly. A target `>= 0` is a node id; `-1` is accept (the run continues at the
+   *        construct's successor).
    */
   struct utf8_trie_node
   {
     /*!
      * \brief Outgoing edges: a byte range paired with its target, `-1` meaning accept. Pairwise disjoint.
      *
-     * \note **One heap block per node, and it dominates a cold first search, measured end to end
-     *       (2026.09.15, benchmarks/alloc_cold_probe.cpp): the tries are 98.5 % of
-     *       build_byte_program's 3 171 allocations -- `\w`'s alone is 2 757 -- and the build is
-     *       95.6 % of a cold first search's 3 317 for `\w+\d+`.** Flattening it into a pool is not
-     *       a local edit: two sources share
-     *       the count, this vector and the `bounds`/`tails` pair `builder::build` allocates at every
-     *       level -- and build is RECURSIVE, so those cannot share one scratch buffer. The shape that
-     *       works is a stack-disciplined arena, each level taking a slice and releasing it on return,
-     *       plus a flat transition pool with the memo's hash and compare working over spans.
-     *
-     *       The root cause sits above all of it: for a class like `\w`, almost everything this trie
-     *       recognises is code points a pure-ASCII subject cannot contain, and the subject IS known at
-     *       search time. An ASCII-first expansion would delete the work rather than make it cheaper --
-     *       see the design note above \ref build_byte_program.
+     * \note One heap block per node, ~98 % of build_byte_program's allocations (a cold first search's
+     *       cost). A pool needs a stack-disciplined arena for the recursive builder; an ASCII-first
+     *       expansion would remove the work instead (see \ref build_byte_program).
      */
     std::vector<std::pair<utf8_byte_range, std::int32_t>> trans;
   };
@@ -362,13 +292,10 @@ namespace real::detail {
   /*!
    * \brief Builds the minimal deterministic trie recognising a code-point class's UTF-8 byte sequences.
    *
-   * The naive expansion emits one alternation branch per UTF-8 range, and different ranges can share a lead
-   * byte with different continuations — two threads then cross that lead byte, which is byte-level
-   * non-determinism (a Unicode `\w` is thus never one-pass). This instead splits overlapping ranges into
-   * disjoint per-node transitions and hash-conses identical suffix sub-tries (Daciuk), yielding a
-   * deterministic automaton: it makes Unicode `\w \d \s` one-pass, and shrinks the byte-program dramatically
-   * (a `\w` collapses from thousands of instructions to a few hundred shared nodes, which the lazy DFA also
-   * profits from).
+   * One branch per UTF-8 range would let ranges sharing a lead byte cross it on two threads (never
+   * one-pass). Overlapping ranges are split into disjoint per-node transitions and identical suffix
+   * sub-tries hash-consed (Daciuk): Unicode `\w \d \s` become one-pass, and `\w` shrinks from thousands of
+   * instructions to a few hundred shared nodes.
    *
    * \param[in] cc        The code-point class to recognise.
    * \param[in] cp_ranges The program's range pool, which \c cc slices.
@@ -377,10 +304,8 @@ namespace real::detail {
   constexpr utf8_trie build_utf8_trie(const cp_class&             cc,
                                       std::span<const code_range> cp_ranges)
   {
-    // Sequences land in ONE buffer with an offset per sequence, not in a vector of vectors. Each sequence
-    // is 1 to 4 ranges, so as its own vector it reallocates at 1, 2 and 4 -- three heap blocks averaging a
-    // handful of bytes each, per sequence, and a Unicode class has thousands. Spans are taken only once
-    // the pool is complete, so no growth can invalidate one.
+    // One buffer plus offsets, not a vector per sequence (three tiny heap blocks each, thousands per class).
+    // Spans are taken only once the pool is complete, so no growth invalidates one.
     std::vector<utf8_byte_range> seq_pool;
     std::vector<std::size_t>     seq_at {0};
     for (int b = 0; b < 0x80;) { // ASCII: each contiguous run of set bits is a one-byte sequence
@@ -410,26 +335,21 @@ namespace real::detail {
     if (seq_at.size() == 1) {
       return trie;
     }
-    //! \brief A sequence's remaining byte ranges, as a view. The sequences in `seqs` outlive the whole
-    //!        recursion, so a suffix needs no copy -- `subspan(1)` replaces what would otherwise be a
-    //!        fresh vector per candidate per interval, once per level of a recursion over a whole class.
+    //! \brief A sequence's remaining byte ranges, as a view: the pool outlives the recursion, so a suffix
+    //!        is `subspan(1)`, never a copy.
     using seq_view = std::span<const utf8_byte_range>;
 
     struct builder
     {
       std::vector<utf8_trie_node>& nodes;
-      // Hash-cons index over FNV(trans), as an INTRUSIVE chain: `memo_head[bucket]` is a node id or -1,
-      // `memo_next[id]` the next id in that bucket. One inner vector per bucket would cost one allocation
-      // per bucket per trie, and more memory than the table they index. Head insertion is safe because a
-      // bucket only ever holds one
-      // representative per distinct `trans` -- an identical node returns the existing id and is not inserted
-      // -- so the walk order cannot change the result.
-      // The engine headers avoid std::hash / std::unordered_map, whose out-of-line libc++ symbols (e.g.
-      // __hash_memory) drift across toolchains; an in-house FNV over the transitions hash-conses with no
-      // string key per node.
+      // Hash-cons index as an intrusive chain: `memo_head[bucket]` is a node id or -1, `memo_next[id]` the
+      // next id in that bucket (no vector per bucket). Head insertion is order-independent: a bucket holds
+      // one representative per distinct `trans`.
       std::vector<std::int32_t>&   memo_head;
       std::vector<std::int32_t>&   memo_next;
 
+      // In-house FNV, never std::hash / std::unordered_map: their out-of-line libc++ symbols (e.g.
+      // __hash_memory) drift across toolchains.
       static constexpr std::uint64_t hash_trans(const std::vector<std::pair<utf8_byte_range, std::int32_t>>& trans)
       {
         std::uint64_t h {fnv1a_offset_basis};
@@ -455,11 +375,8 @@ namespace real::detail {
         return true;
       }
 
-      // Takes a span, not a vector: the recursive call then hands its child a prefix of its OWN `tails`
-      // rather than filling a second vector with the non-empty subset. Both vectors are also sized up
-      // front -- neither can exceed a bound known on entry -- so a level allocates twice and never
-      // re-allocates, against a growth series per interval per level. The trie's own vectors were the
-      // build's second-largest allocation source after the sequence pool.
+      // Takes a span so a child gets a prefix of this level's own `tails`; both vectors are reserved to a
+      // bound known on entry, so a level allocates twice and never re-allocates.
       constexpr std::int32_t build(std::span<const seq_view> in) // all non-empty sequences
       {
         std::vector<int> bounds;
@@ -491,8 +408,7 @@ namespace real::detail {
           }
           std::int32_t child {-1};
           if (!all_empty) { // UTF-8 is prefix-free, so within one interval the tails share a length
-            // Compact the non-empty tails to the front, order preserved, and recurse on that prefix.
-            // The child builds its own `tails`, so it never aliases this one.
+            // Compact the non-empty tails to the front, order preserved; the child builds its own `tails`.
             std::size_t kept {0};
             for (const seq_view& t : tails) {
               if (!t.empty()) {
@@ -555,14 +471,10 @@ namespace real::detail {
   /*!
    * \brief Intern table for UTF-8 edge byte ranges, keyed by the exact 16-bit `(lo << 8) | hi`.
    *
-   * An open-addressed probe table over a flat buffer rather than `std::unordered_map`, because this
-   * builder must also run inside a constant expression: `static_storage` builds its byte program at
-   * compile time, and no node-based standard container is constexpr-constructible before C++23.
-   *
-   * A slot holds `(key << 16) | (index + 1)`, so a zero slot means empty and the range `0x00..0x00`
-   * stays a legal key. The table grows at half load rather than capping, so a pattern with many
-   * distinct Unicode classes degrades in speed and never in correctness — a fixed capacity would
-   * either fill and spin or silently stop interning.
+   * Open-addressed over a flat buffer, not `std::unordered_map`: `static_storage` builds its byte program
+   * in a constant expression. A slot holds `(key << 16) | (index + 1)`, so zero means empty and
+   * `0x00..0x00` stays a legal key. It grows at half load, never caps: a fixed capacity would fill and
+   * spin or silently stop interning.
    */
   struct range_intern_table
   {
@@ -574,13 +486,9 @@ namespace real::detail {
     /*!
      * \brief Probe start for \p key: Fibonacci hashing — the key times 2^64/phi, keeping the high bits.
      *
-     * The keys cluster hard and arrive in near-runs (`lo` walks a trie node's disjoint ranges in order,
-     * and the continuation range `0x80..0xBF` sits on nearly every node), so the stride between
-     * consecutive keys is what decides whether the table is used or a quarter of it is. Taking the high
-     * bits of the 64-bit product gives a stride coprime with the table size; the 32-bit constant shifted
-     * by a fixed amount does not — its stride shares a factor of 4 with 1024, so three of every four
-     * buckets would be unreachable for a run of keys and the reachable quarter would be over 100% loaded
-     * at the half-load rehash point. Wrapping is intended (it is the modular multiply).
+     * Keys arrive in near-runs, so the stride between consecutive keys decides the table's use. Keep the
+     * 64-bit product: a shifted 32-bit constant has a stride sharing a factor of 4 with 1024, leaving
+     * three buckets in four unreachable. Wrapping is the intended modular multiply.
      *
      * \param[in] key  The 16-bit packed byte range.
      * \param[in] mask `slots.size() - 1`, the table being a power of two.
@@ -645,18 +553,9 @@ namespace real::detail {
    * \brief Emits \p trie into \p bp as a deterministic split/klass/jump fragment, interning each edge's
    *        byte range through \p seen.
    *
-   * Accept edges jump to \p after (the construct's successor); the root is emitted first, so the
-   * fragment's entry is its base pc, and disjoint ranges mean at most one branch matches any byte.
-   *
-   * Every edge class here is a SINGLE range (`set_range` below), so `(lo, hi)` is an exact key and two
-   * edges with the same range can share one interned class. Without that sharing a UTF-8 trie interns the
-   * same range once per edge -- the continuation range `0x80..0xBF` sits on nearly every node -- and the
-   * redundancy compounds across occurrences, since each `\w+` emits its own full trie. The caller owns
-   * \p seen so it spans every occurrence in one program, which is where most of the duplication lives.
-   *
-   * Sharing an index is safe because a class index is only ever read as "which byte set" -- the
-   * alphabet, `onepass`'s class_cover_, and the DFA all treat it that way; nothing uses it to tell two
-   * `klass` instructions apart.
+   * The root is emitted first, so the entry is the base pc. Equal edges share one class (`0x80..0xBF` sits
+   * on nearly every node): sound because a class index is only read as a byte set, never to tell `klass`
+   * ops apart.
    *
    * \param[in,out] bp    Byte program the fragment is appended to.
    * \param[in]     trie  The trie to emit.
@@ -664,7 +563,7 @@ namespace real::detail {
    * \param[in,out] seen  Byte-range intern table, shared across every occurrence in one program.
    */
 #if defined(__GNUC__) || defined(__clang__)
-  __attribute__((cold)) // build-time only: see the note in prefilter.hpp's detect_fast_shapes
+  __attribute__((cold)) // build-time only, never on a search path
 #endif
   constexpr void emit_utf8_trie(byte_program&        bp,
                                 const utf8_trie&     trie,
@@ -715,13 +614,13 @@ namespace real::detail {
     }
   }
 
-  //! Branches from which a literal alternation is factored into a trie in the byte program: below it the
-  //! flat alternation's states are small, and its byte program stays the one every smaller pattern has.
+  //! Branches from which a literal alternation is factored into a trie in the byte program; below it the
+  //! flat alternation's states stay small.
   inline constexpr std::size_t alternation_trie_min_branches {64};
 
   /*!
-   * \brief Test seam: build the byte program's literal alternations flat, so a differential can hold the trie
-   *        against them in one binary. Not for production use.
+   * \brief Test seam: build the byte program's literal alternations flat, so a differential can compare
+   *        the trie against them.
    * \return A reference to the process-wide flag.
    */
   inline bool& alternation_trie_disabled()
@@ -734,14 +633,12 @@ namespace real::detail {
    * \brief A literal alternation (every branch a run of `byte` ops converging on one exit) factored into a trie
    *        that keeps leftmost-first priority.
    *
-   * A flat alternation of N words puts all N first bytes in the start state and all N threads in every state
-   * a search seeds, so a state of a 14 500-word alternation held 15 000 pcs (60 KB) and its cache filled in a
-   * few hundred states. Factored, a state holds one pc per live trie node.
+   * Flat, every seeded state holds all N threads (a 14 500-word alternation: 15 000 pcs per state);
+   * factored, one pc per live trie node.
    *
-   * Priority is kept by chunks: a node's items are grouped into chunks, a branch ending at a node closes the
-   * node's current chunk with an END item (a jump to the exit), and a later branch merges only into the last
-   * chunk. Two items of one chunk are on distinct bytes, so no text reaches both; items of different chunks
-   * keep the branches' declared order.
+   * Priority is kept by chunks: a branch ending at a node closes its current chunk with an END item (a jump
+   * to the exit), and a later branch merges only into the last chunk. Items of one chunk are on distinct
+   * bytes, so no text reaches two; items of different chunks keep the branches' declared order.
    */
   struct literal_alt_trie
   {
@@ -930,78 +827,32 @@ namespace real::detail {
     return true;
   }
 
-  //! Cap on the expanded byte-program's instruction count (the running `cur` total below, checked as it
-  //! grows). Each `klass_cp` occurrence gets its OWN freshly-built UTF-8 trie here (unshared even when many
-  //! occurrences reference the identical class — e.g. every copy of a `{k}`-repeated `\w`), so a large
-  //! repeat count multiplies the trie's several-hundred-to-thousand-node size by k with no cache to amortize
-  //! it. Left unbounded, that is O(k x trie size) wall-clock BEFORE onepass or the lazy DFA ever run (their
-  //! own caps — \ref onepass::max_nodes, \ref onepass::max_minimize_work — sit downstream of this and never
-  //! get a chance to bound it). The binding constraint is the sanitizer-instrumented fuzzing build, whose
-  //! per-input timeout a `\w{k}` reaches while k is still small; the cap is set to keep that build's worst
-  //! case well inside its timeout while comfortably exceeding every legitimate pattern. Exceeding it
-  //! declines Tier-A/Tier-B (and so onepass/lazy-DFA) entirely, falling back to the general Pike VM, which
-  //! matches straight off the (small, unexpanded) compiled program and needs no trie expansion at all.
+  //! Cap on the expanded byte-program's instruction count, checked as it grows. Each `klass_cp` occurrence
+  //! emits its own copy of its class's trie, so `\w{k}` costs O(k x trie size) before the downstream caps
+  //! (\ref onepass::max_nodes, \ref onepass::max_minimize_work) can act. Sized for the sanitized fuzzing
+  //! build's per-input timeout; past it Tier-A/Tier-B decline and the general Pike VM runs unexpanded.
   inline constexpr std::size_t max_byte_program_size {20000};
 
   /*!
-   * \brief Builds the byte-level DFA program for \p prog (see \ref byte_program). A `klass_cp` at P (a four-
-   *        instruction construct: the op plus three `utf8_cont` continuation slots) is replaced by the
-   *        deterministic UTF-8 trie recognising its code-point class (\ref build_utf8_trie), converging on
-   *        the mapped P+4; every other op is copied with its branch targets remapped. Two passes: the first
-   *        builds each trie and sizes it to form the old→new pc map, the second emits. The first pass also
-   *        enforces \p max_size (see \ref max_byte_program_size) as it accumulates `cur`, so a large repeated
-   *        class declines before building any trie past the one that crosses the cap.
+   * \brief Builds the byte-level DFA program for \p prog (see \ref byte_program). A `klass_cp` at P (the op
+   *        plus three `utf8_cont` slots) is replaced by its class's deterministic UTF-8 trie
+   *        (\ref build_utf8_trie), converging on the mapped P+4; every other op is copied with remapped
+   *        targets. The first pass sizes each construct into the old→new pc map and enforces \p max_size;
+   *        the second emits.
    *
    * \param[in] prog            The Pike program to expand.
    * \param[in] keep_assertions Tier-B: keep `assert_position` ops as edge conditions instead of declining
    *                            them (Tier-A's default).
    * \param[in] max_size        Expanded-program-size cap. Defaults to \ref max_byte_program_size; a smaller
-   *                            value is a test hook to exercise the decline without a pattern that takes
-   *                            seconds to build.
+   *                            value lets a test reach the decline cheaply.
    * \return The expanded program, with \ref byte_program::eligible false when it declined.
    */
-  // AN ASCII-RESTRICTED EXPANSION WAS PROTOTYPED AND THE GAP IS NOT CLOSE. Emitting each `klass_cp` as a
-  // plain byte class built from `cp_class::ascii` -- which is already a `char_class`, so nothing needs
-  // converting -- instead of expanding its UTF-8 trie takes a text-mode program from thousands of
-  // instructions and hundreds of classes to a handful of each. Everything downstream is sized by that
-  // program -- the lazy alphabet, the DFA's subset construction, the one-pass table -- so this does not
-  // merely make the trie build cheaper, it makes the whole pipeline trivial. What it would close is the
-  // order-of-magnitude gap that still separates a first text-mode search from its byte-class twin.
-  //
-  // THE OBVIOUS ROUTING IS REFUTED, MEASURED. A restricted program is correct only if the whole scanned
-  // region is ASCII, so the naive design pre-scans the subject. That scan costs MORE than the search it
-  // protects, and the gap widens with the subject, because the scan is O(n) against a search that skips.
-  // Caching the verdict per haystack does not rescue the common case either, since the VM state is fresh
-  // per `search()` and would re-scan; that is the same trap the compat regex_iterator was found in.
-  //
-  // What is left is for the restricted DFA to derail ITSELF: map every byte >= 0x80 to one
-  // distinguished alphabet class whose transition is a sentinel meaning "cannot answer", so the scan
-  // bails on first contact and the caller falls back to the general VM, which handles Unicode
-  // natively. No pre-scan, and near-zero cost in a loop that already does one table lookup per byte.
-  // It touches the DFA's state semantics, which is why it is designed here and not written here.
-  //
-  // WHAT IT NEEDS, and why the prototype stops at measuring: an ASCII-restricted program is valid
-  // ONLY for an ASCII subject, so it needs a second cached program built lazily on the first
-  // non-ASCII haystack, a per-haystack ASCII check (cheap, and cacheable exactly like the
-  // inner-literal and Aho-Corasick density verdicts already are), and routing that can never hand an
-  // ASCII program a subject that would fool it. That is a feature with a correctness obligation, not
-  // a local edit -- and it subsumes the trie-arena work above rather than competing with it.
-  //
-  // THE EXPANSION IS BLIND TO THE SUBJECT, AND THAT IS WHERE THE COST IS. A text-mode class is expanded
-  // here in full -- every code point it can match, as a UTF-8 trie -- before anything has looked at what
-  // will be searched. The gap against the strict-ASCII equivalent of the same class scales with how much
-  // of the class lies outside ASCII: two orders of magnitude for `\w`, one for `\d`, and small for `\s`,
-  // which is nearly all ASCII to begin with. For a wide class that is essentially all of the cost, paid to
-  // recognise code points a pure-ASCII subject cannot contain.
-  //
-  // The general Pike VM needs none of it: a bare `\w+` takes a route with no byte program at all. This
-  // expansion exists only to feed the lazy DFA and the one-pass extractor.
-  //
-  // The shape that would fix it is an ASCII-first expansion upgraded on demand, since the subject IS known
-  // at search time and its ASCII-ness is a cheap scan. That is an architectural change to WHEN the
-  // immutables are built, not a tweak here.
+  // The expansion is blind to the subject: a text-mode `\w` expands in full, most of a first text-mode
+  // search. An ASCII-only expansion holds only on an ASCII subject: pre-scanning costs more than the search
+  // (the VM state is fresh per search), and the viable shape (bytes >= 0x80 to a "cannot answer" class, a
+  // second program on the first non-ASCII subject) changes DFA state semantics, not a local edit.
 #if defined(__GNUC__) || defined(__clang__)
-  __attribute__((cold)) // build-time only: see the note in prefilter.hpp's detect_fast_shapes
+  __attribute__((cold)) // build-time only, never on a search path
 #endif
   constexpr byte_program build_byte_program(const program_view& prog,
                                             bool                keep_assertions = false,
@@ -1010,11 +861,8 @@ namespace real::detail {
     byte_program bp;
     bp.unicode_word = prog.unicode_word;
     if (prog.code.empty()) {
-      // An empty program is not a recognizer, and saying `eligible` about one is worse than declining:
-      // every consumer reads that flag as "the byte automata can run this", so a reverse pass built over
-      // it answers npos at every position and the caller silently drops every candidate instead of
-      // falling back to the VM. Reachable only by a caller that hands over a program it never compiled --
-      // which is exactly what a storage with a cache but no inner-literal prefix sub-program would do.
+      // Never `eligible`: a reverse pass over an empty program answers npos everywhere, so the caller would
+      // drop every candidate instead of falling back (a storage without an inner-literal prefix program).
       bp.eligible = false;
       return bp;
     }
@@ -1032,11 +880,8 @@ namespace real::detail {
       }
       if (in.op == opcode::byte_loop_possessive || in.op == opcode::klass_loop_possessive ||
           in.op == opcode::klass_cp_loop_possessive) {
-        // No byte automaton can carry a Tier 1 possessive loop: its `primary_target` is a
-        // capture-slot index (or -1), not a branch target -- the generic copy below blindly
-        // remaps every op's primary_target/secondary_target through the pc `map`, which would
-        // silently corrupt that slot index into a bogus remapped pc for a captured loop. Decline
-        // outright, exactly like a bounded lookaround (Tier-B stops at assertions).
+        // A possessive loop's `primary_target` is a capture-slot index, not a branch target: the generic
+        // copy below would remap it as a pc. Decline.
         bp.eligible = false;
         return bp;
       }
@@ -1045,23 +890,15 @@ namespace real::detail {
 
     const std::size_t         n {prog.code.size()};
     std::vector<std::int32_t> map(n + 1, 0);                     // old pc -> new pc (n = the one-past end)
-    // A trie PER CLASS, not per occurrence, and pointers into it per pc. A trie is a pure function of its
-    // code-point class, so a pattern naming the same class twice -- `(\w+)X(\w+)` -- otherwise builds the
-    // identical structure twice, and the cost of a first search on such a pattern is this build, not
-    // construction and not steady-state matching. `by_class` is sized up front and never grows, so the
-    // pointers cannot dangle.
-    //
-    // NOT shared across the program's TWO expansions -- Tier-A through ensure_immutables and Tier-B through
-    // ensure_op_table, which calls it, so one cache on the latter's stack would cover both with nothing
-    // outliving the build. That was written, wired and measured, and it does not pay: holding a wide
-    // class's large tries alive across both builds costs more than rebuilding them, and the wide classes
-    // are exactly the case worth fixing. Reverted.
+    // One trie per class, pointed to per pc: `(\w+)X(\w+)` builds `\w` once. `by_class` never grows, so the
+    // pointers cannot dangle. Do not share it across the Tier-A and Tier-B expansions: keeping wide tries
+    // alive across both builds measured dearer than rebuilding them.
     std::vector<utf8_trie>        by_class(prog.cp_classes.size());
     std::vector<bool>             class_built(prog.cp_classes.size(), false);
     std::vector<const utf8_trie*> tries(n, nullptr);              // the trie for each klass_cp pc
     std::size_t                   cur {0};
-    // Literal alternations of many branches, factored (see literal_alt_trie). Only at run time: the
-    // compile-time storage keeps the flat program it has always built.
+    // Literal alternations of many branches, factored (see literal_alt_trie); run time only, the
+    // compile-time storage keeps the flat program.
     std::vector<literal_alt_trie> alt_tries;
     std::vector<std::size_t>      alt_exit;
     std::vector<std::int32_t>     alt_at;
@@ -1101,8 +938,8 @@ namespace real::detail {
         tries[pc]   = &by_class[ci];
         cur        += utf8_trie_emit_size(*tries[pc]);
         if (cur > max_size) {
-          bp.eligible = false; // a large repeated class (e.g. `\w{k}` for a big k): decline before building
-          return bp;           // any further trie -- the general Pike VM needs no byte-program expansion.
+          bp.eligible = false; // a large repeated class (`\w{k}`): decline before building another trie;
+          return bp;           // the general Pike VM needs no expansion.
         }
         map[pc + 1] = map[pc + 2] = map[pc + 3] = static_cast<std::int32_t>(cur); // continuation slots absorbed
         pc         += 3;                                                          // skip the construct's tail
@@ -1113,9 +950,7 @@ namespace real::detail {
     }
     map[n] = static_cast<std::int32_t>(cur);
 
-    // One intern cache for the whole program: the same UTF-8 range recurs across occurrences, not
-    // just within one trie.
-    range_intern_table range_intern;
+    range_intern_table range_intern; // whole-program: a UTF-8 range recurs across occurrences
 
     const auto remap {[&](std::int32_t t) {
                         return (t >= 0 && static_cast<std::size_t>(t) <= n) ? map[static_cast<std::size_t>(t)] : t;
@@ -1143,9 +978,8 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Byte-class alphabet over a Pike program: bytes that satisfy exactly the same `byte`/`klass`
-   *        predicates share a class, so the DFA transitions over classes instead of 256 raw bytes. The
-   *        same reduction \ref real::dfa uses, computed here from the Pike program's own ops.
+   * \brief Byte-class alphabet over a Pike program: bytes satisfying exactly the same `byte`/`klass`
+   *        predicates share a class, so the DFA transitions over classes instead of 256 raw bytes.
    */
   struct lazy_byte_alphabet
   {
@@ -1173,7 +1007,7 @@ namespace real::detail {
    * \return The alphabet: a byte-to-class map plus the class count.
    */
 #if defined(__GNUC__) || defined(__clang__)
-  __attribute__((cold)) // build-time only: see the note in prefilter.hpp's detect_fast_shapes
+  __attribute__((cold)) // build-time only, never on a search path
 #endif
   inline constexpr lazy_byte_alphabet compute_lazy_alphabet(std::span<const instr>      code,
                                                             std::span<const char_class> classes)
@@ -1188,19 +1022,10 @@ namespace real::detail {
                                               }
                                               vec.push_back(value);
                                             }};
-    // Memoize by class index and by literal byte. `push_unique` is a linear scan with a full 256-bit
-    // char_class compare, and it runs once per `klass` INSTRUCTION -- of which a Unicode trie emits several
-    // times more than there are distinct classes, so most of those comparisons are re-deciding a class
-    // already seen. Skipping an index already processed is a no-op by construction: its content was pushed
-    // the first time.
-    // This pays only because emit_utf8_trie now shares one interned class per byte range; with a fresh
-    // index per edge the memo would never hit.
-    // Distinct-class collection, hashed rather than linear-scanned. The linear scan compares whole
-    // 256-bit char_class values, and on a Unicode program it runs tens of thousands of them to find almost
-    // no duplicate at all -- interning already shares one class per byte range (see emit_utf8_trie), so the
-    // array arrives nearly deduplicated and the scan is pure loss. Intrusive chain, not std::unordered_map: this function is constexpr and the
-    // engine headers avoid std::hash, whose out-of-line libc++ symbols drift across toolchains. Insertion
-    // order in `class_preds` is preserved, so sig_equal's early exit behaves identically.
+    // Memoized by class index and literal byte (a Unicode trie emits many `klass` ops per class; the memo
+    // hits because emit_utf8_trie interns one class per byte range). Distinct classes are found by an FNV
+    // intrusive chain, not a linear 256-bit compare, and not std::hash (see hash_trans); `class_preds`
+    // keeps first-seen order.
     constexpr std::size_t     pred_buckets {512};
     std::vector<std::int32_t> pred_head(pred_buckets, -1);
     std::vector<std::int32_t> pred_next;
@@ -1210,9 +1035,8 @@ namespace real::detail {
       if (in.op == opcode::klass && in.arg16 < classes.size()) {
         if (!seen_class[in.arg16]) {
           seen_class[in.arg16] = true;
-          // Inlined rather than a lambda: the analyzer cannot model a `[&]`-captured vector through the
-          // call and reports a null-pointer call on every use of `class_preds`, and one call site does not
-          // justify suppressing that.
+          // Inlined, not a lambda: the analyzer cannot model a `[&]`-captured vector and reports a
+          // null-pointer call on every use of `class_preds`.
           const char_class& cc {classes[in.arg16]};
           std::uint64_t     h  {fnv1a_offset_basis};
           for (const std::uint64_t w : cc.bits) {
@@ -1241,9 +1065,8 @@ namespace real::detail {
         }
       }
     }
-    // A program that carries position assertions needs every class uniform in the two properties they
-    // read: whether a byte is a newline and whether it is an ASCII word byte. Two synthetic predicates
-    // split the alphabet on them, so a class's properties can be read off any one of its bytes.
+    // With position assertions every class must be uniform in newline-ness and ASCII word-ness (and
+    // non-ASCII-ness): synthetic predicates split on them, so any byte of a class tells its properties.
     if (std::ranges::any_of(code, [](const instr& in) { return in.op == opcode::assert_position; })) {
       char_class newline;
       newline.set(static_cast<std::uint8_t>('\n'));
@@ -1261,15 +1084,9 @@ namespace real::detail {
       class_preds.push_back(word);
       class_preds.push_back(high); // a Unicode word boundary is decided only between two ASCII bytes
     }
-    // A byte's signature -- which predicates hold it -- does not depend on the classes formed so far, so
-    // it is built ONCE per byte and then grouped. Comparing each byte against every open class instead
-    // re-walked all the predicates per (byte, class) pair: O(256 * classes * predicates) with a whole
-    // char_class scan inside, 9.2 M instructions per call on `(\w+)@(\w+)`'s 475 predicates. Building the
-    // table is O(256 * predicates) and reads each class's bitmap directly.
-    //
-    // Class ids come out identical to the pairwise form: both walk bytes 0..255 in order and mint a new id
-    // the first time a signature appears, and signature equality IS the old `sig_equal`. Downstream reads
-    // `alpha.of` by value, so that identity is load-bearing, not incidental.
+    // A byte's signature (which predicates hold it) is built once per byte, O(256 * predicates), then
+    // grouped; comparing each byte against every open class is O(256 * classes * predicates). Ids are
+    // minted in byte order at a signature's first appearance: downstream reads `alpha.of` by value.
     const std::size_t          pred_count {class_preds.size() + literal_preds.size()};
     const std::size_t          sig_words  {((pred_count + 63U) / 64U) + 1U};
     std::vector<std::uint64_t> sig(256U * sig_words, 0);
@@ -1277,9 +1094,7 @@ namespace real::detail {
       const char_class&   cc {class_preds[p]};
       const std::size_t   w  {p >> 6U};
       const std::uint64_t m  {std::uint64_t {1} << (p & 63U)};
-      // Only the bytes the class HOLDS, read straight off its bitmap, rather than asking `test` for all
-      // 256. A `\w` predicate holds 63 of them, so this is 63 scatters against 256 tested branches per
-      // predicate -- and `(\w+)@(\w+)` carries 475 predicates.
+      // Scatter only the bytes the class holds, read off its bitmap, not `test` on all 256.
       for (std::size_t word {0}; word < cc.bits.size(); ++word) {
         for (std::uint64_t rest {cc.bits[word]}; rest != 0; rest &= rest - 1U) {
           const std::size_t b {(word * 64U) + static_cast<std::size_t>(std::countr_zero(rest))};
@@ -1288,7 +1103,6 @@ namespace real::detail {
       }
     }
     for (std::size_t i {0}; i < literal_preds.size(); ++i) {
-      // A literal predicate holds exactly its own byte, so it sets one bit in one row.
       const std::size_t p {class_preds.size() + i};
       sig[(static_cast<std::size_t>(literal_preds[i]) * sig_words) + (p >> 6U)] |= std::uint64_t {1} << (p & 63U);
     }
@@ -1333,17 +1147,13 @@ namespace real::detail {
   }
 
   /*!
-   * \brief A tiny open-chaining hash set of interned PC-set state ids, keyed by their pc-set. Replaces a
-   *        `std::unordered_map` so the DFAs stay **literal types** (a constexpr `real::regex` embeds one in
-   *        its scratch state); all-`std::vector` storage is constexpr-constructible in C++20. Maps a
-   *        candidate pc-set to its existing state id, or \ref not_found, comparing against the owner's pcs.
+   * \brief A chained hash set of interned state ids keyed by their pc-set: maps a candidate pc-set to its
+   *        state id, or \ref not_found. All-`std::vector`, not `std::unordered_map`, so the DFAs stay literal
+   *        types (a constexpr `real::regex` embeds one in its scratch state).
    */
   struct pc_set_cache
   {
-    // SIZING, not behaviour: chaining absorbs any load factor, so no answer and no route
-    // depends on this number -- only speed. The sabotage sweep will always read it as
-    // unguarded, and correctly: there is nothing here for a test to hold.
-    static constexpr std::size_t   bucket_count {2048};        //!< Fixed bucket count; chaining absorbs the load.
+    static constexpr std::size_t   bucket_count {2048};        //!< Sizing only: chaining absorbs any load, so no answer depends on it.
     static constexpr std::uint32_t not_found    {0xFFFFFFFFU}; //!< \ref find's miss answer (never a valid state id).
 
     std::vector<std::vector<std::uint32_t>> buckets;           //!< One chain of state ids per bucket.
@@ -1362,9 +1172,8 @@ namespace real::detail {
      */
     static constexpr std::size_t hash(const std::vector<std::int32_t>& v)
     {
-      // FNV-1a computed in a fixed 64-bit accumulator, truncated to size_t on return: the 64-bit
-      // offset-basis brace-initialised straight into size_t narrows (an error) where size_t is 32-bit
-      // (win32). Truncating a full FNV-64 keeps a well-distributed hash without width-specific constants.
+      // A 64-bit accumulator truncated on return: brace-initialising the 64-bit basis into a 32-bit
+      // size_t (win32) is a narrowing error.
       std::uint64_t h {fnv1a_offset_basis};
       for (const std::int32_t x : v) {
         h = (h ^ static_cast<std::uint64_t>(static_cast<std::uint32_t>(x))) * fnv1a_prime;
@@ -1415,9 +1224,8 @@ namespace real::detail {
    * \brief Whether a word assertion needs a code point's word-ness that one byte does not give: a side it
    *        reads is a non-ASCII byte, and the ASCII side does not settle it alone.
    *
-   * Between two ASCII bytes a Unicode word boundary is an ASCII one: the VM reads the byte itself on each
-   * side when it is below 0x80 (assert_eval.hpp). `\<` is false after an ASCII word byte or before an ASCII
-   * non-word byte whatever the other side is, and `\>` likewise, so those need no code point.
+   * Between two ASCII bytes a Unicode word boundary is an ASCII one (assert_eval.hpp). `\<` is false after
+   * an ASCII word byte or before an ASCII non-word byte whatever the other side, and `\>` mirrors it.
    * \param[in] kind          The assertion.
    * \param[in] prev_word     The byte before is an ASCII word byte.
    * \param[in] prev_nonascii The byte before is not ASCII.
@@ -1448,9 +1256,9 @@ namespace real::detail {
   }
 
   /*!
-   * \brief The pcs one closure computation has entered, by generation: starting a computation bumps the
-   *        generation instead of clearing a mark per pc, so a cache miss costs its closure, not the program's
-   *        size. A byte program of a large alternation runs to hundreds of thousands of instructions.
+   * \brief The pcs one closure computation has entered, by generation: starting one bumps the generation
+   *        instead of clearing per pc, so a cache miss costs its closure, not the program's size (a large
+   *        alternation's byte program runs to hundreds of thousands of instructions).
    */
   struct visit_marks
   {
@@ -1494,21 +1302,47 @@ namespace real::detail {
   };
 
   /*!
+   * \brief Whether a lazy DFA, forward or reversed, can represent every op of \p code.
+   *
+   * Variable-width classes and lookarounds have no DFA representation. Tier 1's possessive-loop family has no
+   * consuming-edge representation either (each DFA's consumes() recognizes byte/klass only): treating it as a dead
+   * end would be an outright wrong DFA. A position assertion is represented -- an edge the closure crosses
+   * where it holds -- unless it is a word boundary whose word-ness is a code point's, which no single byte
+   * decides, or one scoped to the other word-ness.
+   * \param[in] code       The program's instruction stream.
+   * \param[in] ascii_word Whether a word boundary's word-ness is ASCII (then a byte decides it).
+   * \return True when every op is representable.
+   */
+  constexpr bool dfa_representable(std::span<const instr> code,
+                                   bool                   ascii_word)
+  {
+    return std::ranges::none_of(code, [ascii_word](const instr& in) {
+                                  if (in.op == opcode::assert_position) {
+                                    const auto kind {static_cast<assert_kind>(in.arg8)};
+                                    const bool word {kind == assert_kind::word_boundary || kind == assert_kind::not_word_boundary
+                                                     || kind == assert_kind::word_start || kind == assert_kind::word_end};
+                                    return in.arg16 != 0 || (word && !ascii_word);
+                                  }
+                                  return in.op == opcode::assert_lookaround || in.op == opcode::klass_cp
+                                         || in.op == opcode::byte_loop_possessive || in.op == opcode::klass_loop_possessive
+                                         || in.op == opcode::klass_cp_loop_possessive;
+                                });
+  }
+
+  /*!
    * \brief A lazy priority-preserving forward DFA over a Pike program (the kFirstMatch forward pass).
    *
-   * A DFA state is the ordered epsilon-closure of a set of program counters (the Pike thread list's PCs,
-   * in split priority). \ref step transitions on a byte by consuming it from each PC and re-closing, then
-   * interns the resulting ordered set into a cached state — the subset construction, memoized on demand.
+   * A DFA state is the ordered epsilon-closure of a pc set (the Pike thread list in split priority);
+   * \ref step consumes a byte from each pc, re-closes, and interns the ordered result: subset construction,
+   * memoized on demand.
    *
-   * The cache is bounded: once it reaches \ref state_budget states it is flushed and rebuilt (states are
-   * cheap to recompute; a bounded cache keeps memory flat). `state_budget` flushes crossed within one
-   * scan (see \ref begin_scan) trips \ref thrashing. A DFA built to quit then ends the scan and reports a
-   * quit, and its caller finishes that one search on the Pike VM, per-scan and linear, never re-attempting
-   * per position.
+   * The cache is bounded: past its state or byte budget it is flushed and rebuilt. A scan that keeps
+   * flushing trips \ref thrashing; a DFA built to quit then reports a quit and its caller finishes that one
+   * search on the Pike VM (per scan, never re-attempted per position).
    *
-   * A program with an op no forward DFA can represent — a position assertion (`\b`, `^`, `$`), a
-   * `klass_cp`, or a lookaround — is \ref eligible "ineligible"; this only builds the machinery, it does
-   * not decide policy.
+   * A program with an op the DFA cannot represent (a `klass_cp`, a lookaround, a possessive loop, a scoped
+   * assertion, or a word boundary on code-point word-ness without `word_quit`) is \ref eligible
+   * "ineligible"; this builds the machinery, it does not decide policy.
    */
   class lazy_dfa
   {
@@ -1522,12 +1356,12 @@ namespace real::detail {
     static constexpr std::uint32_t pending_idx    {0xFFFFFFFEU}; //!< A state whose accept waits on a pending assertion: only resolve() decides it.
     static constexpr std::size_t   state_budget   {65536};       //!< Cached states before a flush; the memory cap is \ref lazy_dfa_byte_budget.
     static constexpr std::size_t   thrash_flushes {2};           //!< Flushes within one scan that trip \ref thrashing, where the scan may not quit.
-    //! Bytes read per cached state below which a DFA that may quit refuses its next flush and quits instead: a cache
-    //! that fills again before it has read ten bytes per state costs more to rebuild than the VM costs to scan.
+    //! Bytes read per cached state below which a DFA that may quit refuses its next flush and quits: a cache
+    //! refilled faster than that costs more to rebuild than the VM costs to scan.
     static constexpr std::size_t   quit_bytes_per_state {10};
 
     /*!
-     * \brief Cache-behaviour counters, for the policy tests and later tuning.
+     * \brief Cache-behaviour counters, for the policy tests.
      */
     struct counters
     {
@@ -1543,23 +1377,18 @@ namespace real::detail {
      * \brief Builds the (initially empty) lazy DFA over a Pike program.
      * \param[in] code    The program's instruction stream (must outlive this object — held as a span).
      * \param[in] classes The program's interned character classes (likewise held as a span).
-     * \param[in] budget  Cached states before a flush; defaults to \ref state_budget. A smaller value is a
-     *                    test hook to exercise eviction and thrash without a state-exploding pattern.
-     * \param[in] shared_alpha A precomputed alphabet the caller shares per regex, or null to compute it
-     *                    here. Recomputing is O(256 x classes) and a Unicode byte-program has thousands, so
-     *                    the router passes the shared one rather than paying it on every scan.
-     * \param[in] ascii_word Whether the program's word boundaries use ASCII word-ness (bytes mode, `(?a)`):
-     *                    only then does one byte decide them. False, the default, declines any word boundary.
-     * \param[in] byte_mode Whether a match may start at any byte. In text mode it may not start inside a code
-     *                    point; with assertions an empty match could otherwise be found there (the scans
-     *                    then do not seed at a continuation byte, as the VM does not).
-     * \param[in] word_quit Let a scan quit, and say so, where the DFA cannot answer well: with Unicode
-     *                    word-ness (\p ascii_word false), where a word boundary must be decided next to a
-     *                    non-ASCII byte (between two ASCII bytes a Unicode word boundary is an ASCII one);
-     *                    and once the cache thrashes (\ref thrashing), where building states costs more than
-     *                    the VM would. The caller then asks the VM.
-     * \param[in] raw_byte_starts The program was compiled with \ref flags::allow_raw_byte, so a lead that opens on a
-     *                    continuation byte is built as any other (see \ref pattern_hints::raw_byte_starts).
+     * \param[in] budget  Cached states before a flush; defaults to \ref state_budget (smaller: a test hook).
+     * \param[in] shared_alpha The regex's shared alphabet, or null to compute it here (O(256 x classes), so
+     *                    the router passes the shared one).
+     * \param[in] ascii_word Whether word boundaries use ASCII word-ness (bytes mode, `(?a)`): only then does
+     *                    one byte decide them. False declines any word boundary.
+     * \param[in] byte_mode Whether a match may start at any byte. In text mode the scans do not seed at a
+     *                    continuation byte, as the VM does not.
+     * \param[in] word_quit Let a scan quit, and say so, where the DFA cannot answer well: a Unicode word
+     *                    boundary next to a non-ASCII byte, or once the cache thrashes (\ref thrashing). The
+     *                    caller then asks the VM.
+     * \param[in] raw_byte_starts The program was compiled with \ref flags::allow_raw_byte, so a lead opening
+     *                    on a continuation byte is built as any other (\ref pattern_hints::raw_byte_starts).
      * \param[in] byte_budget Bytes the cached states may hold before a flush; see \ref lazy_dfa_byte_budget.
      */
     explicit constexpr lazy_dfa(std::span<const instr>      code,
@@ -1573,18 +1402,17 @@ namespace real::detail {
                                 std::size_t                 byte_budget     = lazy_dfa_default_byte_budget)
       : code_ {code}, classes_ {classes},
         alpha_ {shared_alpha != nullptr ? *shared_alpha : compute_lazy_alphabet(code, classes)},
-        eligible_ {compute_eligibility(code, ascii_word || word_quit) && (byte_mode || raw_byte_starts || !opens_on_continuation(code, classes))},
+        eligible_ {dfa_representable(code, ascii_word || word_quit) && (byte_mode || raw_byte_starts || !opens_on_continuation(code, classes))},
         byte_mode_ {byte_mode},
         word_quit_ {word_quit && !ascii_word}, may_quit_ {word_quit},
         look_ {std::ranges::any_of(code, [](const instr& in) { return in.op == opcode::assert_position; })},
         plain_ {eligible_ && !look_}, stride_ {alpha_.count + 2U},
-        // A state id is its row's offset: the last row's cells must stay below the special ids, and a flush
-        // at the budget still interns one state past it.
+        // A state id is its row's offset: the last row must stay below the special ids, and a flush at the
+        // budget still interns one state past it.
         budget_ {std::min(budget, (std::size_t {quit_state} / stride_) - 2U)}, byte_budget_ {byte_budget}
     {
       if (look_) {
-        // The alphabet splits on newline, ASCII word bytes and non-ASCII bytes when the program carries
-        // assertions (compute_lazy_alphabet), so any byte of a class tells that class's properties.
+        // compute_lazy_alphabet split classes on these properties, so any byte of a class tells them.
         const bool cr {std::ranges::any_of(code, is_cr_line_assert)};
         for (unsigned b {0}; b < 256U; ++b) {
           class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? ctx_nonascii : ctx_of(static_cast<std::uint8_t>(b), cr);
@@ -1594,7 +1422,7 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Whether the program can be represented at all (no assertion, `klass_cp` or lookaround).
+     * \brief Whether the program can be represented at all (see `compute_eligibility`).
      * \return False when the caller must keep the Pike VM.
      */
     [[nodiscard]] bool eligible() const
@@ -1621,8 +1449,8 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Begin a search: clear the per-scan flush counter and the thrash flag. (No cache flush — the
-     *        states carry over between searches on the same text, which is where the cache pays.)
+     * \brief Begin a search: clear the per-scan flush counter and the thrash flag. No cache flush: states
+     *        carry over between searches, which is where the cache pays.
      */
     void begin_scan()
     {
@@ -1661,17 +1489,11 @@ namespace real::detail {
     /*!
      * \brief The end offset of the leftmost-first match in \p text (`kFirstMatch`), or \ref real::npos.
      *
-     * The forward pass the contract in the design guide (§7.6) specifies: an unanchored priority-ordered
-     * closure that seeds a fresh thread at every position (at the lowest priority) until a match is found,
-     * then reports the end of the **highest-priority** thread that reaches `match` — a lower-priority accept
-     * is suppressed while a higher one lives. It is a single left-to-right pass over the ordered PC-sets, so
-     * it is linear per search regardless of how the state space would explode under memoization. Eligible
-     * programs only (an ineligible one returns \ref real::npos; the caller keeps the Pike VM). No captures:
-     * this reports the end; the windowed Pike pass fills the span and applies the empty-match rule.
-     *
-     * A program with position assertions reads the text around \p start and past each position: the scan
-     * starts at \p start in the whole text rather than in a slice of it, so `^`, `\b` or `$` see what is
-     * really there (see \ref forward_end_look).
+     * Seeds a fresh lowest-priority thread at every position until a match, then reports the end of the
+     * highest-priority thread reaching `match` (a lower-priority accept is suppressed while a higher one
+     * lives). One left-to-right pass: linear per search. No captures: the windowed Pike pass fills the span
+     * and applies the empty-match rule. With assertions the scan runs in the whole text, not a slice, so
+     * `^`, `\b`, `$` see what is there (\ref scan_look).
      *
      * \param[in] text  Subject.
      * \param[in] start Offset the search starts at (the first seed).
@@ -1686,7 +1508,7 @@ namespace real::detail {
           return npos;
         }
         begin_scan();
-        return forward_end_look(text, start);
+        return scan_look<false>(text, start);
       }
       begin_scan();
       std::uint32_t       state    {start_state_}; // the seed at the start (a re-seeding state)
@@ -1695,7 +1517,7 @@ namespace real::detail {
       std::size_t         pos      {start};
       scan_origin_ = start;
       while (true) {
-        // Both tables carry the accept word, so the walk before a match reads one row per byte.
+        // Both tables carry the accept word: one row read per byte before a match.
         const std::uint32_t midx {(matched ? trans_ : trans_seeded_)[state + accept_col]};
         if (midx != no_match_idx) {
           best_end = pos;               // the highest-priority accept lives at index midx; a higher thread may extend it
@@ -1709,8 +1531,8 @@ namespace real::detail {
           break;
         }
         const std::uint8_t byte {static_cast<std::uint8_t>(text[pos])};
-        // pre-match transitions re-seed (unanchored search continues); post-match ones do not (leftmost).
-        // The cached edge read inline, as the anchored scan does; step()/step_seeded() only on a miss.
+        // Pre-match transitions re-seed, post-match ones do not (leftmost). The edge is read inline;
+        // step()/step_seeded() only on a miss.
         const std::uint32_t cached {(matched ? trans_ : trans_seeded_)[state + trans_col + alpha_.of[byte]]};
         if (cached != no_transition) {
           state = cached;
@@ -1737,53 +1559,28 @@ namespace real::detail {
      * \brief The end offset of the leftmost-first match ANCHORED at \p start in \p text, or \ref
      *        real::npos.
      *
-     * Identical walk to \ref forward_end except it never re-seeds: a single thread is seeded once, at
-     * \p start (\ref step, never \ref step_seeded), so a match must begin exactly there. The caller
-     * already knows \p start is a valid candidate (a prefilter hit) -- this skips the reverse pass
-     * \ref forward_end normally needs to recover the start, since there is nothing left to recover.
-     * Eligible programs only (an ineligible one returns \ref real::npos; the caller keeps the Pike VM).
-     * No captures: this reports the end only, exactly like \ref forward_end.
+     * The \ref forward_end walk without re-seeding: one thread seeded at \p start (a prefilter hit), so no
+     * reverse pass is needed. No captures. Does not call \ref begin_scan — a caller trying several candidates
+     * for one search calls it once before its loop, since a per-candidate reset would mask thrashing.
      *
-     * Does NOT call \ref begin_scan (unlike \ref forward_end): a caller trying several candidates in a
-     * loop for one logical search calls \ref begin_scan itself, ONCE, before the loop -- resetting the
-     * thrash flag per CANDIDATE rather than per search would mask real thrashing across the loop.
-     *
-     * The lean munch (A3): once find_iter has warmed a search up, the small state set a pattern like
-     * `[a-z][a-z]+` actually visits is already fully cached -- every (state, class) transition and every
-     * state's priority-cut already sit in \ref trans_'s rows. \ref step and \ref cut_cached
-     * exist to COMPUTE and cache those on a miss; paying their call overhead plus the "is this already
-     * built?" branch on every byte, when the answer is essentially always yes post-warm-up, is exactly
-     * the residual cost profiling pinned here (step + cut_cached + this function itself). So the loop
-     * below inlines the two lookups directly -- a flat class-then-transition read per byte, an
-     * accept check against a local, no function call at all in the common case -- and falls back to the
-     * real (state-building, cache-filling, flush-aware) \ref step / \ref cut_cached only on an actual
-     * miss, which is rare once the small state set has been visited once. Same states, same tables, same
-     * memoization \ref step / \ref cut_cached would have produced -- this is a leaner READ of them, not a
-     * different automaton. One accounting gap: the inlined hits do not increment \ref counters::hits
-     * (that counter is a step()/cut_cached()-callers' bookkeeping aid, not behavior -- \ref thrashing
-     * and \ref flush only ever move on an actual miss, which still goes through the real functions).
+     * Cached transitions and cuts are read inline (\ref step / \ref cut_cached only on a miss), so hits do
+     * not bump \ref counters::hits.
      *
      * \param[in] text  The subject text.
      * \param[in] start Offset to anchor the match at (must be `<= text.size()`).
      * \return The match end and the position the walk stopped at (\ref anchored_result::scanned_to). On
-     *         a miss (`end == real::npos`), `scanned_to == text.size()` means the walk consumed the
-     *         whole remaining haystack without a dead state pruning it -- an *unbounded* reach (e.g.
-     *         `.*` with no terminator ahead), as opposed to one the pattern's own structure bounded (a
-     *         dead state hit before the end). A caller trying candidate after candidate (\ref
-     *         real::detail::pike_vm's A2 route) uses this to tell "this candidate's reach is bounded,
-     *         the next one is cheap too" apart from "every candidate from here will re-scan to the end"
-     *         -- the O(n^2) regime.
+     *         a miss, `scanned_to == text.size()` means no dead state bounded the reach (`.*` with no
+     *         terminator ahead): a caller trying candidate after candidate is then in the O(n^2) regime.
      */
     [[nodiscard]] anchored_result anchored_end(std::string_view text,
                                                std::size_t      start)
     {
-      // One test on the common path, as before programs with assertions had a scan of their own: this
-      // runs once per candidate position, so a second one there is an instruction per byte scanned.
+      // One test on the common path: this runs once per candidate position.
       if (!plain_) {
         if (!eligible_) {
           return {.end = npos, .scanned_to = start};
         }
-        return anchored_end_look(text, start);
+        return scan_look<true>(text, start);
       }
       std::uint32_t state    {start_state_};
       std::size_t   best_end {npos};
@@ -1874,9 +1671,8 @@ namespace real::detail {
       if (epoch_ == flushes_before) {
         trans_[state + trans_col + cls] = result;   // no flush: `state` is still valid, so cache the edge
       }
-      // On a flush mid-step the caller's `state` id is stale; `result` is a fresh post-flush id, and the
-      // caller re-seeds. A scan that may quit stops here once the cache thrashes: the dead state ends its
-      // loop, and the scan reports a quit.
+      // After a flush the caller's `state` is stale and `result` a fresh id. A scan that may quit gets the
+      // dead state once the cache thrashes, which ends its loop and reports a quit.
       return (thrashing_ && may_quit_) ? dead_state : result;
     }
 
@@ -1893,9 +1689,8 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Like \ref step, but re-seeds: the unanchored-search variant appends pc 0's closure at the
-     *        lowest priority, so a fresh thread starts at every position until a match is found. Cached in
-     *        its own transition row (the pre-match state family).
+     * \brief Like \ref step, but appends pc 0's closure at the lowest priority (a fresh thread at every
+     *        position until a match). Cached in its own pre-match transition table.
      * \param[in] state The current state id.
      * \param[in] byte  The byte consumed.
      * \return The successor state, with a fresh thread appended at the lowest priority.
@@ -1950,10 +1745,9 @@ namespace real::detail {
     }
 
     /*!
-     * \brief The priority-cut of \p state at its own accept, memoized. `cut` is O(state size) — it rebuilds
-     *        and re-interns the prefix — and a Unicode `klass_cp` byte-program makes states thousands of PCs
-     *        wide, so recomputing it once per match (per find_iter step) dominated. Cached per state, it is
-     *        computed once and then O(1). The state's accept index is fixed, so the cut is deterministic.
+     * \brief The priority-cut of \p state at its own accept, memoized: `cut` is O(state size) and Unicode
+     *        byte-program states run thousands of pcs wide, so a per-match recompute dominated. Exact, since a
+     *        state's accept index is fixed.
      * \param[in] state The accepting state id.
      * \return The cut state, memoized after the first call.
      */
@@ -2027,33 +1821,6 @@ namespace real::detail {
         }
       }
       return false;
-    }
-
-    /*!
-     * \brief Scan \p code for an op no forward DFA can represent.
-     * \param[in] code       The program's instruction stream.
-     * \param[in] ascii_word Whether a word boundary's word-ness is ASCII (then a byte decides it).
-     * \return True when every op is representable.
-     */
-    static constexpr bool compute_eligibility(std::span<const instr> code,
-                                              bool                   ascii_word)
-    {
-      // Variable-width classes and lookarounds: no forward-DFA representation. Tier 1's possessive-loop
-      // family has no consuming-edge representation here (consumes() below only recognizes byte/klass) —
-      // treating it as a dead end (silently non-consuming) would be an outright wrong DFA. A position
-      // assertion is represented (see close_look / resolve) unless it is a word boundary whose word-ness is
-      // a code point's, which no single byte decides, or one scoped to the other word-ness.
-      return std::ranges::none_of(code, [ascii_word](const instr& in) {
-                                    if (in.op == opcode::assert_position) {
-                                      const auto kind {static_cast<assert_kind>(in.arg8)};
-                                      const bool word {kind == assert_kind::word_boundary || kind == assert_kind::not_word_boundary
-                                                       || kind == assert_kind::word_start || kind == assert_kind::word_end};
-                                      return in.arg16 != 0 || (word && !ascii_word);
-                                    }
-                                    return in.op == opcode::assert_lookaround || in.op == opcode::klass_cp
-                                           || in.op == opcode::byte_loop_possessive || in.op == opcode::klass_loop_possessive
-                                           || in.op == opcode::klass_cp_loop_possessive;
-                                  });
     }
 
     // What a DFA state knows of the text before its position, and what a pending assertion needs of the
@@ -2252,21 +2019,13 @@ namespace real::detail {
                               std::vector<std::int32_t>& out,
                               visit_marks&               seen) const
     {
-      // Structurally unreachable through the only two callers (step/step_seeded, both private): every pc
-      // they pass is either 0 (the program start) or pc+1 of a consuming instruction's own valid pc, and a
-      // well-formed program never ends on a byte/klass op with nothing after it (a `match` always follows
-      // eventually) -- so pc+1 never runs off the end in practice. Kept as the defensive bound close_into's
-      // OWN recursion-turned-stack-loop below also relies on (a split/jump target is trusted, not re-
-      // checked, past this point); testing it would need a hand-crafted malformed program, not a pattern
-      // the compiler can produce.
+      // Unreachable from a well-formed program (a pc is 0 or one past a consuming op, and `match` follows);
+      // a defensive bound only.
       if (pc < 0 || static_cast<std::size_t>(pc) >= code_.size()) {
         return;
       }
-      // The work stack is a MEMBER, not a local. This runs once per pc of the source state, so a
-      // local vector was one heap block per call -- and a single 8 KB first search was measured at
-      // 10 408 allocations across the two DFAs (2026.08 landscape, `\w+@\w+` when the inner-literal
-      // route confirmed through the DFA; see state_pcs_'s comment for why the route is named).
-      // `mutable`: pure scratch, empty in and empty out.
+      // The work stack is a mutable member, empty in and out: as a local it was one heap block per call,
+      // 10 408 allocations in one 8 KB first search.
       stack_.assign(1, pc);
       while (!stack_.empty()) {
         const std::int32_t cur {stack_.back()};
@@ -2509,18 +2268,37 @@ namespace real::detail {
     }
 
     /*!
-     * \brief \ref forward_end for a program with position assertions. Each position's state is first resolved
-     *        by what follows it (\ref resolve), and the accept test and the step read the resolved state, so an
-     *        accept that a `$` or a `\b` guards is decided with the text on both sides of it.
-     * \param[in] text  Subject.
-     * \param[in] start The first seed's position.
-     * \return The match end in \p text, or \ref real::npos.
+     * \brief Whether \p pos is inside a UTF-8 code point: the byte there is a continuation byte.
+     * \param[in] text The subject.
+     * \param[in] pos  The position.
+     * \return True inside a code point; false at the end or at a code point's first byte.
      */
+    [[nodiscard]] static constexpr bool starts_inside_code_point(std::string_view text,
+                                                                 std::size_t      pos)
+    {
+      return pos < text.size() && (static_cast<std::uint8_t>(text[pos]) & 0xC0U) == 0x80U;
+    }
+
+    /*!
+     * \brief \ref forward_end and \ref anchored_end for a program with position assertions: the walk runs over
+     *        the whole text, so `^`, `\b` and `$` see what is there, and a state holding a pending assertion
+     *        resolves it on the key of what follows.
+     * \tparam Anchored One thread seeded at \p start (\ref anchored_end). Otherwise every position up to the
+     *                  first match seeds a thread (\ref forward_end), and a dead state before a match does not
+     *                  end the walk: an assertion can kill every thread at one position and let the next seed
+     *                  live (`^` after a newline).
+     * \param[in] text  Subject.
+     * \param[in] start The anchor, or the first seed's position.
+     * \return Anchored, the match end and how far the walk got (\ref anchored_result::quit when a Unicode
+     *         boundary met a non-ASCII byte or the cache thrashed); otherwise the match end, \ref real::npos or
+     *         \ref quit_pos.
+     */
+    template <bool Anchored>
 #if defined(__GNUC__) || defined(__clang__)
     __attribute__((noinline, cold)) // out of the hot scans' bodies: a program without assertions never calls it
 #endif
-    std::size_t forward_end_look(std::string_view text,
-                                 std::size_t      start)
+    std::conditional_t<Anchored, anchored_result, std::size_t> scan_look(std::string_view text,
+                                                                         std::size_t      start)
     {
       std::uint32_t state    {start_for(ctx_at(text, start))};
       std::size_t   best_end {npos};
@@ -2537,27 +2315,32 @@ namespace real::detail {
           const std::uint32_t memo {res_[state + key]};
           here = memo != no_transition ? memo : resolve(state, key);
           if (here == quit_state) {
-            return quit_pos;
+            // Even past an accept: whether a longer match wins is what the boundary would have told.
+            return look_quit<Anchored>(pos);
           }
           word = trans_[here + accept_col]; // a resolution holds nothing pending
         }
         if (word != no_match_idx) {
           best_end = pos;
           matched  = true;
-          here     = cut_cached(here);
+          if constexpr (Anchored) {
+            const std::uint32_t cut {trans_[here + cut_col]};
+            here = cut != no_transition ? cut : cut_cached(here);
+          }
+          else {
+            here = cut_cached(here);
+          }
           if (here == dead_state) {
             break;
           }
         }
-        // Before a match, a dead state is not the end: an assertion can kill every thread at one position
-        // and let the next seed live (`^` after a newline), so the scan keeps seeding.
-        if (pos >= text.size() || (here == dead_state && matched)) {
+        if (pos >= text.size() || (here == dead_state && (Anchored || matched))) {
           break;
         }
         const auto byte {static_cast<std::uint8_t>(text[pos])};
         // In text mode a match does not start inside a code point: the step onto a continuation byte
         // carries the threads without a fresh seed.
-        const bool seed            {!matched && (byte_mode_ || !starts_inside_code_point(text, pos + 1U))};
+        const bool seed            {!Anchored && !matched && (byte_mode_ || !starts_inside_code_point(text, pos + 1U))};
         // The cached edge read inline, as the plain scans do; step()/step_seeded() only on a miss.
         const std::uint32_t cached {(seed ? trans_seeded_ : trans_)[here + trans_col + alpha_.of[byte]]};
         if (cached != no_transition) {
@@ -2566,86 +2349,43 @@ namespace real::detail {
         else {
           miss_pos_ = pos;
           state     = seed ? step_seeded(here, byte) : step(here, byte);
-          if (thrashing_ && may_quit_) {
-            return quit_pos; // before a match the dead state keeps seeding, so the loop would not end on it
+          if constexpr (!Anchored) {
+            if (thrashing_ && may_quit_) {
+              return look_quit<Anchored>(pos); // the seeding dead state would not end the loop
+            }
           }
         }
         ++pos;
       }
-      // As the other scans: a cut that flushed hands back the dead state, which ends the loop as a match's end.
-      window_bytes_ += pos - scan_origin_;
-      return (thrashing_ && may_quit_) ? quit_pos : best_end;
-    }
-
-    /*!
-     * \brief Whether \p pos is inside a UTF-8 code point: the byte there is a continuation byte.
-     * \param[in] text The subject.
-     * \param[in] pos  The position.
-     * \return True inside a code point; false at the end or at a code point's first byte.
-     */
-    [[nodiscard]] static constexpr bool starts_inside_code_point(std::string_view text,
-                                                                 std::size_t      pos)
-    {
-      return pos < text.size() && (static_cast<std::uint8_t>(text[pos]) & 0xC0U) == 0x80U;
-    }
-
-    /*!
-     * \brief \ref anchored_end for a program with position assertions (see \ref forward_end_look).
-     * \param[in] text  Subject.
-     * \param[in] start The anchor.
-     * \return The match end and how far the walk got.
-     */
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((noinline, cold)) // out of the hot scans' bodies: a program without assertions never calls it
-#endif
-    anchored_result anchored_end_look(std::string_view text,
-                                      std::size_t      start)
-    {
-      std::uint32_t state    {start_for(ctx_at(text, start))};
-      std::size_t   best_end {npos};
-      std::size_t   pos      {start};
-      scan_origin_ = start;
-      while (true) {
-        std::uint32_t here {state};
-        std::uint32_t word {trans_[state + accept_col]};
-        if (word == pending_idx) {
-          // The memoized resolution read inline, as the cached edges are; resolve() only on a miss.
-          const std::uint16_t key  {key_at(text, pos)};
-          const std::uint32_t memo {res_[state + key]};
-          here = memo != no_transition ? memo : resolve(state, key);
-          if (here == quit_state) {
-            // Even past an accept: whether a longer match wins is what the boundary would have told.
-            return {.end = npos, .scanned_to = pos, .quit = true};
-          }
-          word = trans_[here + accept_col];
-        }
-        if (word != no_match_idx) {
-          best_end = pos;
-          const std::uint32_t cut {trans_[here + cut_col]};
-          here = cut != no_transition ? cut : cut_cached(here);
-          if (here == dead_state) {
-            break;
-          }
-        }
-        if (pos >= text.size() || here == dead_state) {
-          break;
-        }
-        const auto          byte   {static_cast<std::uint8_t>(text[pos])};
-        const std::uint32_t cached {trans_[here + trans_col + alpha_.of[byte]]};
-        if (cached != no_transition) {
-          state = cached;
-        }
-        else {
-          miss_pos_ = pos;
-          state     = step(here, byte);
-        }
-        ++pos;
-      }
+      // A cut that flushed hands back the dead state, which ends the loop as a match's end.
       window_bytes_ += pos - scan_origin_;
       if (thrashing_ && may_quit_) {
-        return {.end = npos, .scanned_to = pos, .quit = true};
+        return look_quit<Anchored>(pos);
       }
-      return {.end = best_end, .scanned_to = pos};
+      if constexpr (Anchored) {
+        return anchored_result {.end = best_end, .scanned_to = pos};
+      }
+      else {
+        return best_end;
+      }
+    }
+
+    /*!
+     * \brief \ref scan_look's answer when the walk quits.
+     * \tparam Anchored Which walk quit.
+     * \param[in] pos Where it stopped.
+     * \return The quit result in that walk's form.
+     */
+    template <bool Anchored>
+    [[nodiscard]] static constexpr std::conditional_t<Anchored, anchored_result, std::size_t> look_quit(std::size_t pos)
+    {
+      if constexpr (Anchored) {
+        return anchored_result {.end = npos, .scanned_to = pos, .quit = true};
+      }
+      else {
+        static_cast<void>(pos);
+        return quit_pos;
+      }
     }
 
     /*!
@@ -2789,7 +2529,7 @@ namespace real::detail {
     std::span<const instr>        code_;                //!< The byte program, owned by the caller.
     std::span<const char_class>   classes_;             //!< Its byte classes, likewise borrowed.
     lazy_byte_alphabet            alpha_;               //!< Byte-to-class map; its count plus two is the row stride.
-    bool                          eligible_    {false}; //!< \ref compute_eligibility's verdict, fixed at construction.
+    bool                          eligible_    {false}; //!< \ref dfa_representable's verdict, fixed at construction.
     bool                          byte_mode_   {true};  //!< A match may start at any byte (else only at a code-point start).
     bool                          word_quit_   {false}; //!< Unicode word boundaries carried, quitting next to a non-ASCII byte.
     bool                          may_quit_    {false}; //!< A scan may quit: on a Unicode word boundary next to non-ASCII, and once its cache thrashes.
@@ -2800,42 +2540,10 @@ namespace real::detail {
     std::array<std::uint32_t, 8>  starts_      {};      //!< Context -> start state, per \ref flush (look programs).
     std::uint32_t                 start_state_ {0};     //!< Id of the closure of pc 0, re-interned by each \ref flush.
 
-    // A VECTOR OF VECTORS, one heap block per DFA state. What a first search pays here has been
-    // measured twice, and the two measurements DISAGREE because they were taken on different route
-    // landscapes. A measured number in a comment must name the ROUTE it was taken on, not only the
-    // pattern: routes move (three moved the week this was written), and a number whose routing
-    // premise changed reads as current long after it stopped applying. Both are stated with theirs.
-    //
-    // 2026.08, counted rather than timed: `\w+@\w+` on an 8 KB subject made 16 146 allocations
-    // totalling 6.09 MB, against 187 and 163 KB for the ASCII twin `[a-z]+@[a-z]+` -- WHEN THE
-    // INNER-LITERAL ROUTE CONFIRMED THROUGH THIS DFA. Attribution was by disabling routes: lazy
-    // DFA off, the same search made 5 738 / 0.96 MB; inner-literal off as well, 91 / 117 KB. The
-    // per-call locals in the transition path (`step`/`step_seeded`'s `next` and `seen`, the latter
-    // also the memset callgrind put at 5 %) plus close_into's stack were essentially all of it.
-    //
-    // 2026.09.15, same instrument, this tree: `\w+@\w+` no longer reaches the DFA at all -- the
-    // inner-literal route carries it whole (DFA knob on/off: 5 649 vs 5 647). A pattern that DOES
-    // route here today -- `\w+\d+`, no required literal -- pays 3 317 allocations on the cold
-    // first search and ZERO on every warm one, while interning only TWO states. Hoisting the
-    // miss-path scratch (`next`/`seen` into members, a generation stamp for the zeroing) was
-    // written, measured, and REVERTED on these numbers: it removed 36 of 3 315 cold allocations,
-    // ~1 %, far below what this repository's layout instruments can resolve (±3 % floor, code
-    // layout, not noise -- BENCHMARKS.md).
-    //
-    // ATTRIBUTED the same day (benchmarks/alloc_cold_probe.cpp, per-construction-site counting, the
-    // parts summed against the total): build_byte_program is 3 171 of the 3 317 (95.6 %), and the
-    // UTF-8 tries are 3 125 of that (98.5 % -- `\w` alone 2 757, `\d` 368); the shared alphabet 40,
-    // the two DFA constructors 50, the remainder 56. The onepass op_table is NOT among them -- it
-    // builds only for patterns with capture groups (pike.hpp's slot_count guard), and this pattern
-    // has none. So the cold cost is the trie expansion, paid once per regex object; the miss path
-    // is paid per transition. No bench row and no scaling test exercises the cold path -- the
-    // consumer verdict lives in the probe's header.
-    //
-    // STILL TRUE, measured on the 16 146 landscape and worth keeping against the day the
-    // scaffolding is fixed and the miss path matters again: reserving the OUTER vector saved 3
-    // allocations of 16 146 and cost 98 KB, and FLATTENING this into one pool with an offset per
-    // state -- the fix the trie builder uses -- changed the count by exactly ZERO. Whether they
-    // still hold on today's scaffolding-dominated cost is unknown until that attribution exists.
+    // One heap block per DFA state. A first search's cold cost is build_byte_program's UTF-8 tries (~96 % of
+    // its allocations, benchmarks/alloc_cold_probe.cpp), paid once per regex; warm searches allocate nothing.
+    // Hoisting the miss-path scratch into members saved ~1 % of cold allocations, under the ±3 % layout
+    // floor; reserving the outer vector or flattening it into one pool changed nothing.
     mutable std::vector<std::int32_t>                                          stack_;        //!< close_into's work stack, hoisted: it ran once per pc of the source state.
     std::vector<std::vector<std::int32_t>>                                     state_pcs_;    //!< state id -> ordered pc-set.
     std::vector<std::uint32_t>                                                 trans_;        //!< [state + accept_col] accept word, [state + cut_col] memoized cut, [state + trans_col + class] next, unseeded (post-match).
@@ -2895,7 +2603,7 @@ namespace real::detail {
                                    std::size_t                 byte_budget  = lazy_dfa_default_byte_budget)
       : code_ {code}, classes_ {classes},
         alpha_ {shared_alpha != nullptr ? *shared_alpha : compute_lazy_alphabet(code, classes)},
-        eligible_ {compute_eligibility(code, ascii_word || word_quit)}, word_quit_ {word_quit && !ascii_word},
+        eligible_ {dfa_representable(code, ascii_word || word_quit)}, word_quit_ {word_quit && !ascii_word},
         look_ {std::ranges::any_of(code, [](const instr& in) { return in.op == opcode::assert_position; })},
         budget_ {budget}, byte_budget_ {byte_budget}
     {
@@ -2905,13 +2613,9 @@ namespace real::detail {
           class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? rctx_nonascii : right_ctx_of(static_cast<std::uint8_t>(b), cr);
         }
       }
-      // Transpose the program: rev_eps_[x] = the pcs with a forward epsilon edge to x; rev_consume_[x] = the
-      // consuming pcs whose successor is x (a byte/klass at pc goes to pc+1).
-      // TWO PASSES INTO FOUR BUFFERS, not a vector of vectors. The transpose is an adjacency list, and
-      // as one inner vector per pc it was the single largest allocation COUNT in a first search: 7003
-      // blocks for `\w+@\w+` over 8 KB, because `\w` expands to a byte program of thousands of
-      // instructions and nearly every one gets a first push_back. Counting degrees, prefix-summing and
-      // filling gives the same structure in four allocations. Measured by counting, not timing.
+      // Transpose: rev_eps_[x] = the pcs with an epsilon edge to x; rev_consume_[x] = the consuming pcs whose
+      // successor is x. Two passes into four flat buffers: a vector per pc was a first search's largest
+      // allocation count (7003 blocks for `\w+@\w+` over 8 KB).
       const std::size_t n {code.size()};
       rev_eps_at_.assign(n + 2, 0);
       rev_consume_at_.assign(n + 2, 0);
@@ -2976,7 +2680,7 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Whether the program can be represented at all (no assertion, `klass_cp` or lookaround).
+     * \brief Whether the program can be represented at all (see `compute_eligibility`).
      * \return False when the caller must find the start another way.
      */
     [[nodiscard]] bool eligible() const
@@ -3010,14 +2714,17 @@ namespace real::detail {
      * \param[in] text   Subject.
      * \param[in] e      The known match end.
      * \param[in] resume Lower bound the backward scan will not cross.
+     * \param[out] read  When not null, the bytes the scan read: it runs until its state dies or \p resume,
+     *                   past the start it returns.
      * \return The leftmost start at or after \p resume, or \ref real::npos when none was reached.
      */
     [[nodiscard]] std::size_t reverse_start(std::string_view text,
                                             std::size_t      e,
-                                            std::size_t      resume)
+                                            std::size_t      resume,
+                                            std::size_t*     read = nullptr)
     {
       if (look_) {
-        return reverse_start_look(text, e, resume);
+        return reverse_start_look(text, e, resume, read);
       }
       std::uint32_t       state {start_state_}; // rev-closure of the forward `match`
       std::size_t         best  {npos};
@@ -3034,6 +2741,9 @@ namespace real::detail {
         const auto          byte   {static_cast<std::uint8_t>(text[pos])};
         const std::uint32_t cached {trans_[(static_cast<std::size_t>(state) * count) + alpha_.of[byte]]};
         state = cached != no_transition ? cached : step(state, byte); // the cached edge inline; step() on a miss
+      }
+      if (read != nullptr) {
+        *read = e - pos;
       }
       return best;
     }
@@ -3390,11 +3100,13 @@ namespace real::detail {
      * \param[in] text   Subject.
      * \param[in] e      The known match end.
      * \param[in] resume Lower bound the backward scan will not cross.
+     * \param[out] read  As \ref reverse_start's.
      * \return The leftmost start at or after \p resume, or \ref real::npos.
      */
     std::size_t reverse_start_look(std::string_view text,
                                    std::size_t      e,
-                                   std::size_t      resume)
+                                   std::size_t      resume,
+                                   std::size_t*     read)
     {
       std::uint32_t       state {start_for(right_ctx_at(text, e))};
       std::size_t         best  {npos};
@@ -3409,6 +3121,9 @@ namespace real::detail {
           const std::uint32_t memo {res_[(static_cast<std::size_t>(state) * (count + 1U)) + key]};
           here = memo != no_transition ? memo : resolve(state, key);
           if (here == quit_state) {
+            if (read != nullptr) {
+              *read = e - pos;
+            }
             return quit_pos;
           }
         }
@@ -3433,6 +3148,9 @@ namespace real::detail {
           state = cached != no_transition ? cached : step(here, byte);
         }
       }
+      if (read != nullptr) {
+        *read = e - pos;
+      }
       return best;
     }
 
@@ -3445,8 +3163,6 @@ namespace real::detail {
     constexpr void rev_closure(std::vector<std::int32_t>& set,
                                visit_marks&               seen) const
     {
-      // Member stack, same reason as close_into's: one heap block per call otherwise. Seeded from the
-      // whole set here rather than a single pc, since the reverse closure starts from all of them.
       stack_.assign(set.begin(), set.end());
       while (!stack_.empty()) {
         const std::int32_t pc {stack_.back()};
@@ -3498,11 +3214,8 @@ namespace real::detail {
       else {
         rev_closure(next, seen);
       }
-      // Same trap lazy_dfa::step guards against: intern() may flush() mid-call (state_pcs_/trans_ cleared
-      // and rebuilt from scratch), which makes `state` -- the CALLER's index, captured before this call --
-      // stale for the now-reset trans_. Only cache the edge back into trans_[state] when no flush happened
-      // this call; a flush means the caller re-seeds anyway (reverse_start reads the RETURNED state, always
-      // fresh), so the cache write is simply skipped rather than landing on a wrong or out-of-bounds slot.
+      // intern() may flush, leaving the caller's `state` stale: cache the edge only when no flush happened
+      // (the caller reads the returned state).
       const std::size_t   flushes_before {flushes_};
       const std::uint32_t result         {intern(next)};
       if (flushes_ == flushes_before) {
@@ -3525,31 +3238,6 @@ namespace real::detail {
         return static_cast<std::uint8_t>(in.arg8) == byte;
       }
       return in.op == opcode::klass && classes_[in.arg16].test(byte);
-    }
-
-    /*!
-     * \brief Scan \p code for an op the transposed program cannot represent.
-     * \param[in] code       The program's instruction stream.
-     * \param[in] ascii_word Whether a word boundary's word-ness is ASCII (then a byte decides it).
-     * \return True when every op is representable.
-     */
-    static constexpr bool compute_eligibility(std::span<const instr> code,
-                                              bool                   ascii_word)
-    {
-      // Tier 1's possessive-loop family has no consuming-edge representation here (consumes() above only
-      // recognizes byte/klass), as in the forward DFA. A position assertion is an edge the closure crosses
-      // where it holds (rev_closure_look), unless no byte decides it.
-      return std::ranges::none_of(code, [ascii_word](const instr& in) {
-                                    if (in.op == opcode::assert_position) {
-                                      const auto kind {static_cast<assert_kind>(in.arg8)};
-                                      const bool word {kind == assert_kind::word_boundary || kind == assert_kind::not_word_boundary
-                                                       || kind == assert_kind::word_start || kind == assert_kind::word_end};
-                                      return in.arg16 != 0 || (word && !ascii_word);
-                                    }
-                                    return in.op == opcode::assert_lookaround || in.op == opcode::klass_cp
-                                           || in.op == opcode::byte_loop_possessive || in.op == opcode::klass_loop_possessive
-                                           || in.op == opcode::klass_cp_loop_possessive;
-                                  });
     }
 
     /*!
@@ -3632,7 +3320,7 @@ namespace real::detail {
     std::span<const instr>                                                     code_;                                        //!< The byte program, owned by the caller.
     std::span<const char_class>                                                classes_;                                     //!< Its byte classes, likewise borrowed.
     lazy_byte_alphabet                                                         alpha_;                                       //!< Byte-to-class map; its count is the row stride.
-    bool                                                                       eligible_     {false};                        //!< \ref compute_eligibility's verdict, fixed at construction.
+    bool                                                                       eligible_     {false};                        //!< \ref dfa_representable's verdict, fixed at construction.
     bool                                                                       word_quit_    {false};                        //!< Unicode word boundaries carried, quitting next to a non-ASCII byte.
     mutable bool                                                               quit_hit_     {false};                        //!< Set by holds_left() inside one resolve(): that resolution is quit_state.
     bool                                                                       look_         {false};                        //!< The program carries position assertions (the look paths).
@@ -3650,7 +3338,7 @@ namespace real::detail {
     std::vector<std::uint32_t>                                                 rev_eps_at_;                                  //!< CSR offsets into \ref rev_eps_pool_, size code+2.
     std::vector<std::int32_t>                                                  rev_consume_pool_;                            //!< transposed consuming edges, CSR-packed.
     std::vector<std::uint32_t>                                                 rev_consume_at_;                              //!< CSR offsets into \ref rev_consume_pool_.
-    mutable std::vector<std::int32_t>                                          stack_;                                       //!< rev_closure's work stack, hoisted for the same reason.
+    mutable std::vector<std::int32_t>                                          stack_;                                       //!< The closures' work stack, a member to spare a heap block per call.
     std::vector<std::vector<std::int32_t>>                                     state_pcs_;                                   //!< state id -> sorted pc-set.
     std::vector<std::uint32_t>                                                 trans_;                                       //!< flat [state*stride + class] -> next.
     std::vector<char>                                                          state_has_start_;                             //!< state -> reaches the program start (an accept).

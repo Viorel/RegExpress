@@ -1,12 +1,9 @@
 /*!
  * \file frontend/inner_literal_reverse.hpp
- * \brief The prefix-reverse of the inner-literal prefilter: given a required inner literal found at a
- *        candidate position, reverse-match the pattern's PREFIX — everything before the literal — to
- *        recover the match start. Reuses the engine's reverse machinery, `build_byte_program()` plus
- *        `reverse_dfa`, on the prefix sub-program alone.
+ * \brief Recovers an inner-literal candidate's match start by reverse-matching the pattern's prefix
+ *        (everything before the literal) with `build_byte_program()` + `reverse_dfa`.
  *
- * Unrouted: \ref real::detail::prefix_reverse_start has no caller outside its own test. The protocol
- * lives here, written and tested, so that a route can be given it rather than inventing one.
+ * Unrouted: \ref real::detail::prefix_reverse_start is called only by its test.
  */
 #ifndef REAL_FRONTEND_INNER_LITERAL_REVERSE_HPP
 #define REAL_FRONTEND_INNER_LITERAL_REVERSE_HPP
@@ -30,16 +27,12 @@ namespace real::detail {
 
   /*!
    * \brief The match start for a literal candidate at \p h: reverse-match the prefix (the first \p count
-   *        top-level children) ending at \p h, bounded below by \p min_start. \p count == 0 means the literal
-   *        is at the head, so the reverse is the identity (the match starts at the candidate). Returns \ref
-   *        npos when the prefix cannot reach a start (an orphan candidate). Runtime only — the reverse DFA is
-   *        not constexpr; a static_regex would keep the inner-literal path dynamic.
+   *        top-level children) ending at \p h, bounded below by \p min_start. Runtime only (the reverse
+   *        walk is not constexpr).
    *
-   * The prefix is compiled through the normal path: its capturing groups become `save` ops, which \ref
-   * build_byte_program drops as zero-width, so the byte program (and the reverse over it) is capture-free by
-   * construction — no separate capture-free compile is needed. Top-level `\b`/`\B` are peeled before the
-   * prefix is built (\ref extract_inner_literal / \ref build_prefix_ast with skip); other anchors and
-   * lookarounds still decline extraction, so an extracted pattern's prefix stays byte-program eligible.
+   * Capturing groups compile to `save` ops, which \ref build_byte_program drops, so the reverse is
+   * capture-free without a separate compile. No peeled lead is skipped: pass only a pattern whose
+   * \ref inner_literal::prefix_skip is 0.
    *
    * \param[in] tree          The pattern's AST, which the prefix is rebuilt from.
    * \param[in] count         Top-level children forming the prefix; 0 means the literal is at the head.
@@ -63,7 +56,7 @@ namespace real::detail {
     const dynamic_program prog   {compile(prefix, compile_flags | prefix.inline_flags)};
     const byte_program    bp     {build_byte_program(prog.view())};
     if (!bp.eligible) {
-      return npos; // an assertion/lookaround in the prefix — unreachable for an extracted pattern
+      return npos; // the prefix holds an op no byte DFA carries
     }
     reverse_dfa rev {bp.code, bp.classes};
     return rev.reverse_start(text, h, min_start);

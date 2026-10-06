@@ -2,12 +2,8 @@
  * \file utf8_ranges.hpp
  * \brief Code-point range → canonical UTF-8 byte-range sequences (RE2 / rust regex-syntax `Utf8Sequences`).
  *
- * Turning a code-point range `[lo, hi]` into the byte-range steps that recognise exactly its UTF-8
- * encodings — no overlong forms, no surrogate encodings — is needed in two places: the compiler expands
- * `.` and negated classes this way, and the lazy DFA expands a `klass_cp` this way so a Unicode shorthand
- * becomes a byte-transition sub-automaton. This header is the shared, dependency-light home of that
- * algorithm — no engine header, only `<cstddef>`, `<cstdint>` and `<vector>` — so neither caller has to
- * include the other.
+ * Shared by the compiler (`.` and negated classes) and the lazy DFA (a `klass_cp` as a byte
+ * sub-automaton); it includes no engine header, so neither caller has to include the other.
  */
 #ifndef REAL_UTF8_RANGES_HPP
 #define REAL_UTF8_RANGES_HPP
@@ -38,8 +34,7 @@ namespace real::detail {
 
   /*!
    * \brief Encodes \p cp to its UTF-8 bytes in \p out, returning the length (1–4).
-   * \param[in]  cp  The code point to encode. A scalar value is assumed: nothing here rejects a
-   *                 surrogate or a value above U+10FFFF, both being excluded by the caller.
+   * \param[in]  cp  The code point to encode; must be a scalar value (not checked).
    * \param[out] out Receives the bytes; only the first \e n are written, \e n being the return value.
    * \return The encoded length, 1 to 4.
    */
@@ -72,11 +67,9 @@ namespace real::detail {
    * \brief Appends to \p out the byte-range sequences recognising exactly the UTF-8 encodings of
    *        `[start, end]` (RE2 / rust regex-syntax `Utf8Sequences`).
    *
-   * Recurses on two splits until the range encodes to a single tuple of byte ranges: first at a UTF-8
-   * length boundary, so every sequence has one length; then at a continuation-byte boundary, so each
-   * byte position of a sequence covers a contiguous range. What comes out is canonical by construction
-   * — no overlong form, no surrogate encoding — which is what keeps a `.` or a negated class expanded
-   * through it from accepting malformed bytes as the character they resemble.
+   * Splits at UTF-8 length boundaries, then at continuation-byte boundaries, until each piece is one
+   * tuple of byte ranges. The output has no overlong form; surrogates are not excluded here (see
+   * \ref utf8_range_sequences).
    *
    * \param[in]     start First code point of the range.
    * \param[in]     end   Last code point of the range, inclusive; an inverted range appends nothing.
@@ -91,13 +84,13 @@ namespace real::detail {
     }
     constexpr std::uint32_t length_max[4] {0x7FU, 0x7FFU, 0xFFFFU, 0x10FFFFU};
     for (const std::uint32_t max : length_max) {
-      if (start <= max && max < end) { // range spans a UTF-8 length boundary: split there
+      if (start <= max && max < end) {
         utf8_push_range(start, max, out);
         utf8_push_range(max + 1, end, out);
         return;
       }
     }
-    for (unsigned i = 1; i < 4; ++i) { // split so each continuation byte covers a contiguous sub-range
+    for (unsigned i = 1; i < 4; ++i) {
       const std::uint32_t mask {(1U << (6U * i)) - 1U};
       if ((start & ~mask) != (end & ~mask)) {
         if ((start & mask) != 0U) {
@@ -137,7 +130,7 @@ namespace real::detail {
   {
     std::vector<utf8_byte_seq> out;
     if (hi < 0xD800U || lo > 0xDFFFU) {
-      utf8_push_range(lo, hi, out); // no surrogate overlap
+      utf8_push_range(lo, hi, out);
     }
     else {
       if (lo <= 0xD7FFU) {

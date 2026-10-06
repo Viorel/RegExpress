@@ -2,30 +2,22 @@
  * \file aho_corasick.hpp
  * \brief Aho-Corasick multi-literal engine for large pure-literal alternations.
  *
- * Built lazily per program from the compiled byte/klass op sequence of a
+ * Built lazily per program from the byte/klass ops of a
  * \ref real::detail::pattern_hints::fixed_alternation -shaped program (see prefilter.hpp's
- * `is_fixed_alternation`) once its branch count reaches the threshold where a single O(n) automaton walk
- * beats the first-byte scans. It complements small_set/fixed_alternation rather than replacing them: an
- * eligible pattern under the threshold stays on its usual route.
+ * `is_fixed_alternation`) once its branch count reaches the threshold where one O(n) automaton walk beats
+ * the first-byte scans; under it the pattern stays on its usual route.
  *
  * The trie is built over the program's byte CLASSES (bytes no branch position tells apart share one), so a
- * case-folded branch is one path rather than one per spelling, in a sparse first-child/next-sibling form
- * whose size is proportional to the node count. Fail links are computed on that sparse trie; where the
- * dense table fits \ref real::detail::ac_memory_budget, the states are then numbered so that every state
- * that reports a match comes first, and the table is allocated once at its exact size. It stores
- * premultiplied ids (row offset = index * stride), so a step is one class lookup off the dependency chain
- * and one dependent load, and "does this state report" is one compare.
+ * case-folded branch is one path, in a sparse first-child/next-sibling form sized by the node count. Fail
+ * links are computed on it. Where the dense table fits \ref real::detail::ac_memory_budget, states are
+ * numbered reporting-first and the table is allocated once at its exact size, with premultiplied ids
+ * (index * stride): a step is one class lookup and one dependent load, "does this state report" one
+ * compare. Otherwise the sparse trie is searched, the shallowest nodes given dense rows while the budget
+ * lasts; past what the trie itself may take, nothing is built and the ordinary alternation route runs.
  *
- * Past that, the automaton searches the sparse trie, the shallowest nodes given total dense rows while the
- * budget lasts; past what the sparse trie itself may take, it is not built, and the caller takes the
- * ordinary alternation route.
- *
- * Leftmost-first semantics: earliest match start wins; among matches starting at the same position, the
- * FIRST-LISTED branch (smallest declared id) wins, matching REAL's own thread-priority alternation
- * semantics exactly -- held to it by a differential rather than by assertion
- * (tests/engine/test_fastpath_seam_matrix.cpp, seam_run_aho_corasick).
- *
- * Storage is std::vector throughout -- no raw new/delete anywhere in this file.
+ * Leftmost-first: earliest start wins, then the FIRST-LISTED branch (smallest id), as REAL's thread-priority
+ * alternation does; held to it by a differential (tests/engine/test_fastpath_seam_matrix.cpp,
+ * seam_run_aho_corasick). Storage is std::vector throughout, no raw new/delete.
  */
 #ifndef REAL_AHO_CORASICK_HPP
 #define REAL_AHO_CORASICK_HPP
@@ -57,9 +49,8 @@ namespace real::detail {
   inline constexpr std::size_t ac_memory_budget_default {std::size_t {32} << 20U};
 
   /*!
-   * \brief Bytes an automaton may hold: the dense table where it fits, else the sparse trie and as many
-   *        dense rows as the rest allows, else no automaton. A test seam (shrunk to reach the sparse form
-   *        and the decline); \ref ac_memory_budget_default otherwise.
+   * \brief Bytes an automaton may hold (the layout rule is in the file header); \ref ac_memory_budget_default
+   *        unless a test shrinks it to reach the sparse form and the decline.
    * \return A reference to the process-wide budget.
    */
   inline std::size_t& ac_memory_budget()
@@ -147,9 +138,8 @@ namespace real::detail {
     }
 
     /*!
-     * \brief Computes the fail and output links on the sparse trie, then lays the automaton out: the dense
-     *        table where it fits \ref ac_memory_budget, else the sparse trie with dense rows for the
-     *        shallowest nodes while the budget lasts.
+     * \brief Computes the fail and output links on the sparse trie, then lays the automaton out, dense or
+     *        sparse by \ref ac_memory_budget.
      */
     void build()
     {
@@ -191,8 +181,7 @@ namespace real::detail {
       const std::size_t row_bytes {stride_ * sizeof(std::int32_t)};
       if (ac_dense_disabled() || (n * (row_bytes + (3U * sizeof(std::int32_t)))) > ac_memory_budget()) {
         sparse_ = true;
-        // A miss falls along the fail chain toward the root, so rows go to the SHALLOWEST nodes first (BFS
-        // order), for as many as the budget leaves after the trie itself.
+        // A miss falls along the fail chain toward the root, so rows go to the SHALLOWEST nodes first (BFS).
         const std::size_t sparse_bytes {n * sizeof(trie_node)};
         std::size_t       rows_left    {ac_memory_budget() > sparse_bytes ? (ac_memory_budget() - sparse_bytes) / row_bytes : 0U};
         rows_left = std::min(rows_left, ac_sparse_row_cap());
@@ -580,10 +569,10 @@ namespace real::detail {
   };
 
   /*!
-   * \brief Maximum class sequences a single branch may expand into: a branch whose positions span classes the
-   *        others tell apart expands into each combination, and past this the WHOLE pattern declines AC and
-   *        takes the ordinary \ref pattern_hints::fixed_alternation route. Classes, not bytes: a case-folded
-   *        letter is one class unless another branch tells its cases apart.
+   * \brief Maximum class sequences one branch may expand into (one per combination of the classes its
+   *        positions span); past this the WHOLE pattern takes the ordinary
+   *        \ref pattern_hints::fixed_alternation route. A case-folded letter is one class unless another
+   *        branch tells its cases apart.
    */
   inline constexpr std::size_t ac_max_branch_expansion = 64;
 
@@ -591,13 +580,12 @@ namespace real::detail {
    * \brief Builds an \ref ac_automaton from a `fixed_alternation`-shaped program's branch set, over the
    *        program's own byte classes (every class it tests is a union of them, so no position is split).
    *
-   * \p body_pc is \ref pattern_hints::body_pc (the first branch/split pc, already validated by
-   * `is_fixed_alternation` -- this function trusts that shape: every branch is a run of `byte`/`klass` ops
-   * terminated by a `jump` or, for the last, falling through).
+   * Trusts the shape `is_fixed_alternation` validated: every branch is a run of `byte`/`klass` ops ended by
+   * a `jump` or, for the last, falling through.
    *
    * \param[in] code    The program's instruction stream.
    * \param[in] classes Its class table.
-   * \param[in] body_pc The first branch/split pc.
+   * \param[in] body_pc The first branch/split pc (\ref pattern_hints::body_pc).
    * \return The automaton, or `std::nullopt` when a branch expands past \ref ac_max_branch_expansion or the
    *         trie past \ref ac_memory_budget -- the caller then takes the ordinary alternation route.
    */

@@ -1,14 +1,11 @@
 /*!
  * \file std/regex_iter.hpp
- * \brief std::regex-compatibility layer, part 3/3: `regex_iterator` and `regex_token_iterator`.
- *        Included via the `std/regex.hpp` umbrella.
+ * \brief std::regex compatibility, part 3/3: `regex_iterator` and `regex_token_iterator`.
  */
 #ifndef REAL_STD_REGEX_ITER_HPP
 #define REAL_STD_REGEX_ITER_HPP
 
-// Internal — do not include directly.
-// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
-// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
+// Internal — do not include directly; the entry point is <real/compat/std/regex.hpp>.
 
 #include "regex_match.hpp"
 
@@ -16,9 +13,8 @@
 #include <memory>
 
 /*!
- * \brief Drop-in replacements for `<regex>`: \c basic_regex, \c regex_search / \c regex_match /
- *        \c regex_replace and the iterator types -- backed by REAL's linear-time engine where it can
- *        serve the pattern, and by `std::regex` otherwise, never by a silent divergence.
+ * \brief Drop-in replacements for `<regex>`, backed by REAL's linear-time engine where it can serve the
+ *        pattern and by `std::regex` otherwise, never by a silent divergence.
  */
 namespace real::compat {
   namespace detail {
@@ -31,10 +27,9 @@ namespace real::compat {
     {};
 
     /*!
-     * \brief What a `regex_iterator` over a non-contiguous range keeps for REAL: the range's ONE copy, shared by
-     *        the copies of the iterator (a post-increment copies), and the cursor that maps its offsets back.
-     *        Shared and on the heap because the walker's view points into it: a copy held by value would move
-     *        with the iterator, and a short one moves its characters along.
+     * \brief What a `regex_iterator` over a non-contiguous range keeps for REAL: one copy of the range, shared by
+     *        the iterator's copies, and the cursor mapping its offsets back. On the heap because the walker views
+     *        it: a short string held by value would move its characters with the iterator.
      * \tparam BidirIt The caller's iterator.
      */
     template <typename BidirIt>
@@ -52,12 +47,8 @@ namespace real::compat {
   /*!
    * \brief Iterates the non-overlapping matches of a pattern in a sequence (`std::regex_iterator`).
    *
-   * Same per-operation routing as `regex_replace` — a real-backed pattern drives `real`'s traversal,
-   * which advances past an empty match as [re.regiter.incr] does (see
-   * `basic_regex::uses_real_traversal`); the std backend, a constraining flag and a nullable POSIX
-   * pattern wrap `std::regex_iterator`. The default-constructed iterator is the end sentinel. Over a
-   * non-contiguous range REAL walks one copy of it, made by the constructor and shared by the copies.
-   *
+   * REAL drives the traversal when `basic_regex::uses_real_traversal` holds and `detail::real_honors` accepts
+   * the flags; otherwise this wraps a `std::regex_iterator`. Default-constructed, it is the end sentinel.
    * \tparam BidirIt A bidirectional iterator into the searched sequence.
    */
   template <typename BidirIt,
@@ -81,12 +72,10 @@ namespace real::compat {
 
     /*!
      * \brief Constructs a begin iterator over `[first, last)` and finds the first match.
-     *        A constraining match flag (see \ref detail::real_honors) routes to the std backend,
-     *        which carries the flags through the wrapped `std::regex_iterator`.
      * \param[in] first Start of the character sequence.
      * \param[in] last  End of the character sequence.
      * \param[in] re    The pattern; it must outlive this iterator.
-     * \param[in] flags Match flags, defaulting to \c regex_constants::match_default.
+     * \param[in] flags Match flags; a constraining one routes the iteration to std.
      */
     regex_iterator(BidirIt                          first,
                    BidirIt                          last,
@@ -94,8 +83,7 @@ namespace real::compat {
                    regex_constants::match_flag_type flags = regex_constants::match_default)
       : begin_(first), end_(last), re_(&re), flags_(flags)
     {
-      // The real traversal exists only for the char/default-traits path; for wide/custom-traits
-      // CharT the branch is compiled out, so next_real() (char-only) is never instantiated.
+      // Compiled out for other CharT: next_real is char-only.
       if constexpr (detail::real_eligible<CharT, Traits>) {
         if (re.uses_real_traversal() && detail::real_honors(flags)) {
           real_path_ = true;
@@ -111,14 +99,9 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Copies the iteration position, but NOT the walker.
-     *
-     * The walker is an accelerator over \ref real_pos_, never the state itself, and that is what
-     * makes this cheap where the obvious designs are not. Copying it would clone the VM scratch it
-     * embeds; sharing it copy-on-write would clone on the first advance, which `operator++(int)`
-     * performs on every call -- buying `++it` at the price of `it++`. Leaving the copy without one
-     * costs it a single walker construction IF it ever advances, and nothing at all if it does not,
-     * which is what a post-increment's discarded result actually does.
+     * \brief Copies the iteration position but not the walker (an accelerator over \ref real_pos_). Cloning its
+     *        VM scratch, or sharing it copy-on-write, would cost every `it++`; a copy builds its own walker only
+     *        if it advances.
      * \param[in] other The iterator to copy.
      */
     regex_iterator(const regex_iterator& other)
@@ -196,8 +179,7 @@ namespace real::compat {
       if (at_end_) {
         return *this;
       }
-      // Guarded so next_real() (char-only) is not instantiated for wide/custom-traits CharT, where
-      // real_path_ is always false anyway (the ctor's real branch is compiled out).
+      // Compiled out for other CharT, where real_path_ is always false.
       if constexpr (detail::real_eligible<CharT, Traits>) {
         if (real_path_) {
           next_real();
@@ -231,8 +213,6 @@ namespace real::compat {
       if (at_end_ || other.at_end_) {
         return at_end_ == other.at_end_;
       }
-      // std-conformant: two non-end iterators are equal only for the same regex + sequence at the
-      // same current match (not just a coincidental same-position/length across different regexes).
       return re_ == other.re_ && begin_ == other.begin_ && end_ == other.end_ && flags_ == other.flags_
              && match_.position(0) == other.match_.position(0)
              && match_.length(0) == other.match_.length(0);
@@ -250,8 +230,7 @@ namespace real::compat {
 
   private:
 
-    //! \brief The REAL walker, when this iterator owns one. ACCELERATION ONLY: \ref real_pos_ stays
-    //!        the source of truth, so a null walker costs correctness nothing and only speed.
+    //! \brief The REAL walker: an accelerator only, \ref real_pos_ stays the source of truth.
     using walker_type = real::basic_match_iterator<real::detail::dynamic_storage>;
 
     [[no_unique_address]] detail::subject_for<BidirIt> subject_;                                     //!< Non-contiguous range: the copy REAL walks; declared before the walker, which views it.
@@ -262,7 +241,7 @@ namespace real::compat {
     regex_constants::match_flag_type                   flags_      {regex_constants::match_default}; //!< Match flags this iteration was built with.
     bool                                               real_path_  {false};                          //!< Whether the REAL engine drives the traversal rather than the std backend.
     std::size_t                                        real_pos_   {};                               //!< REAL path: byte offset the next region search starts at.
-    std::size_t                                        matched_    {};                               //!< REAL path: matches made so far, counted up to 2 (the first one is the one the standard retries without context).
+    std::size_t                                        matched_    {};                               //!< REAL path: matches made so far, saturating at 2 (only the first is retried without context).
     bool                                               last_empty_ {};                               //!< REAL path: the current match is empty.
     std::optional<std::regex_iterator<BidirIt>>        std_it_;                                      //!< std path: the wrapped iterator (engaged only off the REAL path).
     value_type                                         match_;                                       //!< The current match, refilled by each increment.
@@ -271,17 +250,9 @@ namespace real::compat {
     /*!
      * \brief Advances the real path: one step of the walker, built on first use at \ref real_pos_.
      *
-     * \note ONE walker serves the whole iteration, and that is the point rather than an allocation
-     *       detail. A match iterator carries the VM state where every per-haystack decision lives --
-     *       the Aho-Corasick density verdict, the inner-literal density gate, the DFA warmup -- so
-     *       advancing by a fresh `search()` instead would re-derive all of them once per match, worst
-     *       on exactly the families whose routing gate is sticky per haystack.
-     *
-     * \note The walker is held behind a pointer and never copied. `std::regex_iterator` requires
-     *       copies to be independent and its `operator++(int)` returns one, so embedding the walker
-     *       would clone the VM scratch -- which is what makes a match iterator an order of magnitude
-     *       larger than this one -- on every post-increment, buying `++it` at the price of `it++`. A
-     *       copy starts without a walker and builds one only if it advances; see the copy constructor.
+     * \note One walker serves the whole iteration: it carries the per-haystack routing state (prefilter
+     *       density verdicts, DFA warmup), which a fresh `search()` per match would re-derive every time.
+     *       It is never copied; see the copy constructor.
      */
     void next_real()
     {
@@ -292,12 +263,9 @@ namespace real::compat {
       else {
         sv = *subject_.text;
       }
-      // A POSIX grammar on REAL drives the iteration with leftmost-longest bounds; the ECMAScript
-      // default keeps leftmost-first.
       const real::regex&     engine {std::get<real::regex>(re_->engine())};
       if (matched_ == 1 && last_empty_) {
-        // The standard's retry after a first match that came out empty, made before match_prev_avail
-        // (detail::nonempty_at_without_context); past it, the walker's own advance is the standard's.
+        // The standard's retry after a first match that came out empty (detail::nonempty_at_without_context).
         const std::size_t at {real_pos_};
         walker_.reset();
         if (const auto retry {detail::nonempty_at_without_context(engine, sv, at)}; retry.has_value()) {
@@ -308,8 +276,8 @@ namespace real::compat {
           at_end_ = true;
           return;
         }
-        // No non-empty match there: the search goes on past it, with its context. real_pos_ stays the
-        // empty match's end, where the next match's prefix starts.
+        // No non-empty match there: search on past it, with its context. real_pos_ stays at the empty
+        // match's end, where the next match's prefix starts.
         auto range {re_->posix_longest() ? engine.find_iter_longest(sv, at + 1) : engine.find_iter(sv, at + 1)};
         walker_ = std::make_unique<walker_type>(range.begin());
         if (walker_->exhausted()) {
@@ -320,9 +288,7 @@ namespace real::compat {
         return;
       }
       if (walker_ == nullptr) {
-        // First advance, or the first after a copy: build the walker at the current position. It is
-        // self-contained (program view and text are values/views), so it outlives the range it came
-        // from.
+        // First advance, or the first after a copy. The walker is self-contained: it outlives `range`.
         auto range {re_->posix_longest() ? engine.find_iter_longest(sv, real_pos_)
                                          : engine.find_iter(sv, real_pos_)};
         walker_ = std::make_unique<walker_type>(range.begin());
@@ -389,16 +355,13 @@ namespace real::compat {
   // --- regex_token_iterator ----------------------------------------------------------------------
 
   /*!
-   * \brief Enumerates selected sub-matches (or the text *between* matches) — `std::regex_token_iterator`.
+   * \brief Enumerates selected sub-matches, or the text between matches (`std::regex_token_iterator`).
    *
-   * Wraps `regex_iterator`, so it inherits the per-operation nullable routing untouched (it never
-   * replays the engine choice). For each match it yields the requested fields in order: a field `N >= 0`
-   * is capture group `N` (a non-participating group yields an empty `matched == false` token); the field
-   * `-1` is the text *before* this match since the previous one — i.e. the match's `prefix()` — which
-   * turns `-1` into a splitter. After the last match, a trailing `-1` field yields the final suffix
-   * **iff it is non-empty** (std's rule; an empty field *between* adjacent matches is still produced,
-   * the asymmetry std pins). With `-1` and no match at all, the whole sequence is the single token.
-   *
+   * Wraps `regex_iterator`, whose routing it inherits. Per match it yields the requested fields in order:
+   * `N >= 0` is group `N` (unmatched when the group took no part), `-1` the match's prefix, the text since
+   * the previous match. As in std, a final `-1` field yields the last suffix only if it is non-empty, while
+   * an empty field between adjacent matches is produced; with no match at all, `-1` yields the whole
+   * sequence as one token.
    * \tparam BidirIt A bidirectional iterator into the searched sequence.
    */
   template <typename BidirIt,
@@ -441,8 +404,7 @@ namespace real::compat {
     {}
 
     /*!
-     * \brief Selects a list of fields, cycled per match (e.g. `{1, 2}`, `{-1}`). The match flags are
-     *        forwarded to the wrapped `regex_iterator`, so the nullable/honors routing is inherited.
+     * \brief Selects a list of fields, cycled per match (e.g. `{1, 2}`, `{-1}`).
      * \param[in] first      Start of the character sequence.
      * \param[in] last       End of the character sequence.
      * \param[in] re         The pattern; it must outlive this iterator.
@@ -610,8 +572,6 @@ namespace real::compat {
       if (at_end_ || other.at_end_) {
         return at_end_ == other.at_end_;
       }
-      // std-conformant: same underlying match walk, same field selectors, same field index / suffix
-      // state, same current token — not just a coincidental same current token across different lists.
       return position_ == other.position_ && subs_ == other.subs_ && n_ == other.n_
              && suffix_mode_ == other.suffix_mode_ && current_.first == other.current_.first
              && current_.second == other.current_.second;
@@ -657,13 +617,11 @@ namespace real::compat {
         at_end_ = false;
         set_field();
       }
-      else if (has_m1_) {    // no match at all: the whole sequence is ONE split token, then end
+      else if (has_m1_) {    // no match at all: the whole sequence is one split token, then end
         at_end_      = false;
-        suffix_mode_ = true; // terminal — the standard yields exactly one token here, no field cycling
-        // std marks this whole-sequence suffix token as participating even when empty (matched=true),
-        // unlike an empty field *between* matches (a prefix, matched=false). The fuzzer pinned this.
-        // (Per [re.tokiter.cnstr] "one of the elements of subs is -1" — has_m1; libstdc++ conforms,
-        // libc++ has a bug here that checks only subs[0], so it drops the token for e.g. {1,-1}.)
+        suffix_mode_ = true; // terminal: exactly one token, no field cycling
+        // Matched even when empty, unlike an empty field between matches. Any `-1` in the list counts
+        // ([re.tokiter.cnstr]); libc++ checks only the first field and drops this token for `{1, -1}`.
         current_ = value_type {.first = first, .second = last, .matched = true};
       }
     }

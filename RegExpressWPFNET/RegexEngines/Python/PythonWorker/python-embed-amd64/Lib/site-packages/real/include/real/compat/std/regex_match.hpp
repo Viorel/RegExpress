@@ -1,15 +1,12 @@
 /*!
  * \file std/regex_match.hpp
- * \brief std::regex-compatibility layer, part 2/3: `sub_match`, `match_results`, the shared runner,
- *        and the `regex_search` / `regex_match` / `regex_replace` free functions. Included via the
- *        `std/regex.hpp` umbrella.
+ * \brief std::regex compatibility, part 2/3: `sub_match`, `match_results`, the backend runner and the
+ *        `regex_search` / `regex_match` / `regex_replace` free functions.
  */
 #ifndef REAL_STD_REGEX_MATCH_HPP
 #define REAL_STD_REGEX_MATCH_HPP
 
-// Internal — do not include directly.
-// Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
-// <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
+// Internal — do not include directly; the entry point is <real/compat/std/regex.hpp>.
 
 #include "regex_core.hpp"
 
@@ -19,10 +16,8 @@
 
 namespace real::compat {
   /*!
-   * \brief A matched sub-expression: a `[first, second)` range into the searched sequence.
-   *
-   * Any bidirectional iterator, as `std::sub_match`; \ref view alone needs contiguous storage.
-   *
+   * \brief A matched sub-expression: a `[first, second)` range into the searched sequence. Any
+   *        bidirectional iterator, as `std::sub_match`; only \ref view needs contiguous storage.
    * \tparam BidirIt A bidirectional iterator into the searched sequence.
    */
   template <typename BidirIt>
@@ -66,11 +61,10 @@ namespace real::compat {
     }
 
     /*!
-     * \brief A non-owning view of the matched text. REAL's addition; `std::sub_match` has no such member.
+     * \brief A non-owning view of the matched text; a REAL extension, not in `std::sub_match`.
      *
-     * Contiguous iterators only: over a `std::deque` or a `std::list` there is no storage for a view to cover,
-     * and an owning string returned under this name would dangle once bound to a `string_view`; \ref str
-     * serves every iterator.
+     * Contiguous iterators only: an owning string returned under this name for a `std::list` would dangle
+     * once bound to a `string_view`. \ref str serves every iterator.
      * \return A view over `[first, second)`, or an empty view when \ref matched is `false`.
      */
     [[nodiscard]] std::basic_string_view<value_type> view() const
@@ -230,9 +224,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Stream the matched text (`std::sub_match` parity). Found by ADL from
-   *        `std::cout << m[1]`. Writes `m.str()` — empty when the group did not
-   *        participate.
+   * \brief Streams `m.str()`, empty when the group did not participate (`std::sub_match` parity).
    * \param[in,out] os The stream.
    * \param[in]     m  The sub-match whose text is written.
    * \return \p os, after writing.
@@ -248,12 +240,10 @@ namespace real::compat {
   /*!
    * \brief The result of a match: group sub-matches plus the prefix and suffix.
    *
-   * Stores both ends of the searched sequence (`first_`, `last_`) so `suffix()` and lengths are
-   * exact (the end is not derivable from a base pointer alone). Filled either from `real`'s byte
-   * offsets or copied from a `std::match_results` on the fallback path.
-   *
+   * Holds both ends of the searched sequence: the suffix's end is not derivable from a base iterator.
+   * Filled from REAL's byte offsets, or copied from a `std::match_results` on the std path.
    * \tparam BidirIt A bidirectional iterator into the searched sequence.
-   * \tparam Alloc   Allocator for the sub-match vector (std parity; default suffices).
+   * \tparam Alloc   Allocator for the sub-match vector.
    */
   template <typename BidirIt, typename Alloc = std::allocator<sub_match<BidirIt>>>
   class match_results
@@ -308,10 +298,8 @@ namespace real::compat {
     }
 
     /*!
-     * \brief The sub-match for group \p n (group 0 is the whole match). Out-of-range `n` returns a
-     *        reference to an unmatched sub_match anchored at the sequence end `{last_, last_, false}`,
-     *        exactly like `std::match_results::operator[]` (verified on libc++ and libstdc++) — never
-     *        out-of-bounds. A token selector `{2}`/`{5}` or a negative field relies on this.
+     * \brief The sub-match for group \p n. An out-of-range \p n yields an unmatched sub-match anchored at the
+     *        sequence end, as libstdc++ and libc++ do; a token iterator's out-of-range selector relies on it.
      * \param[in] n Group index; 0 is the whole match.
      * \return That group's sub-match, or the end-anchored unmatched one when \p n is out of range.
      */
@@ -321,8 +309,7 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Start offset of group \p n from the sequence start. For an out-of-range group `std`
-     *        anchors the sub_match at the end, so the offset is the full sequence length.
+     * \brief Start offset of group \p n; an out-of-range group sits at the end, as in `std`.
      * \param[in] n Group index; 0 is the whole match.
      * \return Its start offset from the sequence start.
      */
@@ -372,7 +359,7 @@ namespace real::compat {
 
     /*!
      * \brief Iteration over the marks, group 0 first.
-     * \return An iterator to the first sub-match. Iterators are const, as in `std::match_results`.
+     * \return A const iterator to the first sub-match, as in `std::match_results`.
      */
     [[nodiscard]] const_iterator begin() const
     {
@@ -432,13 +419,12 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Writes the format `[fmt_first, fmt_last)` with its references replaced by this match's text
+     * \brief Writes `[fmt_first, fmt_last)` with its references replaced by this match's text
      *        (`std::match_results::format`).
      *
-     * ECMAScript rules by default: a dollar followed by a dollar is a dollar, by an ampersand the match, by
-     * a backtick the prefix, by a quote the suffix, by one or two digits a group (one that does not exist
-     * inserts nothing); any other dollar is itself. `$0` follows the native std, where libstdc++ and libc++
-     * read the whole match. Under `format_sed`, sed's rules, as `regex_replace` applies them.
+     * ECMAScript rules: a dollar followed by a dollar, an ampersand, a backtick, a quote or one or two digits
+     * inserts a dollar, the match, the prefix, the suffix or that group (nothing for a group that does not
+     * exist); any other dollar is itself. `$0` reads as the native std reads it. `format_sed` selects sed's.
      * \tparam OutputIter An output iterator over characters.
      * \param[out] out       Where the result is written.
      * \param[in]  fmt_first Start of the format.
@@ -592,8 +578,7 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Marks a *ready but unmatched* result — after a failed search/match `std` leaves
-     *        `ready() == true` with `size() == 0` (a not-ready result would be a divergence).
+     * \brief Marks the result ready but empty, as `std` leaves it after a failed search or match.
      */
     void set_ready_no_match()
     {
@@ -602,10 +587,9 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Re-bases the unmatched prefix to start at `first` — for iteration, where a match's
-     *        prefix runs from the *previous* match's end (not the sequence start). The std path
-     *        already gets this from the wrapped `std::regex_iterator`; the real path needs it.
-     * \param[in] first Where the prefix should now start — the previous match's end.
+     * \brief Starts the prefix at \p first, as iteration requires; the std path gets this from
+     *        `std::regex_iterator`.
+     * \param[in] first The previous match's end.
      */
     void rebase_prefix(BidirIt first)
     {
@@ -614,9 +598,8 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Fills from real's byte offsets over the sequence `[first_, last_)`.
-     *        Templated on the match type — `real::regex::search` returns an SBO-backed result,
-     *        not the `std::vector`-backed `real::match_result` alias.
+     * \brief Fills from REAL's byte offsets over `[first_, last_)`, from any match exposing `size`, `start` and
+     *        `end` (an engine result, a `detail::offset_match`).
      * \param[in] match The engine's result, whose group offsets are byte offsets into the searched view.
      * \param[in] lead  How many characters the view holds before `first_` (1 under `match_prev_avail`, the
      *                  context it searched with); no match starts among them.
@@ -652,9 +635,8 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Fills from real's byte offsets into a COPY of `[first_, last_)`, a non-contiguous range: each offset
-     *        becomes the caller's iterator through \p at, visited in increasing order so that the walk costs the
-     *        span the marks cover once, whatever order the groups come in (`((a+)b)` lists its widest mark first).
+     * \brief Fills from REAL's offsets into a copy of a non-contiguous `[first_, last_)`: marks are mapped through
+     *        \p at in increasing offset order, so the walk covers their span once whatever the group order.
      * \tparam Cursor A `detail::offset_cursor` over the copied sequence.
      * \param[in]     match The engine's result, whose offsets index the copy.
      * \param[in,out] at    The cursor; at or before the match's start, left at its last mark.
@@ -780,9 +762,8 @@ namespace real::compat {
   namespace detail {
 
     /*!
-     * \brief Maps offsets into the copy of a non-contiguous range back to the caller's iterators, by moving ONE
-     *        iterator from the offset it last mapped: offsets visited in increasing order cost the distance
-     *        covered, where `std::next(first, offset)` per mark walks a `std::list` from its start every time.
+     * \brief Maps offsets into a non-contiguous range's copy back to the caller's iterators by moving one iterator
+     *        from the last offset mapped; `std::next(first, offset)` per mark would rewalk a `std::list`.
      * \tparam BidirIt The caller's iterator.
      */
     template <typename BidirIt>
@@ -834,9 +815,8 @@ namespace real::compat {
     };
 
     /*!
-     * \brief The REAL call for \p shape over \p view, whose first `shape.lead` characters are context only: a
-     *        region search from there sees the character before it for `^`, `\b` and a lookbehind, and `^`
-     *        outside multiline does not hold there, as [re.matchflag] has it for `match_prev_avail`.
+     * \brief The REAL call for \p shape over \p view, whose first `shape.lead` characters are context only: `^`,
+     *        `\b` and a lookbehind see them, and a non-multiline `^` does not hold after them ([re.matchflag]).
      * \param[in] re    The pattern; real-backed.
      * \param[in] view  The sequence, behind its context.
      * \param[in] shape The call.
@@ -856,6 +836,7 @@ namespace real::compat {
         return shape.continuous ? real::detail::non_empty_access::match(engine, view, shape.lead)
                                 : real::detail::non_empty_access::search(engine, view, shape.lead);
       }
+      // A whole-sequence match has one candidate span, so a POSIX grammar needs no longest form here.
       if (shape.anchored) {
         return shape.lead == 0 ? engine.fullmatch(view) : engine.fullmatch(view, shape.lead);
       }
@@ -898,15 +879,11 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Whether an iteration can honor the requested match flags on `real`, so it may stay there.
-     *
-     * Only `match_default` and the non-constraining `match_any` hint stay on `real` (which satisfies
-     * `match_any` by returning the leftmost match, so ignoring it is sound). Any constraining bit routes
-     * the iteration to `std`, this layer never accepting a flag it would then ignore; a single search or
-     * match honors more of them (\ref call_stays_real).
+     * \brief Whether an iteration may stay on `real` under \p mf: only `match_default` and `match_any` (met by the
+     *        leftmost match) qualify; a constraining bit routes it to `std` rather than be ignored. A single search
+     *        or match honors more (\ref call_stays_real).
      * \param[in] mf The match flags the caller passed.
-     * \return `true` if every flag in \p mf is expressible through REAL's API, so the operation may stay
-     *         on the real backend.
+     * \return `true` if the iteration may stay on REAL.
      */
     [[nodiscard]] inline bool real_honors(regex_constants::match_flag_type mf) noexcept
     {
@@ -916,15 +893,14 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Whether one `regex_search` or `regex_match` call can honor the requested match flags on `real`.
+     * \brief Whether one `regex_search` or `regex_match` call can honor \p mf on `real`.
      *
      * Beyond what \ref real_honors accepts, `match_continuous` is a match anchored at `first` (a POSIX
-     * leftmost-longest search has no anchored form, so it stays on `std`; a whole-sequence match starts there
-     * anyway), and `match_prev_avail` a region search from `first` over a view that starts one character before
-     * it. Under `match_prev_avail` the standard ignores `match_not_bol` and `match_not_bow` ([re.matchflag]), and
-     * so does this. `match_not_null` is a search that accepts no empty match, where \p not_null_ok says REAL
-     * agrees with the standard on it. `match_not_eol` and `match_not_eow` run a rewrite of the pattern (see
-     * `basic_regex::end_engine`), which may still decline. `not_bol` / `not_bow` alone route to `std`.
+     * leftmost-longest search has no anchored form, so it stays on `std`); `match_prev_avail` is a region search
+     * over a view starting one character earlier, under which the standard ignores `match_not_bol` and
+     * `match_not_bow` ([re.matchflag]); `match_not_null` needs \p not_null_ok; `match_not_eol` and
+     * `match_not_eow` run a rewrite of the pattern (`basic_regex::end_engine`), which may still decline.
+     * `not_bol` / `not_bow` alone route to `std`.
      * \param[in] mf          The match flags the caller passed.
      * \param[in] anchored    A whole-sequence match (`regex_match`).
      * \param[in] longest     The pattern searches leftmost-longest (a POSIX grammar on REAL).
@@ -1006,10 +982,9 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Whether `regex_replace` can run its substitution on `real`. The real expanders honor
-     *        `format_first_only`, `format_no_copy` and `format_sed` (plus the `match_any` hint); ANY
-     *        constraining match flag (`not_bol`, `continuous`, …) would be silently ignored by the
-     *        traversal, so the whole substitution routes to `std`. (`$0` stays content-based.)
+     * \brief Whether `regex_replace` may run on `real` under \p f: the real expanders honor `format_first_only`,
+     *        `format_no_copy`, `format_sed` and `match_any`; the traversal would ignore a constraining match flag,
+     *        so any routes the whole substitution to `std`.
      * \param[in] f The match/format flags the caller passed to `regex_replace`.
      * \return `true` if the real expander honors all of them, so the replace may stay on the real backend.
      */
@@ -1023,11 +998,8 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Maps compat match/format flags to `std::regex_constants` — exhaustively.
-     *
-     * Every compat bit has an entry: a forgotten bit would be silently lost on the std path, which is
-     * the one divergence this layer does not allow itself. Both the match-control flags
-     * (search/match/iterate) and the format flags (replace) are mapped here.
+     * \brief Maps every compat match and format flag to `std::regex_constants`; a bit missing here would be
+     *        silently dropped on the std path.
      * \param[in] f The compat flags to translate.
      * \return The equivalent `std::regex_constants::match_flag_type`.
      */
@@ -1052,15 +1024,13 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Runs the active backend over `[first, last)` and fills \p m. \p anchored selects
-     *        whole-sequence match (regex_match) vs leftmost search (regex_search). A match flag REAL
-     *        cannot honor (see \ref call_stays_real) routes to `std` even for a real-backed pattern.
+     * \brief Runs the backend over `[first, last)` and fills \p m; a flag REAL cannot honor routes to `std`.
      * \param[in]  first    Start of the sequence to run over.
      * \param[in]  last     One past its end.
      * \param[out] m        Result filled on success; left ready-but-unmatched on failure.
      * \param[in]  re       The pattern, whose backend decides which engine runs.
      * \param[in]  anchored Whole-sequence match (`regex_match`) rather than leftmost search.
-     * \param[in]  mf       Match flags; a constraining one routes to `std` even for a real-backed pattern.
+     * \param[in]  mf       Match flags (\ref call_stays_real).
      * \return `true` if a match was found and \p m filled.
      */
     template <typename BidirIt, typename CharT, typename Traits>
@@ -1081,14 +1051,11 @@ namespace real::compat {
             return run_copied(first, last, m, re, shape);
           }
           else {
-            // A POSIX grammar on REAL routes an unanchored search to leftmost-LONGEST bounds
-            // (re.posix_longest()); a whole-sequence match (fullmatch) has one candidate, so longest ==
-            // first there.
             const std::string_view view   {std::to_address(first) - shape.lead,
                                            static_cast<std::size_t>(std::distance(first, last)) + shape.lead};
             const auto             result {find_real(re, view, shape)};
             if (!result.matched()) {
-              m.set_ready_no_match(); // std leaves ready()==true, size()==0 on a failed match
+              m.set_ready_no_match();
               return false;
             }
             m.fill_from_real(result, shape.lead);
@@ -1132,8 +1099,7 @@ namespace real::compat {
           call_shape shape {shape_of(mf, anchored, re.nullable())};
           shape.engine = engine;
           if constexpr (!std::contiguous_iterator<BidirIt>) {
-            // std::to_address on a deque, a list or a reverse iterator names one element, not the range: search
-            // a contiguous copy instead, which keeps REAL's answers and its linear time.
+            // No byte view covers a non-contiguous range: search a copy, as run does.
             return find_real(re, std::string(shape.lead == 0 ? first : std::prev(first), last), shape).matched();
           }
           else {
@@ -1156,9 +1122,8 @@ namespace real::compat {
   } // namespace detail
 
   /*!
-   * \brief Leftmost search of `[first, last)` (Python `re.search` / `std::regex_search`).
-   *
-   *        The other overloads forward here; those taking no \ref match_results skip capture filling.
+   * \brief Leftmost search of `[first, last)`, as `std::regex_search`; the overloads taking no
+   *        \ref match_results skip capture filling.
    * \param[in]  first Start of the sequence to search.
    * \param[in]  last  One past its end.
    * \param[out] m     Result filled on success; ready-but-unmatched on failure, as `std` leaves it.
@@ -1177,7 +1142,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Leftmost search over a `std::basic_string`; forwards to the primary overload.
+   * \brief Leftmost search over a `std::basic_string`, as the primary overload.
    * \param[in]  s     The subject.
    * \param[out] m     Result filled on success.
    * \param[in]  re    The pattern.
@@ -1194,7 +1159,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Leftmost search over a C string; forwards to the primary overload.
+   * \brief Leftmost search over a C string, as the primary overload.
    * \param[in]  s     The subject.
    * \param[out] m     Result filled on success.
    * \param[in]  re    The pattern.
@@ -1211,7 +1176,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Leftmost search over `[first, last)`, without capturing; forwards to the primary overload.
+   * \brief Leftmost search over `[first, last)`, without capturing, as the primary overload.
    * \param[in]  first Start of the sequence.
    * \param[in]  last  One past its end.
    * \param[in]  re    The pattern.
@@ -1228,7 +1193,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Leftmost search over a `std::basic_string`, without capturing; forwards to the primary overload.
+   * \brief Leftmost search over a `std::basic_string`, without capturing, as the primary overload.
    * \param[in]  s     The subject.
    * \param[in]  re    The pattern.
    * \param[in]  flags Match flags.
@@ -1243,7 +1208,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Leftmost search over a C string, without capturing; forwards to the primary overload.
+   * \brief Leftmost search over a C string, without capturing, as the primary overload.
    * \param[in]  s     The subject.
    * \param[in]  re    The pattern.
    * \param[in]  flags Match flags.
@@ -1258,9 +1223,8 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Match of the entire `[first, last)` (Python `re.fullmatch` / `std::regex_match`).
-   *
-   *        The other overloads forward here; those taking no \ref match_results skip capture filling.
+   * \brief Match of the entire `[first, last)`, as `std::regex_match`; the overloads taking no
+   *        \ref match_results skip capture filling.
    * \param[in]  first Start of the sequence that must match in full.
    * \param[in]  last  One past its end.
    * \param[out] m     Result filled on success; ready-but-unmatched on failure.
@@ -1279,7 +1243,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Whole-sequence match over a `std::basic_string`; forwards to the primary overload.
+   * \brief Whole-sequence match over a `std::basic_string`, as the primary overload.
    * \param[in]  s     The subject.
    * \param[out] m     Result filled on success.
    * \param[in]  re    The pattern.
@@ -1296,7 +1260,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Whole-sequence match over a C string; forwards to the primary overload.
+   * \brief Whole-sequence match over a C string, as the primary overload.
    * \param[in]  s     The subject.
    * \param[out] m     Result filled on success.
    * \param[in]  re    The pattern.
@@ -1313,7 +1277,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Whole-sequence match over `[first, last)`, without capturing; forwards to the primary overload.
+   * \brief Whole-sequence match over `[first, last)`, without capturing, as the primary overload.
    * \param[in]  first Start of the sequence.
    * \param[in]  last  One past its end.
    * \param[in]  re    The pattern.
@@ -1330,7 +1294,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Whole-sequence match over a `std::basic_string`, without capturing; forwards to the primary overload.
+   * \brief Whole-sequence match over a `std::basic_string`, without capturing, as the primary overload.
    * \param[in]  s     The subject.
    * \param[in]  re    The pattern.
    * \param[in]  flags Match flags.
@@ -1345,7 +1309,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief Whole-sequence match over a C string, without capturing; forwards to the primary overload.
+   * \brief Whole-sequence match over a C string, without capturing, as the primary overload.
    * \param[in]  s     The subject.
    * \param[in]  re    The pattern.
    * \param[in]  flags Match flags.
@@ -1359,9 +1323,8 @@ namespace real::compat {
     return detail::run_nocapture(s, s + std::char_traits<CharT>::length(s), re, true, flags);
   }
 
-  // Reject matching against an rvalue string (the result would dangle), mirroring real/std. Both the
-  // 3-arg and the 4-arg (with match flags) forms must be deleted — otherwise the temporary binds to
-  // the const-ref overload and the filled match_results dangles into freed storage.
+  // An rvalue string is rejected, as in std; the forms with match flags too, or a temporary binds to the
+  // const-ref overload and the results dangle.
   template <typename CharT, typename Traits>
   bool regex_search(const std::basic_string<CharT>&&,
                     match_results<typename std::basic_string<CharT>::const_iterator>&,
@@ -1386,14 +1349,9 @@ namespace real::compat {
   namespace detail {
 
     /*!
-     * \brief Appends one match's ECMAScript-expanded replacement.
-     *
-     * The ECMAScript replacement references: dollar-dollar to a literal `$`, dollar-ampersand to the
-     * whole match, dollar-backtick to the prefix, dollar-quote to the suffix, and `$N`/`$NN` to a
-     * group. Offsets come from the match's group spans relative to \p text. The prefix is the
-     * unmatched text *since the previous match* (`[prefix_start, start)`) and the suffix runs to the
-     * end — matching `std::regex_replace` (which uses `match_results` prefix/suffix), the parity
-     * oracle. A `$N`/`$NN` for a non-participating group inserts nothing; an invalid `$` is literal.
+     * \brief Appends one match's ECMAScript-expanded replacement: the references of `match_results::format`,
+     *        the prefix running from \p prefix_start as in `std::regex_replace`. A `$0` never reaches here
+     *        (\ref format_forces_std routes it to std).
      * \param[in,out] out          Destination the expansion is appended to.
      * \param[in]     m            The match whose groups `$N` refers to.
      * \param[in]     fmt          The replacement format string.
@@ -1437,10 +1395,8 @@ namespace real::compat {
           ++i;
         }
         else if (next >= '0' && next <= '9') {
-          // ECMAScript / std: greedily take a second digit when present (`$12` -> group 12; `$015`
-          // -> group 01 == 1, then a literal '5'). The 2-digit value is used as-is; a reference to a
-          // group that does not exist expands to nothing (the digits are still consumed). ($0… is
-          // screened to std up front, so `next` here is 1-9.)
+          // A second digit is taken greedily (`$015` is group 1, then a literal 5); a group that does not
+          // exist expands to nothing, its digits consumed. `next` is 1-9: a `$0` routed to std.
           std::size_t group    {static_cast<std::size_t>(next - '0')};
           std::size_t consumed {1};
           if (i + 2 < fmt.size() && fmt[i + 2] >= '0' && fmt[i + 2] <= '9') {
@@ -1477,11 +1433,10 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Appends one match's replacement under `format_sed`, the POSIX sed rules: `&` is the whole match,
-     *        a backslash and a digit `N` group `N` (`\0` the whole match), a backslash and any other
-     *        character that character; `$` is an ordinary character. A group that does not exist or did not
-     *        take part inserts nothing. A final lone backslash is kept as libstdc++ and libc++ keep it, or dropped
-     *        as MS STL drops it: the native std decides.
+     * \brief Appends one match's replacement under `format_sed`, the POSIX sed rules: `&` is the whole match, a
+     *        backslash and a digit that group (`\0` the whole match), a backslash and any other character that
+     *        character, `$` itself; a group that does not exist or took no part inserts nothing. A final lone
+     *        backslash follows the native std (\ref std_sed_keeps_final_backslash).
      * \param[in,out] out  Destination the expansion is appended to.
      * \param[in]     m    The match whose groups the format refers to.
      * \param[in]     fmt  The replacement format string.
@@ -1607,12 +1562,9 @@ namespace real::compat {
     }
 
     /*!
-     * \brief The retry [re.regiter.incr] makes after the iteration's FIRST match came out empty at \p at: a
-     *        non-empty match starting exactly there (`match_not_null | match_continuous`), searched before
-     *        the iterator has granted `match_prev_avail`, so the text before \p at is not its context (a
-     *        `\b`, `^` or lookbehind reads \p at as the start). After that first retry the flag is set for
-     *        good, and `real`'s own advance past an empty match (no empty match again at the same place)
-     *        is the standard's.
+     * \brief The retry [re.regiter.incr] makes after the iteration's first match came out empty at \p at: a
+     *        non-empty match starting there, searched without `match_prev_avail`, so `\b`, `^` and a lookbehind
+     *        read \p at as the start. Later empty matches need no retry: `real`'s own advance is the standard's.
      * \param[in] engine The pattern.
      * \param[in] text   The subject.
      * \param[in] at     Where the empty match was.
@@ -1637,13 +1589,10 @@ namespace real::compat {
   } // namespace detail
 
   /*!
-   * \brief Replaces matches of \p re in \p s with the ECMAScript-formatted \p fmt.
+   * \brief Replaces matches of \p re in \p s with the formatted \p fmt; the other overloads forward here.
    *
-   * Real-backed patterns run the substitution on `real`, advancing past an empty match as the
-   * standard does (see `basic_regex::uses_real_traversal`); the std backend, a constraining flag, a
-   * `$0` format and a nullable POSIX pattern route to `std::regex_replace`.
-   *
-   * The other overloads forward here.
+   * Runs on `real` when `basic_regex::uses_real_traversal` holds; a constraining flag or an ECMAScript `$0`
+   * routes to `std::regex_replace`.
    * \param[in] s     The subject.
    * \param[in] re    The pattern whose matches are replaced.
    * \param[in] fmt   ECMAScript replacement format; `$N` refers to a group, `$&` to the whole match.
@@ -1657,14 +1606,10 @@ namespace real::compat {
                                          regex_constants::match_flag_type  flags = regex_constants::format_default)
   {
     if constexpr (!detail::real_eligible<CharT, Traits>) {
-      // wide / custom-traits: always std (real is not eligible for this CharT).
       return detail::std_call([&] { return std::regex_replace(s, re.std_engine(), fmt, detail::to_std_match(flags)); });
     }
     else {
-      // Route to std when: the pattern is not real-traversable (std, nullable POSIX), OR a flag the real
-      // expander cannot honor is set (any constraining match flag — see detail::replace_stays_real), OR an
-      // ECMAScript format uses `$0` (platform-variant, format_forces_std; under sed `$` is a character).
-      // Only then does the real expander run.
+      // Under sed a `$` is an ordinary character, so only an ECMAScript `$0` forces std.
       const bool sed {(flags & regex_constants::format_sed) != 0U};
       if (!re.uses_real_traversal() || !detail::replace_stays_real(flags)
           || (!sed && detail::format_forces_std(std::string_view {fmt}))) {
@@ -1677,10 +1622,8 @@ namespace real::compat {
       const bool             no_copy    {(flags & regex_constants::format_no_copy) != 0U};
       std::size_t            last_end   {0};
       bool                   done       {false};
-      // A POSIX grammar on REAL iterates with leftmost-longest bounds (find_iter_longest); the
-      // ECMAScript default keeps leftmost-first. Both yield the same match type, so the range-for
-      // binds either. The walk restarts once at most: after a first match that came out empty, where
-      // the standard's retry is made without the text before it (detail::nonempty_at_without_context).
+      // The walk restarts at most once: after a first match that came out empty, whose retry the standard
+      // makes without the text before it (detail::nonempty_at_without_context).
       std::size_t from    {0};
       bool        first   {true};
       bool        restart {true};
@@ -1760,8 +1703,8 @@ namespace real::compat {
                          regex_constants::match_flag_type  flags = regex_constants::format_default)
   {
     if ((flags & regex_constants::match_prev_avail) != 0U) {
-      // `--first` is the caller's to read, and only through the caller's iterators: the copy below starts at
-      // `first`, so std would read the byte before the copy. The flag routes to std in any case.
+      // `--first` is readable only through the caller's iterators, never in the copy below; the flag routes
+      // to std in any case.
       return detail::std_call([&] {
                                 return std::regex_replace(out, first, last, re.std_engine(), fmt, detail::to_std_match(flags));
                               });
@@ -1771,8 +1714,7 @@ namespace real::compat {
   }
 
   /*!
-   * \brief `regex_replace` to an output iterator with a C-string format (std parity).
-   *        Mirrors the string+`const CharT*` overload — a bare literal `"+"` decays to `const CharT*`.
+   * \brief `regex_replace` to an output iterator with a C-string format, so a string literal binds (std parity).
    * \param[out] out   Destination the result is written through.
    * \param[in]  first Start of the subject sequence.
    * \param[in]  last  One past its end.

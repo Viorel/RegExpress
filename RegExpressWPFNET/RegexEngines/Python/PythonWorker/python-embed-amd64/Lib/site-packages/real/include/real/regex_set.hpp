@@ -5,13 +5,11 @@
  * Which-matched semantics (RE2::Set / rust `RegexSet`): which members match the
  * subject at least once. **Not** \ref real::dfa munch (one winner at the cursor).
  *
- * Two search shapes. When enough patterns are DFA-eligible, a fused unanchored
- * multi-accept DFA (`dfa_mode::which_matched`) scans once for all of them — built at
- * construction for a large set, or once a mid-sized set has walked enough text to pay
- * for it; ineligible patterns (lookaround, Unicode \\w/\\d/\\s, …) and small sets walk one
- * pattern at a time through `regex::search`. The public bitset is
- * always in **construction order** — fused rule indices are remapped through an
- * eligible→original map.
+ * Two search shapes. When enough patterns are DFA-eligible, a fused unanchored multi-accept DFA
+ * (`dfa_mode::which_matched`) scans once for all of them: built at construction for a large set, or once a
+ * mid-sized set has walked enough text to pay for it. Ineligible patterns (lookaround, a wide code-point
+ * class such as text-mode \\w, …) and small sets walk one pattern at a time through `regex::search`. The
+ * public bitset is always in **construction order**; fused rule indices are remapped.
  *
  * Include this header explicitly; \c real.hpp does not pull it in.
  */
@@ -66,12 +64,10 @@ namespace real {
      * \brief Eligible-member count from which a set builds its fused DFA once it has walked
      *        \ref fused_deferred_bytes, rather than at construction.
      *
-     * From about this many members one fused scan of a subject costs less than the walks, but the build
-     * costs milliseconds -- more than a caller that builds a set for one short subject would ever get
-     * back. So such a set starts on walks and builds the fused DFA once, the first time its whole-subject
-     * \ref matches calls have walked \ref fused_deferred_bytes in total: the walks spent by then are about
-     * what the build costs, which bounds the total at about twice the cheaper of the two choices made in
-     * hindsight. Below this count the walks win outright.
+     * From about this many members one fused scan costs less than the walks, but the build costs
+     * milliseconds, more than a set built for one short subject gets back. So the set walks until its
+     * whole-subject \ref matches calls total \ref fused_deferred_bytes, about the build's cost, which bounds
+     * the total at about twice the cheaper choice in hindsight. Below this count the walks win outright.
      */
     static constexpr std::size_t fused_deferred_min_eligible {24};
 
@@ -206,11 +202,9 @@ namespace real {
       // is_match neither counts toward the deferred build nor triggers it.
       const fused_state* st {pos == 0 && endpos == npos ? ready_fused() : nullptr};
       if (st == nullptr) {
-        // THE FIRST SERVED MEMBER IS SEARCHED WITHOUT CONSULTING THE FILTER -- the whole difference
-        // from `matches` below. If that member matches, the filter cannot have excluded it: a match
-        // implies one of its own leading bytes is present in the region. So scanning first would be
-        // dead work on exactly the case an any-match walk is fastest at, the subject where the first
-        // member hits. The price is one extra member sweep when nothing matches at all.
+        // Unlike `matches`, the first served member is searched without the filter: had it matched, the
+        // filter could not have excluded it, so scanning first is dead work exactly where an any-match walk
+        // is fastest. The price is one extra member sweep when nothing matches.
         bool scanned {false};
         bool skip    {false};
         bool probed  {false};
@@ -351,11 +345,8 @@ namespace real {
           members_.emplace_back(patterns[i], flags_);
         }
         catch (const regex_error& ex) {
-          // WHICH member, said by the only place that knows. The position a member's own parser
-          // reports is an offset INSIDE that member, so on its own it points into a string the
-          // caller has to guess at: with three members and no index, a caller holding a generated
-          // list has to re-compile them all to find out which one it was. The index is free here
-          // and nowhere else.
+          // Name WHICH member: the reported position is an offset inside it, useless without the index,
+          // which only this loop knows.
           throw regex_error(ex.cause() + " (in pattern " + std::to_string(i) + " of " +
                             std::to_string(patterns.size()) + ")",
                             ex.position(), ex.kind());
@@ -365,10 +356,8 @@ namespace real {
         return;
       }
       arm_byte_filter();
-      // No set smaller than the deferred threshold can ever reach it: the eligible subset is at most the
-      // whole set. Without this return the partition would build one munch DFA per member only to throw
-      // every one of them away -- a per-pattern construction cost paid by every small set to conclude
-      // what its own size already said.
+      // A set below the deferred threshold can never fuse (the eligible subset is at most the whole set):
+      // skip the partition's per-member munch DFAs.
       if (members_.size() < fused_deferred_min_eligible) {
         return; // no fused state: every member uses N-walks
       }
@@ -503,43 +492,31 @@ namespace real {
     /*!
      * \brief Widest first-byte union the byte filter carries: one 16-byte masked block's capacity.
      *
-     * PRIVATE, unlike \ref fused_min_eligible. That one is a contract a caller can reason about -- how many
-     * eligible members it takes before a set fuses. This is the width of a scan, and nothing outside should
-     * depend on it being eight. Keep it private for a second reason: its rationale names `detail::`
-     * symbols, and a public brief that links to them has nothing to anchor on in the reference page.
+     * Private, unlike \ref fused_min_eligible, as a scan width rather than a contract; its rationale names
+     * `detail::` symbols a public reference page cannot link.
      */
     static constexpr std::uint8_t filter_union_max {8};
 
     /*!
      * \brief Classifies members into a SPARSE partition one scan can serve, and arms the filter.
      *
-     * ZERO WORK PER CALL is the design constraint, not an optimisation. Classifying inside the walk -- a
-     * lookup per member per query -- charges every call, including the one an any-match walk is fastest
-     * at: the set whose first member matches immediately. No scan primitive, however fast, recovers a
-     * cost paid before it runs. Everything here happens once, in the constructor, and the walks below
-     * test one bit.
+     * Zero work per call is the constraint: classifying per query charges every call, including an any-match
+     * walk whose first member hits at once. Everything happens here, once; the walks test one bit.
      *
-     * THE CLASSIFICATION IS THE ENGINE'S OWN, not a re-derivation. `first_bytes_valid` plus either
-     * `single_first` or a `small_set_size` of 2..8 is exactly "this pattern has at most eight possible
-     * leading bytes, enumerated". Soundness rests on the hint builder: it walks all 256 bytes of
-     * `first_bytes` and sets `small_set` ONLY when the count lands in 2..8, so in that case the array is the
-     * COMPLETE set rather than a sample -- which is what makes skipping a member safe. Past eight, neither
-     * hint is set, so the member falls to the wide partition. A nullable pattern has `first_bytes_valid`
-     * false and is wide with no special case.
+     * The classification is the engine's own: `first_bytes_valid` plus `single_first` or a `small_set_size`
+     * of 2..8. The hint builder sets `small_set` only when all 256 bytes of `first_bytes` count 2..8, so the
+     * array is the COMPLETE leading set, which is what makes skipping a member sound. A nullable pattern
+     * has `first_bytes_valid` false and stays wide.
      *
-     * THE UNION IS CAPPED IN CONSTRUCTION ORDER. Taking narrowest-first looks better and is worse: it
-     * reorders which members the filter serves for no gain. The cap is what stops several five-byte members
-     * from combining into a twenty-byte union -- dense again, one level later, which is the very gate this
-     * mechanism replaces. A member whose own leading set is wide never joins, so one `\w`-leading pattern
-     * in a set costs the others nothing: it keeps being walked, the ones already in the union stay.
+     * The union is capped in construction order (narrowest-first reorders which members are served, for no
+     * gain), so several sparse members cannot form a dense union. A wide member never joins: one
+     * `\w`-leading pattern costs the others nothing.
      */
     void arm_byte_filter()
     {
       if constexpr (!detail::have_members_scan) {
-        // The scan EXISTS on x86-64 -- `find_members` is compiled under SSE2 and the tests exercise it
-        // there. What does not exist is a reason to arm on it: the platform's own memchr is wider than
-        // this 128-bit block scan, so the member sweeps it would replace are already cheaper than the
-        // scan. See `detail::have_members_scan`. The walk stays as it is.
+        // Not armed where `detail::have_members_scan` is false (x86-64, which still compiles and tests
+        // `find_members`): the platform memchr is wider than this 128-bit scan, so member sweeps are cheaper.
         return;
       }
       else {

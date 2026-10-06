@@ -2,42 +2,28 @@
  * \file std/regex.hpp
  * \brief `real::compat` — a `std::regex`-compatible drop-in (`<regex>` surface), char path.
  *
- * The umbrella header: it includes the three parts below; `#include <real/compat/std/regex.hpp>` is the one
- * public entry point. The `real::compat` API is split purely organizationally —
- * `std/regex_core.hpp` (constants, error, backend-routing screens, `basic_regex`),
- * `std/regex_match.hpp` (`sub_match`, `match_results`, the runner, and the `regex_search` /
- * `regex_match` / `regex_replace` free functions), and `std/regex_iter.hpp` (`regex_iterator`,
- * `regex_token_iterator`).
+ * The one public entry point; it includes `std/regex_core.hpp` (constants, error, routing screens,
+ * `basic_regex`), `std/regex_match.hpp` (`sub_match`, `match_results`, the free functions) and
+ * `std/regex_iter.hpp` (the iterators).
  *
- * Contract: behave identically to `std::regex` (ECMAScript) where `real` can prove it, and
- * fall back to `std::regex` everywhere else — never a silent divergence. A pattern is run on
- * `real` (linear-time, ReDoS-safe) when possible; backreferences, unbounded/oversized
- * lookarounds, POSIX classes and non-ASCII inside `[...]` route to `std::regex` via a
- * compile-time screen plus a compile-failure catch. The five POSIX grammars are NOT among them:
- * each is translated to its ECMAScript equivalent and run on `real` with leftmost-longest bounds
- * (group 0; captures are the winning thread's, not POSIX submatch) when the pattern translates,
- * falling back to `std::regex` only when it does not.
+ * `real` runs with `flags::bytes | flags::ecma`, which aligns it with `std::basic_regex<char>`. A pattern
+ * it cannot represent (a backreference, an unbounded lookbehind, a POSIX class, `collate` or `nosubs`, …)
+ * is rejected under the default `policy::strict` and delegated to `std::regex` under `policy::fallback`.
+ * A POSIX grammar that translates runs on `real` with leftmost-longest bounds; captures are the winning
+ * thread's, not POSIX submatches. Wide `CharT` and custom traits always run on `std`.
  *
- * `real` is always built with `flags::bytes | flags::ecma` so its byte-oriented, ECMAScript-`$`,
- * ECMAScript-`.` semantics align with `std::basic_regex<char>` (validated by a differential).
+ * A search or match stays on `real` under `match_continuous`, `match_prev_avail`, `match_not_null`,
+ * `match_not_eol` and `match_not_eow` as far as `detail::call_stays_real` allows; `match_not_bol` /
+ * `match_not_bow` alone route that call to `std`. `regex_replace` and the iterators stay on `real` when
+ * `basic_regex::uses_real_traversal()` holds and no constraining match flag is passed.
  *
- * Surface: `basic_regex` / `sub_match` / `match_results` / `regex_error`, `regex_search`,
- * `regex_match`, `regex_replace`, `regex_iterator` / `regex_token_iterator`, the full
- * `match_flag_type`, `wregex`, the POSIX grammars and `nosubs`. `real` runs the `char` /
- * default-traits / every-group path (see `detail::real_eligible`); wide `CharT`, custom traits,
- * `collate` and `nosubs` are always `std`. `regex_replace` and the iterators run on `real`, a
- * nullable pattern included (see `basic_regex::uses_real_traversal`). A search or match keeps `real`
- * under `match_continuous`, `match_prev_avail`, `match_not_null`, `match_not_eol` and `match_not_eow`;
- * `match_not_bol` / `match_not_bow` alone route that one operation to `std`.
- *
- * See the "Drop-in for std::regex" migration guide and the compatibility reference (COMPATIBILITY.md)
- * in the rendered documentation.
+ * Contract: behave as `std::regex` does, never a silent divergence; the documented ones are in
+ * COMPATIBILITY.md and the "Drop-in for std::regex" guide.
  */
 #ifndef REAL_STD_REGEX_HPP
 #define REAL_STD_REGEX_HPP
 
-// A public entry point: #include <real/compat/std/regex.hpp>. The three parts it pulls in are
-// internal and carry the usual banner.
+// A public entry point; the three parts below are internal.
 
 #include "regex_core.hpp"
 #include "regex_match.hpp"
