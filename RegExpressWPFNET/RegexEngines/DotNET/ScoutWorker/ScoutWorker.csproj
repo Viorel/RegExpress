@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Scout.Text.Regex" Version="0.6.1" />
+    <PackageReference Include="Scout.Text.Regex" Version="0.7.0" />
   </ItemGroup>
 
 </Project>
