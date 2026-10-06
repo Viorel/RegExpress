@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="10.1.302" />
-    <PackageReference Include="Resharp" Version="1.0.5" />
+    <PackageReference Include="FSharp.Core" Version="10.1.401" />
+    <PackageReference Include="Resharp" Version="1.0.6" />
   </ItemGroup>
 
 </Project>

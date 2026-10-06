@@ -11,7 +11,7 @@ class Versions
 
     public static string? DotNet { get; } = LazyVersionDotNet.Value;
     public static string? DotNetFramework { get; } = LazyVersionDotNetFramework.Value;
-    public static string? ReSharp { get; } = "1.0.5";
+    public static string? ReSharp { get; } = "1.0.6";
     public static string? Scout { get; } = "0.7.0";
     public static string? LokadUtf8Regex { get; } = "0.3.0";
 }
