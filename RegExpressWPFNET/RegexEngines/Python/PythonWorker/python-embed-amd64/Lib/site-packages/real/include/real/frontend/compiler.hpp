@@ -455,6 +455,10 @@ namespace real::detail {
                 prog.hints.il_fwd_class = static_cast<std::int32_t>(prog.code[suffix].arg16);
                 prog.hints.il_fwd_is_cp = tail_cp;
                 prog.hints.il_fwd_last  = inner_literal_detail::can_occur_in_prefix(il, run_bytes);
+                // One class on both sides: a literal of members takes the prefix run on to the suffix's end, and
+                // one holding a non-member cannot recur ahead of the candidate inside the suffix run.
+                prog.hints.il_fwd_run_to_end = prog.hints.il_fwd_last && is_cp == tail_cp
+                                               && prog.code[atom].arg16 == prog.code[suffix].arg16;
               }
             }
           }

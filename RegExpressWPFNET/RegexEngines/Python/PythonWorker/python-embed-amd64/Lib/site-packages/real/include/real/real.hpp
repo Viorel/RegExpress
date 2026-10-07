@@ -562,7 +562,10 @@ namespace real {
       // `forbid_empty_until_` (not nullable); `run()` consults the Aho-Corasick floor per search; a trailing
       // lookaround lives on `advance`'s per-match path (`make route-surface-parity`). `lazy_dfa_is_the_route`,
       // not a residue test: that sent plain literals here and lost memmem. A faster filler's shape stays its own.
-      batch_lazy_dfa_  = plain && !detail::lazy_dfa_route_disabled() && h.first_bytes_valid && !h.empty_match_possible
+      // A compile-time storage has no per-regex immutables, hence no shared DFAs: its filler could only ever
+      // answer partial and leave every match to `run()` after a wasted refill.
+      batch_lazy_dfa_  = plain && !Storage::is_compile_time && !detail::lazy_dfa_route_disabled() && h.first_bytes_valid
+                         && !h.empty_match_possible
                          // A walk that reads no groups (count_matches) gets spans only, so groups need
                          // not cost it the batch.
                          && (prog.slot_count <= 2 || h.capture_free_walk)
@@ -661,6 +664,38 @@ namespace real {
 
   private:
 
+    template <typename>
+    friend class basic_regex;
+
+    /*!
+     * \brief Counts the matches left, the current one included, and ends the walk.
+     *
+     * The spans a batched fill buffered past the current match are counted without being handed out:
+     * handing one out writes its slots, which no count reads. The first span of each fill still goes
+     * through \ref advance, so the walk keeps its one path for refills, partial fills and the per-match
+     * fallback.
+     *
+     * \return The number of matches from the current one to the end.
+     */
+    constexpr std::size_t count_rest()
+    {
+      std::size_t n {0};
+      // One loop: split by `batch_eligible_`, `advance` is inlined twice and costs every walk more than the
+      // buffer test it spares a walk that never batches.
+      while (!done_) {
+        ++n;
+        if (const std::size_t left {batch_n_ - batch_i_}; left != 0) {
+          // The current match was handed out of this same fill, so the empty-match guard is already clear,
+          // and the last span's end is where handing each out would have left the walk.
+          n        += left;
+          pos_      = batch_[batch_n_ - 1].end;
+          batch_i_  = batch_n_;
+        }
+        advance();
+      }
+      return n;
+    }
+
     detail::program_view         prog_;                                        //!< The program being run.
     std::string_view             pattern_;                                     //!< Pattern text (named lookups).
     std::string_view             text_;                                        //!< The text being scanned.
@@ -733,7 +768,7 @@ namespace real {
     constexpr bool refill_batch()
     {
       // A short fill without `batch_partial_` proved the rest spent: end the walk instead of rescanning.
-      if (batch_spent_) {
+      if (batch_spent_) [[unlikely]] {
         batch_n_ = 0;
         batch_i_ = 0;
         return false;
@@ -863,6 +898,7 @@ namespace real {
         else {
           detail::pike_vm<typename Storage::state_type, true> wvm {prog_, state_};
           const auto&                                         sp  {batch_[batch_i_++]};
+          detail::note(detail::counter::batch_handouts);
           current_.engine_refill_span(wvm, sp.start, sp.end);
           pos_ = sp.end;
           // No batched filler emits an empty span (each one's own note says why), so the find_iter
@@ -1003,6 +1039,48 @@ namespace real {
     }
 
     struct non_empty_access;
+
+    /*!
+     * \brief One attempt over a region, as every single search makes it: the trailing-lookaround walk where the
+     *        pattern has one, else \ref pike_vm::run with its memchr-cascade variant chosen once, here.
+     *
+     * Shared by \ref basic_regex and the bindings that keep their own scratch, so all take the same routes.
+     *
+     * \tparam State    The caller's scratch state.
+     * \tparam Bound    Whether the engine may skip its program-identity check.
+     * \tparam Slots    The capture-slot container the engine fills.
+     * \param[in]  vm      The engine.
+     * \param[in]  prog    The program it runs.
+     * \param[in]  subject The subject, already truncated to the region's end.
+     * \param[in]  pos     Where the attempt starts.
+     * \param[in]  mode    Anchoring.
+     * \param[out] slots   Capture slots, filled on a match.
+     * \param[in]  sem     Match semantics.
+     * \return True on a match.
+     */
+    template <typename State, bool Bound, typename Slots>
+    [[nodiscard]] constexpr bool run_attempt(pike_vm<State, Bound>& vm,
+                                             const program_view&    prog,
+                                             std::string_view       subject,
+                                             std::size_t            pos,
+                                             run_mode               mode,
+                                             Slots&                 slots,
+                                             match_semantics        sem = match_semantics::first)
+    {
+      // `if constexpr` because the static storage has no lookaround scratch.
+      if constexpr (requires(State & st) {
+        st.lookaround;
+      }) {
+        if (sem == match_semantics::first && prog.hints.trailing_lookaround >= 0
+            && (std::is_constant_evaluated() || !trailing_la_route_disabled())) {
+          prof::tick_route(prof::route::trailing_la);
+          return prog.hints.stop_set_size >= 1 ? vm.template run_class_loop_trailing_la<true>(subject, pos, mode, slots)
+                                               : vm.template run_class_loop_trailing_la<false>(subject, pos, mode, slots);
+        }
+      }
+      return prog.hints.stop_set_size >= 1 ? vm.template run<true>(subject, pos, mode, slots, 0, sem)
+                                           : vm.template run<false>(subject, pos, mode, slots, 0, sem);
+    }
   } // namespace detail
 
   /*!
@@ -1632,14 +1710,15 @@ namespace real {
       std::string result;
       std::size_t last {};
       std::size_t done {};
+      // The cap is tested after a replacement, not before the next: tested first, the walk had already searched
+      // for one match past the cap, maybe the whole rest of the subject.
       for (const result_type& match : find_iter(text)) {
-        if (max_count != 0 && done == max_count) {
-          break;
-        }
         result.append(text.substr(last, match.start() - last));
         expand_replacement(result, match, replacement);
         last = match.end();
-        ++done;
+        if (++done == max_count) {
+          break;
+        }
       }
       result.append(text.substr(last));
       return result;
@@ -1661,16 +1740,15 @@ namespace real {
       std::vector<std::string_view> result;
       std::size_t                   last {};
       std::size_t                   done {};
-      for (const result_type& match : find_iter(text)) {
-        if (max_splits != 0 && done == max_splits) {
-          break;
-        }
+      for (const result_type& match : find_iter(text)) { // the cap after a split: see replace
         result.push_back(text.substr(last, match.start() - last));
         for (std::size_t group = 1; group < match.size(); ++group) {
           result.push_back(match[group]);
         }
         last = match.end();
-        ++done;
+        if (++done == max_splits) {
+          break;
+        }
       }
       result.push_back(text.substr(last));
       return result;
@@ -1883,16 +1961,12 @@ namespace real {
     {
       const std::size_t end {endpos < text.size() ? endpos : text.size()};
       // Not a range-for: its `end()` builds a sentinel with a full `state_type` only to compare against, a
-      // large share of a short call; `exhausted()` builds nothing. find_iter keeps paying it: a lazy state
-      // (`std::optional`, a `construct_at` union) cost the working iterator ~26 %, and a distinct sentinel
-      // type would break the C binding's `real_iter` and the homogeneous `std::` algorithms.
+      // large share of a short call. find_iter keeps paying it: a lazy state (`std::optional`, a
+      // `construct_at` union) cost the working iterator ~26 %, and a distinct sentinel type would break the C
+      // binding's `real_iter` and the homogeneous `std::` algorithms.
       basic_match_range<Storage> range {program_.view(), pattern(), text.substr(0, end),
                                         pos,            match_semantics::first, true};
-      std::size_t                n     {};
-      for (auto it = range.begin(); !it.exhausted(); ++it) {
-        ++n;
-      }
-      return n;
+      return range.begin().count_rest();
     }
 
     /*!
@@ -2084,32 +2158,7 @@ namespace real {
       result_type                    out     {text, pattern(), prog.names};
       // `state` is fresh for `prog` alone, so the VM may skip its program-identity compare.
       detail::pike_vm<typename Storage::state_type, true> vm(prog, state);
-      const auto                                          subject {text.substr(0, end)};
-      // The trailing-lookahead walk stays outside pike_vm::run; `if constexpr` because the static storage
-      // has no lookaround scratch.
-      bool matched {};
-      if constexpr (requires(typename Storage::state_type & st) {
-        st.lookaround;
-      }) {
-        if (sem == match_semantics::first && prog.hints.trailing_lookaround >= 0
-            && (std::is_constant_evaluated() || !detail::trailing_la_route_disabled())) {
-          detail::prof::tick_route(detail::prof::route::trailing_la);
-          matched = prog.hints.stop_set_size >= 1
-                      ? vm.template run_class_loop_trailing_la<true>(subject, pos, mode, out.engine_slots())
-                      : vm.template run_class_loop_trailing_la<false>(subject, pos, mode, out.engine_slots());
-        }
-        else {
-          matched = prog.hints.stop_set_size >= 1
-                      ? vm.template run<true>(subject, pos, mode, out.engine_slots(), 0, sem)
-                      : vm.template run<false>(subject, pos, mode, out.engine_slots(), 0, sem);
-        }
-      }
-      else {
-        // The memchr-cascade variant is chosen once here (a single search), never in the per-byte scan.
-        matched = prog.hints.stop_set_size >= 1
-                    ? vm.template run<true>(subject, pos, mode, out.engine_slots(), 0, sem)
-                    : vm.template run<false>(subject, pos, mode, out.engine_slots(), 0, sem);
-      }
+      const bool                                          matched {detail::run_attempt(vm, prog, text.substr(0, end), pos, mode, out.engine_slots(), sem)};
       // One return statement: the result is NRVO-constructed in the caller and filled in place, sparing a
       // block move whose fixed startup is the whole cost on a groupless pattern. A small-count loop in
       // `transfer_range` instead regressed a dozen rows (it also serves the thread lists' hot path).

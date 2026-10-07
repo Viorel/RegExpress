@@ -976,12 +976,31 @@ namespace real::detail {
       }) {
         // Full match: the window is exactly [start, text.size()]. A one-pass pattern fills its captures in
         // one pass (extract returns false when it cannot); no DFA build is paid.
-        if (!std::is_constant_evaluated() && !lazy_dfa_route_disabled() && mode == run_mode::full) {
+        if (mode == run_mode::full && !std::is_constant_evaluated() && !lazy_dfa_route_disabled()) {
           ensure_op_table();
-          if (prog_.immut != nullptr && prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()
-              && prog_.immut->op_table->extract(text, start, text.size(), out_slots)) {
+          if (prog_.immut != nullptr && prog_.immut->op_table.has_value() && prog_.immut->op_table->eligible()) {
             prof::tick_route(prof::route::onepass_full);
-            return true;
+            // The table is deterministic: an eligible table that extracts nothing proves the span does not
+            // match, so no engine runs after it.
+            return prog_.immut->op_table->extract(text, start, text.size(), out_slots) || fail_slots(out_slots);
+          }
+        }
+        // An anchored match with groups to fill, on a one-pass pattern whose ends the table knows: one walk finds
+        // the end and the groups, as in confirm_at. The table is deterministic, so a walk that ends nowhere
+        // proves no match begins at `start`. Building it costs as much as thousands of these calls, so a regex
+        // pays it only once it has made enough of them (\ref onepass_prefix_warm_calls).
+        if (mode == run_mode::prefix && !std::is_constant_evaluated() && !lazy_dfa_route_disabled()
+            && sem_ == match_semantics::first && prog_.slot_count > 2 && !prog_.hints.capture_free_walk
+            && forbid_empty_until_ <= start && prog_.immut != nullptr
+            && (prog_.immut->op_table_for.load(std::memory_order_acquire) == prog_.code.data()
+                || prog_.immut->prefix_calls.fetch_add(1, std::memory_order_relaxed) >= onepass_prefix_warm_calls)) {
+          ensure_op_table();
+          if (prog_.immut->op_table.has_value() && prog_.immut->op_table->ends_known()) {
+            prof::tick_route(prof::route::onepass_full);
+            note(counter::onepass_anchored_walks);
+            std::size_t reach {start};
+            return prog_.immut->op_table->extract_leftmost(text, start, out_slots, reach) != npos
+                   || fail_slots(out_slots);
           }
         }
         if (!std::is_constant_evaluated() && !lazy_dfa_route_disabled() && mode == run_mode::search
@@ -1055,6 +1074,9 @@ namespace real::detail {
       std::size_t pos     {start};
       while (pos <= text.size()) {
         const bool seeding = (pos == start) || (mode == run_mode::search && !matched);
+        if (seeding && pos != start) {
+          note(counter::vm_reseeds);
+        }
         if (seeding && mode == run_mode::search && !matched && clist->pcs.empty()) {
           // No thread alive: jump to the next viable start (prefilter); single pass, still linear.
           pos = next_candidate(text, pos, start);
@@ -1340,11 +1362,12 @@ namespace real::detail {
           // of magnitude more than the scan; il_warmed is still set (shared_dfa_for keys on the
           // immutables' address). Both floors lift once the build is paid, keyed on `built_for`, never
           // il_warmed: the branch below sets il_warmed on its way out, which would charge the second
-          // short call the build.
+          // short call the build. Short subjects that add up to il_short_scan_budget pay for the build.
           const bool built {prog_.immut != nullptr
                             && prog_.immut->built_for.load(std::memory_order_acquire) == prog_.code.data()};
-          if (!inner_literal_guard_disabled() && prog_.immut != nullptr && !built
-              && text.size() < il_warm_floor) {
+          if (!inner_literal_guard_disabled() && prog_.immut != nullptr && !built && text.size() < il_warm_floor
+              && prog_.immut->il_short_bytes.fetch_add(text.size(), std::memory_order_relaxed) + text.size()
+              < il_short_scan_budget) {
             shared_dfa_for(prog_.immut).il_warmed.store(true, std::memory_order_relaxed);
             abandon = true;
             return false;
@@ -1730,6 +1753,14 @@ namespace real::detail {
         const std::size_t needed             {8000U * branches / (want == 0 ? std::size_t {1} : want)};
         const std::size_t span_cap           {std::clamp(needed, ac_density_min_span, ac_density_sample_bytes)};
         const std::size_t limit              {text.size() < start + span_cap ? text.size() : start + span_cap};
+        // A subject the sample would read whole goes to the automaton unsampled: over a short subject the sample
+        // and the cascade cost more than the automaton's own scan, its build included, at every branch count.
+        if (limit == text.size()) {
+          state_.ac_dense   = true;
+          state_.ac_decided = true;
+          ac_density_last_verdict().store(ac_verdict::automaton, std::memory_order_relaxed);
+          return true;
+        }
         std::size_t       cands              {0};
         std::size_t       checked            {0};
         std::size_t       completed          {0};
@@ -1808,10 +1839,12 @@ namespace real::detail {
       if (immut->built_for.load(std::memory_order_relaxed) == want) {
         return; // double-check
       }
+      const bool first_build {immut->built_for.load(std::memory_order_relaxed) == nullptr};
       // Destroy the old extractor BEFORE replacing the program it spans: onepass keeps spans over
       // byte_prog's buffers.
       immut->op_table.reset();
       immut->op_table_for.store(nullptr, std::memory_order_relaxed); // the extractor is gone with it
+      note(counter::byte_program_builds);
       immut->byte_prog = build_byte_program(prog_);                  // Tier-A: ineligible if assert/lookaround
       if (immut->byte_prog.eligible) {
         immut->alphabet =
@@ -1822,6 +1855,7 @@ namespace real::detail {
         immut->alphabet = {};
         // Perhaps declined on a position assertion: the search DFAs carry anchors and word boundaries
         // (lazy_dfa::close_look), so they get the Tier-B program; other consumers read byte_prog's verdict.
+        note(counter::byte_program_builds);
         immut->look_prog = build_byte_program(prog_, /*keep_assertions=*/ true);
       }
       immut->look_alphabet = immut->look_prog.eligible
@@ -1837,6 +1871,7 @@ namespace real::detail {
         pv.cp_classes         = prog_.prefix_cp_classes;
         pv.cp_ranges          = prog_.prefix_cp_ranges;
         pv.unicode_word       = prog_.unicode_word;
+        note(counter::byte_program_builds);
         immut->il_prefix_prog = build_byte_program(pv);
         // Cold first-scan floor (see run_inner_literal): size * 28 clamped to [64 KB, 512 KB] amortizes the
         // reverse-DFA build (email ~94 KB, date 64 KB). Checked only after the first memmem hit, so
@@ -1845,8 +1880,9 @@ namespace real::detail {
         immut->il_min_haystack =
           std::min<std::size_t>(512UL * 1024, std::max<std::size_t>(64UL * 1024, sz * 28));
       }
-      // Same immut address, new program: drop previous pattern's shared DFAs (not just address-reuse).
-      reset_shared_dfas(immut);
+      // Same immut address, new program: drop previous pattern's shared DFAs (not just address-reuse). A first
+      // build keeps il_warmed: a scan that declined before it is the reuse the warm floor exists for.
+      reset_shared_dfas(immut, /*keep_warm=*/ first_build);
       immut->built_for.store(want, std::memory_order_release);
     }
 
@@ -1873,15 +1909,14 @@ namespace real::detail {
       if (immut->op_table_for.load(std::memory_order_relaxed) == want) {
         return; // double-check
       }
-      // Tier-B differs from Tier-A only at `assert_position`, so without one reuse byte_prog: rebuilding
-      // re-expands every Unicode class's UTF-8 trie (2 of 5 trie builds per regex). Onepass keeps spans
-      // over its source program and the Tier-B local below dies with this block: only the constructor
-      // reads them, so never read `code_` after construction.
+      // Tier-B differs from Tier-A only at `assert_position`. With one, Tier-A declined and ensure_immutables
+      // already built Tier-B as look_prog: the extractor takes it rather than expanding every Unicode class's
+      // UTF-8 trie a second time. Onepass keeps spans over its source program; the rebuild destroys op_table
+      // before it replaces look_prog or byte_prog.
       if (std::any_of(prog_.code.begin(), prog_.code.end(),
                       [](const instr& in) { return in.op == opcode::assert_position; })) {
-        const byte_program tier_b {build_byte_program(prog_, /*keep_assertions=*/ true)};
-        if (tier_b.eligible) {
-          immut->op_table.emplace(tier_b); // one-pass extractor: Tier-A window + Tier-B anchored
+        if (immut->look_prog.eligible) {
+          immut->op_table.emplace(immut->look_prog); // one-pass extractor: Tier-A window + Tier-B anchored
         }
       }
       else if (immut->byte_prog.eligible) {
@@ -1993,6 +2028,16 @@ namespace real::detail {
     }
 
     /*!
+     * \brief The mode the VM fills a window's groups in once the DFAs proved where the match starts.
+     * \param[in] mode The search's own mode.
+     * \return \ref run_mode::prefix for a search, anchored at the proved start; any other mode unchanged.
+     */
+    [[nodiscard]] static constexpr run_mode window_mode(run_mode mode) noexcept
+    {
+      return mode == run_mode::search ? run_mode::prefix : mode;
+    }
+
+    /*!
      * \brief Lazy-DFA search route on the shared confirm DFAs. \c noinline: inlined, its body inflates
      *        the x86 class-loop codegen of \ref run (as \ref ac_ready).
      * \param[in]  text      Subject.
@@ -2067,8 +2112,10 @@ namespace real::detail {
                                  }
                                  prof::tick_route(prof::route::general_window);
                                  note(counter::vm_window_runs);
-                                 dfa_result = run_general<Cascade>(fwd.looks() ? text : text.substr(0, match_end), c, mode,
-                                                                   out_slots);
+                                 // The walk proved the leftmost match starts at c: anchored there, the VM seeds one
+                                 // thread instead of one per position of the window.
+                                 dfa_result = run_general<Cascade>(fwd.looks() ? text : text.substr(0, match_end), c,
+                                                                   window_mode(mode), out_slots);
                                  return;
                                }
                                // No match starts at c: the single pass takes over from the next byte when a walk
@@ -2121,8 +2168,8 @@ namespace real::detail {
                            }
                            prof::tick_route(prof::route::general_window);
                            note(counter::vm_window_runs);
-                           dfa_result = run_general<Cascade>(fwd.looks() ? text : text.substr(0, abs_end), abs_start, mode,
-                                                             out_slots);
+                           dfa_result = run_general<Cascade>(fwd.looks() ? text : text.substr(0, abs_end), abs_start,
+                                                             window_mode(mode), out_slots);
                          })};
       if (used && dfa_result.has_value()) {
         return dfa_result;
@@ -4821,6 +4868,7 @@ namespace real::detail {
                                                        std::size_t      from,
                                                        std::size_t      limit) const
     {
+      note(counter::il_prefix_run_walks);
       std::size_t r {from};
       if (!prog_.hints.il_rev_is_cp) {
         const char_class& cc {prog_.classes[static_cast<std::size_t>(prog_.hints.il_rev_class)]};
@@ -4875,7 +4923,7 @@ namespace real::detail {
       }
       if (prog_.hints.il_fwd_last) {
         const std::size_t len {lit_end - h};
-        std::size_t       r   {prefix_run_end(text, h, e)};
+        std::size_t       r   {prog_.hints.il_fwd_run_to_end ? e : prefix_run_end(text, h, e)};
         if (r + len >= e) {
           r = e - len - 1; // the suffix needs one member past the literal
         }
@@ -4908,52 +4956,6 @@ namespace real::detail {
     }
 
     /*!
-     * \brief The byte length of a code point of the `.`/negated class at \p i, or 0 where none matches.
-     *
-     * As the VM's byte-level expansion: an ASCII byte matches the ASCII set; a valid 2-4 byte UTF-8 sequence
-     * always matches (a negated ASCII class excludes only ASCII); anything else stops. 3-/4-byte leads check
-     * their first continuation against utf8_second_byte_bounds_table, rejecting overlongs (E0 80 80) and
-     * surrogates (ED A0 80); a table lookup, not decode_codepoint_strict, whose full decode costs on this path.
-     * \param[in] text  The subject.
-     * \param[in] i     A position inside \p text.
-     * \param[in] ascii The class's ASCII membership table.
-     * \return The width, 0 to 4.
-     */
-    [[nodiscard]] static constexpr std::size_t codepoint_class_width(std::string_view    text,
-                                                                     std::size_t         i,
-                                                                     const std::uint8_t* ascii)
-    {
-      const auto cont = [&](std::size_t k) {
-                          const auto cont_byte {static_cast<std::uint8_t>(text[k])};
-                          return cont_byte >= 0x80 && cont_byte <= 0xBF;
-                        };
-      const auto byte_value {static_cast<std::uint8_t>(text[i])};
-      if (byte_value < 0x80) {
-        return ascii[byte_value] != 0U ? 1 : 0;
-      }
-      if (byte_value >= 0xC2 && byte_value <= 0xDF) {
-        return i + 1 < text.size() && cont(i + 1) ? 2 : 0;
-      }
-      if (byte_value >= 0xE0 && byte_value <= 0xEF) {
-        if (i + 2 >= text.size()) {
-          return 0;
-        }
-        const detail::utf8_second_byte_bounds& b  {detail::utf8_second_byte_bounds_table[byte_value]};
-        const auto                             b2 {static_cast<std::uint8_t>(text[i + 1])};
-        return b2 >= b.lo && b2 <= b.hi && cont(i + 2) ? 3 : 0;
-      }
-      if (byte_value >= 0xF0 && byte_value <= 0xF4) {
-        if (i + 3 >= text.size()) {
-          return 0;
-        }
-        const detail::utf8_second_byte_bounds& b  {detail::utf8_second_byte_bounds_table[byte_value]};
-        const auto                             b2 {static_cast<std::uint8_t>(text[i + 1])};
-        return b2 >= b.lo && b2 <= b.hi && cont(i + 2) && cont(i + 3) ? 4 : 0;
-      }
-      return 0;
-    }
-
-    /*!
      * \brief Batched twin of \ref run_codepoint_class, filling up to \p cap maximal spans in ONE call.
      *
      * Otherwise the `.`/negated-class shape pays a full route entry per match, the other class routes one
@@ -4978,7 +4980,38 @@ namespace real::detail {
     {
       const std::uint8_t* const ascii {
         class_table(static_cast<std::size_t>(prog_.hints.codepoint_class_ascii))};
-      const auto  width = [&](std::size_t i) { return codepoint_class_width(text, i, ascii); };
+      const auto cont = [&](std::size_t i) {
+                          const auto cont_byte {static_cast<std::uint8_t>(text[i])};
+                          return cont_byte >= 0x80 && cont_byte <= 0xBF;
+                        };
+      const auto width = [&](std::size_t i) -> std::size_t {
+                           const auto byte_value {static_cast<std::uint8_t>(text[i])};
+                           if (byte_value < 0x80) {
+                             return ascii[byte_value] != 0U ? 1 : 0;
+                           }
+                           if (byte_value >= 0xC2 && byte_value <= 0xDF) {
+                             return i + 1 < text.size() && cont(i + 1) ? 2 : 0;
+                           }
+                           if (byte_value >= 0xE0 && byte_value <= 0xEF) {
+                             if (i + 2 >= text.size()) {
+                               return 0;
+                             }
+                             const detail::utf8_second_byte_bounds& b {
+                               detail::utf8_second_byte_bounds_table[byte_value]};
+                             const auto b2                            {static_cast<std::uint8_t>(text[i + 1])};
+                             return b2 >= b.lo && b2 <= b.hi && cont(i + 2) ? 3 : 0;
+                           }
+                           if (byte_value >= 0xF0 && byte_value <= 0xF4) {
+                             if (i + 3 >= text.size()) {
+                               return 0;
+                             }
+                             const detail::utf8_second_byte_bounds& b {
+                               detail::utf8_second_byte_bounds_table[byte_value]};
+                             const auto b2                            {static_cast<std::uint8_t>(text[i + 1])};
+                             return b2 >= b.lo && b2 <= b.hi && cont(i + 2) && cont(i + 3) ? 4 : 0;
+                           }
+                           return 0;
+                         };
       std::size_t n {0};
       std::size_t i {start};
       while (n < cap && i < text.size()) {
@@ -5044,7 +5077,9 @@ namespace real::detail {
     /*!
      * \brief Fast path for `.` / a negated class, optionally a greedy `+`.
      *
-     * Scans code points as \ref codepoint_class_width does. Covers `.+`, `[^,]+`, `.`, `[^,]`.
+     * Scans code points as the VM's byte-level expansion would: an ASCII byte matches the ASCII set; a
+     * valid 2–4 byte UTF-8 sequence always matches (a negated ASCII class excludes only ASCII); anything
+     * else stops, as the VM's lead/continuation branches fail. Covers `.+`, `[^,]+`, `.`, `[^,]`.
      *
      * \tparam OutSlots Output slot container.
      * \param[in]  text      The subject text.
@@ -5062,7 +5097,42 @@ namespace real::detail {
       const std::uint8_t* const ascii {
         class_table(static_cast<std::size_t>(prog_.hints.codepoint_class_ascii))};
       // Success rewrites both span slots; fail assigns for seam parity.
-      const auto width = [&](std::size_t i) { return codepoint_class_width(text, i, ascii); };
+
+      const auto cont = [&](std::size_t i) {
+                          const auto cont_byte {static_cast<std::uint8_t>(text[i])};
+                          return cont_byte >= 0x80 && cont_byte <= 0xBF;
+                        };
+      // Byte length of a matching code point at i, or 0. 3-/4-byte leads check their first continuation
+      // against utf8_second_byte_bounds_table, rejecting overlongs (E0 80 80) and surrogates (ED A0 80).
+      // A table lookup, not decode_codepoint_strict: the full decode costs measurably on this path.
+      const auto width = [&](std::size_t i) -> std::size_t {
+                           const auto byte_value {static_cast<std::uint8_t>(text[i])};
+                           if (byte_value < 0x80) {
+                             return ascii[byte_value] != 0U ? 1 : 0;
+                           }
+                           if (byte_value >= 0xC2 && byte_value <= 0xDF) {
+                             return i + 1 < text.size() && cont(i + 1) ? 2 : 0;
+                           }
+                           if (byte_value >= 0xE0 && byte_value <= 0xEF) {
+                             if (i + 2 >= text.size()) {
+                               return 0;
+                             }
+                             const detail::utf8_second_byte_bounds& b {
+                               detail::utf8_second_byte_bounds_table[byte_value]};
+                             const auto b2                            {static_cast<std::uint8_t>(text[i + 1])};
+                             return b2 >= b.lo && b2 <= b.hi && cont(i + 2) ? 3 : 0;
+                           }
+                           if (byte_value >= 0xF0 && byte_value <= 0xF4) {
+                             if (i + 3 >= text.size()) {
+                               return 0;
+                             }
+                             const detail::utf8_second_byte_bounds& b {
+                               detail::utf8_second_byte_bounds_table[byte_value]};
+                             const auto b2                            {static_cast<std::uint8_t>(text[i + 1])};
+                             return b2 >= b.lo && b2 <= b.hi && cont(i + 2) && cont(i + 3) ? 4 : 0;
+                           }
+                           return 0;
+                         };
 
       // Keep the recompute of the first width (DELIBERATE): carrying it out of the search loop cut
       // `[^,]+`'s instructions by a fifth yet made `\w+` and the property rows SLOWER (a variable live
@@ -6298,6 +6368,11 @@ namespace real::detail {
      * \param[out] disarm  The route declined this subject: batch no more of it.
      * \return How many spans were written.
      */
+    // Out of line: inlined into basic_match_iterator::refill_batch, it costs the class loops there registers
+    // and their walks instructions; a call per buffer of spans is nothing to its own walk.
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
     std::size_t fill_alternation_wide_spans(std::string_view text,
                                             std::size_t      start,
                                             cp_span*         out,
@@ -6605,6 +6680,11 @@ namespace real::detail {
      * \param[in]  cap   Capacity of \p out.
      * \return How many spans were written.
      */
+    // Out of line: inlined into basic_match_iterator::refill_batch, it costs the class loops there registers
+    // and their walks instructions; a call per buffer of spans is nothing to its own walk.
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
     std::size_t fill_fixed_shape_spans(std::string_view text,
                                        std::size_t      start,
                                        cp_span        * out,
@@ -6671,6 +6751,11 @@ namespace real::detail {
      * \param[in]  cap   Capacity of \p out; the walk stops there and resumes from the last end.
      * \return How many spans were written.
      */
+    // Out of line: inlined into basic_match_iterator::refill_batch, it costs the class loops there registers
+    // and their walks instructions; a call per buffer of spans is nothing to its own walk.
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((noinline))
+#endif
     std::size_t fill_exact_literal_spans(std::string_view text,
                                          std::size_t      start,
                                          cp_span        * out,

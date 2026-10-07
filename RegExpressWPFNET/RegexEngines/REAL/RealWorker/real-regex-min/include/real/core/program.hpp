@@ -599,6 +599,9 @@ namespace real {
       //! \brief The literal can occur inside the prefix run, so the greedy prefix leaves it at its LAST
       //!        occurrence before the suffix, not at the candidate: the span is the same, the groups are not.
       bool         il_fwd_last {};
+      //! \brief Both runs are one class, so the last occurrence the prefix run reaches is the last one before
+      //!        the suffix's end: the fill need not walk the prefix run past the literal.
+      bool         il_fwd_run_to_end {};
 
       /*!
        * \brief IL fixed code-point shape: the whole pattern is a fixed sequence of code-point atoms and

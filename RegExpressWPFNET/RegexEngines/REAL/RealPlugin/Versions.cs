@@ -2,5 +2,5 @@
 
 class Versions
 {
-    public static string REAL { get; } = "2026.10.3";
+    public static string REAL { get; } = "2026.10.4";
 }

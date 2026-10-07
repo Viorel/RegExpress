@@ -899,9 +899,15 @@ namespace real::detail {
     byte_program           look_prog;                     //!< byte program keeping its position assertions, built only when byte_prog declined: the search DFAs run it.
     lazy_byte_alphabet     look_alphabet;                 //!< byte-class alphabet of look_prog.
     bool                   run_shape {false};             //!< The program is saves, atoms and greedy `atom+` loops only: pike_vm::match_run_shape reads its groups off a window.
-    std::optional<onepass> op_table;                      //!< one-pass extractor, present iff the pattern is one-pass.
-    byte_program           il_prefix_prog;                //!< IL: the inner-literal prefix's byte program (ineligible until built); per regex, so the reverse DFA over it is shared.
-    std::size_t            il_min_haystack {};            //!< IL cold floor: the first candidate scan abandons below this size (0 = never), checked only after a literal hit; see \ref pike_vm::run_inner_literal.
+    //! \brief Anchored matches run before \ref op_table was built for them, counted to \ref onepass_prefix_warm_calls.
+    //!        Relaxed: a lost increment only delays the build.
+    std::atomic<std::uint32_t> prefix_calls {0};
+    std::optional<onepass>     op_table;                  //!< one-pass extractor, present iff the pattern is one-pass.
+    byte_program               il_prefix_prog;            //!< IL: the inner-literal prefix's byte program (ineligible until built); per regex, so the reverse DFA over it is shared.
+    std::size_t                il_min_haystack {};        //!< IL cold floor: the first candidate scan abandons below this size (0 = never), checked only after a literal hit; see \ref pike_vm::run_inner_literal.
+    //! \brief Bytes of subjects the inner-literal route declined below its floor before the immutables were built,
+    //!        counted to \ref il_short_scan_budget. Relaxed: a lost addition only delays the build.
+    std::atomic<std::size_t> il_short_bytes {0};
     /*!
      * \brief Byte-indexed membership rows, filled on first use of each class and kept for the regex's life.
      *
@@ -1034,6 +1040,8 @@ namespace real::detail {
       ac_for.store(nullptr, std::memory_order_relaxed);
       alt_pairs_for.store(nullptr, std::memory_order_relaxed);
       op_table_for.store(nullptr, std::memory_order_relaxed);
+      prefix_calls.store(0, std::memory_order_relaxed);
+      il_short_bytes.store(0, std::memory_order_relaxed);
     }
 
     /*!
@@ -1162,6 +1170,19 @@ namespace real::detail {
   //!        \ref regex_immutables::il_min_haystack.
   inline constexpr std::size_t il_warm_floor {4UL * 1024};
 
+  //! \brief Subject bytes a regex lets the inner-literal route decline under its floor before it builds what the
+  //!        route needs: the cold floor's least amortization. Short subjects that add up to it have paid for the
+  //!        build as one long subject would, and the build lifts both floors for good. Without it a regex only
+  //!        ever searched on short subjects stayed on the bounded backtracker (`(\w+)=(\w+)` over a 95-byte
+  //!        line: 20 000 instructions a search, 1 000 once built, the build repaid within ~300 searches).
+  inline constexpr std::size_t il_short_scan_budget {64UL * 1024};
+
+  //! \brief Anchored matches a regex runs before it builds its one-pass table for them. Rent before buying: the
+  //!        build (byte program, table, minimization) costs about as much as 5 000 to 13 000 of these calls
+  //!        made without it, so a regex matched a few times never pays it, and one matched in a loop pays at
+  //!        most about twice what the best choice made in hindsight would have.
+  inline constexpr std::uint32_t onepass_prefix_warm_calls {8192};
+
   /*!
    * \brief The mutex guarding insert/erase on the process-wide \ref shared_dfa_slot map.
    *
@@ -1224,9 +1245,12 @@ namespace real::detail {
    * \brief Drop any DFAs cached for \p immut (caller holds nothing; takes map + slot locks).
    *        Invoked from `pike_vm`'s `ensure_immutables` rebuild so a reused immutables address — or
    *        the same address under a new program — cannot keep a previous pattern's DFAs.
-   * \param[in] immut The regex whose cached DFAs are dropped.
+   * \param[in] immut     The regex whose cached DFAs are dropped.
+   * \param[in] keep_warm Keep \ref shared_dfa_slot::il_warmed on a first build, after which a scan that declined
+   *                      before it still counts as the reuse the warm floor exists for.
    */
-  inline void reset_shared_dfas(regex_immutables* immut)
+  inline void reset_shared_dfas(regex_immutables* immut,
+                                bool              keep_warm = false)
   {
     shared_dfa_slot& slot {shared_dfa_for(immut)};
     // A held set is cleared by its next lease, which sees the generation move; the free ones go now.
@@ -1235,7 +1259,9 @@ namespace real::detail {
       const std::lock_guard<std::mutex> lock {slot.pool_mu};
       slot.free.clear();
     }
-    slot.il_warmed.store(false, std::memory_order_relaxed);
+    if (!keep_warm) {
+      slot.il_warmed.store(false, std::memory_order_relaxed);
+    }
   }
 
   /*!
