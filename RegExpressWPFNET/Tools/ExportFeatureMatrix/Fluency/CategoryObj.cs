@@ -25,12 +25,12 @@ class CategoryObj
         return flag;
     }
 
-    public DirectObj Direct( string shortDesc, string desc, Func<bool, RegexEngine, FeatureMatrix, IndicatorData?> func )
+    public CategoryObj Direct( string shortDesc, string desc, Func<bool, RegexEngine, FeatureMatrix, IndicatorData?> func )
     {
         DirectObj direct = new( this, shortDesc, desc, func );
         indicators.Add( direct );
 
-        return direct;
+        return this;
     }
 
     public CategoryObj Category( string name )

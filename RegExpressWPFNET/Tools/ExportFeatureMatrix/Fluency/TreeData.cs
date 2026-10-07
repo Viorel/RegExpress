@@ -537,7 +537,7 @@ static class TreeData
                     .Test( @"\g<x>(?(DEFINE)(?<x>x))", "x", "", "x" )
                 .Flag( @"(?(VERSION…)…|…)", @"Check version using 'VERSION=decimal' or 'VERSION>=decimal'", ( e, fm ) => fm.Conditional_VERSION )
                     .Test( @"(?(VERSION>=1)xyz|abc)", "xyz", "", "xyz" )
-
+#endif
             .Category( @"Miscellaneous" )
 
                 .Flag( @"Captures", @"Get all captures matched by group", ( e, fm ) => !e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups ) && e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.HasCaptures ) )
@@ -756,11 +756,41 @@ static class TreeData
                     .Test( @"(?i)ß", "s S", null)
                 */
 
+                /*
                 .Flag( "No hang, no ReDoS", "No catastrophic infinite matching, no timeout", ( e, fm ) => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Accept )
                     .Test( ( e, fm ) => SimpleReDosChecker.CheckCatastrophicPattern( e, fm ) == SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Passed )
                 .Flag( "Reject ReDoS", "Give error on possible ReDoS", ( e, fm ) => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Reject )
                     .Test( ( e, fm ) => SimpleReDosChecker.CheckCatastrophicPattern( e, fm ) == SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Error )
+                */
+                .Direct( "ReDoS protection", "“+” — protected, “e” — pattern rejected, give error",
+                    ( v, e, fm ) =>
+                    {
+                        if( !v )
+                        {
+                            return fm.TreatmentOfCatastrophicPatterns switch
+                            {
+                                FeatureMatrix.CatastrophicBacktrackingEnum.None => null,
+                                FeatureMatrix.CatastrophicBacktrackingEnum.Accept => new IndicatorData( ColourEnum.Green, "+" ),
+                                FeatureMatrix.CatastrophicBacktrackingEnum.Reject => new IndicatorData( ColourEnum.Warning, "e" ),
+                                _ => throw new NotImplementedException( ),
+                            };
+                        }
+                        else
+                        {
+                            var r = SimpleReDosChecker.CheckCatastrophicPattern( e, fm );
 
+                            return r switch
+                            {
+                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.None => null,
+                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Passed => new IndicatorData( ColourEnum.Green, "+" ),
+                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Timeout => null,
+                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Error => new IndicatorData( ColourEnum.Warning, "e" ),
+                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Unknown => null,
+                                _ => throw new NotImplementedException( ),
+                            };
+                        }
+                    } )
+#if true
             .Category( @"Specific extensions" )
 
                 .Flag( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", ( e, fm ) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams )

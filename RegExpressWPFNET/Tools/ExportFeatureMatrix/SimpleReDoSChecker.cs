@@ -26,7 +26,7 @@ internal static class SimpleReDosChecker
             {
                 try
                 {
-                    const string TEXT = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac";
+                    const string TEXT = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac";
 
                     switch( fm.Parentheses )
                     {

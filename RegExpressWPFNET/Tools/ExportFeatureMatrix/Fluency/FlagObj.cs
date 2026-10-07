@@ -70,6 +70,11 @@ class FlagObj : Indicator
         return CategoryObj.Flag( shortDesc, desc, flagGetter, isInfo );
     }
 
+    public CategoryObj Direct( string shortDesc, string desc, Func<bool, RegexEngine, FeatureMatrix, IndicatorData?> func )
+    {
+        return CategoryObj.Direct( shortDesc, desc, func );
+    }
+
     public CategoryObj Category( string name )
     {
         return CategoryObj.Category( name );
