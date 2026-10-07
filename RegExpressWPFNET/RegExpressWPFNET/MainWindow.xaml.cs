@@ -480,6 +480,9 @@ namespace RegExpressWPFNET
             TabData current_tab_data = new( );
             source_uc_main.ExportTabData( current_tab_data );
 
+#if false
+            // spread all options (including inactive engines)
+
             foreach( TabItem other_tab_item in other_main_tabs )
             {
                 UCMain other_UCMain = (UCMain)other_tab_item.Content;
@@ -497,9 +500,67 @@ namespace RegExpressWPFNET
                 new_tab_data.Metrics = other_tab_data.Metrics;
 
                 other_UCMain.ForgetMatches( );
-
                 other_UCMain.ApplyTabData( new_tab_data );
             }
+#else
+            // spread active engine only
+
+            EngineOptions? current_engine_options = current_tab_data.EngineOptions?.FirstOrDefault( eo => eo.CombinedId == current_tab_data.ActiveCombinedId );
+
+            if( current_engine_options == null )
+            {
+                SystemSounds.Beep.Play( );
+
+                return;
+            }
+
+            string current_engine_options_json = JsonSerializer.Serialize( current_engine_options!, JsonUtilities.JsonOptions );
+
+            foreach( TabItem other_tab_item in other_main_tabs )
+            {
+                UCMain other_UCMain = (UCMain)other_tab_item.Content;
+                TabData other_tab_data = new( );
+                other_UCMain.ExportTabData( other_tab_data );
+
+                other_tab_data.EngineOptions ??= [];
+
+                int i = other_tab_data.EngineOptions.FindIndex( eo => eo.CombinedId == current_tab_data.ActiveCombinedId );
+
+                EngineOptions? current_engine_options_duplicate = JsonSerializer.Deserialize<EngineOptions>( current_engine_options_json, JsonUtilities.JsonOptions );
+
+                if( current_engine_options_duplicate == null )
+                {
+                    SystemSounds.Beep.Play( );
+
+                    return;
+                }
+
+                if( i < 0 )
+                {
+                    other_tab_data.EngineOptions.Add( current_engine_options_duplicate );
+                }
+                else
+                {
+                    other_tab_data.EngineOptions[i] = current_engine_options_duplicate;
+                }
+
+                other_tab_data.Name = current_tab_data.Name;
+                other_tab_data.Subtitle = current_tab_data.Subtitle;
+                other_tab_data.ActiveKind = current_tab_data.ActiveKind;
+                other_tab_data.ActiveVersion = current_tab_data.ActiveVersion;
+                other_tab_data.ShowFirstMatchOnly = current_tab_data.ShowFirstMatchOnly;
+                other_tab_data.UnderlineCurrentMatch = current_tab_data.UnderlineCurrentMatch;
+                other_tab_data.ShowSucceededGroupsOnly = current_tab_data.ShowSucceededGroupsOnly;
+                other_tab_data.ShowCaptures = current_tab_data.ShowCaptures;
+                other_tab_data.ShowWhiteSpaces = current_tab_data.ShowWhiteSpaces;
+                other_tab_data.Eol = current_tab_data.Eol;
+                //other_tab_data.Metrics = current_tab_data.Metrics;
+                //other_tab_data.Wrap = current_tab_data.Wrap;
+
+                other_UCMain.ForgetMatches( );
+                other_UCMain.ApplyTabData( other_tab_data );
+            }
+#endif
         }
 
         void AutoSaveThreadProc( ICancellable cnc )
