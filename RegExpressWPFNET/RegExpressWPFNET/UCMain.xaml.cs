@@ -240,11 +240,11 @@ namespace RegExpressWPFNET
 
                 // save options of active and inactive engines
 
-                tabData.EngineOptions = new( );
+                tabData.EngineOptions = [];
 
                 foreach( var engine in RegexEngines )
                 {
-                    if( RegexEnginesUsed.Contains( engine ) )
+                    if( object.ReferenceEquals( engine, CurrentRegexEngine ) || RegexEnginesUsed.Contains( engine ) )
                     {
                         tabData.EngineOptions.Add( new EngineOptions { Kind = engine.Kind, Version = engine.Version, Options = engine.ExportOptions( ) } );
                     }
