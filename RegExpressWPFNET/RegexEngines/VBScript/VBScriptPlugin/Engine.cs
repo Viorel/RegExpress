@@ -11,8 +11,6 @@ namespace VBScriptPlugin;
 
 class Engine : RegexEngine
 {
-    static readonly Lazy<string?> LazyVersion = new( GetVersion );
-
     Options mOptions = new( );
     readonly Lazy<UCOptions> mOptionsControl;
 
@@ -44,13 +42,18 @@ class Engine : RegexEngine
 
     #region RegexEngine
 
-    public override string Kind => "VBScript";
+    public override string Kind => "VB";
 
-    public override string Version => LazyVersion.Value ?? "(unknown)";
+    public override string Version => ""; //LazyVersion.Value ?? "(unknown)";
 
-    public override string Name => "VBScript";
+    public override string Name => "VB";
 
-    public override string Subtitle => $"VBScript";
+    public override string Subtitle => $"{Options.Implementation switch
+    {
+        ImplementationEnum.VBScript => "VBScript",
+        ImplementationEnum.TwinBasic => "twinBASIC",
+        _ => "VB (unknown)",
+    }}";
 
     public override string? NoteForCaptures => null;
 
@@ -92,7 +95,8 @@ class Engine : RegexEngine
     {
         return
             [
-                new FeatureMatrixVariant( null, new Engine() )
+                new FeatureMatrixVariant( "VBScript", new Engine{ Options = new Options{ Implementation = ImplementationEnum.VBScript } } ),
+                new FeatureMatrixVariant( "twinBASIC", new Engine{ Options = new Options{ Implementation = ImplementationEnum.TwinBasic } } ),
             ];
     }
 
@@ -112,7 +116,12 @@ class Engine : RegexEngine
 
     public override RegexSubengine GetSubengine( )
     {
-        return new Subengine( Options );
+        return Options.Implementation switch
+        {
+            ImplementationEnum.VBScript => new SubengineVBScript( Options ),
+            ImplementationEnum.TwinBasic => new SubengineTwinBasic( Options ),
+            _ => throw new NotImplementedException( ),
+        };
     }
 
     #endregion
@@ -120,21 +129,5 @@ class Engine : RegexEngine
     private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
     {
         InvokeOptionsChanged( args );
-    }
-
-
-    static string? GetVersion( )
-    {
-        try
-        {
-            return Subengine.GetVersion( NonCancellable.Instance );
-        }
-        catch( Exception exc )
-        {
-            _ = exc;
-            if( Debugger.IsAttached ) Debugger.Break( );
-
-            return null;
-        }
     }
 }

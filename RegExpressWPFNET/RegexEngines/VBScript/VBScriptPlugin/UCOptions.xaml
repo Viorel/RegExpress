@@ -9,18 +9,52 @@
              Loaded="UserControl_Loaded" Height="100" Width="400">
 
     <UserControl.Resources>
+        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
     </UserControl.Resources>
-    
+
     <Grid>
-        <StackPanel>
-            <StackPanel>
-                <ui:CheckboxWithNote Prop="IgnoreCase" Note="case-insensitive search"/>
-                <ui:CheckboxWithNote Prop="Multiline" Note="let “^” and “$” to match the beginning and end of lines"/>
-                <ui:CheckboxWithNote Prop="Global" Note="match all occurrences"/>
-            </StackPanel>
+        <StackPanel Orientation="Vertical">
+
+            <Grid>
+                <Grid.LayoutTransform>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                </Grid.LayoutTransform>
+                <Grid.Resources>
+                    <Style TargetType="Label">
+                        <Setter Property="Padding" Value="0 2 4 2"/>
+                    </Style>
+                    <Style TargetType="ComboBox">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="MinWidth" Value="128"/>
+                        <Setter Property="Margin" Value="3 0 0 2"/>
+                    </Style>
+                </Grid.Resources>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Content="Implementation:" Target="{Binding ElementName=cbxImplementation}" />
+                <ComboBox x:Name="cbxImplementation" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Implementation, FallbackValue='VBScript'}" MinWidth="99" SelectionChanged="cbxImplementation_SelectionChanged">
+                    <ui:ComboBoxItemWithVersion Tag="VBScript"          Text="VBScript"         Version="{Binding VBScript,     Source={StaticResource versions}}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="TwinBasic"         Text="twinBASIC"        Version="{Binding TwinBasic,    Source={StaticResource versions}}" />
+                </ComboBox>
+
+            </Grid>
+
+            <ui:CheckboxWithNote Prop="IgnoreCase" Note="case-insensitive search"/>
+            <ui:CheckboxWithNote Prop="Multiline" Note="let “^” and “$” to match the beginning and end of lines"/>
+            <ui:CheckboxWithNote x:Name="cbxDotAll" Prop="DotAll" Note="let . match newlines" Visibility="Collapsed"/>
+            <ui:CheckboxWithNote x:Name="cbxDotAllDISABLED" Text="DotAll" Note="let . match newlines" IsEnabled="False" Visibility="Collapsed"/>
+            <ui:CheckboxWithNote Prop="Global" Note="match all occurrences"/>
+            
         </StackPanel>
     </Grid>
 </UserControl>
