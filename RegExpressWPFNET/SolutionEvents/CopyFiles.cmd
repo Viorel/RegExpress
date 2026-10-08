@@ -121,6 +121,7 @@ rem -- VBScript --
 set BasePath=%SolutionDir%\RegexEngines\VBScript
 xcopy /D /R /Y "%BasePath%\VBScriptPlugin\bin\%Configuration%\%TargetDir%\VBScriptPlugin.dll" "%EnginesTargetPath%\VBScript\*"
 xcopy /D /R /Y "%BasePath%\VBScriptWorker\VBScriptWorker.vbs" "%EnginesTargetPath%\VBScript\*"
+xcopy /D /R /Y "%BasePath%\TwinBasicWorker\Build\TwinBasicWorker_win32.exe" "%EnginesTargetPath%\VBScript\*.bin"
 
 
 rem -- Hyperscan --
