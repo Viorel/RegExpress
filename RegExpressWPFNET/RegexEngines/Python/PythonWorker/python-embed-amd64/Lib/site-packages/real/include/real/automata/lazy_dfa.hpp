@@ -1330,6 +1330,62 @@ namespace real::detail {
   }
 
   /*!
+   * \brief The context bits both lazy DFAs keep for the byte beside a position (before it forward, after it
+   *        backward): a newline, an ASCII word byte, or -- under word_quit only -- a non-ASCII byte, which
+   *        sets both bits at once since no ASCII byte does.
+   */
+  namespace byte_ctx {
+
+    inline constexpr std::uint8_t newline  {2}; //!< The byte is a newline.
+    inline constexpr std::uint8_t word     {4}; //!< The byte is an ASCII word byte.
+    inline constexpr std::uint8_t nonascii {6}; //!< The byte is not ASCII (word_quit only).
+
+    /*!
+     * \brief Whether context \p ctx says its byte is a newline.
+     * \param[in] ctx Context bits.
+     * \return True for a newline; false for a non-ASCII byte, which also carries the newline bit.
+     */
+    [[nodiscard]] constexpr bool is_newline(std::uint8_t ctx)
+    {
+      return (ctx & nonascii) == newline;
+    }
+
+    /*!
+     * \brief Whether context \p ctx says its byte is an ASCII word byte.
+     * \param[in] ctx Context bits.
+     * \return True for an ASCII word byte.
+     */
+    [[nodiscard]] constexpr bool is_word(std::uint8_t ctx)
+    {
+      return (ctx & nonascii) == word;
+    }
+
+    /*!
+     * \brief Whether context \p ctx says its byte is not ASCII.
+     * \param[in] ctx Context bits.
+     * \return True for a non-ASCII byte under word_quit.
+     */
+    [[nodiscard]] constexpr bool is_nonascii(std::uint8_t ctx)
+    {
+      return (ctx & nonascii) == nonascii;
+    }
+
+    /*!
+     * \brief The context bits of byte \p b.
+     * \param[in] b  The byte.
+     * \param[in] cr The program's line assertions are ECMAScript's, which end a line at `\r` too.
+     * \return Its context bits.
+     */
+    [[nodiscard]] constexpr std::uint8_t of(std::uint8_t b,
+                                            bool         cr)
+    {
+      const bool w  {(b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'};
+      const bool nl {b == '\n' || (cr && b == '\r')};
+      return static_cast<std::uint8_t>((nl ? newline : 0U) | (w ? word : 0U));
+    }
+  } // namespace byte_ctx
+
+  /*!
    * \brief A lazy priority-preserving forward DFA over a Pike program (the kFirstMatch forward pass).
    *
    * A DFA state is the ordered epsilon-closure of a pc set (the Pike thread list in split priority);
@@ -1415,7 +1471,7 @@ namespace real::detail {
         // compute_lazy_alphabet split classes on these properties, so any byte of a class tells them.
         const bool cr {std::ranges::any_of(code, is_cr_line_assert)};
         for (unsigned b {0}; b < 256U; ++b) {
-          class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? ctx_nonascii : ctx_of(static_cast<std::uint8_t>(b), cr);
+          class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? byte_ctx::nonascii : byte_ctx::of(static_cast<std::uint8_t>(b), cr);
         }
       }
       flush();                 // seeds the dead state (0) and the start state (1)
@@ -1827,54 +1883,7 @@ namespace real::detail {
     // text after it. Contexts are bits; the look-ahead is a key: a byte class, the end of the text, or a
     // newline that is the text's last byte (Python's `$` holds before one).
     static constexpr std::uint8_t  ctx_start      {1};       //!< The position is the start of the text.
-    static constexpr std::uint8_t  ctx_newline    {2};       //!< The byte before it is a newline.
-    static constexpr std::uint8_t  ctx_word       {4};       //!< The byte before it is an ASCII word byte.
-    static constexpr std::uint8_t  ctx_nonascii   {6};       //!< The byte before it is not ASCII (word_quit only): newline and word at once, which no ASCII byte is.
     static constexpr std::uint16_t key_unknown    {0xFFFFU}; //!< Closing inside a step: the next byte is not known yet.
-
-    /*!
-     * \brief Whether context \p ctx says the byte it describes is a newline.
-     * \param[in] ctx Context bits.
-     * \return True for a newline; false for a non-ASCII byte, which also carries the newline bit.
-     */
-    [[nodiscard]] static constexpr bool is_newline_ctx(std::uint8_t ctx)
-    {
-      return (ctx & ctx_nonascii) == ctx_newline;
-    }
-
-    /*!
-     * \brief Whether context \p ctx says the byte it describes is an ASCII word byte.
-     * \param[in] ctx Context bits.
-     * \return True for an ASCII word byte.
-     */
-    [[nodiscard]] static constexpr bool is_word_ctx(std::uint8_t ctx)
-    {
-      return (ctx & ctx_nonascii) == ctx_word;
-    }
-
-    /*!
-     * \brief Whether context \p ctx says the byte it describes is not ASCII.
-     * \param[in] ctx Context bits.
-     * \return True for a non-ASCII byte under word_quit.
-     */
-    [[nodiscard]] static constexpr bool is_nonascii_ctx(std::uint8_t ctx)
-    {
-      return (ctx & ctx_nonascii) == ctx_nonascii;
-    }
-
-    /*!
-     * \brief The context a position has after \p b.
-     * \param[in] b  The byte before the position.
-     * \param[in] cr The program's line assertions are ECMAScript's, which end a line at `\r` too.
-     * \return Its context bits.
-     */
-    [[nodiscard]] static constexpr std::uint8_t ctx_of(std::uint8_t b,
-                                                       bool         cr)
-    {
-      const bool word {(b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'};
-      const bool nl   {b == '\n' || (cr && b == '\r')};
-      return static_cast<std::uint8_t>((nl ? ctx_newline : 0U) | (word ? ctx_word : 0U));
-    }
 
     /*!
      * \brief The key the text gives a pending assertion at \p pos: the class of the byte there, or the end.
@@ -1907,7 +1916,7 @@ namespace real::detail {
       switch (kind) {
         case assert_kind::text_start:    return (ctx & ctx_start) != 0U;
         case assert_kind::line_start:
-        case assert_kind::line_start_cr: return (ctx & ctx_start) != 0U || is_newline_ctx(ctx); // the context says which bytes end a line
+        case assert_kind::line_start_cr: return (ctx & ctx_start) != 0U || byte_ctx::is_newline(ctx); // the context says which bytes end a line
         case assert_kind::text_end:
         case assert_kind::text_end_or_final_newline:
         case assert_kind::line_end:
@@ -1933,11 +1942,11 @@ namespace real::detail {
     {
       const bool end        {key == alpha_.count};
       const bool final_nl   {key == alpha_.count + 1U};
-      const bool next_nl    {final_nl || (key < alpha_.count && is_newline_ctx(class_ctx_[key]))};
-      const bool next_word  {key < alpha_.count && is_word_ctx(class_ctx_[key])};
-      const bool prev_word  {is_word_ctx(ctx)};
-      if (word_quit_ && undecidable_word(kind, prev_word, is_nonascii_ctx(ctx), next_word,
-                                         key < alpha_.count && is_nonascii_ctx(class_ctx_[key]))) {
+      const bool next_nl    {final_nl || (key < alpha_.count && byte_ctx::is_newline(class_ctx_[key]))};
+      const bool next_word  {key < alpha_.count && byte_ctx::is_word(class_ctx_[key])};
+      const bool prev_word  {byte_ctx::is_word(ctx)};
+      if (word_quit_ && undecidable_word(kind, prev_word, byte_ctx::is_nonascii(ctx), next_word,
+                                         key < alpha_.count && byte_ctx::is_nonascii(class_ctx_[key]))) {
         quit_hit_ = true; // resolve() turns the whole resolution into quit_state
         return false;
       }
@@ -2610,7 +2619,7 @@ namespace real::detail {
       if (look_) {
         const bool cr {std::ranges::any_of(code, is_cr_line_assert)};
         for (unsigned b {0}; b < 256U; ++b) {
-          class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? rctx_nonascii : right_ctx_of(static_cast<std::uint8_t>(b), cr);
+          class_ctx_[alpha_.of[b]] = (word_quit_ && b >= 0x80U) ? byte_ctx::nonascii : byte_ctx::of(static_cast<std::uint8_t>(b), cr);
         }
       }
       // Transpose: rev_eps_[x] = the pcs with an epsilon edge to x; rev_consume_[x] = the consuming pcs whose
@@ -2764,40 +2773,7 @@ namespace real::detail {
     // what it reads next. So the right side is a state's context and the left side is a pending
     // assertion's key: a byte class, or the start of the text.
     static constexpr std::uint8_t  rctx_end      {1};       //!< The position is the end of the text.
-    static constexpr std::uint8_t  rctx_newline  {2};       //!< The byte after it is a newline.
-    static constexpr std::uint8_t  rctx_word     {4};       //!< The byte after it is an ASCII word byte.
     static constexpr std::uint8_t  rctx_final_nl {8};       //!< The byte after it is a newline that ends the text.
-    static constexpr std::uint8_t  rctx_nonascii {6};       //!< The byte after it is not ASCII (word_quit only): newline and word at once, which no ASCII byte is.
-
-    /*!
-     * \brief Whether right context \p ctx says the byte it describes is a newline.
-     * \param[in] ctx Context bits.
-     * \return True for a newline; false for a non-ASCII byte, which also carries the newline bit.
-     */
-    [[nodiscard]] static constexpr bool is_newline_ctx(std::uint8_t ctx)
-    {
-      return (ctx & rctx_nonascii) == rctx_newline;
-    }
-
-    /*!
-     * \brief Whether right context \p ctx says the byte it describes is an ASCII word byte.
-     * \param[in] ctx Context bits.
-     * \return True for an ASCII word byte.
-     */
-    [[nodiscard]] static constexpr bool is_word_ctx(std::uint8_t ctx)
-    {
-      return (ctx & rctx_nonascii) == rctx_word;
-    }
-
-    /*!
-     * \brief Whether right context \p ctx says the byte it describes is not ASCII.
-     * \param[in] ctx Context bits.
-     * \return True for a non-ASCII byte under word_quit.
-     */
-    [[nodiscard]] static constexpr bool is_nonascii_ctx(std::uint8_t ctx)
-    {
-      return (ctx & rctx_nonascii) == rctx_nonascii;
-    }
 
     static constexpr std::uint16_t key_unknown   {0xFFFFU}; //!< Closing inside a step: the byte to the left is not read yet.
     // A set's entries: a pc reached; an assertion still to decide, encoded below every context sentinel
@@ -2813,20 +2789,6 @@ namespace real::detail {
     [[nodiscard]] static constexpr bool is_pending(std::int32_t entry)
     {
       return entry <= pending_base;
-    }
-
-    /*!
-     * \brief The right context a position has when \p b follows it (not the text's last byte).
-     * \param[in] b  The byte after the position.
-     * \param[in] cr The program's line assertions are ECMAScript's, which end a line at `\r` too.
-     * \return Its context bits.
-     */
-    [[nodiscard]] static constexpr std::uint8_t right_ctx_of(std::uint8_t b,
-                                                             bool         cr)
-    {
-      const bool word {(b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'};
-      const bool nl   {b == '\n' || (cr && b == '\r')};
-      return static_cast<std::uint8_t>((nl ? rctx_newline : 0U) | (word ? rctx_word : 0U));
     }
 
     /*!
@@ -2882,7 +2844,7 @@ namespace real::detail {
         case assert_kind::text_end:                  return (ctx & rctx_end) != 0U;
         case assert_kind::text_end_or_final_newline: return (ctx & rctx_end) != 0U || (ctx & rctx_final_nl) != 0U;
         case assert_kind::line_end:
-        case assert_kind::line_end_cr:               return (ctx & rctx_end) != 0U || is_newline_ctx(ctx);
+        case assert_kind::line_end_cr:               return (ctx & rctx_end) != 0U || byte_ctx::is_newline(ctx);
         case assert_kind::text_start:
         case assert_kind::line_start:
         case assert_kind::line_start_cr:
@@ -2906,11 +2868,11 @@ namespace real::detail {
                                   std::uint16_t key) const
     {
       const bool start     {key == alpha_.count};
-      const bool prev_nl   {!start && is_newline_ctx(class_ctx_[key])};
-      const bool prev_word {!start && is_word_ctx(class_ctx_[key])};
-      const bool next_word {is_word_ctx(ctx)};
-      if (word_quit_ && undecidable_word(kind, prev_word, !start && is_nonascii_ctx(class_ctx_[key]), next_word,
-                                         is_nonascii_ctx(ctx))) {
+      const bool prev_nl   {!start && byte_ctx::is_newline(class_ctx_[key])};
+      const bool prev_word {!start && byte_ctx::is_word(class_ctx_[key])};
+      const bool next_word {byte_ctx::is_word(ctx)};
+      if (word_quit_ && undecidable_word(kind, prev_word, !start && byte_ctx::is_nonascii(class_ctx_[key]), next_word,
+                                         byte_ctx::is_nonascii(ctx))) {
         quit_hit_ = true; // resolve() turns the whole resolution into quit_state
         return false;
       }

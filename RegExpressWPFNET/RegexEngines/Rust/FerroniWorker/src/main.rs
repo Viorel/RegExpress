@@ -119,27 +119,17 @@ fn main()
 
     let mut all_matches = json::array![];
 
-    let mut start = 0;
 
-    while start <= text.len()
+    for cap in re.captures_iter_with( &text, se)
     {
-        let captures = re.captures_with( &text[start..], se);
-
-        if let Err(err) = captures
+        if let Err(err) = cap
         {
             eprintln!( "{}", err);
 
             return;
         }
 
-        let captures = captures.unwrap();
-
-        if captures.is_none()
-        {
-            break;
-        }
-
-        let captures = captures.unwrap();
+        let captures = cap.unwrap();
 
         let mut one_match = json::array![];
 
@@ -149,8 +139,8 @@ fn main()
             {
                 Some(m) =>
                 {
-                    one_match.push( start + m.start()).unwrap();
-                    one_match.push( start + m.end()).unwrap();
+                    one_match.push( m.start()).unwrap();
+                    one_match.push( m.end()).unwrap();
                 },
                 None =>
                 {
@@ -167,48 +157,6 @@ fn main()
         };
         all_matches.push( o).unwrap();
 
-        let whole = captures.get( 0).unwrap();
-
-        if whole.end() <= 0
-        {
-            let mut new_start = start;
-
-            let mut char_indices = text.char_indices();
-
-            loop
-            {
-                let a = char_indices.next();
-                if a.is_none()
-                {
-                    break;
-                }
-
-                let a = a.unwrap();
-                if a.0 == start
-                {
-                    let b = char_indices.next();
-
-                    if let Some(b) = b
-                    {
-                        new_start = b.0;
-                    }
-
-                    break;
-                }
-            }
-
-            if start >= new_start
-            {
-                break;
-            }
-
-            start = new_start;
-
-        }
-        else 
-        {
-            start = start + whole.end();
-        }
     }
 
     let mut names = json::array![];
