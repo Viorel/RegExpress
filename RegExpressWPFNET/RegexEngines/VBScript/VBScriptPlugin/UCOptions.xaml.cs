@@ -1,4 +1,5 @@
 ﻿using RegExpressLibrary;
+using RegExpressLibrary.UI;
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -30,6 +31,8 @@ namespace VBScriptPlugin
             if( IsFullyLoaded ) return;
 
             IsFullyLoaded = true;
+
+            UpdateUI( );
         }
 
         void UpdateUI( )
@@ -41,6 +44,12 @@ namespace VBScriptPlugin
             {
                 ++ChangeCounter;
 
+                bool is_vbscript = Options.Implementation == ImplementationEnum.VBScript;
+                bool is_twinBasic = Options.Implementation == ImplementationEnum.TwinBasic;
+
+                cbxDotAll.Display( is_twinBasic );
+                cbxDotAllDISABLED.Display( !is_twinBasic );
+
             }
             finally
             {
@@ -48,21 +57,23 @@ namespace VBScriptPlugin
             }
         }
 
-        private void CheckBox_Changed( object sender, RoutedEventArgs e )
+        void Notify( bool preferImmediateReaction )
         {
             if( !IsFullyLoaded ) return;
             if( ChangeCounter != 0 ) return;
 
-            Changed?.Invoke( this, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = false } );
+            Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
         }
 
-
-        private void cbxTimeout_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
-            if( !IsFullyLoaded ) return;
-            if( ChangeCounter != 0 ) return;
+            Notify(preferImmediateReaction: false );
+        }
 
-            Changed?.Invoke( this, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = true } );
+        private void cbxImplementation_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateUI( );
+            Notify( preferImmediateReaction: true );
         }
 
         internal void SetOptions( Options options )
@@ -82,5 +93,6 @@ namespace VBScriptPlugin
                 --ChangeCounter;
             }
         }
+
     }
 }

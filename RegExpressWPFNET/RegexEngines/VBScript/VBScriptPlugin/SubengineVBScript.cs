@@ -15,7 +15,7 @@ using System.Text.RegularExpressions;
 
 namespace VBScriptPlugin;
 
-partial class Subengine( Options options ) : RegexSubengine
+partial class SubengineVBScript( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 

@@ -73,7 +73,7 @@ If command = "m" Or command = "e" Or command = "x" Then
             For i = 1 To Len(sm)
                 Dim c
                 c = Mid(sm, i, 1)
-                Dim a
+                Dim u
                 u = AscW(c)
                 If (u >= AscW("a") And u <= AscW("z")) Or (u >= AscW("A") And u <= AscW("Z")) Or (u >= AscW("0") And u <= AscW("9")) Then
                     s = s & c
