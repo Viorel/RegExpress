@@ -42,19 +42,19 @@ The following engines are included:
 * [**Hyperscan**](https://github.com/intel/hyperscan) 5.4.2 from Intel (in C).
 * [**Chimera**](http://intel.github.io/hyperscan/dev-reference/chimera.html), a hybrid of Hyperscan and PCRE 8.41 (in C).
 * [**ICU Regular Expressions**](https://icu.unicode.org/) 78.3 (in C++).
-* **Rust** 1.98.1:
+* **Rust** 1.99.0:
   * [_regex_](https://crates.io/crates/regex) 1.13.1,
   * [_regex-lite_](https://crates.io/crates/regex-lite) 0.1.9,
   * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.19.2, 
   * [_regress_](https://crates.io/crates/regress) 0.12.0,
   * [_resharp_](https://crates.io/crates/resharp) 0.7.5,
   * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
-  * [_real-regex_](https://crates.io/crates/real-regex) 2026.10.4,
+  * [_real-regex_](https://crates.io/crates/real-regex) 2026.10.5,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0,
   * [_regexr_](https://crates.io/crates/regexr) 0.6.0,
   * [_rexile_](https://crates.io/crates/rexile) 0.7.4,
   * [_iregexp-rs_](https://github.com/strefethen/iregexp-rs) 0.1.0,
-  * [_ferroni_](https://crates.io/crates/ferroni) 1.9.0,
+  * [_ferroni_](https://crates.io/crates/ferroni) 1.10.0,
   * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.2,
   * [_derivre_](https://crates.io/crates/derivre) 0.3.13.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2.1:
@@ -66,7 +66,7 @@ The following engines are included:
 * [**Python**](https://www.python.org/) 3.14.6:
   * _re_,
   * [_regex_](https://pypi.org/project/regex) 2026.9.10,
-  * [_real-regex_](https://pypi.org/project/real-regex/) 2026.10.4.
+  * [_real-regex_](https://pypi.org/project/real-regex/) 2026.10.5.
 * [**D**](https://dlang.org/phobos/std_regex.html) 2.113.0 (*std.regex* module).
 * [**Perl**](https://perldoc.perl.org/perlreref) 5.40.2 (Strawberry Perl).
 * **Fortran** [**Forgex**](https://github.com/ShinobuAmasaki/forgex) v4.6 module (Intel® Fortran Compiler 2026.0.0).
@@ -96,7 +96,7 @@ The following engines are included:
 * **Dart** 3.12.2:
   * [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html),
   * [_oniguruma\_dart_](https://pub.dev/packages/oniguruma_dart) 1.0.1.
-* [**REAL**](https://github.com/RECHE23/real-regex) 2026.10.4 (in C++).
+* [**REAL**](https://github.com/RECHE23/real-regex) 2026.10.5 (in C++).
 
 ## Running the playground
 

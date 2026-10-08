@@ -5,7 +5,7 @@
  *
  * `mask_t` is opaque and per-ISA (nibble-packed `std::uint64_t` on NEON, bit-packed `std::uint32_t` on
  * SSE2): callers touch it only through the lane primitives at the end (`empty`, `first_lane`, `clear_first`,
- * `mask_or`, `window_all_set`, `first_clear_lane`, `next_set_lane`). The load functions build masks from
+ * `window_all_set`, `first_clear_lane`, `next_set_lane`). The load functions build masks from
  * member sets, byte ranges, byte pairs and nibble fingerprints, loading bytes by memcpy (MISRA: no pointer
  * type-pun). The x86 SSSE3 and AVX2 functions are built per function (`target`) where the build lacks the
  * extension, and run only after a `cpuid` check; `avx2_literal_scan` is the one whole scan loop here.
@@ -1166,13 +1166,6 @@ namespace real::detail {
   inline std::size_t first_lane(mask_t m)
   {
     return static_cast<std::size_t>(std::countr_zero(m)) >> lane_shift;
-  }
-
-  /*! \brief The lanes set in \p a or \p b. */
-  inline mask_t mask_or(mask_t a,
-                        mask_t b)
-  {
-    return a | b;
   }
 
   /*!

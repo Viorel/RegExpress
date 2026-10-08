@@ -508,6 +508,7 @@ namespace real {
       //!        lookarounds, -1 = not this shape. Leaves \ref greedy_class_loop at -1 on purpose: sharing
       //!        that selector makes every `class+` search branch on this shape, measured dearer.
       std::int16_t trailing_lookaround {-1};
+      bool         trailing_la_cp      {};   //!< The \ref trailing_lookaround body is a `klass_cp` (cp_classes index).
       std::int32_t trailing_la_class   {-1}; //!< Class index for \ref trailing_lookaround body; −1 if unset.
 
       //! \brief Possessive fast path, UNBOUNDED loops only (`X*+`/`X++`) with min 0 or 1: a bounded count

@@ -299,6 +299,106 @@ namespace real::compat {
     }
 
     /*!
+     * \brief Expands a replacement format: the one rule set behind `match_results::format` and `regex_replace`.
+     *
+     * ECMAScript rules: a dollar followed by a dollar, an ampersand, a backtick, a quote or one or two digits
+     * inserts a dollar, the match, the prefix, the suffix or that group (nothing for a group that does not
+     * exist, its digits consumed; a second digit is taken greedily, `$015` being group 1 then a literal 5);
+     * any other dollar, a final one included, is itself. `$0` reads as the native std reads it
+     * (\ref std_dollar_zero_is_match). Under \p sed, POSIX sed's: `&` is the whole match, a backslash and a
+     * digit that group, a backslash and any other character that character, and a final lone backslash
+     * follows the native std (\ref std_sed_keeps_final_backslash).
+     *
+     * \tparam Sed   Select the sed rules.
+     * \tparam CharT The character type.
+     * \param[in] first  Start of the format.
+     * \param[in] last   One past its end.
+     * \param[in] put    Writes one character.
+     * \param[in] group  Writes group `g` (nothing when it does not exist or took no part).
+     * \param[in] prefix Writes the text before the match.
+     * \param[in] suffix Writes the text after it.
+     */
+    template <bool Sed, typename CharT, typename Put, typename Group, typename Prefix, typename Suffix>
+    REAL_ALWAYS_INLINE
+    inline void expand_replacement(const CharT* first,
+                                   const CharT* last,
+                                   Put&&        put,
+                                   Group&&      group,
+                                   Prefix&&     prefix,
+                                   Suffix&&     suffix)
+    {
+      const auto digit = [](CharT c) { return c >= CharT('0') && c <= CharT('9'); };
+      if constexpr (Sed) { // a template parameter, not a test per character: that cost regex_replace 2 %
+        for (const CharT* at {first}; at != last; ++at) {
+          const CharT c {*at};
+          if (c == CharT('&')) {
+            group(std::size_t {0});
+          }
+          else if (c != CharT('\\')) {
+            put(c);
+          }
+          else if (at + 1 == last) {
+            if (std_sed_keeps_final_backslash()) {
+              put(c);
+            }
+          }
+          else if (const CharT next {*++at}; digit(next)) {
+            group(static_cast<std::size_t>(next - CharT('0')));
+          }
+          else {
+            put(next);
+          }
+        }
+        return;
+      }
+      for (const CharT* at {first}; at != last; ++at) {
+        const CharT c      {*at};
+        if (c != CharT('$') || at + 1 == last) { // a final `$` is itself
+          put(c);
+          continue;
+        }
+        const CharT next {at[1]};
+        if (next == CharT('$')) {
+          put(next);
+          ++at;
+        }
+        else if (next == CharT('&')) {
+          group(std::size_t {0});
+          ++at;
+        }
+        else if (next == CharT('`')) {
+          prefix();
+          ++at;
+        }
+        else if (next == CharT('\'')) {
+          suffix();
+          ++at;
+        }
+        else if (digit(next)) {
+          const CharT* const digits {at + 1};
+          std::size_t        g      {static_cast<std::size_t>(next - CharT('0'))};
+          ++at;
+          if (at + 1 != last && digit(at[1])) {
+            g = (g * 10) + static_cast<std::size_t>(at[1] - CharT('0'));
+            ++at;
+          }
+          if (g == 0 && !std_dollar_zero_is_match()) {
+            put(c); // a std that reads `$0` literally
+            for (const CharT* d {digits}; d != at + 1; ++d) {
+              put(*d);
+            }
+          }
+          else {
+            group(g);
+          }
+        }
+        else {
+          put(c);
+        }
+      }
+    }
+
+    /*!
      * \brief Whether a replacement format holds `$0`, which std implementations read differently (libstdc++: the
      *        whole match; MS STL: a literal), so the replace routes to std; `$$` is an escaped dollar.
      * \param[in] fmt The replacement format.
@@ -491,7 +591,7 @@ namespace real::compat {
             continue; // an escaped metacharacter is a literal in both grammars
           }
           if (awk && append_awk_escape(p, i, out)) { continue; } // awk C-escapes (\b=BS, \n, octal, …)
-          return std::nullopt; // \d, \w, \b, … — no ERE meaning; fall back to std
+          return std::nullopt;                                 // \d, \w, \b, … — no ERE meaning; fall back to std
         }
         if (c == '[') {
           if (!translate_bracket(p, i, out)) { return std::nullopt; }
@@ -575,17 +675,17 @@ namespace real::compat {
           continue;
         }
         if (c == '^') {
-          if (i == 0) { out += '^'; i += 1; at_start = false; continue; } // anchor at the pattern head (libs agree)
-          return std::nullopt; // a medial `^` is a POSIX literal, but libstdc++ reads it as an anchor while
-                               // libc++ reads it as a literal — decline so compat stays ≡ its own std
+          if (i == 0) { out += '^'; i += 1; at_start = false; continue; }   // anchor at the pattern head (libs agree)
+          return std::nullopt;                                              // a medial `^` is a POSIX literal, but libstdc++ reads it as an anchor while
+                                                                            // libc++ reads it as a literal — decline so compat stays ≡ its own std
         }
         if (c == '$') {
           if (i + 1 == n) { out += '$'; i += 1; at_start = false; continue; } // anchor at the tail (libs agree)
-          return std::nullopt; // a medial `$` — the same libstdc++/libc++ disagreement; decline to std
+          return std::nullopt;                                              // a medial `$` — the same libstdc++/libc++ disagreement; decline to std
         }
         if (c == '*') {
-          if (at_start) { return std::nullopt; } // a leading `*` is a literal in POSIX BRE -> decline (rare)
-          out += '*';                            // quantifier
+          if (at_start) { return std::nullopt; }                            // a leading `*` is a literal in POSIX BRE -> decline (rare)
+          out += '*';                                                       // quantifier
           i   += 1;
           continue;
         }
