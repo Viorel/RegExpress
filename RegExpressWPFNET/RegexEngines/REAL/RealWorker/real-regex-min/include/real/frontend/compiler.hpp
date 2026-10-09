@@ -950,6 +950,7 @@ namespace real::detail {
         if (fold_key_[way] == key) {
           return fold_val_[way];
         }
+        note(counter::class_folds);
         class_def folded {tree_.classes[klass_idx]};
         if (mode == 1) {
           fold_ascii_case(folded.ascii);     // bytes / ASCII mode (re.A): ASCII-only fold, no Unicode partners

@@ -20,6 +20,8 @@
 #include <cstdint>
 #include <type_traits>
 
+#include "real/core/config.hpp"
+
 /*! \brief Opt-in route/work counters, compiled out unless the profiling build flag is set. */
 namespace real::detail::prof {
 
@@ -78,10 +80,8 @@ namespace real::detail::prof {
   {
     std::uint64_t routes[static_cast<std::size_t>(route::count_)] {};
     std::uint64_t events[static_cast<std::size_t>(event::count_)] {};
-    std::uint64_t bytes_examined                                  {};
     std::uint64_t prefilter_candidates                            {};
     std::uint64_t prefilter_rejected                              {};
-    std::uint64_t run_len_hist[8]                                 {}; //!< log2 buckets for maximal class/cp runs
     //! \brief log2 buckets for the live thread count the general VM carries into each `step()`.
     //!
     //! One thread per position means the VM's per-byte cost is list overhead the shape does not need;
@@ -116,11 +116,6 @@ namespace real::detail::prof {
     ++tls().events[static_cast<std::size_t>(e)];
   }
 
-  inline void add_bytes(std::uint64_t n) noexcept
-  {
-    tls().bytes_examined += n;
-  }
-
   inline void record_thread_count(std::size_t n) noexcept
   {
     unsigned    b {0};
@@ -140,17 +135,6 @@ namespace real::detail::prof {
   inline void record_prefilter_rejected() noexcept
   {
     ++tls().prefilter_rejected;
-  }
-
-  inline void note_run_len(std::size_t len) noexcept
-  {
-    unsigned    b {0};
-    std::size_t x {len};
-    while (x > 1 && b < 7U) {
-      x >>= 1;
-      ++b;
-    }
-    ++tls().run_len_hist[b];
   }
 
   [[nodiscard]] inline const char* route_name(route r) noexcept
@@ -204,13 +188,11 @@ namespace real::detail::prof {
 #endif // REAL_PROFILE
 
   // Tick helpers: always_inline so an OFF build erases the call rather than leaving a dead branch.
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((always_inline))
-#endif
   /*!
    * \brief Bill one dispatch to route \p r. Erased entirely unless \c REAL_PROFILE is defined.
    * \param[in] r The route that handled the search.
    */
+  REAL_ALWAYS_INLINE
   constexpr void tick_route(route r) noexcept
   {
 #if defined(REAL_PROFILE)
@@ -222,13 +204,11 @@ namespace real::detail::prof {
 #endif
   }
 
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((always_inline))
-#endif
   /*!
    * \brief Bill one occurrence of \p e. Erased entirely unless \c REAL_PROFILE is defined.
    * \param[in] e The event to count.
    */
+  REAL_ALWAYS_INLINE
   constexpr void tick_event(event e) noexcept
   {
 #if defined(REAL_PROFILE)
@@ -240,13 +220,11 @@ namespace real::detail::prof {
 #endif
   }
 
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((always_inline))
-#endif
   /*!
    * \brief Bill one `step()` carrying \p n live threads. Erased entirely unless \c REAL_PROFILE is defined.
    * \param[in] n Threads in the current list as the step begins.
    */
+  REAL_ALWAYS_INLINE
   constexpr void tick_thread_count(std::size_t n) noexcept
   {
 #if defined(REAL_PROFILE)
@@ -258,9 +236,6 @@ namespace real::detail::prof {
 #endif
   }
 
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((always_inline))
-#endif
   /*!
    * \brief Bill one candidate a prefilter produced. Erased entirely unless \c REAL_PROFILE is defined.
    *
@@ -268,6 +243,7 @@ namespace real::detail::prof {
    * literal scan only: a candidate is one `find_literal` hit, a rejection one whose reverse walk reached
    * no match start. Other routes are not folded in, so a zero says nothing about them.
    */
+  REAL_ALWAYS_INLINE
   constexpr void tick_prefilter_candidate() noexcept
   {
 #if defined(REAL_PROFILE)
@@ -277,55 +253,17 @@ namespace real::detail::prof {
 #endif
   }
 
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((always_inline))
-#endif
   /*!
    * \brief Bill one prefilter candidate REJECTED by confirmation. See \ref tick_prefilter_candidate
    *        for the scope these two share.
    */
+  REAL_ALWAYS_INLINE
   constexpr void tick_prefilter_rejected() noexcept
   {
 #if defined(REAL_PROFILE)
     if (!std::is_constant_evaluated()) {
       record_prefilter_rejected();
     }
-#endif
-  }
-
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((always_inline))
-#endif
-  /*!
-   * \brief Bill \p n scanned bytes. Erased entirely unless \c REAL_PROFILE is defined.
-   * \param[in] n Bytes the caller just consumed.
-   */
-  constexpr void tick_bytes(std::uint64_t n) noexcept
-  {
-#if defined(REAL_PROFILE)
-    if (!std::is_constant_evaluated()) {
-      add_bytes(n);
-    }
-#else
-    (void)n;
-#endif
-  }
-
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((always_inline))
-#endif
-  /*!
-   * \brief Record a run of \p n accepted units. Erased entirely unless \c REAL_PROFILE is defined.
-   * \param[in] n The run's length.
-   */
-  constexpr void tick_run_len(std::size_t n) noexcept
-  {
-#if defined(REAL_PROFILE)
-    if (!std::is_constant_evaluated()) {
-      note_run_len(n);
-    }
-#else
-    (void)n;
 #endif
   }
 } // namespace real::detail::prof

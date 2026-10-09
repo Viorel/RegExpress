@@ -902,9 +902,7 @@ namespace real {
      * \param[in] what The message.
      */
     [[noreturn]]
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((cold, noinline))
-#endif
+    REAL_COLD
     inline void dfa_memo_misuse(const char* what)
     {
       throw std::invalid_argument(what);
@@ -1042,9 +1040,7 @@ namespace real {
      *         another DFA, or \p offset lies beyond \p subject.
      */
     [[nodiscard]]
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((always_inline))
-#endif
+    REAL_ALWAYS_INLINE
     std::optional<dfa_match> match(std::string_view subject,
                                    std::size_t      offset,
                                    dfa_munch_memo&  memo) const
@@ -1262,9 +1258,7 @@ namespace real {
      */
     template <bool Armed>
     [[nodiscard]]
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((always_inline))
-#endif
+    REAL_ALWAYS_INLINE
     walk_end walk(std::string_view      subject,
                   std::size_t           offset,
                   const dfa_munch_memo* memo) const noexcept
@@ -1340,9 +1334,7 @@ namespace real {
      * \param[in,out] memo    The subject's memo, armed.
      * \return The winning rule index and byte length, or `std::nullopt`.
      */
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((noinline))
-#endif
+    REAL_NOINLINE
     std::optional<dfa_match> match_armed(std::string_view subject,
                                          std::size_t      offset,
                                          dfa_munch_memo&  memo) const
@@ -1365,9 +1357,7 @@ namespace real {
      * \param[in]     to      Where the walk stopped.
      * \param[in,out] memo    The subject's memo.
      */
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((noinline))
-#endif
+    REAL_NOINLINE
     void mark_dead_stretch(std::string_view subject,
                            std::uint32_t    state,
                            std::size_t      from,

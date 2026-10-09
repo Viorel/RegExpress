@@ -439,70 +439,18 @@ namespace real::compat {
                       const char_type*                 fmt_last,
                       regex_constants::match_flag_type flags = regex_constants::format_default) const
     {
-      const bool sed {(flags & regex_constants::format_sed) != 0U};
-      for (const char_type* at {fmt_first}; at != fmt_last; ++at) {
-        const char_type c {*at};
-        const bool      last {at + 1 == fmt_last};
-        if (sed) {
-          if (c == char_type('&')) {
-            out = copy_group(out, 0);
-          }
-          else if (c != char_type('\\')) {
-            *out++ = c;
-          }
-          else if (last) {
-            if (detail::std_sed_keeps_final_backslash()) {
-              *out++ = c; // a final lone backslash, kept or dropped as the native std does
-            }
-          }
-          else if (const char_type next {*++at}; next >= char_type('0') && next <= char_type('9')) {
-            out = copy_group(out, static_cast<size_type>(next - char_type('0')));
-          }
-          else {
-            *out++ = next;
-          }
-          continue;
-        }
-        if (c != char_type('$') || last) {
-          *out++ = c;
-          continue;
-        }
-        const char_type next {at[1]};
-        if (next == char_type('$')) {
-          *out++ = next;
-          ++at;
-        }
-        else if (next == char_type('&')) {
-          out = copy_group(out, 0);
-          ++at;
-        }
-        else if (next == char_type('`')) {
-          out = std::copy(prefix_.first, prefix_.second, out);
-          ++at;
-        }
-        else if (next == char_type('\'')) {
-          out = std::copy(suffix_.first, suffix_.second, out);
-          ++at;
-        }
-        else if (next >= char_type('0') && next <= char_type('9')) {
-          const char_type* const digits {at + 1};
-          size_type              group  {static_cast<size_type>(next - char_type('0'))};
-          ++at;
-          if (at + 1 != fmt_last && at[1] >= char_type('0') && at[1] <= char_type('9')) {
-            group = (group * 10) + static_cast<size_type>(at[1] - char_type('0'));
-            ++at;
-          }
-          if (group == 0 && !detail::std_dollar_zero_is_match()) {
-            *out++ = c;
-            out    = std::copy(digits, at + 1, out); // a std that reads `$0` literally
-          }
-          else {
-            out = copy_group(out, group);
-          }
-        }
-        else {
-          *out++ = c;
-        }
+      const auto expand = [&]<bool Sed>() {
+                            detail::expand_replacement<Sed>(
+                              fmt_first, fmt_last, [&](char_type c) { *out++ = c; },
+                              [&](std::size_t g) { out = copy_group(out, static_cast<size_type>(g)); },
+                              [&] { out = std::copy(prefix_.first, prefix_.second, out); },
+                              [&] { out = std::copy(suffix_.first, suffix_.second, out); });
+                          };
+      if ((flags & regex_constants::format_sed) != 0U) {
+        expand.template operator()<true>();
+      }
+      else {
+        expand.template operator()<false>();
       }
       return out;
     }
@@ -1349,124 +1297,46 @@ namespace real::compat {
   namespace detail {
 
     /*!
-     * \brief Appends one match's ECMAScript-expanded replacement: the references of `match_results::format`,
-     *        the prefix running from \p prefix_start as in `std::regex_replace`. A `$0` never reaches here
-     *        (\ref format_forces_std routes it to std).
+     * \brief Appends one match's expanded replacement (\ref expand_replacement), the prefix running from
+     *        \p prefix_start as in `std::regex_replace`. A `$0` never reaches here (\ref format_forces_std
+     *        routes it to std).
      * \param[in,out] out          Destination the expansion is appended to.
-     * \param[in]     m            The match whose groups `$N` refers to.
+     * \param[in]     m            The match whose groups the format refers to.
      * \param[in]     fmt          The replacement format string.
      * \param[in]     text         The full subject the match's offsets index into.
      * \param[in]     prefix_start Where the unmatched prefix begins — the previous match's end.
+     * \param[in]     sed          Select the `format_sed` rules.
      */
     template <typename RealMatch>
-    void expand_format(std::string&     out,
-                       const RealMatch& m,
-                       std::string_view fmt,
-                       std::string_view text,
-                       std::size_t      prefix_start)
+    void append_replacement(std::string&     out,
+                            const RealMatch& m,
+                            std::string_view fmt,
+                            std::string_view text,
+                            std::size_t      prefix_start,
+                            bool             sed)
     {
-      const std::size_t group_count {m.size()};   // includes group 0
+      const std::size_t group_count {m.size()}; // includes group 0
       const std::size_t whole_start {m.start(0)};
       const std::size_t whole_end   {m.end(0)};
-      for (std::size_t i = 0; i < fmt.size(); ++i) {
-        if (fmt[i] != '$') {
-          out.push_back(fmt[i]);
-          continue;
-        }
-        if (i + 1 >= fmt.size()) {
-          out.push_back('$');
-          break;
-        }
-        const char next {fmt[i + 1]};
-        if (next == '$') {
-          out.push_back('$');
-          ++i;
-        }
-        else if (next == '&') {
-          out.append(text.substr(whole_start, whole_end - whole_start));
-          ++i;
-        }
-        else if (next == '`') {
-          out.append(text.substr(prefix_start, whole_start - prefix_start));
-          ++i;
-        }
-        else if (next == '\'') {
-          out.append(text.substr(whole_end));
-          ++i;
-        }
-        else if (next >= '0' && next <= '9') {
-          // A second digit is taken greedily (`$015` is group 1, then a literal 5); a group that does not
-          // exist expands to nothing, its digits consumed. `next` is 1-9: a `$0` routed to std.
-          std::size_t group    {static_cast<std::size_t>(next - '0')};
-          std::size_t consumed {1};
-          if (i + 2 < fmt.size() && fmt[i + 2] >= '0' && fmt[i + 2] <= '9') {
-            group    = (group * 10) + static_cast<std::size_t>(fmt[i + 2] - '0');
-            consumed = 2;
-          }
-          if (group >= 1 && group < group_count && m.start(group) != real::npos) {
-            out.append(text.substr(m.start(group), m.end(group) - m.start(group)));
-          }
-          i += consumed;
-        }
-        else {
-          out.push_back('$'); // a `$` not forming a valid reference is literal
-        }
+      const auto        expand = [&]<bool Sed>() {
+                                   expand_replacement<Sed>(
+                                     fmt.data(), fmt.data() + fmt.size(), [&](char c) { out.push_back(c); },
+                                     [&](std::size_t g) {
+                                       if (g == 0) {
+                                         out.append(text.substr(whole_start, whole_end - whole_start));
+                                       }
+                                       else if (g < group_count && m.start(g) != real::npos) {
+                                         out.append(text.substr(m.start(g), m.end(g) - m.start(g)));
+                                       }
+                                     },
+                                     [&] { out.append(text.substr(prefix_start, whole_start - prefix_start)); },
+                                     [&] { out.append(text.substr(whole_end)); });
+                                 };
+      if (sed) {
+        expand.template operator()<true>();
       }
-    }
-
-    /*!
-     * \brief Appends group \p g of \p m, nothing when the group does not exist or did not take part.
-     * \param[in,out] out  Destination.
-     * \param[in]     m    The match.
-     * \param[in]     g    The group number.
-     * \param[in]     text The full subject the match's offsets index into.
-     */
-    template <typename RealMatch>
-    void append_group(std::string&     out,
-                      const RealMatch& m,
-                      std::size_t      g,
-                      std::string_view text)
-    {
-      if (g < m.size() && m.start(g) != real::npos) {
-        out.append(text.substr(m.start(g), m.end(g) - m.start(g)));
-      }
-    }
-
-    /*!
-     * \brief Appends one match's replacement under `format_sed`, the POSIX sed rules: `&` is the whole match, a
-     *        backslash and a digit that group (`\0` the whole match), a backslash and any other character that
-     *        character, `$` itself; a group that does not exist or took no part inserts nothing. A final lone
-     *        backslash follows the native std (\ref std_sed_keeps_final_backslash).
-     * \param[in,out] out  Destination the expansion is appended to.
-     * \param[in]     m    The match whose groups the format refers to.
-     * \param[in]     fmt  The replacement format string.
-     * \param[in]     text The full subject the match's offsets index into.
-     */
-    template <typename RealMatch>
-    void expand_sed(std::string&     out,
-                    const RealMatch& m,
-                    std::string_view fmt,
-                    std::string_view text)
-    {
-      for (std::size_t i = 0; i < fmt.size(); ++i) {
-        const char c {fmt[i]};
-        if (c == '&') {
-          append_group(out, m, 0, text);
-        }
-        else if (c != '\\') {
-          out.push_back(c);
-        }
-        else if (i + 1 == fmt.size()) {
-          if (std_sed_keeps_final_backslash()) {
-            out.push_back('\\'); // a final lone backslash, kept or dropped as the native std does
-          }
-        }
-        else if (const char next {fmt[++i]}; next >= '0' && next <= '9') {
-          append_group(out, m, static_cast<std::size_t>(next - '0'), text);
-        }
-        else {
-          out.push_back(next);
-        }
+      else {
+        expand.template operator()<false>();
       }
     }
 
@@ -1552,12 +1422,7 @@ namespace real::compat {
       if (!no_copy) {
         out.append(text.substr(last_end, match.start(0) - last_end));
       }
-      if (sed) {
-        expand_sed(out, match, fmt, text);
-      }
-      else {
-        expand_format(out, match, fmt, text, prefix_start);
-      }
+      append_replacement(out, match, fmt, text, prefix_start, sed);
       last_end = match.end(0);
     }
 

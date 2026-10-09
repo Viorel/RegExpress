@@ -15,6 +15,7 @@
 // <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
 #include "real/version.hpp"
+#include "real/core/config.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -69,6 +70,7 @@ namespace real::detail {
     behind_walk_steps,           //!< Bytes the lookbehind walks stepped.
     dfa_span_batches,            //!< Batches the lazy-DFA span filler produced.
     dfa_leases_taken,            //!< DFA set leases taken.
+    class_folds,                 //!< Case folds the compiler computed for a class (a fold-cache hit costs none).
     count_                       //!< The number of counters.
   };
 
@@ -814,57 +816,6 @@ namespace real::detail {
   }
 
   /*!
-   * \brief Consuming width in bytes of a straight-line program (`save 0`, byte/klass/save with no nested
-   *        group, `save 1`, `match`): the `fixed_shape` walk of \ref detect_fast_shapes, for a separate
-   *        program such as the inner-literal prefix.
-   *
-   * \param[in] code A complete instruction stream (`save 0` ... `save 1`, `match`).
-   * \return The number of `byte`/`klass` ops consumed, or -1 if \p code is not this shape.
-   */
-  constexpr std::int32_t fixed_run_width(std::span<const instr> code)
-  {
-    std::size_t  i           {};
-    std::int32_t width       {};
-    std::int32_t open_groups {};
-    bool         closed      {};
-    bool         nested      {};
-    if (i >= code.size() || code[i].op != opcode::save || code[i].arg16 != 0) {
-      return -1;
-    }
-    ++i;
-    while (i < code.size()) {
-      const opcode op {code[i].op};
-      if (op == opcode::byte || op == opcode::klass) {
-        ++width;
-        ++i;
-      }
-      else if (op == opcode::save) {
-        const std::int32_t slot {code[i].arg16};
-        if (slot == 1) {
-          closed = true;
-        }
-        else if (slot >= 2 && (slot % 2) == 0) {
-          if (open_groups > 0) {
-            nested = true;
-          }
-          ++open_groups;
-        }
-        else if (slot >= 3) {
-          --open_groups;
-        }
-        ++i;
-      }
-      else {
-        break;
-      }
-    }
-    if (width >= 1 && closed && !nested && i + 1 == code.size() && code[i].op == opcode::match) {
-      return width;
-    }
-    return -1;
-  }
-
-  /*!
    * \brief Reports \p klass as up to two contiguous byte ranges.
    *
    * `[lo0, hi0]` is the first run in byte order, `[lo1, hi1]` the second; with no second run they are
@@ -982,10 +933,6 @@ namespace real::detail {
               if (resolve_class_wb_hints(is_full_ascii_word_class(cc), is_ascii_word_subset_class(cc),
                                          /*maximal_run=*/ true, lead.wb_lead, close.wb_trail, out_lead,
                                          out_trail)) {
-                // Wrap + end anchor: refused, as gated above.
-                if (close.end_anchor != 0 && (lead.wb_lead != 0 || close.wb_trail != 0)) {
-                  return;
-                }
                 hints.greedy_class_loop     = cls;
                 hints.greedy_class_loop_end = close.end_anchor;
                 hints.greedy_class_loop_min = static_cast<std::uint16_t>(k);
@@ -1003,30 +950,36 @@ namespace real::detail {
       }
     }
 
-    // Trailing-lookaround class+: save 0, klass, split(back, exit), assert_lookaround, jump AFTER,
-    // [sub-program … match], AFTER: save 1, match. Groupless only (a group's save would sit between the
-    // split and the lookaround). The lookaround is an end condition on each maximal run's candidate ends
-    // (run_class_loop); a leading lookaround stays on the general VM.
-    if (hints.greedy_class_loop < 0 && code.size() >= 7 && code[0].op == opcode::save && code[0].arg16 == 0
-        && code[1].op == opcode::klass && code[2].op == opcode::split
-        && code[2].primary_target == 1 && code[2].secondary_target == 3
-        && code[3].op == opcode::assert_lookaround && code[4].op == opcode::jump) {
-      const std::size_t after  {static_cast<std::size_t>(code[4].primary_target)};
-      const std::size_t sub_id {code[3].arg16};
-      // Jump must land on the closing save 1 / match and skip a non-empty sub region that ends in match.
-      if (after >= 6 && after + 1 < code.size() && after + 2 == code.size()
-          && code[after].op == opcode::save && code[after].arg16 == 1
-          && code[after + 1].op == opcode::match
-          && code[after - 1].op == opcode::match // sub-program terminator
-          && sub_id < lookarounds.size()
-          && lookarounds[sub_id].code_offset == 5
-          && lookarounds[sub_id].code_length == static_cast<std::int32_t>(after - 5)
-          && lookarounds[sub_id].direction == look_dir::ahead) {
-        // Not greedy_class_loop: every pure class+ site would then branch on trailing_lookaround.
-        hints.trailing_lookaround = static_cast<std::int16_t>(sub_id);
-        hints.trailing_la_class   = code[1].arg16;
-        hints.greedy_group_start  = -1;
-        hints.greedy_group_end    = -1;
+    // Trailing-lookaround class+: save 0, BODY, split(back, exit), assert_lookaround, jump AFTER,
+    // [sub-program … match], AFTER: save 1, match. BODY is one klass, or a klass_cp and its 3-slot
+    // continuation chain. Groupless only (a group's save would sit between the split and the lookaround).
+    // The lookaround is an end condition on each maximal run's candidate ends (run_class_loop); a leading
+    // lookaround stays on the general VM.
+    if (hints.greedy_class_loop < 0 && code.size() >= 2 && code[0].op == opcode::save && code[0].arg16 == 0
+        && (code[1].op == opcode::klass || code[1].op == opcode::klass_cp)) {
+      const bool        cp    {code[1].op == opcode::klass_cp};
+      const std::size_t split {cp ? std::size_t {5} : std::size_t {2}};
+      if (code.size() >= split + 5 && code[split].op == opcode::split && code[split].primary_target == 1
+          && code[split].secondary_target == static_cast<std::int32_t>(split + 1)
+          && code[split + 1].op == opcode::assert_lookaround && code[split + 2].op == opcode::jump) {
+        const std::size_t after  {static_cast<std::size_t>(code[split + 2].primary_target)};
+        const std::size_t sub_id {code[split + 1].arg16};
+        // Jump must land on the closing save 1 / match and skip a non-empty sub region that ends in match.
+        if (after >= split + 4 && after + 2 == code.size()
+            && code[after].op == opcode::save && code[after].arg16 == 1
+            && code[after + 1].op == opcode::match
+            && code[after - 1].op == opcode::match // sub-program terminator
+            && sub_id < lookarounds.size()
+            && lookarounds[sub_id].code_offset == static_cast<std::int32_t>(split + 3)
+            && lookarounds[sub_id].code_length == static_cast<std::int32_t>(after - (split + 3))
+            && lookarounds[sub_id].direction == look_dir::ahead) {
+          // Not greedy_class_loop: every pure class+ site would then branch on trailing_lookaround.
+          hints.trailing_lookaround = static_cast<std::int16_t>(sub_id);
+          hints.trailing_la_class   = code[1].arg16;
+          hints.trailing_la_cp      = cp;
+          hints.greedy_group_start  = -1;
+          hints.greedy_group_end    = -1;
+        }
       }
     }
 
@@ -1095,9 +1048,6 @@ namespace real::detail {
             const bool has_wb {lead.wb_lead != 0 || close.wb_trail != 0};
             // Bare path: no Unicode table walk (keeps constexpr light for static_regex).
             if (!has_wb) {
-              if (close.end_anchor != 0 && (lead.wb_lead != 0 || close.wb_trail != 0)) {
-                return;
-              }
               hints.greedy_cp_class      = cp_idx;
               hints.greedy_cp_class_end  = close.end_anchor;
               hints.greedy_cp_class_plus = plus;
@@ -2364,9 +2314,7 @@ namespace real::detail {
    * \param[in,out] density What this subject has shown so far.
    * \return The index of the first occurrence at or after \p pos, else \ref real::npos.
    */
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((noinline))
-#endif
+  REAL_NOINLINE
   inline std::size_t find_literal_adaptive_rest(std::string_view text,
                                                 std::size_t      pos,
                                                 std::string_view literal,

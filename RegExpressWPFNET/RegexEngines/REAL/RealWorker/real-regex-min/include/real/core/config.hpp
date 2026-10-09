@@ -15,6 +15,19 @@
 #include <cstdint>
 #include <string_view>
 
+// Function attributes for the engine's inlining decisions, which are measured choices (a callee's size
+// moves its callers' inline budget): `REAL_COLD` keeps a slow path out of its caller, `REAL_NOINLINE`
+// keeps a body out of line, `REAL_ALWAYS_INLINE` forces one in. Empty where the GNU spelling is absent.
+#if defined(__GNUC__) || defined(__clang__)
+#  define REAL_NOINLINE      __attribute__((noinline))
+#  define REAL_ALWAYS_INLINE __attribute__((always_inline))
+#  define REAL_COLD          __attribute__((noinline, cold))
+#else
+#  define REAL_NOINLINE
+#  define REAL_ALWAYS_INLINE
+#  define REAL_COLD
+#endif
+
 namespace real::detail {
 
   /*!
