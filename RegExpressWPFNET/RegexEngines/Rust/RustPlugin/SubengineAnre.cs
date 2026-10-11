@@ -373,6 +373,7 @@ class SubengineAnre( Options options ) : RegexSubengine
 
             Ext_AlternativeLanguage = true,
             Ext_Ph1 = true,
+            Ext_Ph3 = true,
         };
     }
 }

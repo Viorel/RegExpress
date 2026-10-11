@@ -546,6 +546,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
             ßSS = false,
 
             Ext_Canon_Eq = isCanonEq,
+            Ext_Ph3 = true,
         };
     }
 }

@@ -305,6 +305,7 @@
         public bool Ext_AlternativeLanguage { get; init; }                  // also support alternative syntax
         public bool Ext_Ph1 { get; init; }                                  // "a(b)?\1" matches "ab"
         public bool Ext_Ph2 { get; init; }                                  // "(a*)*" on "a", group 1 is "a", not empty
+        public bool Ext_Ph3 { get; init; }                                  // "." does not match "\r" (CR, 0D) by default
 
     }
 }

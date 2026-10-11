@@ -382,6 +382,8 @@ class SubengineJavaRegex( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = u,
             ßSS = false,
+
+            Ext_Ph3 = true,
         };
     }
 }

@@ -460,6 +460,7 @@ partial class SubengineSpiderMonkey( Options options ) : RegexSubengine
 
             Ext_Ph1 = true,
             Ext_Ph2 = true,
+            Ext_Ph3 = true,
         };
     }
 }

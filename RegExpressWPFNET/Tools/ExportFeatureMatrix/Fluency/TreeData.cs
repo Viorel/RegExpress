@@ -10,7 +10,7 @@ static class TreeData
     static TreeData( )
     {
         Tree
-#if true
+
             .Category( @"General" )
 
                 .Flag( @"(…)", @"Grouping constructs", ( e, fm ) => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal )
@@ -537,7 +537,7 @@ static class TreeData
                     .Test( @"\g<x>(?(DEFINE)(?<x>x))", "x", "", "x" )
                 .Flag( @"(?(VERSION…)…|…)", @"Check version using 'VERSION=decimal' or 'VERSION>=decimal'", ( e, fm ) => fm.Conditional_VERSION )
                     .Test( @"(?(VERSION>=1)xyz|abc)", "xyz", "", "xyz" )
-#endif
+
             .Category( @"Miscellaneous" )
 
                 .Flag( @"Captures", @"Get all captures matched by group", ( e, fm ) => !e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups ) && e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.HasCaptures ) )
@@ -790,7 +790,7 @@ static class TreeData
                             };
                         }
                     } )
-#if true
+
             .Category( @"Specific extensions" )
 
                 .Flag( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", ( e, fm ) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams )
@@ -814,7 +814,7 @@ static class TreeData
                 .Flag( @"~(…)", @"Complement (pattern must not match)", ( e, fm ) => fm.Ext_Operator_Complement )
                     .Test( @"ab~(x)c", "abc", null, "abc" )
                 .Flag( @"Alt. syntax", @"Support alternative syntax", ( e, fm ) => fm.Ext_AlternativeLanguage )
-#endif
+
             .Category( @"Philosophical aspects" )
 
                 //.Flag( @"a(b)?\1", @"“a(b)?\1” matches “a”", ( e, fm ) => fm.Ext_Ph1, isInfo: true )
@@ -873,6 +873,8 @@ static class TreeData
                             return result;
                         }
                     } )
+                .Flag( @"“.” matches “\r”", "“.” matches “\\r” (0D) by default", ( e, fm ) => !fm.Ext_Ph3, isInfo: true )
+                    .Test( @".", "\r", null, "\r" )
             ;
     }
 }
