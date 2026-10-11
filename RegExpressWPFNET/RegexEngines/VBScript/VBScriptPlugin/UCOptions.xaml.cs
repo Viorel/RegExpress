@@ -45,10 +45,10 @@ namespace VBScriptPlugin
                 ++ChangeCounter;
 
                 bool is_vbscript = Options.Implementation == ImplementationEnum.VBScript;
-                bool is_twinBasic = Options.Implementation == ImplementationEnum.TwinBasic;
+                bool is_tbRegExp = Options.Implementation == ImplementationEnum.tbRegExp;
 
-                cbxDotAll.Display( is_twinBasic );
-                cbxDotAllDISABLED.Display( !is_twinBasic );
+                cbxDotAll.Display( is_tbRegExp );
+                cbxDotAllDISABLED.Display( !is_tbRegExp );
 
             }
             finally

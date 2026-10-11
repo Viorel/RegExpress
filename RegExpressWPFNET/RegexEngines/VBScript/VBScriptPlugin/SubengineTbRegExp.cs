@@ -15,7 +15,7 @@ using System.Text.RegularExpressions;
 
 namespace VBScriptPlugin;
 
-partial class SubengineTwinBasic( Options options ) : RegexSubengine
+partial class SubengineTbRegExp( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
@@ -197,7 +197,7 @@ partial class SubengineTwinBasic( Options options ) : RegexSubengine
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_exe = Path.Combine( assembly_dir, @"TwinBasicWorker_win32.bin" );
+        string worker_exe = Path.Combine( assembly_dir, @"TbRegExpWorker_win32.bin" );
 
         return worker_exe;
     }
@@ -218,8 +218,8 @@ partial class SubengineTwinBasic( Options options ) : RegexSubengine
             XModeComments = false,
             InsideSets_XModeComments = false,
 
-            Flags = false,
-            ScopedFlags = false,
+            Flags = true,
+            ScopedFlags = true,
             CircumflexFlags = false,
             ScopedCircumflexFlags = false,
             XFlag = false,
@@ -237,25 +237,25 @@ partial class SubengineTwinBasic( Options options ) : RegexSubengine
             Esc_r = true,
             Esc_t = true,
             Esc_v = true,
-            Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
+            Esc_Octal = FeatureMatrix.OctalEnum.None,
             Esc_Octal0_1_3 = false,
             Esc_oBrace = false,
             Esc_x2 = true,
             Esc_xBrace = false,
             Esc_u4 = true,
             Esc_U8 = false,
-            Esc_uBrace = false,
+            Esc_uBrace = true,
             Esc_UBrace = false,
-            Esc_c1 = true,
-            Esc_C1 = true,
+            Esc_c1 = false,
+            Esc_C1 = false,
             Esc_CMinus = false,
             Esc_NBrace = false,
-            GenericEscape = true,
+            GenericEscape = false,
 
             InsideSets_Esc_a = false,
             InsideSets_Esc_b = true,
             InsideSets_Esc_e = false,
-            InsideSets_Esc_f = true,
+            InsideSets_Esc_f = false,
             InsideSets_Esc_n = true,
             InsideSets_Esc_r = true,
             InsideSets_Esc_t = true,
@@ -267,10 +267,10 @@ partial class SubengineTwinBasic( Options options ) : RegexSubengine
             InsideSets_Esc_xBrace = false,
             InsideSets_Esc_u4 = true,
             InsideSets_Esc_U8 = false,
-            InsideSets_Esc_uBrace = false,
+            InsideSets_Esc_uBrace = true,
             InsideSets_Esc_UBrace = false,
             InsideSets_Esc_c1 = true,
-            InsideSets_Esc_C1 = true,
+            InsideSets_Esc_C1 = false,
             InsideSets_Esc_CMinus = false,
             InsideSets_Esc_NBrace = false,
             InsideSets_GenericEscape = true,
@@ -341,17 +341,17 @@ partial class SubengineTwinBasic( Options options ) : RegexSubengine
             Anchor_yY = false,
 
             NamedGroup_Apos = false,
-            NamedGroup_LtGt = false,
+            NamedGroup_LtGt = true,
             NamedGroup_PLtGt = false,
             BalancingGroup = false,
             CapturingGroup = false,
-            DuplicateGroupName = false,
+            DuplicateGroupName = true,
 
             NoncapturingGroup = true,
             PositiveLookahead = true,
             NegativeLookahead = true,
-            PositiveLookbehind = FeatureMatrix.LookModeEnum.None,
-            NegativeLookbehind = FeatureMatrix.LookModeEnum.None,
+            PositiveLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
+            NegativeLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
             NestedLookaround = true,
             AtomicGroup = false,
             BranchReset = false,
@@ -386,7 +386,7 @@ partial class SubengineTwinBasic( Options options ) : RegexSubengine
             Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
-            Quantifier_LowAbbrev = false,
+            Quantifier_LowAbbrev = true,
             Quantifier_Lazy = true,
             Quantifier_Possessive = false,
 
@@ -405,7 +405,7 @@ partial class SubengineTwinBasic( Options options ) : RegexSubengine
             ScriptRuns = false,
             Callouts = false,
 
-            EmptyConstruct = false,
+            EmptyConstruct = true,
             EmptyConstructX = false,
             EmptySet = false,
             EmptySetAny = false,
@@ -417,7 +417,7 @@ partial class SubengineTwinBasic( Options options ) : RegexSubengine
             KeepSurrogatePairs = false,
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
-            Σσς = false,
+            Σσς = true,
             ßSS = false,
 
             Ext_Ph1 = true,

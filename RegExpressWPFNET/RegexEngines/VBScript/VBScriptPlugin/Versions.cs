@@ -1,6 +1,8 @@
 ﻿using RegExpressLibrary;
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Windows;
 
 namespace VBScriptPlugin;
 
@@ -9,7 +11,7 @@ class Versions
     static Lazy<string> lazyVBScriptVersion = new( ( ) => GetVBScriptVersion( ) ?? "" );
 
     public static string VBScript { get; } = lazyVBScriptVersion.Value; // the version of VBScript is determined programmatically
-    public static string TwinBasic { get; } = "beta-x-1002";
+    public static string TwinBasic { get; } = "1.4.0.0";
 
     static string? GetVBScriptVersion( )
     {

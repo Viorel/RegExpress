@@ -44,14 +44,14 @@ class Engine : RegexEngine
 
     public override string Kind => "VB";
 
-    public override string Version => ""; //LazyVersion.Value ?? "(unknown)";
+    public override string Version => "";
 
-    public override string Name => "VB";
+    public override string Name => "VB RegExp";
 
     public override string Subtitle => $"{Options.Implementation switch
     {
         ImplementationEnum.VBScript => "VBScript",
-        ImplementationEnum.TwinBasic => "twinBASIC",
+        ImplementationEnum.tbRegExp => "tbRegExp",
         _ => "VB (unknown)",
     }}";
 
@@ -96,7 +96,7 @@ class Engine : RegexEngine
         return
             [
                 new FeatureMatrixVariant( "VBScript", new Engine{ Options = new Options{ Implementation = ImplementationEnum.VBScript } } ),
-                new FeatureMatrixVariant( "twinBASIC", new Engine{ Options = new Options{ Implementation = ImplementationEnum.TwinBasic } } ),
+                new FeatureMatrixVariant( "tbRegExp", new Engine{ Options = new Options{ Implementation = ImplementationEnum.tbRegExp } } ),
             ];
     }
 
@@ -119,7 +119,7 @@ class Engine : RegexEngine
         return Options.Implementation switch
         {
             ImplementationEnum.VBScript => new SubengineVBScript( Options ),
-            ImplementationEnum.TwinBasic => new SubengineTwinBasic( Options ),
+            ImplementationEnum.tbRegExp => new SubengineTbRegExp( Options ),
             _ => throw new NotImplementedException( ),
         };
     }
