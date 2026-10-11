@@ -491,6 +491,8 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
             Σσς = true,
             ßSS = false,
+
+            Ext_Ph3 = true,
         };
     }
 }

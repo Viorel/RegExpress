@@ -395,6 +395,8 @@ partial class SubengineGCC( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None, // 'Accept' when 'polynomial' option is set; otherwise it hangs; however, this option disables back-references
             Σσς = false,
             ßSS = false,
+
+            Ext_Ph3 = grammar == GrammarEnum.ECMAScript,
         };
     }
 

@@ -385,6 +385,7 @@ class SubengineMSVC( Options options ) : RegexSubengine
 
             Ext_Ph1 = grammar == GrammarEnum.ECMAScript,
             Ext_Ph2 = true,
+            Ext_Ph3 = grammar == GrammarEnum.ECMAScript,
         };
     }
 }

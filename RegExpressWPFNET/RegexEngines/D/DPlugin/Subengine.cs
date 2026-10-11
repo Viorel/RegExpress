@@ -407,6 +407,7 @@ class Subengine( Options options ) : RegexSubengine
             ßSS = false,
 
             Ext_Ph2 = true,
+            Ext_Ph3 = true,
         };
     }
 }

@@ -453,6 +453,8 @@ partial class SubengineSafeRE( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = isUnicodeCase,
             ßSS = false,
+
+            Ext_Ph3 = true,
         };
     }
 }
