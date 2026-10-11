@@ -64,7 +64,7 @@ partial class FeatureMatrixDetails
                 new FeatureMatrixDetails( @"[\Q…\E]", @"Literal inside […]", (e, fm) => fm.InsideSets_Literal_QE)
                     .Test( @"[\Qx\E]", "x", "Q", "x"),
                 new FeatureMatrixDetails( @"[\q{…}]", @"Literal inside […]", (e, fm) => fm.InsideSets_Literal_qBrace)
-                    .Test( @"a[\q{xy}]b", "axyb", "axb", "axyb"),
+                    .Test( @"a[\q{xy}]b", "axyb", "axyb", "axb"),
             ] ),
 
         new ( @"Quantifiers",
