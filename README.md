@@ -38,7 +38,9 @@ The following engines are included:
   * _JavaScriptCore_ (via [Bun 1.3.13](https://bun.sh/)[^1]),
   * [_RE2JS_](https://github.com/le0pard/re2js) 2.8.6,
   * [_Regex+_](https://github.com/slevithan/regex) 6.1.0.
-* **VBScript** [**RegExp**](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85)) object used in Publisher, Word, Excel, Access.
+* **VB RegExp**:
+  * [**RegExp**](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85)) object used in Publisher, Word, Excel, Access, VBScript,
+  * [**tbRegExp**](https://github.com/GCuser99/tbRegExp) 1.4.0.0 for **twinBASIC**.
 * [**Hyperscan**](https://github.com/intel/hyperscan) 5.4.2 from Intel (in C).
 * [**Chimera**](http://intel.github.io/hyperscan/dev-reference/chimera.html), a hybrid of Hyperscan and PCRE 8.41 (in C).
 * [**ICU Regular Expressions**](https://icu.unicode.org/) 78.3 (in C++).
