@@ -15,9 +15,9 @@ using System.Text.RegularExpressions;
 
 namespace VBScriptPlugin;
 
-partial class Subengine( Options options ) : RegexSubengine
+partial class SubengineTbRegExp( Options options ) : RegexSubengine
 {
-    static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
+    static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
@@ -40,12 +40,12 @@ partial class Subengine( Options options ) : RegexSubengine
         string options_str = "";
         if( options.IgnoreCase ) options_str += "i";
         if( options.Multiline ) options_str += "m";
+        if( options.DotAll ) options_str += "s";
         if( options.Global ) options_str += "g";
 
-        using ProcessHelper ph = new ProcessHelper( "cscript.exe" );
+        using ProcessHelper ph = new( GetWorkerExePath( ) );
 
         ph.AllEncoding = EncodingEnum.ASCII;
-        ph.Arguments = new[] { "/nologo", GetWorkerPath( ), "x" };
 
         ph.StreamWriter = sw =>
         {
@@ -58,21 +58,7 @@ partial class Subengine( Options options ) : RegexSubengine
 
         if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-        if( !string.IsNullOrWhiteSpace( ph.Error ) )
-        {
-            // Possible:
-            //  <path>\VBScriptWorker.vbs(31, 1) Microsoft VBScript runtime error: <text of error>
-            //  <path>\VBScriptWorker.vbs(50, 9) Microsoft VBScript compilation error: <text of error>
-
-
-            var m = ErrorRegex( ).Match( ph.Error );
-            if( m.Success )
-            {
-                throw new Exception( m.Groups["err"].Value );
-            }
-
-            throw new Exception( ph.Error );
-        }
+        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
         List<SimpleMatch> matches = [];
         SimpleTextGetter stg = new( text );
@@ -92,56 +78,63 @@ partial class Subengine( Options options ) : RegexSubengine
                 current_match.AddDefaultGroup( );
 
                 matches.Add( current_match );
+
+                continue;
             }
-            else
+           
+            var sm = SubmatchRegex( ).Match( line );
+            if( sm.Success )
             {
-                var sm = SubmatchRegex( ).Match( line );
-                if( sm.Success )
-                {
-                    if( current_match == null ) throw new InvalidOperationException( );
+                if( current_match == null ) throw new InvalidOperationException( );
 
-                    string value = sm.Groups[1].Value;
+                string value = sm.Groups[1].Value;
 
-                    Debug.Assert( value.StartsWith( '"' ) );
-                    Debug.Assert( value.EndsWith( '"' ) );
+                Debug.Assert( value.StartsWith( '"' ) );
+                Debug.Assert( value.EndsWith( '"' ) );
 
-                    value = value[1..^1];
+                value = value[1..^1];
 
-                    value = UCodeRegex( ).Replace( value, m => ( (char)Convert.ToUInt16( m.Groups[1].Value, 16 ) ).ToString( ) );
+                value = UCodeRegex( ).Replace( value, m => ( (char)Convert.ToUInt16( m.Groups[1].Value, 16 ) ).ToString( ) );
 
-                    current_match.AddSucceededNoDetailsGroup( current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ), value );
-                }
-                else
-                {
-#if DEBUG
-                    throw new Exception( $"Bad response: '{line}'." );
-#else
-                    throw new Exception( "Bad response." );
-#endif
-                }
+                current_match.AddSucceededNoDetailsGroup( current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ), value );
+                
+                continue;    
             }
+
+            sm = NamedSubmatchRegex( ).Match( line );
+            if( sm.Success )
+            {
+                if( current_match == null ) throw new InvalidOperationException( );
+
+                string name = sm.Groups[1].Value;
+                string value = sm.Groups[2].Value;
+
+                Debug.Assert( name.StartsWith( '"' ) );
+                Debug.Assert( name.EndsWith( '"' ) );
+                Debug.Assert( value.StartsWith( '"' ) );
+                Debug.Assert( value.EndsWith( '"' ) );
+
+                name = name[1..^1];
+                value = value[1..^1];
+
+                name = UCodeRegex( ).Replace( name, m => ( (char)Convert.ToUInt16( m.Groups[1].Value, 16 ) ).ToString( ) );
+                value = UCodeRegex( ).Replace( value, m => ( (char)Convert.ToUInt16( m.Groups[1].Value, 16 ) ).ToString( ) );
+
+                current_match.AddSucceededNoDetailsGroup( name, value );
+
+                continue;
+            }
+#if DEBUG
+            throw new Exception( $"Bad response: '{line}'." );
+#else
+            throw new Exception( "Bad response." );
+#endif
+                
+            
         }
 
         return new RegexMatches( matches.Count, matches );
     }
-
-
-    public static string? GetVersion( ICancellable cnc )
-    {
-        using ProcessHelper ph = new( "cscript.exe" );
-
-        ph.AllEncoding = EncodingEnum.ASCII;
-        ph.Arguments = new[] { "/nologo", GetWorkerPath( ), "v" };
-
-        if( !ph.Start( cnc ) ) return null;
-
-        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
-
-        string version_s = ph.StreamReader.ReadToEnd( ).Trim( );
-
-        return version_s;
-    }
-
 
     static string ToArg( string text )
     {
@@ -200,14 +193,13 @@ partial class Subengine( Options options ) : RegexSubengine
         return r;
     }
 
-
-    static string GetWorkerPath( )
+    static string GetWorkerExePath( )
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_path = Path.Combine( assembly_dir, @"VBScriptWorker.vbs" );
+        string worker_exe = Path.Combine( assembly_dir, @"TbRegExpWorker_win32.bin" );
 
-        return worker_path;
+        return worker_exe;
     }
 
     static FeatureMatrix BuildFeatureMatrix( )
@@ -226,8 +218,8 @@ partial class Subengine( Options options ) : RegexSubengine
             XModeComments = false,
             InsideSets_XModeComments = false,
 
-            Flags = false,
-            ScopedFlags = false,
+            Flags = true,
+            ScopedFlags = true,
             CircumflexFlags = false,
             ScopedCircumflexFlags = false,
             XFlag = false,
@@ -245,25 +237,25 @@ partial class Subengine( Options options ) : RegexSubengine
             Esc_r = true,
             Esc_t = true,
             Esc_v = true,
-            Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
+            Esc_Octal = FeatureMatrix.OctalEnum.None,
             Esc_Octal0_1_3 = false,
             Esc_oBrace = false,
             Esc_x2 = true,
             Esc_xBrace = false,
             Esc_u4 = true,
             Esc_U8 = false,
-            Esc_uBrace = false,
+            Esc_uBrace = true,
             Esc_UBrace = false,
-            Esc_c1 = true,
-            Esc_C1 = true,
+            Esc_c1 = false,
+            Esc_C1 = false,
             Esc_CMinus = false,
             Esc_NBrace = false,
-            GenericEscape = true,
+            GenericEscape = false,
 
             InsideSets_Esc_a = false,
             InsideSets_Esc_b = true,
             InsideSets_Esc_e = false,
-            InsideSets_Esc_f = true,
+            InsideSets_Esc_f = false,
             InsideSets_Esc_n = true,
             InsideSets_Esc_r = true,
             InsideSets_Esc_t = true,
@@ -275,10 +267,10 @@ partial class Subengine( Options options ) : RegexSubengine
             InsideSets_Esc_xBrace = false,
             InsideSets_Esc_u4 = true,
             InsideSets_Esc_U8 = false,
-            InsideSets_Esc_uBrace = false,
+            InsideSets_Esc_uBrace = true,
             InsideSets_Esc_UBrace = false,
             InsideSets_Esc_c1 = true,
-            InsideSets_Esc_C1 = true,
+            InsideSets_Esc_C1 = false,
             InsideSets_Esc_CMinus = false,
             InsideSets_Esc_NBrace = false,
             InsideSets_GenericEscape = true,
@@ -349,17 +341,17 @@ partial class Subengine( Options options ) : RegexSubengine
             Anchor_yY = false,
 
             NamedGroup_Apos = false,
-            NamedGroup_LtGt = false,
+            NamedGroup_LtGt = true,
             NamedGroup_PLtGt = false,
             BalancingGroup = false,
             CapturingGroup = false,
-            DuplicateGroupName = false,
+            DuplicateGroupName = true,
 
             NoncapturingGroup = true,
             PositiveLookahead = true,
             NegativeLookahead = true,
-            PositiveLookbehind = FeatureMatrix.LookModeEnum.None,
-            NegativeLookbehind = FeatureMatrix.LookModeEnum.None,
+            PositiveLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
+            NegativeLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
             NestedLookaround = true,
             AtomicGroup = false,
             BranchReset = false,
@@ -394,7 +386,7 @@ partial class Subengine( Options options ) : RegexSubengine
             Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
-            Quantifier_LowAbbrev = false,
+            Quantifier_LowAbbrev = true,
             Quantifier_Lazy = true,
             Quantifier_Possessive = false,
 
@@ -413,7 +405,7 @@ partial class Subengine( Options options ) : RegexSubengine
             ScriptRuns = false,
             Callouts = false,
 
-            EmptyConstruct = false,
+            EmptyConstruct = true,
             EmptyConstructX = false,
             EmptySet = false,
             EmptySetAny = false,
@@ -425,21 +417,24 @@ partial class Subengine( Options options ) : RegexSubengine
             KeepSurrogatePairs = false,
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
-            Σσς = false,
+            Σσς = true,
             ßSS = false,
 
             Ext_Ph1 = true,
         };
     }
 
-    [GeneratedRegex( @"\\VBScriptWorker\.vbs\s*\(\d+,\s*\d+\)\s*(?<err>Microsoft VBScript (.*?)?error:.*)" )]
-    private static partial Regex ErrorRegex( );
+    //[GeneratedRegex( @"\\VBScriptWorker\.vbs\s*\(\d+,\s*\d+\)\s*(?<err>Microsoft VBScript (.*?)?error:.*)" )]
+    //private static partial Regex ErrorRegex( );
 
-    [GeneratedRegex( @"^m\s+(\d+)\s+(\d+)" )]
+    [GeneratedRegex( @"^m\s+(\d+)\s+(\d+)\s*$" )]
     private static partial Regex MatchRegex( );
 
-    [GeneratedRegex( @"^s\s+("".*"")" )]
+    [GeneratedRegex( @"^s\s+("".*?"")\s*$" )]
     private static partial Regex SubmatchRegex( );
+
+    [GeneratedRegex( @"^ns\s+("".*?"")\s+("".*?"")\s*$" )]
+    private static partial Regex NamedSubmatchRegex( );
 
     [GeneratedRegex( @"\\u([0-9A-Fa-f]{4})" )]
     private static partial Regex UCodeRegex( );
