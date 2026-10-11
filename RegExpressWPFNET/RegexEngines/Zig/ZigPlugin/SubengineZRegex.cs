@@ -180,7 +180,7 @@ class SubengineZRegex( Options options ) : RegexSubengine
 
             Literal_QE = false,
             InsideSets_Literal_QE = false,
-            InsideSets_Literal_qBrace = false,
+            InsideSets_Literal_qBrace = true,
 
             Esc_a = false,
             Esc_b = false,
