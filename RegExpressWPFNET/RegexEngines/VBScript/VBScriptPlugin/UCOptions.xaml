@@ -43,8 +43,8 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Implementation:" Target="{Binding ElementName=cbxImplementation}" />
                 <ComboBox x:Name="cbxImplementation" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Implementation, FallbackValue='VBScript'}" MinWidth="99" SelectionChanged="cbxImplementation_SelectionChanged">
-                    <ui:ComboBoxItemWithVersion Tag="VBScript"          Text="VBScript"         Version="{Binding VBScript,     Source={StaticResource versions}}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="TwinBasic"         Text="twinBASIC"        Version="{Binding TwinBasic,    Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="VBScript"          Text="VBScript"                 Version="{Binding VBScript,     Source={StaticResource versions}}" d:Version="" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="tbRegExp"          Text="tbRegExp (twinBASIC)"     Version="{Binding TwinBasic,    Source={StaticResource versions}}" />
                 </ComboBox>
 
             </Grid>

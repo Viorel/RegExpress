@@ -4,7 +4,7 @@ enum ImplementationEnum
 {
     None,
     VBScript,
-    TwinBasic,
+    tbRegExp, // (twinBASIC)
 }
 
 class Options
@@ -14,7 +14,7 @@ class Options
     public bool Multiline { get; set; }
     public bool Global { get; set; } = true;
 
-    // TwinBasic
+    // tbRegExp
     public bool DotAll { get; set; }
 
 
