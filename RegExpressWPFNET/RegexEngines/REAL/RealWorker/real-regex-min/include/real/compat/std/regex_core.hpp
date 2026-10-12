@@ -443,6 +443,64 @@ namespace real::compat {
     }
 
     /*!
+     * \brief Rewrites the POSIX classes an ECMAScript bracket may hold (`[[:alpha:]]`, which [re.grammar] adds to
+     *        ECMAScript) as their ASCII ranges, which REAL reads; everything else passes through unchanged.
+     * \param[in] p     The ECMAScript pattern.
+     * \param[in] icase Whether the pattern is case-insensitive: std then tests a class against the folded
+     *                  character, which ranges folded by REAL do not reproduce for `[:lower:]` or `[:upper:]`.
+     * \return The pattern with each class rewritten, or `std::nullopt` when only std reads it as written: a
+     *         class under \p icase, an unknown class name, a collating element `[.x.]` or an equivalence
+     *         class `[=x=]`, whose reading the implementations do not share (libstdc++ puts `A` in `[=a=]`
+     *         and rejects `[.-.]`).
+     */
+    [[nodiscard]] inline std::optional<std::string> translate_ecma_classes(std::string_view p,
+                                                                           bool             icase)
+    {
+      std::string out;
+      out.reserve(p.size());
+      bool in_bracket {false};
+      for (std::size_t i = 0; i < p.size(); ++i) {
+        const char c {p[i]};
+        if (c == '\\' && i + 1 < p.size()) {
+          out += c;
+          out += p[++i];
+          continue;
+        }
+        if (!in_bracket) {
+          in_bracket = c == '[';
+          out       += c;
+          if (in_bracket && i + 1 < p.size() && p[i + 1] == '^') {
+            out += p[++i];
+          }
+          continue;
+        }
+        if (c == ']') {
+          in_bracket  = false;
+          out        += c;
+          continue;
+        }
+        if (c == '[' && i + 1 < p.size() && (p[i + 1] == ':' || p[i + 1] == '.' || p[i + 1] == '=')) {
+          if (p[i + 1] != ':' || icase) {
+            return std::nullopt;
+          }
+          const std::size_t close {p.find(":]", i + 2)};
+          if (close == std::string_view::npos) {
+            return std::nullopt;
+          }
+          const std::string ranges {posix_class_ranges(p.substr(i + 2, close - (i + 2)))};
+          if (ranges.empty()) {
+            return std::nullopt;
+          }
+          out += ranges;
+          i    = close + 1;
+          continue;
+        }
+        out += c;
+      }
+      return out;
+    }
+
+    /*!
      * \brief Translates a POSIX bracket expression, the same in BRE and ERE: a POSIX class becomes its ASCII
      *        ranges, other members pass through.
      * \param[in]     p   The pattern being translated.
@@ -1558,14 +1616,16 @@ namespace real::compat {
             }
           }
         }
-        if (detail::grammar_forces_std(f) || detail::pattern_forces_std(sv)) {
+        const std::optional<std::string> ecma {
+          detail::translate_ecma_classes(sv, (f & regex_constants::icase) != regex_constants::ECMAScript)};
+        if (detail::grammar_forces_std(f) || detail::pattern_forces_std(sv) || !ecma) {
           reject_or_fallback(sv, f, "the pattern uses a construct the linear engine does not represent "
                              "(a backreference, an unbounded lookbehind, a POSIX class, or a "
                              "grammar that forces std)");
           return;
         }
         try {
-          real::regex compiled(sv, detail::to_real(f));
+          real::regex compiled(*ecma, detail::to_real(f));
           mark_count_               = compiled.group_count();
           nullable_                 = compiled.raw_program().hints.empty_match_possible;
           nullable_captured_repeat_ = compiled.raw_program().hints.nullable_captured_repeat;

@@ -213,9 +213,7 @@ namespace real::compat {
       if (at_end_ || other.at_end_) {
         return at_end_ == other.at_end_;
       }
-      return re_ == other.re_ && begin_ == other.begin_ && end_ == other.end_ && flags_ == other.flags_
-             && match_.position(0) == other.match_.position(0)
-             && match_.length(0) == other.match_.length(0);
+      return same_position(other);
     }
 
     /*!
@@ -229,6 +227,20 @@ namespace real::compat {
     }
 
   private:
+
+    /*!
+     * \brief \ref operator== between two live iterators.
+     *
+     * Out of line so that `operator==` itself inlines: `it != std::sregex_iterator()` builds and compares an end
+     * sentinel at every step, and with this comparison inline clang kept the whole operator out of line.
+     * \param[in] other A live iterator.
+     * \return Whether both denote the same match of the same iteration.
+     */
+    REAL_NOINLINE bool same_position(const regex_iterator& other) const
+    {
+      return re_ == other.re_ && begin_ == other.begin_ && end_ == other.end_ && flags_ == other.flags_
+             && match_.position(0) == other.match_.position(0) && match_.length(0) == other.match_.length(0);
+    }
 
     //! \brief The REAL walker: an accelerator only, \ref real_pos_ stays the source of truth.
     using walker_type = real::basic_match_iterator<real::detail::dynamic_storage>;
@@ -528,19 +540,21 @@ namespace real::compat {
         *this = regex_token_iterator {};
         return *this;
       }
-      const regex_iterator<BidirIt, CharT, Traits> prev {position_};
       if (n_ + 1 < subs_.size()) {
         ++n_; // more fields for the same match
         set_field();
       }
       else {
         n_ = 0;
+        // The suffix is all of this match that the step can still need, and only with a -1 selector: keeping
+        // it, not a copy of the whole iterator (its match vector and shared walk), spares an allocation a step.
+        const value_type suffix {has_m1_ ? position_->suffix() : value_type {}};
         ++position_;
         if (position_ != regex_iterator<BidirIt, CharT, Traits> {}) {
-          set_field();                   // first field of the next match
+          set_field();           // first field of the next match
         }
-        else if (has_m1_ && prev->suffix().length() != 0) {
-          current_     = prev->suffix(); // trailing split field, only when non-empty
+        else if (has_m1_ && suffix.length() != 0) {
+          current_     = suffix; // trailing split field, only when non-empty
           suffix_mode_ = true;
         }
         else {

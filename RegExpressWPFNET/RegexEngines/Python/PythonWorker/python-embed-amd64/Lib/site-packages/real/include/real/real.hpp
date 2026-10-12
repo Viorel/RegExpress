@@ -420,8 +420,13 @@ namespace real {
 
     /*!
      * \brief Constructs the end sentinel.
+     *
+     * User-provided, not `= default`: `end()`'s `return {}` value-initializes, and with a defaulted
+     * constructor that zero-fills the whole object (its VM state included, ~10 KB) before constructing it.
+     * The members a sentinel is read through carry their own initializers (`done_` is true).
      */
-    constexpr basic_match_iterator() = default;
+    constexpr basic_match_iterator() noexcept
+    {}
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
     /*!
@@ -467,8 +472,8 @@ namespace real {
      * \param[in] sem        The walk's match semantics.
      * \param[in] text_bytes Subject length; the lazy-DFA filler needs a minimum runway.
      */
-    // Keep noinline and cold: `count_matches` inlines the constructor, and inline this logic made every
-    // dispatch change tax per-match rows whose code never moved (one added route: `single [a-z]` +10.7 %).
+    // Keep noinline and cold: `count_matches` inlines the constructor, and inlined, this logic makes every
+    // dispatch change charge per-match rows whose code never moved.
     REAL_COLD
     constexpr void decide_batching(detail::program_view prog,
                                    match_semantics      sem,
@@ -525,7 +530,7 @@ namespace real {
       // filler has only the anchored-from-candidate sub-scan (`first_bytes_valid`); the span path applies no
       // `forbid_empty_until_` (not nullable); `run()` consults the Aho-Corasick floor per search; a trailing
       // lookaround lives on `advance`'s per-match path (`make route-surface-parity`). `lazy_dfa_is_the_route`,
-      // not a residue test: that sent plain literals here and lost memmem. A faster filler's shape stays its own.
+      // not a residue test, which would send plain literals here, off memmem. A faster filler's shape stays its own.
       // A compile-time storage has no per-regex immutables, hence no shared DFAs: its filler could only ever
       // answer partial and leave every match to `run()` after a wasted refill.
       batch_lazy_dfa_  = plain && !Storage::is_compile_time && !detail::lazy_dfa_route_disabled() && h.first_bytes_valid
@@ -673,8 +678,8 @@ namespace real {
 
     //! \brief Buffered spans for the batched routes — see \ref batch_eligible_.
     //!
-    //! Tuned: a wider buffer gains nothing more and charges walks that never batch, since this array is part
-    //! of every iterator (outlining the refill does not recover it).
+    //! Not wider: this array is part of every iterator, so a wider buffer charges walks that never batch
+    //! (outlining the refill does not recover it).
     static constexpr std::size_t                                          batch_cap         {4};
     typename detail::pike_vm<typename Storage::state_type, true>::cp_span batch_[batch_cap] {}; //!< The buffered spans; indices \ref batch_i_ .. \ref batch_n_ are the unread ones.
     std::size_t                                                           batch_n_          {}; //!< Spans currently buffered.
@@ -686,9 +691,8 @@ namespace real {
      *        than by specialization, so \ref basic_regex::find_iter, whose return type fixes the
      *        specialization, reaches it too.
      *
-     * Costs one test per match on `advance`'s general path (14x won on `find_iter`, ~17 % lost on unbatched
-     * `exact_literal`). An enum shared with `batch_eligible_` costs more: only a walk selected without a
-     * per-match test removes it.
+     * Costs one test per match on `advance`'s general path, which the unbatched routes pay. An enum shared
+     * with `batch_eligible_` costs more: only a walk selected without a per-match test removes it.
      */
     bool                                                                  trailing_la_walk_ {};
     bool                                                                  batch_bytes_      {}; //!< Batch the BYTE-class route rather than the code-point one.
@@ -722,8 +726,8 @@ namespace real {
      * Each branch bills \ref real::detail::prof::tick_route under the unbatched route's identifier, once per
      * refill: `entries / matches` reads `1 / batch_cap` while batching works.
      *
-     * \warning Read docs/MEASUREMENT.md §3.2 before adding a branch here: one more branch, every filler
-     *          byte-identical, moved 17 of 18 rows' medians positive.
+     * \warning Read docs/MEASUREMENT.md §3.2 before adding a branch here: one more branch moves unrelated
+     *          rows even with every filler byte-identical.
      * \return `true` if at least one span was buffered.
      */
     REAL_NOINLINE
@@ -808,7 +812,7 @@ namespace real {
         batch_n_ = bvm.fill_inner_literal_spans(text_, pos_, batch_, batch_cap, batch_partial_, disarm);
         if (disarm) {
           // The route's abandon is sticky per haystack: further refills would repeat the wasted memmem, so
-          // the walk stops batching (staying armed cost `date dense` +10 %).
+          // the walk stops batching.
           batch_inner_lit_ = false;
           batch_eligible_  = false;
         }
@@ -834,9 +838,9 @@ namespace real {
     /*!
      * \brief Finds the next match, applying the empty-match advance rules.
      *
-     * \note Not force-inlined, by measurement: about half its cost is the per-match frame, but
-     *       `always_inline` pushes the unit past `--param inline-unit-growth` and regresses the target and
-     *       unrelated class rows on one ISA (docs/design.dox 10.1). Shrink the frame instead.
+     * \note Not force-inlined, though its per-match frame is a large share of its cost: `always_inline`
+     *       pushes the unit past `--param inline-unit-growth` and charges unrelated class rows
+     *       (docs/design.dox 10.1). Shrink the frame instead.
      */
     constexpr void advance()
     {
@@ -848,7 +852,7 @@ namespace real {
       // the engine only once the buffer drains.
       if (batch_eligible_) {
         // The partial test sits inside the exhausted branch: as a second sequential test on the per-match
-        // path it moved 17 of 21 unrelated medians positive (p = 0.007, docs/MEASUREMENT.md §3.2).
+        // path it charges unrelated rows (docs/MEASUREMENT.md §3.2).
         if (batch_i_ == batch_n_ && !refill_batch()) {
           // With `batch_partial_` the filler stopped with matches possibly ahead: the per-match path below
           // re-enters `run()`'s full gate, where ending the walk would drop them.
@@ -1030,9 +1034,7 @@ namespace real {
                                              match_semantics        sem = match_semantics::first)
     {
       // `if constexpr` because the static storage has no lookaround scratch.
-      if constexpr (requires(State & st) {
-        st.lookaround;
-      }) {
+      if constexpr (state_has_lookaround<State>) {
         if (sem == match_semantics::first && prog.hints.trailing_lookaround >= 0
             && (std::is_constant_evaluated() || !trailing_la_route_disabled())) {
           prof::tick_route(prof::route::trailing_la);
@@ -1587,9 +1589,7 @@ namespace real {
     {
       const std::size_t      end    {endpos < text.size() ? endpos : text.size()};
       const std::string_view region {text.substr(0, end)};
-      if constexpr (requires(typename Storage::state_type & st) {
-        st.lookaround;
-      }) {
+      if constexpr (detail::state_has_lookaround<typename Storage::state_type>) {
         const auto& prog {program_.view()};
         if (prog.hints.trailing_lookaround >= 0
             && (std::is_constant_evaluated() || !detail::trailing_la_route_disabled())) {
@@ -1613,9 +1613,7 @@ namespace real {
     {
       std::vector<result_type> result;
       // Same dispatch as count_matches.
-      if constexpr (requires(typename Storage::state_type & st) {
-        st.lookaround;
-      }) {
+      if constexpr (detail::state_has_lookaround<typename Storage::state_type>) {
         const auto& prog {program_.view()};
         if (prog.hints.trailing_lookaround >= 0
             && (std::is_constant_evaluated() || !detail::trailing_la_route_disabled())) {
@@ -1626,7 +1624,8 @@ namespace real {
           return result;
         }
       }
-      for (const result_type& match : find_iter(text)) {
+      for (auto walk {find_iter(text).begin()}; !walk.exhausted(); ++walk) {
+        const result_type& match {*walk};
         result.push_back(match);
       }
       return result;
@@ -1676,7 +1675,8 @@ namespace real {
       std::size_t                          done   {};
       // The cap is tested after a replacement, not before the next: tested first, the walk had already searched
       // for one match past the cap, maybe the whole rest of the subject.
-      for (const result_type& match : find_iter(text)) {
+      for (auto walk {find_iter(text).begin()}; !walk.exhausted(); ++walk) {
+        const result_type& match {*walk};
         result.append(text.substr(last, match.start() - last));
         for (const replacement_piece& piece : pieces) {
           if (piece.group == npos) {
@@ -1717,7 +1717,8 @@ namespace real {
       std::vector<std::string_view> result;
       std::size_t                   last {};
       std::size_t                   done {};
-      for (const result_type& match : find_iter(text)) { // the cap after a split: see replace
+      for (auto walk {find_iter(text).begin()}; !walk.exhausted(); ++walk) { // the cap after a split: see replace
+        const result_type& match {*walk};
         result.push_back(text.substr(last, match.start() - last));
         for (std::size_t group = 1; group < match.size(); ++group) {
           result.push_back(match[group]);
@@ -1852,6 +1853,47 @@ namespace real {
     }
 
     /*!
+     * \brief How far before a position a match there may read: an upper bound, in bytes.
+     *
+     * `match(text, pos)` reads `text` from `pos - left_context()` on, and nothing earlier: a lookbehind
+     * reads back as far as it can consume, and `\b`, `\B`, `\<`, `\>`, a line start and `\A` read what
+     * precedes the position. So a caller that keeps only part of a text -- a lexer reading it in pieces
+     * -- keeps this many bytes before where it matches next, and the answer is the same as on the whole
+     * text. 0 when the pattern reads nothing before where it starts (nor whether it starts the text).
+     *
+     * \return The bound.
+     */
+    [[nodiscard]] constexpr std::size_t left_context() const noexcept
+    {
+      const detail::program_view view   {raw_program()};
+      std::size_t                behind {0};
+      for (const detail::lookaround_sub& sub : view.lookarounds) {
+        // Lookarounds do not nest, so the widest lookbehind bounds them all.
+        if (sub.direction == detail::look_dir::behind && static_cast<std::size_t>(sub.l_max) > behind) {
+          behind = static_cast<std::size_t>(sub.l_max);
+        }
+      }
+      bool reads_left {behind != 0};
+      for (const detail::instr& in : view.code) {
+        if (in.op == detail::opcode::assert_position) {
+          switch (static_cast<detail::assert_kind>(in.arg8)) {
+            case detail::assert_kind::text_end:
+            case detail::assert_kind::text_end_or_final_newline:
+            case detail::assert_kind::line_end:
+            case detail::assert_kind::line_end_cr:
+              break;
+            default:
+              reads_left = true;
+              break;
+          }
+        }
+      }
+      // The point assertions read one code point back: four bytes at most. A lookbehind's own start
+      // can hold one, so they add to its reach rather than share it.
+      return reads_left ? behind + 4U : 0U;
+    }
+
+    /*!
      * \brief Resolves a group name to its number.
      * \param[in] name The group name.
      * \return The group number, or \ref real::npos if unknown.
@@ -1920,8 +1962,8 @@ namespace real {
      * (\ref detail::capture_free_walk_structural), since a skippable `save 0` gives a wrong answer.
      * `slot_count` stays as is: the batched routes arm on `slot_count == 2`, so lowering it would reroute.
      * The range sets the flag, keeping one `program_view` copy. Outlined, so `count_matches` carries no
-     * branch for it: one there charged byte-identical rows up to 10.7 %. `noinline`, not `cold`: this is
-     * the ordinary path.
+     * branch for it: one there charges byte-identical rows. `noinline`, not `cold`: this is the ordinary
+     * path.
      *
      * \param[in] text   The subject.
      * \param[in] pos    Where the walk starts.
@@ -1937,7 +1979,7 @@ namespace real {
       const std::size_t end {endpos < text.size() ? endpos : text.size()};
       // Not a range-for: its `end()` builds a sentinel with a full `state_type` only to compare against, a
       // large share of a short call. find_iter keeps paying it: a lazy state (`std::optional`, a
-      // `construct_at` union) cost the working iterator ~26 %, and a distinct sentinel type would break the C
+      // `construct_at` union) charges the working iterator, and a distinct sentinel type would break the C
       // binding's `real_iter` and the homogeneous `std::` algorithms.
       basic_match_range<Storage> range {program_.view(), pattern(), text.substr(0, end),
                                         pos,            match_semantics::first, true};
@@ -1947,9 +1989,8 @@ namespace real {
     /*!
      * \brief \ref count_matches over the trailing-lookaround walk, outlined.
      *
-     * Outlined and cold, like \ref basic_match_iterator::decide_batching. Inline, a second walk inside
-     * `count_matches` left it on a codegen cliff where one unrelated branch charged byte-identical rows up
-     * to 10.7 %.
+     * Outlined and cold, like \ref basic_match_iterator::decide_batching, since inline, a second walk inside
+     * `count_matches` makes one unrelated branch charge byte-identical rows.
      *
      * \param[in] region The already-clamped subject.
      * \param[in] pos    Where the walk starts.
@@ -2142,8 +2183,8 @@ namespace real {
       detail::pike_vm<typename Storage::state_type, true> vm(prog, state);
       const bool                                          matched {detail::run_attempt(vm, prog, text.substr(0, end), pos, mode, out.engine_slots(), sem)};
       // One return statement: the result is NRVO-constructed in the caller and filled in place, sparing a
-      // block move whose fixed startup is the whole cost on a groupless pattern. A small-count loop in
-      // `transfer_range` instead regressed a dozen rows (it also serves the thread lists' hot path).
+      // block move whose fixed startup is the whole cost on a groupless pattern. Not a small-count loop in
+      // `transfer_range` instead: that also serves the thread lists' hot path.
       out.engine_set_matched(matched);
       return out;
     }

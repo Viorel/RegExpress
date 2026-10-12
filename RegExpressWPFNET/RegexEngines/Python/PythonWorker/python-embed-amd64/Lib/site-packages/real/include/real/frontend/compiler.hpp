@@ -70,10 +70,11 @@ namespace real::detail {
   /*!
    * \brief Expands a character class to its Unicode simple case-fold closure (text-mode `icase`).
    *
-   * The fold acts on the whole class, across the ASCII boundary both ways, before negation: each
-   * ASCII member contributes its partners (`k`↦Kelvin becomes a range), and each fold entry inside a
-   * class range contributes its partners (`[U+0080-U+10FFFF]` pulls `k`/`K` into the bitmap). The
-   * ASCII-letter literal fold takes this same route.
+   * The fold acts on the members written as characters, ranges or properties, across the ASCII boundary
+   * both ways, before negation: each ASCII member contributes its partners (`k`↦Kelvin becomes a range),
+   * and each fold entry inside a class range contributes its partners (`[U+0080-U+10FFFF]` pulls `k`/`K`
+   * into the bitmap). A shorthand member stays as it is, as in `re`: folding `\W` would pull in iota
+   * through U+0345, a non-word mark. The ASCII-letter literal fold takes this same route.
    *
    * \param[in] in The class as written.
    * \return Its case-fold closure: the folded ASCII bitmap plus the coalesced non-ASCII ranges.
@@ -91,6 +92,7 @@ namespace real::detail {
                                              ranges.push_back({.lo = p, .hi = p});        // non-ASCII partner (coalesced below)
                                            }
                                          }};
+    const std::vector<code_range>& cased_ranges {in.has_sets ? in.cased_ranges : in.ranges};
     for (std::uint32_t cp = 0; cp < 0x80U; ++cp) {
       if (in.ascii.test(static_cast<std::uint8_t>(cp))) {
         const std::size_t idx {find_fold_index(cp)};
@@ -103,9 +105,9 @@ namespace real::detail {
       }
     }
     // Walk the sorted fold table per range (seek, then forward), never the whole table per class:
-    // O(table x ranges) made one icase `\w` cost six figures of comparisons, times each `{k}` copy.
+    // O(table x ranges) per class is quadratic on an icase `\w`, times each `{k}` copy.
     // Overlapping ranges may revisit an entry; the duplicate {p, p} is merged below.
-    for (const code_range& r : in.ranges) {
+    for (const code_range& r : cased_ranges) {
       for (std::size_t i {find_fold_lower_bound(r.lo)}; i < unicode_fold_table_size; ++i) {
         const fold_entry& entry {unicode_fold_table[i]};
         if (entry.cp > r.hi) {
@@ -356,15 +358,31 @@ namespace real::detail {
       prog.hints.bounded_backtrack = static_cast<std::uint8_t>(prog.lookarounds.empty()
                                                                && prog.slot_count <= bounded_backtrack_max_slots);
       // The required inner literal and its prefix boundary go to the hints only, never into the code.
-      const inner_literal il {extract_inner_literal(tree_)};
+      // A folded literal at the head arms no route -- the inner-literal route wants a prefix before it, and the
+      // head literal's search is exact -- while publishing it would take the pattern off the lazy DFA's batch.
+      inner_literal il {extract_inner_literal(tree_)};
+      if (il.folded != 0 && il.prefix_child_count < 1) {
+        il = inner_literal {};
+      }
       prog.hints.inner_literal             = il.bytes;
       prog.hints.inner_literal_len         = il.len;
+      prog.hints.inner_literal_fold        = il.folded;
       if (il.len >= 2) {
-        std::array<char, 16> chars {};
-        for (std::size_t k = 0; k < il.len; ++k) {
-          chars[k] = static_cast<char>(il.bytes[k]);
+        // The rarest position by the traffic it stops on: a letter in either case counts both.
+        const auto traffic {[&il](std::size_t k) {
+                              const auto          b   {il.bytes[k]};
+                              const std::uint32_t own {byte_frequency(b)};
+                              return ((static_cast<unsigned>(il.folded) >> k) & 1U) != 0U
+                                       ? own + static_cast<std::uint32_t>(byte_frequency(static_cast<std::uint8_t>(b - 0x20U)))
+                                       : own;
+                            }};
+        std::size_t rarest {0};
+        for (std::size_t k {1}; k < il.len; ++k) {
+          if (traffic(k) < traffic(rarest)) {
+            rarest = k;
+          }
         }
-        prog.hints.inner_literal_rare = literal_rarest_offset(std::string_view {chars.data(), il.len});
+        prog.hints.inner_literal_rare = static_cast<std::uint8_t>(rarest);
       }
       prog.hints.inner_literal_prefix      = il.prefix_child_count;
       // Peel-lead skip for the reverse prefix (build_prefix_ast), non-zero only when the IL route is live;
@@ -673,7 +691,7 @@ namespace real::detail {
     {
       // The one gate every code-point class passes: a producer that skips coalesce_ranges fails loudly. A
       // throw, not an assert, so it fires in release and stops an unordered `static_regex`. New classes
-      // only: checking every call added 36% to `(?i:\w{256})\w{256}` against the compile-scaling bound.
+      // only: checking every call charges compile time against the compile-scaling bound.
       std::size_t index {prog.cp_classes.size()};
       for (std::size_t i = 0; i < prog.cp_classes.size(); ++i) {
         const cp_class& existing {prog.cp_classes[i]};
@@ -940,11 +958,11 @@ namespace real::detail {
 
       // A bounded repeat emits its one class node per repetition (`\w{500}` folds 500 times), so the
       // fold is cached: four direct-mapped ways in a fixed array. Keep it unallocated: a vector sized by
-      // the class table cost patterns that fold once up to 19 %. Keyed by (class, mode, negated): a
+      // the class table charges patterns that fold once. Keyed by (class, mode, negated): a
       // scoped `(?i:...)` can fold one class two ways.
       if (mode != 0 && !std::is_constant_evaluated()) {
         // Cache the finished class, negation included: caching only the fold leaves finish_class's
-        // coalesce_ranges sort per repetition (icase `[a-z]` cost 24x its plain marginal).
+        // coalesce_ranges sort per repetition.
         const auto        key {static_cast<std::int32_t>((klass_idx * 6U) + (mode * 2U) + (node.negated ? 1U : 0U))};
         const std::size_t way {static_cast<std::size_t>(key) % fold_cache_ways};
         if (fold_key_[way] == key) {
@@ -956,7 +974,7 @@ namespace real::detail {
           fold_ascii_case(folded.ascii);     // bytes / ASCII mode (re.A): ASCII-only fold, no Unicode partners
         }
         else {
-          folded = unicode_casefold(folded); // text: full Unicode fold of the whole class, both directions
+          folded = unicode_casefold(folded); // text: full Unicode fold of the non-shorthand members, both directions
         }
         fold_key_[way] = key;
         fold_val_[way] = finish_class(node, std::move(folded));
@@ -1454,17 +1472,23 @@ namespace real::detail {
         throw regex_error("nested lookaround is not supported", 0, error_kind::unsupported);
       }
       const std::int32_t lmax {l_max_bytes(node.child)};
-      static_assert(max_lookaround_length == 255, "the two messages below name the bound");
+      // The messages name the default bound; a build that lowered it names its macro instead.
+      static_assert(default_max_lookaround_length == 255, "the messages below name the default bound");
+      constexpr bool lowered {max_lookaround_length != default_max_lookaround_length};
       if (lmax < 0 && node.direction == look_dir::behind) {
         // Name the rewrite (`.*` -> `.{0,N}`). The ceiling is in bytes and a UTF-8 `.` takes up to 4,
         // so the example stays well under it.
-        throw regex_error("unbounded lookbehind is not supported (bound the repetition, e.g. "
+        throw regex_error(lowered ? "unbounded lookbehind is not supported (bound the repetition; the sub-pattern "
+                          "must match at most this build's REAL_MAX_LOOKAROUND_LENGTH bytes)"
+                                  : "unbounded lookbehind is not supported (bound the repetition, e.g. "
                           ".* -> .{0,32}; the sub-pattern must match at most 255 bytes)",
                           0, error_kind::unsupported);
       }
       if (lmax > max_lookaround_length) {
         // Say the unit: bytes, two to four per non-ASCII character.
-        throw regex_error("lookaround sub-pattern too long (it may match at most 255 bytes; a non-ASCII "
+        throw regex_error(lowered ? "lookaround sub-pattern too long (it may match at most this build's "
+                          "REAL_MAX_LOOKAROUND_LENGTH bytes; a non-ASCII character takes up to 4)"
+                                  : "lookaround sub-pattern too long (it may match at most 255 bytes; a non-ASCII "
                           "character takes up to 4)",
                           0, error_kind::unsupported);
       }

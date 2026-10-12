@@ -605,6 +605,12 @@ namespace real::detail {
   }
 
 #if defined(__SSSE3__) || defined(__GNUC__) || defined(__clang__)
+  // The SSSE3 bodies below: built for SSSE3 where the translation unit is not.
+#  if defined(__SSSE3__)
+#    define REAL_TARGET_SSSE3
+#  else
+#    define REAL_TARGET_SSSE3 __attribute__((target("ssse3")))
+#  endif
 #  if !defined(__SSSE3__)
   /*!
    * \brief Whether the running CPU has SSSE3, asked once (`cpuid` leaf 1, ECX bit 9). Not
@@ -664,9 +670,7 @@ namespace real::detail {
    * \param[in] thi Its high-nibble table.
    * \return The bucket bits per start.
    */
-#  if !defined(__SSSE3__)
-  __attribute__((target("ssse3")))
-#  endif
+  REAL_TARGET_SSSE3
   inline __m128i nibble_lookup(const __m128i& blk,
                                const __m128i& tlo,
                                const __m128i& thi)
@@ -682,9 +686,7 @@ namespace real::detail {
    * \param[in] t  The tables.
    * \return The mask.
    */
-#  if !defined(__SSSE3__)
-  __attribute__((target("ssse3")))
-#  endif
+  REAL_TARGET_SSSE3
   inline mask_t load_nibble3_mask(const char          * at,
                                   const nibble3_tables& t)
   {
@@ -727,9 +729,7 @@ namespace real::detail {
    * \param[in,out] carry The previous block's first two lookups, replaced by this block's.
    * \return The bucket bits per start.
    */
-#  if !defined(__SSSE3__)
-  __attribute__((target("ssse3")))
-#  endif
+  REAL_TARGET_SSSE3
   inline __m128i nibble3_block(const char          * at,
                                const nibble3_tables& t,
                                nibble3_carry&        carry)
@@ -752,9 +752,7 @@ namespace real::detail {
    * \param[in,out] carry The previous block's first two lookups, replaced by this block's.
    * \return The mask, lane `l` for the start `at - 2 + l`.
    */
-#  if !defined(__SSSE3__)
-  __attribute__((target("ssse3")))
-#  endif
+  REAL_TARGET_SSSE3
   inline mask_t nibble3_step(const char          * at,
                              const nibble3_tables& t,
                              nibble3_carry&        carry)
@@ -771,9 +769,7 @@ namespace real::detail {
    * \param[out]    hits  The four blocks' bucket bits, for \ref nibble3_mask_of.
    * \return True when some start of the four blocks is marked.
    */
-#  if !defined(__SSSE3__)
-  __attribute__((target("ssse3")))
-#  endif
+  REAL_TARGET_SSSE3
   inline bool nibble3_round(const char          * at,
                             const nibble3_tables& t,
                             nibble3_carry&        carry,
@@ -793,9 +789,7 @@ namespace real::detail {
    * \param[in] k    The block, 0 to 3.
    * \return The mask, lane `l` for the start `block - 2 + l`.
    */
-#  if !defined(__SSSE3__)
-  __attribute__((target("ssse3")))
-#  endif
+  REAL_TARGET_SSSE3
   inline mask_t nibble3_mask_of(const nibble3_hits& hits,
                                 std::size_t         k)
   {
@@ -819,9 +813,7 @@ namespace real::detail {
    * \param[in] hi The same for the high nibble.
    * \return The mask.
    */
-#  if !defined(__SSSE3__)
-  __attribute__((target("ssse3")))
-#  endif
+  REAL_TARGET_SSSE3
   inline mask_t load_nibble3_mask(const char                                         * at,
                                   const std::array<std::array<std::uint8_t, 16>, 3>&   lo,
                                   const std::array<std::array<std::uint8_t, 16>, 3>&   hi)
@@ -834,6 +826,12 @@ namespace real::detail {
 #endif
 
 #if defined(__AVX2__) || defined(__GNUC__) || defined(__clang__)
+  // The AVX2 bodies below: built for AVX2 where the translation unit is not.
+#  if defined(__AVX2__)
+#    define REAL_TARGET_AVX2
+#  else
+#    define REAL_TARGET_AVX2 __attribute__((target("avx2")))
+#  endif
 #  if !defined(__AVX2__)
   /*!
    * \brief XCR0, the register state the operating system saves on a context switch (its bits 1 and 2: SSE and
@@ -883,9 +881,7 @@ namespace real::detail {
    * \param[out] hits  0xFF in each lane whose candidate has both bytes (by reference, for the reason
    *                   \ref avx2_pair_block states).
    */
-#  if !defined(__AVX2__)
-  __attribute__((target("avx2")))
-#  endif
+  REAL_TARGET_AVX2
   inline void avx2_pair_hits(const char*    at,
                              std::size_t    delta,
                              const __m256i& lead,
@@ -909,9 +905,7 @@ namespace real::detail {
    * \param[in] trail The last byte, splatted.
    * \return One bit per candidate.
    */
-#  if !defined(__AVX2__)
-  __attribute__((target("avx2")))
-#  endif
+  REAL_TARGET_AVX2
   inline std::uint32_t avx2_pair_block(const char*    at,
                                        std::size_t    delta,
                                        const __m256i& lead,
@@ -945,9 +939,7 @@ namespace real::detail {
    * \param[in]  hi  The same for the high nibble.
    * \param[out] out The tables, broadcast.
    */
-#  if !defined(__AVX2__)
-  __attribute__((target("avx2")))
-#  endif
+  REAL_TARGET_AVX2
   inline void avx2_nibble3_broadcast(const std::array<std::array<std::uint8_t, 16>, 3>& lo,
                                      const std::array<std::array<std::uint8_t, 16>, 3>& hi,
                                      avx2_nibble3_tables&                               out)
@@ -975,9 +967,7 @@ namespace real::detail {
    * \param[in] low4 0x0F in every byte.
    * \return The bucket bits per start.
    */
-#  if !defined(__AVX2__)
-  __attribute__((target("avx2")))
-#  endif
+  REAL_TARGET_AVX2
   inline __m256i avx2_nibble_lookup(const __m256i& blk,
                                     const __m256i& tlo,
                                     const __m256i& thi,
@@ -994,9 +984,7 @@ namespace real::detail {
    * \param[in] t  The broadcast tables.
    * \return One bit per start.
    */
-#  if !defined(__AVX2__)
-  __attribute__((target("avx2")))
-#  endif
+  REAL_TARGET_AVX2
   inline std::uint32_t avx2_nibble3_mask(const char                * at,
                                          const avx2_nibble3_tables&  t)
   {
@@ -1022,9 +1010,7 @@ namespace real::detail {
    * \param[in] literal The needle, at least two bytes.
    * \return The index of the first occurrence at or after \p pos, else `npos` (`std::size_t(-1)`).
    */
-#  if !defined(__AVX2__)
-  __attribute__((target("avx2")))
-#  endif
+  REAL_TARGET_AVX2
   inline std::size_t avx2_literal_scan(std::string_view text,
                                        std::size_t      pos,
                                        std::string_view literal)

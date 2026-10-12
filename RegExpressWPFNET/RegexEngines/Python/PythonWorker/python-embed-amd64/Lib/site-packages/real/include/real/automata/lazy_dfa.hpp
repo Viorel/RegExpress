@@ -27,6 +27,7 @@
 #include <string_view>
 #include <vector>
 
+#include "real/core/config.hpp"
 #include "real/core/program.hpp"
 #include "real/automata/utf8_ranges.hpp"
 
@@ -237,9 +238,8 @@ namespace real::detail {
   /*!
    * \brief Test observability: the AC density gate's most recent verdict.
    *
-   * Both routes give identical spans, so a test asserts this decision, never a speed-up: the margin is
-   * ~5.9x optimised but 1.4x under ASan/UBSan (sanitizer cost is per operation, diluting a byte-skipping
-   * route). Timing belongs in `benchmarks/ac_regime.cpp`. Atomic and relaxed as
+   * Both routes give identical spans, so a test asserts this decision, never a speed-up: the margin
+   * shrinks under ASan/UBSan (sanitizer cost is per operation, diluting a byte-skipping route). Timing belongs in `benchmarks/ac_regime.cpp`. Atomic and relaxed as
    * \ref il_density_last_abandoned.
    *
    * \return Reference to the process-wide verdict; assign \ref ac_verdict::not_consulted to arm it.
@@ -275,7 +275,7 @@ namespace real::detail {
     /*!
      * \brief Outgoing edges: a byte range paired with its target, `-1` meaning accept. Pairwise disjoint.
      *
-     * \note One heap block per node, ~98 % of build_byte_program's allocations (a cold first search's
+     * \note One heap block per node, most of build_byte_program's allocations (a cold first search's
      *       cost). A pool needs a stack-disciplined arena for the recursive builder; an ASCII-first
      *       expansion would remove the work instead (see \ref build_byte_program).
      */
@@ -562,9 +562,7 @@ namespace real::detail {
    * \param[in]     after Program counter the accept edges jump to (the construct's successor).
    * \param[in,out] seen  Byte-range intern table, shared across every occurrence in one program.
    */
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((cold)) // build-time only, never on a search path
-#endif
+  REAL_BUILD_COLD // build-time only, never on a search path
   constexpr void emit_utf8_trie(byte_program&        bp,
                                 const utf8_trie&     trie,
                                 std::int32_t         after,
@@ -851,9 +849,7 @@ namespace real::detail {
   // search. An ASCII-only expansion holds only on an ASCII subject: pre-scanning costs more than the search
   // (the VM state is fresh per search), and the viable shape (bytes >= 0x80 to a "cannot answer" class, a
   // second program on the first non-ASCII subject) changes DFA state semantics, not a local edit.
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((cold)) // build-time only, never on a search path
-#endif
+  REAL_BUILD_COLD // build-time only, never on a search path
   constexpr byte_program build_byte_program(const program_view& prog,
                                             bool                keep_assertions = false,
                                             std::size_t         max_size        = max_byte_program_size)
@@ -892,7 +888,7 @@ namespace real::detail {
     std::vector<std::int32_t> map(n + 1, 0);                     // old pc -> new pc (n = the one-past end)
     // One trie per class, pointed to per pc: `(\w+)X(\w+)` builds `\w` once. `by_class` never grows, so the
     // pointers cannot dangle. Do not share it across the Tier-A and Tier-B expansions: keeping wide tries
-    // alive across both builds measured dearer than rebuilding them.
+    // alive across both builds costs more than rebuilding them.
     std::vector<utf8_trie>        by_class(prog.cp_classes.size());
     std::vector<bool>             class_built(prog.cp_classes.size(), false);
     std::vector<const utf8_trie*> tries(n, nullptr);              // the trie for each klass_cp pc
@@ -1006,9 +1002,7 @@ namespace real::detail {
    * \param[in] classes The byte classes it indexes.
    * \return The alphabet: a byte-to-class map plus the class count.
    */
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((cold)) // build-time only, never on a search path
-#endif
+  REAL_BUILD_COLD // build-time only, never on a search path
   inline constexpr lazy_byte_alphabet compute_lazy_alphabet(std::span<const instr>      code,
                                                             std::span<const char_class> classes)
   {
@@ -1761,10 +1755,11 @@ namespace real::detail {
         return cached;
       }
       ++stats_.misses;
-      const std::vector<std::int32_t> pcs  {state_pcs_[state / stride_]}; // copy: intern() below may realloc state_pcs_
-      std::vector<std::int32_t>       next;
-      visit_marks&                    seen {begin_visit()};
-      const std::uint8_t              ctx  {class_ctx_[cls]};
+      // A reference: only intern_any() below grows state_pcs_, after the last read of this row.
+      const std::vector<std::int32_t>& pcs  {state_pcs_[state / stride_]};
+      std::vector<std::int32_t>        next;
+      visit_marks&                     seen {begin_visit()};
+      const std::uint8_t               ctx  {class_ctx_[cls]};
       for (const std::int32_t pc : pcs) {
         if (consumes(pc, byte)) {
           close_any(pc + consumed_width(pc), next, seen, ctx);
@@ -2033,8 +2028,7 @@ namespace real::detail {
       if (pc < 0 || static_cast<std::size_t>(pc) >= code_.size()) {
         return;
       }
-      // The work stack is a mutable member, empty in and out: as a local it was one heap block per call,
-      // 10 408 allocations in one 8 KB first search.
+      // The work stack is a mutable member, empty in and out: as a local it would be one heap block per call.
       stack_.assign(1, pc);
       while (!stack_.empty()) {
         const std::int32_t cur {stack_.back()};
@@ -2209,11 +2203,12 @@ namespace real::detail {
       if (cached != no_transition) {
         return cached;
       }
-      std::vector<std::int32_t> pcs {state_pcs_[state / stride_]}; // copy: intern() below may realloc state_pcs_
-      const auto                ctx {static_cast<std::uint8_t>(-1 - pcs.back())};
-      pcs.pop_back();
-      std::vector<std::int32_t> out;
-      visit_marks&              seen {begin_visit()};
+      // A view: only intern() below grows state_pcs_, after the last read of this row.
+      const std::vector<std::int32_t>&     row  {state_pcs_[state / stride_]};
+      const auto                           ctx  {static_cast<std::uint8_t>(-1 - row.back())};
+      const std::span<const std::int32_t>  pcs  {row.data(), row.size() - 1U};
+      std::vector<std::int32_t>            out;
+      visit_marks&                         seen {begin_visit()};
       quit_hit_ = false;
       for (const std::int32_t pc : pcs) {
         const instr& in {code_[static_cast<std::size_t>(pc)]};
@@ -2303,9 +2298,7 @@ namespace real::detail {
      *         \ref quit_pos.
      */
     template <bool Anchored>
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((noinline, cold)) // out of the hot scans' bodies: a program without assertions never calls it
-#endif
+    REAL_COLD // out of the hot scans' bodies: a program without assertions never calls it
     std::conditional_t<Anchored, anchored_result, std::size_t> scan_look(std::string_view text,
                                                                          std::size_t      start)
     {
@@ -2549,10 +2542,8 @@ namespace real::detail {
     std::array<std::uint32_t, 8>  starts_      {};      //!< Context -> start state, per \ref flush (look programs).
     std::uint32_t                 start_state_ {0};     //!< Id of the closure of pc 0, re-interned by each \ref flush.
 
-    // One heap block per DFA state. A first search's cold cost is build_byte_program's UTF-8 tries (~96 % of
+    // One heap block per DFA state. A first search's cold cost is build_byte_program's UTF-8 tries (most of
     // its allocations, benchmarks/alloc_cold_probe.cpp), paid once per regex; warm searches allocate nothing.
-    // Hoisting the miss-path scratch into members saved ~1 % of cold allocations, under the ±3 % layout
-    // floor; reserving the outer vector or flattening it into one pool changed nothing.
     mutable std::vector<std::int32_t>                                          stack_;        //!< close_into's work stack, hoisted: it ran once per pc of the source state.
     std::vector<std::vector<std::int32_t>>                                     state_pcs_;    //!< state id -> ordered pc-set.
     std::vector<std::uint32_t>                                                 trans_;        //!< [state + accept_col] accept word, [state + cut_col] memoized cut, [state + trans_col + class] next, unseeded (post-match).
@@ -2623,8 +2614,8 @@ namespace real::detail {
         }
       }
       // Transpose: rev_eps_[x] = the pcs with an epsilon edge to x; rev_consume_[x] = the consuming pcs whose
-      // successor is x. Two passes into four flat buffers: a vector per pc was a first search's largest
-      // allocation count (7003 blocks for `\w+@\w+` over 8 KB).
+      // successor is x. Two passes into four flat buffers: a vector per pc would be a first search's
+      // largest allocation count.
       const std::size_t n {code.size()};
       rev_eps_at_.assign(n + 2, 0);
       rev_consume_at_.assign(n + 2, 0);
@@ -2970,11 +2961,12 @@ namespace real::detail {
       if (cached != no_transition) {
         return cached;
       }
-      std::vector<std::int32_t> pcs  {state_pcs_[state]};                          // copy: intern may realloc
-      const auto                ctx  {static_cast<std::uint8_t>(-1 - pcs.back())}; // mark_context appends it last
-      pcs.pop_back();
-      visit_marks&              seen {begin_visit()};
-      std::vector<std::int32_t> set;
+      // A view: only intern() below grows state_pcs_, after the last read of this row.
+      const std::vector<std::int32_t>&     row  {state_pcs_[state]};
+      const auto                           ctx  {static_cast<std::uint8_t>(-1 - row.back())}; // mark_context appends it last
+      const std::span<const std::int32_t>  pcs  {row.data(), row.size() - 1U};
+      visit_marks&                         seen {begin_visit()};
+      std::vector<std::int32_t>            set;
       quit_hit_ = false;
       for (const std::int32_t entry : pcs) {
         const std::int32_t pc {is_pending(entry) ? pending_base - entry : entry};
@@ -3037,9 +3029,9 @@ namespace real::detail {
                             std::uint8_t  byte,
                             std::uint8_t  ctx)
     {
-      const std::vector<std::int32_t> pcs  {state_pcs_[state]};
-      std::vector<std::int32_t>       next;
-      visit_marks&                    seen {begin_visit()};
+      const std::vector<std::int32_t>& pcs  {state_pcs_[state]}; // only intern() below grows state_pcs_
+      std::vector<std::int32_t>        next;
+      visit_marks&                     seen {begin_visit()};
       for (const std::int32_t pc : pcs) {
         for (std::size_t k = rev_consume_at_[static_cast<std::size_t>(pc)];
              k < rev_consume_at_[static_cast<std::size_t>(pc) + 1]; ++k) {
@@ -3156,9 +3148,9 @@ namespace real::detail {
       if (cached != no_transition) {
         return cached;
       }
-      const std::vector<std::int32_t> pcs  {state_pcs_[state]}; // copy: intern may realloc
-      std::vector<std::int32_t>       next;
-      visit_marks&                    seen {begin_visit()};
+      const std::vector<std::int32_t>& pcs  {state_pcs_[state]}; // only intern() below grows state_pcs_
+      std::vector<std::int32_t>        next;
+      visit_marks&                     seen {begin_visit()};
       for (const std::int32_t pc : pcs) {
         for (std::size_t k = rev_consume_at_[static_cast<std::size_t>(pc)];
              k < rev_consume_at_[static_cast<std::size_t>(pc) + 1]; ++k) {

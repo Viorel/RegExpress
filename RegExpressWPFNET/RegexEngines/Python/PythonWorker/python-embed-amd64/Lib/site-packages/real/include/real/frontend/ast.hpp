@@ -100,9 +100,13 @@ namespace real::detail {
    */
   struct class_def
   {
-    char_class              ascii;                    //!< ASCII members as a bitmap (all 256 bytes in bytes mode); pre-negation.
-    std::vector<code_range> ranges;                   //!< Non-ASCII code-point ranges (code-point mode only; empty otherwise).
-    bool                    codepoint_predicate {};   //!< Emit as a match-time `klass_cp` (a Unicode shorthand `\w`/`\d`/`\s` in text mode), not the byte-NFA.
+    char_class              ascii;                  //!< ASCII members as a bitmap (all 256 bytes in bytes mode); pre-negation.
+    std::vector<code_range> ranges;                 //!< Non-ASCII code-point ranges (code-point mode only; empty otherwise).
+    bool                    codepoint_predicate {}; //!< Emit as a match-time `klass_cp` (a Unicode shorthand `\w`/`\d`/`\s` in text mode), not the byte-NFA.
+    bool                    has_sets            {}; //!< A shorthand (`\w`, `\d`, `\s`, negated or not) is a member: a case fold expands only \ref cased_ranges past ASCII.
+    //! When \ref has_sets holds, the non-ASCII members a fold expands (characters, ranges, properties). Its `{}`
+    //! spares a caller writing `{.ascii = ..., .ranges = ...}` a missing-initializer warning.
+    std::vector<code_range> cased_ranges {};        // NOLINT(readability-redundant-member-init)
   };
 
   /*!
@@ -559,7 +563,22 @@ namespace real::detail {
                                           const std::vector<code_range>& ranges              = {},
                                           bool                           codepoint_predicate = false)
     {
-      out.classes.push_back({.ascii = klass, .ranges = ranges, .codepoint_predicate = codepoint_predicate});
+      return add_class_node(out, {.ascii = klass, .ranges = ranges, .codepoint_predicate = codepoint_predicate},
+                            negated);
+    }
+
+    /*!
+     * \brief Interns \p klass and appends a \ref node_kind::klass node.
+     * \param[in,out] out     The AST being built.
+     * \param[in]     klass   The class as written (before negation).
+     * \param[in]     negated Whether the class was written negated.
+     * \return The index of the new node.
+     */
+    constexpr std::int32_t add_class_node(ast&      out,
+                                          class_def klass,
+                                          bool      negated)
+    {
+      out.classes.push_back(std::move(klass));
       const auto index {static_cast<std::int32_t>(out.classes.size()) - 1};
       return add_node(out, {.kind = node_kind::klass, .negated = negated, .klass = index});
     }
@@ -1296,20 +1315,6 @@ namespace real::detail {
         ++pos_;
       }
       return value;
-    }
-
-    /*!
-     * \brief Consumes \p ch or fails.
-     * \param[in] ch      The required character.
-     * \param[in] message Error message if \p ch is not present.
-     * \throws real::regex_error when the next character is not \p ch.
-     */
-    constexpr void expect(char        ch,
-                          const char* message)
-    {
-      if (!accept(ch)) {
-        fail(message);
-      }
     }
 
     /*!
@@ -2285,7 +2290,12 @@ namespace real::detail {
         case 'S': {
             const shorthand_spec sc {shorthand_class(peek(), text_shorthand())};
             ++pos_;
-            return add_class_node(out, sc.set, sc.negated, shorthand_ranges(sc.ranges), text_shorthand());
+            return add_class_node(out,
+                                  {.ascii               = sc.set,
+                                   .ranges              = shorthand_ranges(sc.ranges),
+                                   .codepoint_predicate = text_shorthand(),
+                                   .has_sets            = true},
+                                  sc.negated);
           }
         // `\p{Name}` / `\P{Name}` / `\pX` — Unicode General_Category and Script property classes (text mode).
         case 'p':
@@ -2536,6 +2546,11 @@ namespace real::detail {
       std::vector<code_range> ranges;              // non-ASCII members (code-point mode); empty in bytes/ASCII-only classes
       bool                    property_derived {}; // a \w/\d/\s (text mode) contributed -> emit as klass_cp
       bool                    first            {true};
+      // The non-ASCII members a case fold expands: characters, ranges and properties. A shorthand stays as
+      // it is (`(?i)[^\W]` is `\w`, as in `re`, though U+0345 in `\W` folds to iota). Its ASCII part
+      // needs no such care: no ASCII member of a shorthand has a fold partner outside it.
+      bool                    has_sets {};
+      std::vector<code_range> cased_ranges;
       // Bytes mode: a member >= 0x80 is a raw byte in the bitmap, so a bytes class is byte-for-byte a
       // std::basic_regex<char> class (the compat layer relies on it). Code-point mode: a one-point range.
       const auto add_cp {[&](std::int32_t cp) {
@@ -2544,6 +2559,7 @@ namespace real::detail {
                            }
                            else {
                              ranges.push_back({static_cast<std::uint32_t>(cp), static_cast<std::uint32_t>(cp)});
+                             cased_ranges.push_back(ranges.back());
                            }
                          }};
       // Add an inclusive range [lo, hi]. Bytes mode: the whole range is bytes in the bitmap.
@@ -2556,10 +2572,12 @@ namespace real::detail {
                                 klass.set_range(static_cast<std::uint8_t>(lo), static_cast<std::uint8_t>(hi < 0x80 ? hi : 0x7F));
                                 if (hi >= 0x80) {
                                   ranges.push_back({0x80U, static_cast<std::uint32_t>(hi)});
+                                  cased_ranges.push_back(ranges.back());
                                 }
                               }
                               else {
                                 ranges.push_back({static_cast<std::uint32_t>(lo), static_cast<std::uint32_t>(hi)});
+                                cased_ranges.push_back(ranges.back());
                               }
                             }};
       while (true) {
@@ -2575,8 +2593,20 @@ namespace real::detail {
           break;
         }
         first = false;
-        const std::size_t  item_pos     {pos_};
-        const std::int32_t range_start  {parse_class_item(klass, ranges, property_derived)};
+        const std::size_t item_pos {pos_};
+        // A property folds under icase like a written member (the `regex` module's reading); a shorthand
+        // does not (`re`'s).
+        const bool property_item {peek() == '\\' && pos_ + 1 < pattern_.size()
+                                  && (pattern_[pos_ + 1] == 'p' || pattern_[pos_ + 1] == 'P')};
+        if (property_item) {
+          char_class              item_klass;
+          std::vector<code_range> item_ranges;
+          static_cast<void>(parse_class_item(item_klass, item_ranges, property_derived));
+          klass.merge(item_klass);
+          ranges.insert(ranges.end(), item_ranges.begin(), item_ranges.end());
+          cased_ranges.insert(cased_ranges.end(), item_ranges.begin(), item_ranges.end());
+        }
+        const std::int32_t range_start {property_item ? -1 : parse_class_item(klass, ranges, property_derived)};
         if (range_start < 0) {
           // A set item cannot be a range endpoint (`[\d-z]` raises, as in Python); a trailing '-]' is a
           // literal. The unparsed end endpoint is quoted as one character, two for an escape.
@@ -2588,6 +2618,7 @@ namespace real::detail {
             pos_ = item_pos;
             fail_bad_range(item_pos, end);
           }
+          has_sets = has_sets || !property_item;
           continue; // set item (e.g. \d): its bitmap and any Unicode ranges are already merged
         }
         // Possible range: 'x-y', where a trailing '-]' is a literal '-'.
@@ -2606,7 +2637,13 @@ namespace real::detail {
           add_cp(range_start);
         }
       }
-      return add_class_node(out, klass, negated, ranges, property_derived);
+      return add_class_node(out,
+                            {.ascii               = klass,
+                             .ranges              = std::move(ranges),
+                             .codepoint_predicate = property_derived,
+                             .has_sets            = has_sets,
+                             .cased_ranges        = std::move(cased_ranges)},
+                            negated);
     }
   };
 

@@ -360,7 +360,7 @@ namespace real {
      * \brief A typed reference into a possessive-loop body's operand space.
      *
      * Typed so equality compares \ref kind before the index: with bare indices, index 0 of two
-     * different tables compared equal and `[abc].*+` matched unconditionally.
+     * different tables would compare equal and `[abc].*+` match unconditionally.
      */
     struct class_ref
     {
@@ -400,8 +400,8 @@ namespace real {
      * \note **The field order is load-bearing.** Offsets 0..86 are the hot prefix every search reads
      *       (\ref prefix, \ref first_bytes, the `greedy_*` selectors, \ref fixed_shape,
      *       \ref fixed_alternation); the tail is per-route. **Append new fields at the END**: an insertion
-     *       reflows every later field and has moved hot fields across a cache line, measurably on patterns
-     *       that read none of it. Do not split into hot and cold structs: an indirection to the tail would
+     *       reflows every later field and can move hot fields across a cache line, charging patterns that
+     *       read none of it. Do not split into hot and cold structs: an indirection to the tail would
      *       charge every route that reads it.
      */
     struct pattern_hints
@@ -454,8 +454,9 @@ namespace real {
       //! \brief A required byte at a fixed offset from the match start, rarer than the first-byte set (the
       //!        date `-` at offset 4): the search `memchr`s it and back-verifies from `found - rare_offset`.
       //!        -1 when none.
-      std::int16_t rare_byte   {-1};
-      std::uint8_t rare_offset {}; //!< The fixed byte offset of \ref rare_byte from the match start.
+      std::int16_t  rare_byte   {-1};
+      std::uint16_t rare_offset {}; //!< The fixed byte offset of \ref rare_byte from the match start; 16 bits
+                                    //!< sit in the padding before \ref rare_disc.
 
       //! \brief Rare discriminant with an optional byte before it (URL `https?://…`): `memchr(rare_disc)`,
       //!        then back-verify `[prefix][opt?][disc][after]`. Chosen over a weak literal prefix (`http`)
@@ -506,7 +507,7 @@ namespace real {
 
       //! \brief Trailing lookaround on a groupless greedy `class+` (`[a-z]+(?=[a-z])`): index into
       //!        lookarounds, -1 = not this shape. Leaves \ref greedy_class_loop at -1 on purpose: sharing
-      //!        that selector makes every `class+` search branch on this shape, measured dearer.
+      //!        that selector makes every `class+` search branch on this shape.
       std::int16_t trailing_lookaround {-1};
       bool         trailing_la_cp      {};   //!< The \ref trailing_lookaround body is a `klass_cp` (cp_classes index).
       std::int32_t trailing_la_class   {-1}; //!< Class index for \ref trailing_lookaround body; −1 if unset.
@@ -588,6 +589,9 @@ namespace real {
        */
       std::int32_t il_rev_class {-1};
       bool         il_rev_is_cp {}; //!< \ref il_rev_class indexes `cp_classes` (a `klass_cp` loop) rather than `classes`.
+      //! \brief Bit `i`: byte `i` of \ref inner_literal is a lower-case ASCII letter that matches in either case
+      //!        (`(?i)x`, `[xX]`); 0 for an exact literal. In the padding before \ref il_fwd_class.
+      std::uint16_t inner_literal_fold {};
 
       /*!
        * \brief IL two-run confirm: the whole pattern is `class+ <literal> class+` (groups around either run

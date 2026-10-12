@@ -189,8 +189,8 @@ namespace real::detail {
    *        `pike_vm::run_bounded_backtrack`).
    *
    * Rows are positions relative to the search's start. Nothing is zeroed on construction: a start
-   * clears the rows from it to the subject's end. Clearing each row as the walk reaches it costs a test
-   * per byte, measured dearer.
+   * clears the rows from it to the subject's end. Clearing each row as the walk reaches it would cost a test
+   * per byte.
    */
   // MISRA deviation (docs/MISRA.md): marks, slots and jobs carry no initializer; each is read only
   // after a write (cleared row, set slot, job below depth). Zeroing costs 3.3 KiB of stores per search.
@@ -468,8 +468,8 @@ namespace real::detail {
      * \brief Clears the list in O(1) by bumping the generation.
      *
      * `noinline`: an inlined `mark.assign` (per-element `construct_at` loop) charges the class-scan
-     * routes on gcc/x86, which build no thread list. It pays only with the SBO mark table (alone, a
-     * regression): keep both or neither.
+     * routes on gcc/x86, which build no thread list. It pays only with the SBO mark table (alone, it
+     * costs more): keep both or neither.
      *
      * \param[in] code_size Number of instructions (sizes the mark table once).
      */
@@ -581,7 +581,7 @@ namespace real::detail {
 
     /*!
      * \brief Class \ref table was built for (-1 = none). One load per byte instead of the bitmap's
-     *        shift-and-mask (~2x in a tight scan), reused across a `find_all`-style walk.
+     *        shift-and-mask, reused across a `find_all`-style walk.
      */
     std::int32_t                   table_class {-1};
     std::array<std::uint8_t, 256>  table;         //!< 1 where the byte is in \ref table_class (filled on a class_table miss).
@@ -766,6 +766,28 @@ namespace real::detail {
     }
   };
 
+  // Per-state capabilities: the dynamic storage's state carries these members, the static one does not.
+  //! Alternation pair plan.
+  template <typename S> concept state_has_alt_pairs = requires(S & s) {
+    s.alt_pairs;
+  };
+  //! Lookaround scratch.
+  template <typename S> concept state_has_lookaround = requires(S & s) {
+    s.lookaround;
+  };
+  //! Inner-literal give-way.
+  template <typename S> concept state_has_il_abandoned = requires(S & s) {
+    s.il_abandoned;
+  };
+  //! Rare-discriminator give-way.
+  template <typename S> concept state_has_rare_disc_abandoned = requires(S & s) {
+    s.rare_disc_abandoned;
+  };
+  //! Search lazy DFAs.
+  template <typename S> concept state_has_fwd_dfa = requires(S & s) {
+    s.fwd_dfa;
+  };
+
   /*!
    * \brief The Pike VM, generic over the scratch-state container policy.
    * \tparam State A \ref basic_pike_state instantiation (vector- or static-backed).
@@ -774,7 +796,6 @@ namespace real::detail {
    *         per-`run()` program-identity compare (2.9 points of a `[a-z]+` walk). Defaults to \c false:
    *         an embedder holding a state across regexes (Python binding, meta-seam harness) needs it.
    */
-
   template <typename State, bool StateBoundToProgram = false>
   class pike_vm
   {
@@ -827,7 +848,7 @@ namespace real::detail {
       sem_                = sem;
       // Fast paths only fire for always-consuming patterns, which cannot produce the guarded empty match.
       // Keep the trailing-lookahead walk out of run() (it lives in real.hpp / find_iter): run() must stay
-      // small enough to inline into find_iter (double-digit x86 regression otherwise).
+      // small enough to inline into find_iter.
       if (sem_ == match_semantics::first && prog_.hints.greedy_class_loop >= 0
           && (std::is_constant_evaluated() || !class_fastpath_disabled())) {
         prof::tick_route(prof::route::class_loop);
@@ -894,7 +915,7 @@ namespace real::detail {
             && (!confirms_by_reverse || !prog_.prefix_code.empty())) {
           // Not with a fixed-shape route: against it IL is at best a tie, else a small loss (worst near
           // a few dozen candidates per KB, under il_density_milli_threshold), a route condition, not a
-          // retune. A literal at offset 0 is a prefix and keeps find_prefix (~3.3x dearer here on dense
+          // retune. A literal at offset 0 is a prefix and keeps find_prefix (dearer here on dense
           // corpora). No size guard: with no candidate the route is memmem-only.
           il_reset_on_new_haystack(text);
           if (!state_.il_abandoned) {
@@ -969,12 +990,10 @@ namespace real::detail {
         prof::tick_route(prof::route::alternation);
         return run_alternation(text, start, mode, out_slots);
       }
-      // Lazy DFA: a forward DFA finds the match end (capture-free, ~12x a Pike no-match scan) and a reverse
+      // Lazy DFA: a forward DFA finds the match end (capture-free, far cheaper than a Pike scan) and a reverse
       // DFA its start; the VM then runs on [s, e] only for captures and the empty-match rule. Ineligible
       // patterns, a tripped thrash flag, small inputs and non-search modes stay on the VM.
-      if constexpr (requires(State & s) {
-        s.fwd_dfa;
-      }) {
+      if constexpr (state_has_fwd_dfa<State>) {
         // Full match: the window is exactly [start, text.size()]. A one-pass pattern fills its captures in
         // one pass (extract returns false when it cannot); no DFA build is paid.
         if (mode == run_mode::full && !std::is_constant_evaluated() && !lazy_dfa_route_disabled()) {
@@ -1010,7 +1029,7 @@ namespace real::detail {
           std::size_t dfa_start {start};
           if (forbid_empty_until_ > start) {
             // The DFAs do not model the no-empty-at-`start` rule, but it binds one position: the VM decides
-            // at `start`, the DFAs take the rest (leaving it all to the VM made `.*` 700x slower than `.+`).
+            // at `start`, the DFAs take the rest (leaving it all to the VM would put all of `.*` on the VM).
             if (run_general<false>(text, start, run_mode::prefix, out_slots)) {
               return true;
             }
@@ -1019,7 +1038,7 @@ namespace real::detail {
           if (dfa_start <= text.size() && text.size() - dfa_start >= lazy_dfa_min_input) {
             const std::size_t forbid {forbid_empty_until_};
             forbid_empty_until_ = 0;
-            // Out of line: the shared-DFA body inlined in run() bloats class-loop codegen (x86 regression).
+            // Out of line: the shared-DFA body inlined in run() bloats class-loop codegen.
             const std::optional<bool> dfa_result {try_shared_lazy_dfa_search<Cascade>(text, dfa_start, mode, out_slots)};
             forbid_empty_until_ = forbid; // the VM below, if the DFAs declined, applies the rule itself
             if (dfa_result) {
@@ -1143,9 +1162,7 @@ namespace real::detail {
                     std::size_t&     stop)
     {
       stop = s;
-      if constexpr (requires(State & st) {
-        st.fwd_dfa;
-      }) {
+      if constexpr (state_has_fwd_dfa<State>) {
         if (prog_.slot_count > 2 && !prog_.hints.capture_free_walk) {
           // Groups to fill on a one-pass pattern whose ends the table knows: one walk finds the end and the
           // groups, where the forward DFA would read the window first and the table read it again.
@@ -1272,9 +1289,7 @@ namespace real::detail {
     {
       // Guarded: the IL fields exist on a static state only when its tier wants IL
       // (`static_il_guard_fields`), so an unguarded body fails to compile for WantsIL = false.
-      if constexpr (requires(State & st) {
-        st.il_abandoned;
-      }) {
+      if constexpr (state_has_il_abandoned<State>) {
         if (state_.il_text != static_cast<const void*>(text.data())) {
           state_.il_abandoned      = false; // a fresh haystack: re-enable and re-evaluate its guards
           state_.il_density_cands  = 0;
@@ -1323,9 +1338,7 @@ namespace real::detail {
       inner_literal_bill bill            {};
       std::size_t        reversed        {0}; // bytes the last candidate's reverse automaton read
       const auto         give_way        {[&] {
-                                            if constexpr (requires(State & st) {
-            st.il_abandoned;
-          }) {
+                                            if constexpr (state_has_il_abandoned<State>) {
                                               state_.il_abandoned = true; // sticky for this haystack, as the density gate's
                                             }
                                             note(counter::inner_literal_bill_trips);
@@ -1339,7 +1352,10 @@ namespace real::detail {
       std::optional<dfa_lease> lease;
       const scan_set_reset     held {scan_set_};
       while (true) {
-        const std::size_t h {find_on_subject(text, pos, lit, prog_.hints.inner_literal_rare, true)};
+        const std::size_t h {prog_.hints.inner_literal_fold == 0
+                               ? find_on_subject(text, pos, lit, prog_.hints.inner_literal_rare, true)
+                               : find_folded_literal(text, pos, lit, prog_.hints.inner_literal_fold,
+                                                     prog_.hints.inner_literal_rare)};
         if (h != npos) {
           detail::prof::tick_prefilter_candidate();
         }
@@ -1350,7 +1366,7 @@ namespace real::detail {
           first_candidate = false;
           // No immutables, no reverse-by-class, no code-point shape: no way to place a match start, so IL
           // is a no-match accelerator only. Hand back at the first candidate (sticky): with matches present
-          // the static core scans beat IL's confirm; with none, IL is ~100x ahead.
+          // the static core scans beat IL's confirm; with none, IL is far ahead.
           if (prog_.immut == nullptr && prog_.hints.il_rev_class < 0 && !prog_.hints.il_cp_shape_eligible) {
             abandon             = true;
             state_.il_abandoned = true;
@@ -1648,7 +1664,7 @@ namespace real::detail {
      * in opposite directions, hence \ref ac_completion_pct too. Do not retune these constants against that
      * sweep (it moves the error).
      *
-     * The constant is the measured MINIMUM over both ISAs (588, rounded down): at or above
+     * The constant is under the lowest crossover measured over both ISAs: at or above
      * \ref ac_branch_threshold branches, switching early is the safe error, switching late forfeits a win.
      */
     static constexpr std::size_t   ac_density_sample_bytes       {256};
@@ -1769,7 +1785,7 @@ namespace real::detail {
         std::size_t       pos                {start};
         std::size_t       scanned            {limit > start ? limit - start : std::size_t {1}};
         // A truncated view: next_candidate scans until it finds a candidate, so bounding the count bounds
-        // nothing (a candidate-free subject was read whole, costing two thirds of this gate's win).
+        // nothing (a candidate-free subject would be read whole).
         const std::string_view window {text.substr(0, limit)};
         while (pos < limit) {
           pos = next_candidate(window, pos, start);
@@ -2002,7 +2018,7 @@ namespace real::detail {
       // Re-arm the thrash flag per logical entry: on a shared slot a sticky one would decline the DFA route
       // for every later search on this regex (a second reset by a candidate walk is harmless). A quit hands
       // only this search to the VM: it is local to a boundary next to a non-ASCII byte (giving up the
-      // whole subject cost `\b\w+ing\b` 44 % on prose with curly quotes).
+      // whole subject would charge boundary patterns on prose with non-ASCII punctuation).
       fwd.begin_scan();
       std::forward<Fn>(fn)(fwd, rev);
       return true;
@@ -2200,11 +2216,11 @@ namespace real::detail {
      * x86 by presence alone, and `cold` would deoptimize a function called on every AC-eligible search.
      *
      * \note Cached per REGEX in \ref detail::regex_immutables, not per state: a state is fresh per
-     *       `search()` (a per-state automaton was ~200x slower). Its identity atomic is its own, never
+     *       `search()` (a per-state automaton would be rebuilt per search). Its identity atomic is its own, never
      *       folded into `built_for`: only this route consults it.
      *
-     * \warning The automaton scans at a flat rate: worst-case insurance, not a fast path (100x slower
-     *          with no match, 10.5x faster on a subject full of false starts). The subject, not the
+     * \warning The automaton scans at a flat rate: worst-case insurance, not a fast path (far slower
+     *          with no match, far faster on a subject full of false starts). The subject, not the
      *          branch count, predicts the regime, hence \ref ac_density_favours_automaton.
      *
      * \tparam Dummy Never named by a caller: a member template with one `if constexpr`-gated call site
@@ -2408,9 +2424,7 @@ namespace real::detail {
      * \param[in,out] cache       The per-regex immutables.
      * \param[in]     class_index Index into the program's interned byte classes.
      */
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((noinline, cold)) // see verify_class_row
-#endif
+    REAL_COLD // see verify_class_row
     void fill_class_row(detail::regex_immutables& cache,
                         std::size_t               class_index) const
     {
@@ -2423,9 +2437,7 @@ namespace real::detail {
      * \param[in,out] cache    The per-regex immutables.
      * \param[in]     cp_index Index into the program's code-point classes.
      */
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((noinline, cold)) // see verify_class_row
-#endif
+    REAL_COLD // see verify_class_row
     void fill_cp_ascii_row(detail::regex_immutables& cache,
                            std::size_t               cp_index) const
     {
@@ -2706,7 +2718,7 @@ namespace real::detail {
     static constexpr std::uint32_t cp_page_max {0x7FFU}; //!< Highest code point covered by the `cp_page` bitmap (the 2-byte UTF-8 range).
 
     //! \brief Accepted-byte count after which a `class+` run switches from the per-byte advance to a
-    //!        memchr-cascade to the next stop byte, so stop-dense short runs stay at baseline (measured).
+    //!        memchr-cascade to the next stop byte, so stop-dense short runs stay at baseline.
     static constexpr std::size_t cascade_run_threshold {32};
 
     /*!
@@ -2937,6 +2949,28 @@ namespace real::detail {
     }
 
     /*!
+     * \brief \ref cp_member_high for the trailing-lookaround walk, written out rather than called.
+     *
+     * A second call site of \ref cp_member_high, even from this cold walk, makes GCC stop inlining it into
+     * \ref fill_cp_class_spans, which charges the code-point class scans. Runtime only
+     * (the walk is dynamic-only).
+     * \param[in] cp_index Index of the code-point class.
+     * \param[in] cp       Code point above \ref cp_page_max.
+     * \return True when \p cp is a member.
+     */
+    bool cp_member_high_unshared(std::size_t cp_index,
+                                 char32_t    cp)
+    {
+      if (state_.hi_class != static_cast<std::int32_t>(cp_index)) [[unlikely]] {
+        resolve_hi(cp_index);
+      }
+      if (state_.hi_ptr != nullptr) {
+        return state_.hi_ptr->contains(cp);
+      }
+      return !state_.hi_never && cp_class_matches(prog_.cp_classes[cp_index], cp);
+    }
+
+    /*!
      * \brief Fills the state's sparse-hi memo for \p cp_index, the cold half of \ref cp_member_high,
      *        outlined so the per-code-point path stays a class-key compare and a bit test.
      *
@@ -3006,7 +3040,7 @@ namespace real::detail {
      * \param[in]  match_start Whole-match start offset.
      * \param[in]  match_end   Whole-match end offset.
      */
-    // always_inline: out of line, this four-store writer cost 31 instructions a match, mostly the frame.
+    // always_inline: out of line, this four-store writer costs a call frame per match.
     template <typename OutSlots>
     REAL_ALWAYS_INLINE
     constexpr void fill_span_slots(OutSlots&   out_slots,
@@ -3103,7 +3137,7 @@ namespace real::detail {
       const auto scan_end = [&](std::size_t match_start) -> std::size_t {
                               std::size_t match_end {match_start + 1};
                               // As class_run_end, kept inline: that call charges `\w+` and `.` searches through
-                              // run() 0.3-0.4 % (GCC 15, aarch64).
+                              // run().
                               if constexpr (Cascade) {
                                 if (!std::is_constant_evaluated()) {
                                   while (match_end < text.size() && in_class(match_end)) {
@@ -3223,8 +3257,10 @@ namespace real::detail {
     /*!
      * \brief Trailing-lookaround class+: body scan + longest end where lookaround holds.
      *
-     * Cold, noinline, called from real.hpp / find_iter outside \ref run, since it must not share a body or
-     * inlining unit with \ref run_class_loop (the hot [a-z]+ path). Dynamic-only. A code-point body
+     * Called from real.hpp / find_iter outside \ref run, once per match. Only this selector inlines into the
+     * caller; each walk is out of line, since it must not share a body or inlining unit with
+     * \ref run_class_loop (the hot [a-z]+ path). A cold, out-of-line selector makes every match two calls,
+     * since clang keeps the walk out of it. Dynamic-only. A code-point body
      * (\ref pattern_hints::trailing_la_cp) walks whole code points: a run holds only valid ones, so its
      * candidate ends are the bytes that are not UTF-8 continuations.
      *
@@ -3235,19 +3271,21 @@ namespace real::detail {
      * \return True on a match.
      */
     template <bool Cascade, typename OutSlots>
-    REAL_COLD
+    REAL_ALWAYS_INLINE
     bool run_class_loop_trailing_la(std::string_view text,
                                     std::size_t      start,
                                     run_mode         mode,
                                     OutSlots&        out_slots)
     {
-      // Two instantiations: a runtime test in the byte walk's per-byte lambdas cost it 9-12 %.
+      // Two instantiations: a runtime test in the byte walk's per-byte lambdas would cost it per byte.
       return prog_.hints.trailing_la_cp ? trailing_la_walk<Cascade, true>(text, start, mode, out_slots)
                                         : trailing_la_walk<Cascade, false>(text, start, mode, out_slots);
     }
 
     /*!
      * \brief The body of \ref run_class_loop_trailing_la for one body kind.
+     *
+     * Out of line but not cold: optimized for size, the walk runs more instructions on GCC.
      * \tparam Cascade Whether the byte walk may take its memchr-cascade tail.
      * \tparam Cp      The body is a `klass_cp` (whole code points) rather than a `klass`.
      * \param[in]  text      Subject.
@@ -3257,15 +3295,14 @@ namespace real::detail {
      * \return True on a match.
      */
     template <bool Cascade, bool Cp, typename OutSlots>
+    REAL_NOINLINE
     bool trailing_la_walk(std::string_view text,
                           std::size_t      start,
                           run_mode         mode,
                           OutSlots&        out_slots)
     {
       // Static storage has no lookaround scratch and never arms trailing_lookaround.
-      if constexpr (!requires(State & st) {
-        st.lookaround;
-      }) {
+      if constexpr (!state_has_lookaround<State>) {
         return fail_slots(out_slots);
       }
       else {
@@ -3285,7 +3322,7 @@ namespace real::detail {
                                                const detail::decoded_codepoint dc     {detail::decode_codepoint_strict(text, i)};
                                                const bool                      member {dc.valid
                                                                                        && (dc.cp <= cp_page_max ? cp_member_page(cls, dc.cp)
-                                                                                           : cp_member_high(cls, dc.cp))};
+                                                                                           : cp_member_high_unshared(cls, dc.cp))};
                                                return member ? dc.length : 0;
                                              };
         const auto in_class = [&](std::size_t i) { return width_at(i) != 0; };
@@ -3310,26 +3347,18 @@ namespace real::detail {
 
         const auto sub_id {static_cast<std::uint16_t>(prog_.hints.trailing_lookaround)};
         // Resolve the lookaround ONCE per walk: lookaround_holds re-derives the sub, its length and its
-        // body opcode per call (a quarter of `[a-z]+(?=[a-z])` over prose). Force-inlining it instead
-        // measured a regression (see basic_match_iterator::advance).
+        // body opcode per call. Not force-inlined instead (see basic_match_iterator::advance).
         const lookaround_sub& la_sub    {prog_.lookarounds[sub_id]};
-        const instr*          la_simple {nullptr};
-        if (la_sub.code_length == 2) {
-          const instr& body {prog_.code[static_cast<std::size_t>(la_sub.code_offset)]};
-          if (body.op == opcode::byte || body.op == opcode::klass
-              || (body.op == opcode::klass_cp && !prog_.byte_mode)) {
-            la_simple = &body;
-          }
-        }
-        const auto la_at = [&](std::size_t e) {
-                             if (la_simple == nullptr) {
-                               return lookaround_holds(sub_id, e);
-                             }
-                             const bool matched {la_sub.direction == look_dir::behind
+        const instr* const    la_simple {single_atom_body(la_sub)};
+        const auto            la_at = [&](std::size_t e) {
+                                        if (la_simple == nullptr) {
+                                          return lookaround_holds(sub_id, e);
+                                        }
+                                        const bool matched {la_sub.direction == look_dir::behind
                                                    ? single_class_behind(*la_simple, e)
                                                    : single_class_ahead(*la_simple, e)};
-                             return matched != la_sub.negative;
-                           };
+                                        return matched != la_sub.negative;
+                                      };
         const auto try_ends = [&](std::size_t ms, std::size_t me) -> bool {
                                 for (std::size_t e = me; e > ms; e = prev_end(e)) {
                                   if (la_at(e)) {
@@ -3435,7 +3464,7 @@ namespace real::detail {
           ++i;
           continue;
         }
-        // As class_run_end, kept inline: that call charges this filler's dense rows 0.3 % (GCC 15).
+        // As class_run_end, kept inline: that call charges this filler's dense rows.
         std::size_t end {i + 1};
         if constexpr (Cascade) {
           while (end < text.size() && tbl[static_cast<std::uint8_t>(text[end])] != 0U) {
@@ -3652,8 +3681,8 @@ namespace real::detail {
      *
      * Filters the plain filler's batches (the per-match route skips a failing run whole) and refills
      * until a span survives or the runs are spent: never an empty batch while runs remain (the iterator
-     * reads one as the end). Kept apart and cold: a template parameter on the plain filler changed GCC's
-     * inlining of its code-point lookup (`\p{L}+` ran 5.6 % more instructions on x86-64).
+     * reads one as the end). Kept apart and cold: a template parameter on the plain filler changes GCC's
+     * inlining of its code-point lookup.
      * \param[in]  text  The subject.
      * \param[in]  start Where to begin.
      * \param[out] out   Buffer for the spans found.
@@ -3699,8 +3728,7 @@ namespace real::detail {
      * \brief Writes a buffered span into a caller's slots exactly as the per-match path would.
      *
      * Not \ref fill_span_slots called directly: that writer is always_inline, and expanded into the batched
-     * walk's emission it cost Python's `sub` over `\s+` 6.5 % under Apple clang (instruction counts did not
-     * show it).
+     * walk's emission it charges Python's `sub` under Apple clang, which instruction counts do not show.
      * \param[out] out_slots Slots to fill.
      * \param[in]  s         Match start.
      * \param[in]  e         Match end.
@@ -4247,7 +4275,7 @@ namespace real::detail {
                             };
 #if defined(__GNUC__) && !defined(__clang__)
       // gcc keeps the width round trip: the ASCII-direct predicate below runs fewer instructions but
-      // measured sharply SLOWER on gcc (the trap cpclass_gcc.hpp documents for this loop family).
+      // is slower on gcc (the trap cpclass_gcc.hpp documents for this loop family).
       const auto in_class = [&](std::size_t i) { return i < text.size() && cp_width(i) != 0; };
 #else
       // Membership only, for the leftmost scan: `asc[lead]` instead of a cp_width decode round trip
@@ -4978,8 +5006,8 @@ namespace real::detail {
      * \brief Batched twin of \ref run_codepoint_class, filling up to \p cap maximal spans in ONE call.
      *
      * Otherwise the `.`/negated-class shape pays a full route entry per match, the other class routes one
-     * per sixteen. Not a flag on the existing function: widening a shared scan lambda by one branch nearly
-     * doubled the property-class rows that never used it.
+     * per sixteen. Not a flag on the existing function: widening a shared scan lambda by one branch charges
+     * the property-class rows that never use it.
      *
      * Search semantics only: \ref basic_match_iterator excludes anchored shapes from batching, and
      * `run_mode::full` keeps \ref run_codepoint_class.
@@ -5229,7 +5257,7 @@ namespace real::detail {
      *
      * Search mode only: the automaton's leftmost-first scan IS the candidate search. Runtime only, never
      * instantiated for the static storage's `State`. `noinline`, NOT `cold` (as \ref ac_ready), since inside
-     * the body of `run()` it regressed the negated-class rows on x86.
+     * the body of `run()` it charges the negated-class rows on x86.
      *
      * \tparam OutSlots Output slot container.
      * \param[in]  text      The subject text.
@@ -5552,9 +5580,7 @@ namespace real::detail {
                                                             std::size_t                        cnt) const
     {
       // A made decision is read in line: per-match searches ask again.
-      if constexpr (requires(State & st) {
-        st.alt_pairs;
-      }) {
+      if constexpr (state_has_alt_pairs<State>) {
         const alternation_density* const seen {alternation_density_seen(text)};
         if (seen != nullptr && seen->decided && !alternation_pairs_disabled()) {
           return seen->dense ? state_.alt_pairs : nullptr;
@@ -5566,7 +5592,7 @@ namespace real::detail {
     /*!
      * \brief Whether \ref run_alternation will mask this subject's blocks by its pairs or fingerprint: a
      *        dense subject, where the Aho-Corasick gate (calibrated against the first-byte scan) would pick
-     *        the automaton. The filtered scan beats the automaton there (4.5x on x86-64, 15x on arm64).
+     *        the automaton. The filtered scan beats the automaton there.
      * \param[in] text  The subject.
      * \param[in] start Where the search starts.
      * \return True when the alternation's block filter takes the subject.
@@ -5605,9 +5631,7 @@ namespace real::detail {
                                                      std::size_t                        cnt) const
     {
 #if defined(__ARM_NEON) || defined(__SSE2__)
-      if constexpr (requires(State & st) {
-        st.alt_pairs;
-      }) {
+      if constexpr (state_has_alt_pairs<State>) {
         if (alternation_pairs_disabled()) {
           return nullptr;
         }
@@ -5660,9 +5684,7 @@ namespace real::detail {
      */
     [[nodiscard]] bool alternation_wide_may_take(std::string_view text) const
     {
-      if constexpr (requires(State & st) {
-        st.alt_pairs;
-      }) {
+      if constexpr (state_has_alt_pairs<State>) {
         const std::size_t branches {prog_.hints.alternation_branch_count};
         if (prog_.hints.small_set_size != 0 || prog_.hints.single_first >= 0
             || branches < alternation_wide_min_branches || branches > alternation_wide_max_branches) {
@@ -5728,9 +5750,7 @@ namespace real::detail {
                                              std::size_t*     filled = nullptr)
     {
 #if (defined(__ARM_NEON) || defined(__SSE2__)) && (defined(__aarch64__) || defined(__SSSE3__) || (defined(__SSE2__) && (defined(__GNUC__) || defined(__clang__))))
-      if constexpr (requires(State & st) {
-        st.alt_pairs;
-      }) {
+      if constexpr (state_has_alt_pairs<State>) {
         if (!prog_.hints.first_bytes_valid || alternation_pairs_disabled() || alternation_nibbles_disabled()) {
           return std::nullopt;
         }
@@ -5768,9 +5788,6 @@ namespace real::detail {
         if (!density.decided) {
           if (start >= text.size() || text.size() - start < alternation_sample_min) {
             return std::nullopt; // a short rest: left to the automaton's gate, and a longer rest may still sample
-          }
-          if (state_.alt_pairs == nullptr) {
-            state_.alt_pairs = alternation_pairs_ready();
           }
           density.decided = true;
           density.dense   = state_.alt_pairs != nullptr && state_.alt_pairs->count != 0U
@@ -5895,9 +5912,7 @@ namespace real::detail {
                                           std::size_t      start)
     {
 #if (defined(__ARM_NEON) || defined(__SSE2__)) && (defined(__aarch64__) || defined(__SSSE3__) || (defined(__SSE2__) && (defined(__GNUC__) || defined(__clang__))))
-      if constexpr (requires(State & st) {
-        st.alt_pairs;
-      }) {
+      if constexpr (state_has_alt_pairs<State>) {
         const pattern_hints& h {prog_.hints};
         if (h.fixed_alternation || h.anchored_start || h.rare_disc >= 0 || h.prefix_size >= 2 || h.rare_byte >= 0
             || h.single_first >= 0 || h.line_anchored != 0U || !h.first_bytes_valid || alternation_pairs_disabled()
@@ -6720,7 +6735,7 @@ namespace real::detail {
      * \brief Is the lazy-DFA route the one `run()` would actually take for this program?
      *
      * Mirrors `run()`'s cascade: a batched walk bypasses `run()`, so batching a shape an EARLIER route
-     * claims takes it off that faster route (a plain literal lost its `memmem`). The conditions are
+     * claims takes it off that faster route (a plain literal would lose its `memmem`). The conditions are
      * stated positively, one per route above the lazy DFA, never as a residue of the shape recognizers.
      *
      * \warning Adding a route to `run()` above the lazy DFA means adding its hint here. Nothing enforces
@@ -6814,9 +6829,7 @@ namespace real::detail {
       partial = true;
       // Same guard as il_reset_on_new_haystack: a static tier without IL has no `il_abandoned`. Never
       // armed there (no prefix_code), so this branch only keeps the template well-formed.
-      if constexpr (!requires(State & st) {
-        st.il_abandoned;
-      }) {
+      if constexpr (!state_has_il_abandoned<State>) {
         static_cast<void>(text);
         static_cast<void>(start);
         static_cast<void>(out);
@@ -7021,9 +7034,9 @@ namespace real::detail {
      * \brief The whole exact-literal search in one \ref find_prefix, for a
      *        \ref pattern_hints::literal_one_search program (called from \ref run_exact_literal).
      *
-     * `noinline` on a HOT path: inside \ref run_exact_literal it grew a function sharing an inlining unit
-     * with \ref run and the class loops, and `[^,]+` (\ref run_codepoint_class) regressed from the growth
-     * alone (the hazard documented on \ref run). Out of line it costs a 9-byte literal ~3 points.
+     * `noinline` on a HOT path: inside \ref run_exact_literal it grows a function sharing an inlining unit
+     * with \ref run and the class loops, and the growth alone charges \ref run_codepoint_class (the hazard
+     * documented on \ref run). Out of line it costs a short literal one call.
      *
      * \tparam OutSlots Output slot container.
      * \param[in]  text      The subject text.
@@ -7131,9 +7144,7 @@ namespace real::detail {
       // density abandon per haystack: dense `:` makes memchr+verify lose to the prefix.
       if (!std::is_constant_evaluated() && hints.rare_disc >= 0 && !rare_disc_route_disabled()) {
         bool use_disc {true};
-        if constexpr (requires(State & s) {
-          s.rare_disc_abandoned;
-        }) {
+        if constexpr (state_has_rare_disc_abandoned<State>) {
           if (state_.rare_disc_text != static_cast<const void*>(text.data())) {
             state_.rare_disc_abandoned = false;
             state_.rare_disc_text      = static_cast<const void*>(text.data());
@@ -7144,9 +7155,7 @@ namespace real::detail {
           bool              density_abandon {false};
           const std::size_t cand            {find_rare_disc_candidate(text, pos, hints, &density_abandon)};
           if (density_abandon) {
-            if constexpr (requires(State & s) {
-              s.rare_disc_abandoned;
-            }) {
+            if constexpr (state_has_rare_disc_abandoned<State>) {
               state_.rare_disc_abandoned = true;
             }
             // Fall through to prefix / first-byte below for this candidate.
@@ -7250,34 +7259,6 @@ namespace real::detail {
         return true;
       }
       return pos < text.size() && hints.first_bytes.test(static_cast<std::uint8_t>(text[pos]));
-    }
-
-    /*!
-     * \brief Word-ness of the code point **ending exactly at** \p pos — the left side of a `\b`/`\B`/
-     *        `\<`/`\>` boundary. False at the text start. In text mode it back-decodes (up to three
-     *        continuation bytes) and requires the sequence to end exactly at \p pos, so a malformed or
-     *        misaligned run reads as non-word; bytes / `re.A` stay byte-level.
-     * \param[in] pos        Boundary position.
-     * \param[in] ascii_word Restrict word-ness to ASCII (`re.A` / bytes mode).
-     * \return `true` when the preceding code point is a word character.
-     */
-    [[nodiscard]] constexpr bool word_before(std::size_t pos,
-                                             bool        ascii_word) const
-    {
-      return real::detail::word_before(text_, pos, ascii_word); // shared free function (assert_eval.hpp)
-    }
-
-    /*!
-     * \brief Word-ness of the code point **starting at** \p pos — the right side of a boundary. False
-     *        at the text end or on a malformed sequence; bytes / `re.A` stay byte-level.
-     * \param[in] pos        Boundary position.
-     * \param[in] ascii_word Restrict word-ness to ASCII (`re.A` / bytes mode).
-     * \return `true` when the following code point is a word character.
-     */
-    [[nodiscard]] constexpr bool word_after(std::size_t pos,
-                                            bool        ascii_word) const
-    {
-      return real::detail::word_after(text_, pos, ascii_word); // shared free function (assert_eval.hpp)
     }
 
     /*!
@@ -7598,6 +7579,32 @@ namespace real::detail {
     }
 
     /*!
+     * \brief Whether \p sub holds an assertion that reads what follows where it stands: `$`, `\Z`, `\z`,
+     *        `\b`, `\B`, `\<`, `\>`.
+     * \param[in] sub The lookaround (they do not nest, so its code is all its own).
+     * \return True when the lookaround may read past the bytes it consumes.
+     */
+    [[nodiscard]] constexpr bool reads_right(const lookaround_sub& sub) const
+    {
+      const std::size_t first {static_cast<std::size_t>(sub.code_offset)};
+      const std::size_t last  {first + static_cast<std::size_t>(sub.code_length)};
+      for (std::size_t i {first}; i < last; ++i) {
+        const instr& in {prog_.code[i]};
+        if (in.op == opcode::assert_position) {
+          switch (static_cast<assert_kind>(in.arg8)) {
+            case assert_kind::text_start:
+            case assert_kind::line_start:
+            case assert_kind::line_start_cr:
+              break;
+            default:
+              return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    /*!
      * \brief Probe of \ref extends_past_end on an epsilon step at \p pos: an assertion that looks right, a
      *        lookahead, or a possessive test whose answer the end of the text decides.
      * \param[in] instruction The instruction the closure walk is at.
@@ -7634,10 +7641,17 @@ namespace real::detail {
           break;
         case opcode::assert_lookaround:
           {
-            // A window that reaches the end may read past it, an assertion at its own end included.
-            const lookaround_sub& sub {prog_.lookarounds[instruction.arg16]};
-            open = sub.direction == look_dir::ahead
-                   && (sub.l_max < 0 || pos + static_cast<std::size_t>(sub.l_max) >= size);
+            // A window that reaches the end may read past it. An assertion that looks right reads up to
+            // one code point past wherever it stands: the window's last byte for a lookahead, the
+            // position itself for a lookbehind.
+            const lookaround_sub& sub   {prog_.lookarounds[instruction.arg16]};
+            const std::size_t     right {reads_right(sub) ? 4U : 0U};
+            if (sub.direction == look_dir::ahead) {
+              open = sub.l_max < 0 || pos + static_cast<std::size_t>(sub.l_max) + right >= size;
+            }
+            else {
+              open = right != 0U && pos + right > size;
+            }
             break;
           }
         case opcode::byte_loop_possessive:
@@ -7991,9 +8005,7 @@ namespace real::detail {
             }
             break;
           case opcode::assert_lookaround:
-            if constexpr (requires(State & s) {
-            s.lookaround;
-          }) {
+            if constexpr (state_has_lookaround<State>) {
               if (lookaround_holds(instruction.arg16, pos)) {
                 stack.push_back({.pc = pc + 1, .block = block});
               }
@@ -8086,17 +8098,12 @@ namespace real::detail {
                                                   std::size_t   pos)
     {
       const lookaround_sub& sub {prog_.lookarounds[sub_id]};
-      // Peephole: a single-width body is exactly [one consuming op; match] (code_length 2): test it
-      // directly, several times cheaper. Negation applies to the result, so boundary positions flip right.
-      if (sub.code_length == 2) {
-        const instr& body   {prog_.code[static_cast<std::size_t>(sub.code_offset)]};
-        const bool   direct {body.op == opcode::byte || body.op == opcode::klass
-                             || (body.op == opcode::klass_cp && !prog_.byte_mode)};
-        if (direct) {
-          const bool matched {sub.direction == look_dir::behind ? single_class_behind(body, pos)
-                                                                : single_class_ahead(body, pos)};
-          return sub.negative ? !matched : matched;
-        }
+      // Peephole: a one-atom body is tested directly, several times cheaper. Negation applies to the
+      // result, so boundary positions flip right.
+      if (const instr* const body {single_atom_body(sub)}; body != nullptr) {
+        const bool matched {sub.direction == look_dir::behind ? single_class_behind(*body, pos)
+                                                              : single_class_ahead(*body, pos)};
+        return sub.negative ? !matched : matched;
       }
       bool matched {false};
       if (sub.direction == look_dir::behind) {
@@ -8133,6 +8140,24 @@ namespace real::detail {
     }
 
     /*!
+     * \brief The one consuming instruction of a lookaround body that is a single atom, or null.
+     *
+     * Such a body is `[byte | klass; match]` (two slots) or, in text mode, `[klass_cp; three continuation
+     * slots; match]` (five: the compiler always emits the chain), so a code-point class is matched
+     * by `klass_cp` alone.
+     * \param[in] sub The lookaround sub-program.
+     * \return The instruction to test directly, or null when the body needs the sub-simulation.
+     */
+    [[nodiscard]] constexpr const instr* single_atom_body(const lookaround_sub& sub) const
+    {
+      const instr& body {prog_.code[static_cast<std::size_t>(sub.code_offset)]};
+      if (sub.code_length == 2) {
+        return body.op == opcode::byte || body.op == opcode::klass ? &body : nullptr;
+      }
+      return sub.code_length == 5 && body.op == opcode::klass_cp && !prog_.byte_mode ? &body : nullptr;
+    }
+
+    /*!
      * \brief L1 peephole — does \p body match the code point / byte ending EXACTLY at \p pos (behind)?
      *        The defining lookbehind trap: the match must END at \p pos, so the code point is the one whose
      *        aligned start s gives `s + length == pos` (byte mode: `pos - 1`).
@@ -8148,9 +8173,12 @@ namespace real::detail {
       }
       if (body.op == opcode::klass_cp) {
         std::size_t s {pos - 1};
-        while (s > 0 && (static_cast<std::uint8_t>(text_[s]) & 0xC0U) == 0x80U) {
+        // At most three continuation bytes back: a longer run is malformed, and the bound keeps one test
+        // from scanning the subject.
+        while (s > 0 && pos - s < 4U && (static_cast<std::uint8_t>(text_[s]) & 0xC0U) == 0x80U) {
           --s; // recede over UTF-8 continuation bytes to the code point's aligned start
         }
+        note(counter::behind_atom_steps, pos - 1U - s);
         const detail::decoded_codepoint dc {detail::decode_codepoint_strict(text_, s)};
         return dc.valid && s + static_cast<std::size_t>(dc.length) == pos
                && cp_class_matches_idx(body.arg16, dc.cp);

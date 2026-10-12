@@ -68,6 +68,7 @@ namespace real::detail {
     alternation_pair_candidates, //!< Candidates the alternation pair filter left to verify.
     ahead_table_rows,            //!< Rows the unbounded-lookahead tables were filled with.
     behind_walk_steps,           //!< Bytes the lookbehind walks stepped.
+    behind_atom_steps,           //!< Continuation bytes a one-atom lookbehind receded over.
     dfa_span_batches,            //!< Batches the lazy-DFA span filler produced.
     dfa_leases_taken,            //!< DFA set leases taken.
     class_folds,                 //!< Case folds the compiler computed for a class (a fold-cache hit costs none).
@@ -164,7 +165,9 @@ namespace real::detail {
       return true;
     }
     const auto k {static_cast<assert_kind>(code[p].arg8)};
-    if (!is_word_boundary_kind(k)) {
+    // A boundary whose word-ness a scoped `(?a:...)` flips (arg16) is not the program's: the fast paths
+    // test the wrap with the program's.
+    if (!is_word_boundary_kind(k) || code[p].arg16 != 0) {
       return false;
     }
     hint = wb_hint_of(k);
@@ -199,7 +202,7 @@ namespace real::detail {
     }
     std::size_t p {1};
     // `\A`/`^` is peeled and reported, not rejected: `^X` searched is `X` in prefix mode, which reaches
-    // the class loop (81x faster on 100 KB). Multiline `^` stays disqualifying.
+    // the class loop. Multiline `^` stays disqualifying.
     bool anchored {false};
     if (p < code.size() && code[p].op == opcode::assert_position
         && static_cast<assert_kind>(code[p].arg8) == assert_kind::text_start) {
@@ -242,6 +245,9 @@ namespace real::detail {
     std::uint8_t wb_trail {0};
     if (from < code.size() && code[from].op == opcode::assert_position
         && is_word_boundary_kind(static_cast<assert_kind>(code[from].arg8))) {
+      if (code[from].arg16 != 0) {
+        return {}; // a boundary a scoped `(?a:...)` flips: not the program's word-ness (see peel_optional_wb)
+      }
       wb_trail = wb_hint_of(static_cast<assert_kind>(code[from].arg8));
       ++from;
     }
@@ -421,7 +427,7 @@ namespace real::detail {
    *        resuming the scan at \p cursor and leaving it past the last range consulted.
    *
    * \p cursor is a hint, not a precondition: an out-of-order interval rewinds it. Restarting at 0 per
-   * interval cost `\w` 771^2 steps, 95 % of compiling `\b\w+\b`.
+   * interval would be quadratic in the range count.
    *
    * \param[in]     lo     First code point of the interval.
    * \param[in]     hi     Last code point of the interval (inclusive).
@@ -876,9 +882,7 @@ namespace real::detail {
    * \param[in]     lookarounds    Bounded lookaround subs (for trailing-LA eligibility); may be empty.
    * \param[in,out] hints          Hint bag to fill (class-loop, fixed-shape, trailing-LA, …).
    */
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((cold)) // build-time only, never on a search path
-#endif
+  REAL_BUILD_COLD // build-time only, never on a search path
   constexpr void detect_fast_shapes(std::span<const instr>          code,
                                     std::span<const char_class>     classes,
                                     std::span<const cp_class>       cp_classes,
@@ -1411,7 +1415,7 @@ namespace real::detail {
               }
               // A bare unbounded possessive class loop (`[a-z]++`) is the greedy language, so it takes the
               // batched greedy route, decided here as a hint: a class-index parameter in the runtime fillers
-              // cost the Unicode class rows 5.7-9.1 % (inlining budget). Bare only: a suffix means the match
+              // charges the Unicode class rows (inlining budget). Bare only: a suffix means the match
               // is not the run, a capture lives in possessive_group_start (unread by the greedy path), and
               // `X*+` with no mandatory copy can match empty.
               const bool redirect {arm && suffix_len == 0 && gs < 0 && has_mandatory && !has_wb
@@ -1616,9 +1620,9 @@ namespace real::detail {
     std::size_t   pc         {0};
     std::size_t   offset     {0};
     std::int16_t  best_byte  {-1};
-    std::uint8_t  best_off   {0};
+    std::uint16_t best_off   {0};
     std::uint16_t best_freq  {0xFFFFU};
-    while (pc < code.size() && offset <= 0xFFU) {
+    while (pc < code.size() && offset <= 0xFFFFU) {
       const opcode op {code[pc].op};
       if (op == opcode::save || op == opcode::assert_position) {
         ++pc;
@@ -1629,7 +1633,7 @@ namespace real::detail {
         if (freq < best_freq) {
           best_freq = freq;
           best_byte = static_cast<std::int16_t>(static_cast<std::uint8_t>(code[pc].arg8));
-          best_off  = static_cast<std::uint8_t>(offset);
+          best_off  = static_cast<std::uint16_t>(offset);
         }
         ++offset;
         ++pc;
@@ -1957,6 +1961,38 @@ namespace real::detail {
     return hints;
   }
 
+  inline constexpr std::size_t fixed_shape_walk_max_width {8}; //!< Widest unfiltered shape kept on the walk.
+
+  /*!
+   * \brief Whether a search over this fixed shape (\ref pattern_hints::fixed_shape) should walk each candidate
+   *        start rather than run the lazy DFA.
+   *
+   * The walk verifies a candidate up to the shape's width, so a subject whose starts match far into the shape
+   * costs it width x length: `[a-z]{300}[0-9]` over letters, 270 ms/MiB against the DFA's 2 (arm64). A filter
+   * that skips starts bounds that: the fused scan (\ref pattern_hints::fixed_shape_simd_len), the pair filter,
+   * a rare byte at a fixed offset, a single first byte, or a start anchor (one candidate). Without one, the
+   * walk holds its own up to \ref fixed_shape_walk_max_width; past it the DFA's one pass wins on prose and
+   * identifiers by 2x to 28x, and loses only where nearly every start matches, by a bounded ~0.6 ms/MiB.
+   * \param[in] code  The program, a fixed shape.
+   * \param[in] hints Its hints.
+   * \return True when the walk is the better route.
+   */
+  constexpr bool fixed_shape_walk_pays(std::span<const instr> code,
+                                       const pattern_hints&   hints) noexcept
+  {
+    if (hints.fixed_shape_simd_len != 0 || hints.fs_pair_width >= 2 || hints.rare_byte >= 0
+        || hints.single_first >= 0 || hints.anchored_start) {
+      return true;
+    }
+    std::size_t width {0};
+    for (const instr& in : code) {
+      if (in.op == opcode::byte || in.op == opcode::klass) {
+        ++width;
+      }
+    }
+    return width <= fixed_shape_walk_max_width;
+  }
+
 #if defined(__ARM_NEON)
   /*!
    * \brief The single-byte scan behind \ref find_byte on NEON: 64 bytes per round, rejected by one test on
@@ -2192,7 +2228,7 @@ namespace real::detail {
     const char* const base  {text.data()};
     std::size_t       p     {pos};
     // Four blocks (64 candidates) per round, rejected by ONE test on their OR (any_pair64): at one block a
-    // round this filter ran ~13 % slower than `find` on a pure miss, at four ~2.5x faster than memchr.
+    // round this filter is slower than `find` on a pure miss.
     // Masks are taken in block then lane order: the first verified hit is the leftmost, as callers require.
     constexpr std::size_t unroll {4};
     while (p + (unroll * 16) <= last + 1) {
@@ -2306,7 +2342,7 @@ namespace real::detail {
    *        else the rarest-byte scan that counts its stops and judges their density.
    *
    * Out of line: next_candidate runs per candidate on routes that never reach a literal; inlined there it
-   * cost `\d{4}-\d{2}-\d{2}` 7 % on arm64.
+   * charges them.
    * \param[in]     text    The subject text.
    * \param[in]     pos     Index to start from (a stop the caller saw fail, or where a dense search starts).
    * \param[in]     literal The needle (>= 2 bytes).
@@ -2515,8 +2551,8 @@ namespace real::detail {
   }
 
   //! \brief Fewest branches for which the fingerprint replaces the pairs. Two pairs are two compares a block, a
-  //!        fingerprint six table lookups: on x86 (SSSE3) `cat|dog` measured +13 % by the fingerprint and three
-  //!        branches break even; AArch64's lookups are cheap enough that two branches already gain.
+  //!        fingerprint six table lookups: on x86 (SSSE3) two branches lose by the fingerprint and three
+  //!        break even; AArch64's lookups are cheap enough that two branches already gain.
 #if defined(__aarch64__)
   inline constexpr std::size_t alternation_nibbles_min_branches {2};
 #else
@@ -2753,8 +2789,7 @@ namespace real::detail {
     if (pos >= text.size() || n == 0U) {
       return npos;
     }
-    // The members arrive in the mask load's layout: a per-call copy into it was most of a +16 % on a
-    // 55 ns early-hit baseline.
+    // The members arrive in the mask load's layout: a per-call copy into it would charge an early hit.
     const std::size_t cnt {n <= 8U ? static_cast<std::size_t>(n) : std::size_t {8}};
     const std::size_t sz  {text.size()};
     std::size_t       at  {pos};
@@ -2775,6 +2810,62 @@ namespace real::detail {
           return at;
         }
       }
+    }
+    return npos;
+  }
+
+  /*!
+   * \brief The first occurrence at or after \p pos of a literal some of whose letters match in either case.
+   *
+   * Scans for the byte at offset \p rare -- both cases of it when it is such a letter, in one pass
+   * (\ref find_members) -- and checks the whole literal around each hit.
+   * \param[in] text   The subject.
+   * \param[in] pos    Index to start from.
+   * \param[in] lit    The literal, its case-free letters in lower case.
+   * \param[in] folded Bit `i`: byte `i` of \p lit is a letter that matches in either case.
+   * \param[in] rare   The offset of the byte to scan for (the literal's rarest).
+   * \return The index of the occurrence, else \ref real::npos.
+   */
+  inline std::size_t find_folded_literal(std::string_view text,
+                                         std::size_t      pos,
+                                         std::string_view lit,
+                                         std::uint16_t    folded,
+                                         std::size_t      rare)
+  {
+    const std::size_t len         {lit.size()};
+    const auto        is_folded   {[folded](std::size_t i) { return ((static_cast<unsigned>(folded) >> i) & 1U) != 0U; }};
+    const auto        matches_at  {[&](std::size_t at) {
+                                     for (std::size_t i {0}; i < len; ++i) {
+                                       const auto got  {static_cast<std::uint8_t>(text[at + i])};
+                                       const auto want {static_cast<std::uint8_t>(lit[i])};
+                                       // For a lower-case letter, `| 0x20` maps only its upper case onto it.
+                                       if (got != want && (!is_folded(i) || static_cast<std::uint8_t>(got | 0x20U) != want)) {
+                                         return false;
+                                       }
+                                     }
+                                     return true;
+                                   }};
+    const auto        key         {static_cast<std::uint8_t>(lit[rare])};
+    const auto        key_upper   {static_cast<std::uint8_t>(key - 0x20U)};
+    const bool        key_folded  {is_folded(rare)};
+    std::size_t       from        {pos + rare};
+    while (from < text.size()) {
+      std::size_t hit {npos};
+      if (key_folded) {
+        const std::array<std::uint8_t, 8> members {key, key_upper};
+        hit = find_members(text, from, members, 2U);
+      }
+      else {
+        const void* found {std::memchr(text.data() + from, key, text.size() - from)};
+        hit = found == nullptr ? npos : static_cast<std::size_t>(static_cast<const char*>(found) - text.data());
+      }
+      if (hit == npos || hit - rare + len > text.size()) {
+        return npos;
+      }
+      if (matches_at(hit - rare)) {
+        return hit - rare;
+      }
+      from = hit + 1;
     }
     return npos;
   }
@@ -2810,7 +2901,7 @@ namespace real::detail {
    * a caller running this per rejected candidate (next_candidate's icase small-set route) would otherwise
    * rescan the rest for a rare or absent member (`(?i)cafe`'s `C` in lowercase text), O(n^2). Galloping
    * bounds a call to ~2x the distance to the hit. One member cannot go quadratic (a memchr costs its
-   * progress), and windowing it regressed x86 stop sets (`[^\x01]+`), so it takes one unbounded `memchr`.
+   * progress), and windowing it charges x86 stop sets (`[^\x01]+`), so it takes one unbounded `memchr`.
    *
    * \param[in] text The subject text.
    * \param[in] pos  Index to start scanning from.

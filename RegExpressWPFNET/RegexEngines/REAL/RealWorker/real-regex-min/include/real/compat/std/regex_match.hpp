@@ -798,7 +798,7 @@ namespace real::compat {
     }
 
     /*!
-     * \brief \ref run over a non-contiguous range on REAL: the range is copied once, searched, and every offset
+     * \brief \ref run_impl over a non-contiguous range on REAL: the range is copied once, searched, and every offset
      *        of the result mapped back to the caller's iterators in one forward walk.
      * \param[in]  first    Start of the sequence.
      * \param[in]  last     One past its end.
@@ -972,100 +972,77 @@ namespace real::compat {
     }
 
     /*!
-     * \brief Runs the backend over `[first, last)` and fills \p m; a flag REAL cannot honor routes to `std`.
+     * \brief Runs the backend over `[first, last)`, filling \p m under \p Capture; a flag REAL cannot honor
+     *        routes to `std`.
+     * \tparam Capture Fill \p m (`regex_search` / `regex_match` with results); without it no result is built.
      * \param[in]  first    Start of the sequence to run over.
      * \param[in]  last     One past its end.
-     * \param[out] m        Result filled on success; left ready-but-unmatched on failure.
+     * \param[out] m        Under \p Capture, filled on success and left ready-but-unmatched on failure; else
+     *                      unused (null).
      * \param[in]  re       The pattern, whose backend decides which engine runs.
      * \param[in]  anchored Whole-sequence match (`regex_match`) rather than leftmost search.
      * \param[in]  mf       Match flags (\ref call_stays_real).
-     * \return `true` if a match was found and \p m filled.
+     * \return `true` if a match was found.
      */
-    template <typename BidirIt, typename CharT, typename Traits>
-    bool run(BidirIt                           first,
-             BidirIt                           last,
-             match_results<BidirIt>&           m,
-             const basic_regex<CharT, Traits>& re,
-             bool                              anchored,
-             regex_constants::match_flag_type  mf)
+    template <bool Capture, typename BidirIt, typename CharT, typename Traits>
+    bool run_impl(BidirIt                                       first,
+                  BidirIt                                       last,
+                  std::type_identity_t<match_results<BidirIt>>* m,
+                  const basic_regex<CharT, Traits>&             re,
+                  bool                                          anchored,
+                  regex_constants::match_flag_type              mf)
     {
-      m.reset(first, last);
+      if constexpr (Capture) {
+        m->reset(first, last);
+      }
       if constexpr (real_eligible<CharT, Traits>) {
         if (const real::regex* const engine {real_engine_for(re, mf, anchored)}; engine != nullptr) {
           call_shape shape {shape_of(mf, anchored, re.nullable())};
           shape.engine = engine;
           if constexpr (!std::contiguous_iterator<BidirIt>) {
             // A deque, a list, a reverse iterator: no byte view covers the range, so REAL searches a copy.
-            return run_copied(first, last, m, re, shape);
+            if constexpr (Capture) {
+              return run_copied(first, last, *m, re, shape);
+            }
+            else {
+              return find_real(re, std::string(shape.lead == 0 ? first : std::prev(first), last), shape).matched();
+            }
           }
           else {
             const std::string_view view   {std::to_address(first) - shape.lead,
                                            static_cast<std::size_t>(std::distance(first, last)) + shape.lead};
             const auto             result {find_real(re, view, shape)};
-            if (!result.matched()) {
-              m.set_ready_no_match();
-              return false;
+            if constexpr (Capture) {
+              if (!result.matched()) {
+                m->set_ready_no_match();
+                return false;
+              }
+              m->fill_from_real(result, shape.lead);
+              return true;
             }
-            m.fill_from_real(result, shape.lead);
-            return true;
+            else {
+              return result.matched();
+            }
           }
         }
       }
       const std::basic_regex<CharT, Traits>& std_engine {re.std_engine()}; // lazy-built if real-backed
-      std::match_results<BidirIt>            std_m;
       const auto                             sf         {to_std_match(mf)};
+      // With results even without Capture: libc++'s overloads without them search a basic_string COPY of a range
+      // that is not a pointer pair, and match_prev_avail then reads the byte before that copy.
+      std::match_results<BidirIt>            std_m;
       const bool                             ok         {std_call([&] {
                                                                     return anchored ? std::regex_match(first, last, std_m, std_engine, sf)
                                                                                 : std::regex_search(first, last, std_m, std_engine, sf);
                                                                   })};
-      if (!ok) {
-        m.set_ready_no_match();
-        return false;
-      }
-      m.fill_from_std(std_m);
-      return true;
-    }
-
-    /*!
-     * \brief Backend run without capturing (no \ref match_results to fill).
-     * \param[in] first    Start of the sequence to run over.
-     * \param[in] last     One past its end.
-     * \param[in] re       The pattern, whose backend decides which engine runs.
-     * \param[in] anchored Whole-sequence match rather than leftmost search.
-     * \param[in] mf       Match flags; one REAL cannot honor routes to `std`.
-     * \return `true` if a match exists.
-     */
-    template <typename BidirIt, typename CharT, typename Traits>
-    bool run_nocapture(BidirIt                           first,
-                       BidirIt                           last,
-                       const basic_regex<CharT, Traits>& re,
-                       bool                              anchored,
-                       regex_constants::match_flag_type  mf)
-    {
-      if constexpr (real_eligible<CharT, Traits>) {
-        if (const real::regex* const engine {real_engine_for(re, mf, anchored)}; engine != nullptr) {
-          call_shape shape {shape_of(mf, anchored, re.nullable())};
-          shape.engine = engine;
-          if constexpr (!std::contiguous_iterator<BidirIt>) {
-            // No byte view covers a non-contiguous range: search a copy, as run does.
-            return find_real(re, std::string(shape.lead == 0 ? first : std::prev(first), last), shape).matched();
-          }
-          else {
-            const std::string_view view {std::to_address(first) - shape.lead,
-                                         static_cast<std::size_t>(std::distance(first, last)) + shape.lead};
-            return find_real(re, view, shape).matched();
-          }
+      if constexpr (Capture) {
+        if (!ok) {
+          m->set_ready_no_match();
+          return false;
         }
+        m->fill_from_std(std_m);
       }
-      const std::basic_regex<CharT, Traits>& std_engine {re.std_engine()};
-      const auto                             sf         {to_std_match(mf)};
-      // The overloads with results: libc++'s without them search a basic_string COPY of a range that is not a
-      // pointer pair, and match_prev_avail then reads the byte before that copy.
-      std::match_results<BidirIt>            unused;
-      return std_call([&] {
-                        return anchored ? std::regex_match(first, last, unused, std_engine, sf)
-                                        : std::regex_search(first, last, unused, std_engine, sf);
-                      });
+      return ok;
     }
   } // namespace detail
 
@@ -1086,7 +1063,7 @@ namespace real::compat {
                     const basic_regex<CharT, Traits>& re,
                     regex_constants::match_flag_type  flags = regex_constants::match_default)
   {
-    return detail::run(first, last, m, re, /*anchored=*/ false, flags);
+    return detail::run_impl<true>(first, last, &m, re, /*anchored=*/ false, flags);
   }
 
   /*!
@@ -1103,7 +1080,7 @@ namespace real::compat {
                     const basic_regex<CharT, Traits>&                                 re,
                     regex_constants::match_flag_type                                  flags = regex_constants::match_default)
   {
-    return detail::run(s.begin(), s.end(), m, re, false, flags);
+    return detail::run_impl<true>(s.begin(), s.end(), &m, re, false, flags);
   }
 
   /*!
@@ -1120,7 +1097,7 @@ namespace real::compat {
                     const basic_regex<CharT, Traits>& re,
                     regex_constants::match_flag_type  flags = regex_constants::match_default)
   {
-    return detail::run(s, s + std::char_traits<CharT>::length(s), m, re, false, flags);
+    return detail::run_impl<true>(s, s + std::char_traits<CharT>::length(s), &m, re, false, flags);
   }
 
   /*!
@@ -1137,7 +1114,7 @@ namespace real::compat {
                     const basic_regex<CharT, Traits>& re,
                     regex_constants::match_flag_type  flags = regex_constants::match_default)
   {
-    return detail::run_nocapture(first, last, re, false, flags);
+    return detail::run_impl<false>(first, last, nullptr, re, false, flags);
   }
 
   /*!
@@ -1152,7 +1129,7 @@ namespace real::compat {
                     const basic_regex<CharT, Traits>& re,
                     regex_constants::match_flag_type  flags = regex_constants::match_default)
   {
-    return detail::run_nocapture(s.begin(), s.end(), re, false, flags);
+    return detail::run_impl<false>(s.begin(), s.end(), nullptr, re, false, flags);
   }
 
   /*!
@@ -1167,7 +1144,7 @@ namespace real::compat {
                     const basic_regex<CharT, Traits>& re,
                     regex_constants::match_flag_type  flags = regex_constants::match_default)
   {
-    return detail::run_nocapture(s, s + std::char_traits<CharT>::length(s), re, false, flags);
+    return detail::run_impl<false>(s, s + std::char_traits<CharT>::length(s), nullptr, re, false, flags);
   }
 
   /*!
@@ -1187,7 +1164,7 @@ namespace real::compat {
                    const basic_regex<CharT, Traits>& re,
                    regex_constants::match_flag_type  flags = regex_constants::match_default)
   {
-    return detail::run(first, last, m, re, /*anchored=*/ true, flags);
+    return detail::run_impl<true>(first, last, &m, re, /*anchored=*/ true, flags);
   }
 
   /*!
@@ -1204,7 +1181,7 @@ namespace real::compat {
                    const basic_regex<CharT, Traits>&                                 re,
                    regex_constants::match_flag_type                                  flags = regex_constants::match_default)
   {
-    return detail::run(s.begin(), s.end(), m, re, true, flags);
+    return detail::run_impl<true>(s.begin(), s.end(), &m, re, true, flags);
   }
 
   /*!
@@ -1221,7 +1198,7 @@ namespace real::compat {
                    const basic_regex<CharT, Traits>& re,
                    regex_constants::match_flag_type  flags = regex_constants::match_default)
   {
-    return detail::run(s, s + std::char_traits<CharT>::length(s), m, re, true, flags);
+    return detail::run_impl<true>(s, s + std::char_traits<CharT>::length(s), &m, re, true, flags);
   }
 
   /*!
@@ -1238,7 +1215,7 @@ namespace real::compat {
                    const basic_regex<CharT, Traits>& re,
                    regex_constants::match_flag_type  flags = regex_constants::match_default)
   {
-    return detail::run_nocapture(first, last, re, true, flags);
+    return detail::run_impl<false>(first, last, nullptr, re, true, flags);
   }
 
   /*!
@@ -1253,7 +1230,7 @@ namespace real::compat {
                    const basic_regex<CharT, Traits>& re,
                    regex_constants::match_flag_type  flags = regex_constants::match_default)
   {
-    return detail::run_nocapture(s.begin(), s.end(), re, true, flags);
+    return detail::run_impl<false>(s.begin(), s.end(), nullptr, re, true, flags);
   }
 
   /*!
@@ -1268,7 +1245,7 @@ namespace real::compat {
                    const basic_regex<CharT, Traits>& re,
                    regex_constants::match_flag_type  flags = regex_constants::match_default)
   {
-    return detail::run_nocapture(s, s + std::char_traits<CharT>::length(s), re, true, flags);
+    return detail::run_impl<false>(s, s + std::char_traits<CharT>::length(s), nullptr, re, true, flags);
   }
 
   // An rvalue string is rejected, as in std; the forms with match flags too, or a temporary binds to the
@@ -1441,7 +1418,8 @@ namespace real::compat {
     {
       // The first match on the suffix may be the empty one at its start; the next one then forbids an
       // empty match there, so it starts there only if it is the non-empty match sought.
-      for (const auto& match : engine.find_iter(text.substr(at))) {
+      for (auto walk {engine.find_iter(text.substr(at)).begin()}; !walk.exhausted(); ++walk) {
+        const auto& match {*walk};
         if (match.start(0) != 0) {
           return std::nullopt;
         }
@@ -1495,8 +1473,9 @@ namespace real::compat {
       while (restart && !done) {
         restart = false;
         const auto matches {re.posix_longest() ? engine.find_iter_longest(text, from) : engine.find_iter(text, from)};
-        for (const auto& match : matches) {
-          const bool retry_first {first && match.start(0) == match.end(0)};
+        for (auto walk {matches.begin()}; !walk.exhausted(); ++walk) {
+          const auto& match {*walk};
+          const bool  retry_first {first && match.start(0) == match.end(0)};
           first = false;
           detail::append_replacement(out, match, std::string_view {fmt}, text, last_end, no_copy, sed);
           done = first_only;

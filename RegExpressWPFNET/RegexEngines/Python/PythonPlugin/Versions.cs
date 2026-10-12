@@ -4,6 +4,6 @@ class Versions
 {
     public static string Python { get; } = "3.14.7";
     public static string Re { get; } = "3.14.7";
-    public static string Regex { get; } = "2026.9.10";
-    public static string RealRegex { get; } = "2026.10.5";
+    public static string Regex { get; } = "2026.9.29";
+    public static string RealRegex { get; } = "2026.10.11";
 }

@@ -479,7 +479,6 @@ namespace real {
     public:
 
       using value_type = T;           //!< Element type.
-      using size_type_ = std::size_t; //!< Size type (for std-container API compat).
 
       /*!
        * \brief Constructs an empty vector in the inline state.
@@ -994,7 +993,7 @@ namespace real {
                                               // SBO, keeping `std::vector`'s destructor out of the
                                               // state every standalone `search()` builds. Small on
                                               // purpose: a wider state costs gcc/x86 its class-scan
-                                              // codegen, and 16 lost more on per-call rows than it won.
+                                              // codegen, and per-call rows more than it saves.
                                               small_vec<std::uint64_t, 8>>,
                             small_vec<eps_entry, 32>>
       {
@@ -1065,6 +1064,11 @@ namespace real {
         // The compiler gets `effective` (additions only): the parser already applied any `(?-flags)` removal
         // to its scopes. What is reported is the set in force.
         dynamic_program prog {detail::compile(tree, effective)};
+        // This storage has the lazy DFA, which takes a fixed shape the walk would verify too deep.
+        if (!std::is_constant_evaluated() && prog.hints.fixed_shape
+            && !detail::fixed_shape_walk_pays(prog.code, prog.hints)) {
+          prog.hints.fixed_shape = false;
+        }
         // The fixed-shape seam is applied here, once per regex, not in run()'s gate: that route enters
         // `run()` once per match, so a gate test is paid per match. `fs_pair_width` goes with it.
         // The aggregate return is required: dynamic_storage's own constructor is not constexpr, and
@@ -1279,8 +1283,7 @@ namespace real {
 
       // Placed BEFORE every member that reads `survey`: the failing assertion ends this
       // instantiation, so the twenty-odd dependent members below never each report their own
-      // "must be initialized by a constant expression" (measured: 358 diagnostic lines for one
-      // backreference, the reason buried at line 39, against 22 with this assertion in front).
+      // "must be initialized by a constant expression", which would bury the reason in a long diagnostic.
       static_assert(viable,
                     "real::static_regex: this pattern cannot be compiled at compile time -- a "
                     "backreference, a POSIX class, or a lookaround (static_regex has no constexpr "
@@ -1327,7 +1330,7 @@ namespace real {
 
       //! \brief Flat byte-class membership tables, built at compile time: `class_tables[i*256 + b]`.
       //!        Reads \ref classes rather than calling \ref build again, which would pass clang's constexpr
-      //!        step budget. A pack-expansion form (N writes, not 2N) measured the same time and budget.
+      //!        step budget.
       static constexpr std::array < std::uint8_t, (class_count == 0 ? 1 : class_count) * 256 > class_tables {[] {
                                                                                                                std::array < std::uint8_t, (class_count == 0 ? 1 : class_count) * 256 > t {};
                                                                                                                for (std::size_t i = 0; i < class_count; ++i) {
@@ -1374,12 +1377,6 @@ namespace real {
 
       //! \brief Capture-slot storage, sized exactly to the program's slot count (no heap).
       using slot_storage = static_vec<std::size_t, slot_count>;
-      //! \brief IL guard fields for this storage (see \ref static_il_guard_fields).
-      using il_guard_fields = static_il_guard_fields;
-
-      //! \brief No IL fields: the route is not compiled for this pattern (see \ref wants_inner_literal).
-      using no_il_guard_fields = static_no_il_guard_fields;
-
       /*!
        * \brief Whether the inner-literal route is worth compiling into this pattern's `run()`.
        *
@@ -1403,8 +1400,8 @@ namespace real {
       /*!
        * \brief Returns a non-owning view of the compile-time program, by reference.
        *
-       * Every field is a compile-time constant, so a reference costs nothing where a by-value return copied
-       * the view per `search()`: 93 of the ~325 instructions of one `[a-z]+` search, against 17 for the scan.
+       * Every field is a compile-time constant, so a reference costs nothing where a by-value return would
+       * copy the view per `search()`, a large share of a short search.
        *
        * \return A reference to the single compile-time view; it outlives every caller.
        */

@@ -367,7 +367,14 @@ namespace real {
         // the eligible subset is large enough.
         partition(*st);
         if (st->eligible_orig.size() >= fused_min_eligible) {
-          build_fused(*st);
+          // A fused DFA past its bounds leaves the set on walks, as the deferred build does: a set of
+          // patterns that each compile always builds.
+          try {
+            build_fused(*st);
+          }
+          catch (const dfa_error&) {
+            st->fused.reset();
+          }
           st->ready.store(true, std::memory_order_release);
         }
         else if (st->eligible_orig.size() < fused_deferred_min_eligible) {

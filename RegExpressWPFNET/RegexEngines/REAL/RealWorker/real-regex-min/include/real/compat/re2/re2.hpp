@@ -10,6 +10,12 @@
  * (match-by-name would be ambiguous) and surrogate code points in `\x{…}`, `\u`, `\U`, `\N` (not Unicode
  * scalars). Both surface as `ok() == false`.
  *
+ * **RE2's reading of the syntax.** `\w \d \s` are ASCII, `\b \B` read ASCII word characters, `[[:alpha:]]` is a
+ * POSIX class, `$` without `(?m)` is the end of the text, and a class member folds before it is negated
+ * (`(?i)\W` leaves out the Kelvin sign): see re2/flavor.hpp. `GlobalReplace` walks as RE2's does. Case folding
+ * keeps REAL's tables, which are Python's: under `(?i)`, `İ` and `ı` (U+0130, U+0131) go with `i` and `I`,
+ * where RE2 keeps them apart.
+ *
  * **No fallback, no exceptions.** A pattern or option this layer cannot honor is rejected as RE2 rejects a
  * syntax error: `ok() == false`, with `error()` saying why.
  *
@@ -42,6 +48,7 @@
 #include <real/regex_set.hpp>
 
 #include "arg.hpp"
+#include "flavor.hpp"
 
 namespace real::compat::re2 {
 
@@ -430,7 +437,7 @@ namespace real::compat::re2 {
           RE2::log_error(options_, "Error parsing", pattern, reason); // RE2's Set prints the pattern whole
           return -1;
         }
-        std::string wrapped {anchor_wrap(pattern)};
+        std::string wrapped {anchor_wrap(detail::translate_flavor(pattern, !options_.case_sensitive()))};
         try {
           const real::regex probe(wrapped, RE2::options_to_flags(options_));
           program_bytes_        += RE2::program_bytes(probe);
@@ -729,11 +736,11 @@ namespace real::compat::re2 {
       }
       std::string out;
       out.reserve(str->size());
-      out.append(str->substr(0, match.start()));
+      out.append(std::string_view {*str}.substr(0, match.start())); // views: a string's substr is a copy
       if (!expand_rewrite(out, rewrite, match)) {
         return false;
       }
-      out.append(str->substr(match.end()));
+      out.append(std::string_view {*str}.substr(match.end()));
       *str = std::move(out);
       return true;
     }
@@ -759,30 +766,40 @@ namespace real::compat::re2 {
       if (str == nullptr || !re.ok()) {
         return 0;
       }
-      std::string  out;
-      out.reserve(str->size());
-      std::size_t  last           {};
-      int          count          {};
-      bool         have_prev_end  {false};
-      std::size_t  prev_end       {};
-      const auto   matches        {re.longest_match_ ? re.regex_->find_iter_longest(*str) : re.regex_->find_iter(*str)};
-      for (const auto& match : matches) {
-        if (match.start() == match.end() && have_prev_end && match.start() == prev_end) {
+      std::string            out;         // sized at the first match: a miss allocates nothing
+      const std::string_view text {*str};
+      std::size_t            last     {}; // where the text not yet copied starts
+      std::size_t            pos      {}; // where the next search starts
+      std::size_t            last_end {real::npos};
+      int                    count    {};
+      // RE2's walk, not Python's: after an empty match the next search starts one character on (no second
+      // try for a longer match at the same place), and an empty match where the previous match ended is
+      // skipped, one whole UTF-8 character at a time.
+      while (pos <= text.size()) {
+        const auto match {re.longest_match_ ? re.regex_->search_longest(text, pos) : re.regex_->search(text, pos)};
+        if (!match) {
+          break;
+        }
+        if (match.start() == match.end() && match.start() == last_end) {
+          pos = match.start() + detail::next_character_length(text, match.start());
           continue;
         }
-        out.append(str->substr(last, match.start() - last));
+        if (count == 0) {
+          out.reserve(text.size());
+        }
+        out.append(text.substr(last, match.start() - last)); // a view: a string's substr is a copy
         if (!expand_rewrite(out, rewrite, match)) {
           return 0;
         }
-        last          = match.end();
-        prev_end      = match.end();
-        have_prev_end = true;
+        last     = match.end();
+        last_end = match.end();
+        pos      = match.end();
         ++count;
       }
       if (count == 0) {
         return 0;
       }
-      out.append(str->substr(last));
+      out.append(text.substr(last));
       *str = std::move(out);
       return count;
     }
@@ -858,8 +875,9 @@ namespace real::compat::re2 {
      */
     [[nodiscard]] static real::flags options_to_flags(const Options& options)
     {
-      // allow_raw_byte always: `\C` is safe on this byte-offset API (see the file comment).
-      real::flags result {real::flags::allow_raw_byte};
+      // allow_raw_byte always: `\C` is safe on this byte-offset API (see the file comment). dollar_endonly
+      // always: RE2's `$` without `(?m)` is the end of the text, never before a final newline.
+      real::flags result {real::flags::allow_raw_byte | real::flags::dollar_endonly};
       if (!options.case_sensitive()) {
         result = result | real::flags::icase;
       }
@@ -946,7 +964,8 @@ namespace real::compat::re2 {
         return;
       }
       longest_match_ = options.longest_match();
-      const std::string effective {options.literal() ? QuoteMeta(pattern) : std::string(pattern)};
+      const std::string effective {options.literal() ? QuoteMeta(pattern)
+                                                     : detail::translate_flavor(pattern, !options.case_sensitive())};
       try {
         regex_.emplace(effective, options_to_flags(options));
       } catch (const real::regex_error& e) {

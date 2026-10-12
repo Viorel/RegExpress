@@ -590,9 +590,7 @@ namespace real::detail {
    *         trie past \ref ac_memory_budget -- the caller then takes the ordinary alternation route.
    */
   [[nodiscard]]
-#if defined(__GNUC__) || defined(__clang__)
-  __attribute__((cold)) // construction-only (once per program): out of the hot neighbourhood
-#endif
+  REAL_BUILD_COLD // construction-only (once per program): out of the hot neighbourhood
   inline std::optional<ac_automaton> build_ac_automaton(std::span<const instr>       code,
                                                         std::span<const char_class>  classes,
                                                         std::size_t                  body_pc)

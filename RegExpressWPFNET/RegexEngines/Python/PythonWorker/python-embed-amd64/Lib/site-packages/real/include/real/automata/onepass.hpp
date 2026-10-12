@@ -41,6 +41,7 @@
 #include "real/engine/prefilter.hpp"
 #include "real/engine/assert_eval.hpp"
 #include "real/automata/lazy_dfa.hpp"
+#include "real/core/config.hpp"
 #include "real/core/program.hpp"
 
 namespace real::detail {
@@ -550,9 +551,7 @@ namespace real::detail {
      *        hash-consing is not enough; refinement runs to a fixpoint. Merged nodes share their masks by
      *        construction, and each keeps a dense edge row.
      */
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((cold)) // build-time only, never on a search path
-#endif
+    REAL_BUILD_COLD // build-time only, never on a search path
     constexpr void minimize()
     {
       const std::size_t          n       {nodes_.size()};
@@ -1173,8 +1172,8 @@ namespace real::detail {
   //! \brief Subject bytes a regex lets the inner-literal route decline under its floor before it builds what the
   //!        route needs: the cold floor's least amortization. Short subjects that add up to it have paid for the
   //!        build as one long subject would, and the build lifts both floors for good. Without it a regex only
-  //!        ever searched on short subjects stayed on the bounded backtracker (`(\w+)=(\w+)` over a 95-byte
-  //!        line: 20 000 instructions a search, 1 000 once built, the build repaid within ~300 searches).
+  //!        ever searched on short subjects stays on the bounded backtracker, many times dearer per search
+  //!        than the built route.
   inline constexpr std::size_t il_short_scan_budget {64UL * 1024};
 
   //! \brief Anchored matches a regex runs before it builds its one-pass table for them. Rent before buying: the

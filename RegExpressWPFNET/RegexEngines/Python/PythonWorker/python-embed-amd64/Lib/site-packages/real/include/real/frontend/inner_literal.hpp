@@ -43,6 +43,9 @@ namespace real::detail {
     //!        \ref inner_literal is copyable and needs no allocation; \ref inner_literal_max is that bound.
     std::array<std::uint8_t, 16> bytes              {};
     std::uint8_t                 len                {0};  //!< Bytes held in \ref bytes; 0 means the pattern declined.
+    //! \brief Bit `i`: position `i` is an ASCII letter that matches in either case, and `bytes[i]` holds its
+    //!        lower case (`(?i)x`, `[xX]`). The scan finds both; every other position is exact.
+    std::uint16_t                folded             {0};
     std::uint32_t                score              {0};  //!< Selectivity: higher = rarer/longer = fewer memmem candidates.
     //! \brief Top-level concat children BEFORE the literal: the sub-pattern the prefix-reverse matches
     //!        backwards from a candidate to find the match start. 0 = the literal is at the head (start =
@@ -72,7 +75,7 @@ namespace real::detail {
   //!
   //! Past an optional the confirm is the full engine once per candidate, so the literal's density decides
   //! whether the route pays. A single byte clears the bound at a frequency of 200 or less (`,` `.` `:` `=`
-  //! `@`); a space (1500) or an `e` (1000) does not (`\w+ \w*`, 200 KB log, arm64: 763 -> 1026 us with the route).
+  //! `@`); a space (1500) or an `e` (1000) does not.
   inline constexpr std::uint32_t optional_literal_min_score {1800};
 
   inline constexpr std::size_t inner_literal_max            {16}; //!< The most bytes an inner literal keeps; past this a longer needle costs storage without shrinking the candidate set much.
@@ -87,6 +90,7 @@ namespace real::detail {
     struct walk_state
     {
       std::vector<std::uint8_t> run;              //!< Literal bytes accumulated since the last \ref flush.
+      std::vector<bool>         run_folded;       //!< One flag per byte of \ref run, set for an ASCII letter that matches in either case.
       inner_literal             best;             //!< Best run scored so far; `best.len == 0` until one is kept.
       std::int32_t              run_top  {-1};    //!< Top-level child where the current run began (-1 = nested).
       std::int32_t              best_top {-1};    //!< Top-level child where the winning run began.
@@ -100,16 +104,78 @@ namespace real::detail {
      * The sum of per-byte rarity (`2000 - byte_frequency`). A sum (rather than the rarest byte alone)
      * approximates the product of per-byte match probabilities, so it rewards both a rare byte and a longer
      * literal — the two things that shrink the candidate count.
-     * \param[in] run The bytes to score.
+     * \param[in] run    The bytes to score.
+     * \param[in] folded One flag per byte of \p run: a letter that matches in either case, whose traffic is
+     *                   the sum of its two cases'.
      * \return The run's selectivity; higher is rarer and therefore better.
      */
-    constexpr std::uint32_t score_run(std::span<const std::uint8_t> run)
+    constexpr std::uint32_t score_run(std::span<const std::uint8_t> run,
+                                      const std::vector<bool>&      folded)
     {
       std::uint32_t s {0};
-      for (const std::uint8_t b : run) {
-        s += static_cast<std::uint32_t>(2000U - byte_frequency(b));
+      for (std::size_t i {0}; i < run.size(); ++i) {
+        // A letter in either case stops the scan on both: its traffic is the sum of the two.
+        const std::uint32_t own       {byte_frequency(run[i])};
+        const std::uint32_t frequency {folded[i] ? own + static_cast<std::uint32_t>(byte_frequency(static_cast<std::uint8_t>(run[i] - 0x20U)))
+                                                 : own};
+        s += frequency < 2000U ? 2000U - frequency : 0U;
       }
       return s;
+    }
+
+    /*!
+     * \brief The lower-case ASCII letter a class node matches in either case and in no other way, else -1.
+     *
+     * The class must be exactly one letter's two cases: `[xX]`, or a lone letter under `icase` (`(?i)x`).
+     * Under text-mode `icase` the letter's Unicode fold orbit must be those two only, read from the fold
+     * table the compiler folds with: `k` (KELVIN SIGN) and `s` (LONG S) have a third member, a multi-byte
+     * one a two-byte scan would miss. In bytes mode or under `(?a)` the fold is ASCII-only.
+     * \param[in] tree The AST holding the node.
+     * \param[in] n    The node.
+     * \return The lower-case letter, or -1.
+     */
+    [[nodiscard]] constexpr std::int32_t fold_pair_letter(const ast&      tree,
+                                                          const ast_node& n)
+    {
+      if (n.kind != node_kind::klass || n.negated) {
+        return -1;
+      }
+      const class_def& cd {tree.classes[static_cast<std::size_t>(n.klass)]};
+      if (!cd.ranges.empty() || cd.codepoint_predicate || cd.has_sets) {
+        return -1;
+      }
+      std::int32_t lower {-1};
+      std::size_t  count {0};
+      for (unsigned b {0}; b < 256U; ++b) {
+        if (cd.ascii.test(static_cast<std::uint8_t>(b))) {
+          ++count;
+          if (b >= 'A' && b <= 'Z') {
+            lower = static_cast<std::int32_t>(b + 0x20U);
+          }
+          else if (b >= 'a' && b <= 'z') {
+            lower = static_cast<std::int32_t>(b);
+          }
+          else {
+            return -1; // a member that is not a letter
+          }
+        }
+      }
+      const auto  upper      {static_cast<std::uint8_t>(lower - 0x20)};
+      const flags node_flags {static_cast<flags>(n.effective_flags)};
+      const bool  icase      {has_flag(node_flags, flags::icase)};
+      if (lower < 0 || count > 2 || (count == 1 && !icase)
+          || (count == 2 && !(cd.ascii.test(static_cast<std::uint8_t>(lower)) && cd.ascii.test(upper)))) {
+        return -1;
+      }
+      if (icase && !has_flag(node_flags, flags::bytes) && !has_flag(node_flags, flags::ascii)) {
+        for (const std::uint32_t cp : {static_cast<std::uint32_t>(lower), static_cast<std::uint32_t>(upper)}) {
+          const std::size_t idx {find_fold_index(cp)};
+          if (idx == unicode_fold_table_size || unicode_fold_table[idx].count != 1) {
+            return -1; // the orbit reaches past the two ASCII cases
+          }
+        }
+      }
+      return lower;
     }
 
     /*!
@@ -125,25 +191,31 @@ namespace real::detail {
     {
       if (st.frozen) {
         st.run.clear();
+        st.run_folded.clear();
         return;
       }
       if (!st.run.empty()) {
         const std::size_t   len        {st.run.size() < inner_literal_max ? st.run.size() : inner_literal_max};
-        const std::uint32_t s          {score_run(std::span<const std::uint8_t>(st.run.data(), len))};
+        const std::uint32_t s          {score_run(std::span<const std::uint8_t>(st.run.data(), len), st.run_folded)};
         const bool          new_inner  {st.run_top >= 1};
         const bool          best_inner {st.best_top >= 1};
         const bool          take       {st.best.len == 0
                                         || (new_inner && !best_inner)
                                         || (new_inner == best_inner && s > st.best.score)};
         if (take) {
-          st.best.len   = static_cast<std::uint8_t>(len);
-          st.best.score = s;
+          st.best.len    = static_cast<std::uint8_t>(len);
+          st.best.score  = s;
+          st.best.folded = 0;
           for (std::size_t i = 0; i < len; ++i) {
             st.best.bytes[i] = st.run[i];
+            if (st.run_folded[i]) {
+              st.best.folded = static_cast<std::uint16_t>(static_cast<unsigned>(st.best.folded) | (1U << i));
+            }
           }
           st.best_top = st.run_top;
         }
         st.run.clear();
+        st.run_folded.clear();
       }
     }
 
@@ -265,6 +337,7 @@ namespace real::detail {
             st.run_top = top_child; // this byte starts a run — remember where, for the prefix boundary
           }
           st.run.push_back(n.byte);
+          st.run_folded.push_back(false);
           return true;
         case node_kind::concat:
           // Only the ROOT concat's direct children are top-level (assigned indices in extract_inner_literal);
@@ -299,7 +372,19 @@ namespace real::detail {
             flush(st);
             return true;
           }
-        case node_kind::klass:
+        case node_kind::klass: {
+            const std::int32_t letter {fold_pair_letter(tree, n)};
+            if (letter < 0) {
+              flush(st); // a class of more than one letter's two cases breaks the run
+              return true;
+            }
+            if (st.run.empty()) {
+              st.run_top = top_child;
+            }
+            st.run.push_back(static_cast<std::uint8_t>(letter));
+            st.run_folded.push_back(true);
+            return true;
+          }
         case node_kind::any:
           flush(st); // a non-byte guaranteed segment breaks the run
           return true;
@@ -307,7 +392,7 @@ namespace real::detail {
             // Pure-literal alt (`info|error|warn`): a representable reverse-prefix segment, so flush (no
             // branch's bytes are shared) and continue. Each branch needs AT LEAST ONE byte: an empty branch
             // (`(ab|)`) makes the alt nullable, the prefix confirms at width 0 and misses the leftmost match
-            // (`(ab|)bb` over "abbbbbbbbbbbb" answered [1,3] where the VM answers [0,4]).
+            // (`(ab|)bb` over "abbbbbbbbbbbb" would answer [1,3] where the VM answers [0,4]).
             for (std::int32_t b = n.child; b >= 0; b = tree.nodes[static_cast<std::size_t>(b)].next) {
               if (!is_pure_byte_run(tree, b) || byte_run_is_empty(tree, b)) {
                 return false;
@@ -546,7 +631,8 @@ namespace real::detail {
                                                      const std::array<bool, 256>& bytes) noexcept
     {
       for (std::size_t i {0}; i < lit.len; ++i) {
-        if (!bytes[lit.bytes[i]]) {
+        const bool folded {((static_cast<unsigned>(lit.folded) >> i) & 1U) != 0U};
+        if (!bytes[lit.bytes[i]] && !(folded && bytes[static_cast<std::uint8_t>(lit.bytes[i] - 0x20U)])) {
           return false;
         }
       }
@@ -622,7 +708,7 @@ namespace real::detail {
       }
       // The scan confirms each occurrence from the LEFTMOST start its prefix reaches, so an occurrence inside
       // an earlier match's prefix text can confirm at a later start through a shorter prefix match
-      // (`(xab|a)bb` over "xabbb" answered [1,4), not [0,5)). That needs a rigid prefix (width shrinking in
+      // (`(xab|a)bb` over "xabbb" would answer [1,4), not [0,5)). That needs a rigid prefix (width shrinking in
       // fixed steps; a class loop reaches every start) and a literal that can occur in the prefix's text.
       if (st.best_top >= 1) {
         std::array<bool, 256> bytes {};
