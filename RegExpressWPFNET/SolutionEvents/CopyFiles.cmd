@@ -290,6 +290,7 @@ set BasePath=%SolutionDir%\RegexEngines\Dart
 xcopy /D /R /Y "%BasePath%\DartPlugin\bin\%Configuration%\%TargetDir%\DartPlugin.dll" "%EnginesTargetPath%\Dart\*"
 xcopy /D /R /Y "%BasePath%\RegExpWorker\RegExpWorker.exe" "%EnginesTargetPath%\Dart\*.bin"
 xcopy /D /R /Y "%BasePath%\OnigurumaDartWorker\OnigurumaDartWorker.exe" "%EnginesTargetPath%\Dart\*.bin"
+xcopy /D /R /Y "%BasePath%\IRegexpWorker\IRegexpWorker.exe" "%EnginesTargetPath%\Dart\*.bin"
 
 
 rem -- REAL --

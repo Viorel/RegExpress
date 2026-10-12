@@ -76,11 +76,13 @@ namespace DartPlugin
 
                 bool is_regexp = Options.package == PackageEnum.RegExp;
                 bool is_oniguruma = Options.package == PackageEnum.OnigurumaDart;
+                bool is_iregexp = Options.package == PackageEnum.IRegexp;
 
                 pnlRegExp.Display( is_regexp );
                 pnlOnigurumaDart.Display( is_oniguruma );
                 lblOnigurumaSyntax.Display( is_oniguruma );
                 cbxOnigurumaSyntax.Display( is_oniguruma );
+                pnlIRegexp.Display( is_iregexp );
             }
             finally
             {

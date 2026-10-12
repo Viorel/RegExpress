@@ -8,8 +8,8 @@ enum PackageEnum
 {
     None,
     RegExp,
-    // 'Duppix' seems abandoned
     OnigurumaDart,
+    IRegexp,
 }
 
 enum OnigurumaSyntaxEnum
@@ -34,6 +34,7 @@ class Options : INotifyPropertyChanged
     private bool m_caseInsensitive;
     private bool m_multiLine;
     private bool m_dotAll;
+    private bool m_matchWholeString;
 
     public PackageEnum package { get; set; } = PackageEnum.RegExp;
 
@@ -111,7 +112,25 @@ class Options : INotifyPropertyChanged
     public bool notEndString { get; set; }
     public bool notBeginPosition { get; set; }
     public bool callbackEachMatch { get; set; }
-    public bool matchWholeString { get; set; }
+    public bool matchWholeString
+    {
+        get
+        {
+            return m_matchWholeString;
+        }
+        set
+        {
+            if( m_matchWholeString != value )
+            {
+                m_matchWholeString = value;
+
+                NotifyPropertyChanged( nameof( matchWholeString ) );
+                NotifyPropertyChanged( nameof( matchesSubstring ) );
+            }
+        }
+    }
+
+    public bool matchesSubstring { get => !matchWholeString; set => matchWholeString = !value; }
 
     public Options Clone( )
     {
