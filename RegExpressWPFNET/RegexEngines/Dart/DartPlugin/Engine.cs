@@ -52,6 +52,7 @@ class Engine : RegexEngine
     {
         PackageEnum.RegExp => "RegExp",
         PackageEnum.OnigurumaDart => "OnigRegex",
+        PackageEnum.IRegexp => "IRegexp",
         _ => "unknown"
     }})";
 
@@ -99,6 +100,7 @@ class Engine : RegexEngine
                 new FeatureMatrixVariant( "RegExp", new Engine { Options = new Options { package = PackageEnum.RegExp, unicode = false }} ),
                 new FeatureMatrixVariant( "RegExp (unicode)", new Engine { Options = new Options { package = PackageEnum.RegExp, unicode = true }} ),
                 new FeatureMatrixVariant( "OnigRegex", new Engine { Options = new Options { package = PackageEnum.OnigurumaDart, OnigurumaSyntax = OnigurumaSyntaxEnum.onigSyntaxOniguruma }} ),
+                new FeatureMatrixVariant( "IRegexp", new Engine { Options = new Options { package = PackageEnum.IRegexp, matchesSubstring = false }} ),
             ];
         return matrices;
 #else
@@ -139,6 +141,7 @@ class Engine : RegexEngine
         {
             PackageEnum.RegExp => new SubengineRegExp( options ),
             PackageEnum.OnigurumaDart => new SubengineOnigurumaDart( options ),
+            PackageEnum.IRegexp => new SubengineIRegexp( options ),
             _ => throw new NotImplementedException( ),
         };
     }

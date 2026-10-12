@@ -1,0 +1,1 @@
+dart compile exe --target-os windows --target-arch x64 -o "IRegexpWorker.exe" ".\bin\i_regexp_worker.dart"

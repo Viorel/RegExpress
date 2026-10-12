@@ -55,7 +55,7 @@ The following engines are included:
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0,
   * [_regexr_](https://crates.io/crates/regexr) 0.6.1,
   * [_rexile_](https://crates.io/crates/rexile) 0.7.4,
-  * [_iregexp-rs_](https://github.com/strefethen/iregexp-rs) 0.1.0,
+  * [_iregexp-rs_](https://github.com/strefethen/iregexp-rs) 0.1.0 (RFC 9485),
   * [_ferroni_](https://crates.io/crates/ferroni) 2.1.1,
   * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.3,
   * [_derivre_](https://crates.io/crates/derivre) 0.3.13.
@@ -95,9 +95,10 @@ The following engines are included:
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
   * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.27,
   * [_onigmo go-regexp_](https://pkg.go.dev/github.com/go-regexp/engine) 0.3.0.
-* **Dart** 3.12.2:
+* **Dart** 3.13.4:
   * [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html),
-  * [_oniguruma\_dart_](https://pub.dev/packages/oniguruma_dart) 1.0.1.
+  * [_oniguruma\_dart_](https://pub.dev/packages/oniguruma_dart) 1.0.1,
+  * [_iregexp_](https://pub.dev/packages/iregexp) 0.2.0 (RFC 9485). 
 * [**REAL**](https://github.com/RECHE23/real-regex) 2026.10.11 (in C++).
 
 ## Running the playground

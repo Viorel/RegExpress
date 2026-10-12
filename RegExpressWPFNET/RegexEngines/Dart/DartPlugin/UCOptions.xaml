@@ -45,9 +45,8 @@
                 <Label Grid.Column="0" Grid.Row="0" Content="Package:" Target="{Binding ElementName=cbxPackage}" />
                 <ComboBox x:Name="cbxPackage" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding package, FallbackValue='RegExp'}" SelectionChanged="cbxPackage_SelectionChanged" >
                     <ui:ComboBoxItemWithVersion Tag="RegExp"        Text="RegExp"           Version="" IsSelected="True" />
-                    <!-- 'Duppix' seems abandoned -->
-                    <!--<ui:ComboBoxItemWithVersion Tag="Duppix"  Text="Duppix"    Version="{Binding Duppix, Source={StaticResource versions}}" />-->
-                    <ui:ComboBoxItemWithVersion Tag="OnigurumaDart" Text="OnigurumaDart"    Version="{Binding OnigurumaDart, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="OnigurumaDart" Text="OnigurumaDart"    Version="{Binding OnigurumaDart,    Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="IRegexp"       Text="IRegexp"          Version="{Binding IRegexp,          Source={StaticResource versions}}" />
                 </ComboBox>
 
                 <Label x:Name="lblOnigurumaSyntax" Grid.Column="0" Grid.Row="1" Content="Syntax:" Target="{Binding ElementName=cbxOnigurumaSyntax}" />
@@ -109,6 +108,11 @@
                 <ui:CheckboxWithNote Prop="callbackEachMatch" Note=""/>
                 <ui:CheckboxWithNote Prop="matchWholeString" Note=""/>
             </StackPanel>
+
+            <StackPanel x:Name="pnlIRegexp" Orientation="Vertical">
+                <ui:CheckboxWithNote Prop="matchesSubstring" Text="Matches a substring" Note=""/>
+            </StackPanel>
+
         </StackPanel>
     </Grid>
 </UserControl>

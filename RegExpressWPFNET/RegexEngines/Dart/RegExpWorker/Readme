@@ -1,7 +1,7 @@
 HOW IT'S MADE
 -------------
 
-- Install Dart, or download Dart SDK archive (it can be used without installation).
+- Install Dart (using 'winget', for example), or download Dart SDK archive (it can be used without installation).
 
 - To check the version:
 
