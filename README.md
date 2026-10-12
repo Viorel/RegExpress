@@ -53,11 +53,11 @@ The following engines are included:
   * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
   * [_real-regex_](https://crates.io/crates/real-regex) 2026.10.5,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0,
-  * [_regexr_](https://crates.io/crates/regexr) 0.6.0,
+  * [_regexr_](https://crates.io/crates/regexr) 0.6.1,
   * [_rexile_](https://crates.io/crates/rexile) 0.7.4,
   * [_iregexp-rs_](https://github.com/strefethen/iregexp-rs) 0.1.0,
-  * [_ferroni_](https://crates.io/crates/ferroni) 1.10.0,
-  * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.2,
+  * [_ferroni_](https://crates.io/crates/ferroni) 2.1.1,
+  * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.3,
   * [_derivre_](https://crates.io/crates/derivre) 0.3.13.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2.1:
   * _java.util.regex_,
