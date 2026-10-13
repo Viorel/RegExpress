@@ -4,7 +4,7 @@ using System;
 
 namespace DotNETPlugin;
 
-class Versions
+static class Versions
 {
     static readonly Lazy<string?> LazyVersionDotNet = new( SubengineDotNet.GetVersion( ICancellable.NonCancellable ) );
     static readonly Lazy<string?> LazyVersionDotNetFramework = new( SubengineDotNetFramework.GetVersion( ICancellable.NonCancellable ) );

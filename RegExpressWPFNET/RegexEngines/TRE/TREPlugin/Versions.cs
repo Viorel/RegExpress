@@ -1,6 +1,6 @@
 ﻿namespace TREPlugin;
 
-class Versions
+static class Versions
 {
     public static string TRE { get; } = "0.9.0";
 }

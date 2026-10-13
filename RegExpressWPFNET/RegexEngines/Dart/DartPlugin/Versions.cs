@@ -1,6 +1,6 @@
 ﻿namespace DartPlugin;
 
-class Versions
+static class Versions
 {
     public static string Dart { get; } = "3.13.4";
     public static string OnigurumaDart { get; } = "1.0.1";

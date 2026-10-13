@@ -1,6 +1,6 @@
 ﻿namespace FortranPlugin;
 
-class Versions
+static class Versions
 {
     public static string IFX { get; } = "2026.0.0";
     public static string Forgex { get; } = "4.6";

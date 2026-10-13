@@ -6,7 +6,7 @@ using System.Windows;
 
 namespace VBScriptPlugin;
 
-class Versions
+static class Versions
 {
     static Lazy<string> lazyVBScriptVersion = new( ( ) => GetVBScriptVersion( ) ?? "" );
 

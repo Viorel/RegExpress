@@ -10,7 +10,6 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -28,9 +27,9 @@
                 </StackPanel.LayoutTransform>
                 <Label Content="Module:" Target="{Binding ElementName=cbxModule}" VerticalAlignment="Center" Padding="0 2 4 2"/>
                 <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='re'}" VerticalAlignment="Center" SelectionChanged="cbxModule_SelectionChanged" Margin="3 0 0 0">
-                    <ui:ComboBoxItemWithVersion Tag="re"         Text="re"         Version="{Binding Re, Source={StaticResource versions}}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="regex"      Text="regex"      Version="{Binding Regex, Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag="real_regex" Text="real-regex" Version="{Binding RealRegex, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="re"         Text="re"         Version="{x:Static local:Versions.Re}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="regex"      Text="regex"      Version="{x:Static local:Versions.Regex}" />
+                    <ui:ComboBoxItemWithVersion Tag="real_regex" Text="real-regex" Version="{x:Static local:Versions.RealRegex}" />
                 </ComboBox>
             </StackPanel>
 
@@ -42,7 +41,7 @@
             <ui:CheckboxWithNote Prop="MULTILINE" Note="^ matches at the beginning of the string and at the beginning of each line; $ matches at the end of the string and at the end of each line"/>
             <ui:CheckboxWithNote Prop="VERBOSE" Note="allow spaces and comments"/>
             <ui:CheckboxWithNote x:Name="FALLBACK" Prop="fallback" Note="delegates unsupported patterns to the standard library “re” (forfeiting the linear-time guarantee)"/>
-            
+
             <StackPanel x:Name="pnlAdditional" VerticalAlignment="Top" Margin="0 6 0 0">
                 <ui:CheckboxWithNote Prop="BESTMATCH" Note="best fuzzy match"/>
                 <ui:CheckboxWithNote Prop="ENHANCEMATCH" Note="improve the fit after finding the first fuzzy match"/>

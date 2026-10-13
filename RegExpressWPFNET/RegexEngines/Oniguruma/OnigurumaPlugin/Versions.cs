@@ -1,6 +1,6 @@
 ﻿namespace OnigurumaPlugin;
 
-class Versions
+static class Versions
 {
     public static string Oniguruma { get; } = "6.9.10";
 }

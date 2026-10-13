@@ -1,6 +1,6 @@
 ﻿namespace GoPlugin;
 
-class Versions
+static class Versions
 {
     public static string Go { get; } = "1.27.2";
     public static string Regexp { get; } = Go;

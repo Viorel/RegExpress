@@ -1,6 +1,6 @@
 ﻿namespace JavaPlugin;
 
-class Versions
+static class Versions
 {
     public static string Java { get; } = "27";
     public static string Regex { get; } = Java;

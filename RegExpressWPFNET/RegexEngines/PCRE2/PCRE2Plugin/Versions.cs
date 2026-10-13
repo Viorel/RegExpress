@@ -1,6 +1,6 @@
 ﻿namespace PCRE2Plugin;
 
-class Versions
+static class Versions
 {
     public static string PCRE2 { get; } = "10.49";
 }

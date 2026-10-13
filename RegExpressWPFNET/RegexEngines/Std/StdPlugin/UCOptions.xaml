@@ -10,7 +10,6 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -46,10 +45,10 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Implementation:" Target="{Binding ElementName=cbxCompiler}" />
                 <ComboBox x:Name="cbxCompiler" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Compiler, FallbackValue='MSVC'}" MinWidth="192" SelectionChanged="cbxCompiler_SelectionChanged">
-                    <ui:ComboBoxItemWithVersion Tag="MSVC"          Text="MSVC wregex"              Version="{Binding MSVC,         Source={StaticResource versions}}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="GCC"           Text="GCC wregex"               Version="{Binding GCC,          Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag="SRELL"         Text="SRELL u8regex"            Version="{Binding SRELL,        Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag="SRELL_LINEAR"  Text="SREL3 u8regex (linear)"   Version="{Binding SRELL_LINEAR, Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="MSVC"          Text="MSVC wregex"              Version="{x:Static local:Versions.MSVC}" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="GCC"           Text="GCC wregex"               Version="{x:Static local:Versions.GCC}" />
+                    <ui:ComboBoxItemWithVersion Tag="SRELL"         Text="SRELL u8regex"            Version="{x:Static local:Versions.SRELL}" />
+                    <ui:ComboBoxItemWithVersion Tag="SRELL_LINEAR"  Text="SREL3 u8regex (linear)"   Version="{x:Static local:Versions.SRELL_LINEAR}" />
                 </ComboBox>
 
                 <Label Grid.Column="0" Grid.Row="1" Content="Grammar:" Target="{Binding ElementName=cbxGrammar}" />
@@ -140,13 +139,13 @@
                     <ColumnDefinition Width="77"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                
+
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                
+
                 <Label Grid.Column="0" Grid.Row="0" x:Name="lbl_limit_counter" Content="limit__counter:" Target="{Binding ElementName=tb_limit_counter}" />
                 <TextBox Grid.Column="1" Grid.Row="0" x:Name="tb_limit_counter" Text="{Binding limit_counter, UpdateSourceTrigger=PropertyChanged}" />
                 <TextBox Grid.Column="1" Grid.Row="0" x:Name="tb_limit_counter_DISABLED" Text="" IsEnabled="False" />

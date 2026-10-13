@@ -1,6 +1,6 @@
 ﻿namespace JavaScriptPlugin;
 
-class Versions
+static class Versions
 {
 
     // The version of WebView2 is determined programmatically

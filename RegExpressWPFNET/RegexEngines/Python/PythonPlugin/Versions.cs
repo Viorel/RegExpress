@@ -1,6 +1,6 @@
 ﻿namespace PythonPlugin;
 
-class Versions
+static class Versions
 {
     public static string Python { get; } = "3.14.7";
     public static string Re { get; } = "3.14.7";

@@ -1,6 +1,6 @@
 ﻿namespace ZigPlugin;
 
-class Versions
+static class Versions
 {
     public static string Zig { get; } = "0.17.0";
     public static string ZigRegex { get; } = "0.2.1";

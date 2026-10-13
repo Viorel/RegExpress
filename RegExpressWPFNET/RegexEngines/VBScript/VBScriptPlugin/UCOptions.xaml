@@ -9,7 +9,6 @@
              Loaded="UserControl_Loaded" Height="100" Width="400">
 
     <UserControl.Resources>
-        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -43,8 +42,8 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Implementation:" Target="{Binding ElementName=cbxImplementation}" />
                 <ComboBox x:Name="cbxImplementation" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Implementation, FallbackValue='VBScript'}" MinWidth="99" SelectionChanged="cbxImplementation_SelectionChanged">
-                    <ui:ComboBoxItemWithVersion Tag="VBScript"          Text="VBScript"                 Version="{Binding VBScript,     Source={StaticResource versions}}" d:Version="" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="tbRegExp"          Text="tbRegExp (twinBASIC)"     Version="{Binding TwinBasic,    Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="VBScript"          Text="VBScript"                 Version="{x:Static local:Versions.VBScript}" d:Version="" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag="tbRegExp"          Text="tbRegExp (twinBASIC)"     Version="{x:Static local:Versions.TwinBasic}" />
                 </ComboBox>
 
             </Grid>
@@ -54,7 +53,7 @@
             <ui:CheckboxWithNote x:Name="cbxDotAll" Prop="DotAll" Note="let . match newlines" Visibility="Collapsed"/>
             <ui:CheckboxWithNote x:Name="cbxDotAllDISABLED" Text="DotAll" Note="let . match newlines" IsEnabled="False" Visibility="Collapsed"/>
             <ui:CheckboxWithNote Prop="Global" Note="match all occurrences"/>
-            
+
         </StackPanel>
     </Grid>
 </UserControl>

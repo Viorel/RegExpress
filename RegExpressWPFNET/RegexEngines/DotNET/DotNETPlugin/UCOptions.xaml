@@ -10,7 +10,6 @@
 
 
     <UserControl.Resources>
-        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -43,11 +42,11 @@
                 </StackPanel.LayoutTransform>
                 <Label Content="Kind:" Target="{Binding ElementName=cbxClass}" Padding="0 2 4 2" MinWidth="40" VerticalAlignment="Center"/>
                 <ComboBox x:Name="cbxClass" SelectedValuePath="Tag" SelectedValue="{Binding Class, FallbackValue='RegexDotNet'}" VerticalAlignment="Center" SelectionChanged="cbxClass_SelectionChanged"  MinWidth="44">
-                    <ui:ComboBoxItemWithVersion Tag ="RegexDotNet"          Text="Regex .NET"           Version="{Binding DotNet,           Source={StaticResource versions}}" d:Version="###" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag ="RegexDotNetFramework" Text="Regex .NET Framework" Version="{Binding DotNetFramework,  Source={StaticResource versions}}" d:Version="###" />
-                    <ui:ComboBoxItemWithVersion Tag ="ReSharp"              Text="RE#"                  Version="{Binding ReSharp,          Source={StaticResource versions}}" d:Version="###" />
-                    <ui:ComboBoxItemWithVersion Tag ="Scout"                Text="Scout ByteRegex"      Version="{Binding Scout,            Source={StaticResource versions}}" d:Version="###" />
-                    <ui:ComboBoxItemWithVersion Tag ="LokadUtf8Regex"       Text="Lokad Utf8Regex"      Version="{Binding LokadUtf8Regex,   Source={StaticResource versions}}" d:Version="###" />
+                    <ui:ComboBoxItemWithVersion Tag ="RegexDotNet"          Text="Regex .NET"           Version="{x:Static local:Versions.DotNet}"          d:Version="###" IsSelected="True" />
+                    <ui:ComboBoxItemWithVersion Tag ="RegexDotNetFramework" Text="Regex .NET Framework" Version="{x:Static local:Versions.DotNetFramework}" d:Version="###" />
+                    <ui:ComboBoxItemWithVersion Tag ="ReSharp"              Text="RE#"                  Version="{x:Static local:Versions.ReSharp}"         d:Version="###" />
+                    <ui:ComboBoxItemWithVersion Tag ="Scout"                Text="Scout ByteRegex"      Version="{x:Static local:Versions.Scout}"           d:Version="###" />
+                    <ui:ComboBoxItemWithVersion Tag ="LokadUtf8Regex"       Text="Lokad Utf8Regex"      Version="{x:Static local:Versions.LokadUtf8Regex}"  d:Version="###" />
                 </ComboBox>
             </StackPanel>
 

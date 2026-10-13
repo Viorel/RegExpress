@@ -1,6 +1,6 @@
 ﻿namespace RustPlugin;
 
-class Versions
+static class Versions
 {
     public static string Rust { get; } = "1.99.0";
     public static string Regex { get; } = "1.13.1";

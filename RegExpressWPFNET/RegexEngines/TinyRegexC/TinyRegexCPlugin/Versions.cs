@@ -1,6 +1,6 @@
 ﻿namespace TinyRegexCPlugin;
 
-class Versions
+static class Versions
 {
     public static string kokke { get; } = "2021-02-15"; 
     public static string rurban { get; } = "2022-06-21";

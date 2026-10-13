@@ -1,6 +1,6 @@
 ﻿namespace StdPlugin;
 
-class Versions
+static class Versions
 {
     public static string MSVC { get; } = "14.51.36244";
     public static string GCC { get; } = "16.1.0";

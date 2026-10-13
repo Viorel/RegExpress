@@ -10,7 +10,6 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <local:Versions x:Key="versions"/>
         <Style TargetType="ui:CheckboxWithNote">
             <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
         </Style>
@@ -45,8 +44,8 @@
                 <Label Grid.Column="0" Grid.Row="0" Content="Package:" Target="{Binding ElementName=cbxPackage}" />
                 <ComboBox x:Name="cbxPackage" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding package, FallbackValue='RegExp'}" SelectionChanged="cbxPackage_SelectionChanged" >
                     <ui:ComboBoxItemWithVersion Tag="RegExp"        Text="RegExp"           Version="" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="OnigurumaDart" Text="OnigurumaDart"    Version="{Binding OnigurumaDart,    Source={StaticResource versions}}" />
-                    <ui:ComboBoxItemWithVersion Tag="IRegexp"       Text="IRegexp"          Version="{Binding IRegexp,          Source={StaticResource versions}}" />
+                    <ui:ComboBoxItemWithVersion Tag="OnigurumaDart" Text="OnigurumaDart"    Version="{x:Static local:Versions.OnigurumaDart}" />
+                    <ui:ComboBoxItemWithVersion Tag="IRegexp"       Text="IRegexp"          Version="{x:Static local:Versions.IRegexp}" />
                 </ComboBox>
 
                 <Label x:Name="lblOnigurumaSyntax" Grid.Column="0" Grid.Row="1" Content="Syntax:" Target="{Binding ElementName=cbxOnigurumaSyntax}" />
