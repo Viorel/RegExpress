@@ -739,7 +739,7 @@ static class TreeData
                     .Test( @"(?i:XéY)", "XÉY", null, "XÉY" )
                 .Flag( @"é=e+´", @"Canonical equivalence of characters", ( e, fm ) => fm.Ext_Canon_Eq )
                     .Test( "\u00E9", "e\u0301", null )
-                .Flag( "Σσς", "Match letters that have multiple uppercase and lowercase variants", ( e, fm ) => fm.Σσς )
+                .Flag( "Σσς", "Match multiple uppercase and lowercase variants", ( e, fm ) => fm.Σσς )
                     .IgnoreCase( )
                     .Test( @"ΣΣΣ", "Σσς", null, "Σσς" )
                     .Test( @"(?i)ΣΣΣ", "Σσς", null, "Σσς" )

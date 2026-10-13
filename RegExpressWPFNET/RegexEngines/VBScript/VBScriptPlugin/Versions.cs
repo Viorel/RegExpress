@@ -11,7 +11,7 @@ class Versions
     static Lazy<string> lazyVBScriptVersion = new( ( ) => GetVBScriptVersion( ) ?? "" );
 
     public static string VBScript { get; } = lazyVBScriptVersion.Value; // the version of VBScript is determined programmatically
-    public static string TwinBasic { get; } = "1.4.0.0";
+    public static string TwinBasic { get; } = "1.7.0.0";
 
     static string? GetVBScriptVersion( )
     {

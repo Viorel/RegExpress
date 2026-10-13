@@ -129,8 +129,6 @@ partial class SubengineTbRegExp( Options options ) : RegexSubengine
 #else
             throw new Exception( "Bad response." );
 #endif
-                
-            
         }
 
         return new RegexMatches( matches.Count, matches );
@@ -237,7 +235,7 @@ partial class SubengineTbRegExp( Options options ) : RegexSubengine
             Esc_r = true,
             Esc_t = true,
             Esc_v = true,
-            Esc_Octal = FeatureMatrix.OctalEnum.None,
+            Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
             Esc_Octal0_1_3 = false,
             Esc_oBrace = false,
             Esc_x2 = true,
@@ -246,16 +244,16 @@ partial class SubengineTbRegExp( Options options ) : RegexSubengine
             Esc_U8 = false,
             Esc_uBrace = true,
             Esc_UBrace = false,
-            Esc_c1 = false,
-            Esc_C1 = false,
+            Esc_c1 = true,
+            Esc_C1 = true,
             Esc_CMinus = false,
             Esc_NBrace = false,
-            GenericEscape = false,
+            GenericEscape = true,
 
             InsideSets_Esc_a = false,
             InsideSets_Esc_b = true,
             InsideSets_Esc_e = false,
-            InsideSets_Esc_f = false,
+            InsideSets_Esc_f = true,
             InsideSets_Esc_n = true,
             InsideSets_Esc_r = true,
             InsideSets_Esc_t = true,
@@ -270,7 +268,7 @@ partial class SubengineTbRegExp( Options options ) : RegexSubengine
             InsideSets_Esc_uBrace = true,
             InsideSets_Esc_UBrace = false,
             InsideSets_Esc_c1 = true,
-            InsideSets_Esc_C1 = false,
+            InsideSets_Esc_C1 = true,
             InsideSets_Esc_CMinus = false,
             InsideSets_Esc_NBrace = false,
             InsideSets_GenericEscape = true,
@@ -421,7 +419,6 @@ partial class SubengineTbRegExp( Options options ) : RegexSubengine
             ßSS = false,
 
             Ext_Ph1 = true,
-            Ext_Ph3 = true,
         };
     }
 
