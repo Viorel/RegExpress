@@ -133,10 +133,10 @@ packages:
     dependency: "direct main"
     description:
       name: iregexp
-      sha256: c79119931b7ae9c0b6327adaa4495811813fcae7e6236ac68c15f45ca857d38b
+      sha256: c46919330b2edc54409b9b2dfffc34f14b5395fc0d12021edddafe5b9c1e490c
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0"
+    version: "0.2.1"
   lints:
     dependency: "direct dev"
     description:

@@ -98,7 +98,7 @@ The following engines are included:
 * **Dart** 3.13.4:
   * [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html),
   * [_oniguruma\_dart_](https://pub.dev/packages/oniguruma_dart) 1.0.1,
-  * [_iregexp_](https://pub.dev/packages/iregexp) 0.2.0 (RFC 9485). 
+  * [_iregexp_](https://pub.dev/packages/iregexp) 0.2.1 (RFC 9485). 
 * [**REAL**](https://github.com/RECHE23/real-regex) 2026.10.11 (in C++).
 
 ## Running the playground

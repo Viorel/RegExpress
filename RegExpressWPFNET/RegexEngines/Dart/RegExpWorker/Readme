@@ -7,6 +7,14 @@ HOW IT'S MADE
 
     > dart info
 
+- To find out-of-date dependencies:
+
+    > dart pub outdated
+
+- To upgrade dependencies:
+
+    > dart pub upgrade
+
 - If required, edit "RegExpWorker.dart".
 
 - Run
