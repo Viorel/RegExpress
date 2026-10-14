@@ -49,6 +49,9 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
 
         bool use_builder = options.UseBuilder;
 
+        UInt64? size_limit = use_builder ? ValidationUtilities.ParseUInt64( "size_limit", options.size_limit ) : null;
+        Int32? dfa_size_limit = use_builder ? ValidationUtilities.ParseInt32( "dfa_size_limit", options.dfa_size_limit ) : null;
+
         var obj = new
         {
             use_builder = use_builder,
@@ -66,9 +69,8 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
                 options.fallback,
                 //options.octal,
 
-                //sl = use_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null, // (no-op)
-                //dsl = use_builder ? ValidationUtilities.ParseUInt32( "dfa_size_limit", options.dfa_size_limit ) : null,
-                //nl = use_builder ? ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ) : null,
+                size_limit,
+                dfa_size_limit,
             }
         };
 

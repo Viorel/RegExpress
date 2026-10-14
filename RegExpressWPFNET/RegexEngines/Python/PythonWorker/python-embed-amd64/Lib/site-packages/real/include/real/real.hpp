@@ -1093,6 +1093,21 @@ namespace real {
     {}
 
     /*!
+     * \brief Compiles \p pattern at run time under \p bound, limits lower than this build's (\ref real::limits):
+     *        a service compiling patterns it did not write bounds each one's cost here.
+     * \param[in] pattern       The pattern text.
+     * \param[in] compile_flags Flags, as the two-argument constructor takes them.
+     * \param[in] bound         The limits; a pattern past one is refused with `error_kind::limit`.
+     * \throws real::regex_error on an invalid or over-limit pattern, or limits past this build's ceilings.
+     */
+    explicit basic_regex(std::string_view pattern,
+                         flags            compile_flags,
+                         const limits&    bound)
+    requires(!Storage::is_compile_time)
+      : program_(Storage::compile(pattern, compile_flags, bound))
+    {}
+
+    /*!
      * \brief Default constructor for the stateless compile-time storage (static_regex).
      */
     constexpr basic_regex()

@@ -136,8 +136,9 @@ namespace RustPlugin
                 pnlRustyExpressionsOptions.Display( is_rusty_expressions );
                 pnlDerivre.Display( is_derivre );
 
-                pnlRegexCrateLimits.Display( is_regex_or_regex_lite );
-                dsl.IsEnabled = is_regex;
+                pnlRegexCrateLimits.Display( is_regex_or_regex_lite || is_real );
+                dsl.IsEnabled = is_regex || is_real;
+                nl.IsEnabled = is_regex_or_regex_lite;
 
                 chbx_crlf.Display( is_regex_or_regex_lite || is_fancy );
                 chbx_swap_greed.Display( is_regex_or_regex_lite );

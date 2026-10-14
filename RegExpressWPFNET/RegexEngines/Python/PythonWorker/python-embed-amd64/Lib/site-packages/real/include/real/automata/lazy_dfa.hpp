@@ -51,17 +51,7 @@ namespace real::detail {
 
   //! Default bytes one lazy DFA's state cache may hold per direction; past it the cache flushes, and a scan
   //! that keeps flushing quits to the VM. Above the 30 MB a 2 000-word alternation builds without thrashing.
-  inline constexpr std::size_t lazy_dfa_default_byte_budget {std::size_t {64} << 20U};
-
-  /*!
-   * \brief Test seam: the byte budget the search DFAs are built with (read at each DFA's construction).
-   * \return A reference to the process-wide budget; \ref lazy_dfa_default_byte_budget unless a test moved it.
-   */
-  inline std::size_t& lazy_dfa_byte_budget()
-  {
-    static std::size_t budget {lazy_dfa_default_byte_budget};
-    return budget;
-  }
+  inline constexpr std::size_t lazy_dfa_default_byte_budget {default_dfa_memory};
 
   /*!
    * \brief Test seam: force the general loop off the bounded backtracker onto the Pike VM, so a
@@ -1404,7 +1394,7 @@ namespace real::detail {
     static constexpr std::size_t   quit_pos       {npos - 1U};   //!< What forward_end() gives when its scan quit (see \ref anchored_result::quit).
     static constexpr std::uint32_t no_match_idx   {0xFFFFFFFFU}; //!< A state whose ordered set holds no accept.
     static constexpr std::uint32_t pending_idx    {0xFFFFFFFEU}; //!< A state whose accept waits on a pending assertion: only resolve() decides it.
-    static constexpr std::size_t   state_budget   {65536};       //!< Cached states before a flush; the memory cap is \ref lazy_dfa_byte_budget.
+    static constexpr std::size_t   state_budget   {65536};       //!< Cached states before a flush; the memory cap is \ref real::limits::dfa_memory.
     static constexpr std::size_t   thrash_flushes {2};           //!< Flushes within one scan that trip \ref thrashing, where the scan may not quit.
     //! Bytes read per cached state below which a DFA that may quit refuses its next flush and quits: a cache
     //! refilled faster than that costs more to rebuild than the VM costs to scan.
@@ -1439,7 +1429,7 @@ namespace real::detail {
      *                    caller then asks the VM.
      * \param[in] raw_byte_starts The program was compiled with \ref flags::allow_raw_byte, so a lead opening
      *                    on a continuation byte is built as any other (\ref pattern_hints::raw_byte_starts).
-     * \param[in] byte_budget Bytes the cached states may hold before a flush; see \ref lazy_dfa_byte_budget.
+     * \param[in] byte_budget Bytes the cached states may hold before a flush; see \ref real::limits::dfa_memory.
      */
     explicit constexpr lazy_dfa(std::span<const instr>      code,
                                 std::span<const char_class> classes,
@@ -2580,7 +2570,7 @@ namespace real::detail {
     static constexpr std::uint32_t no_transition {0xFFFFFFFFU}; //!< A not-yet-computed cached transition.
     static constexpr std::uint32_t quit_state    {0xFFFFFFFEU}; //!< What resolve() gives when a Unicode word boundary meets a non-ASCII byte; never interned.
     static constexpr std::size_t   quit_pos      {npos - 1U};   //!< What reverse_start() gives when its scan quit.
-    static constexpr std::size_t   state_budget  {65536};       //!< Cached states before a flush; the memory cap is \ref lazy_dfa_byte_budget.
+    static constexpr std::size_t   state_budget  {65536};       //!< Cached states before a flush; the memory cap is \ref real::limits::dfa_memory.
 
     /*!
      * \brief Builds the (initially empty) reverse DFA, transposing the program's edges as it goes.
@@ -2592,7 +2582,7 @@ namespace real::detail {
      *                         byte decide them. False, the default, declines any word boundary.
      * \param[in] word_quit    With Unicode word-ness, carry the word boundaries and quit next to a non-ASCII
      *                         byte (see \ref lazy_dfa's).
-     * \param[in] byte_budget  Bytes the cached states may hold before a flush; see \ref lazy_dfa_byte_budget.
+     * \param[in] byte_budget  Bytes the cached states may hold before a flush; see \ref real::limits::dfa_memory.
      */
     explicit constexpr reverse_dfa(std::span<const instr>      code,
                                    std::span<const char_class> classes,

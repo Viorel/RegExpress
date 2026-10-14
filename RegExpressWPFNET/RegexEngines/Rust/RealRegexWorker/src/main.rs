@@ -80,25 +80,17 @@ fn main()
 
         reb.fallback( options["fallback"].as_bool().unwrap_or( false));
 
-        // (no-op)
-        // let n = options["sl"].as_usize();
-        // if n.is_some()
-        // {
-        //     reb.size_limit( n.unwrap());
-        // } 
+        let n = options["size_limit"].as_usize();
+        if n.is_some()
+        {
+            reb.size_limit( n.unwrap());
+        } 
 
-        //?
-        // let n = options["dsl"].as_usize();
-        // if n.is_some()
-        // {
-        //     reb.dfa_size_limit( n.unwrap());
-        // } 
-
-        // let n = options["nl"].as_u32();
-        // if n.is_some()
-        // {
-        //     reb.nest_limit( n.unwrap());
-        // } 
+        let n = options["dfa_size_limit"].as_usize();
+        if n.is_some()
+        {
+            reb.dfa_size_limit( n.unwrap());
+        } 
 
         re = reb.build();
     }

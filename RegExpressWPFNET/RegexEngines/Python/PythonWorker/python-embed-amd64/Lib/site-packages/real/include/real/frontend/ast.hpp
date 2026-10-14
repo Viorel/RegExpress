@@ -302,10 +302,13 @@ namespace real::detail {
      * \param[in] pattern      The pattern text (borrowed, must outlive use).
      * \param[in] initial_flags Flags from the constructor; only `verbose` affects
      *                          parsing (a leading `(?x)` can add it too).
+     * \param[in] bound         The expression's limits on repeats, groups and nesting.
      */
     constexpr explicit parser(std::string_view pattern,
-                              flags            initial_flags = flags::none)
+                              flags            initial_flags = flags::none,
+                              const limits&    bound         = {})
       : pattern_(pattern),
+        bound_(bound),
         bytes_(has_flag(initial_flags, flags::bytes)),
         ecma_(has_flag(initial_flags, flags::ecma))
     {
@@ -332,6 +335,7 @@ namespace real::detail {
   private:
 
     std::string_view   pattern_;          //!< The pattern being parsed.
+    limits             bound_;            //!< The expression's limits (\ref real::limits).
     std::size_t        pos_           {}; //!< Current read offset into \ref pattern_.
     std::int32_t       depth_         {}; //!< Current group nesting (see \ref max_nesting_depth).
     std::vector<flags> flag_scopes_;      //!< Flag set in force per nesting level; the top is current (\ref current_flags). Read flags here, never from a member, so scoped groups are honoured.
@@ -438,6 +442,16 @@ namespace real::detail {
     [[noreturn]] constexpr void fail_unsupported(const char* message) const
     {
       throw regex_error(message, pos_, error_kind::unsupported);
+    }
+
+    /*!
+     * \brief Like \ref fail, but tags the error `limit`: a well-formed pattern past one of \ref bound_.
+     * \param[in] message The diagnostic text, reported at the current read offset.
+     */
+    template <typename = void>
+    [[noreturn]] constexpr void fail_limit(const char* message) const
+    {
+      throw regex_error(message, pos_, error_kind::limit);
     }
 
     /*!
@@ -1301,7 +1315,7 @@ namespace real::detail {
     /*!
      * \brief Reads an optional decimal repeat count.
      * \return The count, or -1 when no digits are present.
-     * \throws real::regex_error if the count exceeds \ref max_repeat_count (counts are unrolled).
+     * \throws real::regex_error if the count exceeds the expression's `repeat_count` (counts are unrolled).
      */
     constexpr std::int32_t parse_repeat_count()
     {
@@ -1309,8 +1323,8 @@ namespace real::detail {
       while (!eof() && peek() >= '0' && peek() <= '9') {
         value = value < 0 ? 0 : value;
         value = (value * 10) + (peek() - '0');
-        if (value > max_repeat_count) {
-          fail("repetition count too large");
+        if (value > bound_.repeat_count) {
+          fail_limit("repetition count too large");
         }
         ++pos_;
       }
@@ -1561,8 +1575,8 @@ namespace real::detail {
     constexpr std::int32_t parse_group(ast& out)
     {
       const std::size_t open_pos {pos_};
-      if (++depth_ > max_nesting_depth) {
-        fail("pattern nesting too deep");
+      if (++depth_ > bound_.nesting_depth) {
+        fail_limit("pattern nesting too deep");
       }
       ++pos_;                            // consume '('
       std::int32_t group        {-1};
@@ -1724,9 +1738,9 @@ namespace real::detail {
     constexpr std::int32_t new_group(ast&        out,
                                      std::size_t open_pos)
     {
-      if (out.group_count >= max_group_count) {
+      if (out.group_count >= bound_.group_count) {
         pos_ = open_pos;
-        fail("too many capture groups");
+        fail_limit("too many capture groups");
       }
       return ++out.group_count;
     }
@@ -2651,13 +2665,46 @@ namespace real::detail {
    * \brief Parses \p pattern into an \ref ast (convenience over \ref parser).
    * \param[in] pattern       The pattern text.
    * \param[in] initial_flags Constructor flags; only `verbose` affects parsing.
+   * \param[in] bound         The expression's limits (\ref real::limits).
    * \return The parsed AST.
    * \throws real::regex_error on unsupported or malformed syntax.
    */
   constexpr ast parse(std::string_view pattern,
-                      flags            initial_flags = flags::none)
+                      flags            initial_flags = flags::none,
+                      const limits&    bound         = {})
   {
-    return parser(pattern, initial_flags).parse();
+    return parser(pattern, initial_flags, bound).parse();
+  }
+
+  /*!
+   * \brief Refuses limits past this build's ceilings, or under one (\ref real::limits).
+   * \param[in] bound The limits.
+   * \throws real::regex_error (`error_kind::limit`) naming the first such limit.
+   */
+  inline void check_limits(const limits& bound)
+  {
+    const auto refuse {[](const char* name) {
+                         throw regex_error(std::string {"limit "} + name + " is past this build's ceiling or under 1",
+                                           0, error_kind::limit);
+                       }};
+    if (bound.program_size < 1 || bound.program_size > max_program_size) {
+      refuse("program_size");
+    }
+    if (bound.repeat_count < 1 || bound.repeat_count > max_repeat_count) {
+      refuse("repeat_count");
+    }
+    if (bound.group_count < 1 || bound.group_count > max_group_count) {
+      refuse("group_count");
+    }
+    if (bound.nesting_depth < 1 || bound.nesting_depth > max_nesting_depth) {
+      refuse("nesting_depth");
+    }
+    if (bound.lookaround_length < 1 || bound.lookaround_length > max_lookaround_length) {
+      refuse("lookaround_length");
+    }
+    if (bound.dfa_memory < 1) {
+      refuse("dfa_memory");
+    }
   }
 } // namespace real::detail
 

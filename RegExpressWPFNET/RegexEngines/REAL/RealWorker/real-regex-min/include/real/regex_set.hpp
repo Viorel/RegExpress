@@ -92,6 +92,22 @@ namespace real {
     }
 
     /*!
+     * \brief Compiles every pattern in \p patterns under \p bound, limits lower than this build's
+     *        (\ref real::limits), each member held to them.
+     * \param[in] patterns      Pattern texts; an empty set is allowed.
+     * \param[in] compile_flags Flags applied to every pattern.
+     * \param[in] bound         The limits of every member.
+     * \throws regex_error if any pattern fails to compile, or the limits are past this build's ceilings.
+     */
+    regex_set(std::span<const std::string_view> patterns,
+              flags                             compile_flags,
+              const limits&                     bound)
+      : flags_(compile_flags)
+    {
+      build_from_views(patterns, &bound);
+    }
+
+    /*!
      * \brief Convenience: compile from a contiguous array of string views.
      * \param[in] patterns      Pointer to the first pattern.
      * \param[in] n             Pattern count.
@@ -335,14 +351,21 @@ namespace real {
      * \brief Compiles every pattern, then splits them into the DFA-eligible subset (fused when it
      *        reaches the threshold) and the ineligible remainder each query searches individually.
      * \param[in] patterns The patterns to compile, in construction order.
+     * \param[in] bound    The members' limits, or null for this build's.
      * \throws regex_error if any pattern fails to compile.
      */
-    void build_from_views(std::span<const std::string_view> patterns)
+    void build_from_views(std::span<const std::string_view> patterns,
+                          const limits*                     bound = nullptr)
     {
       members_.reserve(patterns.size());
       for (std::size_t i = 0; i < patterns.size(); ++i) {
         try {
-          members_.emplace_back(patterns[i], flags_);
+          if (bound != nullptr) {
+            members_.emplace_back(patterns[i], flags_, *bound);
+          }
+          else {
+            members_.emplace_back(patterns[i], flags_);
+          }
         }
         catch (const regex_error& ex) {
           // Name WHICH member: the reported position is an offset inside it, useless without the index,

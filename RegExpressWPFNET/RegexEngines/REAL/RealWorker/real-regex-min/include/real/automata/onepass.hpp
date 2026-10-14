@@ -1003,23 +1003,30 @@ namespace real::detail {
       }
     }
 
+    //! \brief Bytes the search DFAs may cache per direction (\ref real::limits::dfa_memory). Not a cache: a copy keeps
+    //!        it. Last, so the fields a search reads keep their places.
+    std::size_t dfa_memory {default_dfa_memory};
+
     regex_immutables() = default; //!< An empty cache: every identity key null, nothing built.
 
     /*!
      * \brief Copies as an EMPTY cache: a copied regex is an independent regex.
      *
      * The cache body is never transferred — it is a pure runtime accelerator and cheap to rebuild — so the
-     * copy starts with \ref built_for and \ref rows_for null and rebuilds on its own first routed search.
+     * copy starts with \ref built_for and \ref rows_for null and rebuilds on its own first routed search. Its
+     * \ref dfa_memory, a limit and not a cache, is kept.
+     * \param[in] other The cache copied.
      */
-    regex_immutables(const regex_immutables& /*other*/) noexcept
-      : rows_for {nullptr}, built_for {nullptr}
+    regex_immutables(const regex_immutables& other) noexcept
+      : rows_for {nullptr}, built_for {nullptr}, dfa_memory {other.dfa_memory}
     {}
 
     /*!
      * \brief Moves as an empty cache, for the same reason as the copy constructor.
+     * \param[in] other The cache moved from; it keeps its own state.
      */
-    regex_immutables(regex_immutables&& /*other*/) noexcept
-      : rows_for {nullptr}, built_for {nullptr}
+    regex_immutables(regex_immutables&& other) noexcept
+      : rows_for {nullptr}, built_for {nullptr}, dfa_memory {other.dfa_memory}
     {}
 
     /*!
@@ -1048,24 +1055,29 @@ namespace real::detail {
      *
      * The destination's program is already the new one by the time storage assignment reaches here, so this
      * cannot rebuild from the source's program and must not inherit its built state: clearing
-     * \ref built_for forces `pike_vm`'s `ensure_immutables` to rebuild. Self-assignment-safe.
+     * \ref built_for forces `pike_vm`'s `ensure_immutables` to rebuild. Self-assignment-safe. \ref dfa_memory, a
+     * limit, is \p other's.
+     * \param[in] other The cache assigned from.
      * \return `*this`.
      */
     // NOLINTNEXTLINE(cert-oop54-cpp): deliberate non-copy of members, per the note above.
-    regex_immutables& operator=(const regex_immutables& /*other*/) noexcept
+    regex_immutables& operator=(const regex_immutables& other) noexcept
     {
       invalidate_all();
+      dfa_memory = other.dfa_memory;
       return *this;
     }
 
     /*!
      * \brief Invalidates as the copy assignment does, and for the same reason.
+     * \param[in] other The cache assigned from.
      * \return `*this`.
      */
     // NOLINTNEXTLINE(cert-oop54-cpp)
-    regex_immutables& operator=(regex_immutables&& /*other*/) noexcept
+    regex_immutables& operator=(regex_immutables&& other) noexcept
     {
       invalidate_all();
+      dfa_memory = other.dfa_memory;
       return *this;
     }
 

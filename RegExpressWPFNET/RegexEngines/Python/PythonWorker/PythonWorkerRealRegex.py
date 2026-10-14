@@ -32,8 +32,17 @@ if flags_obj['fallback']    : fallback = True
 
 fullmatch = ('fullmatch' in flags_obj) and flags_obj['fullmatch']
 
+limits = re.Limits(
+    program_size = flags_obj['program_size'] if 'program_size' in flags_obj else None,
+    repeat_count = flags_obj['repeat_count'] if 'repeat_count' in flags_obj else None,
+    group_count = flags_obj['group_count'] if 'group_count' in flags_obj else None,
+    nesting_depth = flags_obj['nesting_depth'] if 'nesting_depth' in flags_obj else None,
+    lookaround_length = flags_obj['lookaround_length'] if 'lookaround_length' in flags_obj else None,
+    dfa_memory = flags_obj['dfa_memory'] if 'dfa_memory' in flags_obj else None
+    )
+
 try:
-    regex_obj = re.compile( pattern, flags, fallback)
+    regex_obj = re.compile( pattern, flags, fallback, limits=limits)
 
     #print( f'# {regex_obj.groups}')
     #print( f'# {regex_obj.groupindex}')

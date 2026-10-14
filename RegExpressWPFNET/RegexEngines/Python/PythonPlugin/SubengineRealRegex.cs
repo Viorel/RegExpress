@@ -43,6 +43,13 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
     {
         Debug.Assert( options.Module == ModuleEnum.real_regex );
 
+        UInt64? program_size = ValidationUtilities.ParseUInt64( "program_size", options.program_size );
+        Int32? repeat_count = ValidationUtilities.ParseInt32( "repeat_count", options.repeat_count );
+        Int32? group_count = ValidationUtilities.ParseInt32( "group_count", options.group_count );
+        Int32? nesting_depth = ValidationUtilities.ParseInt32( "nesting_depth", options.nesting_depth );
+        Int32? lookaround_length = ValidationUtilities.ParseInt32( "lookaround_length", options.lookaround_length );
+        UInt64? dfa_memory = ValidationUtilities.ParseUInt64( "dfa_memory", options.dfa_memory );
+
         string script = LazyPythonWorker.Value;
 
         using ProcessHelper ph = new( GetPythonExePath( ) );
@@ -74,6 +81,13 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
                     UNICODE = false, // currently it is 'no-op'
                     options.fallback,
                     options.fullmatch,
+
+                    program_size,
+                    repeat_count,
+                    group_count,
+                    nesting_depth,
+                    lookaround_length,
+                    dfa_memory,
                 },
             };
             var json = JsonSerializer.Serialize( obj, JsonUtilities.JsonOptions );

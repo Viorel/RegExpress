@@ -13,7 +13,7 @@ __all__ = [
     "finditer", "split", "sub", "subn", "escape", "purge", "error", "Pattern",
     "Match", "RegexSet", "A", "ASCII", "I", "IGNORECASE", "M", "MULTILINE",
     "S", "DOTALL", "X", "VERBOSE", "U", "UNICODE", "NOFLAG", "get_include",
-    "get_config", "PatternError",
+    "get_config", "PatternError", "Limits",
 ]
 
 __version__: str
@@ -38,7 +38,27 @@ ASCII: Final[int]
 
 # The runtime class derives from re.error (re.PatternError on 3.13+), so `except re.error` catches it
 # and msg/pattern/pos/lineno/colno are re's own fields; the stub inherits them rather than restating them.
-class error(re.error): ...
+class error(re.error):
+    # Why the pattern was refused: "syntax", "unsupported" or "limit"; None for an error raised before the engine.
+    kind: str | None
+
+@final
+class Limits:
+    program_size: int | None
+    repeat_count: int | None
+    group_count: int | None
+    nesting_depth: int | None
+    lookaround_length: int | None
+    dfa_memory: int | None
+    def __init__(
+        self,
+        program_size: int | None = ...,
+        repeat_count: int | None = ...,
+        group_count: int | None = ...,
+        nesting_depth: int | None = ...,
+        lookaround_length: int | None = ...,
+        dfa_memory: int | None = ...,
+    ) -> None: ...
 
 # CPython 3.13's name for the same class, not a subclass.
 PatternError = error
@@ -125,7 +145,7 @@ class RegexSet:
     def which(self, string: str | ReadableBuffer, pos: int = ..., endpos: int | None = ...) -> list[int]: ...
 
 def compile(
-    pattern: str | bytes | Pattern, flags: int = ..., fallback: bool | None = ...
+    pattern: str | bytes | Pattern, flags: int = ..., fallback: bool | None = ..., *, limits: Limits | None = ...
 ) -> Pattern: ...
 def match(pattern: str | bytes | Pattern, string: str | ReadableBuffer, flags: int = ...) -> Match | None: ...
 def fullmatch(

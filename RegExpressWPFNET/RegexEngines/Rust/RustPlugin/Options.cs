@@ -90,8 +90,8 @@ class Options
 
     // Regex and Regex-lite
 
-    public string? size_limit { get; set; } // also for 'regexr'
-    public string? dfa_size_limit { get; set; } // (not in 'regex_lite')
+    public string? size_limit { get; set; } // also for 'regexr' and 'real'
+    public string? dfa_size_limit { get; set; } // not in 'regex_lite', also for 'real'
     public string? nest_limit { get; set; } // also for 'regexr'
 
     // Fancy-regex

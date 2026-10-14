@@ -988,6 +988,47 @@ namespace real {
   };
 
   /*!
+   * \brief Where a munch stood when its subject ended with the walk still alive, so that the next munch from the
+   *        same start, over the subject with text appended, goes on from there without reading again what it read.
+   *
+   * A lexer reading text that arrives in pieces munches a token that is still open once per piece; from its start
+   * each time, a token of `n` bytes in pieces of `c` costs on the order of `n²/c` steps, and with a progress `n`.
+   * Pass it to \ref dfa::munch(std::string_view, std::size_t, dfa_munch_progress&) const; it is bound to one \ref dfa
+   * and one start, which the caller keeps (the text before the subject's end may move in memory, not change).
+   */
+  class dfa_munch_progress
+  {
+  public:
+
+    /*!
+     * \brief Bytes the walk has read past its start.
+     * \return 0 for a fresh progress, or one a final munch left.
+     */
+    [[nodiscard]] std::size_t read() const noexcept
+    {
+      return read_;
+    }
+
+    /*!
+     * \brief Starts the next munch over: from another start, or over a subject that changed before its end.
+     */
+    void reset() noexcept
+    {
+      *this = dfa_munch_progress {};
+    }
+
+  private:
+
+    friend class dfa;
+
+    std::size_t   read_   {0};       //!< Bytes read past the start.
+    std::uint32_t state_  {0};       //!< The state the walk stood in after them.
+    std::uint32_t rule_   {0};       //!< The last accepting rule, or detail::dfa_no_rule (set with the first walk).
+    std::size_t   length_ {0};       //!< That accept's length.
+    const void*   owner_  {nullptr}; //!< The dfa's tables it describes.
+  };
+
+  /*!
    * \brief A multi-rule DFA: maximal-munch (\c dfa_mode::munch) or which-matched
    *        unanchored scan (\c dfa_mode::which_matched).
    *
@@ -1090,6 +1131,64 @@ namespace real {
       const bool terminal {!w.died && w.stop == subject.size() && leads_only_to_death(w.last)};
       const bool final_answer {w.died || terminal || (stopped_on_a_mark && !memo.marks_from_open_walks_)};
       return dfa_munch {.match = answer(w, offset), .more_text_may_change = !final_answer};
+    }
+
+    /*!
+     * \brief \ref munch(std::string_view, std::size_t, dfa_munch_memo&) const, going on from where \p progress left
+     *        the munch from \p offset over a shorter subject, and leaving in it where this one stops.
+     *
+     * Answers the match the memo's munch answers over \p subject from \p offset. It is final once the walk died, or
+     * stands at the subject's end in a state every byte leaves for the dead one; \p progress is then reset. While
+     * it may not be final, \p progress holds the walk at the subject's end.
+     *
+     * \param[in]     subject  The text so far: the text an earlier munch with \p progress read, with more after it.
+     * \param[in]     offset   Where the munch starts: the same with one \p progress until it is final or reset.
+     * \param[in,out] progress Where the munch stood (fresh before the first).
+     * \return The munch and whether more text may change it.
+     * \throws std::invalid_argument If \p progress was used with another DFA, or the subject past \p offset is
+     *         shorter than \p progress has read.
+     */
+    [[nodiscard]] dfa_munch munch(std::string_view    subject,
+                                  std::size_t         offset,
+                                  dfa_munch_progress& progress) const
+    {
+      if (progress.owner_ != tables_.trans.data()) {
+        if (progress.owner_ != nullptr) {
+          detail::dfa_memo_misuse("real::dfa::munch: the progress belongs to another DFA");
+        }
+        progress.owner_ = tables_.trans.data();
+        progress.state_ = tables_.start;
+        progress.rule_  = detail::dfa_no_rule;
+      }
+      if (offset > subject.size() || progress.read_ > subject.size() - offset) {
+        detail::dfa_memo_misuse("real::dfa::munch: the subject past the offset is shorter than the progress has read");
+      }
+      std::uint32_t state {progress.state_};
+      std::size_t   i     {offset + progress.read_};
+      while (i < subject.size()) {
+        state = next_state(state, subject[i]);
+        if (state == 0U) {
+          break;
+        }
+        ++i;
+        if (tables_.accept[state] != detail::dfa_no_rule) {
+          progress.rule_   = tables_.accept[state];
+          progress.length_ = i - offset;
+        }
+      }
+      const walk_end w {.rule     = progress.rule_,
+                        .best_end = offset + progress.length_,
+                        .stop     = i,
+                        .resume   = state,
+                        .died     = state == 0U,
+                        .last     = state};
+      if (w.died || leads_only_to_death(state)) {
+        progress.reset();
+        return dfa_munch {.match = answer(w, offset), .more_text_may_change = false};
+      }
+      progress.read_  = i - offset;
+      progress.state_ = state;
+      return dfa_munch {.match = answer(w, offset), .more_text_may_change = true};
     }
 
     /*!

@@ -101,6 +101,8 @@ namespace real::detail {
   inline constexpr std::size_t max_dfa_states {default_max_dfa_states};
 #endif
 
+  inline constexpr std::size_t default_dfa_memory {std::size_t {64} << 20U}; //!< Default bytes one lazy DFA's state cache may hold per direction (\ref real::limits::dfa_memory).
+
   static_assert(max_program_size >= 64U && max_program_size <= default_max_program_size,
                 "REAL_MAX_PROGRAM_SIZE may only lower the default, to 64 or more");
   static_assert(max_repeat_count >= 1 && max_repeat_count <= default_max_repeat_count,

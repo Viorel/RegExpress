@@ -38,6 +38,13 @@ partial class Subengine( Options options ) : RegexSubengine
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
     {
+        UInt64? program_size = ValidationUtilities.ParseUInt64( "program_size", options.program_size );
+        Int32? repeat_count = ValidationUtilities.ParseInt32( "repeat_count", options.repeat_count );
+        Int32? group_count = ValidationUtilities.ParseInt32( "group_count", options.group_count );
+        Int32? nesting_depth = ValidationUtilities.ParseInt32( "nesting_depth", options.nesting_depth );
+        Int32? lookaround_length = ValidationUtilities.ParseInt32( "lookaround_length", options.lookaround_length );
+        UInt64? dfa_memory = ValidationUtilities.ParseUInt64( "dfa_memory", options.dfa_memory );
+
         using ProcessHelper ph = new( GetWorkerExePath( ) );
 
         ph.InputEncoding = EncodingEnum.Unicode; //
@@ -62,6 +69,13 @@ partial class Subengine( Options options ) : RegexSubengine
             bw.Write( options.ungreedy );
             bw.Write( options.longest );
             bw.Write( options.fullmatch );
+
+            bw.WriteOptional( program_size );
+            bw.WriteOptional( repeat_count );
+            bw.WriteOptional( group_count );
+            bw.WriteOptional( nesting_depth );
+            bw.WriteOptional( lookaround_length );
+            bw.WriteOptional( dfa_memory );
 
             bw.Write( (byte)'e' );
         };

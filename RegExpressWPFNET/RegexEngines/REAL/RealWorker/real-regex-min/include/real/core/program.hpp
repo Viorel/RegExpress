@@ -12,6 +12,7 @@
 // Users: #include <real/real.hpp>, or a documented opt-in: <real/dfa.hpp>,
 // <real/regex_set.hpp>, <real/compat/std/regex.hpp>, <real/compat/re2/re2.hpp>.
 
+#include "real/core/config.hpp"
 #include "real/version.hpp"
 
 #include <array>
@@ -114,8 +115,9 @@ namespace real {
   }
 
   /*!
-   * \brief Whether a rejected pattern is malformed (`syntax`) or well formed but beyond REAL's linear
-   *        engine (`unsupported`).
+   * \brief Whether a rejected pattern is malformed (`syntax`), well formed but beyond REAL's linear engine
+   *        (`unsupported`), or well formed but past a resource limit (`limit`: \ref real::limits, or the build's
+   *        ceiling on a program, a repeat count, the groups or the nesting).
    *
    * `unsupported` covers a backreference, a conditional and an unbounded lookaround, which a linear-time
    * engine cannot represent. Stable and exposed by the C ABI, so a binding never parses
@@ -130,6 +132,42 @@ namespace real {
   {
     syntax,
     unsupported,
+    limit,
+  };
+
+  /*!
+   * \brief The resource limits of one expression, for a service that compiles patterns it did not write: each may
+   *        be lowered for the patterns of one call, none raised past this build's ceiling (`REAL_MAX_*`), and
+   *        the defaults are those ceilings. A pattern past one is refused with `error_kind::limit`.
+   *
+   * `dfa_memory` bounds what the search's lazy DFA may cache for this expression, per direction: past it the
+   * cache flushes, and a search that keeps flushing finishes on the VM, still linear and still exact. It has no
+   * ceiling, and may be raised.
+   */
+  struct limits
+  {
+    // The defaults are set by the constructor, not by initializers here: the published reference renders an
+    // initializer, and these name detail:: constants it does not publish.
+    // NOLINTBEGIN(cppcoreguidelines-use-default-member-init,modernize-use-default-member-init)
+    std::size_t  program_size;      //!< NFA instructions.
+    std::int32_t repeat_count;      //!< A bounded repeat's count (`a{n}`).
+    std::int32_t group_count;       //!< Capture groups.
+    std::int32_t nesting_depth;     //!< Group nesting.
+    std::int32_t lookaround_length; //!< Bytes a bounded lookaround may match.
+    std::size_t  dfa_memory;        //!< Bytes the lazy DFA may cache per direction (64 MiB by default).
+    // NOLINTEND(cppcoreguidelines-use-default-member-init,modernize-use-default-member-init)
+
+    /*!
+     * \brief This build's limits: its ceilings, and the default DFA memory.
+     */
+    constexpr limits() noexcept
+      : program_size {detail::max_program_size},
+        repeat_count {detail::max_repeat_count},
+        group_count {detail::max_group_count},
+        nesting_depth {detail::max_nesting_depth},
+        lookaround_length {detail::max_lookaround_length},
+        dfa_memory {detail::default_dfa_memory}
+    {}
   };
 
   /*!
@@ -614,8 +652,8 @@ namespace real {
        *        but the code-point count is: step \ref il_cp_prefix_cps code points back from the literal,
        *        then one forward walk verifies and fills every capture.
        */
-      bool         il_cp_shape_eligible {};
-      std::uint8_t il_cp_prefix_cps     {}; //!< Code points before the literal in \ref il_cp_shape_eligible.
+      bool          il_cp_shape_eligible {};
+      std::uint16_t il_cp_prefix_cps     {}; //!< Code points before the literal in \ref il_cp_shape_eligible.
 
       /*!
        * \brief Upper bound, in code points, on \ref greedy_cp_class's run, or 0 for unbounded (`\w+`,

@@ -44,9 +44,14 @@ namespace PythonPlugin
             {
                 ++ChangeCounter;
 
-                LOCALE.Display( Options.Module == ModuleEnum.re || Options.Module == ModuleEnum.regex );
-                pnlAdditional.Display( Options.Module == ModuleEnum.regex );
-                FALLBACK.Display( Options.Module == ModuleEnum.real_regex );
+                bool is_re = Options.Module == ModuleEnum.re;
+                bool is_regex = Options.Module == ModuleEnum.regex;
+                bool is_real = Options.Module == ModuleEnum.real_regex;
+
+                LOCALE.Display( is_re || is_regex );
+                pnlAdditional.Display( is_regex );
+                FALLBACK.Display( is_real );
+                pnlLimits.Display( is_real );
             }
             finally
             {

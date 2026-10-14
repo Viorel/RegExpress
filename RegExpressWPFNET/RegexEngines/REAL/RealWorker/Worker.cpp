@@ -31,7 +31,7 @@ static void WriteMatch( BinaryWriterW& outbw, const real::match_result& match, s
 
 }
 
-static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, real::flags flags, bool longest, bool fullmatch )
+static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const std::wstring& text, real::flags flags, bool longest, bool fullmatch, const real::limits& limits )
 {
 
 	DWORD code;
@@ -43,7 +43,7 @@ static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const st
 			{
 				outbw.WriteT<char>( 'b' );
 
-				real::regex re( WStringToUtf8( pattern ), flags );
+				real::regex re( WStringToUtf8( pattern ), flags, limits );
 
 				const std::vector< std::pair< std::string_view, std::size_t > >& names = re.named_groups( );
 
@@ -152,9 +152,24 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 		bool longest = inbr.ReadByte( ) != 0;
 		bool fullmatch = inbr.ReadByte( ) != 0;
 
+		std::optional<std::uint64_t> program_size = inbr.ReadOptional<std::uint64_t>( );
+		std::optional<std::int32_t>  repeat_count = inbr.ReadOptional<std::int32_t>( );
+		std::optional<std::int32_t>  group_count = inbr.ReadOptional<std::int32_t>( );
+		std::optional<std::int32_t>  nesting_depth = inbr.ReadOptional<std::int32_t>( );
+		std::optional<std::int32_t>  lookaround_length = inbr.ReadOptional<std::int32_t>( );
+		std::optional<std::uint64_t> dfa_memory = inbr.ReadOptional<std::uint64_t>( );
+
 		if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-		DoMatch( outbw, pattern, text, flags, longest, fullmatch );
+		real::limits limits{};
+		if( program_size ) limits.program_size = *program_size;
+		if( repeat_count ) limits.repeat_count = *repeat_count;
+		if( group_count ) limits.group_count = *group_count;
+		if( nesting_depth ) limits.nesting_depth = *nesting_depth;
+		if( lookaround_length ) limits.lookaround_length = *lookaround_length;
+		if( dfa_memory ) limits.dfa_memory = *dfa_memory;
+
+		DoMatch( outbw, pattern, text, flags, longest, fullmatch, limits );
 
 		return 0;
 	}

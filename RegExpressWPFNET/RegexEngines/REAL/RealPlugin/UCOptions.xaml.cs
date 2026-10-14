@@ -60,6 +60,11 @@ namespace RealPlugin
             Notify( preferImmediateReaction: false );
         }
 
+        private void TextBox_TextChanged( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
+
         internal void SetOptions( Options options )
         {
             try

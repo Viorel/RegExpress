@@ -1474,7 +1474,7 @@ namespace real::detail {
         else if (boundary >= 1 && prog_.hints.il_cp_shape_eligible) {
           // Fixed code-point shape: the start is exactly `il_cp_prefix_cps` code points back; the forward
           // walk below decides.
-          for (std::uint8_t k {0}; k < prog_.hints.il_cp_prefix_cps && s != npos; ++k) {
+          for (std::uint16_t k {0}; k < prog_.hints.il_cp_prefix_cps && s != npos; ++k) {
             if (s <= min_match_start) {
               s = npos; // the shape does not fit between the floor and this candidate
               break;
@@ -1961,9 +1961,9 @@ namespace real::detail {
       const lazy_byte_alphabet* alpha {look ? &immut.look_alphabet : &immut.alphabet};
       // Unicode word boundaries quit next to a non-ASCII byte; every caller reads the quit and asks the VM.
       set.fwd.emplace(bp.code, bp.classes, lazy_dfa::state_budget, alpha, !bp.unicode_word, prog_.byte_mode,
-                      /*word_quit=*/ true, prog_.hints.raw_byte_starts, lazy_dfa_byte_budget());
+                      /*word_quit=*/ true, prog_.hints.raw_byte_starts, immut.dfa_memory);
       set.rev.emplace(bp.code, bp.classes, reverse_dfa::state_budget, alpha, !bp.unicode_word, /*word_quit=*/ true,
-                      lazy_dfa_byte_budget());
+                      immut.dfa_memory);
     }
 
     /*!
