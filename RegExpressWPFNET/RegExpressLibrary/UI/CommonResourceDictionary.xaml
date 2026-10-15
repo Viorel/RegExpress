@@ -1,0 +1,68 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style TargetType="Label" x:Key="SectionTitle">
+        <Setter Property="Margin" Value="0 4 0 4"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="FontStyle" Value="Italic"/>
+    </Style>
+    
+    <Style TargetType="Grid" x:Key="DetailsTable">
+        <Setter Property="LayoutTransform">
+            <Setter.Value>
+                <TransformGroup>
+                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                    <SkewTransform/>
+                    <RotateTransform/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </Setter.Value>
+        </Setter>
+
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="Margin" Value="0 4 0 4"/>
+        
+        <Style.Resources>
+            <Style TargetType="Label">
+                <Style.Triggers>
+                    <Trigger Property="Grid.Column" Value="0">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="0 2 4 2"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style TargetType="TextBox">
+                <Style.Triggers>
+                    <Trigger Property="Grid.Column" Value="1">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style TargetType="ComboBox">
+                <Style.Triggers>
+                    <Trigger Property="Grid.Column" Value="1">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            
+            <Style TargetType="TextBlock">
+                <Style.Triggers>
+                    <Trigger Property="Grid.Column" Value="2">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
+                        <Setter Property="Opacity" Value="0.70"/>
+                        <Setter Property="Margin" Value="4 0"/>
+                        <Setter Property="TextWrapping" Value="Wrap"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </Style.Resources>
+    </Style>
+
+</ResourceDictionary>

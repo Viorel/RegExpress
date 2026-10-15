@@ -6,39 +6,24 @@
              xmlns:local="clr-namespace:PCRE2Plugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="1235.162" d:DesignWidth="718.8" 
+             d:DesignHeight="1278.949" d:DesignWidth="718.8" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
-        <Style TargetType="CheckBox">
-            <EventSetter Event="Checked" Handler="CheckBox_Changed"/>
-            <EventSetter Event="Unchecked" Handler="CheckBox_Changed"/>
-        </Style>
-        <Style TargetType="TextBox">
-            <EventSetter Event="TextChanged" Handler="TextBox_TextChanged"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <StackPanel>
+    <StackPanel Orientation="Vertical">
 
-        <Grid>
-            <Grid.LayoutTransform>
-                <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-            </Grid.LayoutTransform>
-            <Grid.Resources>
-                <Style TargetType="Label">
-                    <Setter Property="Padding" Value="0 2 4 2"/>
-                </Style>
-                <Style TargetType="ComboBox">
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="MinWidth" Value="150"/>
-                    <Setter Property="Margin" Value="3 0 0 2"/>
-                </Style>
-            </Grid.Resources>
-
+        <Grid Style="{StaticResource DetailsTable}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
@@ -49,7 +34,6 @@
                 <RowDefinition/>
                 <RowDefinition/>
             </Grid.RowDefinitions>
-
 
             <Label Grid.Column="0" Grid.Row="0" Content="Algorithm:" Target="{Binding ElementName=cbxAlgorithm}" />
             <ComboBox x:Name="cbxAlgorithm" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Algorithm, FallbackValue='Standard'}" SelectionChanged="cbx_SelectionChanged">
@@ -81,10 +65,9 @@
             </ComboBox>
         </Grid>
 
-        <Label Margin="0 4 0 4" Padding="0">
-            <Italic>Compile Options</Italic>
-        </Label>
-        <StackPanel>
+        <Label Content="Compile Options" Style="{StaticResource SectionTitle}"/>
+
+        <StackPanel Orientation="Vertical">
             <ui:CheckboxWithNote Prop="PCRE2_ANCHORED" Note="Force pattern anchoring"/>
             <ui:CheckboxWithNote Prop="PCRE2_ALLOW_EMPTY_CLASS" Note="Allow empty classes"/>
             <ui:CheckboxWithNote Prop="PCRE2_ALT_BSUX" Note="Alternative handling of \u, \U, and \x"/>
@@ -115,10 +98,9 @@
             <ui:CheckboxWithNote Prop="PCRE2_UTF" Note="Treat pattern and subjects as UTF strings"/>
         </StackPanel>
 
-        <Label Margin="0 4 0 4" Padding="0">
-            <Italic>Extra Compile Options</Italic>
-        </Label>
-        <StackPanel x:Name="pnlExtraCompileOptions">
+        <Label Content="Extra Compile Options" Style="{StaticResource SectionTitle}"/>
+
+        <StackPanel x:Name="pnlExtraCompileOptions" Orientation="Vertical">
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALLOW_LOOKAROUND_BSK" Note="Allow \K in lookarounds"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES" Note="Allow \x{df800} to \x{dfff} in UTF-8 and UTF-32 modes"/>
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_ALT_BSUX" Note="Extended alternate \u, \U, and \x handling"/>
@@ -138,10 +120,9 @@
             <ui:CheckboxWithNote Prop="PCRE2_EXTRA_TURKISH_CASING" Note="Use Turkish I case folding"/>
         </StackPanel>
 
-        <Label Margin="0 4 0 4" Padding="0">
-            <Italic>Matcher Options</Italic>
-        </Label>
-        <StackPanel x:Name="pnlMatchOptions">
+        <Label Content="Matcher Options" Style="{StaticResource SectionTitle}"/>
+
+        <StackPanel x:Name="pnlMatchOptions" Orientation="Vertical">
             <ui:CheckboxWithNote Prop="PCRE2_ANCHORED_mo" Text="PCRE2_ANCHORED" Note="Match only at the first position"/>
             <ui:CheckboxWithNote Prop="PCRE2_COPY_MATCHED_SUBJECT" Note="On success, make a private subject copy"/>
             <ui:CheckboxWithNote Prop="PCRE2_DISABLE_RECURSELOOP_CHECK" Note="Enable some apparently looping recursions to run to completion; use with care"/>
@@ -156,46 +137,20 @@
             <ui:CheckboxWithNote Prop="PCRE2_DFA_SHORTEST" Note="Return only the shortest match"/>
         </StackPanel>
 
-        <StackPanel Margin="0 8 0 0">
-            <CheckBox Content="Use JIT" IsChecked="{Binding UseJIT}"/>
-            <StackPanel x:Name="pnlJIT" Margin="18 2 0 4" >
+        <Label Content="Just-in-time Compilation" Style="{StaticResource SectionTitle}"/>
+
+        <StackPanel Orientation="Vertical">
+            <CheckBox Content="Use JIT" IsChecked="{Binding UseJIT}" Checked="CheckBox_Changed" Unchecked="CheckBox_Changed"/>
+            <StackPanel x:Name="pnlJIT" Orientation="Vertical" Margin="18 2 0 4" >
                 <ui:CheckboxWithNote Prop="PCRE2_JIT_COMPLETE" Note="Generate code for complete matches"/>
                 <ui:CheckboxWithNote Prop="PCRE2_JIT_PARTIAL_SOFT" Note="Compile code for soft partial matching"/>
                 <ui:CheckboxWithNote Prop="PCRE2_JIT_PARTIAL_HARD" Note="Compile code for hard partial matching"/>
             </StackPanel>
         </StackPanel>
 
-        <Label Margin="0 4 0 4" Padding="0">
-            <Italic>Limits</Italic>
-        </Label>
+        <Label Content="Limits" Style="{StaticResource SectionTitle}"/>
 
-        <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 6">
-            <Grid.LayoutTransform>
-                <TransformGroup>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                    <SkewTransform/>
-                    <RotateTransform/>
-                    <TranslateTransform/>
-                </TransformGroup>
-            </Grid.LayoutTransform>
-            <Grid.Resources>
-                <Style TargetType="Label">
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="VerticalContentAlignment" Value="Center"/>
-                    <Setter Property="Padding" Value="0 2 4 2"/>
-                </Style>
-                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="VerticalContentAlignment" Value="Center"/>
-                </Style>
-                <Style TargetType="TextBlock" x:Key="note">
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-                    <Setter Property="Opacity" Value="0.70"/>
-                    <Setter Property="Margin" Value="4 0"/>
-                    <Setter Property="TextWrapping" Value="Wrap"/>
-                </Style>
-            </Grid.Resources>
+        <Grid Style="{StaticResource DetailsTable}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="77"/>
@@ -212,33 +167,34 @@
             </Grid.RowDefinitions>
 
             <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=dl}">depth__limit:</Label>
-            <TextBox x:Name="dl" Grid.Column="1" Grid.Row="0" Text="{Binding DepthLimit, UpdateSourceTrigger=PropertyChanged}"/>
-            <TextBlock Grid.Column="2" Grid.Row="0" Text="– backtracking depth limit" Style="{StaticResource note}" />
+            <TextBox x:Name="dl" Grid.Column="1" Grid.Row="0" Text="{Binding DepthLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="0" Text="– backtracking depth limit" />
 
             <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=hl}">heap__limit:</Label>
-            <TextBox x:Name="hl" Grid.Column="1" Grid.Row="1" Text="{Binding HeapLimit, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Grid.Row="1" Text="– backtracking heap limit" Style="{StaticResource note}" />
+            <TextBox x:Name="hl" Grid.Column="1" Grid.Row="1" Text="{Binding HeapLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="1" Text="– backtracking heap limit" />
 
             <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=ml}">match__limit:</Label>
-            <TextBox x:Name="ml" Grid.Column="1" Grid.Row="2" Text="{Binding MatchLimit, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Grid.Row="2" Text="– match limit" Style="{StaticResource note}" />
+            <TextBox x:Name="ml" Grid.Column="1" Grid.Row="2" Text="{Binding MatchLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="2" Text="– match limit" />
 
             <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=mpcl}">max__pattern__compiled__length:</Label>
-            <TextBox x:Name="mpcl" Grid.Column="1" Grid.Row="3" Text="{Binding MaxPatternCompiledLength, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Grid.Row="3" Text="– maximum size (in bytes) for the compiled pattern" Style="{StaticResource note}" />
+            <TextBox x:Name="mpcl" Grid.Column="1" Grid.Row="3" Text="{Binding MaxPatternCompiledLength, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="3" Text="– maximum size (in bytes) for the compiled pattern" />
 
             <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=ol}">offset__limit:</Label>
-            <TextBox x:Name="ol" Grid.Column="1" Grid.Row="4" Text="{Binding OffsetLimit, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Grid.Row="4" Text="– how far an unanchored search can advance" Style="{StaticResource note}" />
+            <TextBox x:Name="ol" Grid.Column="1" Grid.Row="4" Text="{Binding OffsetLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="4" Text="– how far an unanchored search can advance" />
 
             <Label Grid.Column="0" Grid.Row="5" Target="{Binding ElementName=pnl}">parens__nest__limit:</Label>
-            <TextBox x:Name="pnl" Grid.Column="1" Grid.Row="5" Text="{Binding ParensNestLimit, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Grid.Row="5" Text="– maximum depth of nested parentheses" Style="{StaticResource note}" />
+            <TextBox x:Name="pnl" Grid.Column="1" Grid.Row="5" Text="{Binding ParensNestLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="5" Text="– maximum depth of nested parentheses" />
 
             <Label Grid.Column="0" Grid.Row="6" Target="{Binding ElementName=mvb}">max__varlookbehind:</Label>
-            <TextBox x:Name="mvb" Grid.Column="1" Grid.Row="6" Text="{Binding MaxVarLookbehind, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Grid.Column="2" Grid.Row="6" Text="– maximum length of variable-length lookbehind assertion" Style="{StaticResource note}" />
+            <TextBox x:Name="mvb" Grid.Column="1" Grid.Row="6" Text="{Binding MaxVarLookbehind, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="6" Text="– maximum length of variable-length lookbehind assertion" />
         </Grid>
 
     </StackPanel>
+
 </UserControl>

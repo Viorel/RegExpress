@@ -6,132 +6,113 @@
              xmlns:local="clr-namespace:JavaPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="656.584" d:DesignWidth="758.661" 
+             d:DesignHeight="603.784" d:DesignWidth="739.461" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
-        <Style TargetType="TextBox">
-            <EventSetter Event="TextChanged" Handler="TextBox_Changed"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel Orientation="Vertical" VerticalAlignment="Top">
-            <StackPanel Orientation="Horizontal" Margin="0 0 0 4">
-                <StackPanel.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </StackPanel.LayoutTransform>
-                <Label Content="Package:" Target="{Binding ElementName=cbxPackage}" Padding="0 2 4 2" />
-                <ComboBox x:Name="cbxPackage" SelectedValuePath="Tag" SelectedValue="{Binding Package, FallbackValue='regex'}" VerticalAlignment="Center" MinWidth="90" SelectionChanged="cbxPackage_SelectionChanged">
-                    <ui:ComboBoxItemWithVersion Tag ="regex"    Text="java.util.regex"  Version="{x:Static local:Versions.Regex}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag ="re2j"     Text="RE2/J"            Version="{x:Static local:Versions.Re2j}"/>
-                    <ui:ComboBoxItemWithVersion Tag ="safere"   Text="SafeRE"           Version="{x:Static local:Versions.SafeRE}"/>
-                    <ui:ComboBoxItemWithVersion Tag ="reggie"   Text="Reggie"           Version="{x:Static local:Versions.Reggie}"/>
-                    <ui:ComboBoxItemWithVersion Tag ="joni"     Text="Joni"             Version="{x:Static local:Versions.Joni}"/>
-                </ComboBox>
-            </StackPanel>
+    <StackPanel Orientation="Vertical" >
 
-            <StackPanel x:Name="pnlCommon"  Orientation="Vertical">
-                <ui:CheckboxWithNote x:Name="CANON_EQ" Prop="CANON_EQ" Note="canonical equivalence"/>
-                <ui:CheckboxWithNote Prop="CASE_INSENSITIVE" Note="(i) case-insensitive matching"/>
-                <ui:CheckboxWithNote x:Name="COMMENTS" Prop="COMMENTS" Note="(x) whitespace and comments in pattern"/>
-                <ui:CheckboxWithNote Prop="DOTALL" Note="(s) “.” matches any character, including a line terminator"/>
-                <ui:CheckboxWithNote x:Name="LITERAL" Prop="LITERAL" Note="literal parsing of the pattern"/>
-                <ui:CheckboxWithNote Prop="MULTILINE" Note="(m) “^” and “$” match just after or just before, respectively, a line terminator or the end of the input"/>
-                <ui:CheckboxWithNote x:Name="UNICODE_CASE" Prop="UNICODE_CASE" Note="(u) Unicode-aware case folding"/>
-                <ui:CheckboxWithNote x:Name="UNICODE_CHARACTER_CLASS" Prop="UNICODE_CHARACTER_CLASS" Note="(U) Unicode version of Predefined character classes and POSIX character classes"/>
-                <ui:CheckboxWithNote x:Name="UNIX_LINES" Prop="UNIX_LINES" Note="(d) only the “\n” line terminator is recognized in the behavior of “.”, “^”, and “$”"/>
-                <ui:CheckboxWithNote x:Name="DISABLE_UNICODE_GROUPS" Prop="DISABLE_UNICODE_GROUPS" Note="Unicode groups (e.g. \p{Greek}) will be syntax errors"/>
-                <ui:CheckboxWithNote x:Name="LONGEST_MATCH" Prop="LONGEST_MATCH" Note="matches longest possible string"/>
-            </StackPanel>
-            
-            <StackPanel x:Name="pnlReggie"  Orientation="Vertical">
-                <ui:CheckboxWithNote Prop="CAPTURE_NAMED_ONLY" Note="Track only named and semantically-required capturing groups"/>
-                <ui:CheckboxWithNote Prop="ALLOW_JDK_FALLBACK" Note="delegates unsupported patterns to `java.util.regex`"/>
-            </StackPanel>
+        <Grid Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition MinWidth="99"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <StackPanel x:Name="pnlJoni" Orientation="Vertical">
-                <ui:CheckboxWithNote Prop="CASE_INSENSITIVE"        Text="IGNORECASE" Note=""/>
-                <ui:CheckboxWithNote Prop="COMMENTS"                Text="EXTEND" Note=""/>
-                <ui:CheckboxWithNote Prop="MULTILINE"               Text="MULTILINE" Note=""/>
-                <ui:CheckboxWithNote Prop="DOTALL"                  Text="SINGLELINE" Note=""/>
-                <ui:CheckboxWithNote Prop="LONGEST_MATCH"           Text="FIND_LONGEST" Note=""/>
-                <ui:CheckboxWithNote Prop="FIND_NOT_EMPTY"          Text="FIND_NOT_EMPTY" Note=""/>
-                <ui:CheckboxWithNote Prop="NEGATE_SINGLELINE"       Text="NEGATE_SINGLELINE" Note=""/>
-                <ui:CheckboxWithNote Prop="DONT_CAPTURE_GROUP"      Text="DONT_CAPTURE_GROUP" Note=""/>
-                <ui:CheckboxWithNote Prop="CAPTURE_GROUP"           Text="CAPTURE_GROUP" Note=""/>
-                <ui:CheckboxWithNote Prop="NOTBOL"                  Text="NOTBOL" Note="" />
-                <ui:CheckboxWithNote Prop="NOTEOL"                  Text="NOTEOL" Note=""/>
-                <!--
+            <Label Grid.Row="0" Grid.Column="0" Content="Package:" Target="{Binding ElementName=cbxPackage}" />
+            <ComboBox x:Name="cbxPackage" Grid.Row="0" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding Package, FallbackValue='regex'}" SelectionChanged="cbxPackage_SelectionChanged">
+                <ui:ComboBoxItemWithVersion Tag ="regex"    Text="java.util.regex"  Version="{x:Static local:Versions.Regex}" IsSelected="True" />
+                <ui:ComboBoxItemWithVersion Tag ="re2j"     Text="RE2/J"            Version="{x:Static local:Versions.Re2j}"/>
+                <ui:ComboBoxItemWithVersion Tag ="safere"   Text="SafeRE"           Version="{x:Static local:Versions.SafeRE}"/>
+                <ui:ComboBoxItemWithVersion Tag ="reggie"   Text="Reggie"           Version="{x:Static local:Versions.Reggie}"/>
+                <ui:ComboBoxItemWithVersion Tag ="joni"     Text="Joni"             Version="{x:Static local:Versions.Joni}"/>
+            </ComboBox>
+        </Grid>
+
+        <StackPanel x:Name="pnlCommon" Orientation="Vertical">
+            <ui:CheckboxWithNote x:Name="CANON_EQ" Prop="CANON_EQ" Note="canonical equivalence"/>
+            <ui:CheckboxWithNote Prop="CASE_INSENSITIVE" Note="(i) case-insensitive matching"/>
+            <ui:CheckboxWithNote x:Name="COMMENTS" Prop="COMMENTS" Note="(x) whitespace and comments in pattern"/>
+            <ui:CheckboxWithNote Prop="DOTALL" Note="(s) “.” matches any character, including a line terminator"/>
+            <ui:CheckboxWithNote x:Name="LITERAL" Prop="LITERAL" Note="literal parsing of the pattern"/>
+            <ui:CheckboxWithNote Prop="MULTILINE" Note="(m) “^” and “$” match just after or just before, respectively, a line terminator or the end of the input"/>
+            <ui:CheckboxWithNote x:Name="UNICODE_CASE" Prop="UNICODE_CASE" Note="(u) Unicode-aware case folding"/>
+            <ui:CheckboxWithNote x:Name="UNICODE_CHARACTER_CLASS" Prop="UNICODE_CHARACTER_CLASS" Note="(U) Unicode version of Predefined character classes and POSIX character classes"/>
+            <ui:CheckboxWithNote x:Name="UNIX_LINES" Prop="UNIX_LINES" Note="(d) only the “\n” line terminator is recognized in the behavior of “.”, “^”, and “$”"/>
+            <ui:CheckboxWithNote x:Name="DISABLE_UNICODE_GROUPS" Prop="DISABLE_UNICODE_GROUPS" Note="Unicode groups (e.g. \p{Greek}) will be syntax errors"/>
+            <ui:CheckboxWithNote x:Name="LONGEST_MATCH" Prop="LONGEST_MATCH" Note="matches longest possible string"/>
+        </StackPanel>
+
+        <StackPanel x:Name="pnlReggie" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="CAPTURE_NAMED_ONLY" Note="Track only named and semantically-required capturing groups"/>
+            <ui:CheckboxWithNote Prop="ALLOW_JDK_FALLBACK" Note="delegates unsupported patterns to `java.util.regex`"/>
+        </StackPanel>
+
+        <StackPanel x:Name="pnlJoni" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="CASE_INSENSITIVE"        Text="IGNORECASE" Note=""/>
+            <ui:CheckboxWithNote Prop="COMMENTS"                Text="EXTEND" Note=""/>
+            <ui:CheckboxWithNote Prop="MULTILINE"               Text="MULTILINE" Note=""/>
+            <ui:CheckboxWithNote Prop="DOTALL"                  Text="SINGLELINE" Note=""/>
+            <ui:CheckboxWithNote Prop="LONGEST_MATCH"           Text="FIND_LONGEST" Note=""/>
+            <ui:CheckboxWithNote Prop="FIND_NOT_EMPTY"          Text="FIND_NOT_EMPTY" Note=""/>
+            <ui:CheckboxWithNote Prop="NEGATE_SINGLELINE"       Text="NEGATE_SINGLELINE" Note=""/>
+            <ui:CheckboxWithNote Prop="DONT_CAPTURE_GROUP"      Text="DONT_CAPTURE_GROUP" Note=""/>
+            <ui:CheckboxWithNote Prop="CAPTURE_GROUP"           Text="CAPTURE_GROUP" Note=""/>
+            <ui:CheckboxWithNote Prop="NOTBOL"                  Text="NOTBOL" Note="" />
+            <ui:CheckboxWithNote Prop="NOTEOL"                  Text="NOTEOL" Note=""/>
+            <!--
                 Does not seem to be implemented
                 <ui:CheckboxWithNote Prop="NEWLINE_CRLF"            Text="NEWLINE_CRLF" Note=""/>
                 <ui:CheckboxWithNote Prop="NOTBOS"                  Text="NOTBOS" Note=""/>
                 <ui:CheckboxWithNote Prop="NOTEOS"                  Text="NOTEOS" Note=""/>-->
-                <ui:CheckboxWithNote Prop="ASCII_RANGE"             Text="ASCII_RANGE" Note=""/>
-                <ui:CheckboxWithNote Prop="POSIX_BRACKET_ALL_RANGE" Text="POSIX_BRACKET_ALL_RANGE" Note=""/>
-                <ui:CheckboxWithNote Prop="WORD_BOUND_ALL_RANGE"    Text="WORD_BOUND_ALL_RANGE" Note=""/>
-                <ui:CheckboxWithNote Prop="CR_7_BIT"                Text="CR_7_BIT" Note=""/>
-            </StackPanel>
-
-            <StackPanel x:Name="pnlRegion" Orientation="Vertical" VerticalAlignment="Top">
-
-                <Label Margin="0 4 0 4" Padding="0">
-                    <Italic>Region</Italic>
-                </Label>
-
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 2 0 4">
-                    <Grid.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </Grid.LayoutTransform>
-                    <Grid.Resources>
-                        <Style TargetType="Label">
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Setter Property="Padding" Value="0 2 4 2"/>
-                        </Style>
-                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                        </Style>
-                        <Style TargetType="TextBlock" x:Key="note">
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                            <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-                            <Setter Property="Opacity" Value="0.70"/>
-                            <Setter Property="Margin" Value="4 0"/>
-                            <Setter Property="TextWrapping" Value="Wrap"/>
-                        </Style>
-                    </Grid.Resources>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="77"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=start}">start:</Label>
-                    <TextBox x:Name="start" Grid.Column="1" Grid.Row="0" Text="{Binding regionStart, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– the index to start searching at (inclusive)" Style="{StaticResource note}" />
-
-                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=end}">end:</Label>
-                    <TextBox x:Name="end" Grid.Column="1" Grid.Row="1" Text="{Binding regionEnd, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– the index to end searching at (exclusive)" Style="{StaticResource note}" />
-                </Grid>
-
-                <ui:CheckboxWithNote Prop="useAnchoringBounds" Note="the boundaries of this region match anchors such as ^ and $"/>
-                <ui:CheckboxWithNote Prop="useTransparentBounds" Note="the boundaries of this region are transparent to lookahead, lookbehind, and boundary matching constructs"/>
-
-            </StackPanel>
+            <ui:CheckboxWithNote Prop="ASCII_RANGE"             Text="ASCII_RANGE" Note=""/>
+            <ui:CheckboxWithNote Prop="POSIX_BRACKET_ALL_RANGE" Text="POSIX_BRACKET_ALL_RANGE" Note=""/>
+            <ui:CheckboxWithNote Prop="WORD_BOUND_ALL_RANGE"    Text="WORD_BOUND_ALL_RANGE" Note=""/>
+            <ui:CheckboxWithNote Prop="CR_7_BIT"                Text="CR_7_BIT" Note=""/>
         </StackPanel>
-    </Grid>
+
+        <StackPanel x:Name="pnlRegion" Orientation="Vertical" >
+
+            <Label Content="Region" Style="{StaticResource SectionTitle}"/>
+
+            <Grid Style="{StaticResource DetailsTable}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="77"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=start}">start:</Label>
+                <TextBox x:Name="start" Grid.Column="1" Grid.Row="0" Text="{Binding regionStart, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_Changed"/>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– the index to start searching at (inclusive)" />
+
+                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=end}">end:</Label>
+                <TextBox x:Name="end" Grid.Column="1" Grid.Row="1" Text="{Binding regionEnd, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_Changed" />
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="– the index to end searching at (exclusive)" />
+            </Grid>
+
+            <ui:CheckboxWithNote Prop="useAnchoringBounds" Note="the boundaries of this region match anchors such as ^ and $"/>
+            <ui:CheckboxWithNote Prop="useTransparentBounds" Note="the boundaries of this region are transparent to lookahead, lookbehind, and boundary matching constructs"/>
+
+        </StackPanel>
+
+    </StackPanel>
+
 </UserControl>

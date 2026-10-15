@@ -10,121 +10,59 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
-        <Style TargetType="TextBox">
-            <EventSetter Event="TextChanged" Handler="TextBox_Changed"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel VerticalAlignment="Top" Orientation="Vertical">
+    <StackPanel Orientation="Vertical">
 
-            <StackPanel Orientation="Horizontal" Margin="0 0 0 6">
-                <StackPanel.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </StackPanel.LayoutTransform>
-                <Label Content="Module:" Target="{Binding ElementName=cbxModule}" VerticalAlignment="Center" Padding="0 2 4 2"/>
-                <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='re'}" VerticalAlignment="Center" SelectionChanged="cbxModule_SelectionChanged" Margin="3 0 0 0">
-                    <ui:ComboBoxItemWithVersion Tag="re"         Text="re"         Version="{x:Static local:Versions.Re}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="regex"      Text="regex"      Version="{x:Static local:Versions.Regex}" />
-                    <ui:ComboBoxItemWithVersion Tag="real_regex" Text="real-regex" Version="{x:Static local:Versions.RealRegex}" />
-                </ComboBox>
-            </StackPanel>
+        <Grid Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="111"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <ui:CheckboxWithNote x:Name="fullmatch" Prop="fullmatch" Note="match all of the string"/>
-            <ui:CheckboxWithNote Prop="ASCII" Note="\w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching" />
-            <ui:CheckboxWithNote Prop="DOTALL" Note=". matches any character, including newline"/>
-            <ui:CheckboxWithNote Prop="IGNORECASE" Note="case-insensitive matching"/>
-            <ui:CheckboxWithNote x:Name="LOCALE" Prop="LOCALE" Note="\w, \W, \b, \B and case-insensitive matching dependent on current locale"/>
-            <ui:CheckboxWithNote Prop="MULTILINE" Note="^ matches at the beginning of the string and at the beginning of each line; $ matches at the end of the string and at the end of each line"/>
-            <ui:CheckboxWithNote Prop="VERBOSE" Note="allow spaces and comments"/>
-            <ui:CheckboxWithNote x:Name="FALLBACK" Prop="fallback" Note="delegates unsupported patterns to the standard library “re” (forfeiting the linear-time guarantee)"/>
+            <Label Grid.Row="0" Grid.Column="0" Content="Module:" Target="{Binding ElementName=cbxModule}"/>
+            <ComboBox x:Name="cbxModule" Grid.Row="0" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='re'}" SelectionChanged="cbxModule_SelectionChanged">
+                <ui:ComboBoxItemWithVersion Tag="re"         Text="re"         Version="{x:Static local:Versions.Re}" IsSelected="True" />
+                <ui:ComboBoxItemWithVersion Tag="regex"      Text="regex"      Version="{x:Static local:Versions.Regex}" />
+                <ui:ComboBoxItemWithVersion Tag="real_regex" Text="real-regex" Version="{x:Static local:Versions.RealRegex}" />
+            </ComboBox>
+        </Grid>
 
-            <StackPanel x:Name="pnlAdditional" VerticalAlignment="Top" Margin="0 6 0 0">
-                <ui:CheckboxWithNote Prop="BESTMATCH" Note="best fuzzy match"/>
-                <ui:CheckboxWithNote Prop="ENHANCEMATCH" Note="improve the fit after finding the first fuzzy match"/>
-                <ui:CheckboxWithNote Prop="FULLCASE" Note="full case-folding when performing case-insensitive matching in Unicode"/>
-                <ui:CheckboxWithNote Prop="POSIX" Note="POSIX-standard matching (leftmost longest)"/>
-                <ui:CheckboxWithNote Prop="REVERSE" Note="searches backwards"/>
-                <ui:CheckboxWithNote Prop="UNICODE" Note="make \w, \W, \b, \B, \d, and \D dependent on the Unicode locale"/>
-                <ui:CheckboxWithNote Prop="WORD" Note="make \b and \B work with default Unicode word breaks and make ., ^ and $ work with Unicode line breaks"/>
-                <ui:CheckboxWithNote Prop="VERSION0" Note="old behaviour"/>
-                <ui:CheckboxWithNote Prop="VERSION1" Note="new behaviour"/>
-                <ui:CheckboxWithNote Prop="overlapped" Note="permits overlapped matches" Margin="0 6 0 0"/>
-                <ui:CheckboxWithNote Prop="partial" Note="check if match could be possible if the string had not been truncated"/>
+        <ui:CheckboxWithNote x:Name="fullmatch" Prop="fullmatch" Note="match all of the string"/>
+        <ui:CheckboxWithNote Prop="ASCII" Note="\w, \W, \b, \B, \d, \D, \s and \S perform ASCII-only matching" />
+        <ui:CheckboxWithNote Prop="DOTALL" Note=". matches any character, including newline"/>
+        <ui:CheckboxWithNote Prop="IGNORECASE" Note="case-insensitive matching"/>
+        <ui:CheckboxWithNote x:Name="LOCALE" Prop="LOCALE" Note="\w, \W, \b, \B and case-insensitive matching dependent on current locale"/>
+        <ui:CheckboxWithNote Prop="MULTILINE" Note="^ matches at the beginning of the string and at the beginning of each line; $ matches at the end of the string and at the end of each line"/>
+        <ui:CheckboxWithNote Prop="VERBOSE" Note="allow spaces and comments"/>
+        <ui:CheckboxWithNote x:Name="FALLBACK" Prop="fallback" Note="delegates unsupported patterns to the standard library “re” (forfeiting the linear-time guarantee)"/>
 
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 4">
-                    <Grid.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </Grid.LayoutTransform>
-                    <Grid.Resources>
-                        <Style TargetType="Label">
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Setter Property="Padding" Value="0 2 4 2"/>
-                        </Style>
-                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                        </Style>
-                        <Style TargetType="TextBlock" x:Key="note">
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                            <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-                            <Setter Property="Opacity" Value="0.70"/>
-                            <Setter Property="Margin" Value="4 0"/>
-                            <Setter Property="TextWrapping" Value="Wrap"/>
-                        </Style>
-                    </Grid.Resources>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="77"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+        <StackPanel x:Name="pnlAdditional" VerticalAlignment="Top" Margin="0 6 0 0">
+            <ui:CheckboxWithNote Prop="BESTMATCH" Note="best fuzzy match"/>
+            <ui:CheckboxWithNote Prop="ENHANCEMATCH" Note="improve the fit after finding the first fuzzy match"/>
+            <ui:CheckboxWithNote Prop="FULLCASE" Note="full case-folding when performing case-insensitive matching in Unicode"/>
+            <ui:CheckboxWithNote Prop="POSIX" Note="POSIX-standard matching (leftmost longest)"/>
+            <ui:CheckboxWithNote Prop="REVERSE" Note="searches backwards"/>
+            <ui:CheckboxWithNote Prop="UNICODE" Note="make \w, \W, \b, \B, \d, and \D dependent on the Unicode locale"/>
+            <ui:CheckboxWithNote Prop="WORD" Note="make \b and \B work with default Unicode word breaks and make ., ^ and $ work with Unicode line breaks"/>
+            <ui:CheckboxWithNote Prop="VERSION0" Note="old behaviour"/>
+            <ui:CheckboxWithNote Prop="VERSION1" Note="new behaviour"/>
+            <ui:CheckboxWithNote Prop="overlapped" Note="permits overlapped matches" Margin="0 6 0 0"/>
+            <ui:CheckboxWithNote Prop="partial" Note="check if match could be possible if the string had not been truncated"/>
 
-                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=timeout}">timeout:</Label>
-                    <TextBox x:Name="timeout" Grid.Column="1" Grid.Row="0" Text="{Binding timeout, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– maximum duration of operations (in seconds)" Style="{StaticResource note}" />
-                </Grid>
-
-            </StackPanel>
-
-            <Grid x:Name="pnlLimits" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 6">
-                <Grid.LayoutTransform>
-                    <TransformGroup>
-                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                        <SkewTransform/>
-                        <RotateTransform/>
-                        <TranslateTransform/>
-                    </TransformGroup>
-                </Grid.LayoutTransform>
-                <Grid.Resources>
-                    <Style TargetType="Label">
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="VerticalContentAlignment" Value="Center"/>
-                        <Setter Property="Padding" Value="0 2 4 2"/>
-                    </Style>
-                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="VerticalContentAlignment" Value="Center"/>
-                    </Style>
-                    <Style TargetType="TextBlock" x:Key="note">
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-                        <Setter Property="Opacity" Value="0.70"/>
-                        <Setter Property="Margin" Value="4 0"/>
-                        <Setter Property="TextWrapping" Value="Wrap"/>
-                    </Style>
-                </Grid.Resources>
+            <Grid Style="{StaticResource DetailsTable}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="77"/>
@@ -132,38 +70,55 @@
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=program_size}">program__size:</Label>
-                <TextBox x:Name="program_size" Grid.Column="1" Grid.Row="0" Text="{Binding program_size, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Grid.Column="2" Grid.Row="0" Text="– NFA instructions" Style="{StaticResource note}" />
-
-                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=repeat_count}">repeat__count:</Label>
-                <TextBox x:Name="repeat_count" Grid.Column="1" Grid.Row="1" Text="{Binding repeat_count, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Grid.Column="2" Grid.Row="1" Text="– A bounded repeat's count (`a{n}`)" Style="{StaticResource note}" />
-
-                <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=group_count}">group__count:</Label>
-                <TextBox x:Name="group_count" Grid.Column="1" Grid.Row="2" Text="{Binding group_count, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Grid.Column="2" Grid.Row="2" Text="– Capture groups" Style="{StaticResource note}" />
-
-                <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=nesting_depth}">nesting__depth:</Label>
-                <TextBox x:Name="nesting_depth" Grid.Column="1" Grid.Row="3" Text="{Binding nesting_depth, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Grid.Column="2" Grid.Row="3" Text="– Group nesting" Style="{StaticResource note}" />
-
-                <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=lookaround_length}">lookaround__length:</Label>
-                <TextBox x:Name="lookaround_length" Grid.Column="1" Grid.Row="4" Text="{Binding lookaround_length, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Grid.Column="2" Grid.Row="4" Text="– Bytes a bounded lookaround may match" Style="{StaticResource note}" />
-
-                <Label Grid.Column="0" Grid.Row="5" Target="{Binding ElementName=dfa_memory}">dfa__memory:</Label>
-                <TextBox x:Name="dfa_memory" Grid.Column="1" Grid.Row="5" Text="{Binding dfa_memory, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Grid.Column="2" Grid.Row="5" Text="– Bytes the lazy DFA may cache per direction" Style="{StaticResource note}" />
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=timeout}">timeout:</Label>
+                <TextBox x:Name="timeout" Grid.Column="1" Grid.Row="0" Text="{Binding timeout, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_Changed" />
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– maximum duration of operations (in seconds)" />
             </Grid>
 
         </StackPanel>
-    </Grid>
+
+        <Grid x:Name="pnlLimits" Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="77"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=program_size}">program__size:</Label>
+            <TextBox x:Name="program_size" Grid.Column="1" Grid.Row="0" Text="{Binding program_size, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_Changed" />
+            <TextBlock Grid.Column="2" Grid.Row="0" Text="– NFA instructions" />
+
+            <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=repeat_count}">repeat__count:</Label>
+            <TextBox x:Name="repeat_count" Grid.Column="1" Grid.Row="1" Text="{Binding repeat_count, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_Changed" />
+            <TextBlock Grid.Column="2" Grid.Row="1" Text="– A bounded repeat's count (`a{n}`)" />
+
+            <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=group_count}">group__count:</Label>
+            <TextBox x:Name="group_count" Grid.Column="1" Grid.Row="2" Text="{Binding group_count, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_Changed" />
+            <TextBlock Grid.Column="2" Grid.Row="2" Text="– Capture groups" />
+
+            <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=nesting_depth}">nesting__depth:</Label>
+            <TextBox x:Name="nesting_depth" Grid.Column="1" Grid.Row="3" Text="{Binding nesting_depth, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_Changed" />
+            <TextBlock Grid.Column="2" Grid.Row="3" Text="– Group nesting" />
+
+            <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=lookaround_length}">lookaround__length:</Label>
+            <TextBox x:Name="lookaround_length" Grid.Column="1" Grid.Row="4" Text="{Binding lookaround_length, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_Changed" />
+            <TextBlock Grid.Column="2" Grid.Row="4" Text="– Bytes a bounded lookaround may match" />
+
+            <Label Grid.Column="0" Grid.Row="5" Target="{Binding ElementName=dfa_memory}">dfa__memory:</Label>
+            <TextBox x:Name="dfa_memory" Grid.Column="1" Grid.Row="5" Text="{Binding dfa_memory, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_Changed" />
+            <TextBlock Grid.Column="2" Grid.Row="5" Text="– Bytes the lazy DFA may cache per direction" />
+        </Grid>
+
+    </StackPanel>
+
 </UserControl>

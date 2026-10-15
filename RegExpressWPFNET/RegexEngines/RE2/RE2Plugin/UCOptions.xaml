@@ -10,81 +10,54 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
-        <Style TargetType="TextBox">
-            <EventSetter Event="TextChanged" Handler="TextBox_TextChanged"/>
-        </Style>
-        <Style TargetType="ComboBox">
-            <EventSetter Event="SelectionChanged" Handler="ComboBox_SelectionChanged"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel VerticalAlignment="Top">
-            <ui:CheckboxWithNote Prop="posix_syntax" Note="restrict regexps to POSIX egrep syntax"/>
-            <ui:CheckboxWithNote Prop="longest_match" Note="search for longest match, not first match"/>
-            <ui:CheckboxWithNote Prop="literal" Note="interpret string as literal, not regexp"/>
-            <ui:CheckboxWithNote Prop="never_nl" Note="never match \n, even if it is in regexp"/>
-            <ui:CheckboxWithNote Prop="dot_nl" Note="dot matches everything including new line"/>
-            <ui:CheckboxWithNote Prop="never_capture" Note="parse all parens as non-capturing"/>
-            <ui:CheckboxWithNote Prop="case_sensitive" Note="match is case-sensitive (regexp can override with (?i) unless in posix_syntax mode)"/>
-            <ui:CheckboxWithNote Prop="perl_classes" Note="allow Perl's \d \s \w \D \S \W; used with posix_syntax only"/>
-            <ui:CheckboxWithNote Prop="word_boundary" Note="allow Perl's \b \B (word boundary and not); used with posix_syntax only"/>
-            <ui:CheckboxWithNote Prop="one_line" Note="^ and $ only match beginning and end of text; used with posix_syntax only"/>
+    <StackPanel Orientation="Vertical">
+        <ui:CheckboxWithNote Prop="posix_syntax" Note="restrict regexps to POSIX egrep syntax"/>
+        <ui:CheckboxWithNote Prop="longest_match" Note="search for longest match, not first match"/>
+        <ui:CheckboxWithNote Prop="literal" Note="interpret string as literal, not regexp"/>
+        <ui:CheckboxWithNote Prop="never_nl" Note="never match \n, even if it is in regexp"/>
+        <ui:CheckboxWithNote Prop="dot_nl" Note="dot matches everything including new line"/>
+        <ui:CheckboxWithNote Prop="never_capture" Note="parse all parens as non-capturing"/>
+        <ui:CheckboxWithNote Prop="case_sensitive" Note="match is case-sensitive (regexp can override with (?i) unless in posix_syntax mode)"/>
+        <ui:CheckboxWithNote Prop="perl_classes" Note="allow Perl's \d \s \w \D \S \W; used with posix_syntax only"/>
+        <ui:CheckboxWithNote Prop="word_boundary" Note="allow Perl's \b \B (word boundary and not); used with posix_syntax only"/>
+        <ui:CheckboxWithNote Prop="one_line" Note="^ and $ only match beginning and end of text; used with posix_syntax only"/>
 
-            <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 6">
-                <Grid.LayoutTransform>
-                    <TransformGroup>
-                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                        <SkewTransform/>
-                        <RotateTransform/>
-                        <TranslateTransform/>
-                    </TransformGroup>
-                </Grid.LayoutTransform>
-                <Grid.Resources>
-                    <Style TargetType="Label">
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="VerticalContentAlignment" Value="Center"/>
-                        <Setter Property="Padding" Value="0 2 4 2"/>
-                    </Style>
-                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="VerticalContentAlignment" Value="Center"/>
-                    </Style>
-                    <Style TargetType="TextBlock" x:Key="note">
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-                        <Setter Property="Opacity" Value="0.70"/>
-                        <Setter Property="Margin" Value="4 0"/>
-                        <Setter Property="TextWrapping" Value="Wrap"/>
-                    </Style>
-                </Grid.Resources>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+        <Grid Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition MinWidth="110"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=an}">anchor:</Label>
-                <ComboBox x:Name="an" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding anchor, FallbackValue='UNANCHORED'}" VerticalAlignment="Center" MinWidth="110" >
-                    <ComboBoxItem Tag ="UNANCHORED" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
-                    <ComboBoxItem Tag ="ANCHOR_START" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
-                    <ComboBoxItem Tag ="ANCHOR_BOTH" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
-                </ComboBox>
-                <TextBlock Grid.Column="2" Grid.Row="0" Text="– type of match" Style="{StaticResource note}" />
+            <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=an}">anchor:</Label>
+            <ComboBox x:Name="an" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding anchor, FallbackValue='UNANCHORED'}" SelectionChanged="ComboBox_SelectionChanged" >
+                <ComboBoxItem Tag ="UNANCHORED" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                <ComboBoxItem Tag ="ANCHOR_START" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                <ComboBoxItem Tag ="ANCHOR_BOTH" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+            </ComboBox>
+            <TextBlock Grid.Column="2" Grid.Row="0" Text="– type of match" />
 
-                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=mm}">max__mem:</Label>
-                <TextBox x:Name="mm" Grid.Column="1" Grid.Row="1" Text="{Binding max_mem, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="1" Text="– total memory budget" Style="{StaticResource note}" />
+            <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=mm}">max__mem:</Label>
+            <TextBox x:Name="mm" Grid.Column="1" Grid.Row="1" Text="{Binding max_mem, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="1" Text="– total memory budget" />
 
-            </Grid>
+        </Grid>
 
-        </StackPanel>
-    </Grid>
+    </StackPanel>
+
 </UserControl>

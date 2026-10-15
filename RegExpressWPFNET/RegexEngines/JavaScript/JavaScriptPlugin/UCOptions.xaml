@@ -6,101 +6,85 @@
              xmlns:local="clr-namespace:JavaScriptPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="344.468" d:DesignWidth="683.921" 
+             d:DesignHeight="380.444" d:DesignWidth="683.921" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel VerticalAlignment="Top">
+    <StackPanel Orientation="Vertical">
 
-            <StackPanel x:Name="pnl2" Orientation="Vertical" Margin="0 4 0 0">
-                <Grid Margin="0 0 0 4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
+        <Grid Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
 
-                    <Grid.LayoutTransform>
-                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                    </Grid.LayoutTransform>
+            <Label Grid.Row="0" Grid.Column="0" Content="Runtime:" Target="{Binding ElementName=cbxRuntime}"/>
+            <ComboBox x:Name="cbxRuntime" Grid.Row="0" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding Runtime, FallbackValue='WebView2'}" SelectionChanged="cbxRuntime_SelectionChanged">
+                <!--<ui:ComboBoxItemWithVersion Tag ="WebView2"     Text="WebView2"             Version="{x:Static local:Versions.WebView2}" />-->
+                <!-- The version of WebView2 is determined programmatically -->
+                <ComboBoxItem Tag ="WebView2" Content="WebView2" IsSelected="True" />
+                <ui:ComboBoxItemWithVersion Tag ="NodeJs"       Text="V8 (Node.js)"         Version="{x:Static local:Versions.NodeJs}" />
+                <ui:ComboBoxItemWithVersion Tag ="QuickJs"      Text="QuickJs"              Version="{x:Static local:Versions.QuickJs}" />
+                <ui:ComboBoxItemWithVersion Tag ="SpiderMonkey" Text="SpiderMonkey"         Version="{x:Static local:Versions.SpiderMonkey}" />
+                <ui:ComboBoxItemWithVersion Tag ="Bun"          Text="JavaScriptCore (Bun)" Version="{x:Static local:Versions.Bun}" />
+                <ui:ComboBoxItemWithVersion Tag ="RE2JS"        Text="RE2JS"                Version="{x:Static local:Versions.RE2JS}" />
+                <ui:ComboBoxItemWithVersion Tag ="RegexPlus"    Text="Regex+"               Version="{x:Static local:Versions.RegexPlus}" />
+            </ComboBox>
 
-                    <Grid.Resources>
-                        <Style TargetType="Label">
-                            <Setter Property="VerticalAlignment" Value="Center" />
-                            <Setter Property="Padding" Value="0 1 4 1"/>
-                        </Style>
-                        <Style TargetType="ComboBox">
-                            <Setter Property="HorizontalAlignment" Value="Left" />
-                            <Setter Property="VerticalAlignment" Value="Center" />
-                            <Setter Property="Padding" Value="4 2"/>
-                            <Setter Property="Margin" Value="1"/>
-                        </Style>
-                    </Grid.Resources>
+            <Label Grid.Row="1" Grid.Column="0" Content="Function:" Target="{Binding ElementName=cbxFunction}" />
+            <ComboBox x:Name="cbxFunction" Grid.Column="1" Grid.Row="1" SelectedValuePath="Tag" SelectedValue="{Binding Function, FallbackValue='MatchAll'}" SelectionChanged="cbxFunction_SelectionChanged">
+                <ComboBoxItem Tag ="MatchAll" Content="String.matchAll"/>
+                <ComboBoxItem Tag ="Exec" Content="RegExp.exec"/>
+            </ComboBox>
+            <ComboBox x:Name="cbxFunctionRE2JS" Grid.Row="1" Grid.Column="1" IsEnabled="False" >
+                <ComboBoxItem Tag ="" Content="Matcher.find" IsSelected="True"/>
+            </ComboBox>
+        </Grid>
 
-                    <Label Grid.Column="0" Grid.Row="0" Content="Runtime:" Target="{Binding ElementName=cbxRuntime}"/>
-                    <ComboBox x:Name="cbxRuntime" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Runtime}" SelectionChanged="cbxRuntime_SelectionChanged">
-                        <!--<ui:ComboBoxItemWithVersion Tag ="WebView2"     Text="WebView2"             Version="{x:Static local:Versions.WebView2}" />-->
-                        <!-- The version of WebView2 is determined programmatically -->
-                        <ComboBoxItem Tag ="WebView2" Content="WebView2" />
-                        <ui:ComboBoxItemWithVersion Tag ="NodeJs"       Text="V8 (Node.js)"         Version="{x:Static local:Versions.NodeJs}" />
-                        <ui:ComboBoxItemWithVersion Tag ="QuickJs"      Text="QuickJs"              Version="{x:Static local:Versions.QuickJs}" />
-                        <ui:ComboBoxItemWithVersion Tag ="SpiderMonkey" Text="SpiderMonkey"         Version="{x:Static local:Versions.SpiderMonkey}" />
-                        <ui:ComboBoxItemWithVersion Tag ="Bun"          Text="JavaScriptCore (Bun)" Version="{x:Static local:Versions.Bun}" />
-                        <ui:ComboBoxItemWithVersion Tag ="RE2JS"        Text="RE2JS"                Version="{x:Static local:Versions.RE2JS}" />
-                        <ui:ComboBoxItemWithVersion Tag ="RegexPlus"    Text="Regex+"               Version="{x:Static local:Versions.RegexPlus}" />
-                    </ComboBox>
-
-                    <Label Grid.Column="0" Grid.Row="1" Content="Function:" Target="{Binding ElementName=cbxFunction}" />
-                    <ComboBox x:Name="cbxFunction" Grid.Column="1" Grid.Row="1" SelectedValuePath="Tag" SelectedValue="{Binding Function, FallbackValue='MatchAll'}" SelectionChanged="cbxFunction_SelectionChanged">
-                        <ComboBoxItem Tag ="MatchAll" Content="String.matchAll"/>
-                        <ComboBoxItem Tag ="Exec" Content="RegExp.exec"/>
-                    </ComboBox>
-                    <ComboBox x:Name="cbxFunctionRE2JS" Grid.Column="1" Grid.Row="1" IsEnabled="False" >
-                        <ComboBoxItem Tag ="" Content="Matcher.find" IsSelected="True"/>
-                    </ComboBox>
-                </Grid>
-
-                <StackPanel x:Name="pnlCommon" Orientation="Vertical" Margin="0">
-                    <ui:CheckboxWithNote Prop="i" Note="ignore case"/>
-                    <ui:CheckboxWithNote Prop="m" Note="allows ‘^’ and ‘$’ to match newline characters"/>
-                    <ui:CheckboxWithNote Prop="s" Note="allows ‘.’ to match newline characters"/>
-                    <ui:CheckboxWithNote x:Name="checkboxU" Prop="u" Note="treats pattern as a sequence of Unicode code points"/>
-                    <ui:CheckboxWithNote x:Name="checkboxV" Prop="v" Note="more Unicode features"/>
-                    <ui:CheckboxWithNote x:Name="checkboxX" Prop="x" Note="makes whitespace insignificant and adds support for line comments starting with #"/>
-                    <ui:CheckboxWithNote x:Name="checkboxN" Prop="n" Note="named capture only"/>
-                    <ui:CheckboxWithNote Prop="y" Note="“sticky” search"/>
-                    <ui:CheckboxWithNote Prop="g" Note="global search"/>
-                    <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True"/>
-                    <ui:CheckboxWithNote x:Name="checkboxSubclass" Prop="subclass" Note="using a RegExp subclass to avoid issues with numbered backreferences" />
-                </StackPanel>
-
-                <StackPanel x:Name="pnlRE2JS" Orientation="Vertical" Margin="0">
-                    <ui:CheckboxWithNote Prop="i" Text="RE2JS.CASE_INSENSITIVE" Note="case insensitive matching"/>
-                    <ui:CheckboxWithNote Prop="s" Text="RE2JS.DOTALL" Note="dot (.) matches all characters, including newline"/>
-                    <ui:CheckboxWithNote Prop="m" Text="RE2JS.MULTILINE" Note="multiline matching: ^ and $ match at beginning and end of line, not just beginning and end of input"/>
-                    <ui:CheckboxWithNote Prop="DISABLE_UNICODE_GROUPS" Text="RE2JS.DISABLE_UNICODE_GROUPS" Note="Unicode groups (e.g. \p{Greek}) will be syntax errors"/>
-                    <ui:CheckboxWithNote Prop="LONGEST_MATCH" Text="RE2JS.LONGEST_MATCH" Note="matches longest possible string (changes the match semantics to leftmost-longest)"/>
-                    <ui:CheckboxWithNote Prop="LOOKBEHINDS" Text="RE2JS.LOOKBEHINDS" Note="enable linear-time captureless lookbehinds"/>
-                </StackPanel>
-
-                <StackPanel x:Name="pnlSM" Orientation="Vertical" Margin="0 8 0 0">
-                    <ui:CheckboxWithNote x:Name="checkboxNoNativeRegexp" Prop="NoNativeRegexp" Text="--no-native-regexp" Note="disable native regexp compilation"/>
-                    <ui:CheckboxWithNote x:Name="checkboxEnableDuplicateNames" Prop="EnableDuplicateNames" Text="--enable-regexp-duplicate-named-groups" Note="enable duplicate named capture groups"/>
-                    <ui:CheckboxWithNote x:Name="checkboxEnableRegexpModifiers" Prop="EnableRegexpModifiers" Text="--enable-regexp-modifiers" Note="enable pattern modifiers"/>
-                </StackPanel>
-
-            </StackPanel>
-
+        <StackPanel x:Name="pnlCommon" Orientation="Vertical" >
+            <ui:CheckboxWithNote Prop="i" Note="ignore case"/>
+            <ui:CheckboxWithNote Prop="m" Note="allows ‘^’ and ‘$’ to match newline characters"/>
+            <ui:CheckboxWithNote Prop="s" Note="allows ‘.’ to match newline characters"/>
+            <ui:CheckboxWithNote x:Name="checkboxU" Prop="u" Note="treats pattern as a sequence of Unicode code points"/>
+            <ui:CheckboxWithNote x:Name="checkboxV" Prop="v" Note="more Unicode features"/>
+            <ui:CheckboxWithNote x:Name="checkboxX" Prop="x" Note="makes whitespace insignificant and adds support for line comments starting with #"/>
+            <ui:CheckboxWithNote x:Name="checkboxN" Prop="n" Note="named capture only"/>
+            <ui:CheckboxWithNote Prop="y" Note="“sticky” search"/>
+            <ui:CheckboxWithNote Prop="g" Note="global search"/>
+            <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True"/>
+            <ui:CheckboxWithNote x:Name="checkboxSubclass" Prop="subclass" Note="using a RegExp subclass to avoid issues with numbered backreferences" />
         </StackPanel>
-    </Grid>
+
+        <StackPanel x:Name="pnlRE2JS" Orientation="Vertical" >
+            <ui:CheckboxWithNote Prop="i" Text="RE2JS.CASE_INSENSITIVE" Note="case insensitive matching"/>
+            <ui:CheckboxWithNote Prop="s" Text="RE2JS.DOTALL" Note="dot (.) matches all characters, including newline"/>
+            <ui:CheckboxWithNote Prop="m" Text="RE2JS.MULTILINE" Note="multiline matching: ^ and $ match at beginning and end of line, not just beginning and end of input"/>
+            <ui:CheckboxWithNote Prop="DISABLE_UNICODE_GROUPS" Text="RE2JS.DISABLE_UNICODE_GROUPS" Note="Unicode groups (e.g. \p{Greek}) will be syntax errors"/>
+            <ui:CheckboxWithNote Prop="LONGEST_MATCH" Text="RE2JS.LONGEST_MATCH" Note="matches longest possible string (changes the match semantics to leftmost-longest)"/>
+            <ui:CheckboxWithNote Prop="LOOKBEHINDS" Text="RE2JS.LOOKBEHINDS" Note="enable linear-time captureless lookbehinds"/>
+        </StackPanel>
+
+        <StackPanel x:Name="pnlSM" Orientation="Vertical" >
+            <ui:CheckboxWithNote x:Name="checkboxNoNativeRegexp" Prop="NoNativeRegexp" Text="--no-native-regexp" Note="disable native regexp compilation"/>
+            <ui:CheckboxWithNote x:Name="checkboxEnableDuplicateNames" Prop="EnableDuplicateNames" Text="--enable-regexp-duplicate-named-groups" Note="enable duplicate named capture groups"/>
+            <ui:CheckboxWithNote x:Name="checkboxEnableRegexpModifiers" Prop="EnableRegexpModifiers" Text="--enable-regexp-modifiers" Note="enable pattern modifiers"/>
+        </StackPanel>
+
+    </StackPanel>
+
 </UserControl>
-    

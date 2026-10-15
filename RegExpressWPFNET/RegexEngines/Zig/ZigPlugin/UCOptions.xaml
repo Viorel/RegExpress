@@ -10,83 +10,56 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
-        <Style TargetType="Label">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Padding" Value="0 2 4 2"/>
-        </Style>
-        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <EventSetter Event="TextChanged" Handler="tb_TextChanged"/>
-        </Style>
-        <Style TargetType="TextBlock" x:Key="note">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-            <!--<Setter Property="Opacity" Value="0.77"/>-->
-            <Setter Property="FontStyle" Value="Italic"/>
-            <Setter Property="Margin" Value="4 0"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel>
-            <Grid Margin="0 0 0 4">
-                <Grid.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </Grid.LayoutTransform>
-                <Grid.Resources>
-                    <Style TargetType="Label">
-                        <Setter Property="Padding" Value="0 2 4 2"/>
-                    </Style>
-                    <Style TargetType="ComboBox">
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="MinWidth" Value="120"/>
-                        <Setter Property="Margin" Value="3 0 0 2"/>
-                    </Style>
-                </Grid.Resources>
+    <StackPanel Orientation="Vertical">
+        <Grid Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
 
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition/>
-                </Grid.RowDefinitions>
+            <Label Grid.Column="0" Grid.Row="0" Content="Library:" Target="{Binding ElementName=cbxLibrary}" />
+            <ComboBox x:Name="cbxLibrary" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Library, FallbackValue='ZigRegex'}" SelectionChanged="cbxLibrary_SelectionChanged">
+                <ui:ComboBoxItemWithVersion Tag="ZigRegex"      Text="zig-regex"    Version="{x:Static local:Versions.ZigRegex}" IsSelected="True" />
+                <ui:ComboBoxItemWithVersion Tag="Mvzr"          Text="mvzr"         Version="{x:Static local:Versions.Mvzr}" />
+                <ui:ComboBoxItemWithVersion Tag="Pzre"          Text="PZRE"         Version="{x:Static local:Versions.Pzre}" />
+                <ui:ComboBoxItemWithVersion Tag="EziGex"        Text="ezi-gex"      Version="{x:Static local:Versions.EziGex}" />
+                <ui:ComboBoxItemWithVersion Tag="Zoptia0regex"  Text="zoptia0regex" Version="{x:Static local:Versions.Zoptia0regex}" />
+                <ui:ComboBoxItemWithVersion Tag="ZRegex"        Text="z-regex"      Version="{x:Static local:Versions.ZRegex}" />
+            </ComboBox>
 
-                <Label Grid.Column="0" Grid.Row="0" Content="Library:" Target="{Binding ElementName=cbxLibrary}" />
-                <ComboBox x:Name="cbxLibrary" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Library, FallbackValue='ZigRegex'}" SelectionChanged="cbxLibrary_SelectionChanged">
-                    <ui:ComboBoxItemWithVersion Tag="ZigRegex"      Text="zig-regex"    Version="{x:Static local:Versions.ZigRegex}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="Mvzr"          Text="mvzr"         Version="{x:Static local:Versions.Mvzr}" />
-                    <ui:ComboBoxItemWithVersion Tag="Pzre"          Text="PZRE"         Version="{x:Static local:Versions.Pzre}" />
-                    <ui:ComboBoxItemWithVersion Tag="EziGex"        Text="ezi-gex"      Version="{x:Static local:Versions.EziGex}" />
-                    <ui:ComboBoxItemWithVersion Tag="Zoptia0regex"  Text="zoptia0regex" Version="{x:Static local:Versions.Zoptia0regex}" />
-                    <ui:ComboBoxItemWithVersion Tag="ZRegex"        Text="z-regex"      Version="{x:Static local:Versions.ZRegex}" />
-                </ComboBox>
+        </Grid>
 
-            </Grid>
+        <StackPanel x:Name="pnlZigRegexOptions" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="case_insensitive" Note="Matches both uppercase and lowercase letters"/>
+            <ui:CheckboxWithNote Prop="multiline" Note="Not yet implemented"/>
+            <ui:CheckboxWithNote Prop="dot_all" Note="Not yet implemented"/>
+            <ui:CheckboxWithNote Prop="extended" Note="Not yet implemented"/>
+            <ui:CheckboxWithNote Prop="unicode" Note="Not yet implemented"/>
+        </StackPanel>
 
-            <StackPanel x:Name="pnlZigRegexOptions">
-                <ui:CheckboxWithNote Prop="case_insensitive" Note="Matches both uppercase and lowercase letters"/>
-                <ui:CheckboxWithNote Prop="multiline" Note="Not yet implemented"/>
-                <ui:CheckboxWithNote Prop="dot_all" Note="Not yet implemented"/>
-                <ui:CheckboxWithNote Prop="extended" Note="Not yet implemented"/>
-                <ui:CheckboxWithNote Prop="unicode" Note="Not yet implemented"/>
-            </StackPanel>
+        <StackPanel x:Name="pnlMvzrOptions" Orientation="Vertical">
+        </StackPanel>
 
-            <StackPanel x:Name="pnlMvzrOptions">
-            </StackPanel>
+        <StackPanel x:Name="pnlPzreOptions" Orientation="Vertical">
+        </StackPanel>
 
-            <StackPanel x:Name="pnlPzreOptions">
-            </StackPanel>
+        <StackPanel x:Name="pnlEziGexOptions" Orientation="Vertical">
 
-            <StackPanel x:Name="pnlEziGexOptions">
-
-                <!--
+            <!--
                 Cannot be set at runtime
                 
                 <ui:CheckboxWithNote Prop="case_insensitive" Text="case_insensitive" Note=""/>
@@ -96,15 +69,7 @@
                 <ui:CheckboxWithNote Prop="unicode_word_boundary_in_dfa" Text="unicode_word_boundary_in_dfa" Note=""/>
                 <ui:CheckboxWithNote Prop="prefilter" Text="prefilter" Note=""/>
 
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 6 0 0" >
-                    <Grid.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </Grid.LayoutTransform>
+                <Grid Style="{StaticResource DetailsTable}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto" MinWidth="55"/>
@@ -124,11 +89,11 @@
                         <ComboBoxItem Tag ="simple"     Content="simple" />
                         <ComboBoxItem Tag ="full"       Content="full" />
                     </ComboBox>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="0" Text="" />
 
                     <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=max_repetition}" Content="max__repetition:"/>
                     <TextBox x:Name="max_repetition" Grid.Column="1" Grid.Row="1" Text="{Binding max_repetition, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="1" Text="" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="" />
 
                     <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=byte_engine}" Content="byte__engine:"/>
                     <ComboBox x:Name="byte_engine" Grid.Column="1" Grid.Row="2" SelectedValuePath="Tag" SelectedValue="{Binding byte_engine, FallbackValue='None'}" VerticalAlignment="Center" SelectionChanged="cb_SelectionChanged" MinWidth="77">
@@ -137,7 +102,7 @@
                         <ComboBoxItem Tag ="enabled"    Content="enabled" />
                         <ComboBoxItem Tag ="disabled"   Content="disabled" />
                     </ComboBox>
-                    <TextBlock Grid.Column="2" Grid.Row="2" Text="" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="" />
 
                     <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=simd}" Content="simd:"/>
                     <ComboBox x:Name="simd" Grid.Column="1" Grid.Row="3" SelectedValuePath="Tag" SelectedValue="{Binding simd, FallbackValue='None'}" VerticalAlignment="Center" SelectionChanged="cb_SelectionChanged" MinWidth="77">
@@ -145,32 +110,28 @@
                         <ComboBoxItem Tag ="auto"       Content="auto" />
                         <ComboBoxItem Tag ="off"        Content="off" />
                     </ComboBox>
-                    <TextBlock Grid.Column="2" Grid.Row="3" Text="" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="3" Text="" />
                 </Grid>
 
                 -->
 
-            </StackPanel>
-
-            <StackPanel x:Name="pnlZoptia0regex">
-                <ui:CheckboxWithNote Prop="posix" Note="POSIX ERE syntax and leftmost-longest semantics"/>
-                <ui:CheckboxWithNote Prop="longest" Note="switch to leftmost-longest (POSIX) matching"/>
-                <ui:CheckboxWithNote Prop="literal" Note="interpret pattern as literal, not regexp"/>
-            </StackPanel>
-
-            <StackPanel x:Name="pnlZRegex">
-
-                <ui:CheckboxWithNote Prop="case_insensitive" Text="case_insensitive" Note="Case insensitive matching"/>
-                <ui:CheckboxWithNote Prop="multiline" Text="multiline" Note="^ and $ match line boundaries"/>
-                <ui:CheckboxWithNote Prop="dot_all" Text="dot_all" Note="Dot matches newline"/>
-                <ui:CheckboxWithNote Prop="sticky" Text="sticky" Note="Never scanning ahead"/>
-                <ui:CheckboxWithNote Prop="unicode" Text="unicode" Note="Stricter escape-sequence syntax validation"/>
-                <ui:CheckboxWithNote Prop="v" Text="v" Note="Unicode Sets mode"/>
-                <ui:CheckboxWithNote Prop="possessive" Text="possessive" Note="Match greedily, never give back"/>
-
-            </StackPanel>
-
         </StackPanel>
 
-    </Grid>
+        <StackPanel x:Name="pnlZoptia0regex" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="posix" Note="POSIX ERE syntax and leftmost-longest semantics"/>
+            <ui:CheckboxWithNote Prop="longest" Note="switch to leftmost-longest (POSIX) matching"/>
+            <ui:CheckboxWithNote Prop="literal" Note="interpret pattern as literal, not regexp"/>
+        </StackPanel>
+
+        <StackPanel x:Name="pnlZRegex" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="case_insensitive" Text="case_insensitive" Note="Case insensitive matching"/>
+            <ui:CheckboxWithNote Prop="multiline" Text="multiline" Note="^ and $ match line boundaries"/>
+            <ui:CheckboxWithNote Prop="dot_all" Text="dot_all" Note="Dot matches newline"/>
+            <ui:CheckboxWithNote Prop="sticky" Text="sticky" Note="Never scanning ahead"/>
+            <ui:CheckboxWithNote Prop="unicode" Text="unicode" Note="Stricter escape-sequence syntax validation"/>
+            <ui:CheckboxWithNote Prop="v" Text="v" Note="Unicode Sets mode"/>
+            <ui:CheckboxWithNote Prop="possessive" Text="possessive" Note="Match greedily, never give back"/>
+        </StackPanel>
+
+    </StackPanel>
 </UserControl>

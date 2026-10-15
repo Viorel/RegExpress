@@ -6,30 +6,40 @@
              xmlns:local="clr-namespace:FortranPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="53.368" d:DesignWidth="381.013" 
+             d:DesignHeight="62.968" d:DesignWidth="223.813" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel Orientation="Vertical">
-            <StackPanel Orientation="Horizontal" Margin="0 0 0 4">
-                <StackPanel.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </StackPanel.LayoutTransform>
-                <Label Content="Module:" Target="{Binding ElementName=cbxModule}" Padding="0 2 4 2" />
-                <ComboBox x:Name="cbxModule" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='Forgex'}" VerticalAlignment="Center" MinWidth="90" SelectionChanged="cbxModule_SelectionChanged" >
-                    <ui:ComboBoxItemWithVersion Tag="Forgex"        Text="Forgex"           Version="{x:Static local:Versions.Forgex}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="RegexPerazz"   Text="Regex (Perazz)"   Version="{x:Static local:Versions.RegexPerazz}" />
-                    <ui:ComboBoxItemWithVersion Tag="RegexJeyemhex" Text="Regex (Jeyemhex)" Version="{x:Static local:Versions.RegexJeyemhex}"/>
-                </ComboBox>
-            </StackPanel>
+    <StackPanel Orientation="Vertical">
+        <Grid Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto" MinWidth="99"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <ui:CheckboxWithNote Prop="MatchAll" Text="Find all" Note="find all occurrences" />
-        </StackPanel>
-    </Grid>
+            <Label Grid.Row="0" Grid.Column="0" Content="Module:" Target="{Binding ElementName=cbxModule}" />
+            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="cbxModule" SelectedValuePath="Tag" SelectedValue="{Binding Module, FallbackValue='Forgex'}" SelectionChanged="cbxModule_SelectionChanged" >
+                <ui:ComboBoxItemWithVersion Tag="Forgex"        Text="Forgex"           Version="{x:Static local:Versions.Forgex}" IsSelected="True" />
+                <ui:ComboBoxItemWithVersion Tag="RegexPerazz"   Text="Regex (Perazz)"   Version="{x:Static local:Versions.RegexPerazz}" />
+                <ui:ComboBoxItemWithVersion Tag="RegexJeyemhex" Text="Regex (Jeyemhex)" Version="{x:Static local:Versions.RegexJeyemhex}"/>
+            </ComboBox>
+        </Grid>
+
+        <ui:CheckboxWithNote Prop="MatchAll" Text="Find all" Note="find all occurrences" />
+    </StackPanel>
+
 </UserControl>

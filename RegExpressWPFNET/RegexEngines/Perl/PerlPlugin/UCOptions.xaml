@@ -6,32 +6,34 @@
              xmlns:local="clr-namespace:PerlPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             Loaded="UserControl_Loaded" Height="237" Width="541">
+             Loaded="UserControl_Loaded" d:DesignHeight="196.38" d:DesignWidth="503.005" >
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel>
-            <StackPanel>
-                <ui:CheckboxWithNote Prop="m" Note="change “^” and “$” to matching the start and end of each line within the string"/>
-                <ui:CheckboxWithNote Prop="s" Note="change “.” to match any character whatsoever, even a newline"/>
-                <ui:CheckboxWithNote Prop="i" Note="do case-insensitive pattern matching"/>
-                <ui:CheckboxWithNote Prop="x" Note="permitting whitespace and comments"/>
-                <ui:CheckboxWithNote Prop="xx" Note="like “x”, but additionally ignore spaces within [ ]"/>
-                <ui:CheckboxWithNote Prop="n" Note="prevent the grouping metacharacters ( ) from capturing"/>
-                <ui:CheckboxWithNote Prop="a" Note="ASCII-restrict"/>
-                <ui:CheckboxWithNote Prop="aa" Note="forbid ASCII/non-ASCII matches"/>
-                <ui:CheckboxWithNote Prop="d" Note="old, problematic default character set behavior"/>
-                <ui:CheckboxWithNote Prop="u" Note="use Unicode rules"/>
-                <ui:CheckboxWithNote Prop="l" Note="use the current locale's rules"/>
-                <ui:CheckboxWithNote Prop="g" Note="find all occurrences"/>
-                <!--<ui:CheckboxWithNote Prop="c" Note="do not reset position on failed matches when using “/g”"/>-->
-            </StackPanel>
-        </StackPanel>
-    </Grid>
+    <StackPanel Orientation="Vertical">
+        <ui:CheckboxWithNote Prop="m" Note="change “^” and “$” to matching the start and end of each line within the string"/>
+        <ui:CheckboxWithNote Prop="s" Note="change “.” to match any character whatsoever, even a newline"/>
+        <ui:CheckboxWithNote Prop="i" Note="do case-insensitive pattern matching"/>
+        <ui:CheckboxWithNote Prop="x" Note="permitting whitespace and comments"/>
+        <ui:CheckboxWithNote Prop="xx" Note="like “x”, but additionally ignore spaces within [ ]"/>
+        <ui:CheckboxWithNote Prop="n" Note="prevent the grouping metacharacters ( ) from capturing"/>
+        <ui:CheckboxWithNote Prop="a" Note="ASCII-restrict"/>
+        <ui:CheckboxWithNote Prop="aa" Note="forbid ASCII/non-ASCII matches"/>
+        <ui:CheckboxWithNote Prop="d" Note="old, problematic default character set behavior"/>
+        <ui:CheckboxWithNote Prop="u" Note="use Unicode rules"/>
+        <ui:CheckboxWithNote Prop="l" Note="use the current locale's rules"/>
+        <ui:CheckboxWithNote Prop="g" Note="find all occurrences"/>
+        <!--<ui:CheckboxWithNote Prop="c" Note="do not reset position on failed matches when using “/g”"/>-->
+    </StackPanel>
+
 </UserControl>
-    

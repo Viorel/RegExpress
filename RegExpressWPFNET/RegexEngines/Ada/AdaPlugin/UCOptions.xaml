@@ -10,18 +10,20 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-
-        <StackPanel Orientation="Vertical" VerticalAlignment="Top" Margin="0">
-            <ui:CheckboxWithNote Prop="Case_Insensitive" Note="matching in a case insensitive manner" />
-            <ui:CheckboxWithNote Prop="Single_Line" Note="^ and $ will ignore \n (unless Multiple_Lines is also specified), and '.' will match \n" />
-            <ui:CheckboxWithNote Prop="Multiple_Lines" Note="^ and $ will also match on internal newlines (ASCII.LF)" />
-        </StackPanel>
-
-    </Grid>
+    <StackPanel Orientation="Vertical">
+        <ui:CheckboxWithNote Prop="Case_Insensitive" Note="matching in a case insensitive manner" />
+        <ui:CheckboxWithNote Prop="Single_Line" Note="^ and $ will ignore \n (unless Multiple_Lines is also specified), and '.' will match \n" />
+        <ui:CheckboxWithNote Prop="Multiple_Lines" Note="^ and $ will also match on internal newlines (ASCII.LF)" />
+    </StackPanel>
 </UserControl>

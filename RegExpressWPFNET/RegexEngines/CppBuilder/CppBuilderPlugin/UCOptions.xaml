@@ -10,21 +10,25 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel Orientation="Vertical" Margin="0">
-            <ui:CheckboxWithNote Prop="roIgnoreCase" Note="case-insensitive matching"/>
-            <ui:CheckboxWithNote Prop="roMultiLine" Note="^ and $ match at the beginning and end of any line"/>
-            <ui:CheckboxWithNote Prop="roExplicitCapture" Note="capture explicitly name groups of the form (?&lt;name>…)"/>
-            <ui:CheckboxWithNote Prop="roCompiled" Note="compile regular expression to an assembly"/>
-            <ui:CheckboxWithNote Prop="roSingleLine" Note="dot (.) matches every character (including \n)"/>
-            <ui:CheckboxWithNote Prop="roIgnorePatternSpace" Note="eliminates white space from the pattern and enables comments marked with #"/>
-            <ui:CheckboxWithNote Prop="roNotEmpty" Note="(not documented)"/>
-        </StackPanel>
-    </Grid>
+    <StackPanel Orientation="Vertical">
+        <ui:CheckboxWithNote Prop="roIgnoreCase" Note="case-insensitive matching"/>
+        <ui:CheckboxWithNote Prop="roMultiLine" Note="^ and $ match at the beginning and end of any line"/>
+        <ui:CheckboxWithNote Prop="roExplicitCapture" Note="capture explicitly name groups of the form (?&lt;name>…)"/>
+        <ui:CheckboxWithNote Prop="roCompiled" Note="compile regular expression to an assembly"/>
+        <ui:CheckboxWithNote Prop="roSingleLine" Note="dot (.) matches every character (including \n)"/>
+        <ui:CheckboxWithNote Prop="roIgnorePatternSpace" Note="eliminates white space from the pattern and enables comments marked with #"/>
+        <ui:CheckboxWithNote Prop="roNotEmpty" Note="(not documented)"/>
+    </StackPanel>
+
 </UserControl>
-    

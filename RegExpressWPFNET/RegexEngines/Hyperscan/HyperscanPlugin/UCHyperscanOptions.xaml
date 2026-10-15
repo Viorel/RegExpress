@@ -6,125 +6,98 @@
              xmlns:local="clr-namespace:HyperscanPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="437.5" d:DesignWidth="639.589" 
+             d:DesignHeight="378.074" d:DesignWidth="639.589" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
-        <Style TargetType="TextBox">
-            <EventSetter Event="TextChanged" Handler="TextBox_TextChanged"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel VerticalAlignment="Top">
-            <Label Margin="0 2 0 4" Padding="0">
-                <Italic>Flags</Italic>
-            </Label>
+    <StackPanel>
+        <Label Content="Flags" Style="{StaticResource SectionTitle}"/>
 
-            <ui:CheckboxWithNote Prop="HS_FLAG_CASELESS" Note="Matching will be performed case-insensitively"/>
-            <ui:CheckboxWithNote Prop="HS_FLAG_DOTALL" Note="Matching a “.” will not exclude newlines"/>
-            <ui:CheckboxWithNote Prop="HS_FLAG_MULTILINE" Note="“^” and “$” anchors match any newlines in data"/>
-            <ui:CheckboxWithNote Prop="HS_FLAG_SINGLEMATCH" Note="Only one match will be generated for the expression per stream"/>
-            <ui:CheckboxWithNote Prop="HS_FLAG_ALLOWEMPTY" Note="Allow expressions which can match against an empty string, such as “.*”"/>
-            <ui:CheckboxWithNote Prop="HS_FLAG_UTF8" Note="Treat this pattern as a sequence of UTF-8 characters"/>
-            <ui:CheckboxWithNote Prop="HS_FLAG_UCP" Note="Use Unicode properties for character classes"/>
-            <ui:CheckboxWithNote Prop="HS_FLAG_PREFILTER" Note="Compile pattern in prefiltering mode"/>
-            <ui:CheckboxWithNote Prop="HS_FLAG_SOM_LEFTMOST" Note="Report the leftmost start of match offset when a match is found"/>
-            <ui:CheckboxWithNote Prop="HS_FLAG_QUIET" Note=" Ignore match reporting for this expression"/>
+        <ui:CheckboxWithNote Prop="HS_FLAG_CASELESS" Note="Matching will be performed case-insensitively"/>
+        <ui:CheckboxWithNote Prop="HS_FLAG_DOTALL" Note="Matching a “.” will not exclude newlines"/>
+        <ui:CheckboxWithNote Prop="HS_FLAG_MULTILINE" Note="“^” and “$” anchors match any newlines in data"/>
+        <ui:CheckboxWithNote Prop="HS_FLAG_SINGLEMATCH" Note="Only one match will be generated for the expression per stream"/>
+        <ui:CheckboxWithNote Prop="HS_FLAG_ALLOWEMPTY" Note="Allow expressions which can match against an empty string, such as “.*”"/>
+        <ui:CheckboxWithNote Prop="HS_FLAG_UTF8" Note="Treat this pattern as a sequence of UTF-8 characters"/>
+        <ui:CheckboxWithNote Prop="HS_FLAG_UCP" Note="Use Unicode properties for character classes"/>
+        <ui:CheckboxWithNote Prop="HS_FLAG_PREFILTER" Note="Compile pattern in prefiltering mode"/>
+        <ui:CheckboxWithNote Prop="HS_FLAG_SOM_LEFTMOST" Note="Report the leftmost start of match offset when a match is found"/>
+        <ui:CheckboxWithNote Prop="HS_FLAG_QUIET" Note=" Ignore match reporting for this expression"/>
 
-            <Label Margin="0 6 0 0" Padding="0">
-                <Italic>Additional parameters</Italic>
-            </Label>
+        <Label Content="Additional parameters" Style="{StaticResource SectionTitle}"/>
 
-            <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 6">
-                <Grid.LayoutTransform>
-                    <TransformGroup>
-                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                        <SkewTransform/>
-                        <RotateTransform/>
-                        <TranslateTransform/>
-                    </TransformGroup>
-                </Grid.LayoutTransform>
-                <Grid.Resources>
-                    <Style TargetType="Label">
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="VerticalContentAlignment" Value="Center"/>
-                        <Setter Property="Padding" Value="0 2 4 2"/>
-                    </Style>
-                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="VerticalContentAlignment" Value="Center"/>
-                    </Style>
-                    <Style TargetType="TextBlock" x:Key="note">
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-                        <Setter Property="Opacity" Value="0.70"/>
-                        <Setter Property="Margin" Value="4 0"/>
-                        <Setter Property="TextWrapping" Value="Wrap"/>
-                    </Style>
-                </Grid.Resources>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto" MinWidth="44"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+        <Grid Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto" MinWidth="44"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=ld}">Levenshtein distance:</Label>
-                <TextBox x:Name="ld" Grid.Column="1" Grid.Row="0" Text="{Binding LevenshteinDistance, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Grid.Column="2" Grid.Row="0" Text="– Minimum number of single-character insertions, deletions or substitutions" Style="{StaticResource note}" />
+            <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=ld}">Levenshtein distance:</Label>
+            <TextBox x:Name="ld" Grid.Column="1" Grid.Row="0" Text="{Binding LevenshteinDistance, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="0" Text="– Minimum number of single-character insertions, deletions or substitutions" />
 
-                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=hd}">Hamming distance:</Label>
-                <TextBox x:Name="hd" Grid.Column="1" Grid.Row="1" Text="{Binding HammingDistance, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="1" Text="– Number of positions in two equal-length strings at which the corresponding symbols are different" Style="{StaticResource note}" />
+            <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=hd}">Hamming distance:</Label>
+            <TextBox x:Name="hd" Grid.Column="1" Grid.Row="1" Text="{Binding HammingDistance, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="1" Text="– Number of positions in two equal-length strings at which the corresponding symbols are different" />
 
-                <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=mino}">Min offset:</Label>
-                <TextBox x:Name="mino" Grid.Column="1" Grid.Row="2" Text="{Binding MinOffset, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="2" Text="– Minimum end offset at which this expression should match" Style="{StaticResource note}" />
+            <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=mino}">Min offset:</Label>
+            <TextBox x:Name="mino" Grid.Column="1" Grid.Row="2" Text="{Binding MinOffset, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="2" Text="– Minimum end offset at which this expression should match" />
 
-                <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=maxo}">Max offset:</Label>
-                <TextBox x:Name="maxo" Grid.Column="1" Grid.Row="3" Text="{Binding MaxOffset, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="3" Text="– Maximum end offset at which this expression should match" Style="{StaticResource note}" />
+            <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=maxo}">Max offset:</Label>
+            <TextBox x:Name="maxo" Grid.Column="1" Grid.Row="3" Text="{Binding MaxOffset, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="3" Text="– Maximum end offset at which this expression should match" />
 
-                <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=minl}">Min length:</Label>
-                <TextBox x:Name="minl" Grid.Column="1" Grid.Row="4" Text="{Binding MinLength, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Grid.Column="2" Grid.Row="4" Text="– Minimum match length" Style="{StaticResource note}" />
-            </Grid>
+            <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=minl}">Min length:</Label>
+            <TextBox x:Name="minl" Grid.Column="1" Grid.Row="4" Text="{Binding MinLength, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" />
+            <TextBlock Grid.Column="2" Grid.Row="4" Text="– Minimum match length" />
+        </Grid>
 
-            <StackPanel Orientation="Horizontal" Margin="0 6 0 6">
-                <StackPanel.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </StackPanel.LayoutTransform>
-                <Label Content="Mode:" Target="{Binding ElementName=cbxMode}" Padding="0 2 3 2"/>
-                <ComboBox x:Name="cbxMode" SelectedValuePath="Tag" SelectedValue="{Binding Mode, FallbackValue='HS_MODE_BLOCK'}" VerticalAlignment="Center" SelectionChanged="cbxMode_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
-                    <ComboBoxItem Tag ="HS_MODE_BLOCK" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
-                    <ComboBoxItem Tag ="HS_MODE_STREAM" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
-                    <ComboBoxItem Tag ="HS_MODE_VECTORED" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
-                </ComboBox>
-            </StackPanel>
+        <Grid Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto" MinWidth="144"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
-                <StackPanel.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </StackPanel.LayoutTransform>
-                <Label Content="Stream precission:" Target="{Binding ElementName=cbxModeSom}" Padding="0 2 3 2"/>
-                <ComboBox x:Name="cbxModeSom" SelectedValuePath="Tag" SelectedValue="{Binding ModeSom, FallbackValue='None'}" VerticalAlignment="Center" SelectionChanged="cbxModeSom_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
-                    <ComboBoxItem Tag ="None" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
-                    <ComboBoxItem Tag ="HS_MODE_SOM_HORIZON_LARGE" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
-                    <ComboBoxItem Tag ="HS_MODE_SOM_HORIZON_MEDIUM" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
-                    <ComboBoxItem Tag ="HS_MODE_SOM_HORIZON_SMALL" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
-                </ComboBox>
-            </StackPanel>
+            <Label Grid.Row="0" Grid.Column="0" Content="Mode:" Target="{Binding ElementName=cbxMode}" />
+            <ComboBox x:Name="cbxMode" Grid.Row="0" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding Mode, FallbackValue='HS_MODE_BLOCK'}" SelectionChanged="cbxMode_SelectionChanged" >
+                <ComboBoxItem Tag ="HS_MODE_BLOCK" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                <ComboBoxItem Tag ="HS_MODE_STREAM" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                <ComboBoxItem Tag ="HS_MODE_VECTORED" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+            </ComboBox>
 
-        </StackPanel>
-    </Grid>
+            <Label Grid.Row="1" Grid.Column="0" Content="Stream precission:" Target="{Binding ElementName=cbxModeSom}" Padding="0 2 3 2"/>
+            <ComboBox x:Name="cbxModeSom" Grid.Row="1" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding ModeSom, FallbackValue='None'}" SelectionChanged="cbxModeSom_SelectionChanged" >
+                <ComboBoxItem Tag ="None" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" IsSelected="True" />
+                <ComboBoxItem Tag ="HS_MODE_SOM_HORIZON_LARGE" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                <ComboBoxItem Tag ="HS_MODE_SOM_HORIZON_MEDIUM" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+                <ComboBoxItem Tag ="HS_MODE_SOM_HORIZON_SMALL" Content="{Binding Tag, RelativeSource={RelativeSource Self}}" />
+            </ComboBox>
+        </Grid>
+
+    </StackPanel>
+
 </UserControl>

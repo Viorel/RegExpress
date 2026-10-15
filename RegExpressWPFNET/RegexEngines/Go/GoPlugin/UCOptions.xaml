@@ -10,206 +10,152 @@
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
-        <Style TargetType="Label">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Padding" Value="0 2 4 2"/>
-        </Style>
-        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-        </Style>
-        <Style TargetType="TextBlock" x:Key="note">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-            <Setter Property="Opacity" Value="0.70"/>
-            <Setter Property="Margin" Value="4 0"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel Orientation="Vertical" VerticalAlignment="Top" >
+    <StackPanel Orientation="Vertical" >
 
-            <Grid Margin="0 0 0 4">
+        <Grid Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*" MinWidth="111"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <Label Grid.Column="0" Grid.Row="0" Content="Package:" Target="{Binding ElementName=cbxPackage}"/>
+            <ComboBox x:Name="cbxPackage" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Package, FallbackValue='regexp'}" SelectionChanged="cbxPackage_SelectionChanged">
+                <ui:ComboBoxItemWithVersion Tag ="regexp"   Text="regexp"   Version="{x:Static local:Versions.Regexp}" IsSelected="True"/>
+                <ui:ComboBoxItemWithVersion Tag ="regexp2"  Text="regexp2"  Version="{x:Static local:Versions.Regexp2}"/>
+                <ui:ComboBoxItemWithVersion Tag ="rexa"     Text="rexa"     Version="{x:Static local:Versions.Rexa}"/>
+                <ui:ComboBoxItemWithVersion Tag ="coregex"  Text="coregex"  Version="{x:Static local:Versions.Coregex}"/>
+                <ui:ComboBoxItemWithVersion Tag ="onigmo"   Text="onigmo"   Version="{x:Static local:Versions.OnigmoGoRegexp}"/>
+            </ComboBox>
+        </Grid>
+
+        <!-- regexp2 -->
+        <StackPanel x:Name="pnlRegexp2Flags" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="IgnoreCase" Note=""/>
+            <ui:CheckboxWithNote Prop="Multiline" Note=""/>
+            <ui:CheckboxWithNote Prop="ExplicitCapture" Note=""/>
+            <ui:CheckboxWithNote Prop="Singleline" Note=""/>
+            <ui:CheckboxWithNote Prop="IgnorePatternWhitespace" Note=""/>
+            <ui:CheckboxWithNote Prop="RightToLeft" Note=""/>
+            <ui:CheckboxWithNote Prop="ECMAScript" Note=""/>
+            <ui:CheckboxWithNote Prop="RE2" Note=""/>
+            <ui:CheckboxWithNote Prop="Unicode" Note=""/>
+            <ui:CheckboxWithNote Text="OptionMaintainCaptureOrder" Note="" IsChecked="True" IsEnabled="False"/>
+            <ui:CheckboxWithNote Prop="OptionDisableCharClassASCIIBitmap" Note=""/>
+
+            <Grid Style="{StaticResource DetailsTable}" >
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto" MinWidth="55"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
-                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Grid.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </Grid.LayoutTransform>
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=OptionMaxBacktrackingStackSize}" Content="OptionMaxBacktrackingStackSize:"/>
+                <TextBox x:Name="OptionMaxBacktrackingStackSize" Grid.Column="1" Grid.Row="0" Text="{Binding OptionMaxBacktrackingStackSize, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– interpreter's per-match backtracking stack" />
 
-                <Grid.Resources>
-                    <Style TargetType="Label">
-                        <Setter Property="VerticalAlignment" Value="Center" />
-                        <Setter Property="Padding" Value="0 1 4 1"/>
-                    </Style>
-                    <Style TargetType="ComboBox">
-                        <Setter Property="HorizontalAlignment" Value="Left" />
-                        <Setter Property="VerticalAlignment" Value="Center" />
-                        <Setter Property="Padding" Value="4 2"/>
-                        <Setter Property="Margin" Value="1"/>
-                    </Style>
-                </Grid.Resources>
-
-                <Label Grid.Column="0" Grid.Row="0" Content="Package:" Target="{Binding ElementName=cbxPackage}"/>
-                <ComboBox x:Name="cbxPackage" Grid.Column="1" Grid.Row="0" MinWidth="77" SelectedValuePath="Tag" SelectedValue="{Binding Package, FallbackValue='regexp'}" SelectionChanged="cbxPackage_SelectionChanged">
-                    <ui:ComboBoxItemWithVersion Tag ="regexp"   Text="regexp"   Version="{x:Static local:Versions.Regexp}" IsSelected="True"/>
-                    <ui:ComboBoxItemWithVersion Tag ="regexp2"  Text="regexp2"  Version="{x:Static local:Versions.Regexp2}"/>
-                    <ui:ComboBoxItemWithVersion Tag ="rexa"     Text="rexa"     Version="{x:Static local:Versions.Rexa}"/>
-                    <ui:ComboBoxItemWithVersion Tag ="coregex"  Text="coregex"  Version="{x:Static local:Versions.Coregex}"/>
-                    <ui:ComboBoxItemWithVersion Tag ="onigmo"   Text="onigmo"   Version="{x:Static local:Versions.OnigmoGoRegexp}"/>
-                </ComboBox>
+                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=OptionMaxCachedRuneBufferLength}" Content="OptionMaxCachedRuneBufferLength:"/>
+                <TextBox x:Name="OptionMaxCachedRuneBufferLength" Grid.Column="1" Grid.Row="1" Text="{Binding OptionMaxCachedRuneBufferLength, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="– used when converting input strings to the engine's internal representation" />
 
             </Grid>
+        </StackPanel>
 
-            <!-- regexp2 -->
-            <StackPanel x:Name="pnlRegexp2Flags" Orientation="Vertical">
-                <ui:CheckboxWithNote Prop="IgnoreCase" Note=""/>
-                <ui:CheckboxWithNote Prop="Multiline" Note=""/>
-                <ui:CheckboxWithNote Prop="ExplicitCapture" Note=""/>
-                <ui:CheckboxWithNote Prop="Singleline" Note=""/>
-                <ui:CheckboxWithNote Prop="IgnorePatternWhitespace" Note=""/>
-                <ui:CheckboxWithNote Prop="RightToLeft" Note=""/>
-                <ui:CheckboxWithNote Prop="ECMAScript" Note=""/>
-                <ui:CheckboxWithNote Prop="RE2" Note=""/>
-                <ui:CheckboxWithNote Prop="Unicode" Note=""/>
-                <ui:CheckboxWithNote Text="OptionMaintainCaptureOrder" Note="" IsChecked="True" IsEnabled="False"/>
-                <ui:CheckboxWithNote Prop="OptionDisableCharClassASCIIBitmap" Note=""/>
+        <!-- rexa -->
+        <StackPanel x:Name="pnlRexaFlags" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="IgnoreCase" Text="FlagCaseInsensitive" Note=""/>
+            <ui:CheckboxWithNote Prop="Multiline" Text="FlagMultiline" Note=""/>
+            <ui:CheckboxWithNote Prop="Singleline" Text="FlagDotAll" Note=""/>
+            <ui:CheckboxWithNote Prop="Ungreedy" Text="FlagUngreedy" Note=""/>
+            <ui:CheckboxWithNote Prop="Unicode" Text="FlagUnicode" Note=""/>
+        </StackPanel>
 
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 4" >
-                    <Grid.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </Grid.LayoutTransform>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto" MinWidth="55"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+        <!-- coregex -->
+        <StackPanel x:Name="pnlCoregex" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="EnableDFA" Note="enables the Lazy DFA engine; when false, only NFA (PikeVM) is used" />
+            <ui:CheckboxWithNote Prop="EnablePrefilter" Note="enables literal-based prefiltering" />
+            <ui:CheckboxWithNote Prop="EnableASCIIOptimization" Note="enables ASCII runtime detection; choose between UTF-8 NFA and ASCII NFA"/>
 
-                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=OptionMaxBacktrackingStackSize}" Content="OptionMaxBacktrackingStackSize:"/>
-                    <TextBox x:Name="OptionMaxBacktrackingStackSize" Grid.Column="1" Grid.Row="0" Text="{Binding OptionMaxBacktrackingStackSize, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– interpreter's per-match backtracking stack" Style="{StaticResource note}" />
+            <Grid Style="{StaticResource DetailsTable}" >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto" MinWidth="55"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=OptionMaxCachedRuneBufferLength}" Content="OptionMaxCachedRuneBufferLength:"/>
-                    <TextBox x:Name="OptionMaxCachedRuneBufferLength" Grid.Column="1" Grid.Row="1" Text="{Binding OptionMaxCachedRuneBufferLength, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– used when converting input strings to the engine's internal representation" Style="{StaticResource note}" />
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=MaxDFAStates}" Content="MaxDFAStates:"/>
+                <TextBox x:Name="MaxDFAStates" Grid.Column="1" Grid.Row="0" Text="{Binding MaxDFAStates, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– maximum number of DFA states to cache; larger values use more memory but reduce NFA fallback frequency" />
 
-                </Grid>
-            </StackPanel>
+                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=DeterminizationLimit}" Content="DeterminizationLimit:"/>
+                <TextBox x:Name="DeterminizationLimit" Grid.Column="1" Grid.Row="1" Text="{Binding DeterminizationLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="– the number of NFA states per DFA state; prevents exponential blowup in patterns like (a*)*b" />
 
-            <!-- rexa -->
-            <StackPanel x:Name="pnlRexaFlags" Orientation="Vertical">
-                <ui:CheckboxWithNote Prop="IgnoreCase" Text="FlagCaseInsensitive" Note=""/>
-                <ui:CheckboxWithNote Prop="Multiline" Text="FlagMultiline" Note=""/>
-                <ui:CheckboxWithNote Prop="Singleline" Text="FlagDotAll" Note=""/>
-                <ui:CheckboxWithNote Prop="Ungreedy" Text="FlagUngreedy" Note=""/>
-                <ui:CheckboxWithNote Prop="Unicode" Text="FlagUnicode" Note=""/>
-            </StackPanel>
+                <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=MinLiteralLen}" Content="MinLiteralLen:"/>
+                <TextBox x:Name="MinLiteralLen" Grid.Column="1" Grid.Row="2" Text="{Binding MinLiteralLen, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="2" Text="– minimum length for prefilter literals; shorter literals may have too many false positives" />
 
-            <!-- coregex -->
-            <StackPanel x:Name="pnlCoregex" Orientation="Vertical">
-                <ui:CheckboxWithNote Prop="EnableDFA" Note="enables the Lazy DFA engine; when false, only NFA (PikeVM) is used" />
-                <ui:CheckboxWithNote Prop="EnablePrefilter" Note="enables literal-based prefiltering" />
-                <ui:CheckboxWithNote Prop="EnableASCIIOptimization" Note="enables ASCII runtime detection; choose between UTF-8 NFA and ASCII NFA"/>
+                <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=MaxLiterals}" Content="MaxLiterals:"/>
+                <TextBox x:Name="MaxLiterals" Grid.Column="1" Grid.Row="3" Text="{Binding MaxLiterals, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="3" Text="– the number of literals to extract for prefiltering" />
 
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 4 0 4" >
-                    <Grid.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </Grid.LayoutTransform>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto" MinWidth="55"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=MaxDFAStates}" Content="MaxDFAStates:"/>
-                    <TextBox x:Name="MaxDFAStates" Grid.Column="1" Grid.Row="0" Text="{Binding MaxDFAStates, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– maximum number of DFA states to cache; larger values use more memory but reduce NFA fallback frequency" Style="{StaticResource note}" />
-
-                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=DeterminizationLimit}" Content="DeterminizationLimit:"/>
-                    <TextBox x:Name="DeterminizationLimit" Grid.Column="1" Grid.Row="1" Text="{Binding DeterminizationLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– the number of NFA states per DFA state; prevents exponential blowup in patterns like (a*)*b" Style="{StaticResource note}" />
-
-                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=MinLiteralLen}" Content="MinLiteralLen:"/>
-                    <TextBox x:Name="MinLiteralLen" Grid.Column="1" Grid.Row="2" Text="{Binding MinLiteralLen, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– minimum length for prefilter literals; shorter literals may have too many false positives" Style="{StaticResource note}" />
-
-                    <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=MaxLiterals}" Content="MaxLiterals:"/>
-                    <TextBox x:Name="MaxLiterals" Grid.Column="1" Grid.Row="3" Text="{Binding MaxLiterals, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="3" Text="– the number of literals to extract for prefiltering" Style="{StaticResource note}" />
-
-                    <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=MaxRecursionDepth}" Content="MaxRecursionDepth:"/>
-                    <TextBox x:Name="MaxRecursionDepth" Grid.Column="1" Grid.Row="4" Text="{Binding MaxRecursionDepth, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="4" Text="– limits recursion during NFA compilation" Style="{StaticResource note}" />
-                </Grid>
-
-            </StackPanel>
-
-            <!-- onigma -->
-            <StackPanel x:Name="pnlOnigma" Orientation="Vertical">
-
-                <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
-
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" >
-                    <Grid.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </Grid.LayoutTransform>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto" MinWidth="77"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=TimeoutNs}" Content="Timeout:"/>
-                    <TextBox x:Name="TimeoutNs" Grid.Column="1" Grid.Row="0" Text="{Binding TimeoutNs, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="ns" Style="{StaticResource note}" />
-
-                </Grid>
-                
-            </StackPanel>
-
-            <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>
-            <ui:CheckboxWithNote x:Name="cbxLongest" Prop="longest" Text="longest" Note="prefer the leftmost-longest match"/>
-            <ui:CheckboxWithNote x:Name="cbxLiteral" Prop="literal" Note="interpret pattern as literal, not regexp"/>
+                <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=MaxRecursionDepth}" Content="MaxRecursionDepth:"/>
+                <TextBox x:Name="MaxRecursionDepth" Grid.Column="1" Grid.Row="4" Text="{Binding MaxRecursionDepth, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="4" Text="– limits recursion during NFA compilation" />
+            </Grid>
 
         </StackPanel>
-    </Grid>
+
+        <!-- onigma -->
+        <StackPanel x:Name="pnlOnigma" Orientation="Vertical">
+
+            <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
+
+            <Grid Style="{StaticResource DetailsTable}" >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto" MinWidth="77"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=TimeoutNs}" Content="Timeout:"/>
+                <TextBox x:Name="TimeoutNs" Grid.Column="1" Grid.Row="0" Text="{Binding TimeoutNs, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="ns" FontStyle="Italic"/>
+
+            </Grid>
+        </StackPanel>
+
+        <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>
+        <ui:CheckboxWithNote x:Name="cbxLongest" Prop="longest" Text="longest" Note="prefer the leftmost-longest match"/>
+        <ui:CheckboxWithNote x:Name="cbxLiteral" Prop="literal" Note="interpret pattern as literal, not regexp"/>
+
+    </StackPanel>
+
 </UserControl>

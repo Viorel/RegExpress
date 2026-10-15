@@ -6,22 +6,27 @@
              xmlns:local="clr-namespace:DPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="137.568" d:DesignWidth="478.54" 
+             d:DesignHeight="90.768" d:DesignWidth="459.34" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
-        <StackPanel VerticalAlignment="Top">
-            <!--<ui:CheckboxWithNote Prop="g" Note="repeat over the whole input"/>-->
-            <ui:CheckboxWithNote Prop="i" Note="case insensitive matching"/>
-            <ui:CheckboxWithNote Prop="m" Note="match ^, $ on start and end line separators as well as start and end of input"/>
-            <ui:CheckboxWithNote Prop="s" Note="makes . match '\n' and '\r' as well"/>
-            <ui:CheckboxWithNote Prop="x" Note="ignores whitespace in pattern"/>
-        </StackPanel>
-    </Grid>
+    <StackPanel Orientation="Vertical">
+        <!--<ui:CheckboxWithNote Prop="g" Note="repeat over the whole input"/>-->
+        <ui:CheckboxWithNote Prop="i" Note="case insensitive matching"/>
+        <ui:CheckboxWithNote Prop="m" Note="match ^, $ on start and end line separators as well as start and end of input"/>
+        <ui:CheckboxWithNote Prop="s" Note="makes . match '\n' and '\r' as well"/>
+        <ui:CheckboxWithNote Prop="x" Note="ignores whitespace in pattern"/>
+    </StackPanel>
+
 </UserControl>

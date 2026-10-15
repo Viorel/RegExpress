@@ -6,53 +6,43 @@
              xmlns:local="clr-namespace:TinyRegexCPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="35.909" d:DesignWidth="372.841" 
+             d:DesignHeight="67.109" d:DesignWidth="296.041" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
+    <StackPanel Orientation="Vertical">
 
-        <StackPanel Orientation="Vertical">
+        <Grid Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition MinWidth="192"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
 
-            <Grid>
-                <Grid.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </Grid.LayoutTransform>
-                <Grid.Resources>
-                    <Style TargetType="Label">
-                        <Setter Property="Padding" Value="0 2 4 2"/>
-                    </Style>
-                    <Style TargetType="ComboBox">
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="MinWidth" Value="128"/>
-                        <Setter Property="Margin" Value="3 0 0 2"/>
-                    </Style>
-                </Grid.Resources>
+            <Label Grid.Column="0" Grid.Row="0" Content="Implementation:" Target="{Binding ElementName=cbxImplementation}" />
+            <ComboBox x:Name="cbxImplementation" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Implementation, FallbackValue='kokke'}" SelectionChanged="cbxImplementation_SelectionChanged">
+                <ui:ComboBoxItemWithVersion Tag="kokke"         Text="kokke (original)"     Version="{x:Static local:Versions.kokke}" IsSelected="True" />
+                <ui:ComboBoxItemWithVersion Tag="rurban"        Text="rurban"               Version="{x:Static local:Versions.rurban}" />
+                <ui:ComboBoxItemWithVersion Tag="gyrovorbis"    Text="gyrovorbis"           Version="{x:Static local:Versions.gyrovorbis}" />
+            </ComboBox>
 
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition/>
-                </Grid.RowDefinitions>
+        </Grid>
 
-                <Label Grid.Column="0" Grid.Row="0" Content="Implementation:" Target="{Binding ElementName=cbxImplementation}" />
-                <ComboBox x:Name="cbxImplementation" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Implementation, FallbackValue='kokke'}" MinWidth="192" SelectionChanged="cbxImplementation_SelectionChanged">
-                    <ui:ComboBoxItemWithVersion Tag="kokke"         Text="kokke (original)"     Version="{x:Static local:Versions.kokke}" IsSelected="True" />
-                    <ui:ComboBoxItemWithVersion Tag="rurban"        Text="rurban"               Version="{x:Static local:Versions.rurban}" />
-                    <ui:ComboBoxItemWithVersion Tag="gyrovorbis"    Text="gyrovorbis"           Version="{x:Static local:Versions.gyrovorbis}" />
-                </ComboBox>
+        <ui:CheckboxWithNote Prop="MatchAll" Text="Find all" Note="find all occurrences" />
 
-            </Grid>
+    </StackPanel>
 
-            <ui:CheckboxWithNote Prop="MatchAll" Text="Find all" Note="find all occurrences" />
-
-        </StackPanel>
-    </Grid>
 </UserControl>

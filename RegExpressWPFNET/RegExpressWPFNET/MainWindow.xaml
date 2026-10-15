@@ -140,7 +140,7 @@
                                 </Style>
                             </Menu.Resources>
                             <MenuItem Header="⧉" 
-                                      ToolTip="Duplicate tab" 
+                                      ToolTip="Duplicate tab (Ctrl+D)" 
                                       IsTabStop="False"
                                       InputGestureText="Ctrl+D" 
                                       Command="{x:Static local:MainWindow.DuplicateTabCommand}"

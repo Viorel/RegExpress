@@ -10,45 +10,38 @@
 
 
     <UserControl.Resources>
-        <Style TargetType="ui:CheckboxWithNote">
-            <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
-        </Style>
-        <Style TargetType="Label">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Padding" Value="0 2 4 2"/>
-        </Style>
-        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <EventSetter Event="TextChanged" Handler="tb_TextChanged"/>
-        </Style>
-        <Style TargetType="TextBlock" x:Key="note">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-            <!--<Setter Property="Opacity" Value="0.77"/>-->
-            <Setter Property="FontStyle" Value="Italic"/>
-            <Setter Property="Margin" Value="4 0"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-        </Style>
+
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/RegExpressLibrary;component/UI/CommonResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style TargetType="ui:CheckboxWithNote">
+                <EventSetter Event="Changed" Handler="CheckBox_Changed"/>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid>
         <StackPanel Orientation="Vertical">
 
-            <StackPanel Orientation="Horizontal" Margin="0 0 0 7">
-                <StackPanel.LayoutTransform>
-                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                </StackPanel.LayoutTransform>
-                <Label Content="Kind:" Target="{Binding ElementName=cbxClass}" Padding="0 2 4 2" MinWidth="40" VerticalAlignment="Center"/>
-                <ComboBox x:Name="cbxClass" SelectedValuePath="Tag" SelectedValue="{Binding Class, FallbackValue='RegexDotNet'}" VerticalAlignment="Center" SelectionChanged="cbxClass_SelectionChanged"  MinWidth="44">
+            <Grid Style="{StaticResource DetailsTable}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition MinWidth="133"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Content="Kind:" Target="{Binding ElementName=cbxClass}" />
+                <ComboBox x:Name="cbxClass" Grid.Row="0" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding Class, FallbackValue='RegexDotNet'}" SelectionChanged="cbxClass_SelectionChanged">
                     <ui:ComboBoxItemWithVersion Tag ="RegexDotNet"          Text="Regex .NET"           Version="{x:Static local:Versions.DotNet}"          d:Version="###" IsSelected="True" />
                     <ui:ComboBoxItemWithVersion Tag ="RegexDotNetFramework" Text="Regex .NET Framework" Version="{x:Static local:Versions.DotNetFramework}" d:Version="###" />
                     <ui:ComboBoxItemWithVersion Tag ="ReSharp"              Text="RE#"                  Version="{x:Static local:Versions.ReSharp}"         d:Version="###" />
                     <ui:ComboBoxItemWithVersion Tag ="Scout"                Text="Scout ByteRegex"      Version="{x:Static local:Versions.Scout}"           d:Version="###" />
                     <ui:ComboBoxItemWithVersion Tag ="LokadUtf8Regex"       Text="Lokad Utf8Regex"      Version="{x:Static local:Versions.LokadUtf8Regex}"  d:Version="###" />
                 </ComboBox>
-            </StackPanel>
+            </Grid>
 
             <StackPanel x:Name="pnlRegex" Orientation="Vertical">
                 <ui:CheckboxWithNote Prop="Compiled" Note="compile to MSIL code"/>
@@ -63,12 +56,17 @@
                 <ui:CheckboxWithNote Prop="RightToLeft" Note="search from right to left"/>
                 <ui:CheckboxWithNote Prop="Singleline" Note="“.” matches “\n” too (?s)"/>
 
-                <StackPanel Orientation="Horizontal" Margin="0 6 0 0">
-                    <StackPanel.LayoutTransform>
-                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                    </StackPanel.LayoutTransform>
-                    <Label Content="Timeout:" Target="{Binding ElementName=cbxTimeout}" Padding="0 2 4 2"/>
-                    <ComboBox x:Name="cbxTimeout" SelectedValuePath="Tag" SelectedValue="{Binding TimeoutMs, FallbackValue='10000'}" VerticalAlignment="Center" SelectionChanged="cbxTimeout_SelectionChanged" MinWidth="44" Margin="3 0 0 0">
+                <Grid Style="{StaticResource DetailsTable}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition MinWidth="77"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Row="0" Grid.Column="0" Content="Timeout:" Target="{Binding ElementName=cbxTimeout}"/>
+                    <ComboBox x:Name="cbxTimeout" Grid.Row="0" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding TimeoutMs, FallbackValue='10000'}" SelectionChanged="cbxTimeout_SelectionChanged" >
                         <ComboBoxItem Tag="1000" Content="1 s"/>
                         <ComboBoxItem Tag="2000" Content="2 s"/>
                         <ComboBoxItem Tag="5000" Content="5 s"/>
@@ -77,7 +75,7 @@
                         <ComboBoxItem Tag="30000" Content="30 s"/>
                         <ComboBoxItem Tag="-1" Content="None"/>
                     </ComboBox>
-                </StackPanel>
+                </Grid>
             </StackPanel>
 
             <StackPanel x:Name="pnlReSharp" Orientation="Vertical">
@@ -86,15 +84,7 @@
                 <ui:CheckboxWithNote Prop="MinimizePattern" Note="Minimize alternations at the cost of build time"/>
                 <ui:CheckboxWithNote Prop="FindLookaroundPrefix" Note="Optimize lookaround prefixes (expensive with unbounded)"/>
 
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 6 0 0" >
-                    <Grid.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </Grid.LayoutTransform>
+                <Grid Style="{StaticResource DetailsTable}" >
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto" MinWidth="55"/>
@@ -111,27 +101,27 @@
 
                     <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=idfac}" Content="InitialDfaCapacity:"/>
                     <TextBox x:Name="idfac" Grid.Column="1" Grid.Row="0" Text="{Binding InitialDfaCapacity, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– Initial DFA state array size" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– Initial DFA state array size" />
 
                     <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=mxdfac}" Content="MaxDfaCapacity:"/>
                     <TextBox x:Name="mxdfac" Grid.Column="1" Grid.Row="1" Text="{Binding MaxDfaCapacity, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– Hard limit on DFA states" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– Hard limit on DFA states" />
 
                     <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=mxpl}" Content="MaxPrefixLength:"/>
                     <TextBox x:Name="mxpl" Grid.Column="1" Grid.Row="2" Text="{Binding MaxPrefixLength, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– Max string literal prefix length for optimizations" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– Max string literal prefix length for optimizations" />
 
                     <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=fpssl}" Content="FindPotentialStartSizeLimit:"/>
                     <TextBox x:Name="fpssl" Grid.Column="1" Grid.Row="3" Text="{Binding FindPotentialStartSizeLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="3" Text="– Start-set size limit" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="3" Text="– Start-set size limit" />
 
                     <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=ssil}" Content="StartsetInferenceLimit:"/>
                     <TextBox x:Name="ssil" Grid.Column="1" Grid.Row="4" Text="{Binding StartsetInferenceLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="4" Text="– Start-set inference limit" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="4" Text="– Start-set inference limit" />
 
                     <Label Grid.Column="0" Grid.Row="5" Target="{Binding ElementName=dfat}" Content="DfaThreshold:"/>
                     <TextBox x:Name="dfat" Grid.Column="1" Grid.Row="5" Text="{Binding DfaThreshold, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="5" Text="– State count threshold for full DFA compilation" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="5" Text="– State count threshold for full DFA compilation" />
                 </Grid>
 
             </StackPanel>
@@ -144,15 +134,7 @@
                 <ui:CheckboxWithNote Prop="Utf8" Text="Utf8" Note="empty and scalar-consuming matches must respect UTF-8 boundaries"/>
                 <ui:CheckboxWithNote Prop="UnicodeClasses" Text="UnicodeClasses" Note="Perl classes and word boundaries use Unicode definitions"/>
 
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0 6 0 0" >
-                    <Grid.LayoutTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform/>
-                        </TransformGroup>
-                    </Grid.LayoutTransform>
+                <Grid Style="{StaticResource DetailsTable}" >
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto" MinWidth="55"/>
@@ -164,22 +146,21 @@
                     </Grid.RowDefinitions>
 
                     <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=cbxByteRegexEngineMode}" Content="ByteRegexEngineMode:"/>
-                    <ComboBox x:Name="cbxByteRegexEngineMode" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding ByteRegexEngineMode, FallbackValue='None'}" VerticalAlignment="Center" SelectionChanged="cbxByteRegexEngineMode_SelectionChanged"  MinWidth="77">
+                    <ComboBox x:Name="cbxByteRegexEngineMode" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding ByteRegexEngineMode, FallbackValue='None'}" SelectionChanged="cbxByteRegexEngineMode_SelectionChanged" >
                         <ComboBoxItem Tag ="None"             Content="Default" IsSelected="True" />
                         <ComboBoxItem Tag ="Optimized"        Content="Optimized" />
                         <ComboBoxItem Tag ="General"          Content="General" />
                         <ComboBoxItem Tag ="AutomataOnly"     Content="AutomataOnly" />
                     </ComboBox>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– engine family used during compilation" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– engine family used during compilation" />
 
                     <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=dfasl}" Content="DfaSizeLimit:"/>
                     <TextBox x:Name="dfasl" Grid.Column="1" Grid.Row="1" Text="{Binding DfaSizeLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– maximum DFA cache size in bytes" Style="{StaticResource note}" />
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– maximum DFA cache size in bytes" />
 
                 </Grid>
             </StackPanel>
             
         </StackPanel>
-    </Grid>
+
 </UserControl>
-    
