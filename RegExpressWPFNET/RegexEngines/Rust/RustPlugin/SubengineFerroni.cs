@@ -71,8 +71,10 @@ class SubengineFerroni( Options options ) : RegexSubengine
                 dot_matches_newline = options.dot_matches_new_line,
                 multi_line_anchors = options.multi_line,
                 extended = options.ignore_whitespace,
+                capture_group = options.CAPTURE_GROUP,
                 reject_backtracking_risks = options.reject_backtracking_risks,
                 optimize_backtracking = options.optimize_backtracking,
+                dfa = options.dfa,
 
                 syntax = Enum.GetName( options.OnigSyntaxType ),
 

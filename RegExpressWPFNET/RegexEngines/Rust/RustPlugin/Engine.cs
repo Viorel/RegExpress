@@ -102,8 +102,8 @@ class Engine : RegexEngine
         Engine engine_regexr = new( ) { Options = new Options { crate = CrateEnum.regexr, UseBuilder = true } };
         Engine engine_rexile = new( ) { Options = new Options { crate = CrateEnum.rexile } };
         Engine engine_iregexp_rs = new( ) { Options = new Options { crate = CrateEnum.iregexp_rs, MatchMode = MatchModeEnum.Full } };
-        Engine engine_ferroni = new( ) { Options = new Options { crate = CrateEnum.ferroni, OnigSyntaxType = OnigSyntaxTypeEnum.OnigSyntaxOniguruma } };
-        Engine engine_rusty_expressions = new( ) { Options = new Options { crate = CrateEnum.rusty_expressions, OnigSyntaxType = OnigSyntaxTypeEnum.OnigSyntaxOniguruma } };
+        Engine engine_ferroni = new( ) { Options = new Options { crate = CrateEnum.ferroni, OnigSyntaxType = OnigSyntaxTypeEnum.OnigSyntaxOniguruma, CAPTURE_GROUP = true } };
+        Engine engine_rusty_expressions = new( ) { Options = new Options { crate = CrateEnum.rusty_expressions, OnigSyntaxType = OnigSyntaxTypeEnum.OnigSyntaxOniguruma, CAPTURE_GROUP = true } };
         Engine engine_derivre = new( ) { Options = new Options { crate = CrateEnum.derivre } };
 
         return

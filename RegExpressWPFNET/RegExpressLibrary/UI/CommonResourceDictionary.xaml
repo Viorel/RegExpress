@@ -56,9 +56,9 @@
                     <Trigger Property="Grid.Column" Value="2">
                         <Setter Property="VerticalAlignment" Value="Center"/>
                         <Setter Property="Foreground" Value="{x:Static SystemColors.ControlTextBrush}"/>
-                        <Setter Property="Opacity" Value="0.70"/>
                         <Setter Property="Margin" Value="4 0"/>
                         <Setter Property="TextWrapping" Value="Wrap"/>
+                        <Setter Property="FontStyle" Value="Italic"/>
                     </Trigger>
                 </Style.Triggers>
             </Style>

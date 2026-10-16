@@ -136,6 +136,7 @@ class Options
     public string? match_stack_limit { get; set; }
     public bool reject_backtracking_risks { get; set; }
     public bool optimize_backtracking { get; set; }
+    public bool dfa { get; set; }
 
     // RustyExpressions
 

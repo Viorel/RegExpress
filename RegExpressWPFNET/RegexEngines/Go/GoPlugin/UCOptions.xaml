@@ -147,7 +147,7 @@
 
                 <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=TimeoutNs}" Content="Timeout:"/>
                 <TextBox x:Name="TimeoutNs" Grid.Column="1" Grid.Row="0" Text="{Binding TimeoutNs, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                <TextBlock Grid.Column="2" Grid.Row="0" Text="ns" FontStyle="Italic"/>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="ns"/>
 
             </Grid>
         </StackPanel>
