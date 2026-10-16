@@ -2137,6 +2137,11 @@ namespace real::detail {
                                // reached the end, or when the walks reread the text more than it would.
                                if (anchored.scanned_to >= text.size()
                                    || bill.overspent(anchored.scanned_to - c, c - scan_start)) {
+                                 if (c == text.size()) { // the last position failed: nothing is left past it
+                                   out_slots.assign(prog_.slot_count, npos);
+                                   dfa_result = false;
+                                   return;
+                                 }
                                  scan_start = c + 1;
                                  break;
                                }

@@ -51,7 +51,7 @@ The following engines are included:
   * [_regress_](https://crates.io/crates/regress) 0.12.0,
   * [_resharp_](https://crates.io/crates/resharp) 0.7.6,
   * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
-  * [_real-regex_](https://crates.io/crates/real-regex) 2026.10.14,
+  * [_real-regex_](https://crates.io/crates/real-regex) 2026.10.17,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0,
   * [_regexr_](https://crates.io/crates/regexr) 0.6.1,
   * [_rexile_](https://crates.io/crates/rexile) 0.7.4,
@@ -68,7 +68,7 @@ The following engines are included:
 * [**Python**](https://www.python.org/) 3.14.6:
   * _re_,
   * [_regex_](https://pypi.org/project/regex) 2026.9.29,
-  * [_real-regex_](https://pypi.org/project/real-regex/) 2026.10.14.
+  * [_real-regex_](https://pypi.org/project/real-regex/) 2026.10.17.
 * [**D**](https://dlang.org/phobos/std_regex.html) 2.113.0 (*std.regex* module).
 * [**Perl**](https://perldoc.perl.org/perlreref) 5.40.2 (Strawberry Perl).
 * **Fortran** [**Forgex**](https://github.com/ShinobuAmasaki/forgex) v4.6 module (Intel® Fortran Compiler 2026.0.0).
@@ -99,7 +99,7 @@ The following engines are included:
   * [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html),
   * [_oniguruma\_dart_](https://pub.dev/packages/oniguruma_dart) 1.0.1,
   * [_iregexp_](https://pub.dev/packages/iregexp) 0.2.1 (RFC 9485). 
-* [**REAL**](https://github.com/RECHE23/real-regex) 2026.10.14 (in C++).
+* [**REAL**](https://github.com/RECHE23/real-regex) 2026.10.17 (in C++).
 
 ## Running the playground
 

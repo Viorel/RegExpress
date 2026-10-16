@@ -2067,8 +2067,8 @@ namespace real::detail {
         ++pos_; // consume '{'
         return parse_braced_hex_scalar();
       }
-      const int    width {capital ? 8 : 4};
-      std::int32_t value {};
+      const int     width {capital ? 8 : 4};
+      std::uint32_t value {}; // eight hex digits fill 32 bits: past 0x7FFFFFFF a signed sum overflows
       for (int i = 0; i < width; ++i) {
         std::int32_t digit {-1};
         if (!eof()) {
@@ -2086,16 +2086,16 @@ namespace real::detail {
         if (digit < 0) {
           fail_incomplete_escape(backslash);
         }
-        value = (value * 16) + digit;
+        value = (value * 16U) + static_cast<std::uint32_t>(digit);
         ++pos_;
       }
-      if (value >= 0xD800 && value <= 0xDFFF) {
+      if (value >= 0xD800U && value <= 0xDFFFU) {
         fail("invalid Unicode escape: surrogate code point");
       }
-      if (value > 0x10FFFF) {
+      if (value > 0x10FFFFU) {
         fail("invalid Unicode escape: code point out of range");
       }
-      return value;
+      return static_cast<std::int32_t>(value);
     }
 
     /*!
