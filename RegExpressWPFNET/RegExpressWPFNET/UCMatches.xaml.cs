@@ -55,8 +55,9 @@ namespace RegExpressWPFNET
         bool LastShowFirstOnly;
         bool LastShowSucceededGroupsOnly;
         bool LastShowCaptures;
-        bool LastNoGroupIndex;
-        bool LastNoGroupSuccessFlag;
+        RegexEngineCapabilityEnum LastEngineCapabilities;
+        const RegexEngineCapabilityEnum EngineCapabilitiesUnderInterest = RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag;
+
         IReadOnlyList<Segment>? LastExternalUnderliningSegments;
         bool LastExternalUnderliningSetSelection;
 
@@ -200,7 +201,7 @@ namespace RegExpressWPFNET
         }
 
 
-        public void SetMatches( string text, RegexMatches matches, bool showFirstOnly, bool showSucceededGroupsOnly, bool showCaptures, bool noGroupIndex, bool noGroupSuccessFlag )
+        public void SetMatches( string text, RegexMatches matches, bool showFirstOnly, bool showSucceededGroupsOnly, bool showCaptures, RegexEngineCapabilityEnum engineCapabilities )
         {
             if( matches == null ) throw new ArgumentNullException( nameof( matches ) );
 
@@ -219,8 +220,7 @@ namespace RegExpressWPFNET
                         showFirstOnly == LastShowFirstOnly &&
                         showSucceededGroupsOnly == LastShowSucceededGroupsOnly &&
                         showCaptures == LastShowCaptures &&
-                        noGroupIndex == LastNoGroupIndex &&
-                        noGroupSuccessFlag == LastNoGroupSuccessFlag &&
+                        ( engineCapabilities & EngineCapabilitiesUnderInterest ) == ( LastEngineCapabilities & EngineCapabilitiesUnderInterest ) &&
                         is_matched_but_no_results == LastMatches.IsMatchedButNoResults &&
                         new_groups.SequenceEqual( old_groups ) &&
                         new_captures.SequenceEqual( old_captures ) )
@@ -249,8 +249,7 @@ namespace RegExpressWPFNET
                 LastShowCaptures = showCaptures;
                 LastShowFirstOnly = showFirstOnly;
                 LastShowSucceededGroupsOnly = showSucceededGroupsOnly;
-                LastNoGroupIndex = noGroupIndex;
-                LastNoGroupSuccessFlag = noGroupSuccessFlag;
+                LastEngineCapabilities = engineCapabilities;
                 LastExternalUnderliningSegments = null;
             }
 
@@ -428,8 +427,7 @@ namespace RegExpressWPFNET
             bool show_captures;
             bool show_succeeded_groups_only;
             bool show_first_only;
-            bool no_group_index;
-            bool no_group_success_flag;
+            RegexEngineCapabilityEnum engine_capabilities;
 
             lock( this )
             {
@@ -438,8 +436,7 @@ namespace RegExpressWPFNET
                 show_captures = LastShowCaptures;
                 show_succeeded_groups_only = LastShowSucceededGroupsOnly;
                 show_first_only = LastShowFirstOnly;
-                no_group_index = LastNoGroupIndex;
-                no_group_success_flag = LastNoGroupSuccessFlag;
+                engine_capabilities = LastEngineCapabilities;
             }
 
             if( matches.IsMatchedButNoResults )
@@ -533,6 +530,8 @@ namespace RegExpressWPFNET
 
                 if( cnc.IsCancellationRequested ) break;
 
+                bool no_group_success_flag = engine_capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupSuccessFlag );
+                bool no_group_index = engine_capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupIndex );
 
                 int min_text_index = ordered_groups.Select( g => g.Success && !no_group_success_flag ? g.CharIndex : match.CharIndex ).Append( match.CharIndex ).Min( );
                 int max_text_index = ordered_groups.Select( g => g.Success && !no_group_success_flag ? g.CharIndex + g.CharLength : match.CharIndex + match.CharLength ).Append( match.CharIndex + match.CharLength ).Max( );
@@ -1136,15 +1135,13 @@ namespace RegExpressWPFNET
         {
             IReadOnlyList<Segment>? segments0;
             bool set_selection;
-            bool no_group_index;
-            bool no_group_success_flag;
+            RegexEngineCapabilityEnum engine_capabilities;
 
             lock( this )
             {
                 segments0 = LastExternalUnderliningSegments;
                 set_selection = LastExternalUnderliningSetSelection;
-                no_group_index = LastNoGroupIndex;
-                no_group_success_flag = LastNoGroupSuccessFlag;
+                engine_capabilities = LastEngineCapabilities;
             }
 
             var inlines_to_underline = new List<(Inline inline, Info info)>( );
@@ -1170,6 +1167,8 @@ namespace RegExpressWPFNET
                     }
 
                     if( mi == null ) break;
+
+                    bool no_group_index = engine_capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupIndex );
 
                     if( !no_group_index )
                     {

@@ -46,7 +46,8 @@ namespace RegExpressWPFNET
         string? LastEol;
         UnderlineInfo? LastExternalUnderlineInfo;
         bool LastExternalUnderlineSetSelection;
-        bool LastNoGroupDetails;
+        RegexEngineCapabilityEnum LastEngineCapabilities;
+        const RegexEngineCapabilityEnum EngineCapabilitiesUnderInterest = RegexEngineCapabilityEnum.NoGroups | RegexEngineCapabilityEnum.NoGroupIndex | RegexEngineCapabilityEnum.NoGroupSuccessFlag;
 
         readonly StyleInfo NormalStyleInfo;
         readonly StyleInfo[] HighlightStyleInfos;
@@ -114,7 +115,7 @@ namespace RegExpressWPFNET
         }
 
 
-        public void SetMatches( RegexMatches matches, bool showCaptures, string eol, bool noGroupDetails )
+        public void SetMatches( RegexMatches matches, bool showCaptures, string eol, RegexEngineCapabilityEnum engineCapabilities )
         {
             if( matches == null ) throw new ArgumentNullException( nameof( matches ) );
 
@@ -122,7 +123,7 @@ namespace RegExpressWPFNET
             RegexMatches? last_matches;
             bool last_show_captures;
             string? last_eol;
-            bool last_no_group_details;
+            RegexEngineCapabilityEnum last_engine_capabilities;
 
             lock( this )
             {
@@ -130,7 +131,7 @@ namespace RegExpressWPFNET
                 last_matches = LastMatches;
                 last_show_captures = LastShowCaptures;
                 last_eol = LastEol;
-                last_no_group_details = LastNoGroupDetails;
+                last_engine_capabilities = LastEngineCapabilities;
             }
 
             string text = GetTextData( eol ).Text;
@@ -143,7 +144,7 @@ namespace RegExpressWPFNET
                 if( string.Equals( text, last_text ) &&
                     showCaptures == last_show_captures &&
                     eol == last_eol &&
-                    noGroupDetails == last_no_group_details &&
+                    ( engineCapabilities & EngineCapabilitiesUnderInterest ) == ( last_engine_capabilities & EngineCapabilitiesUnderInterest ) &&
                     new_groups.SequenceEqual( old_groups ) )
                 {
                     lock( this )
@@ -169,7 +170,7 @@ namespace RegExpressWPFNET
                 LastShowCaptures = showCaptures;
                 LastEol = eol;
                 LastExternalUnderlineInfo = null;
-                LastNoGroupDetails = noGroupDetails;
+                LastEngineCapabilities = engineCapabilities;
             }
 
             MatchesUpdatedEvent.Set( );
@@ -217,7 +218,7 @@ namespace RegExpressWPFNET
                 td = rtb.GetTextData( LastEol );
             }
 
-            return GetUnderliningInfo( NonCancellable.Instance, td!, LastMatches, LastShowCaptures, LastNoGroupDetails );
+            return GetUnderliningInfo( NonCancellable.Instance, td!, LastMatches, LastShowCaptures, LastEngineCapabilities );
         }
 
 
@@ -625,14 +626,14 @@ namespace RegExpressWPFNET
             RegexMatches? matches;
             string? eol;
             bool show_captures;
-            bool no_group_details;
+            RegexEngineCapabilityEnum engine_capabilities;
 
             lock( this )
             {
                 matches = LastMatches;
                 eol = LastEol;
                 show_captures = LastShowCaptures;
-                no_group_details = LastNoGroupDetails;
+                engine_capabilities = LastEngineCapabilities;
             }
 
             if( matches == null ) return;
@@ -651,7 +652,7 @@ namespace RegExpressWPFNET
 
             if( is_focused )
             {
-                segments_to_underline = GetUnderliningInfo( cnc, td!, matches, show_captures, no_group_details ).ToList( );
+                segments_to_underline = GetUnderliningInfo( cnc, td!, matches, show_captures, engine_capabilities ).ToList( );
             }
 
             if( cnc.IsCancellationRequested ) return;
@@ -747,7 +748,7 @@ namespace RegExpressWPFNET
         }
 
 
-        static IReadOnlyList<Segment> GetUnderliningInfo( ICancellable reh, TextData td, RegexMatches matches, bool showCaptures, bool noGroupDetails )
+        static IReadOnlyList<Segment> GetUnderliningInfo( ICancellable reh, TextData td, RegexMatches matches, bool showCaptures, RegexEngineCapabilityEnum engineCapabilities )
         {
             var items = new List<Segment>( );
 
@@ -761,7 +762,9 @@ namespace RegExpressWPFNET
 
                 bool found = false;
 
-                if( !noGroupDetails )
+                if( !( engineCapabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups ) ||
+                    engineCapabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupIndex ) ||
+                    engineCapabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupSuccessFlag ) ) )
                 {
                     foreach( IGroup group in match.Groups.Skip( 1 ) )
                     {
