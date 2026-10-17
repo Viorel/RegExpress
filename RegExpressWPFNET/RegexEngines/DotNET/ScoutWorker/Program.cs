@@ -30,12 +30,12 @@ namespace ScoutWorker
 
         //
 
-        public sealed class OutputMatch
+        sealed class OutputMatch
         {
             public int[][]? g { get; set; }
         }
 
-        public sealed class OutputMatches
+        sealed class OutputMatches
         {
             public OutputMatch[]? matches { get; set; }
         }
@@ -121,22 +121,18 @@ namespace ScoutWorker
 
                     matches.Add( one_match );
 
-                    int new_start = c.Match.End;
+                    Debug.Assert( c.Match.Length >= 0 || c.Match.Start == c.Match.End );
 
-                    if( start_at < new_start )
+                    if( c.Match.Length == 0 )
                     {
-                        start_at = new_start;
-                    }
-                    else
-                    {
-                        Debug.Assert( start_at == new_start );
+                        int new_start = -1;
 
-                        for( int utf8_len = 1; utf8_len <= 4; ++utf8_len )
+                        for( int utf8_len = 1; utf8_len <= 4 && c.Match.End + utf8_len <= text_bytes.Length; ++utf8_len )
                         {
                             try
                             {
-                                utf8_validating_encoding.GetCharCount( text_bytes, start_at, utf8_len );
-                                new_start = start_at + utf8_len;
+                                utf8_validating_encoding.GetCharCount( text_bytes, c.Match.End, utf8_len );
+                                new_start = c.Match.End + utf8_len;
 
                                 break;
                             }
@@ -146,13 +142,18 @@ namespace ScoutWorker
                             }
                         }
 
-                        if( new_start <= start_at )
+                        if( new_start < 0 ) // cannot more advance (at end of string)
                         {
-                            //
                             break;
                         }
 
                         start_at = new_start;
+                    }
+                    else
+                    {
+                        Debug.Assert( start_at < c.Match.End );
+
+                        start_at = c.Match.End;
                     }
                 }
 

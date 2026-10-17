@@ -334,10 +334,10 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
             DuplicateGroupName = false,
 
             NoncapturingGroup = true,
-            PositiveLookahead = false, // some works, but "a(?=xz)xz" -- "this pattern contains unsupported anchors/lookarounds"
-            NegativeLookahead = false, // but "a(?!b)c"
-            PositiveLookbehind = FeatureMatrix.LookModeEnum.None, // but "x.(?<=xy)a", "x..(?<=x{2,3}y)a", "x.(?<=x+y)a"
-            NegativeLookbehind = FeatureMatrix.LookModeEnum.None, // but ".(?<!xy)a", ".(?<!x|yz)a", ".(?<!x.*)a"
+            PositiveLookahead = false,
+            NegativeLookahead = false,
+            PositiveLookbehind = FeatureMatrix.LookModeEnum.None,
+            NegativeLookbehind = FeatureMatrix.LookModeEnum.None,
             NestedLookaround = false,
             AtomicGroup = false,
             BranchReset = false,

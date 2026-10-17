@@ -1,0 +1,6 @@
+@echo { "pattern" : "\\b", "text" : "ab cd" } | "bin\Debug\net10.0\ScoutWorker.exe"
+@echo { "pattern" : "a*", "text" : "abba" } | "bin\Debug\net10.0\ScoutWorker.exe"
+@echo { "pattern" : "a?", "text" : "abc" } | "bin\Debug\net10.0\ScoutWorker.exe"
+@echo { "pattern" : "b?", "text" : "abc" } | "bin\Debug\net10.0\ScoutWorker.exe"
+@echo { "pattern" : "c?", "text" : "abc" } | "bin\Debug\net10.0\ScoutWorker.exe"
+@echo { "pattern" : "x?", "text" : "abc" } | "bin\Debug\net10.0\ScoutWorker.exe"
