@@ -49,10 +49,13 @@ partial class Subengine( Options options ) : RegexSubengine
             string flags = "";
 
             if( options.NOCASE ) flags += "i";
+            if( options.GLOBAL ) flags += "g";
             if( options.MULTILINE ) flags += "m";
             if( options.SINGLELINE ) flags += "s";
             if( options.EXTENDED ) flags += "x";
             if( options.RIGHTMOST ) flags += "R";
+            if( options.ALLBACKREFS ) flags += "A";
+            if( options.FIRSTBACKREFS ) flags += "1";
             if( options.NORMALIZE ) flags += "N";
 
             switch( options.Mode )
@@ -61,8 +64,6 @@ partial class Subengine( Options options ) : RegexSubengine
             case ModeEnum.MODE_SAFE: flags += "S"; break;
             case ModeEnum.MODE_MIXED: flags += "M"; break;
             }
-
-            if( options.FindAll ) flags += "A";
 
             sw.WriteLine( JsonSerializer.Serialize( flags ) );
         };

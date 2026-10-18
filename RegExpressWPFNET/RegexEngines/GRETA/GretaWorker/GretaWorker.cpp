@@ -194,9 +194,8 @@ int main( )
 		pattern = UTF8_to_wchar( patternA.c_str( ) );
 		text = UTF8_to_wchar( textA.c_str( ) );
 
-		REGEX_FLAGS patflags = ALLBACKREFS;
+		REGEX_FLAGS patflags = NOFLAGS;
 		REGEX_MODE mode = REGEX_MODE::MODE_DEFAULT;
-		bool find_all = false;
 
 		for( auto const f : flags )
 		{
@@ -205,17 +204,18 @@ int main( )
 			case ' ': break; // ignore
 
 			case 'i': patflags |= NOCASE; break;
+			case 'g': patflags |= GLOBAL; break;
 			case 'm': patflags |= MULTILINE; break;
 			case 's': patflags |= SINGLELINE; break;
 			case 'x': patflags |= EXTENDED; break;
 			case 'R': patflags |= RIGHTMOST; break;
+			case 'A': patflags |= ALLBACKREFS; break;
+			case '1': patflags |= FIRSTBACKREFS; break;
 			case 'N': patflags |= NORMALIZE; break;
 
 			case 'F': mode = REGEX_MODE::MODE_FAST; break;
 			case 'S': mode = REGEX_MODE::MODE_SAFE; break;
 			case 'M': mode = REGEX_MODE::MODE_MIXED; break;
-
-			case 'A': find_all = true; break;
 
 			default: throw std::runtime_error( std::string( "Invalid flag: " ) + f );
 			}
@@ -223,68 +223,60 @@ int main( )
 
 		rpattern pat( pattern, patflags, mode );
 
-		// pat.cgroups( ) -- number of groups, including the default one
+		match_results results;
 
-		for( rpattern::size_type pos = 0; pos <= text.length( );)
+		match_results::backref_type br = pat.match( text, results );
+
+		if( br.matched )
 		{
-			match_results results;
+			assert( pat.cgroups( ) > 0 );
 
-			match_results::backref_type br = pat.match( text, results, pos );
+			auto number_of_groups = pat.cgroups( );
+			auto number_of_backrefs = results.cbackrefs( );
 
-			if( !br.matched ) break;
+			auto number_of_matches =
+				( patflags & GLOBAL ) ?
+				( ( patflags & FIRSTBACKREFS ) ? number_of_backrefs :
+					( patflags & ALLBACKREFS ) ? number_of_backrefs / number_of_groups :
+					1
+					) :
+				1;
 
-			std::cout << "M " << std::distance( text.cbegin( ), br.begin( ) ) << " " << std::distance( br.begin( ), br.end( ) ) << std::endl;
+			using CT = decltype( number_of_matches );
 
-			for( auto i = 1; i < results.cbackrefs( ); ++i )
+			for( CT i_match = 0; i_match < number_of_matches; ++i_match )
 			{
-				const auto& b = results.backref( i );
+				CT j = i_match * ( ( patflags & FIRSTBACKREFS ) ? 1 : number_of_groups );
 
-				if( !b.matched )
 				{
-					std::cout << "g -1 -1" << std::endl;
+					// match (group 0)
+
+					const auto& br = results.backref( j );
+
+					assert( br.matched );
+
+					std::cout << "M " << std::distance( text.cbegin( ), br.begin( ) ) << " " << std::distance( br.begin( ), br.end( ) ) << std::endl;
 				}
-				else
+
+				if( ( patflags & ALLBACKREFS ) && !( patflags & FIRSTBACKREFS ) )
 				{
-					std::cout << "g " << std::distance( text.cbegin( ), b.begin( ) ) << " " << std::distance( b.begin( ), b.end( ) ) << std::endl;
+					// groups
+
+					for( CT k = j + 1; k < j + number_of_groups; ++k )
+					{
+						const auto& br = results.backref( k );
+
+						if( !br.matched )
+						{
+							std::cout << "g -1 -1" << std::endl;
+						}
+						else
+						{
+							std::cout << "g " << std::distance( text.cbegin( ), br.begin( ) ) << " " << std::distance( br.begin( ), br.end( ) ) << std::endl;
+						}
+					}
 				}
 			}
-
-			if( !find_all ) break;
-
-			if( results.rlength( ) == 0 ) // empty match
-			{
-				pos += results.rstart( );
-
-				if( text[pos] >= 0xD800 && text[pos] <= 0xDBFF ) // surrogate pair
-				{
-					pos += 2;
-				}
-				else
-				{
-					++pos;
-				}
-			}
-			else
-			{
-				pos += results.rstart( ) + results.rlength( );
-			}
-
-			//auto old_pos = pos;
-			//pos += results.rstart( ) + results.rlength( );
-
-			//if( pos == old_pos )
-			//{
-			//	// successful empty match; advance by one character
-
-			//	if( text[pos] >= 0xD800 && text[pos] <= 0xDBFF ) // surrogate pair
-			//	{
-			//		pos += 2;
-			//	}
-			//	else
-			//	{
-			//		++pos;
-			//	}
-			//}
 		}
 
 		return 0;

@@ -23,10 +23,13 @@
 
     <StackPanel Orientation="Vertical">
         <ui:CheckboxWithNote Prop="NOCASE" Note="do a case-insensitive search"/>
+        <ui:CheckboxWithNote Prop="GLOBAL" Note="causes all substrings that match the pattern to be found"/>
         <ui:CheckboxWithNote Prop="MULTILINE" Note="‘^’ will also match the beginning of a line and ‘$’ will also match before the end of the line"/>
         <ui:CheckboxWithNote Prop="SINGLELINE" Note="‘.’ will also match the newline character"/>
         <ui:CheckboxWithNote Prop="EXTENDED" Note="any white space is pattern is ignored; any text following a # is considered a comment"/>
         <ui:CheckboxWithNote Prop="RIGHTMOST" Note="find the rightmost, longest match"/>
+        <ui:CheckboxWithNote Prop="ALLBACKREFS" Note="with GLOBAL and no FIRSTBACKREFS: backref information for each successive match will be appended to the backref vector"/>
+        <ui:CheckboxWithNote Prop="FIRSTBACKREFS" Note="with GLOBAL: only information from the complete match (backref 0) is saved for each successive match"/>
         <ui:CheckboxWithNote Prop="NORMALIZE" Note="turning ‘\\n’, ‘\\r’, ‘\\t’, ‘\\f’, ‘\\v’, ‘\\a’, ‘\\\\’ into ‘\n’, ‘\r’, ‘\t’, ‘\f’, ‘\v’, ‘\a’, ‘\\’"/>
         <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
 
