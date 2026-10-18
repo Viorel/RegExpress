@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	//regexp "regexp"
+	"unicode/utf8"
 
 	onigmo "github.com/go-regexp/engine"
 )
@@ -102,12 +102,23 @@ func main() {
 			break
 		}
 
-		new_start := matches_adjusted[1]
+		last_start := matches_adjusted[0]
+		last_end_exclusive := matches_adjusted[1]
 
-		if start >= new_start {
-			start = start + 1
+		if last_start == last_end_exclusive { // empty match
+
+			if last_end_exclusive == len(text) {
+				break
+			}
+
+			for i := 1; i <= utf8.UTFMax; i++ {
+				if utf8.Valid([]byte(text[last_end_exclusive : last_end_exclusive+i])) {
+					start = last_end_exclusive + i
+					break
+				}
+			}
 		} else {
-			start = new_start
+			start = last_end_exclusive
 		}
 	}
 

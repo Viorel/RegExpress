@@ -82,6 +82,8 @@
             <ui:CheckboxWithNote Prop="POSIX_BRACKET_ALL_RANGE" Text="POSIX_BRACKET_ALL_RANGE" Note=""/>
             <ui:CheckboxWithNote Prop="WORD_BOUND_ALL_RANGE"    Text="WORD_BOUND_ALL_RANGE" Note=""/>
             <ui:CheckboxWithNote Prop="CR_7_BIT"                Text="CR_7_BIT" Note=""/>
+            <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
+
         </StackPanel>
 
         <StackPanel x:Name="pnlRegion" Orientation="Vertical" >

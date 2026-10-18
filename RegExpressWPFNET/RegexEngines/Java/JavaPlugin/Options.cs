@@ -52,6 +52,9 @@ class Options
     public bool WORD_BOUND_ALL_RANGE { get; set; }
     public bool CR_7_BIT { get; set; }
 
+    public bool FindAll { get; set; } = true;
+
+
     // Reggie
 
     public bool CAPTURE_NAMED_ONLY { get; set; }

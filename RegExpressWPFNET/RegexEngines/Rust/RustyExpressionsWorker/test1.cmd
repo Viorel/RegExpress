@@ -1,2 +1,2 @@
-@echo { "pattern" : ".", "text" : "abc", "options" : {  } } | ".\target\release\RustyExpressionsWorker.exe"
+@echo { "pattern" : ".", "text" : "abc", "options" : { "FindAll" : true } } | ".\target\release\RustyExpressionsWorker.exe"
 

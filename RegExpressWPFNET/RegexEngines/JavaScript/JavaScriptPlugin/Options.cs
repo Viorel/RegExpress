@@ -29,7 +29,7 @@ class Options : INotifyPropertyChanged
     private bool m_i, m_s, m_m;
 
     public RuntimeEnum Runtime { get; set; } = RuntimeEnum.WebView2;
-    public FunctionEnum Function { get; set; } = FunctionEnum.Exec;
+    public FunctionEnum Function { get; set; } = FunctionEnum.MatchAll;
 
     public bool i
     {

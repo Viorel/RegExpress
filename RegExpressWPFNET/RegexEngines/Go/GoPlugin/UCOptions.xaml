@@ -131,7 +131,7 @@
         </StackPanel>
 
         <!-- onigma -->
-        <StackPanel x:Name="pnlOnigma" Orientation="Vertical">
+        <StackPanel x:Name="pnlOnigmo" Orientation="Vertical">
 
             <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
 

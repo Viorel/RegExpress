@@ -50,7 +50,6 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstrin
                 const std::map<int, std::string>& group_names = re.CapturingGroupNames( );
 
                 int start_pos = 0;
-                int previous_start_pos = 0;
 
                 outbw.WriteT<char>( 'b' );
 
@@ -87,7 +86,7 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstrin
                         throw std::runtime_error( std::format( "Index error. (UTF8 Index B = {}).", utf8index ) );
                     }
 
-                    int length = next_index - index;
+                    const int length = next_index - index;
 
                     // match
                     outbw.WriteT<char>( 'm' );
@@ -150,20 +149,20 @@ static void DoMatch( BinaryWriterW& outbw, const wstring& wpattern, const wstrin
 
                     // advance to the next character after the found match
 
-                    start_pos = CheckedCast( main_group.data( ) + main_group.size( ) - text.c_str( ) );
-
-                    if( start_pos == previous_start_pos ) // was empty match
+                    if( main_group.size() == 0 ) // empty match
                     {
-                        assert( main_group.size( ) == 0 );
+                        start_pos = CheckedCast( main_group.data( ) - text.c_str( ) );
 
                         // advance by the size of current utf-8 element
 
                         do { ++start_pos; } while( start_pos < indices.size( ) && indices.at( start_pos ) < 0 );
                     }
+                    else
+                    {
+                        start_pos = CheckedCast( main_group.data( ) + main_group.size( ) - text.c_str( ) );
+                    }
 
                     if( start_pos > text.length( ) ) break; // end of matches
-
-                    previous_start_pos = start_pos;
                 }
 
                 outbw.WriteT<char>( 'e' );

@@ -17,6 +17,7 @@
 #include <iostream>
 #include <format>
 #include <vector>
+#include <functional>
 
 #include "Oniguruma-min/src/oniguruma.h"
 

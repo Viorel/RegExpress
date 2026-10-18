@@ -67,6 +67,7 @@ partial class Subengine( Options options ) : RegexSubengine
                 options.Case_Insensitive,
                 options.Single_Line,
                 options.Multiple_Lines,
+                options.FindAll,
             }
         };
 
@@ -110,7 +111,7 @@ partial class Subengine( Options options ) : RegexSubengine
                         throw new Exception( $"Invalid output: {line}" );
                     }
 
-                    // to 0... and exclusive end; 
+                    // to 0... and exclusive end
                     if( native_end < native_start ) // 'end < start' in case of empty matches
                     {
                         --native_start;
@@ -153,12 +154,14 @@ partial class Subengine( Options options ) : RegexSubengine
                     else
                     {
                         // to 0... and exclusive end
-
-                        --native_start;
-
-                        if( native_end == 0 ) // empty match
+                        if( native_end < native_start ) // 'end < start' in case of empty groups
                         {
+                            --native_start;
                             native_end = native_start;
+                        }
+                        else
+                        {
+                            --native_start;
                         }
 
                         Debug.Assert( native_end >= native_start );

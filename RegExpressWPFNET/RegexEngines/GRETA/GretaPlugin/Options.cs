@@ -19,6 +19,9 @@ class Options
     public bool NORMALIZE { get; set; }
     public ModeEnum Mode { get; set; } = ModeEnum.Default;
 
+    public bool FindAll { get; set; } = true;
+
+
     public Options Clone( )
     {
         return (Options)MemberwiseClone( );

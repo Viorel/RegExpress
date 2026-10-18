@@ -157,6 +157,7 @@ class Options
     public bool NOT_BEGIN_POSITION { get; set; }
     public bool CALLBACK_EACH_MATCH { get; set; }
     public bool MATCH_WHOLE_STRING { get; set; }
+    public bool FindAll { get; set; } = true;
 
     public string? stack_limit { get; set; }
     public string? retry_limit_in_match { get; set; }

@@ -26,6 +26,8 @@ namespace ScoutWorker
 
             public string? EngineMode { get; set; }
             public ulong? DfaSizeLimit { get; set; }
+
+            public bool? FindAll { get; set; }
         }
 
         //
@@ -88,6 +90,8 @@ namespace ScoutWorker
                     }
                 }
 
+                bool find_all = input_args.options?.FindAll == true;
+
                 Scout.Text.Regex.ByteRegex re = Scout.Text.Regex.ByteRegex.Compile( pattern_bytes, options );
 
                 UTF8Encoding utf8_validating_encoding = new( encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true );
@@ -120,6 +124,8 @@ namespace ScoutWorker
                     OutputMatch one_match = new( ) { g = [.. groups] };
 
                     matches.Add( one_match );
+
+                    if( !find_all ) break;
 
                     Debug.Assert( c.Match.Length >= 0 || c.Match.Start == c.Match.End );
 

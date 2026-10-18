@@ -83,7 +83,7 @@ namespace GoPlugin
                 pnlRegexp2Flags.Display( is_regexp2 );
                 pnlRexaFlags.Display( is_rexa );
                 pnlCoregex.Display( is_coregex );
-                pnlOnigma.Display( is_onigmo );
+                pnlOnigmo.Display( is_onigmo );
 
                 cbxPosix.Display( is_regexp || is_coregex );
                 cbxLongest.Display( is_regexp || is_rexa || is_coregex );

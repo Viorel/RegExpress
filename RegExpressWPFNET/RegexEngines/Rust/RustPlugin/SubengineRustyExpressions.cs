@@ -86,6 +86,7 @@ partial class SubengineRustyExpressions( Options options ) : RegexSubengine
                 NOT_BEGIN_POSITION = options.NOT_BEGIN_POSITION,
                 CALLBACK_EACH_MATCH = options.CALLBACK_EACH_MATCH,
                 MATCH_WHOLE_STRING = options.MATCH_WHOLE_STRING,
+                FindAll = options.FindAll,
 
                 stack_limit = ValidationUtilities.ParseUInt32( "stack_limit", options.stack_limit ),
                 retry_limit_in_match = ValidationUtilities.ParseUInt64( "retry_limit_in_match", options.retry_limit_in_match ),

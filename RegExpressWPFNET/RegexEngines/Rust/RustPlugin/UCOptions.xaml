@@ -369,6 +369,7 @@
             <ui:CheckboxWithNote Prop="NOT_BEGIN_POSITION" Text="NOT_BEGIN_POSITION" Note=""/>
             <ui:CheckboxWithNote Prop="CALLBACK_EACH_MATCH" Text="CALLBACK_EACH_MATCH" Note=""/>
             <ui:CheckboxWithNote Prop="MATCH_WHOLE_STRING" Text="MATCH_WHOLE_STRING" Note=""/>
+            <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
 
             <Grid Style="{StaticResource DetailsTable}">
                 <Grid.ColumnDefinitions>

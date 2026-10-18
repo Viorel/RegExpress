@@ -1,1 +1,1 @@
-@echo {"pattern": bad json} | adaworker.exe
+echo {"pattern": bad json} | adaworker.exe

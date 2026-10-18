@@ -28,6 +28,7 @@
         <ui:CheckboxWithNote Prop="EXTENDED" Note="any white space is pattern is ignored; any text following a # is considered a comment"/>
         <ui:CheckboxWithNote Prop="RIGHTMOST" Note="find the rightmost, longest match"/>
         <ui:CheckboxWithNote Prop="NORMALIZE" Note="turning ‘\\n’, ‘\\r’, ‘\\t’, ‘\\f’, ‘\\v’, ‘\\a’, ‘\\\\’ into ‘\n’, ‘\r’, ‘\t’, ‘\f’, ‘\v’, ‘\a’, ‘\\’"/>
+        <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
 
         <Grid Style="{StaticResource DetailsTable}">
             <Grid.ColumnDefinitions>

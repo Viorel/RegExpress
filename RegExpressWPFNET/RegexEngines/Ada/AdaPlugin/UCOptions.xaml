@@ -25,5 +25,6 @@
         <ui:CheckboxWithNote Prop="Case_Insensitive" Note="matching in a case insensitive manner" />
         <ui:CheckboxWithNote Prop="Single_Line" Note="^ and $ will ignore \n (unless Multiple_Lines is also specified), and '.' will match \n" />
         <ui:CheckboxWithNote Prop="Multiple_Lines" Note="^ and $ will also match on internal newlines (ASCII.LF)" />
+        <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
     </StackPanel>
 </UserControl>

@@ -67,6 +67,8 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
 
                 EngineMode = Enum.GetName( options.ByteRegexEngineMode ),
                 DfaSizeLimit = ValidationUtilities.ParseInt32( "DfaSizeLimit", options.DfaSizeLimit ),
+
+                FindAll = options.FindAll,
             }
         };
         string json = JsonSerializer.Serialize( data );

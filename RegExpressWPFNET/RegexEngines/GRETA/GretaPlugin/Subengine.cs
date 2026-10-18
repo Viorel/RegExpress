@@ -62,6 +62,8 @@ partial class Subengine( Options options ) : RegexSubengine
             case ModeEnum.MODE_MIXED: flags += "M"; break;
             }
 
+            if( options.FindAll ) flags += "A";
+
             sw.WriteLine( JsonSerializer.Serialize( flags ) );
         };
 

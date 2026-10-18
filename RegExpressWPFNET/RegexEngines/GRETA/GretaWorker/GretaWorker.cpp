@@ -12,6 +12,7 @@
 namespace
 {
 	// Copied from 'RegExpressCppLibrary' and simplified for C++14.
+	// The 'RegExpressCppLibrary' cannot be referenced because GRETA imposes specific options and limitations.
 
 	bool ParseString( std::string* destination, const char* source )
 	{
@@ -195,6 +196,7 @@ int main( )
 
 		REGEX_FLAGS patflags = ALLBACKREFS;
 		REGEX_MODE mode = REGEX_MODE::MODE_DEFAULT;
+		bool find_all = false;
 
 		for( auto const f : flags )
 		{
@@ -213,6 +215,8 @@ int main( )
 			case 'S': mode = REGEX_MODE::MODE_SAFE; break;
 			case 'M': mode = REGEX_MODE::MODE_MIXED; break;
 
+			case 'A': find_all = true; break;
+
 			default: throw std::runtime_error( std::string( "Invalid flag: " ) + f );
 			}
 		}
@@ -221,7 +225,7 @@ int main( )
 
 		// pat.cgroups( ) -- number of groups, including the default one
 
-		for( rpattern::size_type pos = 0; pos < text.length( );)
+		for( rpattern::size_type pos = 0; pos <= text.length( );)
 		{
 			match_results results;
 
@@ -245,12 +249,11 @@ int main( )
 				}
 			}
 
-			auto old_pos = pos;
-			pos += results.rstart( ) + results.rlength( );
+			if( !find_all ) break;
 
-			if( pos == old_pos )
+			if( results.rlength( ) == 0 ) // empty match
 			{
-				// successful empty match; advance by one character
+				pos += results.rstart( );
 
 				if( text[pos] >= 0xD800 && text[pos] <= 0xDBFF ) // surrogate pair
 				{
@@ -261,6 +264,27 @@ int main( )
 					++pos;
 				}
 			}
+			else
+			{
+				pos += results.rstart( ) + results.rlength( );
+			}
+
+			//auto old_pos = pos;
+			//pos += results.rstart( ) + results.rlength( );
+
+			//if( pos == old_pos )
+			//{
+			//	// successful empty match; advance by one character
+
+			//	if( text[pos] >= 0xD800 && text[pos] <= 0xDBFF ) // surrogate pair
+			//	{
+			//		pos += 2;
+			//	}
+			//	else
+			//	{
+			//		++pos;
+			//	}
+			//}
 		}
 
 		return 0;

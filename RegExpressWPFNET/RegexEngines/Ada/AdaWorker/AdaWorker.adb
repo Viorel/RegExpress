@@ -31,7 +31,8 @@ procedure AdaWorker is
 
    reflags           : GNAT.Regpat.Regexp_Flags := GNAT.Regpat.No_Flags;
 
-   b : Boolean;
+   b                 : Boolean;
+   find_all          : Boolean;
 begin
 
    -- read all lines
@@ -87,6 +88,12 @@ begin
             reflags := reflags or GNAT.Regpat.Multiple_Lines;
          end if;
       end if;
+
+      value := options.Get( "FindAll");
+      if not value.Is_Empty then
+         find_all := value.Get;
+      end if;
+
    end if;
 
    declare
@@ -122,8 +129,13 @@ begin
             Ada.Text_IO.Put_Line( "");
          end loop;
 
-         if matches(0).Last < start then -- (for example, when pattern is ".?", the last result looks abnormal')
-            start := start + 1;
+         if not find_all then 
+            exit;
+         end if;
+
+         if matches( 0).Last < matches( 0).First then
+            -- empty match
+            start := matches(0).First + 1;
          else
             start := matches(0).Last + 1;
          end if;

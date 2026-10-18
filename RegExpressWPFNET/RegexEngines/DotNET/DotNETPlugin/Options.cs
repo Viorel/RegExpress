@@ -58,6 +58,8 @@ sealed class Options
     public ByteRegexEngineModeEnum ByteRegexEngineMode { get; set; } = ByteRegexEngineModeEnum.None;
     public string? DfaSizeLimit { get; set; }
 
+    public bool FindAll { get; set; } = true; // TODO: remove when scanning is performed by engine
+
     public Options Clone( )
     {
         return (Options)MemberwiseClone( );

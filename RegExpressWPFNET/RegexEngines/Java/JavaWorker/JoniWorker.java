@@ -1,3 +1,7 @@
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,19 +49,21 @@ class JoniWorker
             if( GetBoolean( input_options, "WORD_BOUND_ALL_RANGE")) options |= org.joni.Option.WORD_BOUND_ALL_RANGE;
             if( GetBoolean( input_options, "CR_7_BIT")) options |= org.joni.Option.CR_7_BIT;
 
+            boolean find_all =  GetBoolean( input_options, "FindAll");
             is_debug =  GetBoolean( input_options, "debug");
 
             byte[] pattern_bytes = input_pattern.getBytes( StandardCharsets.UTF_8);
             byte[] text_bytes = input_text.getBytes( StandardCharsets.UTF_8);
 
+            CharsetDecoder dec = StandardCharsets.UTF_8.newDecoder();
+            dec.onMalformedInput(CodingErrorAction.REPORT);
+
             org.joni.Regex regex = new org.joni.Regex( pattern_bytes, 0, pattern_bytes.length, options, UTF8Encoding.INSTANCE);
             org.joni.Matcher matcher = regex.matcher( text_bytes);
             
-            int start = 0;
-
             ArrayList<Object> all_matches = new ArrayList<>();
 
-            for(;;)
+            for(int start = 0;;)
             {
                 int result = matcher.search( start, text_bytes.length, options);
 
@@ -115,15 +121,33 @@ class JoniWorker
 
                 all_matches.add( one_match);
 
-                int new_start = region.getEnd(0);
+                if( ! find_all) break;
 
-                if( new_start == start)
+                int end = region.getEnd(0);
+
+                if( end >= text_bytes.length) break;
+
+                int beg = region.getBeg(0);
+
+                if( beg == end) // empty match
                 {
-                    ++start;
+                    for( int len = 1; len <= 4; ++len)
+                    {
+                        try
+                        {
+                            dec.decode( ByteBuffer.wrap( text_bytes, beg, len));
+                            start = beg + len;
+                            break;
+                        }
+                        catch( CharacterCodingException exc )
+                        {
+                            // ignore
+                        }
+                    }
                 }
                 else
                 {
-                    start = new_start;
+                    start = end;
                 }
             }
 

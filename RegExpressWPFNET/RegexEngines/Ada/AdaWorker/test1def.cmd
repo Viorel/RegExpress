@@ -1,1 +1,1 @@
-@echo {"pattern": "a?", "text": "b", "options" : { } } | adaworker.exe
+echo {"pattern": "a?", "text": "b", "options" : { "FindAll" : true } } | adaworker.exe

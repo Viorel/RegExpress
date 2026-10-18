@@ -70,6 +70,8 @@ fn main()
     if input_options["CALLBACK_EACH_MATCH"].as_bool().unwrap_or( false) { options = options | rusty_expressions::Options::CALLBACK_EACH_MATCH; };
     if input_options["MATCH_WHOLE_STRING"].as_bool().unwrap_or( false) { options = options | rusty_expressions::Options::MATCH_WHOLE_STRING; };
 
+    let find_all = input_options["FindAll"].as_bool().unwrap_or( false);
+
     let syntax = match input_options["syntax"].as_str().unwrap_or( "")
         {
             "OnigSyntaxASIS" => rusty_expressions::Syntax::ASIS,
@@ -209,9 +211,14 @@ fn main()
 
         all_matches.push( one_match).unwrap();
 
+        if ! find_all 
+        {
+            break;
+        } 
+
         // next start
 
-        if native_match.range().end <= start // '==start' for empty match
+        if native_match.range().len() == 0 // empty match
         {
             let mut new_start = start;
             let mut char_indices = text.char_indices();
@@ -225,7 +232,7 @@ fn main()
                 }
 
                 let a = a.unwrap();
-                if a.0 == start
+                if a.0 == native_match.range().start
                 {
                     let b = char_indices.next();
 

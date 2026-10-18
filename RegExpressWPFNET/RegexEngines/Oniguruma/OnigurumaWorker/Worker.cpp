@@ -19,382 +19,392 @@ static const char* TryGetErrorSymbol0( int code )
 
 #define C(c) if( code == c) return #c;
 
-    C( ONIG_MISMATCH );
-    C( ONIG_NO_SUPPORT_CONFIG );
-    C( ONIG_ABORT );
-    C( ONIGERR_MEMORY );
-    C( ONIGERR_TYPE_BUG );
-    C( ONIGERR_PARSER_BUG );
-    C( ONIGERR_STACK_BUG );
-    C( ONIGERR_UNDEFINED_BYTECODE );
-    C( ONIGERR_UNEXPECTED_BYTECODE );
-    C( ONIGERR_MATCH_STACK_LIMIT_OVER );
-    C( ONIGERR_PARSE_DEPTH_LIMIT_OVER );
-    C( ONIGERR_RETRY_LIMIT_IN_MATCH_OVER );
-    C( ONIGERR_RETRY_LIMIT_IN_SEARCH_OVER );
-    C( ONIGERR_DEFAULT_ENCODING_IS_NOT_SETTED );
-    C( ONIGERR_SPECIFIED_ENCODING_CANT_CONVERT_TO_WIDE_CHAR );
-    C( ONIGERR_FAIL_TO_INITIALIZE );
-    C( ONIGERR_INVALID_ARGUMENT );
-    C( ONIGERR_END_PATTERN_AT_LEFT_BRACE );
-    C( ONIGERR_END_PATTERN_AT_LEFT_BRACKET );
-    C( ONIGERR_EMPTY_CHAR_CLASS );
-    C( ONIGERR_PREMATURE_END_OF_CHAR_CLASS );
-    C( ONIGERR_END_PATTERN_AT_ESCAPE );
-    C( ONIGERR_END_PATTERN_AT_META );
-    C( ONIGERR_END_PATTERN_AT_CONTROL );
-    C( ONIGERR_META_CODE_SYNTAX );
-    C( ONIGERR_CONTROL_CODE_SYNTAX );
-    C( ONIGERR_CHAR_CLASS_VALUE_AT_END_OF_RANGE );
-    C( ONIGERR_CHAR_CLASS_VALUE_AT_START_OF_RANGE );
-    C( ONIGERR_UNMATCHED_RANGE_SPECIFIER_IN_CHAR_CLASS );
-    C( ONIGERR_TARGET_OF_REPEAT_OPERATOR_NOT_SPECIFIED );
-    C( ONIGERR_TARGET_OF_REPEAT_OPERATOR_INVALID );
-    C( ONIGERR_NESTED_REPEAT_OPERATOR );
-    C( ONIGERR_UNMATCHED_CLOSE_PARENTHESIS );
-    C( ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS );
-    C( ONIGERR_END_PATTERN_IN_GROUP );
-    C( ONIGERR_UNDEFINED_GROUP_OPTION );
-    C( ONIGERR_INVALID_POSIX_BRACKET_TYPE );
-    C( ONIGERR_INVALID_LOOK_BEHIND_PATTERN );
-    C( ONIGERR_INVALID_REPEAT_RANGE_PATTERN );
-    C( ONIGERR_TOO_BIG_NUMBER );
-    C( ONIGERR_TOO_BIG_NUMBER_FOR_REPEAT_RANGE );
-    C( ONIGERR_UPPER_SMALLER_THAN_LOWER_IN_REPEAT_RANGE );
-    C( ONIGERR_EMPTY_RANGE_IN_CHAR_CLASS );
-    C( ONIGERR_MISMATCH_CODE_LENGTH_IN_CLASS_RANGE );
-    C( ONIGERR_TOO_MANY_MULTI_BYTE_RANGES );
-    C( ONIGERR_TOO_SHORT_MULTI_BYTE_STRING );
-    C( ONIGERR_TOO_BIG_BACKREF_NUMBER );
-    C( ONIGERR_INVALID_BACKREF );
-    C( ONIGERR_NUMBERED_BACKREF_OR_CALL_NOT_ALLOWED );
-    C( ONIGERR_TOO_MANY_CAPTURES );
-    C( ONIGERR_TOO_LONG_WIDE_CHAR_VALUE );
-    C( ONIGERR_EMPTY_GROUP_NAME );
-    C( ONIGERR_INVALID_GROUP_NAME );
-    C( ONIGERR_INVALID_CHAR_IN_GROUP_NAME );
-    C( ONIGERR_UNDEFINED_NAME_REFERENCE );
-    C( ONIGERR_UNDEFINED_GROUP_REFERENCE );
-    C( ONIGERR_MULTIPLEX_DEFINED_NAME );
-    C( ONIGERR_MULTIPLEX_DEFINITION_NAME_CALL );
-    C( ONIGERR_NEVER_ENDING_RECURSION );
-    C( ONIGERR_GROUP_NUMBER_OVER_FOR_CAPTURE_HISTORY );
-    C( ONIGERR_INVALID_CHAR_PROPERTY_NAME );
-    C( ONIGERR_INVALID_IF_ELSE_SYNTAX );
-    C( ONIGERR_INVALID_ABSENT_GROUP_PATTERN );
-    C( ONIGERR_INVALID_ABSENT_GROUP_GENERATOR_PATTERN );
-    C( ONIGERR_INVALID_CALLOUT_PATTERN );
-    C( ONIGERR_INVALID_CALLOUT_NAME );
-    C( ONIGERR_UNDEFINED_CALLOUT_NAME );
-    C( ONIGERR_INVALID_CALLOUT_BODY );
-    C( ONIGERR_INVALID_CALLOUT_TAG_NAME );
-    C( ONIGERR_INVALID_CALLOUT_ARG );
-    C( ONIGERR_INVALID_CODE_POINT_VALUE );
-    C( ONIGERR_INVALID_WIDE_CHAR_VALUE );
-    C( ONIGERR_TOO_BIG_WIDE_CHAR_VALUE );
-    C( ONIGERR_NOT_SUPPORTED_ENCODING_COMBINATION );
-    C( ONIGERR_INVALID_COMBINATION_OF_OPTIONS );
-    C( ONIGERR_TOO_MANY_USER_DEFINED_OBJECTS );
-    C( ONIGERR_TOO_LONG_PROPERTY_NAME );
-    C( ONIGERR_LIBRARY_IS_NOT_INITIALIZED );
+	C( ONIG_MISMATCH );
+	C( ONIG_NO_SUPPORT_CONFIG );
+	C( ONIG_ABORT );
+	C( ONIGERR_MEMORY );
+	C( ONIGERR_TYPE_BUG );
+	C( ONIGERR_PARSER_BUG );
+	C( ONIGERR_STACK_BUG );
+	C( ONIGERR_UNDEFINED_BYTECODE );
+	C( ONIGERR_UNEXPECTED_BYTECODE );
+	C( ONIGERR_MATCH_STACK_LIMIT_OVER );
+	C( ONIGERR_PARSE_DEPTH_LIMIT_OVER );
+	C( ONIGERR_RETRY_LIMIT_IN_MATCH_OVER );
+	C( ONIGERR_RETRY_LIMIT_IN_SEARCH_OVER );
+	C( ONIGERR_DEFAULT_ENCODING_IS_NOT_SETTED );
+	C( ONIGERR_SPECIFIED_ENCODING_CANT_CONVERT_TO_WIDE_CHAR );
+	C( ONIGERR_FAIL_TO_INITIALIZE );
+	C( ONIGERR_INVALID_ARGUMENT );
+	C( ONIGERR_END_PATTERN_AT_LEFT_BRACE );
+	C( ONIGERR_END_PATTERN_AT_LEFT_BRACKET );
+	C( ONIGERR_EMPTY_CHAR_CLASS );
+	C( ONIGERR_PREMATURE_END_OF_CHAR_CLASS );
+	C( ONIGERR_END_PATTERN_AT_ESCAPE );
+	C( ONIGERR_END_PATTERN_AT_META );
+	C( ONIGERR_END_PATTERN_AT_CONTROL );
+	C( ONIGERR_META_CODE_SYNTAX );
+	C( ONIGERR_CONTROL_CODE_SYNTAX );
+	C( ONIGERR_CHAR_CLASS_VALUE_AT_END_OF_RANGE );
+	C( ONIGERR_CHAR_CLASS_VALUE_AT_START_OF_RANGE );
+	C( ONIGERR_UNMATCHED_RANGE_SPECIFIER_IN_CHAR_CLASS );
+	C( ONIGERR_TARGET_OF_REPEAT_OPERATOR_NOT_SPECIFIED );
+	C( ONIGERR_TARGET_OF_REPEAT_OPERATOR_INVALID );
+	C( ONIGERR_NESTED_REPEAT_OPERATOR );
+	C( ONIGERR_UNMATCHED_CLOSE_PARENTHESIS );
+	C( ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS );
+	C( ONIGERR_END_PATTERN_IN_GROUP );
+	C( ONIGERR_UNDEFINED_GROUP_OPTION );
+	C( ONIGERR_INVALID_POSIX_BRACKET_TYPE );
+	C( ONIGERR_INVALID_LOOK_BEHIND_PATTERN );
+	C( ONIGERR_INVALID_REPEAT_RANGE_PATTERN );
+	C( ONIGERR_TOO_BIG_NUMBER );
+	C( ONIGERR_TOO_BIG_NUMBER_FOR_REPEAT_RANGE );
+	C( ONIGERR_UPPER_SMALLER_THAN_LOWER_IN_REPEAT_RANGE );
+	C( ONIGERR_EMPTY_RANGE_IN_CHAR_CLASS );
+	C( ONIGERR_MISMATCH_CODE_LENGTH_IN_CLASS_RANGE );
+	C( ONIGERR_TOO_MANY_MULTI_BYTE_RANGES );
+	C( ONIGERR_TOO_SHORT_MULTI_BYTE_STRING );
+	C( ONIGERR_TOO_BIG_BACKREF_NUMBER );
+	C( ONIGERR_INVALID_BACKREF );
+	C( ONIGERR_NUMBERED_BACKREF_OR_CALL_NOT_ALLOWED );
+	C( ONIGERR_TOO_MANY_CAPTURES );
+	C( ONIGERR_TOO_LONG_WIDE_CHAR_VALUE );
+	C( ONIGERR_EMPTY_GROUP_NAME );
+	C( ONIGERR_INVALID_GROUP_NAME );
+	C( ONIGERR_INVALID_CHAR_IN_GROUP_NAME );
+	C( ONIGERR_UNDEFINED_NAME_REFERENCE );
+	C( ONIGERR_UNDEFINED_GROUP_REFERENCE );
+	C( ONIGERR_MULTIPLEX_DEFINED_NAME );
+	C( ONIGERR_MULTIPLEX_DEFINITION_NAME_CALL );
+	C( ONIGERR_NEVER_ENDING_RECURSION );
+	C( ONIGERR_GROUP_NUMBER_OVER_FOR_CAPTURE_HISTORY );
+	C( ONIGERR_INVALID_CHAR_PROPERTY_NAME );
+	C( ONIGERR_INVALID_IF_ELSE_SYNTAX );
+	C( ONIGERR_INVALID_ABSENT_GROUP_PATTERN );
+	C( ONIGERR_INVALID_ABSENT_GROUP_GENERATOR_PATTERN );
+	C( ONIGERR_INVALID_CALLOUT_PATTERN );
+	C( ONIGERR_INVALID_CALLOUT_NAME );
+	C( ONIGERR_UNDEFINED_CALLOUT_NAME );
+	C( ONIGERR_INVALID_CALLOUT_BODY );
+	C( ONIGERR_INVALID_CALLOUT_TAG_NAME );
+	C( ONIGERR_INVALID_CALLOUT_ARG );
+	C( ONIGERR_INVALID_CODE_POINT_VALUE );
+	C( ONIGERR_INVALID_WIDE_CHAR_VALUE );
+	C( ONIGERR_TOO_BIG_WIDE_CHAR_VALUE );
+	C( ONIGERR_NOT_SUPPORTED_ENCODING_COMBINATION );
+	C( ONIGERR_INVALID_COMBINATION_OF_OPTIONS );
+	C( ONIGERR_TOO_MANY_USER_DEFINED_OBJECTS );
+	C( ONIGERR_TOO_LONG_PROPERTY_NAME );
+	C( ONIGERR_LIBRARY_IS_NOT_INITIALIZED );
 
 #undef C
 
-    return nullptr;
+	return nullptr;
 }
 
 
 static std::wstring TryGetErrorSymbol( int code )
 {
-    const char* s = TryGetErrorSymbol0( code );
+	const char* s = TryGetErrorSymbol0( code );
 
-    return s == nullptr ? L"" : Utf8ToWString( s );
+	return s == nullptr ? L"" : Utf8ToWString( s );
 }
 
 
 static std::wstring FormatError( int code, const OnigErrorInfo* optionalEinfo )
 {
-    char text[ONIG_MAX_ERROR_MESSAGE_LEN];
-    onig_error_code_to_str( (UChar*)text, code, optionalEinfo ); // (for unknown reason, the result is ASCII) 
+	char text[ONIG_MAX_ERROR_MESSAGE_LEN];
+	onig_error_code_to_str( (UChar*)text, code, optionalEinfo ); // (for unknown reason, the result is ASCII) 
 
-    std::wstring symbol = TryGetErrorSymbol( code );
+	std::wstring symbol = TryGetErrorSymbol( code );
 
-    if( symbol.empty( ) )
-    {
-        return std::format( L"{}\r\n\r\n({})", Utf8ToWString( text ), code );
-    }
-    else
-    {
-        return std::format( L"{}\r\n\r\n({}, {})", Utf8ToWString( text ), symbol, code );
-    }
+	if( symbol.empty( ) )
+	{
+		return std::format( L"{}\r\n\r\n({})", Utf8ToWString( text ), code );
+	}
+	else
+	{
+		return std::format( L"{}\r\n\r\n({}, {})", Utf8ToWString( text ), symbol, code );
+	}
 }
 
 
 static void DoMatch( BinaryWriterW& outbw, const wstring& pattern, const wstring& text,
-    /*const*/ OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions, std::uint32_t searchOptions )
+	/*const*/ OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions, std::uint32_t searchOptions )
 {
-    DWORD code;
-    char error_text[128] = "";
+	DWORD code;
+	char error_text[128] = "";
 
-    __try
-    {
-        [&]( )
-            {
-                std::unique_ptr<regex_t, decltype( &onig_free )> regex( nullptr, &onig_free );
+	__try
+	{
+		[&]( )
+			{
+				std::unique_ptr<regex_t, decltype( &onig_free )> regex( nullptr, &onig_free );
 
-                {
-                    regex_t* native_regex;
-                    OnigErrorInfo einfo;
-                    int r;
+				{
+					regex_t* native_regex;
+					OnigErrorInfo einfo;
+					int r;
 
-                    r = onig_new(
-                        &native_regex,
-                        (UChar*)pattern.c_str( ),
-                        (UChar*)( pattern.c_str( ) + pattern.length( ) ),
-                        compileOptions,
-                        ONIG_ENCODING_UTF16_LE,
-                        &adjustedSyntax,
-                        &einfo );
+					r = onig_new(
+						&native_regex,
+						(UChar*)pattern.c_str( ),
+						(UChar*)( pattern.c_str( ) + pattern.length( ) ),
+						compileOptions,
+						ONIG_ENCODING_UTF16_LE,
+						&adjustedSyntax,
+						&einfo );
 
-                    if( r ) throw std::runtime_error( WStringToUtf8( FormatError( r, &einfo ) ) );
+					if( r ) throw std::runtime_error( WStringToUtf8( FormatError( r, &einfo ) ) );
 
-                    regex.reset( native_regex );
-                }
+					regex.reset( native_regex );
+				}
 
-                // extract group names
+				// extract group names
 
-                std::vector<std::wstring> group_names;
-                {
-                    onig_foreach_name( regex.get( ),
-                        []( const OnigUChar* name, const OnigUChar* nameEnd, int numberOfGroups, int* groupNumberList, OnigRegex regex, void* lparam ) -> int
-                        {
-                            std::vector<std::wstring>& group_names = *( std::vector<std::wstring>* )lparam;
+				std::vector<std::wstring> group_names;
+				{
+					onig_foreach_name( regex.get( ),
+						[]( const OnigUChar* name, const OnigUChar* nameEnd, int numberOfGroups, int* groupNumberList, OnigRegex regex, void* lparam ) -> int
+						{
+							std::vector<std::wstring>& group_names = *( std::vector<std::wstring>* )lparam;
 
-                            std::wstring group_name( (wchar_t*)name, (wchar_t*)nameEnd );
+							std::wstring group_name( (wchar_t*)name, (wchar_t*)nameEnd );
 
-                            int* nums;
-                            int r = onig_name_to_group_numbers( regex, name, nameEnd, &nums );
+							int* nums;
+							int r = onig_name_to_group_numbers( regex, name, nameEnd, &nums );
 
-                            for( int i = 0; i < r; ++i )
-                            {
-                                int group_number = nums[i];
+							for( int i = 0; i < r; ++i )
+							{
+								int group_number = nums[i];
 
-                                while( group_names.size( ) <= group_number ) group_names.push_back( L"" );
+								while( group_names.size( ) <= group_number ) group_names.push_back( L"" );
 
-                                group_names[group_number] = group_name;
-                            }
+								group_names[group_number] = group_name;
+							}
 
-                            return 0;
-                        },
-                        &group_names );
-                }
+							return 0;
+						},
+						&group_names );
+				}
 
 
-                std::unique_ptr<OnigMatchParam, decltype( &onig_free_match_param )>     match_param( onig_new_match_param( ), &onig_free_match_param );
-                std::unique_ptr<OnigRegion, void( * )( OnigRegion* )>                   region( onig_region_new( ), []( OnigRegion* reg ) { onig_region_free( reg, 1 ); } );
+				std::unique_ptr<OnigMatchParam, decltype( &onig_free_match_param )>     match_param( onig_new_match_param( ), &onig_free_match_param );
+				std::unique_ptr<OnigRegion, void( * )( OnigRegion* )>                   region( onig_region_new( ), []( OnigRegion* reg ) { onig_region_free( reg, 1 ); } );
 
-                // currently default parameters are used
-                onig_initialize_match_param( match_param.get( ) );
+				// currently default parameters are used
+				onig_initialize_match_param( match_param.get( ) );
 
-                //onig_set_match_stack_limit_size_of_match_param ( OnigMatchParam * param, unsigned int limit );
-                //onig_set_retry_limit_in_match_of_match_param ( OnigMatchParam * param, unsigned long limit );
-                //onig_set_subexp_call_max_nest_level(  ); 
+				//onig_set_match_stack_limit_size_of_match_param ( OnigMatchParam * param, unsigned int limit );
+				//onig_set_retry_limit_in_match_of_match_param ( OnigMatchParam * param, unsigned long limit );
+				//onig_set_subexp_call_max_nest_level(  ); 
 
-                const wchar_t* start = text.c_str( );
-                const wchar_t* previous_start = start;
+				const wchar_t* start = text.c_str( );
+				const wchar_t* previous_start = start;
 
-                outbw.WriteT<char>( 'b' );
+				outbw.WriteT<char>( 'b' );
 
-                for( ;;)
-                {
-                    int r;
-                    r = onig_search_with_param(
-                        regex.get( ),
-                        (UChar*)text.c_str( ), (UChar*)( text.c_str( ) + text.length( ) ),
-                        (UChar*)start, (UChar*)( text.c_str( ) + text.length( ) ),
-                        region.get( ),
-                        searchOptions,
-                        match_param.get( ) );
+				typedef std::function<int( int n, int r, OnigRegion* region )> CALLBACK_FUNC;
 
-                    if( r == ONIG_MISMATCH ) break;
+				int previous_match_index = -1;
+				int previous_match_length = -1;
 
-                    if( r < 0 ) throw std::runtime_error( WStringToUtf8( FormatError( r, nullptr ) ) );
+				CALLBACK_FUNC my_callback =
+					[&]( int n, int r, OnigRegion* region )
+					{
+						for( int i = 0; i < region->num_regs; ++i )
+						{
+							int group_number = i;
+							std::wstring group_name;
+							if( group_number < group_names.size( ) ) group_name = group_names[group_number];
+							if( group_name.empty( ) ) group_name = to_wstring( group_number );
 
-                    int match_index = -1;
-                    int match_length = -1;
+							if( region->beg[i] >= 0 )
+							{
+								// succeeded group
 
-                    for( int i = 0; i < region->num_regs; ++i )
-                    {
-                        int group_number = i;
-                        std::wstring group_name;
-                        if( group_number < group_names.size( ) ) group_name = group_names[group_number];
-                        if( group_name.empty( ) ) group_name = to_wstring( group_number );
+								assert( ( region->beg[i] % sizeof( wchar_t ) ) == 0 ); // even positions expected
+								assert( ( region->end[i] % sizeof( wchar_t ) ) == 0 );
 
-                        if( region->beg[i] >= 0 )
-                        {
-                            // succeeded group
+								int begin = region->beg[i] / sizeof( wchar_t );
+								int end = region->end[i] / sizeof( wchar_t );
 
-                            assert( ( region->beg[i] % sizeof( wchar_t ) ) == 0 ); // even positions expected
-                            assert( ( region->end[i] % sizeof( wchar_t ) ) == 0 );
+								if( i == 0 )
+								{
+									int match_index = begin;
+									int match_length = end - begin;
 
-                            int begin = region->beg[i] / sizeof( wchar_t );
-                            int end = region->end[i] / sizeof( wchar_t );
+									// WORKAROUND for duplicate matches
 
-                            if( i == 0 )
-                            {
-                                match_index = begin;
-                                match_length = end - begin;
+									if( match_index == previous_match_index &&
+										match_length == previous_match_length )
+									{
+										break;
+									}
 
-                                outbw.WriteT<char>( 'm' );
-                                outbw.WriteT<int32_t>( match_index );
-                                outbw.WriteT<int32_t>( match_length );
-                            }
+									outbw.WriteT<char>( 'm' );
+									outbw.WriteT<int32_t>( match_index );
+									outbw.WriteT<int32_t>( match_length );
 
-                            // default group 0
+									previous_match_index = match_index;
+									previous_match_length = match_length;
+								}
 
-                            outbw.WriteT<char>( 'g' );
-                            outbw.WriteT<char>( 1 );
-                            outbw.WriteT<int32_t>( begin );
-                            outbw.WriteT<int32_t>( end - begin );
-                            outbw.Write( group_name );
+								// default group 0
 
-                            // captures
+								outbw.WriteT<char>( 'g' );
+								outbw.WriteT<char>( 1 );
+								outbw.WriteT<int32_t>( begin );
+								outbw.WriteT<int32_t>( end - begin );
+								outbw.Write( group_name );
 
-                            //int number_of_captures = onig_number_of_captures( regex.get( ) );
-                            //int number_of_capture_histories = onig_number_of_capture_histories( regex.get( ) );
-                            //const OnigCaptureTreeNode* capture_tree = onig_get_capture_tree( region.get( ) );
+								// captures
 
-                            {
-                                struct TraverseTreeData { int groupNumber; BinaryWriterW* bw; } data{ group_number, &outbw };
+								//int number_of_captures = onig_number_of_captures( regex.get( ) );
+								//int number_of_capture_histories = onig_number_of_capture_histories( regex.get( ) );
+								//const OnigCaptureTreeNode* capture_tree = onig_get_capture_tree( region.get( ) );
 
-                                onig_capture_tree_traverse( region.get( ), ONIG_TRAVERSE_CALLBACK_AT_FIRST,
-                                    []( int group, int beg, int end, int level, int at, void* arg ) -> int
-                                    {
-                                        const TraverseTreeData* data = (TraverseTreeData*)arg;
+								{
+									struct TraverseTreeData { int groupNumber; BinaryWriterW* bw; } data{ group_number, &outbw };
 
-                                        if( group == 0 )
-                                        {
-                                            // skip, not needed
-                                        }
-                                        else
-                                        {
-                                            if( group == data->groupNumber )
-                                            {
-                                                assert( ( beg % 2 ) == 0 ); // even positions expected
-                                                assert( ( end % 2 ) == 0 );
+									onig_capture_tree_traverse( region, ONIG_TRAVERSE_CALLBACK_AT_FIRST,
+										[]( int group, int beg, int end, int level, int at, void* arg ) -> int
+										{
+											const TraverseTreeData* data = (TraverseTreeData*)arg;
 
-                                                data->bw->WriteT<char>( 'c' );
-                                                data->bw->WriteT<int32_t>( beg / 2 );
-                                                data->bw->WriteT<int32_t>( ( end - beg ) / 2 );
-                                            }
-                                        }
+											if( group == 0 )
+											{
+												// skip, not needed
+											}
+											else
+											{
+												if( group == data->groupNumber )
+												{
+													assert( ( beg % 2 ) == 0 ); // even positions expected
+													assert( ( end % 2 ) == 0 );
 
-                                        return 0;
-                                    },
-                                    &data );
-                            }
-                        }
-                        else
-                        {
-                            // failed group
+													data->bw->WriteT<char>( 'c' );
+													data->bw->WriteT<int32_t>( beg / 2 );
+													data->bw->WriteT<int32_t>( ( end - beg ) / 2 );
+												}
+											}
 
-                            if( i == 0 )
-                            {
-                                assert( false );
-                            }
-                            else
-                            {
-                                outbw.WriteT<char>( 'g' );
-                                outbw.WriteT<char>( 0 );
-                                outbw.WriteT<int32_t>( 0 );
-                                outbw.WriteT<int32_t>( 0 );
-                                outbw.Write( group_name );
-                            }
-                        }
-                    }
+											return 0;
+										},
+										&data );
+								}
+							}
+							else
+							{
+								// failed group
 
-                    // TODO: check if it should be much more complicated -- see PCRE2
+								if( i == 0 )
+								{
+									assert( false );
+								}
+								else
+								{
+									outbw.WriteT<char>( 'g' );
+									outbw.WriteT<char>( 0 );
+									outbw.WriteT<int32_t>( 0 );
+									outbw.WriteT<int32_t>( 0 );
+									outbw.Write( group_name );
+								}
+							}
+						}
 
-                    start = text.c_str( ) + match_index + match_length;
+						return 0;
+					};
 
-                    if( start == previous_start )
-                    {
-                        ++start;
-                    }
+				int r = onig_scan(
+					regex.get( ),
+					(UChar*)text.c_str( ), (UChar*)( text.c_str( ) + text.length( ) ),
+					region.get( ),
+					searchOptions,
+					[]( int n, int r, OnigRegion* region, void* arg )
+					{
+						CALLBACK_FUNC* f = (CALLBACK_FUNC*)arg;
 
-                    previous_start = start;
-                }
+						( *f )( n, r, region );
 
-                outbw.WriteT<char>( 'e' );
+						return 0;
+					},
+					&my_callback
+				);
 
-            }( );
+				if( r < 0 ) throw std::runtime_error( WStringToUtf8( FormatError( r, nullptr ) ) );
 
-        return;
-    }
-    __except( code = GetExceptionCode( ), SEHFilter( code, error_text, _countof( error_text ) ) )
-    {
-        // things done in filter
-    }
+				outbw.WriteT<char>( 'e' );
 
-    throw std::runtime_error( error_text );
+			}( );
+
+		return;
+	}
+	__except( code = GetExceptionCode( ), SEHFilter( code, error_text, _countof( error_text ) ) )
+	{
+		// things done in filter
+	}
+
+	throw std::runtime_error( error_text );
 }
 
 
 void ReadOptions( BinaryReaderW& inbr, decltype( ONIG_SYNTAX_ONIGURUMA )* syntax, OnigOptionType* compile_options, decltype( ONIG_OPTION_NONE )* search_options,
-    bool* fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY, bool* fONIG_SYN_STRICT_CHECK_BACKREF )
+	bool* fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY, bool* fONIG_SYN_STRICT_CHECK_BACKREF )
 {
-    std::wstring syntax_s = inbr.ReadString( );
+	std::wstring syntax_s = inbr.ReadString( );
 
-    *syntax = ONIG_SYNTAX_ONIGURUMA;
-    if( syntax_s == L"ONIG_SYNTAX_ONIGURUMA" ) *syntax = ONIG_SYNTAX_ONIGURUMA;
-    else if( syntax_s == L"ONIG_SYNTAX_ASIS" ) *syntax = ONIG_SYNTAX_ASIS;
-    else if( syntax_s == L"ONIG_SYNTAX_POSIX_BASIC" ) *syntax = ONIG_SYNTAX_POSIX_BASIC;
-    else if( syntax_s == L"ONIG_SYNTAX_POSIX_EXTENDED" ) *syntax = ONIG_SYNTAX_POSIX_EXTENDED;
-    else if( syntax_s == L"ONIG_SYNTAX_EMACS" ) *syntax = ONIG_SYNTAX_EMACS;
-    else if( syntax_s == L"ONIG_SYNTAX_GREP" ) *syntax = ONIG_SYNTAX_GREP;
-    else if( syntax_s == L"ONIG_SYNTAX_GNU_REGEX" ) *syntax = ONIG_SYNTAX_GNU_REGEX;
-    else if( syntax_s == L"ONIG_SYNTAX_JAVA" ) *syntax = ONIG_SYNTAX_JAVA;
-    else if( syntax_s == L"ONIG_SYNTAX_PERL" ) *syntax = ONIG_SYNTAX_PERL;
-    else if( syntax_s == L"ONIG_SYNTAX_PERL_NG" ) *syntax = ONIG_SYNTAX_PERL_NG;
-    else if( syntax_s == L"ONIG_SYNTAX_RUBY" ) *syntax = ONIG_SYNTAX_RUBY;
-    else if( syntax_s == L"ONIG_SYNTAX_PYTHON" ) *syntax = ONIG_SYNTAX_PYTHON;
+	*syntax = ONIG_SYNTAX_ONIGURUMA;
+	if( syntax_s == L"ONIG_SYNTAX_ONIGURUMA" ) *syntax = ONIG_SYNTAX_ONIGURUMA;
+	else if( syntax_s == L"ONIG_SYNTAX_ASIS" ) *syntax = ONIG_SYNTAX_ASIS;
+	else if( syntax_s == L"ONIG_SYNTAX_POSIX_BASIC" ) *syntax = ONIG_SYNTAX_POSIX_BASIC;
+	else if( syntax_s == L"ONIG_SYNTAX_POSIX_EXTENDED" ) *syntax = ONIG_SYNTAX_POSIX_EXTENDED;
+	else if( syntax_s == L"ONIG_SYNTAX_EMACS" ) *syntax = ONIG_SYNTAX_EMACS;
+	else if( syntax_s == L"ONIG_SYNTAX_GREP" ) *syntax = ONIG_SYNTAX_GREP;
+	else if( syntax_s == L"ONIG_SYNTAX_GNU_REGEX" ) *syntax = ONIG_SYNTAX_GNU_REGEX;
+	else if( syntax_s == L"ONIG_SYNTAX_JAVA" ) *syntax = ONIG_SYNTAX_JAVA;
+	else if( syntax_s == L"ONIG_SYNTAX_PERL" ) *syntax = ONIG_SYNTAX_PERL;
+	else if( syntax_s == L"ONIG_SYNTAX_PERL_NG" ) *syntax = ONIG_SYNTAX_PERL_NG;
+	else if( syntax_s == L"ONIG_SYNTAX_RUBY" ) *syntax = ONIG_SYNTAX_RUBY;
+	else if( syntax_s == L"ONIG_SYNTAX_PYTHON" ) *syntax = ONIG_SYNTAX_PYTHON;
 
-    // Compile-time options
+	// Compile-time options
 
-    *compile_options = ONIG_OPTION_NONE;
+	*compile_options = ONIG_OPTION_NONE;
 
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_SINGLELINE;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_MULTILINE;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_IGNORECASE;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_IGNORECASE_IS_ASCII;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_EXTEND;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_FIND_LONGEST;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_FIND_NOT_EMPTY;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_MATCH_WHOLE_STRING;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_NEGATE_SINGLELINE;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_CAPTURE_GROUP;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_DONT_CAPTURE_GROUP;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_WORD_IS_ASCII;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_DIGIT_IS_ASCII;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_SPACE_IS_ASCII;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_POSIX_IS_ASCII;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER;
-    if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_TEXT_SEGMENT_WORD;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_SINGLELINE;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_MULTILINE;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_IGNORECASE;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_IGNORECASE_IS_ASCII;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_EXTEND;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_FIND_LONGEST;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_FIND_NOT_EMPTY;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_MATCH_WHOLE_STRING;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_NEGATE_SINGLELINE;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_CAPTURE_GROUP;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_DONT_CAPTURE_GROUP;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_WORD_IS_ASCII;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_DIGIT_IS_ASCII;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_SPACE_IS_ASCII;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_POSIX_IS_ASCII;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER;
+	if( inbr.ReadByte( ) ) *compile_options |= ONIG_OPTION_TEXT_SEGMENT_WORD;
 
-    // Search-time options
+	// Search-time options
 
-    *search_options = ONIG_OPTION_NONE;
+	*search_options = ONIG_OPTION_NONE;
 
-    if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOTBOL;
-    if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOTEOL;
-    if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOT_BEGIN_STRING;
-    if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOT_END_STRING;
-    if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOT_BEGIN_POSITION;
+	if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOTBOL;
+	if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOTEOL;
+	if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOT_BEGIN_STRING;
+	if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOT_END_STRING;
+	if( inbr.ReadByte( ) ) *search_options |= ONIG_OPTION_NOT_BEGIN_POSITION;
 
-    // Configuration
+	// Configuration
 
-    *fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = inbr.ReadByte( ) != 0;
-    *fONIG_SYN_STRICT_CHECK_BACKREF = inbr.ReadByte( ) != 0;
+	*fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = inbr.ReadByte( ) != 0;
+	*fONIG_SYN_STRICT_CHECK_BACKREF = inbr.ReadByte( ) != 0;
 }
 
 
@@ -479,27 +489,27 @@ struct Details
 #define DECLARE_BEHAVIOUR(name) bool f##name;
 #define DECLARE_COMPILE_OPTION(name) bool f##name;
 
-    ALL_DATA_FLAGS
+	ALL_DATA_FLAGS
 
 #undef DECLARE_OP
 #undef DECLARE_OP2
 #undef DECLARE_BEHAVIOUR
 #undef DECLARE_COMPILE_OPTION
 
-        Details( const OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions )
-    {
+		Details( const OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions )
+	{
 #define DECLARE_OP(name) f##name = (adjustedSyntax.op & name) != 0;
 #define DECLARE_OP2(name) f##name = (adjustedSyntax.op2 & name) != 0;
 #define DECLARE_BEHAVIOUR(name) f##name = (adjustedSyntax.behavior & name) != 0;
 #define DECLARE_COMPILE_OPTION(name) f##name = (compileOptions & name) != 0;
 
-        ALL_DATA_FLAGS
+		ALL_DATA_FLAGS
 
 #undef DECLARE_OP
 #undef DECLARE_OP2
 #undef DECLARE_BEHAVIOUR
 #undef DECLARE_COMPILE_OPTION
-    }
+	}
 };
 #pragma pack(pop)
 
@@ -508,132 +518,132 @@ struct Details
 
 void WriteDetails( BinaryWriterW& outbw, const OnigSyntaxType& adjustedSyntax, OnigOptionType compileOptions )
 {
-    Details details( adjustedSyntax, compileOptions );
+	Details details( adjustedSyntax, compileOptions );
 
-    outbw.WriteT<char>( 'b' );
-    outbw.WriteT( details );
-    outbw.WriteT<char>( 'e' );
+	outbw.WriteT<char>( 'b' );
+	outbw.WriteT( details );
+	outbw.WriteT<char>( 'e' );
 }
 
 
 int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
-    _In_opt_ HINSTANCE hPrevInstance,
-    _In_ LPWSTR    lpCmdLine,
-    _In_ int       nCmdShow )
+	_In_opt_ HINSTANCE hPrevInstance,
+	_In_ LPWSTR    lpCmdLine,
+	_In_ int       nCmdShow )
 {
-    UNREFERENCED_PARAMETER( hPrevInstance );
-    UNREFERENCED_PARAMETER( lpCmdLine );
+	UNREFERENCED_PARAMETER( hPrevInstance );
+	UNREFERENCED_PARAMETER( lpCmdLine );
 
-    auto herr = GetStdHandle( STD_ERROR_HANDLE );
-    if( herr == INVALID_HANDLE_VALUE )
-    {
-        auto lerr = GetLastError( );
+	auto herr = GetStdHandle( STD_ERROR_HANDLE );
+	if( herr == INVALID_HANDLE_VALUE )
+	{
+		auto lerr = GetLastError( );
 
-        return 1;
-    }
+		return 1;
+	}
 
-    StreamWriterW errwr( herr );
+	StreamWriterW errwr( herr );
 
-    auto hin = GetStdHandle( STD_INPUT_HANDLE );
-    if( hin == INVALID_HANDLE_VALUE )
-    {
-        errwr.WriteString( L"Cannot get STDIN" );
+	auto hin = GetStdHandle( STD_INPUT_HANDLE );
+	if( hin == INVALID_HANDLE_VALUE )
+	{
+		errwr.WriteString( L"Cannot get STDIN" );
 
-        return 2;
-    }
+		return 2;
+	}
 
-    auto hout = GetStdHandle( STD_OUTPUT_HANDLE );
-    if( hout == INVALID_HANDLE_VALUE )
-    {
-        errwr.WriteString( L"Cannot get STDOUT" );
+	auto hout = GetStdHandle( STD_OUTPUT_HANDLE );
+	if( hout == INVALID_HANDLE_VALUE )
+	{
+		errwr.WriteString( L"Cannot get STDOUT" );
 
-        return 3;
-    }
+		return 3;
+	}
 
-    try
-    {
-        BinaryWriterW outbw( hout );
-        BinaryReaderW inbr( hin );
+	try
+	{
+		BinaryWriterW outbw( hout );
+		BinaryReaderW inbr( hin );
 
-        std::wstring command = inbr.ReadString( );
+		std::wstring command = inbr.ReadString( );
 
-        // 
+		// 
 
-        if( command == L"v" )
-        {
-            // get version
+		if( command == L"v" )
+		{
+			// get version
 
-            outbw.Write( Utf8ToWString( onig_version( ) ) );
+			outbw.Write( Utf8ToWString( onig_version( ) ) );
 
-            return 0;
-        }
-        else if( command == L"m" )
-        {
-            if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [1]." );
+			return 0;
+		}
+		else if( command == L"m" )
+		{
+			if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [1]." );
 
-            std::wstring pattern = inbr.ReadString( );
-            std::wstring text = inbr.ReadString( );
+			std::wstring pattern = inbr.ReadString( );
+			std::wstring text = inbr.ReadString( );
 
-            auto syntax = ONIG_SYNTAX_ONIGURUMA;
-            OnigOptionType compile_options = ONIG_OPTION_NONE;
-            auto search_options = ONIG_OPTION_NONE;
-            bool fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = false;
-            bool fONIG_SYN_STRICT_CHECK_BACKREF = false;
+			auto syntax = ONIG_SYNTAX_ONIGURUMA;
+			OnigOptionType compile_options = ONIG_OPTION_NONE;
+			auto search_options = ONIG_OPTION_NONE;
+			bool fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = false;
+			bool fONIG_SYN_STRICT_CHECK_BACKREF = false;
 
-            ReadOptions( inbr, &syntax, &compile_options, &search_options, &fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY, &fONIG_SYN_STRICT_CHECK_BACKREF );
+			ReadOptions( inbr, &syntax, &compile_options, &search_options, &fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY, &fONIG_SYN_STRICT_CHECK_BACKREF );
 
-            if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
+			if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-            OnigSyntaxType adjusted_syntax{};
-            onig_copy_syntax( &adjusted_syntax, syntax );
+			OnigSyntaxType adjusted_syntax{};
+			onig_copy_syntax( &adjusted_syntax, syntax );
 
-            if( fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY ) adjusted_syntax.op2 |= ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY;
-            if( fONIG_SYN_STRICT_CHECK_BACKREF ) adjusted_syntax.behavior |= ONIG_SYN_STRICT_CHECK_BACKREF;
+			if( fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY ) adjusted_syntax.op2 |= ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY;
+			if( fONIG_SYN_STRICT_CHECK_BACKREF ) adjusted_syntax.behavior |= ONIG_SYN_STRICT_CHECK_BACKREF;
 
-            DoMatch( outbw, pattern, text, adjusted_syntax, compile_options, search_options );
+			DoMatch( outbw, pattern, text, adjusted_syntax, compile_options, search_options );
 
-            return 0;
-        }
-        else if( command == L"d" )
-        {
-            if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [D1]." );
+			return 0;
+		}
+		else if( command == L"d" )
+		{
+			if( inbr.ReadByte( ) != 'b' ) throw std::runtime_error( "Invalid data [D1]." );
 
-            auto syntax = ONIG_SYNTAX_ONIGURUMA;
-            OnigOptionType compile_options = ONIG_OPTION_NONE;
-            auto search_options = ONIG_OPTION_NONE;
-            bool fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = false;
-            bool fONIG_SYN_STRICT_CHECK_BACKREF = false;
+			auto syntax = ONIG_SYNTAX_ONIGURUMA;
+			OnigOptionType compile_options = ONIG_OPTION_NONE;
+			auto search_options = ONIG_OPTION_NONE;
+			bool fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY = false;
+			bool fONIG_SYN_STRICT_CHECK_BACKREF = false;
 
-            ReadOptions( inbr, &syntax, &compile_options, &search_options, &fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY, &fONIG_SYN_STRICT_CHECK_BACKREF );
+			ReadOptions( inbr, &syntax, &compile_options, &search_options, &fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY, &fONIG_SYN_STRICT_CHECK_BACKREF );
 
-            if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [D2]." );
+			if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [D2]." );
 
-            OnigSyntaxType adjusted_syntax{};
-            onig_copy_syntax( &adjusted_syntax, syntax );
+			OnigSyntaxType adjusted_syntax{};
+			onig_copy_syntax( &adjusted_syntax, syntax );
 
-            if( fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY ) adjusted_syntax.op2 |= ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY;
-            if( fONIG_SYN_STRICT_CHECK_BACKREF ) adjusted_syntax.behavior |= ONIG_SYN_STRICT_CHECK_BACKREF;
+			if( fONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY ) adjusted_syntax.op2 |= ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY;
+			if( fONIG_SYN_STRICT_CHECK_BACKREF ) adjusted_syntax.behavior |= ONIG_SYN_STRICT_CHECK_BACKREF;
 
-            WriteDetails( outbw, adjusted_syntax, compile_options );
+			WriteDetails( outbw, adjusted_syntax, compile_options );
 
-            return 0;
-        }
+			return 0;
+		}
 
-        errwr.WriteStringF( L"Unsupported command: '{}'.", command );
+		errwr.WriteStringF( L"Unsupported command: '{}'.", command );
 
-        return 1;
-    }
-    catch( const std::exception& exc )
-    {
-        errwr.WriteString( ToWString( exc.what( ) ) );
+		return 1;
+	}
+	catch( const std::exception& exc )
+	{
+		errwr.WriteString( ToWString( exc.what( ) ) );
 
-        return 12;
-    }
-    catch( ... )
-    {
-        errwr.WriteString( L"Internal error" );
+		return 12;
+	}
+	catch( ... )
+	{
+		errwr.WriteString( L"Internal error" );
 
-        return 14;
-    }
+		return 14;
+	}
 }
 
