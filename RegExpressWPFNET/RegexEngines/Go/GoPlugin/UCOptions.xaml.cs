@@ -85,7 +85,7 @@ namespace GoPlugin
                 pnlCoregex.Display( is_coregex );
                 pnlOnigmo.Display( is_onigmo );
 
-                cbxPosix.Display( is_regexp || is_coregex );
+                cbxPosix.Display( is_regexp );
                 cbxLongest.Display( is_regexp || is_rexa || is_coregex );
                 cbxLiteral.Display( is_regexp || is_rexa || is_coregex );
             }

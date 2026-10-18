@@ -92,6 +92,7 @@
             <ui:CheckboxWithNote Prop="EnableDFA" Note="enables the Lazy DFA engine; when false, only NFA (PikeVM) is used" />
             <ui:CheckboxWithNote Prop="EnablePrefilter" Note="enables literal-based prefiltering" />
             <ui:CheckboxWithNote Prop="EnableASCIIOptimization" Note="enables ASCII runtime detection; choose between UTF-8 NFA and ASCII NFA"/>
+            <ui:CheckboxWithNote Prop="posix" Text="POSIX" Note="POSIX ERE syntax and semantics: ^ and $ are multiline, [^a] doesn't match \n, leftmost-longest match"/>
 
             <Grid Style="{StaticResource DetailsTable}" >
                 <Grid.ColumnDefinitions>

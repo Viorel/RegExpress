@@ -2,7 +2,7 @@ module CoregexWorker
 
 go 1.27.2
 
-require github.com/coregx/coregex v0.12.29
+require github.com/coregx/coregex v0.12.30
 
 require (
 	github.com/coregx/ahocorasick v0.3.1 // indirect

@@ -53,13 +53,14 @@ class SubengineCoregex( Options options ) : RegexSubengine
             options.EnableDFA,
             options.EnablePrefilter,
             options.EnableASCIIOptimization,
+            POSIX = options.posix,
+
             MaxDFAStates = ValidationUtilities.ParseUInt32( "MaxDFAStates", options.MaxDFAStates ),
             DeterminizationLimit = ValidationUtilities.ParseInt32( "DeterminizationLimit", options.DeterminizationLimit ),
             MinLiteralLen = ValidationUtilities.ParseInt32( "MinLiteralLen", options.MinLiteralLen ),
             MaxLiterals = ValidationUtilities.ParseInt32( "MaxLiterals", options.MaxLiterals ),
             MaxRecursionDepth = ValidationUtilities.ParseInt32( "MaxRecursionDepth", options.MaxRecursionDepth ),
 
-            options.posix,
             options.longest,
             options.literal,
         };
