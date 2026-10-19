@@ -5,7 +5,7 @@
 
 unsigned long SEHFilter( unsigned long code, char* errorText, size_t errorTextSize )
 {
-    const char* text;
+    const char* text = nullptr;
 
     switch( code )
     {
@@ -34,7 +34,7 @@ unsigned long SEHFilter( unsigned long code, char* errorText, size_t errorTextSi
             E( EXCEPTION_INVALID_DISPOSITION )
             E( EXCEPTION_GUARD_PAGE )
             E( EXCEPTION_INVALID_HANDLE )
-            //?E( EXCEPTION_POSSIBLE_DEADLOCK         )
+            //?E( EXCEPTION_POSSIBLE_DEADLOCK )
 
 #undef E
 
@@ -43,7 +43,7 @@ unsigned long SEHFilter( unsigned long code, char* errorText, size_t errorTextSi
     }
 
     StringCchCopyA( errorText, errorTextSize, "SEH Error: " );
-    StringCchCatA( errorText, errorTextSize, text );
+    StringCchCatA( errorText, errorTextSize, text != nullptr ? text : "(unknown)" );
 
     return EXCEPTION_EXECUTE_HANDLER;
 }

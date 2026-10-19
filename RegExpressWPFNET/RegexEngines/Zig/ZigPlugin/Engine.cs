@@ -122,7 +122,7 @@ class Engine : RegexEngine
         //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZRegex, unicode = true, v = false } };
         //variants.Add( new FeatureMatrixVariant( "z-regex (“u” flag)", engine ) );
 
-        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZRegex, unicode = false, v = true } };
+        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZRegex, unicode = false, v = true, possessive = true } };
         variants.Add( new FeatureMatrixVariant( "z-regex (“v” flag)", engine ) );
 
         return variants;

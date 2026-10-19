@@ -67,6 +67,7 @@ pub fn main1(init: std.process.Init) !void {
     compile_options.sticky = options.sticky;
     compile_options.unicode = options.unicode;
     compile_options.v = options.v;
+    compile_options.possessive = options.possessive;
 
     const re = try zregex.Regex.compileWithOptions(allocator, pattern, compile_options);
 

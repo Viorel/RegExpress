@@ -17,7 +17,7 @@ namespace ZigPlugin;
 
 class SubengineZRegex( Options options ) : RegexSubengine
 {
-    static readonly LazyData<(bool unicode, bool v), FeatureMatrix> LazyFeatureMatrix = new( d => BuildFeatureMatrix( d.unicode, d.v ) );
+    static readonly LazyData<(bool unicode, bool v, bool possessive), FeatureMatrix> LazyFeatureMatrix = new( d => BuildFeatureMatrix( d.unicode, d.v, d.possessive ) );
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
@@ -26,7 +26,7 @@ class SubengineZRegex( Options options ) : RegexSubengine
 
     public override SyntaxOptions GetSyntaxOptions( )
     {
-        FeatureMatrix fm = LazyFeatureMatrix.GetValue( (options.unicode, options.v) );
+        FeatureMatrix fm = LazyFeatureMatrix.GetValue( (options.unicode, options.v, options.possessive) );
 
         return new SyntaxOptions
         {
@@ -57,6 +57,7 @@ class SubengineZRegex( Options options ) : RegexSubengine
                 sticky = options.sticky,
                 unicode = options.unicode,
                 v = options.v,
+                possessive = options.possessive,
             },
         };
 
@@ -155,7 +156,7 @@ class SubengineZRegex( Options options ) : RegexSubengine
         return worker_exe;
     }
 
-    private static FeatureMatrix BuildFeatureMatrix( bool unicode, bool v )
+    private static FeatureMatrix BuildFeatureMatrix( bool unicode, bool v, bool possessive )
     {
         return new FeatureMatrix
         {
@@ -342,7 +343,7 @@ class SubengineZRegex( Options options ) : RegexSubengine
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
             Quantifier_LowAbbrev = false,
             Quantifier_Lazy = true,
-            Quantifier_Possessive = false,
+            Quantifier_Possessive = possessive,
 
             Conditional_BackrefByNumber = false,
             Conditional_BackrefByName = false,

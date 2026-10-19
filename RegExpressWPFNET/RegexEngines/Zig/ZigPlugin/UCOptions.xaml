@@ -130,7 +130,7 @@
             <ui:CheckboxWithNote Prop="sticky" Text="sticky" Note="Never scanning ahead"/>
             <ui:CheckboxWithNote Prop="unicode" Text="unicode" Note="Stricter escape-sequence syntax validation"/>
             <ui:CheckboxWithNote Prop="v" Text="v" Note="Unicode Sets mode"/>
-            <ui:CheckboxWithNote Prop="possessive" Text="possessive" Note="Match greedily, never give back"/>
+            <ui:CheckboxWithNote Prop="possessive" Text="possessive" Note="`*+`, `++` and `?+` as possessive quantifiers (match greedily, never give back)"/>
         </StackPanel>
 
     </StackPanel>
