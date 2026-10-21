@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 json = "0.12.4"
-ferroni = "=2.2.3"
+ferroni = "=2.2.4"
