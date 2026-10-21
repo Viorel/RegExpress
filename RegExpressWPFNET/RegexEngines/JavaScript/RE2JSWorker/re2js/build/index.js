@@ -2,7 +2,7 @@
 * re2js
 * RE2JS is the JavaScript port of RE2, a regular expression engine that provides linear time matching
 *
-* @version v2.8.8
+* @version v2.9.0
 * @author Oleksii Vasyliev
 * @homepage https://github.com/le0pard/re2js#readme
 * @repository [object Object]
@@ -56,69 +56,69 @@ for (let i = 0; i < ASCII_SIZE; i++) {
 	else ASCII_TO_LOWER[i] = i;
 }
 var Codepoint = class {
-	static CODES = /* @__PURE__ */ new Map([
-		["\x07", 7],
-		["\b", 8],
-		["	", 9],
-		["\n", 10],
-		["\v", 11],
-		["\f", 12],
-		["\r", 13],
-		[" ", 32],
-		["\"", 34],
-		["$", 36],
-		["&", 38],
-		["'", 39],
-		["(", 40],
-		[")", 41],
-		["*", 42],
-		["+", 43],
-		["-", 45],
-		[".", 46],
-		["0", 48],
-		["1", 49],
-		["2", 50],
-		["3", 51],
-		["4", 52],
-		["5", 53],
-		["6", 54],
-		["7", 55],
-		["8", 56],
-		["9", 57],
-		[":", 58],
-		["<", 60],
-		[">", 62],
-		["?", 63],
-		["A", 65],
-		["B", 66],
-		["C", 67],
-		["F", 70],
-		["P", 80],
-		["Q", 81],
-		["U", 85],
-		["Z", 90],
-		["[", 91],
-		["\\", 92],
-		["]", 93],
-		["^", 94],
-		["_", 95],
-		["`", 96],
-		["a", 97],
-		["b", 98],
-		["f", 102],
-		["i", 105],
-		["m", 109],
-		["n", 110],
-		["r", 114],
-		["s", 115],
-		["t", 116],
-		["v", 118],
-		["x", 120],
-		["z", 122],
-		["{", 123],
-		["|", 124],
-		["}", 125]
-	]);
+	static CODES = Object.freeze({
+		"\x07": 7,
+		"\b": 8,
+		"	": 9,
+		"\n": 10,
+		"\v": 11,
+		"\f": 12,
+		"\r": 13,
+		" ": 32,
+		"\"": 34,
+		$: 36,
+		"&": 38,
+		"'": 39,
+		"(": 40,
+		")": 41,
+		"*": 42,
+		"+": 43,
+		"-": 45,
+		".": 46,
+		0: 48,
+		1: 49,
+		2: 50,
+		3: 51,
+		4: 52,
+		5: 53,
+		6: 54,
+		7: 55,
+		8: 56,
+		9: 57,
+		":": 58,
+		"<": 60,
+		">": 62,
+		"?": 63,
+		A: 65,
+		B: 66,
+		C: 67,
+		F: 70,
+		P: 80,
+		Q: 81,
+		U: 85,
+		Z: 90,
+		"[": 91,
+		"\\": 92,
+		"]": 93,
+		"^": 94,
+		_: 95,
+		"`": 96,
+		a: 97,
+		b: 98,
+		f: 102,
+		i: 105,
+		m: 109,
+		n: 110,
+		r: 114,
+		s: 115,
+		t: 116,
+		v: 118,
+		x: 120,
+		z: 122,
+		"{": 123,
+		"|": 124,
+		"}": 125
+	});
 	static toUpperCase(codepoint) {
 		if (codepoint < ASCII_SIZE) return ASCII_TO_UPPER[codepoint];
 		const s = String.fromCodePoint(codepoint).toUpperCase();
@@ -167,13 +167,15 @@ var UnicodeRangeTable = class {
 };
 //#endregion
 //#region src/UnicodeTables.js
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-";
 const B64_MAP = /* @__PURE__ */ new Uint8Array(256);
-for (let i = 0, b = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-"; i < 64; i++) B64_MAP[b.charCodeAt(i)] = i;
+for (let i = 0; i < 64; i++) B64_MAP[B64.charCodeAt(i)] = i;
 const decodeVLQ = (str) => {
 	const res = [];
-	let value = 0, shift = 0;
+	let value = 0;
+	let shift = 0;
 	for (let i = 0; i < str.length; i++) {
-		let digit = B64_MAP[str.charCodeAt(i)];
+		const digit = B64_MAP[str.charCodeAt(i)];
 		value |= (digit & 31) << shift;
 		if ((digit & 32) === 0) {
 			res.push(value);
@@ -187,7 +189,8 @@ const decodeRanges = (str, isStride1) => {
 	const res = decodeVLQ(str);
 	const numRanges = isStride1 ? res.length / 2 : res.length / 3;
 	const out = new Uint32Array(numRanges * 3);
-	let current = 0, resIdx = 0;
+	let current = 0;
+	let resIdx = 0;
 	for (let i = 0; i < numRanges; i++) {
 		current += res[resIdx++];
 		out[i * 3] = current;
@@ -292,9 +295,6 @@ var UnicodeTables = class {
 		Uppercase: () => new UnicodeRangeTable(decodeRanges("hCZBmDWBCGBiB2BCDOCDuBCBECEBBCCCBCCBBBDDBCBBCCBEBBCBBCECBCCDCCBCCBBBCCCBEEIJDCMCDQCDDDCCBC4BCIBBCBBDCCBCBCGCiJCCEJJHCCBBBCCCBCCBPBCIBkBDDBBBEWCGDDCBBDyBBxBgBCK2BCBMCD+CCDlBBq6ClBBCGGzW1CB0kCHHBpBBDCBhK0ECKgDCKHBJFBLHBJHBJFBMGCJHBpCDBNDBNDBNEBMDBnIFFECBDCBDEEBDBHGCBCBDDBLBBGbbBOBUzZzZBYBx5BvBBxBCCBBBDGCBCBCDDJCBCgDCJCCFuqeuqeCqBCUaCoEMCE8BCLECBICFCCDCCEUCBDBCEBCOCBCBCCCBQCZs5Vs5VBYBmmBnBBpEjBB9EKBCOBCGBCBBr3ByBB+EVB75CfBhsVfBhCYBoqZZBbZBbZBbCCBGDBDDBCBCHBbZBbBBCDBDHBCGBcBBCDBCEBCEEBFBcZBbZBbZBbZBbZBbZBfYBiBYBiBYBiBYBiBYBiB2pE2pEBgBBvgCZBHZBHZB", false)),
 		White_Space: () => new UnicodeRangeTable(decodeRanges("JEBTlDlDbgvFgvFgsCKBeBBGwBwBh9DAB", false))
 	});
-	static get Upper() {
-		return this.CATEGORIES.get("Lu");
-	}
 	static SCRIPTS = new LazyMap({
 		Adlam: () => new UnicodeRangeTable(decodeRanges("go6DrCFJFB", true)),
 		Ahom: () => new UnicodeRangeTable(decodeRanges("g4lCaDOFW", true)),
@@ -542,13 +542,6 @@ var Unicode = class Unicode {
 		}
 		return ranges.length > 0 && r >= ranges.getLo(0) && Unicode.is32(ranges, r);
 	}
-	static isUpper(r) {
-		if (r <= Unicode.MAX_LATIN1) {
-			const s = String.fromCodePoint(r);
-			return s.toUpperCase() === s && s.toLowerCase() !== s;
-		}
-		return Unicode.is(UnicodeTables.Upper, r);
-	}
 	static isPrint(r) {
 		if (r <= Unicode.MAX_LATIN1) return r >= 32 && r < Unicode.MAX_ASCII || r >= 161 && r !== 173;
 		return Unicode.is(UnicodeTables.Print, r);
@@ -610,12 +603,12 @@ var Utils = class Utils {
 		return Array.isArray(input) || Object.prototype.toString.call(input) === "[object Uint8Array]";
 	}
 	static isalnum(c) {
-		return Codepoint.CODES.get("0") <= c && c <= Codepoint.CODES.get("9") || Codepoint.CODES.get("a") <= c && c <= Codepoint.CODES.get("z") || Codepoint.CODES.get("A") <= c && c <= Codepoint.CODES.get("Z");
+		return Codepoint.CODES["0"] <= c && c <= Codepoint.CODES["9"] || Codepoint.CODES["a"] <= c && c <= Codepoint.CODES["z"] || Codepoint.CODES["A"] <= c && c <= Codepoint.CODES["Z"];
 	}
 	static unhex(c) {
-		if (Codepoint.CODES.get("0") <= c && c <= Codepoint.CODES.get("9")) return c - Codepoint.CODES.get("0");
-		if (Codepoint.CODES.get("a") <= c && c <= Codepoint.CODES.get("f")) return c - Codepoint.CODES.get("a") + 10;
-		if (Codepoint.CODES.get("A") <= c && c <= Codepoint.CODES.get("F")) return c - Codepoint.CODES.get("A") + 10;
+		if (Codepoint.CODES["0"] <= c && c <= Codepoint.CODES["9"]) return c - Codepoint.CODES["0"];
+		if (Codepoint.CODES["a"] <= c && c <= Codepoint.CODES["f"]) return c - Codepoint.CODES["a"] + 10;
+		if (Codepoint.CODES["A"] <= c && c <= Codepoint.CODES["F"]) return c - Codepoint.CODES["A"] + 10;
 		return -1;
 	}
 	static escapeRune(rune) {
@@ -624,25 +617,25 @@ var Utils = class Utils {
 			if (Utils.METACHARACTERS.indexOf(String.fromCodePoint(rune)) >= 0) out += "\\";
 			out += String.fromCodePoint(rune);
 		} else switch (rune) {
-			case Codepoint.CODES.get("\""):
+			case Codepoint.CODES["\""]:
 				out += "\\\"";
 				break;
-			case Codepoint.CODES.get("\\"):
+			case Codepoint.CODES["\\"]:
 				out += "\\\\";
 				break;
-			case Codepoint.CODES.get("	"):
+			case Codepoint.CODES["	"]:
 				out += "\\t";
 				break;
-			case Codepoint.CODES.get("\n"):
+			case Codepoint.CODES["\n"]:
 				out += "\\n";
 				break;
-			case Codepoint.CODES.get("\r"):
+			case Codepoint.CODES["\r"]:
 				out += "\\r";
 				break;
-			case Codepoint.CODES.get("\b"):
+			case Codepoint.CODES["\b"]:
 				out += "\\b";
 				break;
-			case Codepoint.CODES.get("\f"):
+			case Codepoint.CODES["\f"]:
 				out += "\\f";
 				break;
 			default: {
@@ -906,13 +899,14 @@ var MachineInputBase = class {
 		return -8;
 	}
 	constructor() {
+		this.start = 0;
 		this.end = 0;
 	}
 	canCheckPrefix() {
 		return true;
 	}
 	endPos() {
-		return this.end;
+		return this.end - this.start;
 	}
 	hasString() {
 		return false;
@@ -1206,13 +1200,13 @@ var Matcher = class Matcher {
 			if (str.indexOf("\\") < 0 && str.indexOf("$") < 0) return str;
 			return str.split("").map((s) => {
 				const c = s.codePointAt(0);
-				if (c === Codepoint.CODES.get("\\") || c === Codepoint.CODES.get("$")) return `\\${s}`;
+				if (c === Codepoint.CODES["\\"] || c === Codepoint.CODES["$"]) return `\\${s}`;
 				return s;
 			}).join("");
 		}
 		if (str.indexOf("$") < 0) return str;
 		return str.split("").map((s) => {
-			if (s.codePointAt(0) === Codepoint.CODES.get("$")) return "$$";
+			if (s.codePointAt(0) === Codepoint.CODES["$"]) return "$$";
 			return s;
 		}).join("");
 	}
@@ -1235,6 +1229,8 @@ var Matcher = class Matcher {
 		this.groups = [];
 		/** @type {Record<string, number>} */
 		this.namedGroups = re2.namedGroups;
+		/** @type {boolean} */
+		this.hasNamedGroups = Object.keys(this.namedGroups).length > 0;
 		/** @type {number} */
 		this.numberOfInstructions = re2.numberOfInstructions();
 		/** @type {import('./Machine.js').LookbehindState|null} */
@@ -1456,23 +1452,19 @@ var Matcher = class Matcher {
 	}
 	/**
 	* Appends to result two strings: the text from the append position up to the beginning of the
-	* most recent match, and then the replacement with submatch groups substituted for references of
-	* the form {@code $n}, where {@code n} is the group number in decimal. It advances the append
-	* position to where the most recent match ended.
+	* most recent match, and then the replacement with submatch groups substituted for references to
+	* them. It advances the append position to where the most recent match ended.
 	*
-	* To embed a literal {@code $}, use \$ (actually {@code "\\$"} with string escapes). The escape
-	* is only necessary when {@code $} is followed by a digit, but it is always allowed. Only
-	* {@code $} and {@code \} need escaping, but any character can be escaped.
-	*
-	* The group number {@code n} in {@code $n} is always at least one digit and expands to use more
-	* digits as long as the resulting number is a valid group number for this pattern. To cut it off
-	* earlier, escape the first digit that should not be used.
+	* By default the replacement is expanded as by String.prototype.replace (see
+	* appendReplacementInternalJs). In Java mode it follows re2j / java.util.regex: $n takes as
+	* many digits as still form a valid group number, ${name} is a named group, and a backslash
+	* escapes the next character (so "\\$" in a JS string literal inserts a literal $).
 	*
 	* @param {string} replacement the replacement string
 	* @param {boolean} [javaMode=false] activate java mode (different behaviour for capture groups and special characters)
 	* @returns {string}
 	* @throws IllegalStateException if there was no most recent match
-	* @throws IndexOutOfBoundsException if replacement refers to an invalid group
+	* @throws IndexOutOfBoundsException in Java mode, if replacement refers to an invalid group
 	* @private
 	*/
 	appendReplacement(replacement, javaMode = false) {
@@ -1496,7 +1488,7 @@ var Matcher = class Matcher {
 		let i = 0;
 		while (i < m) {
 			const cCode = replacement.codePointAt(i);
-			if (cCode === Codepoint.CODES.get("\\")) {
+			if (cCode === Codepoint.CODES["\\"]) {
 				if (last < i) res += replacement.substring(last, i);
 				i++;
 				if (i >= m) throw new RE2JSGroupException("character to be escaped is missing");
@@ -1504,26 +1496,26 @@ var Matcher = class Matcher {
 				i++;
 				continue;
 			}
-			if (cCode === Codepoint.CODES.get("$")) {
+			if (cCode === Codepoint.CODES["$"]) {
 				if (last < i) res += replacement.substring(last, i);
 				if (i + 1 >= m) throw new RE2JSGroupException("Illegal group reference: group index is missing");
 				const nextCode = replacement.codePointAt(i + 1);
-				if (Codepoint.CODES.get("0") <= nextCode && nextCode <= Codepoint.CODES.get("9")) {
-					let n = nextCode - Codepoint.CODES.get("0");
+				if (Codepoint.CODES["0"] <= nextCode && nextCode <= Codepoint.CODES["9"]) {
+					let n = nextCode - Codepoint.CODES["0"];
 					let j = i + 2;
 					for (; j < m; j++) {
 						const digit = replacement.codePointAt(j);
-						if (digit < Codepoint.CODES.get("0") || digit > Codepoint.CODES.get("9") || n * 10 + digit - Codepoint.CODES.get("0") > this.patternGroupCount) break;
-						n = n * 10 + digit - Codepoint.CODES.get("0");
+						if (digit < Codepoint.CODES["0"] || digit > Codepoint.CODES["9"] || n * 10 + digit - Codepoint.CODES["0"] > this.patternGroupCount) break;
+						n = n * 10 + digit - Codepoint.CODES["0"];
 					}
 					if (n > this.patternGroupCount) throw new RE2JSGroupException(`n > number of groups: ${n}`);
 					const group = this.group(n);
 					if (group !== null) res += group;
 					i = j;
 					last = i;
-				} else if (nextCode === Codepoint.CODES.get("{")) {
+				} else if (nextCode === Codepoint.CODES["{"]) {
 					let j = i + 2;
-					while (j < m && replacement.codePointAt(j) !== Codepoint.CODES.get("}")) j++;
+					while (j < m && replacement.codePointAt(j) !== Codepoint.CODES["}"]) j++;
 					if (j >= m) throw new RE2JSGroupException("named capture group is missing trailing '}'");
 					const groupName = replacement.substring(i + 2, j);
 					const groupVal = this.group(groupName);
@@ -1539,84 +1531,71 @@ var Matcher = class Matcher {
 		return res;
 	}
 	/**
+	* Expands |replacement| for the current match by the rules of String.prototype.replace
+	* (ECMAScript GetSubstitution): $$ is "$", $& the match, $` the text before it, $' the text
+	* after it, $n and $nn a group (two digits only when they form a valid group number, so with
+	* one group "$10" is group 1 then "0"; an unmatched group is empty), and $<name> a named group
+	* (empty when no such group), only when the pattern has named groups. Anything else, such as
+	* "$0" or "$<" without a closing ">", is kept as is.
 	* @param {string} replacement - the replacement string
 	* @returns {string}
 	* @private
 	*/
 	appendReplacementInternalJs(replacement) {
+		const isDigit = (c) => c >= 48 && c <= 57;
+		const groupCount = this.patternGroupCount;
 		let res = "";
-		let last = 0;
-		const m = replacement.length;
-		for (let i = 0; i < m - 1; i++) if (replacement.codePointAt(i) === Codepoint.CODES.get("$")) {
-			let c = replacement.codePointAt(i + 1);
-			if (Codepoint.CODES.get("$") === c) {
-				if (last < i) res += replacement.substring(last, i);
+		let i = 0;
+		while (i < replacement.length) {
+			const dollar = replacement.indexOf("$", i);
+			if (dollar < 0) break;
+			res += replacement.substring(i, dollar);
+			i = dollar;
+			const c = replacement.charCodeAt(i + 1);
+			if (c === Codepoint.CODES["$"]) {
 				res += "$";
-				i++;
-				last = i + 1;
-				continue;
-			} else if (Codepoint.CODES.get("&") === c) {
-				if (last < i) res += replacement.substring(last, i);
-				const group = this.group(0);
-				if (group !== null) res += group;
-				else res += "$&";
-				i++;
-				last = i + 1;
-				continue;
-			} else if (Codepoint.CODES.get("`") === c) {
-				if (last < i) res += replacement.substring(last, i);
+				i += 2;
+			} else if (c === Codepoint.CODES["&"]) {
+				res += this.group(0);
+				i += 2;
+			} else if (c === Codepoint.CODES["`"]) {
 				res += this.substring(0, this.start(0));
-				i++;
-				last = i + 1;
-				continue;
-			} else if (Codepoint.CODES.get("'") === c) {
-				if (last < i) res += replacement.substring(last, i);
+				i += 2;
+			} else if (c === Codepoint.CODES["'"]) {
 				res += this.substring(this.end(0), this.matcherInputLength);
-				i++;
-				last = i + 1;
-				continue;
-			} else if (Codepoint.CODES.get("1") <= c && c <= Codepoint.CODES.get("9")) {
-				let n = c - Codepoint.CODES.get("0");
-				if (last < i) res += replacement.substring(last, i);
-				for (i += 2; i < m; i++) {
-					c = replacement.codePointAt(i);
-					if (c < Codepoint.CODES.get("0") || c > Codepoint.CODES.get("9") || n * 10 + c - Codepoint.CODES.get("0") > this.patternGroupCount) break;
-					n = n * 10 + c - Codepoint.CODES.get("0");
+				i += 2;
+			} else if (isDigit(c)) {
+				let digits = 1;
+				let index = c - 48;
+				const c2 = replacement.charCodeAt(i + 2);
+				if (isDigit(c2) && index * 10 + c2 - 48 <= groupCount) {
+					digits = 2;
+					index = index * 10 + c2 - 48;
 				}
-				if (n > this.patternGroupCount) {
-					res += `$${n}`;
-					last = i;
-					i--;
-					continue;
+				if (index >= 1 && index <= groupCount) {
+					const group = this.group(index);
+					if (group !== null) res += group;
+				} else res += replacement.substring(i, i + 1 + digits);
+				i += 1 + digits;
+			} else if (c === Codepoint.CODES["<"] && this.hasNamedGroups) {
+				const gt = replacement.indexOf(">", i + 2);
+				if (gt < 0) {
+					res += "$<";
+					i += 2;
+				} else {
+					const name = replacement.substring(i + 2, gt);
+					if (Object.prototype.hasOwnProperty.call(this.namedGroups, name)) {
+						const group = this.group(name);
+						if (group !== null) res += group;
+					}
+					i = gt + 1;
 				}
-				const group = this.group(n);
-				if (group !== null) res += group;
-				last = i;
-				i--;
-				continue;
-			} else if (c === Codepoint.CODES.get("<")) {
-				if (last < i) res += replacement.substring(last, i);
-				i++;
-				let j = i + 1;
-				while (j < replacement.length && replacement.codePointAt(j) !== Codepoint.CODES.get(">") && replacement.codePointAt(j) !== Codepoint.CODES.get(" ")) j++;
-				if (j === replacement.length || replacement.codePointAt(j) !== Codepoint.CODES.get(">")) {
-					res += replacement.substring(i - 1, j + 1);
-					last = j + 1;
-					i = j;
-					continue;
-				}
-				const groupName = replacement.substring(i + 1, j);
-				if (Object.prototype.hasOwnProperty.call(this.namedGroups, groupName)) {
-					const groupVal = this.group(groupName);
-					if (groupVal !== null) res += groupVal;
-				} else res += `$<${groupName}>`;
-				last = j + 1;
-				i = j;
-				continue;
+			} else {
+				res += "$";
+				i += 1;
 			}
 		}
-		if (last < m) res += replacement.substring(last, m);
-		return res;
+		return res + replacement.substring(i);
 	}
 	/**
 	* Return the substring of the input from the append position to the end of the
@@ -1662,14 +1641,13 @@ var Matcher = class Matcher {
 		let res = "";
 		this.reset();
 		const isFunc = typeof replacement === "function";
-		const hasNamedGroups = Object.keys(this.namedGroups).length > 0;
 		let originalInput = null;
 		if (isFunc) {
 			if (this.groupCount() >= Matcher.MAX_REPLACER_ARGS) throw new RE2JSGroupException("Too many capture groups to safely invoke replacer function");
 			originalInput = this.matcherInput.isUTF8Encoding() ? this.matcherInput.asBytes() : this.matcherInput.asCharSequence();
 		}
 		while (this.find()) {
-			res += isFunc ? this.appendReplacementFunc(replacement, hasNamedGroups, originalInput) : this.appendReplacement(replacement, javaMode);
+			res += isFunc ? this.appendReplacementFunc(replacement, originalInput) : this.appendReplacement(replacement, javaMode);
 			if (!all) break;
 		}
 		res += this.appendTail();
@@ -1679,46 +1657,49 @@ var Matcher = class Matcher {
 	* Evaluates a replacer function for the current match and appends the result,
 	* along with any un-matched preceding text, advancing the append position.
 	* @param {Function} replacer - the replacer function
-	* @param {boolean} hasNamedGroups - cached flag if pattern has named groups
 	* @param {string|Uint8Array|number[]} originalInput - the cached original input reference
 	* @returns {string} the evaluated string to append
 	* @private
 	*/
-	appendReplacementFunc(replacer, hasNamedGroups, originalInput) {
+	appendReplacementFunc(replacer, originalInput) {
 		let res = "";
 		const s = this.start();
 		const e = this.end();
 		if (this.appendPos < s) res += this.substring(this.appendPos, s);
 		this.appendPos = e;
-		const args = this.buildReplacerArgs(s, hasNamedGroups, originalInput);
+		/** @type {unknown[]} */
+		const args = this.matchArray();
+		args.push(s, originalInput);
+		if (this.hasNamedGroups) args.push(this.namedGroupsObject());
 		res += String(replacer(...args));
 		return res;
 	}
 	/**
-	* Builds the argument array for the replacer function matching the standard
-	* JS String.prototype.replace(regex, replacer) signature.
-	* @param {number} matchStart - the start index of the match
-	* @param {boolean} hasNamedGroups - cached flag if pattern has named groups
-	* @param {string|Uint8Array|number[]} originalInput - the cached original input reference
-	* @returns {Array} array of arguments
+	* The match and its groups, as the elements of a JS RegExpExecArray: undefined for a group that
+	* did not take part in the match. Used by exec(), matchAll() and replacer functions.
+	* @returns {Array<string|undefined>}
 	* @private
 	*/
-	buildReplacerArgs(matchStart, hasNamedGroups, originalInput) {
-		const args = [this.group(0)];
-		const numGroups = this.groupCount();
-		for (let i = 1; i <= numGroups; i++) {
-			const start = this.start(i);
-			if (start < 0) args.push(void 0);
-			else args.push(this.substring(start, this.end(i)));
+	matchArray() {
+		const result = [this.group(0)];
+		for (let i = 1; i <= this.patternGroupCount; i++) {
+			const group = this.group(i);
+			result.push(group === null ? void 0 : group);
 		}
-		args.push(matchStart);
-		args.push(originalInput);
-		if (hasNamedGroups) {
-			const parsedGroups = this.getNamedGroups();
-			for (const key in parsedGroups) if (parsedGroups[key] === null) parsedGroups[key] = void 0;
-			args.push(parsedGroups);
-		}
-		return args;
+		return result;
+	}
+	/**
+	* The named groups, as the groups property of a JS RegExpExecArray: an object without a
+	* prototype mapping each name to its group (undefined when it did not take part in the match),
+	* or undefined when the pattern has no named groups.
+	* @returns {Record<string, string|undefined>|undefined}
+	* @private
+	*/
+	namedGroupsObject() {
+		if (!this.hasNamedGroups) return;
+		const result = this.getNamedGroups();
+		for (const name in result) if (result[name] === null) result[name] = void 0;
+		return result;
 	}
 };
 //#endregion
@@ -2242,6 +2223,7 @@ const arraysEqual = (a, b) => {
 	for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
 	return true;
 };
+const isState = (state, pcs, flag, ids) => state.flag === flag && arraysEqual(state.nfaStates, pcs) && arraysEqual(state.matchIDs, ids);
 const NO_IDS = [];
 const END_TEXT = -1;
 var DFAState = class {
@@ -2259,8 +2241,10 @@ var DFA = class DFA {
 	static FLAG_MATCH = 256;
 	static FLAG_LAST_WORD = 512;
 	static FLAG_NEED_SHIFT = 16;
-	static STATE_OVERHEAD = 160;
-	static TABLE_OVERHEAD = 16;
+	static STATE_OVERHEAD = 150;
+	static ARRAY_OVERHEAD = 40;
+	static ELEMENT_SIZE = 8;
+	static TABLE_OVERHEAD = 48;
 	static PROGRESS_PER_STATE = 10;
 	constructor(prog, maxMem = 8388608) {
 		this.prog = prog;
@@ -2356,28 +2340,35 @@ var DFA = class DFA {
 			}
 		}
 		return {
-			pcs: Int32Array.from(closure).sort(),
+			pcs: Array.from(closure).sort((a, b) => a - b),
 			needflags
 		};
 	}
 	getState(pcs, flag, ids) {
 		const hash = hashState(pcs, flag, ids);
-		let bucket = this.stateCache.get(hash);
-		if (bucket) for (let i = 0; i < bucket.length; i++) {
-			const state = bucket[i];
-			if (state.flag === flag && arraysEqual(state.nfaStates, pcs) && arraysEqual(state.matchIDs, ids)) return state;
+		const cached = this.stateCache.get(hash);
+		if (cached instanceof DFAState) {
+			if (isState(cached, pcs, flag, ids)) return cached;
+		} else if (cached !== void 0) {
+			for (let i = 0; i < cached.length; i++) if (isState(cached[i], pcs, flag, ids)) return cached[i];
 		}
-		const cost = DFA.STATE_OVERHEAD + 4 * pcs.length + 8 * ids.length;
+		const cost = DFA.stateCost(pcs, ids);
 		if (this.memBudget < cost) return null;
 		this.memBudget -= cost;
-		if (!bucket) {
-			bucket = [];
-			this.stateCache.set(hash, bucket);
-		}
 		const state = new DFAState(pcs, flag, ids);
-		bucket.push(state);
+		if (cached === void 0) this.stateCache.set(hash, state);
+		else if (cached instanceof DFAState) this.stateCache.set(hash, [cached, state]);
+		else cached.push(state);
 		this.stateCount++;
 		return state;
+	}
+	static stateCost(pcs, ids) {
+		const idsCost = ids.length === 0 ? 0 : DFA.ARRAY_OVERHEAD + DFA.ELEMENT_SIZE * ids.length;
+		return DFA.STATE_OVERHEAD + DFA.ELEMENT_SIZE * pcs.length + idsCost;
+	}
+	*cachedStates() {
+		for (const cached of this.stateCache.values()) if (cached instanceof DFAState) yield cached;
+		else yield* cached;
 	}
 	makeState(pcs, flag, ids) {
 		const closure = this.closure(pcs, flag & DFA.FLAG_EMPTY_MASK);
@@ -2388,7 +2379,7 @@ var DFA = class DFA {
 	}
 	allocTable(state, anchor) {
 		const size = this.numClasses + 1;
-		const cost = DFA.TABLE_OVERHEAD + 8 * size;
+		const cost = DFA.TABLE_OVERHEAD + DFA.ELEMENT_SIZE * size;
 		if (this.memBudget < cost) return null;
 		this.memBudget -= cost;
 		const table = new Array(size).fill(null);
@@ -2605,7 +2596,7 @@ var BitState = class {
 				skipShouldVisit = false;
 				const inst = re2.prog.getInst(currentPc);
 				switch (inst.op) {
-					case Inst.FAIL: throw new RE2JSInternalException("unexpected InstFail");
+					case Inst.FAIL: break;
 					case Inst.ALT: if (arg) {
 						arg = false;
 						currentPc = inst.arg;
@@ -3151,7 +3142,7 @@ var Regexp = class Regexp {
 		return [];
 	}
 	static quoteIfHyphen(rune) {
-		if (rune === Codepoint.CODES.get("-")) return "\\";
+		if (rune === Codepoint.CODES["-"]) return "\\";
 		return "";
 	}
 	static fromRegexp(re) {
@@ -3753,6 +3744,7 @@ var Prog = class {
 		}
 		return i;
 	}
+	/** @returns {[boolean, string]} */
 	prefix() {
 		let prefix = "";
 		let i = this.skipNop(this.start);
@@ -3823,8 +3815,8 @@ var Prog = class {
 //#region src/Compiler.js
 const ANY_RUNE_NOT_NL = new Int32Array([
 	0,
-	Codepoint.CODES.get("\n") - 1,
-	Codepoint.CODES.get("\n") + 1,
+	Codepoint.CODES["\n"] - 1,
+	Codepoint.CODES["\n"] + 1,
 	Unicode.MAX_RUNE
 ]);
 const ANY_RUNE = new Int32Array([0, Unicode.MAX_RUNE]);
@@ -3864,6 +3856,7 @@ var Compiler = class Compiler {
 		}
 		let starts = [];
 		for (let i = 0; i < regexps.length; i++) {
+			c.lbOffset = c.prog.numLb;
 			const f = c.compile(regexps[i]);
 			const m = c.newInst(Inst.MATCH);
 			c.prog.getInst(m.i).arg = i;
@@ -3885,6 +3878,7 @@ var Compiler = class Compiler {
 	constructor() {
 		this.prog = new Prog();
 		this.newInst(Inst.FAIL);
+		this.lbOffset = 0;
 		this.runeCache = /* @__PURE__ */ new Map();
 		this.walker = {
 			leaf: (re) => this.leaf(re),
@@ -3913,7 +3907,11 @@ var Compiler = class Compiler {
 		return f;
 	}
 	cat(f1, f2) {
-		if (f1.i === 0 || f2.i === 0) return this.fail();
+		if (f1.i === 0 || f2.i === 0) {
+			this.prog.patch(f1.out, 0);
+			this.prog.patch(f2.out, 0);
+			return this.fail();
+		}
 		this.prog.patch(f1.out, f2.i);
 		return new Frag(f1.i, f2.out, f1.nullable && f2.nullable);
 	}
@@ -3942,6 +3940,7 @@ var Compiler = class Compiler {
 		return f;
 	}
 	quest(f1, nongreedy) {
+		if (f1.i === 0) return this.nop();
 		const f = this.newInst(Inst.ALT);
 		const i = this.prog.getInst(f.i);
 		if (nongreedy) {
@@ -3955,10 +3954,12 @@ var Compiler = class Compiler {
 		return f;
 	}
 	star(f1, nongreedy) {
+		if (f1.i === 0) return this.nop();
 		if (f1.nullable) return this.quest(this.plus(f1, nongreedy), nongreedy);
 		return this.loop(f1, nongreedy);
 	}
 	plus(f1, nongreedy) {
+		if (f1.i === 0) return this.fail();
 		return new Frag(f1.i, this.loop(f1, nongreedy).out, f1.nullable);
 	}
 	empty(op) {
@@ -3978,10 +3979,11 @@ var Compiler = class Compiler {
 		f.out = new PatchList(f.i << 1, f.i << 1);
 		if ((flags & RE2Flags.FOLD_CASE) === 0 && runes.length === 1 || runes.length === 2 && runes[0] === runes[1]) i.op = Inst.RUNE1;
 		else if (runes.length === 2 && runes[0] === 0 && runes[1] === Unicode.MAX_RUNE) i.op = Inst.RUNE_ANY;
-		else if (runes.length === 4 && runes[0] === 0 && runes[1] === Codepoint.CODES.get("\n") - 1 && runes[2] === Codepoint.CODES.get("\n") + 1 && runes[3] === Unicode.MAX_RUNE) i.op = Inst.RUNE_ANY_NOT_NL;
+		else if (runes.length === 4 && runes[0] === 0 && runes[1] === Codepoint.CODES["\n"] - 1 && runes[2] === Codepoint.CODES["\n"] + 1 && runes[3] === Unicode.MAX_RUNE) i.op = Inst.RUNE_ANY_NOT_NL;
 		return f;
 	}
-	lookBehind(a, lb) {
+	lookBehind(a, parsedLb) {
+		const lb = Math.sign(parsedLb) * (Math.abs(parsedLb) + this.lbOffset);
 		const id = this.newInst(Inst.LB_WRITE);
 		this.prog.getInst(id.i).arg = lb;
 		const any = this.rune(ANY_RUNE, 0);
@@ -4086,7 +4088,7 @@ var Simplify = class Simplify {
 			if (re.runes === null) return re;
 			if (re.runes.length === 0) return new Regexp(Regexp.Op.NO_MATCH);
 			if (re.runes.length === 2 && re.runes[0] === 0 && re.runes[1] === Unicode.MAX_RUNE) return new Regexp(Regexp.Op.ANY_CHAR);
-			if (re.runes.length === 4 && re.runes[0] === 0 && re.runes[1] === Codepoint.CODES.get("\n") - 1 && re.runes[2] === Codepoint.CODES.get("\n") + 1 && re.runes[3] === Unicode.MAX_RUNE) return new Regexp(Regexp.Op.ANY_CHAR_NOT_NL);
+			if (re.runes.length === 4 && re.runes[0] === 0 && re.runes[1] === Codepoint.CODES["\n"] - 1 && re.runes[2] === Codepoint.CODES["\n"] + 1 && re.runes[3] === Unicode.MAX_RUNE) return new Regexp(Regexp.Op.ANY_CHAR_NOT_NL);
 		}
 		return re;
 	}
@@ -4394,7 +4396,11 @@ var CharClass = class CharClass {
 			array[2 * i + 1] = sorted[2 * order[i] + 1];
 		}
 	}
+	/**
+	* @param {number[]|Int32Array} [r]
+	*/
 	constructor(r = Utils.emptyInts()) {
+		/** @type {number[]|Int32Array} */
 		this.r = r;
 		this.len = r.length;
 	}
@@ -4725,15 +4731,15 @@ var Parser = class Parser {
 		if (name.length === 0) return false;
 		for (let i = 0; i < name.length; i++) {
 			const c = name.codePointAt(i);
-			if (c !== Codepoint.CODES.get("_") && !Utils.isalnum(c)) return false;
+			if (c !== Codepoint.CODES["_"] && !Utils.isalnum(c)) return false;
 		}
 		return true;
 	}
 	static parseInt(t) {
 		const start = t.pos();
-		while (t.more() && t.peek() >= Codepoint.CODES.get("0") && t.peek() <= Codepoint.CODES.get("9")) t.skip(1);
+		while (t.more() && t.peek() >= Codepoint.CODES["0"] && t.peek() <= Codepoint.CODES["9"]) t.skip(1);
 		const n = t.from(start);
-		if (n.length === 0 || n.length > 1 && n.codePointAt(0) === Codepoint.CODES.get("0")) return -1;
+		if (n.length === 0 || n.length > 1 && n.codePointAt(0) === Codepoint.CODES["0"]) return -1;
 		if (n.length > 8) return -2;
 		return parseInt(n, 10);
 	}
@@ -4746,7 +4752,7 @@ var Parser = class Parser {
 			case Regexp.Op.CHAR_CLASS:
 				for (let i = 0; i < re.runes.length; i += 2) if (re.runes[i] <= r && r <= re.runes[i + 1]) return true;
 				return false;
-			case Regexp.Op.ANY_CHAR_NOT_NL: return r !== Codepoint.CODES.get("\n");
+			case Regexp.Op.ANY_CHAR_NOT_NL: return r !== Codepoint.CODES["\n"];
 			case Regexp.Op.ANY_CHAR: return true;
 		}
 		return false;
@@ -4755,7 +4761,7 @@ var Parser = class Parser {
 		switch (dst.op) {
 			case Regexp.Op.ANY_CHAR: break;
 			case Regexp.Op.ANY_CHAR_NOT_NL:
-				if (Parser.matchRune(src, Codepoint.CODES.get("\n"))) dst.op = Regexp.Op.ANY_CHAR;
+				if (Parser.matchRune(src, Codepoint.CODES["\n"])) dst.op = Regexp.Op.ANY_CHAR;
 				break;
 			case Regexp.Op.CHAR_CLASS: {
 				const cc = new CharClass(Array.isArray(dst.runes) ? dst.runes : Array.from(dst.runes));
@@ -4776,32 +4782,32 @@ var Parser = class Parser {
 		if (!t.more()) throw new RE2JSSyntaxException(Parser.ERR_TRAILING_BACKSLASH);
 		let c = t.pop();
 		bigswitch: switch (c) {
-			case Codepoint.CODES.get("1"):
-			case Codepoint.CODES.get("2"):
-			case Codepoint.CODES.get("3"):
-			case Codepoint.CODES.get("4"):
-			case Codepoint.CODES.get("5"):
-			case Codepoint.CODES.get("6"):
-			case Codepoint.CODES.get("7"): if (!t.more() || t.peek() < Codepoint.CODES.get("0") || t.peek() > Codepoint.CODES.get("7")) break;
-			case Codepoint.CODES.get("0"): {
-				let r = c - Codepoint.CODES.get("0");
+			case Codepoint.CODES["1"]:
+			case Codepoint.CODES["2"]:
+			case Codepoint.CODES["3"]:
+			case Codepoint.CODES["4"]:
+			case Codepoint.CODES["5"]:
+			case Codepoint.CODES["6"]:
+			case Codepoint.CODES["7"]: if (!t.more() || t.peek() < Codepoint.CODES["0"] || t.peek() > Codepoint.CODES["7"]) break;
+			case Codepoint.CODES["0"]: {
+				let r = c - Codepoint.CODES["0"];
 				for (let i = 1; i < 3; i++) {
-					if (!t.more() || t.peek() < Codepoint.CODES.get("0") || t.peek() > Codepoint.CODES.get("7")) break;
-					r = r * 8 + t.peek() - Codepoint.CODES.get("0");
+					if (!t.more() || t.peek() < Codepoint.CODES["0"] || t.peek() > Codepoint.CODES["7"]) break;
+					r = r * 8 + t.peek() - Codepoint.CODES["0"];
 					t.skip(1);
 				}
 				return r;
 			}
-			case Codepoint.CODES.get("x"): {
+			case Codepoint.CODES["x"]: {
 				if (!t.more()) break;
 				c = t.pop();
-				if (c === Codepoint.CODES.get("{")) {
+				if (c === Codepoint.CODES["{"]) {
 					let nhex = 0;
 					let r = 0;
 					while (true) {
 						if (!t.more()) break bigswitch;
 						c = t.pop();
-						if (c === Codepoint.CODES.get("}")) break;
+						if (c === Codepoint.CODES["}"]) break;
 						const v = Utils.unhex(c);
 						if (v < 0) break bigswitch;
 						r = r * 16 + v;
@@ -4818,12 +4824,12 @@ var Parser = class Parser {
 				if (x < 0 || y < 0) break;
 				return x * 16 + y;
 			}
-			case Codepoint.CODES.get("a"): return Codepoint.CODES.get("\x07");
-			case Codepoint.CODES.get("f"): return Codepoint.CODES.get("\f");
-			case Codepoint.CODES.get("n"): return Codepoint.CODES.get("\n");
-			case Codepoint.CODES.get("r"): return Codepoint.CODES.get("\r");
-			case Codepoint.CODES.get("t"): return Codepoint.CODES.get("	");
-			case Codepoint.CODES.get("v"): return Codepoint.CODES.get("\v");
+			case Codepoint.CODES["a"]: return Codepoint.CODES["\x07"];
+			case Codepoint.CODES["f"]: return Codepoint.CODES["\f"];
+			case Codepoint.CODES["n"]: return Codepoint.CODES["\n"];
+			case Codepoint.CODES["r"]: return Codepoint.CODES["\r"];
+			case Codepoint.CODES["t"]: return Codepoint.CODES["	"];
+			case Codepoint.CODES["v"]: return Codepoint.CODES["\v"];
 			default: if (c <= Unicode.MAX_ASCII && !Utils.isalnum(c)) return c;
 		}
 		throw new RE2JSSyntaxException(Parser.ERR_INVALID_ESCAPE, t.from(startPos));
@@ -5065,7 +5071,7 @@ var Parser = class Parser {
 			if (re.runes.length === 2 && re.runes[0] === 0 && re.runes[1] === Unicode.MAX_RUNE) {
 				re.runes = /* @__PURE__ */ new Int32Array(0);
 				re.op = Regexp.Op.ANY_CHAR;
-			} else if (re.runes.length === 4 && re.runes[0] === 0 && re.runes[1] === Codepoint.CODES.get("\n") - 1 && re.runes[2] === Codepoint.CODES.get("\n") + 1 && re.runes[3] === Unicode.MAX_RUNE) {
+			} else if (re.runes.length === 4 && re.runes[0] === 0 && re.runes[1] === Codepoint.CODES["\n"] - 1 && re.runes[2] === Codepoint.CODES["\n"] + 1 && re.runes[3] === Unicode.MAX_RUNE) {
 				re.runes = /* @__PURE__ */ new Int32Array(0);
 				re.op = Regexp.Op.ANY_CHAR_NOT_NL;
 			}
@@ -5267,7 +5273,7 @@ var Parser = class Parser {
 		while (t.more()) {
 			let repeatPos = -1;
 			bigswitch: switch (t.peek()) {
-				case Codepoint.CODES.get("("):
+				case Codepoint.CODES["("]:
 					if ((this.flags & RE2Flags.LOOKBEHIND) !== 0) {
 						if (t.lookingAt("(?<=")) {
 							this.parsePosLookBehind();
@@ -5287,50 +5293,50 @@ var Parser = class Parser {
 					this.op(Regexp.Op.LEFT_PAREN).cap = ++this.numCap;
 					t.skip(1);
 					break;
-				case Codepoint.CODES.get("|"):
+				case Codepoint.CODES["|"]:
 					this.parseVerticalBar();
 					t.skip(1);
 					break;
-				case Codepoint.CODES.get(")"):
+				case Codepoint.CODES[")"]:
 					this.parseRightParen();
 					t.skip(1);
 					break;
-				case Codepoint.CODES.get("^"):
+				case Codepoint.CODES["^"]:
 					if ((this.flags & RE2Flags.ONE_LINE) !== 0) this.op(Regexp.Op.BEGIN_TEXT);
 					else this.op(Regexp.Op.BEGIN_LINE);
 					t.skip(1);
 					break;
-				case Codepoint.CODES.get("$"):
+				case Codepoint.CODES["$"]:
 					if ((this.flags & RE2Flags.ONE_LINE) !== 0) this.op(Regexp.Op.END_TEXT).flags |= RE2Flags.WAS_DOLLAR;
 					else this.op(Regexp.Op.END_LINE);
 					t.skip(1);
 					break;
-				case Codepoint.CODES.get("."):
+				case Codepoint.CODES["."]:
 					if ((this.flags & RE2Flags.DOT_NL) !== 0) this.op(Regexp.Op.ANY_CHAR);
 					else this.op(Regexp.Op.ANY_CHAR_NOT_NL);
 					t.skip(1);
 					break;
-				case Codepoint.CODES.get("["):
+				case Codepoint.CODES["["]:
 					this.parseClass(t);
 					break;
-				case Codepoint.CODES.get("*"):
-				case Codepoint.CODES.get("+"):
-				case Codepoint.CODES.get("?"): {
+				case Codepoint.CODES["*"]:
+				case Codepoint.CODES["+"]:
+				case Codepoint.CODES["?"]: {
 					repeatPos = t.pos();
 					let op = null;
 					switch (t.pop()) {
-						case Codepoint.CODES.get("*"):
+						case Codepoint.CODES["*"]:
 							op = Regexp.Op.STAR;
 							break;
-						case Codepoint.CODES.get("+"):
+						case Codepoint.CODES["+"]:
 							op = Regexp.Op.PLUS;
 							break;
-						case Codepoint.CODES.get("?"): op = Regexp.Op.QUEST;
+						case Codepoint.CODES["?"]: op = Regexp.Op.QUEST;
 					}
 					this.repeat(op, min, max, repeatPos, t, lastRepeatPos);
 					break;
 				}
-				case Codepoint.CODES.get("{"): {
+				case Codepoint.CODES["{"]: {
 					const before = t.pos();
 					const minMax = Parser.parseRepeat(t);
 					if (minMax < 0) {
@@ -5344,21 +5350,21 @@ var Parser = class Parser {
 					this.repeat(Regexp.Op.REPEAT, min, max, repeatPos, t, lastRepeatPos);
 					break;
 				}
-				case Codepoint.CODES.get("\\"): {
+				case Codepoint.CODES["\\"]: {
 					const savedPos = t.pos();
 					t.skip(1);
 					if ((this.flags & RE2Flags.PERL_X) !== 0 && t.more()) switch (t.pop()) {
-						case Codepoint.CODES.get("A"):
+						case Codepoint.CODES["A"]:
 							this.op(Regexp.Op.BEGIN_TEXT);
 							break bigswitch;
-						case Codepoint.CODES.get("b"):
+						case Codepoint.CODES["b"]:
 							this.op(Regexp.Op.WORD_BOUNDARY);
 							break bigswitch;
-						case Codepoint.CODES.get("B"):
+						case Codepoint.CODES["B"]:
 							this.op(Regexp.Op.NO_WORD_BOUNDARY);
 							break bigswitch;
-						case Codepoint.CODES.get("C"): throw new RE2JSSyntaxException(Parser.ERR_INVALID_ESCAPE, "\\C");
-						case Codepoint.CODES.get("Q"): {
+						case Codepoint.CODES["C"]: throw new RE2JSSyntaxException(Parser.ERR_INVALID_ESCAPE, "\\C");
+						case Codepoint.CODES["Q"]: {
 							let lit = t.rest();
 							const i = lit.indexOf("\\E");
 							if (i >= 0) {
@@ -5374,7 +5380,7 @@ var Parser = class Parser {
 							}
 							break bigswitch;
 						}
-						case Codepoint.CODES.get("z"):
+						case Codepoint.CODES["z"]:
 							this.op(Regexp.Op.END_TEXT);
 							break bigswitch;
 						default: t.rewindTo(savedPos);
@@ -5437,35 +5443,35 @@ var Parser = class Parser {
 		loop: while (t.more()) {
 			const c = t.pop();
 			switch (c) {
-				case Codepoint.CODES.get("i"):
+				case Codepoint.CODES["i"]:
 					flags |= RE2Flags.FOLD_CASE;
 					sawFlag = true;
 					break;
-				case Codepoint.CODES.get("m"):
+				case Codepoint.CODES["m"]:
 					flags &= ~RE2Flags.ONE_LINE;
 					sawFlag = true;
 					break;
-				case Codepoint.CODES.get("s"):
+				case Codepoint.CODES["s"]:
 					flags |= RE2Flags.DOT_NL;
 					sawFlag = true;
 					break;
-				case Codepoint.CODES.get("U"):
+				case Codepoint.CODES["U"]:
 					flags |= RE2Flags.NON_GREEDY;
 					sawFlag = true;
 					break;
-				case Codepoint.CODES.get("-"):
+				case Codepoint.CODES["-"]:
 					if (sign < 0) break loop;
 					sign = -1;
 					flags = ~flags;
 					sawFlag = false;
 					break;
-				case Codepoint.CODES.get(":"):
-				case Codepoint.CODES.get(")"):
+				case Codepoint.CODES[":"]:
+				case Codepoint.CODES[")"]:
 					if (sign < 0) {
 						if (!sawFlag) break loop;
 						flags = ~flags;
 					}
-					if (c === Codepoint.CODES.get(":")) this.op(Regexp.Op.LEFT_PAREN);
+					if (c === Codepoint.CODES[":"]) this.op(Regexp.Op.LEFT_PAREN);
 					this.flags = flags;
 					return;
 				default: break loop;
@@ -5543,7 +5549,7 @@ var Parser = class Parser {
 	}
 	parsePerlClassEscape(t, cc) {
 		const beforePos = t.pos();
-		if ((this.flags & RE2Flags.PERL_X) === 0 || !t.more() || t.pop() !== Codepoint.CODES.get("\\") || !t.more()) return false;
+		if ((this.flags & RE2Flags.PERL_X) === 0 || !t.more() || t.pop() !== Codepoint.CODES["\\"] || !t.more()) return false;
 		t.pop();
 		const p = t.from(beforePos);
 		const g = PERL_GROUPS.has(p) ? PERL_GROUPS.get(p) : null;
@@ -5568,14 +5574,14 @@ var Parser = class Parser {
 		t.skip(1);
 		let sign = 1;
 		let c = t.pop();
-		if (c === Codepoint.CODES.get("P")) sign = -1;
+		if (c === Codepoint.CODES["P"]) sign = -1;
 		if (!t.more()) {
 			t.rewindTo(startPos);
 			throw new RE2JSSyntaxException(Parser.ERR_INVALID_CHAR_RANGE, t.rest());
 		}
 		c = t.pop();
 		let name;
-		if (c !== Codepoint.CODES.get("{")) name = Utils.runeToString(c);
+		if (c !== Codepoint.CODES["{"]) name = Utils.runeToString(c);
 		else {
 			const rest = t.rest();
 			const end = rest.indexOf("}");
@@ -5587,7 +5593,7 @@ var Parser = class Parser {
 			t.skipString(name);
 			t.skip(1);
 		}
-		if (!(name.length === 0) && name.codePointAt(0) === Codepoint.CODES.get("^")) {
+		if (!(name.length === 0) && name.codePointAt(0) === Codepoint.CODES["^"]) {
 			sign = 0 - sign;
 			name = name.substring(1);
 		}
@@ -5613,10 +5619,10 @@ var Parser = class Parser {
 		if (t.more() && t.lookingAt("^")) {
 			sign = -1;
 			t.skip(1);
-			if ((this.flags & RE2Flags.CLASS_NL) === 0) cc.appendRange(Codepoint.CODES.get("\n"), Codepoint.CODES.get("\n"));
+			if ((this.flags & RE2Flags.CLASS_NL) === 0) cc.appendRange(Codepoint.CODES["\n"], Codepoint.CODES["\n"]);
 		}
 		let first = true;
-		while (!t.more() || t.peek() !== Codepoint.CODES.get("]") || first) {
+		while (!t.more() || t.peek() !== Codepoint.CODES["]"] || first) {
 			if (t.more() && t.lookingAt("-") && (this.flags & RE2Flags.PERL_X) === 0 && !first) {
 				const s = t.rest();
 				if (s === "-" || !s.startsWith("-]")) {
@@ -5675,6 +5681,7 @@ var RE2 = class RE2 {
 		res.prefixComplete = re2.prefixComplete;
 		res.prefixRune = re2.prefixRune;
 		res.prefilter = re2.prefilter;
+		res.namedGroups = re2.namedGroups;
 		return res;
 	}
 	/**
@@ -5744,10 +5751,16 @@ var RE2 = class RE2 {
 		this.prefixUTF8 = null;
 		this.prefixComplete = false;
 		this.prefixRune = 0;
+		/** @type {Record<string, number>} */
+		this.namedGroups = Object.create(null);
 		this.machinePool = [];
-		this.dfa = new DFA(this.prog);
+		this.lazyDFA = null;
 		this.onepass = OnePass.compile(this.prog);
 		this.prefilter = null;
+	}
+	get dfa() {
+		if (this.lazyDFA === null) this.lazyDFA = new DFA(this.prog);
+		return this.lazyDFA;
 	}
 	matchPrefixComplete(input, pos, anchor, ncap) {
 		if ((anchor === RE2Flags.ANCHOR_START || anchor === RE2Flags.ANCHOR_BOTH) && pos !== 0) return null;
@@ -6410,8 +6423,21 @@ var TranslateRegExpString = class TranslateRegExpString {
 				i += 1;
 				changed = true;
 				continue;
-			} else if (ch === "[") inCharClass = true;
-			else if (ch === "]") inCharClass = false;
+			} else if (ch === "[") {
+				if (!inCharClass && data[i + 1] === "]") {
+					result += "[^\\x00-\\x{10FFFF}]";
+					i += 2;
+					changed = true;
+					continue;
+				}
+				if (!inCharClass && data[i + 1] === "^" && data[i + 2] === "]") {
+					result += "[\\x00-\\x{10FFFF}]";
+					i += 3;
+					changed = true;
+					continue;
+				}
+				inCharClass = true;
+			} else if (ch === "]") inCharClass = false;
 			else if (!inCharClass && ch === "(" && i + 2 < size && data[i + 1] === "?" && data[i + 2] === "<") {
 				if (i + 3 < size && !"=!>)".includes(data[i + 3])) {
 					result += "(?P<";
@@ -6432,6 +6458,13 @@ var TranslateRegExpString = class TranslateRegExpString {
 };
 //#endregion
 //#region src/index.js
+const execResult = (m, input) => {
+	const result = m.matchArray();
+	result.index = m.start(0);
+	result.input = input;
+	result.groups = m.namedGroupsObject();
+	return result;
+};
 /**
 * A compiled representation of an RE2 regular expression
 *
@@ -6641,21 +6674,7 @@ var RE2JS = class RE2JS {
 	*/
 	exec(input) {
 		const m = this.matcher(input);
-		if (!m.find()) return null;
-		const result = [m.group(0)];
-		for (let i = 1; i <= m.groupCount(); i++) {
-			const val = m.group(i);
-			result.push(val === null ? void 0 : val);
-		}
-		result.index = m.start(0);
-		result.input = input;
-		const namedGroups = this.namedGroups();
-		if (Object.keys(namedGroups).length > 0) {
-			const parsedGroups = m.getNamedGroups();
-			for (const key in parsedGroups) if (parsedGroups[key] === null) parsedGroups[key] = void 0;
-			result.groups = parsedGroups;
-		} else result.groups = void 0;
-		return result;
+		return m.find() ? execResult(m, input) : null;
 	}
 	/**
 	* Splits input around instances of the regular expression. It returns an array giving the strings
@@ -6713,22 +6732,7 @@ var RE2JS = class RE2JS {
 	*/
 	*matchAll(input) {
 		const m = this.matcher(input);
-		while (m.find()) {
-			const result = [m.group(0)];
-			for (let i = 1; i <= m.groupCount(); i++) {
-				const groupVal = m.group(i);
-				result.push(groupVal === null ? void 0 : groupVal);
-			}
-			result.index = m.start(0);
-			result.input = input;
-			const namedGroups = this.namedGroups();
-			if (Object.keys(namedGroups).length > 0) {
-				const parsedGroups = m.getNamedGroups();
-				for (const key in parsedGroups) if (parsedGroups[key] === null) parsedGroups[key] = void 0;
-				result.groups = parsedGroups;
-			} else result.groups = void 0;
-			yield result;
-		}
+		while (m.find()) yield execResult(m, input);
 	}
 	/**
 	*

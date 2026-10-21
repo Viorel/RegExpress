@@ -541,14 +541,13 @@ Note that the replacement string can include references to capturing groups from
 
 Parameters:
 
-- `replacement (String | Function)`: The string that replaces the substrings found, or a function invoked to create the new substring. When passing a string, capture groups and special characters have special behavior. For example:
+- `replacement (String | Function)`: The string that replaces the substrings found, or a function invoked to create the new substring. A replacement string is expanded exactly as by JavaScript's [`String.prototype.replace`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#specifying_a_string_as_the_replacement):
   - `$&` refers to the entire matched substring
-  - `$1, $2, ...` refer to the corresponding capture groups in the pattern
+  - `$1, $2, ...` refer to the corresponding capture groups in the pattern. At most two digits are read, and the second only when the two digits form a valid group number (with one group, `$10` is group 1 followed by `0`); `$01` is the same as `$1`. An unmatched group inserts nothing; a number that is not a group, like `$0` or `$3` with two groups, is kept as is
   - `$$` inserts a literal `$`
-  - `$<name>` can be used to reference named capture groups
+  - `$<name>` references a named capture group, when the pattern has named groups (otherwise `$<` is kept as is). A name that is not a group inserts nothing
   - `` $` `` inserts the portion of the string that precedes the matched substring
   - `$'` inserts the portion of the string that follows the matched substring
-  - on invalid group - ignore it
 - `javaMode (Boolean)`: If set to `true`, the replacement follows Java's rules for replacement. Defaults to `false`. If `javaMode = true`, changed rules for capture groups and special characters:
   - `$0` refers to the entire matched substring
   - `$1, $2, ...` refer to the corresponding capture groups in the pattern
@@ -714,21 +713,21 @@ Here is a [benchmark running 30,000 short strings](src/__tests__/re2.bench.js) t
 
 | Benchmark Scenario      | Pattern Example            | Result                      | RE2JS (Pure JS) | RE2-Node (C++) |
 | :---------------------- | :------------------------- | :-------------------------- | --------------: | -------------: |
-| **Simple Literal**      | `/damage/`                 | `re2js` is **14.6x** faster |         0.71 ms |       10.42 ms |
-| **ReDoS Attempt**       | `/(a+)+!/`                 | `re2js` is **13.2x** faster |         1.02 ms |       13.57 ms |
-| **Deep State Machine**  | `/([0-9]+(/[0-9]+)+)/`     | `re2js` is **5.6x** faster  |         2.39 ms |       13.33 ms |
-| **Lazy Wildcard**       | `/enters.*?battlefield/`   | `re2js` is **4.0x** faster  |         2.78 ms |       11.13 ms |
-| **Greedy Wildcard**     | `/enters.*battlefield/`    | `re2js` is **4.0x** faster  |         2.83 ms |       11.08 ms |
-| **Word Boundaries**     | `/\b(Flying\|First...)\b/` | `re2js` is **2.4x** faster  |         5.33 ms |       12.96 ms |
-| **Massive Alternation** | `/White\|Blue\|Black.../`  | `re2js` is **2.3x** faster  |         5.30 ms |       12.32 ms |
-| **Bounded Repetition**  | `/[A-Z][a-z]{5,15}/`       | `re2js` is **2.1x** faster  |         5.51 ms |       11.63 ms |
-| **Case Insensitive**    | `/(?i)swamp/`              | `re2js` is **1.3x** faster  |        10.37 ms |       13.65 ms |
+| **Simple Literal**      | `/damage/`                 | `re2js` is **15.3x** faster |         0.98 ms |       15.01 ms |
+| **ReDoS Attempt**       | `/(a+)+!/`                 | `re2js` is **14.2x** faster |         1.29 ms |       18.27 ms |
+| **Deep State Machine**  | `/([0-9]+(/[0-9]+)+)/`     | `re2js` is **6.6x** faster  |         2.80 ms |       18.54 ms |
+| **Lazy Wildcard**       | `/enters.*?battlefield/`   | `re2js` is **4.5x** faster  |         3.52 ms |       15.94 ms |
+| **Greedy Wildcard**     | `/enters.*battlefield/`    | `re2js` is **4.5x** faster  |         3.38 ms |       15.16 ms |
+| **Word Boundaries**     | `/\b(Flying\|First...)\b/` | `re2js` is **2.8x** faster  |         6.63 ms |       18.36 ms |
+| **Bounded Repetition**  | `/[A-Z][a-z]{5,15}/`       | `re2js` is **2.5x** faster  |         6.19 ms |       15.34 ms |
+| **Massive Alternation** | `/White\|Blue\|Black.../`  | `re2js` is **2.3x** faster  |         7.19 ms |       16.69 ms |
+| **Case Insensitive**    | `/(?i)swamp/`              | `re2js` is **1.5x** faster  |        11.65 ms |       17.59 ms |
 
-Measured on an Apple M3 Max with macOS 27, Node.js 24.14.0, `re2js` 2.8.7 and `re2` 1.27.0 (October 2026). Times are the mean of one pass over the 30,000 strings, and the result is the median ratio of three runs (each benchmark measures for 2 seconds after a 1 second warm-up). The benchmark also checks that both libraries find the same matches.
+Measured on an Apple M1 Pro with macOS 27.0.1, Node.js 24.14.0, `re2js` 2.8.8 and `re2` 1.27.0 (October 2026). Times are the mean of one pass over the 30,000 strings, and the result is the median ratio of three runs (each benchmark measures for 2 seconds after a 1 second warm-up). The benchmark also checks that both libraries find the same matches.
 
 **Takeaways:**
 
-- **Many short calls favour RE2JS.** Every `re2-node` call crosses from JavaScript into C++, and that fixed cost dominates here: `re2-node` takes roughly the same 10-14 ms for every pattern, while RE2JS's time follows the work each pattern needs. With few calls on very large inputs, that per-call cost is amortized and the C++ engine is the better fit; this benchmark does not measure that case.
+- **Many short calls favour RE2JS.** Every `re2-node` call crosses from JavaScript into C++, and that fixed cost dominates here: `re2-node` takes roughly the same 15-19 ms for every pattern, while RE2JS's time follows the work each pattern needs. With few calls on very large inputs, that per-call cost is amortized and the C++ engine is the better fit; this benchmark does not measure that case.
 - **Boolean matching runs on the lazy DFA.** Literals, wildcards, nested groups, alternations, character classes, case-insensitive matching and assertions such as `^`, `$` and `\b` all run on RE2JS's lazy DFA, often after the prefilter has already ruled out most strings. Lookbehinds are the exception: they run on the NFA (see [Lookbehinds](#lookbehinds-linear-time-execution)).
 - **Ratios vary by hardware.** On a GitHub Actions `ubuntu-24.04` (x86-64) runner, the same benchmark shows larger gaps in favour of RE2JS, because the per-call cost of the native binding is higher there.
 
@@ -800,19 +799,43 @@ negative.test('foobar') // false
 
 ## Development
 
-Some files like `CharGroup.js` and `UnicodeTables.js` are generated and should be edited in their respective generator files:
+Some files are generated and should be edited in their generator files:
 
-```bash
-./tools/scripts/make_perl_groups.pl > src/CharGroup.js
-yarn node ./tools/scripts/genUnicodeTable.js > src/UnicodeTables.js
-```
+- `src/UnicodeTables.js` (Unicode categories, scripts, binary properties and case folding) is generated by `tools/scripts/genUnicodeTable.js` from the Unicode Character Database package (`@unicode/unicode-17.0.0`). To regenerate and format it:
 
-To run `make_perl_groups.pl`, you need to have Perl installed (the required version is specified inside `.tool-versions`).
+  ```bash
+  yarn gen:unicode
+  ```
+
+  The generator reads only that package, never the JavaScript runtime's own case mapping, so the output does not depend on the Node version. It checks that every table decodes back to its source data and writes the file only if all checks pass. To move to a new Unicode version, update the `@unicode/unicode-*` dev dependency and the `UNICODE` constant in the generator, regenerate, and update the version-specific expectations in the tests (such as the number of case-folding code points in `src/__tests__/Unicode.test.js`).
+
+- `src/CharGroup.js` (the Perl classes `\d`, `\s`, `\w` and POSIX classes such as `[:alpha:]`) is generated by `tools/scripts/make_perl_groups.pl`, which asks Perl which ASCII characters each class matches. It needs Perl installed (the required version is specified inside `.tool-versions`). To regenerate and format it:
+
+  ```bash
+  yarn gen:char-groups
+  ```
 
 The conformance tests in `src/__tests__/Exec.test.js` run the RE2 and AT&T POSIX test data through every matching engine, on both UTF-16 and UTF-8 input. By default they check a sample of the 5.8 million-line exhaustive RE2 data; to check all of it (this takes several minutes):
 
 ```bash
 RE2JS_EXHAUSTIVE=1 yarn vitest run --project=node src/__tests__/Exec.test.js
 ```
+
+The fuzzers in `tools/fuzz` run random patterns and inputs, each against a different reference:
+
+- `engines`: every matching engine must give the same answer, including on invalid UTF-8 and UTF-16, with lookbehinds, and under tiny DFA memory budgets
+- `set`: `RE2Set` must report exactly the patterns that match on their own
+- `native`: lookbehinds and `translateRegExp()` must agree with the JavaScript engine's `RegExp`
+- `go`: results must agree with Go's `regexp` package; this needs the Go toolchain (without it, that fuzzer is skipped)
+
+They run every night in CI with a new seed. A failure is shrunk to a minimal pattern and input and printed with the command that replays it:
+
+```bash
+yarn fuzz                                                    # 30 seconds per fuzzer, random seed
+RE2JS_FUZZ_SECONDS=300 RE2JS_FUZZ_ONLY=engines yarn fuzz     # one fuzzer, longer
+RE2JS_FUZZ_SEED=1234 RE2JS_FUZZ_ONLY=go RE2JS_FUZZ_CASE=42 yarn fuzz  # replay a reported case
+```
+
+Differences from Go that are intended are listed, with their reasons, in `tools/fuzz/go.js`.
 
 [Playground website](https://re2js.leopard.in.ua/) maintained in `www` branch

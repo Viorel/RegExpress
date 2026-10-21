@@ -119,6 +119,8 @@ export declare class Matcher {
 	groups: number[];
 	/** @type {Record<string, number>} */
 	namedGroups: Record<string, number>;
+	/** @type {boolean} */
+	hasNamedGroups: boolean;
 	/** @type {number} */
 	numberOfInstructions: number;
 	/** @type {import('./Machine.js').LookbehindState|null} */
@@ -263,23 +265,19 @@ export declare class Matcher {
 	inputLength(): number;
 	/**
 	 * Appends to result two strings: the text from the append position up to the beginning of the
-	 * most recent match, and then the replacement with submatch groups substituted for references of
-	 * the form {@code $n}, where {@code n} is the group number in decimal. It advances the append
-	 * position to where the most recent match ended.
+	 * most recent match, and then the replacement with submatch groups substituted for references to
+	 * them. It advances the append position to where the most recent match ended.
 	 *
-	 * To embed a literal {@code $}, use \$ (actually {@code "\\$"} with string escapes). The escape
-	 * is only necessary when {@code $} is followed by a digit, but it is always allowed. Only
-	 * {@code $} and {@code \} need escaping, but any character can be escaped.
-	 *
-	 * The group number {@code n} in {@code $n} is always at least one digit and expands to use more
-	 * digits as long as the resulting number is a valid group number for this pattern. To cut it off
-	 * earlier, escape the first digit that should not be used.
+	 * By default the replacement is expanded as by String.prototype.replace (see
+	 * appendReplacementInternalJs). In Java mode it follows re2j / java.util.regex: $n takes as
+	 * many digits as still form a valid group number, ${name} is a named group, and a backslash
+	 * escapes the next character (so "\\$" in a JS string literal inserts a literal $).
 	 *
 	 * @param {string} replacement the replacement string
 	 * @param {boolean} [javaMode=false] activate java mode (different behaviour for capture groups and special characters)
 	 * @returns {string}
 	 * @throws IllegalStateException if there was no most recent match
-	 * @throws IndexOutOfBoundsException if replacement refers to an invalid group
+	 * @throws IndexOutOfBoundsException in Java mode, if replacement refers to an invalid group
 	 * @private
 	 */
 	private appendReplacement;
@@ -290,6 +288,12 @@ export declare class Matcher {
 	 */
 	private appendReplacementInternalJava;
 	/**
+	 * Expands |replacement| for the current match by the rules of String.prototype.replace
+	 * (ECMAScript GetSubstitution): $$ is "$", $& the match, $` the text before it, $' the text
+	 * after it, $n and $nn a group (two digits only when they form a valid group number, so with
+	 * one group "$10" is group 1 then "0"; an unmatched group is empty), and $<name> a named group
+	 * (empty when no such group), only when the pattern has named groups. Anything else, such as
+	 * "$0" or "$<" without a closing ">", is kept as is.
 	 * @param {string} replacement - the replacement string
 	 * @returns {string}
 	 * @private
@@ -334,22 +338,26 @@ export declare class Matcher {
 	 * Evaluates a replacer function for the current match and appends the result,
 	 * along with any un-matched preceding text, advancing the append position.
 	 * @param {Function} replacer - the replacer function
-	 * @param {boolean} hasNamedGroups - cached flag if pattern has named groups
 	 * @param {string|Uint8Array|number[]} originalInput - the cached original input reference
 	 * @returns {string} the evaluated string to append
 	 * @private
 	 */
 	private appendReplacementFunc;
 	/**
-	 * Builds the argument array for the replacer function matching the standard
-	 * JS String.prototype.replace(regex, replacer) signature.
-	 * @param {number} matchStart - the start index of the match
-	 * @param {boolean} hasNamedGroups - cached flag if pattern has named groups
-	 * @param {string|Uint8Array|number[]} originalInput - the cached original input reference
-	 * @returns {Array} array of arguments
+	 * The match and its groups, as the elements of a JS RegExpExecArray: undefined for a group that
+	 * did not take part in the match. Used by exec(), matchAll() and replacer functions.
+	 * @returns {Array<string|undefined>}
 	 * @private
 	 */
-	private buildReplacerArgs;
+	private matchArray;
+	/**
+	 * The named groups, as the groups property of a JS RegExpExecArray: an object without a
+	 * prototype mapping each name to its group (undefined when it did not take part in the match),
+	 * or undefined when the pattern has no named groups.
+	 * @returns {Record<string, string|undefined>|undefined}
+	 * @private
+	 */
+	private namedGroupsObject;
 }
 declare class DFA {
 	prog: any;
@@ -368,6 +376,8 @@ declare class DFA {
 	static FLAG_LAST_WORD: number;
 	static FLAG_NEED_SHIFT: number;
 	static STATE_OVERHEAD: number;
+	static ARRAY_OVERHEAD: number;
+	static ELEMENT_SIZE: number;
 	static TABLE_OVERHEAD: number;
 	static PROGRESS_PER_STATE: number;
 	constructor(prog: any, maxMem?: number);
@@ -375,10 +385,12 @@ declare class DFA {
 	runeClass(r: any): number;
 	searchClass(r: any): number;
 	closure(pcs: any, flag: any): {
-		pcs: Int32Array<ArrayBuffer>;
+		pcs: any[];
 		needflags: number;
 	};
 	getState(pcs: any, flag: any, ids: any): any;
+	static stateCost(pcs: any, ids: any): number;
+	cachedStates(): Generator<any, void, any>;
 	makeState(pcs: any, flag: any, ids: any): any;
 	allocTable(state: any, anchor: any): any[];
 	clearCache(): void;
@@ -400,8 +412,10 @@ declare class RE2 {
 	prefixUTF8: any;
 	prefixComplete: boolean;
 	prefixRune: number;
+	/** @type {Record<string, number>} */
+	namedGroups: Record<string, number>;
 	machinePool: any[];
-	dfa: DFA;
+	lazyDFA: DFA;
 	onepass: {
 		start: any;
 		numCap: any;
@@ -445,6 +459,7 @@ declare class RE2 {
 	 */
 	static match(pattern: any, s: any): boolean;
 	constructor(expr: any, prog: any, numSubexp?: number, longest?: number);
+	get dfa(): DFA;
 	matchPrefixComplete(input: any, pos: any, anchor: any, ncap: any): number[];
 	createLookbehindState(): LookbehindState;
 	executeEngine(input: any, pos: any, anchor: any, ncap: any, lbState?: any): any;
@@ -649,7 +664,11 @@ declare class Prog {
 	addInst(op: any): void;
 	markLookbehindInsts(): void;
 	skipNop(pc: any): any;
-	prefix(): (string | boolean)[];
+	/** @returns {[boolean, string]} */
+	prefix(): [
+		boolean,
+		string
+	];
 	startCond(): number;
 	patch(l: any, val: any): void;
 	append(l1: any, l2: any): any;

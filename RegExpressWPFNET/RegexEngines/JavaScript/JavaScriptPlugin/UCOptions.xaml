@@ -38,7 +38,7 @@
                 <!--<ui:ComboBoxItemWithVersion Tag ="WebView2"     Text="WebView2"             Version="{x:Static local:Versions.WebView2}" />-->
                 <!-- The version of WebView2 is determined programmatically -->
                 <ComboBoxItem Tag ="WebView2" Content="WebView2" IsSelected="True" />
-                <ui:ComboBoxItemWithVersion Tag ="NodeJs"       Text="V8 (Node.js)"         Version="{x:Static local:Versions.NodeJs}" />
+                <ui:ComboBoxItemWithVersion Tag ="NodeJs"       Text="V8 (Node.js)"         Version="{x:Static local:Versions.V8}" />
                 <ui:ComboBoxItemWithVersion Tag ="QuickJs"      Text="QuickJs"              Version="{x:Static local:Versions.QuickJs}" />
                 <ui:ComboBoxItemWithVersion Tag ="SpiderMonkey" Text="SpiderMonkey"         Version="{x:Static local:Versions.SpiderMonkey}" />
                 <ui:ComboBoxItemWithVersion Tag ="Bun"          Text="JavaScriptCore (Bun)" Version="{x:Static local:Versions.Bun}" />

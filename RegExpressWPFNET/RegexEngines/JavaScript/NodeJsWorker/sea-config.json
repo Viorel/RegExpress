@@ -1,6 +1,6 @@
 { 
     "main": "NodeJsWorker.js", 
-    "output": "sea-prep.blob", 
+    "output": "NodeJsWorker.exe",
     "disableExperimentalSEAWarning": true,
-    "useCodeCache": true
+    "useCodeCache": true 
 }

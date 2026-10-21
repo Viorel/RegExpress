@@ -12,7 +12,7 @@ HOW TO PREPARE THE WORKER
 - Compress the "NodeJsWorker.exe" file to "NodeJsWorker.zip" uzing ZIP format, ultra level, 
   Deflate or Deflate64 method. Or execute the "compress.cmd".
 
-- To test, execute "test1.cmd" and "test2.cmd".
+- To test, execute "test1.cmd" etc.
 
 - Commit the changed files (such as "NodeJsWorker.js", "NodeJsWorker.zip"). The "NodeJsWorker.exe" is not needed.
 
