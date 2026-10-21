@@ -29,7 +29,6 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
     {
         return new SyntaxOptions
         {
-
             XLevel = XLevelEnum.none,
             FeatureMatrix = LazyFeatureMatrix.Value,
         };
@@ -60,15 +59,13 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
                 MultiLine = options.Multiline,
                 DotMatchesNewline = options.Singleline,
                 Crlf = options.Crlf,
-                //LineTerminator = 
+                LineTerminator = ValidationUtilities.ParseByte( "LineTerminator", options.LineTerminator ),
                 Utf8 = options.Utf8,
                 UnicodeClasses = options.UnicodeClasses,
-                //MatchInvalidUtf8 = 
+                //MatchInvalidUtf8 = // Not supported here
 
                 EngineMode = Enum.GetName( options.ByteRegexEngineMode ),
                 DfaSizeLimit = ValidationUtilities.ParseInt32( "DfaSizeLimit", options.DfaSizeLimit ),
-
-                FindAll = options.FindAll,
             }
         };
         string json = JsonSerializer.Serialize( data );
@@ -240,14 +237,14 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
             Esc_NBrace = false,
             GenericEscape = false,
 
-            InsideSets_Esc_a = false,
+            InsideSets_Esc_a = true,
             InsideSets_Esc_b = false,
             InsideSets_Esc_e = false,
             InsideSets_Esc_f = true,
             InsideSets_Esc_n = true,
             InsideSets_Esc_r = true,
             InsideSets_Esc_t = true,
-            InsideSets_Esc_v = false,
+            InsideSets_Esc_v = true,
             InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
             InsideSets_Esc_Octal0_1_3 = false,
             InsideSets_Esc_oBrace = false,

@@ -58,6 +58,17 @@ namespace RegExpressLibrary
             return unchecked((UInt64)result.Value);
         }
 
+        public static byte? ParseByte( string name, string? input )
+        {
+            UInt128? result = ParseUInt128( name, input );
+
+            if( result == null ) return null;
+
+            if( result.Value > byte.MaxValue ) throw new ApplicationException( $"“{name}” is too large. Must not be greater than {byte.MaxValue}." );
+
+            return unchecked((byte)result.Value);
+        }
+
         public static Int32? ParseInt32( string name, string? input )
         {
             Int128? result = ParseInt128( name, input );

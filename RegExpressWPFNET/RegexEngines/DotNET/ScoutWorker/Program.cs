@@ -19,10 +19,10 @@ namespace ScoutWorker
             public bool? MultiLine { get; set; }
             public bool? DotMatchesNewline { get; set; }
             public bool? Crlf { get; set; }
-            public char? LineTerminator { get; set; }
+            public byte? LineTerminator { get; set; }
             public bool? Utf8 { get; set; }
             public bool? UnicodeClasses { get; set; }
-            //?public bool? MatchInvalidUtf8 { get; set; }
+            //?public bool? MatchInvalidUtf8 { get; set; } // Not supported here
 
             public string? EngineMode { get; set; }
             public ulong? DfaSizeLimit { get; set; }
@@ -67,7 +67,7 @@ namespace ScoutWorker
                     if( input_args.options.Utf8 != null ) options.Utf8 = input_args.options.Utf8.Value;
                     if( input_args.options.UnicodeClasses != null ) options.UnicodeClasses = input_args.options.UnicodeClasses.Value;
 
-                    if( input_args.options.LineTerminator != null ) options.LineTerminator = Convert.ToByte( input_args.options.LineTerminator.Value );
+                    if( input_args.options.LineTerminator != null ) options.LineTerminator = input_args.options.LineTerminator.Value;
                     if( input_args.options.DfaSizeLimit != null ) options.DfaSizeLimit = input_args.options.DfaSizeLimit.Value;
 
                     switch( input_args.options.EngineMode )
@@ -94,73 +94,29 @@ namespace ScoutWorker
 
                 Scout.Text.Regex.ByteRegex re = Scout.Text.Regex.ByteRegex.Compile( pattern_bytes, options );
 
-                UTF8Encoding utf8_validating_encoding = new( encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true );
-                int start_at = 0;
-
                 List<OutputMatch> matches = [];
 
-                for(; ; )
+                foreach( Scout.Text.Regex.ByteRegexCaptures scout_match in re.EnumerateCaptures( text_bytes ) )
                 {
-                    Scout.Text.Regex.ByteRegexCaptures? c = re.FindCaptures( text_bytes, start_at );
-
-                    if( c == null ) break;
-
                     List<int[]> groups = [];
 
-                    for( var i = 0; i < c.GroupCount; i++ )
+                    for( int i = 0; i < scout_match.GroupCount; ++i )
                     {
-                        Scout.Text.Regex.ByteRegexMatch? g = c.GetGroup( i );
+                        Scout.Text.Regex.ByteRegexMatch? scout_group = scout_match.GetGroup( i );
 
-                        if( g == null )
+                        if( scout_group == null )
                         {
                             groups.Add( [-1, -1] );
                         }
                         else
                         {
-                            groups.Add( [g.Value.Start, g.Value.End] );
+                            groups.Add( [scout_group.Value.Start, scout_group.Value.End] );
                         }
                     }
 
                     OutputMatch one_match = new( ) { g = [.. groups] };
 
                     matches.Add( one_match );
-
-                    if( !find_all ) break;
-
-                    Debug.Assert( c.Match.Length >= 0 || c.Match.Start == c.Match.End );
-
-                    if( c.Match.Length == 0 )
-                    {
-                        int new_start = -1;
-
-                        for( int utf8_len = 1; utf8_len <= 4 && c.Match.End + utf8_len <= text_bytes.Length; ++utf8_len )
-                        {
-                            try
-                            {
-                                utf8_validating_encoding.GetCharCount( text_bytes, c.Match.End, utf8_len );
-                                new_start = c.Match.End + utf8_len;
-
-                                break;
-                            }
-                            catch
-                            {
-                                // ignore
-                            }
-                        }
-
-                        if( new_start < 0 ) // cannot more advance (at end of string)
-                        {
-                            break;
-                        }
-
-                        start_at = new_start;
-                    }
-                    else
-                    {
-                        Debug.Assert( start_at < c.Match.End );
-
-                        start_at = c.Match.End;
-                    }
                 }
 
                 string ret_json = JsonSerializer.Serialize( new OutputMatches { matches = [.. matches] } );

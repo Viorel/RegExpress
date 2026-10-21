@@ -51,14 +51,13 @@ sealed class Options
     // Scout
 
     public bool Crlf { get; set; }
-    //public LineTerminatorEnum LineTerminator { get; set; } // not used here
     public bool Utf8 { get; set; } = true;
     public bool UnicodeClasses { get; set; } = true;
-    //public bool MatchInvalidUtf8 { get; set; } // not used here
+    //public bool MatchInvalidUtf8 { get; set; } // Not supported here
+    public string? LineTerminator { get; set; } = null;
     public ByteRegexEngineModeEnum ByteRegexEngineMode { get; set; } = ByteRegexEngineModeEnum.None;
     public string? DfaSizeLimit { get; set; }
 
-    public bool FindAll { get; set; } = true; // TODO: remove when scanning is performed by engine
 
     public Options Clone( )
     {

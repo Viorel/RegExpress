@@ -133,7 +133,6 @@
             <ui:CheckboxWithNote Prop="Crlf" Text="Crlf" Note="CRLF is treated as one line terminator"/>
             <ui:CheckboxWithNote Prop="Utf8" Text="Utf8" Note="empty and scalar-consuming matches must respect UTF-8 boundaries"/>
             <ui:CheckboxWithNote Prop="UnicodeClasses" Text="UnicodeClasses" Note="Perl classes and word boundaries use Unicode definitions"/>
-            <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
 
             <Grid Style="{StaticResource DetailsTable}" >
                 <Grid.ColumnDefinitions>
@@ -144,20 +143,25 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=cbxByteRegexEngineMode}" Content="ByteRegexEngineMode:"/>
-                <ComboBox x:Name="cbxByteRegexEngineMode" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding ByteRegexEngineMode, FallbackValue='None'}" SelectionChanged="cbxByteRegexEngineMode_SelectionChanged" >
+                <Label Grid.Row="0" Grid.Column="0" Target="{Binding ElementName=LineTerminator}" Content="LineTerminator:"/>
+                <TextBox x:Name="LineTerminator" Grid.Row="0" Grid.Column="1" Text="{Binding LineTerminator, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="– line terminator byte used when Crlf is disabled (10 — LF, 13 — CR)" />
+
+                <Label Grid.Row="1" Grid.Column="0" Target="{Binding ElementName=cbxByteRegexEngineMode}" Content="ByteRegexEngineMode:"/>
+                <ComboBox x:Name="cbxByteRegexEngineMode" Grid.Row="1" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding ByteRegexEngineMode, FallbackValue='None'}" SelectionChanged="cbxByteRegexEngineMode_SelectionChanged" >
                     <ComboBoxItem Tag ="None"             Content="Default" IsSelected="True" />
                     <ComboBoxItem Tag ="Optimized"        Content="Optimized" />
                     <ComboBoxItem Tag ="General"          Content="General" />
                     <ComboBoxItem Tag ="AutomataOnly"     Content="AutomataOnly" />
                 </ComboBox>
-                <TextBlock Grid.Column="2" Grid.Row="0" Text="– engine family used during compilation" />
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="– engine family used during compilation" />
 
-                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=dfasl}" Content="DfaSizeLimit:"/>
-                <TextBox x:Name="dfasl" Grid.Column="1" Grid.Row="1" Text="{Binding DfaSizeLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                <TextBlock Grid.Column="2" Grid.Row="1" Text="– maximum DFA cache size in bytes" />
+                <Label Grid.Row="2" Grid.Column="0" Target="{Binding ElementName=dfasl}" Content="DfaSizeLimit:"/>
+                <TextBox x:Name="dfasl" Grid.Row="2" Grid.Column="1" Text="{Binding DfaSizeLimit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="– maximum DFA cache size in bytes" />
 
             </Grid>
         </StackPanel>
