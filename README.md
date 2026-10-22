@@ -44,7 +44,7 @@ The following engines are included:
   * [**tbRegExp**](https://github.com/GCuser99/tbRegExp) 1.7.0.0 for **twinBASIC**.
 * [**Hyperscan**](https://github.com/intel/hyperscan) 5.4.2 from Intel (in C).
 * [**Chimera**](http://intel.github.io/hyperscan/dev-reference/chimera.html), a hybrid of Hyperscan and PCRE 8.41 (in C).
-* [**ICU Regular Expressions**](https://icu.unicode.org/) 78.3 (in C++).
+* [**ICU Regular Expressions**](https://icu.unicode.org/) 79.1 (in C++).
 * **Rust** 1.99.0:
   * [_regex_](https://crates.io/crates/regex) 1.13.1,
   * [_regex-lite_](https://crates.io/crates/regex-lite) 0.1.9,

@@ -2,5 +2,5 @@
 
 static class Versions
 {
-    public static string ICU { get; } = "78.3";
+    public static string ICU { get; } = "79.1";
 }
