@@ -90,8 +90,6 @@ namespace ScoutWorker
                     }
                 }
 
-                bool find_all = input_args.options?.FindAll == true;
-
                 Scout.Text.Regex.ByteRegex re = Scout.Text.Regex.ByteRegex.Compile( pattern_bytes, options );
 
                 List<OutputMatch> matches = [];

@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:DotNETPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             Loaded="UserControl_Loaded" d:DesignHeight="573.249" d:DesignWidth="526.328" >
+             Loaded="UserControl_Loaded" d:DesignHeight="760.358" d:DesignWidth="526.328" >
 
 
     <UserControl.Resources>
@@ -40,6 +40,7 @@
                 <ui:ComboBoxItemWithVersion Tag ="ReSharp"              Text="RE#"                  Version="{x:Static local:Versions.ReSharp}"         d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="Scout"                Text="Scout ByteRegex"      Version="{x:Static local:Versions.Scout}"           d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="LokadUtf8Regex"       Text="Lokad Utf8Regex"      Version="{x:Static local:Versions.LokadUtf8Regex}"  d:Version="###" />
+                <ui:ComboBoxItemWithVersion Tag ="GregsEx"              Text="GregsEx"              Version="{x:Static local:Versions.GregsEx}"         d:Version="###" />
             </ComboBox>
         </Grid>
 
@@ -164,6 +165,19 @@
                 <TextBlock Grid.Row="2" Grid.Column="2" Text="– maximum DFA cache size in bytes" />
 
             </Grid>
+        </StackPanel>
+
+        <StackPanel x:Name="pnlGregsEx" Orientation="Vertical">
+
+            <ui:CheckboxWithNote Prop="HasIndices" Text="HasIndices" Note="Expose match indices (d)"/>
+            <ui:CheckboxWithNote Prop="Global" Text="Global" Note="Global host matching (g)"/>
+            <ui:CheckboxWithNote Prop="IgnoreCase" Text="IgnoreCase" Note="Case-insensitive matching (i)"/>
+            <ui:CheckboxWithNote Prop="Multiline" Text="Multiline" Note="Multiline anchors (m)"/>
+            <ui:CheckboxWithNote Prop="Singleline" Text="DotAll" Note="Dot includes line terminators (s)"/>
+            <ui:CheckboxWithNote Prop="UseDotnetUnicode" Text="Unicode" Note="Unicode-aware mode (u)"/>
+            <ui:CheckboxWithNote Prop="UnicodeSets" Text="UnicodeSets" Note="Unicode sets mode (v), incompatible with u"/>
+            <ui:CheckboxWithNote Prop="Sticky" Text="Sticky" Note="Sticky host matching (y)"/>
+
         </StackPanel>
 
     </StackPanel>

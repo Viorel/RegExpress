@@ -8,6 +8,7 @@ enum ClassEnum
     ReSharp,
     Scout,
     LokadUtf8Regex,
+    GregsEx,
 }
 
 enum ByteRegexEngineModeEnum
@@ -57,6 +58,13 @@ sealed class Options
     public string? LineTerminator { get; set; } = null;
     public ByteRegexEngineModeEnum ByteRegexEngineMode { get; set; } = ByteRegexEngineModeEnum.None;
     public string? DfaSizeLimit { get; set; }
+
+    // GregsEx
+
+    public bool HasIndices { get; set; } = true;
+    public bool Global { get; set; } = true;
+    public bool UnicodeSets { get; set; }
+    public bool Sticky { get; set; }
 
 
     public Options Clone( )
