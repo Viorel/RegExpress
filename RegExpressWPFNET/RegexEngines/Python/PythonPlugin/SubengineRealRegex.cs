@@ -453,7 +453,7 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = !isAscii,
+            Unicode_Class_wW = !isAscii,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = !isAscii,
             KeepSurrogatePairs = true,

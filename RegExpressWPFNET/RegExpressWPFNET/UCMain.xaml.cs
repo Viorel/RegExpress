@@ -154,6 +154,10 @@ namespace RegExpressWPFNET
             Dispatcher.ShutdownStarted += HandleShutdownStarted;
         }
 
+        internal void SetFocus( )
+        {
+            ucPattern.SetFocus( );
+        }
 
         private void HandleShutdownStarted( object? sender, EventArgs e )
         {
@@ -1354,6 +1358,5 @@ namespace RegExpressWPFNET
 
         [GeneratedRegex( "(\r\n|[\r\n\t \f\v])+", RegexOptions.ExplicitCapture )]
         private static partial Regex RegexReplaceLineEnds( );
-
     }
 }

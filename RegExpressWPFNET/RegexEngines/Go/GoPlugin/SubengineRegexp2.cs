@@ -381,7 +381,7 @@ class SubengineRegexp2( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = !isECMAScript && !isRE2,
+            Unicode_Class_wW = !isECMAScript && !isRE2,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = true,

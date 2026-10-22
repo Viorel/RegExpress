@@ -433,7 +433,7 @@ partial class Subengine( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = is_perl || is_POSIX_extended || is_emacs,
+            Unicode_Class_wW = is_perl || is_POSIX_extended || is_emacs,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = false,

@@ -178,6 +178,26 @@
             <ui:CheckboxWithNote Prop="UnicodeSets" Text="UnicodeSets" Note="Unicode sets mode (v), incompatible with u"/>
             <ui:CheckboxWithNote Prop="Sticky" Text="Sticky" Note="Sticky host matching (y)"/>
 
+            <Grid Style="{StaticResource DetailsTable}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition MinWidth="133"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Content="Profile:" Target="{Binding ElementName=GregsExProfile}" />
+                <ComboBox x:Name="GregsExProfile" Grid.Row="0" Grid.Column="1" SelectedValuePath="Tag" IsEnabled="False" >
+                    <ComboBoxItem Content="EcmaScriptProfile" IsSelected="True" />
+                    <!--<ui:ComboBoxItemWithVersion Text="Pcre2Profile" />
+                    <ui:ComboBoxItemWithVersion Text="PosixProfile" />
+                    <ui:ComboBoxItemWithVersion Text="RegularCoreProfile" />
+                    <ui:ComboBoxItemWithVersion Text="XPathProfile" />
+                    <ui:ComboBoxItemWithVersion Text="XsdProfile" />-->
+                </ComboBox>
+            </Grid>
+
         </StackPanel>
 
     </StackPanel>

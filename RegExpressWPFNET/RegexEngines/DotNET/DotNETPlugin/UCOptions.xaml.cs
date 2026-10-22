@@ -43,7 +43,7 @@ namespace DotNETPlugin
             {
                 ++ChangeCounter;
 
-                var ttt = Options.Class.ToString( ) ;
+                var ttt = Options.Class.ToString( );
 
                 ClassEnum @class = Options.Class;
 
@@ -62,7 +62,7 @@ namespace DotNETPlugin
                 NonBacktracking.Display( is_dotnet | is_locad );
                 NonBacktrackingDisabled.Display( !( is_dotnet | is_locad ) );
 
-               //............ MessageBox.Show($"{ttt} -- {Options.Class.ToString( )}" );
+                //............ MessageBox.Show($"{ttt} -- {Options.Class.ToString( )}" );
 
             }
             finally
@@ -107,20 +107,11 @@ namespace DotNETPlugin
 
         internal void SetOptions( Options options )
         {
-            try
-            {
-                //++ChangeCounter; //..................
+            if( object.ReferenceEquals( options, Options ) ) DataContext = null;
+            Options = options;
+            DataContext = options;
 
-                if( object.ReferenceEquals( options, Options ) ) DataContext = null;
-                Options = options;
-                DataContext = options;
-
-                UpdateUI( );
-            }
-            finally
-            {
-                //--ChangeCounter;
-            }
+            UpdateUI( );
         }
     }
 }

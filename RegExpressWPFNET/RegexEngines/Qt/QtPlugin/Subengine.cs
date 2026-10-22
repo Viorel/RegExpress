@@ -366,7 +366,7 @@ partial class Subengine( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = useUnicodePropertiesOption,
+            Unicode_Class_wW = useUnicodePropertiesOption,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = true,

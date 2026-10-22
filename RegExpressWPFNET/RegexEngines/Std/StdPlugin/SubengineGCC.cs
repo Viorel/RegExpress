@@ -387,7 +387,7 @@ partial class SubengineGCC( Options options ) : RegexSubengine
             EmptySetAny = grammar == GrammarEnum.ECMAScript,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = true,
+            Unicode_Class_wW = true,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = false,
             KeepSurrogatePairs = false,

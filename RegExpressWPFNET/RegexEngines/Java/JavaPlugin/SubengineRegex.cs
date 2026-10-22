@@ -536,7 +536,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = isUnicodeCharacterClass,
+            Unicode_Class_wW = isUnicodeCharacterClass,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = true,

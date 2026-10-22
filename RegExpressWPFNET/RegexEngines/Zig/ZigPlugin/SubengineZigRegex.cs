@@ -483,7 +483,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             EmptySetAny = true,
 
             Unicode_Class_Dot = true, // ('unicode' flag not yet implemented)
-            Unicode_Class_vW = false,
+            Unicode_Class_wW = false,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)

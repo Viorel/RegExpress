@@ -352,7 +352,7 @@ class Subengine( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = false,
-            Unicode_Class_vW = false,
+            Unicode_Class_wW = false,
             InsideSets_Unicode = false,
             UnicodeCaseFolding = false,
             KeepSurrogatePairs = false, // (not applicable)

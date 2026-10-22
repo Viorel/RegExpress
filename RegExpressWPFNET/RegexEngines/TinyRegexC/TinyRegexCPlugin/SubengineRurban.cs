@@ -339,7 +339,7 @@ class SubengineRurban( Options options ) : RegexSubengine
             EmptySetAny = true,
 
             Unicode_Class_Dot = false,
-            Unicode_Class_vW = false,
+            Unicode_Class_wW = false,
             InsideSets_Unicode = false,
             UnicodeCaseFolding = false,
             KeepSurrogatePairs = true, // (not applicable)

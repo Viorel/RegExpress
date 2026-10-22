@@ -374,7 +374,7 @@ class SubengineMSVC( Options options ) : RegexSubengine
             EmptySetAny = grammar == GrammarEnum.ECMAScript,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = grammar == GrammarEnum.ECMAScript,
+            Unicode_Class_wW = grammar == GrammarEnum.ECMAScript,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = false,
             KeepSurrogatePairs = false,

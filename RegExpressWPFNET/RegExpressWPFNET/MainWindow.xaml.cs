@@ -199,6 +199,7 @@ namespace RegExpressWPFNET
 
             textBlockInfo.Visibility = Visibility.Collapsed;
             tabControl.Visibility = Visibility.Visible;
+            ( ( tabControl.SelectedItem as TabItem )?.Content as UCMain )?.SetFocus( );
 
             UpdateInfoVisibility( );
         }

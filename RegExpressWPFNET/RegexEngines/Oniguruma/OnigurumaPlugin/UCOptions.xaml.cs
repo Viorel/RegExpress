@@ -70,20 +70,11 @@ namespace OnigurumaPlugin
 
         internal void SetOptions( Options options )
         {
-            try
-            {
-                ++ChangeCounter;
+            if( object.ReferenceEquals( options, Options ) ) DataContext = null;
+            Options = options;
+            DataContext = Options;
 
-                if( object.ReferenceEquals( options, Options ) ) DataContext = null;
-                Options = options;
-                DataContext = Options;
-
-                UpdateUI( );
-            }
-            finally
-            {
-                --ChangeCounter;
-            }
+            UpdateUI( );
         }
     }
 }

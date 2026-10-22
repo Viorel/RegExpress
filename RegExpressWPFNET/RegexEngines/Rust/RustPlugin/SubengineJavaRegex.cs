@@ -374,7 +374,7 @@ class SubengineJavaRegex( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = U,
+            Unicode_Class_wW = U,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = true,

@@ -403,7 +403,7 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = isUnicode,
+            Unicode_Class_wW = isUnicode,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = isUnicode,
             KeepSurrogatePairs = true,

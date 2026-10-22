@@ -67,7 +67,7 @@ namespace VBScriptPlugin
 
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
-            Notify(preferImmediateReaction: false );
+            Notify( preferImmediateReaction: false );
         }
 
         private void cbxImplementation_SelectionChanged( object sender, SelectionChangedEventArgs e )
@@ -78,20 +78,11 @@ namespace VBScriptPlugin
 
         internal void SetOptions( Options options )
         {
-            try
-            {
-                ++ChangeCounter;
+            if( object.ReferenceEquals( options, Options ) ) DataContext = null;
+            Options = options;
+            DataContext = Options;
 
-                if( object.ReferenceEquals( options, Options ) ) DataContext = null;
-                Options = options;
-                DataContext = Options;
-
-                UpdateUI( );
-            }
-            finally
-            {
-                --ChangeCounter;
-            }
+            UpdateUI( );
         }
 
     }

@@ -116,8 +116,8 @@ class Engine : RegexEngine
 
     public override void SetIgnorePatternWhitespace( bool yes )
     {
-        //Options.IgnorePatternWhitespace = yes;
-        //if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( Options );
+        Options.IgnorePatternWhitespace = yes;
+        if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( Options );
     }
 
     public override void SetCollectCaptures( bool yes )

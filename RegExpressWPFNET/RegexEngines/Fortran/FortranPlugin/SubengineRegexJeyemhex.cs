@@ -332,7 +332,7 @@ partial class SubengineRegexJeyemhex( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = false, // (defective match: '.' matches the character and an empty space between characters)
-            Unicode_Class_vW = false,
+            Unicode_Class_wW = false,
             InsideSets_Unicode = false, // (defect?)
             UnicodeCaseFolding = false,
             KeepSurrogatePairs = false,

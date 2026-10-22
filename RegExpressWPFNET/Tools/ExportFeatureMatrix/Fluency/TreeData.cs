@@ -722,7 +722,7 @@ static class TreeData
                     .Test( @"a[^][^][^]b", "ax\r\nb", "ab", "ax\r\nb" )
                 .Flag( @"Unicode “.”", @"“.” matches Unicode characters, not just ASCII", ( e, fm ) => fm.Unicode_Class_Dot )
                     .Test( @"X.....Y", "XăîșțâY", null, "XăîșțâY" )
-                .Flag( @"Unicode “\w”", @"“\w” matches Unicode characters, not just ASCII", ( e, fm ) => fm.Unicode_Class_vW )
+                .Flag( @"Unicode “\w”", @"“\w” matches Unicode characters, not just ASCII", ( e, fm ) => fm.Unicode_Class_wW )
                     .Test( @"X\w\w\w\w\wY", "XăîșțâY", null, "XăîșțâY" )
                     .Test( @"(?u)X\w\w\w\w\wY", "XăîșțâY", null, "XăîșțâY" )
                     .Test( @"(?u:X\w\w\w\w\wY)", "XăîșțâY", null, "XăîșțâY" )

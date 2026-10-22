@@ -428,7 +428,7 @@ partial class Subengine( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = !ascii,
+            Unicode_Class_wW = !ascii,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = !ascii,
             KeepSurrogatePairs = true,

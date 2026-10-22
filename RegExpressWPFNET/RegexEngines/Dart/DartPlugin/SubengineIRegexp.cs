@@ -319,7 +319,7 @@ class SubengineIRegexp( Options options ) : RegexSubengine
             EmptySetAny = true,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = false,
+            Unicode_Class_wW = false,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = false,
             KeepSurrogatePairs = true,

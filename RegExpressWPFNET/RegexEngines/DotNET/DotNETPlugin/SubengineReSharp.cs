@@ -305,7 +305,7 @@ class SubengineReSharp( Options options ) : RegexSubengine
             EmptySetAny = false,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_vW = true,
+            Unicode_Class_wW = true,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = false,
