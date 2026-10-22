@@ -104,7 +104,7 @@ class Engine : RegexEngine
                 new FeatureMatrixVariant( "RE#", new Engine{ Options = new Options { Class = ClassEnum.ReSharp } } ),
                 new FeatureMatrixVariant( "Scout (Unicode)", new Engine{ Options = new Options { Class = ClassEnum.Scout, UnicodeClasses = true } } ),
                 new FeatureMatrixVariant( "Lokad Utf8Regex", new Engine{ Options = new Options { Class = ClassEnum.LokadUtf8Regex, CultureInvariant = true } } ),
-                new FeatureMatrixVariant( "GregsEx (Ecma, “v”)", new Engine{ Options = new Options { Class = ClassEnum.GregsEx, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = true } } ),
+                new FeatureMatrixVariant( "GregsEx (ECMA, “v”)", new Engine{ Options = new Options { Class = ClassEnum.GregsEx, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = true } } ),
             ];
     }
 
