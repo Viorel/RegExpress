@@ -93,7 +93,7 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
 
         List<SimpleMatch> matches = [];
         SimpleTextGetter stg = new( text );
-        IdentityIndexConverter index_converter = new( );
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
 
         foreach( var m in root_object.matches )
         {
