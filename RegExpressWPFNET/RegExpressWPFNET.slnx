@@ -35,6 +35,7 @@
       <BuildDependency Project="RegexEngines/DotNET/ScoutWorker/ScoutWorker.csproj" />
     </Project>
     <Project Path="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+    <Project Path="RegexEngines/DotNET/GregsExWorker/GregsExWorker.csproj" Id="b14803d2-9525-4a77-bb2c-abcd434d8f21" />
     <Project Path="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" Id="d102e3c3-2f20-4876-8aec-e2df4f5f9762" />
     <Project Path="RegexEngines/DotNET/RESharpWorker/RESharpWorker.csproj" />
     <Project Path="RegexEngines/DotNET/ScoutWorker/ScoutWorker.csproj" Id="3075510d-c247-4dd0-9b35-575e1bb4dc33" />
@@ -156,7 +157,7 @@
   </Folder>
   <Project Path="RegExpressCppLibrary/RegExpressCppLibrary.vcxproj" Id="0a96a479-5737-4d64-8f1a-2cc87ca675e2" />
   <Project Path="RegExpressLibrary/RegExpressLibrary.csproj" />
-  <Project Path="RegExpressWPFNET/RegExpressWPFNET.csproj" DefaultStartup="true">
+  <Project Path="RegExpressWPFNET/RegExpressWPFNET.csproj">
     <BuildDependency Project="SolutionEvents/SolutionEvents.vcxproj" />
   </Project>
   <Project Path="SolutionEvents/SolutionEvents.vcxproj" Id="886c3f35-3ef7-4cc7-9274-244d45a1ba5a">
@@ -170,6 +171,7 @@
     <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET/GregsExWorker/GregsExWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/RESharpWorker/RESharpWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/ScoutWorker/ScoutWorker.csproj" />

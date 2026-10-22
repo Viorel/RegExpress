@@ -43,6 +43,8 @@ namespace DotNETPlugin
             {
                 ++ChangeCounter;
 
+                var ttt = Options.Class.ToString( ) ;
+
                 ClassEnum @class = Options.Class;
 
                 bool is_dotnet = @class == ClassEnum.RegexDotNet;
@@ -50,13 +52,18 @@ namespace DotNETPlugin
                 bool is_resharp = @class == ClassEnum.ReSharp;
                 bool is_scout = @class == ClassEnum.Scout;
                 bool is_locad = @class == ClassEnum.LokadUtf8Regex;
+                bool is_gregsEx = @class == ClassEnum.GregsEx;
 
                 pnlRegex.Display( is_dotnet | is_dotnet_framework | is_locad );
                 pnlReSharp.Display( is_resharp );
                 pnlScout.Display( is_scout );
+                pnlGregsEx.Display( is_gregsEx );
 
                 NonBacktracking.Display( is_dotnet | is_locad );
                 NonBacktrackingDisabled.Display( !( is_dotnet | is_locad ) );
+
+               //............ MessageBox.Show($"{ttt} -- {Options.Class.ToString( )}" );
+
             }
             finally
             {
@@ -102,17 +109,17 @@ namespace DotNETPlugin
         {
             try
             {
-                ++ChangeCounter;
+                //++ChangeCounter; //..................
 
                 if( object.ReferenceEquals( options, Options ) ) DataContext = null;
                 Options = options;
-                DataContext = Options;
+                DataContext = options;
 
                 UpdateUI( );
             }
             finally
             {
-                --ChangeCounter;
+                //--ChangeCounter;
             }
         }
     }

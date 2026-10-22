@@ -45,6 +45,11 @@ xcopy /D /R /Y "%BasePath%\LokadUtf8RegexWorker\bin\%Configuration%\net10.0\Loka
 xcopy /D /R /Y "%BasePath%\LokadUtf8RegexWorker\bin\%Configuration%\net10.0\LokadUtf8RegexWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\LokadUtf8RegexWorker\*"
 xcopy /D /R /Y "%BasePath%\LokadUtf8RegexWorker\bin\%Configuration%\net10.0\Lokad.Utf8Regex.dll" "%EnginesTargetPath%\DotNET\LokadUtf8RegexWorker\*"
 
+xcopy /D /R /Y "%BasePath%\GregsExWorker\bin\%Configuration%\net10.0\*.dll" "%EnginesTargetPath%\DotNET\GregsExWorker\*"
+xcopy /D /R /Y "%BasePath%\GregsExWorker\bin\%Configuration%\net10.0\GregsExWorker.exe" "%EnginesTargetPath%\DotNET\GregsExWorker\*.bin"
+xcopy /D /R /Y "%BasePath%\GregsExWorker\bin\%Configuration%\net10.0\GregsExWorker.deps.json" "%EnginesTargetPath%\DotNET\GregsExWorker\*"
+xcopy /D /R /Y "%BasePath%\GregsExWorker\bin\%Configuration%\net10.0\GregsExWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\GregsExWorker\*"
+
 
 rem -- STD --
 
