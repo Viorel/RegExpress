@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:DotNETPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             Loaded="UserControl_Loaded" d:DesignHeight="760.358" d:DesignWidth="526.328" >
+             Loaded="UserControl_Loaded" d:DesignHeight="962.047" d:DesignWidth="526.328" >
 
 
     <UserControl.Resources>
@@ -38,9 +38,10 @@
                 <ui:ComboBoxItemWithVersion Tag ="RegexDotNet"          Text="Regex .NET"           Version="{x:Static local:Versions.DotNet}"          d:Version="###" IsSelected="True" />
                 <ui:ComboBoxItemWithVersion Tag ="RegexDotNetFramework" Text="Regex .NET Framework" Version="{x:Static local:Versions.DotNetFramework}" d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="ReSharp"              Text="RE#"                  Version="{x:Static local:Versions.ReSharp}"         d:Version="###" />
-                <ui:ComboBoxItemWithVersion Tag ="Scout"                Text="Scout ByteRegex"      Version="{x:Static local:Versions.Scout}"           d:Version="###" />
-                <ui:ComboBoxItemWithVersion Tag ="LokadUtf8Regex"       Text="Lokad Utf8Regex"      Version="{x:Static local:Versions.LokadUtf8Regex}"  d:Version="###" />
+                <ui:ComboBoxItemWithVersion Tag ="Scout"                Text="Scout"                Version="{x:Static local:Versions.Scout}"           d:Version="###" />
+                <ui:ComboBoxItemWithVersion Tag ="LokadUtf8Regex"       Text="Lokad.Utf8Regex"      Version="{x:Static local:Versions.LokadUtf8Regex}"  d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="GregsEx"              Text="GregsEx"              Version="{x:Static local:Versions.GregsEx}"         d:Version="###" />
+                <ui:ComboBoxItemWithVersion Tag ="CorvusEcma262"        Text="Corvus.Regex.Ecma262" Version="{x:Static local:Versions.CorvusEcma262}"   d:Version="###" />
             </ComboBox>
         </Grid>
 
@@ -60,22 +61,16 @@
             <Grid Style="{StaticResource DetailsTable}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition MinWidth="77"/>
+                    <ColumnDefinition MinWidth="55"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition/>
                 </Grid.RowDefinitions>
 
-                <Label Grid.Row="0" Grid.Column="0" Content="Timeout:" Target="{Binding ElementName=cbxTimeout}"/>
-                <ComboBox x:Name="cbxTimeout" Grid.Row="0" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding TimeoutMs, FallbackValue='10000'}" SelectionChanged="cbxTimeout_SelectionChanged" >
-                    <ComboBoxItem Tag="1000" Content="1 s"/>
-                    <ComboBoxItem Tag="2000" Content="2 s"/>
-                    <ComboBoxItem Tag="5000" Content="5 s"/>
-                    <ComboBoxItem Tag="10000" Content="10 s" IsSelected="True"/>
-                    <ComboBoxItem Tag="15000" Content="15 s"/>
-                    <ComboBoxItem Tag="30000" Content="30 s"/>
-                    <ComboBoxItem Tag="-1" Content="None"/>
-                </ComboBox>
+                <Label Grid.Row="0" Grid.Column="0" Content="Timeout:" Target="{Binding ElementName=Timeout}"/>
+                <TextBox x:Name="Timeout" Grid.Row="0" Grid.Column="1" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="ms" FontStyle="Italic" />
             </Grid>
         </StackPanel>
 
@@ -200,6 +195,35 @@
 
         </StackPanel>
 
+        <StackPanel x:Name="pnlCorvusEcma262" Orientation="Vertical">
+
+            <ui:CheckboxWithNote Prop="HasIndices" Text="HasIndices" Note="The “d” flag. Indices are always kept, so it changes nothing"/>
+            <ui:CheckboxWithNote Prop="Global" Text="Global" Note="The “g” flag. Not used for matches."/>
+            <ui:CheckboxWithNote Prop="IgnoreCase" Text="IgnoreCase" Note="The “i” flag: case-insensitive matching by the Canonicalize of the grammar in force, never by the culture"/>
+            <ui:CheckboxWithNote Prop="Multiline" Text="Multiline" Note="The “m” flag: “^” and “$” also match at line terminators"/>
+            <ui:CheckboxWithNote Prop="Singleline" Text="DotAll" Note="The “s” flag: the dot also matches line terminators"/>
+            <ui:CheckboxWithNote Prop="UseDotnetUnicode" Text="Unicode" Note="The “u” flag: the grammar of Unicode mode, matched by code point"/>
+            <ui:CheckboxWithNote Prop="UnicodeSets" Text="UnicodeSets" Note="The “v” flag: set notation and properties of strings, matched by code point. It cannot be set with “u”"/>
+            <ui:CheckboxWithNote Prop="Sticky" Text="Sticky" Note="The “y” flag: a match only at the position the search starts from"/>
+
+            <Grid Style="{StaticResource DetailsTable}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition MinWidth="55"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Target="{Binding ElementName=corvus_timeout}" Content="Timeout:"/>
+                <TextBox x:Name="corvus_timeout" Grid.Row="0" Grid.Column="1" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="ms" FontStyle="Italic" />
+
+            </Grid>
+
+        </StackPanel>
+        
     </StackPanel>
 
 </UserControl>

@@ -64,7 +64,28 @@ class SubengineDotNet( Options options ) : RegexSubengine
     {
         Debug.Assert( options.Class == ClassEnum.RegexDotNet );
 
-        var data = new { cmd = "m", text, pattern, options };
+        var data = new
+        {
+            cmd = "m",
+            text,
+            pattern,
+            options = new
+            {
+                options.Compiled,
+                options.CultureInvariant,
+                options.ECMAScript,
+                options.ExplicitCapture,
+                options.IgnoreCase,
+                options.IgnorePatternWhitespace,
+                options.Multiline,
+                options.NonBacktracking,
+                options.RightToLeft,
+                options.Singleline,
+
+                Timeout = ValidationUtilities.ParseInt64( "Timeout", options.TimeoutMs )
+            }
+        };
+
         string json = JsonSerializer.Serialize( data );
 
         using ProcessHelper ph = new( GetWorkerExePath( ) );

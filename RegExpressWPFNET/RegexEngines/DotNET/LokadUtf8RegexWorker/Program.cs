@@ -26,7 +26,7 @@ namespace LokadUtf8RegexWorker
             public bool RightToLeft { get; set; }
             public bool Singleline { get; set; }
 
-            public long Timeout { get; set; }
+            public long? Timeout { get; set; }
         }
 
         public sealed class OutputMatch
@@ -54,7 +54,6 @@ namespace LokadUtf8RegexWorker
                 string text = input_args.text;
 
                 System.Text.RegularExpressions.RegexOptions options = System.Text.RegularExpressions.RegexOptions.None;
-                TimeSpan timeout = System.Text.RegularExpressions.Regex.InfiniteMatchTimeout;
 
                 if( input_args.options != null )
                 {
@@ -68,9 +67,9 @@ namespace LokadUtf8RegexWorker
                     if( input_args.options.NonBacktracking ) options |= System.Text.RegularExpressions.RegexOptions.NonBacktracking;
                     if( input_args.options.RightToLeft ) options |= System.Text.RegularExpressions.RegexOptions.RightToLeft;
                     if( input_args.options.Singleline ) options |= System.Text.RegularExpressions.RegexOptions.Singleline;
-
-                    timeout = TimeSpan.FromMilliseconds( input_args.options.Timeout );
                 }
+
+                TimeSpan timeout = input_args.options?.Timeout == null ? System.Text.RegularExpressions.Regex.InfiniteMatchTimeout : TimeSpan.FromMilliseconds( input_args.options.Timeout.Value );
 
                 byte[] text_bytes = Encoding.UTF8.GetBytes( text );
 

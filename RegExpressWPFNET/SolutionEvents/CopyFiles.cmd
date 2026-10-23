@@ -50,6 +50,10 @@ xcopy /D /R /Y "%BasePath%\GregsExWorker\bin\%Configuration%\net10.0\GregsExWork
 xcopy /D /R /Y "%BasePath%\GregsExWorker\bin\%Configuration%\net10.0\GregsExWorker.deps.json" "%EnginesTargetPath%\DotNET\GregsExWorker\*"
 xcopy /D /R /Y "%BasePath%\GregsExWorker\bin\%Configuration%\net10.0\GregsExWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\GregsExWorker\*"
 
+xcopy /D /R /Y "%BasePath%\CorvusEcma262Worker\bin\%Configuration%\net10.0\*.dll" "%EnginesTargetPath%\DotNET\CorvusEcma262Worker\*"
+xcopy /D /R /Y "%BasePath%\CorvusEcma262Worker\bin\%Configuration%\net10.0\CorvusEcma262Worker.exe" "%EnginesTargetPath%\DotNET\CorvusEcma262Worker\*.bin"
+xcopy /D /R /Y "%BasePath%\CorvusEcma262Worker\bin\%Configuration%\net10.0\CorvusEcma262Worker.deps.json" "%EnginesTargetPath%\DotNET\CorvusEcma262Worker\*"
+xcopy /D /R /Y "%BasePath%\CorvusEcma262Worker\bin\%Configuration%\net10.0\CorvusEcma262Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\CorvusEcma262Worker\*"
 
 rem -- STD --
 
