@@ -33,7 +33,7 @@ namespace DotNETFrameworkConsole
             public bool ECMAScript { get; set; }
             public bool CultureInvariant { get; set; }
 
-            public long TimeoutMs { get; set; } = 10_000;
+            public long? Timeout { get; set; }
         }
 
         sealed class WorkerMatch
@@ -133,9 +133,11 @@ namespace DotNETFrameworkConsole
         private static void GetMatches( InputArgs inputArgs )
         {
             RegexOptions options = ConvertOptions( inputArgs.options );
-            TimeSpan timeout = inputArgs.options == null ? Regex.InfiniteMatchTimeout : TimeSpan.FromMilliseconds( inputArgs.options.TimeoutMs );
 
-            var re = new Regex( inputArgs.pattern, options, timeout );
+            Regex re = inputArgs.options?.Timeout == null ?
+                new Regex( inputArgs.pattern, options ) :
+                new Regex( inputArgs.pattern, options, TimeSpan.FromMilliseconds( inputArgs.options.Timeout.Value ) );
+
             var worker_matches = new List<WorkerMatch>( );
 
             foreach( Match m in re.Matches( inputArgs.text ) )

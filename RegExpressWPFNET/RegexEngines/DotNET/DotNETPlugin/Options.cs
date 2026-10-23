@@ -9,6 +9,7 @@ enum ClassEnum
     Scout,
     LokadUtf8Regex,
     GregsEx,
+    CorvusEcma262,
 }
 
 enum ByteRegexEngineModeEnum
@@ -34,7 +35,7 @@ sealed class Options
     public bool RightToLeft { get; set; }
     public bool Singleline { get; set; }
 
-    public long TimeoutMs { get; set; } = 10_000;
+    public string? TimeoutMs { get; set; } = null;
 
     // RE#
 

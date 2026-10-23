@@ -26,10 +26,13 @@
     <Project Path="RegexEngines/Dart/DartPlugin/DartPlugin.csproj" />
   </Folder>
   <Folder Name="/RegexEngines/DotNET/">
+    <Project Path="RegexEngines/DotNET/CorvusEcma262Worker/CorvusEcma262Worker.csproj" Id="bc840e2e-33a8-4bea-aaa4-6006626b5952" />
     <Project Path="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" Id="4129f02d-f0ea-4235-a8e7-ddd591dae7f6" />
     <Project Path="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj">
+      <BuildDependency Project="RegexEngines/DotNET/CorvusEcma262Worker/CorvusEcma262Worker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+      <BuildDependency Project="RegexEngines/DotNET/GregsExWorker/GregsExWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/RESharpWorker/RESharpWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/ScoutWorker/ScoutWorker.csproj" />
@@ -168,6 +171,7 @@
     <BuildDependency Project="RegexEngines/CppBuilder/CppBuilderPlugin/CppBuilderPlugin.csproj" />
     <BuildDependency Project="RegexEngines/D/DPlugin/DPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Dart/DartPlugin/DartPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET/CorvusEcma262Worker/CorvusEcma262Worker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />

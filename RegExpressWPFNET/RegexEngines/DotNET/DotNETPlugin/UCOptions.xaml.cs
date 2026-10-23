@@ -53,17 +53,16 @@ namespace DotNETPlugin
                 bool is_scout = @class == ClassEnum.Scout;
                 bool is_locad = @class == ClassEnum.LokadUtf8Regex;
                 bool is_gregsEx = @class == ClassEnum.GregsEx;
+                bool is_corvus = @class == ClassEnum.CorvusEcma262;
 
                 pnlRegex.Display( is_dotnet | is_dotnet_framework | is_locad );
                 pnlReSharp.Display( is_resharp );
                 pnlScout.Display( is_scout );
                 pnlGregsEx.Display( is_gregsEx );
+                pnlCorvusEcma262.Display( is_corvus );
 
                 NonBacktracking.Display( is_dotnet | is_locad );
                 NonBacktrackingDisabled.Display( !( is_dotnet | is_locad ) );
-
-                //............ MessageBox.Show($"{ttt} -- {Options.Class.ToString( )}" );
-
             }
             finally
             {
@@ -88,11 +87,6 @@ namespace DotNETPlugin
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
         {
             Notify( preferImmediateReaction: false );
-        }
-
-        private void cbxTimeout_SelectionChanged( object sender, SelectionChangedEventArgs e )
-        {
-            Notify( preferImmediateReaction: true );
         }
 
         private void tb_TextChanged( object sender, TextChangedEventArgs e )

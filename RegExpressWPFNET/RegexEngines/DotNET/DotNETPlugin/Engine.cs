@@ -56,6 +56,7 @@ class Engine : RegexEngine
         ClassEnum.Scout => "Scout",
         ClassEnum.LokadUtf8Regex => "Lokad",
         ClassEnum.GregsEx => "GregsEx",
+        ClassEnum.CorvusEcma262 => "CorvusEcma262",
         _ => "unknown"
     }}";
 
@@ -104,7 +105,12 @@ class Engine : RegexEngine
                 new FeatureMatrixVariant( "RE#", new Engine{ Options = new Options { Class = ClassEnum.ReSharp } } ),
                 new FeatureMatrixVariant( "Scout (Unicode)", new Engine{ Options = new Options { Class = ClassEnum.Scout, UnicodeClasses = true } } ),
                 new FeatureMatrixVariant( "Lokad Utf8Regex", new Engine{ Options = new Options { Class = ClassEnum.LokadUtf8Regex, CultureInvariant = true } } ),
+                //new FeatureMatrixVariant( "GregsEx (ECMA)", new Engine{ Options = new Options { Class = ClassEnum.GregsEx, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = false } } ),
+                //new FeatureMatrixVariant( "GregsEx (ECMA, “u”)", new Engine{ Options = new Options { Class = ClassEnum.GregsEx, Global = true, HasIndices = true, UseDotnetUnicode = true, UnicodeSets = false } } ),
                 new FeatureMatrixVariant( "GregsEx (ECMA, “v”)", new Engine{ Options = new Options { Class = ClassEnum.GregsEx, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = true } } ),
+                //new FeatureMatrixVariant( "CorvusEcma262", new Engine{ Options = new Options { Class = ClassEnum.CorvusEcma262, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = false } } ),
+                //new FeatureMatrixVariant( "CorvusEcma262 (“u”)", new Engine{ Options = new Options { Class = ClassEnum.CorvusEcma262, Global = true, HasIndices = true, UseDotnetUnicode = true, UnicodeSets = false } } ),
+                new FeatureMatrixVariant( "CorvusEcma262 (“v”)", new Engine{ Options = new Options { Class = ClassEnum.CorvusEcma262, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = true } } ),
             ];
     }
 
@@ -136,6 +142,7 @@ class Engine : RegexEngine
             ClassEnum.Scout => new SubengineScout( Options ),
             ClassEnum.LokadUtf8Regex => new SubengineLokadUtf8Regex( Options ),
             ClassEnum.GregsEx => new SubengineGregsEx( Options ),
+            ClassEnum.CorvusEcma262 => new SubengineCorvusEcma262( Options ),
             _ => throw new InvalidOperationException( )
         };
     }

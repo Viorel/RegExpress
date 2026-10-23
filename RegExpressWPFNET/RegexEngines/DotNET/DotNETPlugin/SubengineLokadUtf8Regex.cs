@@ -63,7 +63,7 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
                 RightToLeft = options.RightToLeft,
                 Singleline = options.Singleline,
 
-                Timeout = options.TimeoutMs,
+                Timeout = ValidationUtilities.ParseInt64( "Timeout", options.TimeoutMs ),
             }
         };
         string json = JsonSerializer.Serialize( data );
