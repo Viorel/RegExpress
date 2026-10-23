@@ -31,7 +31,6 @@
         <ui:CheckboxWithNote Prop="ALLBACKREFS" Note="with GLOBAL and no FIRSTBACKREFS: backref information for each successive match will be appended to the backref vector"/>
         <ui:CheckboxWithNote Prop="FIRSTBACKREFS" Note="with GLOBAL: only information from the complete match (backref 0) is saved for each successive match"/>
         <ui:CheckboxWithNote Prop="NORMALIZE" Note="turning ‘\\n’, ‘\\r’, ‘\\t’, ‘\\f’, ‘\\v’, ‘\\a’, ‘\\\\’ into ‘\n’, ‘\r’, ‘\t’, ‘\f’, ‘\v’, ‘\a’, ‘\\’"/>
-        <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
 
         <Grid Style="{StaticResource DetailsTable}">
             <Grid.ColumnDefinitions>

@@ -26,8 +26,6 @@ namespace ScoutWorker
 
             public string? EngineMode { get; set; }
             public ulong? DfaSizeLimit { get; set; }
-
-            public bool? FindAll { get; set; }
         }
 
         //
