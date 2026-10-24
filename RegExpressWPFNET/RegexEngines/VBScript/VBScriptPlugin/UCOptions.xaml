@@ -31,7 +31,7 @@
                 <RowDefinition/>
             </Grid.RowDefinitions>
 
-            <Label Grid.Column="0" Grid.Row="0" Content="Implementation:" Target="{Binding ElementName=cbxImplementation}" />
+            <Label Grid.Column="0" Grid.Row="0" Content="Kind:" Target="{Binding ElementName=cbxImplementation}" />
             <ComboBox x:Name="cbxImplementation" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Implementation, FallbackValue='VBScript'}" SelectionChanged="cbxImplementation_SelectionChanged">
                 <ui:ComboBoxItemWithVersion Tag="VBScript"          Text="VBScript"                 Version="{x:Static local:Versions.VBScript}" d:Version="" IsSelected="True" />
                 <ui:ComboBoxItemWithVersion Tag="tbRegExp"          Text="tbRegExp (twinBASIC)"     Version="{x:Static local:Versions.TwinBasic}" />

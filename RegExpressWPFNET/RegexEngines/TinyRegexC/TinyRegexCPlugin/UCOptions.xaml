@@ -32,7 +32,7 @@
                 <RowDefinition/>
             </Grid.RowDefinitions>
 
-            <Label Grid.Column="0" Grid.Row="0" Content="Implementation:" Target="{Binding ElementName=cbxImplementation}" />
+            <Label Grid.Column="0" Grid.Row="0" Content="Kind:" Target="{Binding ElementName=cbxImplementation}" />
             <ComboBox x:Name="cbxImplementation" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Implementation, FallbackValue='kokke'}" SelectionChanged="cbxImplementation_SelectionChanged">
                 <ui:ComboBoxItemWithVersion Tag="kokke"         Text="kokke (original)"     Version="{x:Static local:Versions.kokke}" IsSelected="True" />
                 <ui:ComboBoxItemWithVersion Tag="rurban"        Text="rurban"               Version="{x:Static local:Versions.rurban}" />

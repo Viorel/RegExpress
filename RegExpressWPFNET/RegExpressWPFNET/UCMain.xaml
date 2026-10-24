@@ -187,8 +187,43 @@
                                 <Binding Path="CornerRadius" RelativeSource="{RelativeSource AncestorType=Border}"/>
                             </MultiBinding>
                         </ScrollViewer.Clip>
-                        <StackPanel >
-                            <StackPanel Orientation="Horizontal" Margin="0 2 0 0">
+                        <StackPanel Orientation="Vertical">
+                            <Grid Margin="4 2 0 0">
+                                <Grid.LayoutTransform>
+                                    <TransformGroup>
+                                        <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                                    </TransformGroup>
+                                </Grid.LayoutTransform>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition/>
+                                </Grid.RowDefinitions>
+
+                                <Label Grid.Row="0" Grid.Column="0" Content="Engine: " Target="{Binding ElementName=cbxEngine}" VerticalAlignment="Center" Padding="0 2 4 2" MinWidth="{StaticResource Col0MinWidth}" />
+
+                                <ComboBox x:Name="cbxEngine" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" SelectionChanged="CbxEngine_SelectionChanged" MaxDropDownHeight="Auto" VerticalContentAlignment="Center" Padding="3 0 2 0">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="1 0 0 0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Version, TargetNullValue='Unknown version', FallbackValue='Unknown version'}" VerticalAlignment="Center" HorizontalAlignment="Left" 
+                                                           Margin="6 0 1 0">
+                                                </TextBlock>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                    <d:ComboBoxItem IsSelected="True">Some engine</d:ComboBoxItem>
+                                </ComboBox>
+                            </Grid>
+                            
+                            <!--<StackPanel Orientation="Horizontal" Margin="0 2 0 0">
                                 <StackPanel.LayoutTransform>
                                     <TransformGroup>
                                         <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
@@ -197,7 +232,7 @@
                                         <TranslateTransform/>
                                     </TransformGroup>
                                 </StackPanel.LayoutTransform>
-                                <Label Content="Engine: " VerticalAlignment="Center"/>
+                                <Label Content="Engine: " VerticalAlignment="Center" MinWidth="{StaticResource Col0MinWidth}"/>
                                 <ComboBox x:Name="cbxEngine" VerticalAlignment="Center" SelectionChanged="CbxEngine_SelectionChanged" MaxDropDownHeight="Auto" VerticalContentAlignment="Center" Padding="3 0 2 0">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
@@ -215,8 +250,10 @@
                                     </ComboBox.ItemTemplate>
                                     <d:ComboBoxItem IsSelected="True">Some engine</d:ComboBoxItem>
                                 </ComboBox>
-                            </StackPanel>
+                            </StackPanel>-->
+                            
                             <Separator/>
+                            
                             <Grid x:Name="pnlRegexOptions" Margin="3 0 0 4">
                                 <!-- (filled programmatically based on current engine) -->
                             </Grid>
