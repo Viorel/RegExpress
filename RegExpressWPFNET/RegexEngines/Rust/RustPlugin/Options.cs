@@ -101,6 +101,8 @@ class Options
     public string? backtrack_limit { get; set; } // also for 'regexr'
     public string? delegate_size_limit { get; set; }
     public string? delegate_dfa_size_limit { get; set; }
+    public string? max_prog_size { get; set; }
+    public bool delegate_dfa_skip_cache_capacity_check { get; set; }
 
     // Resharp
 

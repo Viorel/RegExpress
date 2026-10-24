@@ -68,13 +68,17 @@ internal partial class SubengineFancyRegex( Options options ) : RegexSubengine
                 options.seek,
                 options.disallow_empty_match_at_eof_after_newline,
                 options.allow_input_assertion_overrides,
+                options.delegate_dfa_skip_cache_capacity_check,
                 options.start_text,
                 options.end_text,
                 options.leftmost_longest,
-                bytes_mode = options.bytes_mode.ToString( ),
+
+                bytes_mode = Enum.GetName( options.bytes_mode ),
+
                 backtrack_limit = use_builder ? ValidationUtilities.ParseUInt32( "backtrack_limit", options.backtrack_limit ) : null,
                 delegate_size_limit = use_builder ? ValidationUtilities.ParseUInt32( "delegate_size_limit", options.delegate_size_limit ) : null,
                 delegate_dfa_size_limit = use_builder ? ValidationUtilities.ParseUInt32( "delegate_dfa_size_limit", options.delegate_dfa_size_limit ) : null,
+                max_prog_size = use_builder ? ValidationUtilities.ParseUInt32( "max_prog_size", options.max_prog_size ) : null,
             }
         };
 

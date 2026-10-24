@@ -151,6 +151,7 @@ namespace RustPlugin
                 chbx_seek.Display( is_fancy );
                 chbx_disallow_empty_match_at_eof_after_newline.Display( is_fancy );
                 chbx_allow_input_assertion_overrides.Display( is_fancy );
+                chbx_delegate_dfa_skip_cache_capacity_check.Display( is_fancy );
                 chbx_start_text.Display( is_fancy );
                 chbx_end_text.Display( is_fancy );
                 chbx_leftmost_longest.Display( is_fancy );
