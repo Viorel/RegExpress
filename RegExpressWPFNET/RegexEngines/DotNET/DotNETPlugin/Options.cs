@@ -20,6 +20,21 @@ enum ByteRegexEngineModeEnum
     AutomataOnly,
 }
 
+enum GregsExProfileEnum
+{
+    None,
+    EcmaScript,
+    Xsd,
+    XPath,
+}
+
+enum GregsExUnicodeVersionEnum
+{
+    None,
+    Unicode16_0,
+    Unicode17_0,
+}
+
 sealed class Options
 {
     public ClassEnum Class { get; set; } = ClassEnum.RegexDotNet;
@@ -62,10 +77,13 @@ sealed class Options
 
     // GregsEx
 
+    public GregsExProfileEnum GregsExProfile { get; set; } = GregsExProfileEnum.EcmaScript;
+    public GregsExUnicodeVersionEnum GregsExUnicodeVersion { get; set; } = GregsExUnicodeVersionEnum.Unicode16_0;
     public bool HasIndices { get; set; } = true;
     public bool Global { get; set; } = true;
     public bool UnicodeSets { get; set; }
     public bool Sticky { get; set; }
+    public bool Quote { get; set; }
 
 
     public Options Clone( )

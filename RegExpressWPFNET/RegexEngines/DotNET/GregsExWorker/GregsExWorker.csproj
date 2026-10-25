@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GregsEx" Version="0.1.0" />
+    <PackageReference Include="GregsEx" Version="0.4.3" />
   </ItemGroup>
 
 </Project>

@@ -58,8 +58,13 @@ namespace DotNETPlugin
                 pnlRegex.Display( is_dotnet | is_dotnet_framework | is_locad );
                 pnlReSharp.Display( is_resharp );
                 pnlScout.Display( is_scout );
-                pnlGregsEx.Display( is_gregsEx );
                 pnlCorvusEcma262.Display( is_corvus );
+
+                GregsExProfile.Display( is_gregsEx );
+                GregsExUnicodeVersion.Display( is_gregsEx );
+                pnlGregsExEcmaScript.Display( is_gregsEx && Options.GregsExProfile == GregsExProfileEnum.EcmaScript );
+                pnlGregsExXsd.Display( is_gregsEx && Options.GregsExProfile == GregsExProfileEnum.Xsd );
+                pnlGregsExXPath.Display( is_gregsEx && Options.GregsExProfile == GregsExProfileEnum.XPath );
 
                 NonBacktracking.Display( is_dotnet | is_locad );
                 NonBacktrackingDisabled.Display( !( is_dotnet | is_locad ) );
@@ -79,6 +84,18 @@ namespace DotNETPlugin
         }
 
         private void cbxClass_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateUI( );
+            Notify( preferImmediateReaction: true );
+        }
+
+        private void cbxGregsExProfile_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateUI( );
+            Notify( preferImmediateReaction: true );
+        }
+
+        private void cbxGregsExUnicodeVersion_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             UpdateUI( );
             Notify( preferImmediateReaction: true );
@@ -107,5 +124,6 @@ namespace DotNETPlugin
 
             UpdateUI( );
         }
+
     }
 }

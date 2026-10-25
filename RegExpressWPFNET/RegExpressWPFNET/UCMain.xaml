@@ -188,7 +188,7 @@
                             </MultiBinding>
                         </ScrollViewer.Clip>
                         <StackPanel Orientation="Vertical">
-                            <Grid Margin="4 2 0 0">
+                            <Grid Margin="3 2 0 0">
                                 <Grid.LayoutTransform>
                                     <TransformGroup>
                                         <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>

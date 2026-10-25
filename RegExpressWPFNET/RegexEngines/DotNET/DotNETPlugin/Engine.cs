@@ -105,9 +105,13 @@ class Engine : RegexEngine
                 new FeatureMatrixVariant( "RE#", new Engine{ Options = new Options { Class = ClassEnum.ReSharp } } ),
                 new FeatureMatrixVariant( "Scout (Unicode)", new Engine{ Options = new Options { Class = ClassEnum.Scout, UnicodeClasses = true } } ),
                 new FeatureMatrixVariant( "Lokad Utf8Regex", new Engine{ Options = new Options { Class = ClassEnum.LokadUtf8Regex, CultureInvariant = true } } ),
+
                 //new FeatureMatrixVariant( "GregsEx (ECMA)", new Engine{ Options = new Options { Class = ClassEnum.GregsEx, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = false } } ),
                 //new FeatureMatrixVariant( "GregsEx (ECMA, “u”)", new Engine{ Options = new Options { Class = ClassEnum.GregsEx, Global = true, HasIndices = true, UseDotnetUnicode = true, UnicodeSets = false } } ),
-                new FeatureMatrixVariant( "GregsEx (ECMA, “v”)", new Engine{ Options = new Options { Class = ClassEnum.GregsEx, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = true } } ),
+                new FeatureMatrixVariant( "GregsEx (ECMA, “v”)", new Engine{ Options = new Options { Class = ClassEnum.GregsEx, GregsExProfile = GregsExProfileEnum.EcmaScript, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = true } } ),
+                new FeatureMatrixVariant( "GregsEx (Xsd)", new Engine{ Options = new Options { Class = ClassEnum.GregsEx, GregsExProfile = GregsExProfileEnum.Xsd } } ),
+                new FeatureMatrixVariant( "GregsEx (XPath)", new Engine{ Options = new Options { Class = ClassEnum.GregsEx, GregsExProfile = GregsExProfileEnum.XPath } } ),
+
                 //new FeatureMatrixVariant( "CorvusEcma262", new Engine{ Options = new Options { Class = ClassEnum.CorvusEcma262, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = false } } ),
                 //new FeatureMatrixVariant( "CorvusEcma262 (“u”)", new Engine{ Options = new Options { Class = ClassEnum.CorvusEcma262, Global = true, HasIndices = true, UseDotnetUnicode = true, UnicodeSets = false } } ),
                 new FeatureMatrixVariant( "CorvusEcma262 (“v”)", new Engine{ Options = new Options { Class = ClassEnum.CorvusEcma262, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = true } } ),

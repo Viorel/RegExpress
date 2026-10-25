@@ -777,14 +777,23 @@ static class TreeData
                         }
                         else
                         {
+                            string? x = fm.TreatmentOfCatastrophicPatterns switch
+                            {
+                                FeatureMatrix.CatastrophicBacktrackingEnum.None => null,
+                                FeatureMatrix.CatastrophicBacktrackingEnum.Accept => "+",
+                                FeatureMatrix.CatastrophicBacktrackingEnum.Reject => "e",
+                                _ => throw new NotImplementedException( ),
+                            };
+
+
                             var r = SimpleReDosChecker.CheckCatastrophicPattern( e, fm );
 
                             return r switch
                             {
-                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.None => null,
-                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Passed => new IndicatorData( ColourEnum.Green, "+" ),
-                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Timeout => null,
-                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Error => new IndicatorData( ColourEnum.Warning, "e" ),
+                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.None => x == null ? null : new IndicatorData( ColourEnum.Warning, x + "???" ),
+                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Passed => new IndicatorData( ColourEnum.Green, x == "+" ? x : "+???" + x ),
+                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Timeout => x == null ? null : new IndicatorData( ColourEnum.Warning, "???" + x ),
+                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Error => new IndicatorData( ColourEnum.Warning, x == "e" ? x : "e???" + x ),
                                 SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Unknown => null,
                                 _ => throw new NotImplementedException( ),
                             };
