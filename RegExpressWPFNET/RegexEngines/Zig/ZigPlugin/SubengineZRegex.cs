@@ -371,7 +371,7 @@ class SubengineZRegex( Options options ) : RegexSubengine
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = unicode || v,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = v ? FeatureMatrix.CatastrophicBacktrackingEnum.Reject : FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = true,
             ßSS = false,
 

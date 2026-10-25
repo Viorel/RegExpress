@@ -414,7 +414,7 @@ partial class SubengineTbRegExp( Options options ) : RegexSubengine
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = false,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
+            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = true,
             ßSS = false,
 

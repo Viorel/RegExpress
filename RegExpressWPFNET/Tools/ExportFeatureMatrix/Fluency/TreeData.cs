@@ -762,6 +762,7 @@ static class TreeData
                 .Flag( "Reject ReDoS", "Give error on possible ReDoS", ( e, fm ) => fm.TreatmentOfCatastrophicPatterns == FeatureMatrix.CatastrophicBacktrackingEnum.Reject )
                     .Test( ( e, fm ) => SimpleReDosChecker.CheckCatastrophicPattern( e, fm ) == SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Error )
                 */
+
                 .Direct( "ReDoS protection", "“+” — protected, “e” — pattern rejected, give error",
                     ( v, e, fm ) =>
                     {
@@ -777,24 +778,16 @@ static class TreeData
                         }
                         else
                         {
-                            string? x = fm.TreatmentOfCatastrophicPatterns switch
-                            {
-                                FeatureMatrix.CatastrophicBacktrackingEnum.None => null,
-                                FeatureMatrix.CatastrophicBacktrackingEnum.Accept => "+",
-                                FeatureMatrix.CatastrophicBacktrackingEnum.Reject => "e",
-                                _ => throw new NotImplementedException( ),
-                            };
-
-
                             var r = SimpleReDosChecker.CheckCatastrophicPattern( e, fm );
 
-                            return r switch
+                            return fm.TreatmentOfCatastrophicPatterns switch
                             {
-                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.None => x == null ? null : new IndicatorData( ColourEnum.Warning, x + "???" ),
-                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Passed => new IndicatorData( ColourEnum.Green, x == "+" ? x : "+???" + x ),
-                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Timeout => x == null ? null : new IndicatorData( ColourEnum.Warning, "???" + x ),
-                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Error => new IndicatorData( ColourEnum.Warning, x == "e" ? x : "e???" + x ),
-                                SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Unknown => null,
+                                FeatureMatrix.CatastrophicBacktrackingEnum.None =>
+                                    r == SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Timeout ? null : new IndicatorData( ColourEnum.Warning, "???" + r ),
+                                FeatureMatrix.CatastrophicBacktrackingEnum.Accept => new IndicatorData( ColourEnum.Green,
+                                    r == SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Passed ? "+" : ( "+???" + r ) ),
+                                FeatureMatrix.CatastrophicBacktrackingEnum.Reject => new IndicatorData( ColourEnum.Warning,
+                                    r == SimpleReDosChecker.CatastrophicBacktrackingResultEnum.Error ? "e" : ( "e???" + r ) ),
                                 _ => throw new NotImplementedException( ),
                             };
                         }

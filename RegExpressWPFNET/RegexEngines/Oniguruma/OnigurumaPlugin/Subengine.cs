@@ -443,7 +443,7 @@ class Subengine( Options options, Engine parentEngine ) : RegexSubengine
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = true,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
+            TreatmentOfCatastrophicPatterns = syntax == SyntaxEnum.ONIG_SYNTAX_POSIX_BASIC || syntax == SyntaxEnum.ONIG_SYNTAX_GREP ? FeatureMatrix.CatastrophicBacktrackingEnum.Accept : FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
             Σσς = true,
             ßSS = true,
 

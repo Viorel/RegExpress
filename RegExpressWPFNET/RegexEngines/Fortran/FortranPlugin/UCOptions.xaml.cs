@@ -83,8 +83,8 @@ namespace FortranPlugin
             return Options.Module switch
             {
                 ModuleEnum.Forgex => "Forgex",
-                ModuleEnum.RegexPerazz => "Regex-Perazz",
-                ModuleEnum.RegexJeyemhex => "Regex-Jeyemhex",
+                ModuleEnum.RegexPerazz => "Perazz",
+                ModuleEnum.RegexJeyemhex => "Jeyemhex",
                 _ => "Unknown"
             };
         }

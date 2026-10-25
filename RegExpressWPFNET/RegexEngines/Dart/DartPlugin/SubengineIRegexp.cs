@@ -324,7 +324,7 @@ class SubengineIRegexp( Options options ) : RegexSubengine
             UnicodeCaseFolding = false,
             KeepSurrogatePairs = true,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = false,
             ßSS = false,
 
