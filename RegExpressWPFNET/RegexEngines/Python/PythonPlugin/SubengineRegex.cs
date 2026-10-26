@@ -18,7 +18,7 @@ namespace PythonPlugin;
 
 partial class SubengineRegex( Options options ) : RegexSubengine
 {
-    static readonly LazyData<(bool isPosix, bool isVersion1), FeatureMatrix> LazyFeatureMatrix = new( d => BuildFeatureMatrix( d.isPosix, d.isVersion1 ) );
+    static readonly LazyData<(bool POSIX, bool FULLCASE, bool VERSION0, bool VERSION1), FeatureMatrix> LazyFeatureMatrix = new( d => BuildFeatureMatrix( d.POSIX, d.FULLCASE, d.VERSION0, d.VERSION1 ) );
 
     static Lazy<string> LazyPythonWorker = new( LoadPythonWorker );
 
@@ -29,7 +29,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
 
     public override SyntaxOptions GetSyntaxOptions( )
     {
-        FeatureMatrix fm = LazyFeatureMatrix.GetValue( (options.POSIX, options.VERSION1) );
+        FeatureMatrix fm = LazyFeatureMatrix.GetValue( (options.POSIX, options.FULLCASE, options.VERSION0, options.VERSION1) );
 
         return new SyntaxOptions
         {
@@ -227,8 +227,10 @@ partial class SubengineRegex( Options options ) : RegexSubengine
         return worker;
     }
 
-    static FeatureMatrix BuildFeatureMatrix( bool isPosix, bool isVersion1 )
+    static FeatureMatrix BuildFeatureMatrix( bool POSIX, bool FULLCASE, bool VERSION0, bool VERSION1 )
     {
+        if( !VERSION0 && !VERSION1 ) VERSION0 = true;
+
         return new FeatureMatrix
         {
             Parentheses = FeatureMatrix.PunctuationEnum.Normal,
@@ -336,7 +338,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
             InsideSets_Equivalence = false,
             InsideSets_Collating = false,
 
-            InsideSets_Operators = isVersion1,
+            InsideSets_Operators = VERSION1,
             InsideSets_OperatorsExtended = false,
             InsideSets_Operator_Ampersand = false,
             InsideSets_Operator_Plus = false,
@@ -344,10 +346,10 @@ partial class SubengineRegex( Options options ) : RegexSubengine
             InsideSets_Operator_Minus = false,
             InsideSets_Operator_Circumflex = false,
             InsideSets_Operator_Exclamation = false,
-            InsideSets_Operator_DoubleAmpersand = isVersion1,
-            InsideSets_Operator_DoubleVerticalLine = isVersion1,
-            InsideSets_Operator_DoubleMinus = isVersion1,
-            InsideSets_Operator_DoubleTilde = isVersion1,
+            InsideSets_Operator_DoubleAmpersand = VERSION1,
+            InsideSets_Operator_DoubleVerticalLine = VERSION1,
+            InsideSets_Operator_DoubleMinus = VERSION1,
+            InsideSets_Operator_DoubleTilde = VERSION1,
 
             Anchor_Circumflex = true,
             Anchor_Dollar = true,
@@ -413,7 +415,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
             Quantifier_LowAbbrev = true,
-            Quantifier_Lazy = !isPosix,
+            Quantifier_Lazy = !POSIX,
             Quantifier_Possessive = true,
 
             Conditional_BackrefByNumber = true,
@@ -444,7 +446,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = true,
-            ßSS = isVersion1,
+            ßSS = VERSION1 || ( VERSION0 && FULLCASE ),
         };
     }
 

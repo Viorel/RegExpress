@@ -21,7 +21,8 @@ The following engines are included:
   * [_Scout_](https://www.nuget.org/packages/Scout) 0.8.0,
   * [_Lokad.Utf8Regex_](https://www.nuget.org/packages/Lokad.Utf8Regex) 0.3.0,
   * [_GregsEx_](https://www.nuget.org/packages/GregsEx) 0.4.3,
-  * [_Corvus.Regex.Ecma262_](https://www.nuget.org/packages/Corvus.Regex.Ecma262) 1.0.5.
+  * [_Corvus.Regex.Ecma262_](https://www.nuget.org/packages/Corvus.Regex.Ecma262) 1.0.5,
+  * [_FuzzyRegex_](https://www.nuget.org/packages/FuzzyRegex) 1.1.0,
 * [**basic_regex**](https://docs.microsoft.com/en-us/cpp/standard-library/regex) class in C++:
   * MSVC _wregex_, 
   *  GCC _wregex_,
