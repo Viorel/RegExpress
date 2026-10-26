@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:DotNETPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             Loaded="UserControl_Loaded" d:DesignHeight="962.047" d:DesignWidth="526.328" >
+             Loaded="UserControl_Loaded" d:DesignHeight="1579.954" d:DesignWidth="526.328" >
 
 
     <UserControl.Resources>
@@ -44,6 +44,7 @@
                 <ui:ComboBoxItemWithVersion Tag ="LokadUtf8Regex"       Text="Lokad.Utf8Regex"      Version="{x:Static local:Versions.LokadUtf8Regex}"  d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="GregsEx"              Text="GregsEx"              Version="{x:Static local:Versions.GregsEx}"         d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="CorvusEcma262"        Text="Corvus.Regex.Ecma262" Version="{x:Static local:Versions.CorvusEcma262}"   d:Version="###" />
+                <ui:ComboBoxItemWithVersion Tag ="FuzzyRegex"           Text="FuzzyRegex"           Version="{x:Static local:Versions.FuzzyRegex}"      d:Version="###" />
             </ComboBox>
 
             <Label Grid.Row="1" Grid.Column="0" Content="Profile:" Target="{Binding ElementName=GregsExProfile}" Visibility="{Binding Visibility, ElementName=GregsExProfile}" d:Visibility="Visible" />
@@ -234,11 +235,55 @@
                 <Label Grid.Row="0" Grid.Column="0" Target="{Binding ElementName=corvus_timeout}" Content="Timeout:"/>
                 <TextBox x:Name="corvus_timeout" Grid.Row="0" Grid.Column="1" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="ms" FontStyle="Italic" />
-
             </Grid>
 
         </StackPanel>
 
+        <StackPanel x:Name="pnlFuzzyRegex" Orientation="Vertical">
+
+            <ui:CheckboxWithNote Prop="IgnoreCase" Text="IgnoreCase" Note="Case-insensitive matching. Upstream IGNORECASE / I"/>
+            <ui:CheckboxWithNote Prop="Multiline" Text="Multiline" Note="“^” and “$” match at the start and end of every line, as well as of the whole subject. Upstream MULTILINE / M"/>
+            <ui:CheckboxWithNote Prop="Singleline" Text="Singleline" Note="“.” matches any character including a newline. Upstream DOTALL / S"/>
+            <ui:CheckboxWithNote Prop="UseDotnetUnicode" Text="Unicode" Note=" The character classes \w, \W, \s, \S, \d, \D and the word boundaries \b, \B cover the whole of Unicode. Upstream UNICODE / U"/>
+            <ui:CheckboxWithNote Prop="IgnorePatternWhitespace" Text="IgnorePatternWhitespace" Note="Unescaped whitespace in the pattern is ignored and # starts a comment. Upstream VERBOSE / X"/>
+            <ui:CheckboxWithNote Prop="Ascii" Text="Ascii" Note="The character classes \w, \W, \s, \S, \d, \D and the word boundaries \b, \B cover ASCII only, so everything above U+007F is answered as if it were unassigned. Upstream ASCII / A"/>
+            <ui:CheckboxWithNote Prop="RightToLeft" Text="RightToLeft" Note="Search backwards, from the end of the subject towards the start. Upstream REVERSE / R"/>
+            <ui:CheckboxWithNote Prop="Word" Text="Word" Note="\b and \B use the default Unicode word-boundary rules (UAX #29) instead of the \w-to-\W transition. Upstream WORD / W"/>
+            <ui:CheckboxWithNote Prop="BestMatch" Text="BestMatch" Note="Find the best fuzzy match rather than the first one. Upstream BESTMATCH / B"/>
+            <ui:CheckboxWithNote Prop="EnhanceMatch" Text="EnhanceMatch" Note="After finding a fuzzy match, try to improve its fit. Upstream ENHANCEMATCH / E"/>
+            <ui:CheckboxWithNote Prop="Posix" Text="Posix" Note="Leftmost-longest (POSIX) matching instead of leftmost-first. Upstream POSIX / P"/>
+            <ui:CheckboxWithNote Prop="FullCase" Text="FullCase" Note="Use Unicode full case-folding when matching case-insensitively, so that (for example) ß matches SS and ﬁ matches fi. Upstream FULLCASE / F"/>
+            <ui:CheckboxWithNote Prop="Version0" Text="Version0" Note="Legacy behaviour, compatible with System.Text.RegularExpressions and Python's re: simple case-folding, and an unescaped [ inside a set is a literal. Upstream VERSION0 / V0, and upstream's own default"/>
+            <ui:CheckboxWithNote Prop="Version1" Text="Version1" Note="The default. Nested sets and set operations ([[a-z]--[aeiou]]), and full case folding when matching case-insensitively. Upstream VERSION1 / V1"/>
+            <ui:CheckboxWithNote Prop="Overlapped" Text="Overlapped" Note="Whether matches may overlap. Upstream's overlapped=True"/>
+            <ui:CheckboxWithNote Prop="Partial" Text="Partial" Note="Whether the scan may end with a partial match. Upstream's finditer(partial=True)"/>
+
+            <Grid Style="{StaticResource DetailsTable}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition MinWidth="55"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Target="{Binding ElementName=FuzzyRegex_timeout1}" Content="Timeout:"/>
+                <TextBox x:Name="FuzzyRegex_timeout1" Grid.Row="0" Grid.Column="1" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="ms" FontStyle="Italic" />
+
+                <Label Grid.Row="1" Grid.Column="0" Target="{Binding ElementName=FuzzyRegex_timeout2}" Content="Step Timeout:"/>
+                <TextBox x:Name="FuzzyRegex_timeout2" Grid.Row="1" Grid.Column="1" Text="{Binding StepTimeoutMs, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="ms" FontStyle="Italic" />
+
+                <Label Grid.Row="2" Grid.Column="0" Target="{Binding ElementName=MaxCompiledNodes}" Content="MaxCompiledNodes:"/>
+                <TextBox x:Name="MaxCompiledNodes" Grid.Row="2" Grid.Column="1" Text="{Binding MaxCompiledNodes, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="ms" FontStyle="Italic" />
+            </Grid>
+        </StackPanel>
+        
     </StackPanel>
 
 </UserControl>

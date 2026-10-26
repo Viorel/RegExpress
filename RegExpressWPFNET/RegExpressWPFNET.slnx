@@ -32,12 +32,14 @@
       <BuildDependency Project="RegexEngines/DotNET/CorvusEcma262Worker/CorvusEcma262Worker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+      <BuildDependency Project="RegexEngines/DotNET/FuzzyRegexWorker/FuzzyRegexWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/GregsExWorker/GregsExWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/RESharpWorker/RESharpWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/ScoutWorker/ScoutWorker.csproj" />
     </Project>
     <Project Path="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+    <Project Path="RegexEngines/DotNET/FuzzyRegexWorker/FuzzyRegexWorker.csproj" Id="3eaeaa13-977b-4d12-8317-ded94cb09fa1" />
     <Project Path="RegexEngines/DotNET/GregsExWorker/GregsExWorker.csproj" Id="b14803d2-9525-4a77-bb2c-abcd434d8f21" />
     <Project Path="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" Id="d102e3c3-2f20-4876-8aec-e2df4f5f9762" />
     <Project Path="RegexEngines/DotNET/RESharpWorker/RESharpWorker.csproj" />
@@ -175,6 +177,7 @@
     <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETWorker/DotNETWorker.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET/FuzzyRegexWorker/FuzzyRegexWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/GregsExWorker/GregsExWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/RESharpWorker/RESharpWorker.csproj" />

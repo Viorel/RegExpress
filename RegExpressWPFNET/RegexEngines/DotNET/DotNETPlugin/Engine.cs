@@ -57,6 +57,7 @@ class Engine : RegexEngine
         ClassEnum.LokadUtf8Regex => "Lokad",
         ClassEnum.GregsEx => "GregsEx",
         ClassEnum.CorvusEcma262 => "CorvusEcma262",
+        ClassEnum.FuzzyRegex => "FuzzyRegex",
         _ => "unknown"
     }}";
 
@@ -115,6 +116,10 @@ class Engine : RegexEngine
                 //new FeatureMatrixVariant( "CorvusEcma262", new Engine{ Options = new Options { Class = ClassEnum.CorvusEcma262, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = false } } ),
                 //new FeatureMatrixVariant( "CorvusEcma262 (“u”)", new Engine{ Options = new Options { Class = ClassEnum.CorvusEcma262, Global = true, HasIndices = true, UseDotnetUnicode = true, UnicodeSets = false } } ),
                 new FeatureMatrixVariant( "CorvusEcma262 (“v”)", new Engine{ Options = new Options { Class = ClassEnum.CorvusEcma262, Global = true, HasIndices = true, UseDotnetUnicode = false, UnicodeSets = true } } ),
+                
+                //new FeatureMatrixVariant( "Fuzzy (V0, no fc)", new Engine{ Options = new Options { Class = ClassEnum.FuzzyRegex, UseDotnetUnicode = true, FullCase = false, Version0 = true, Version1 = false } } ),
+                //new FeatureMatrixVariant( "Fuzzy (V0, fc)", new Engine{ Options = new Options { Class = ClassEnum.FuzzyRegex, UseDotnetUnicode = true, FullCase = true, Version0 = true,Version1 = false } } ),
+                new FeatureMatrixVariant( "FuzzyRegex (V1)", new Engine{ Options = new Options { Class = ClassEnum.FuzzyRegex, UseDotnetUnicode = true, FullCase = true, Version0 = false, Version1 = true } } ),
             ];
     }
 
@@ -147,6 +152,7 @@ class Engine : RegexEngine
             ClassEnum.LokadUtf8Regex => new SubengineLokadUtf8Regex( Options ),
             ClassEnum.GregsEx => new SubengineGregsEx( Options ),
             ClassEnum.CorvusEcma262 => new SubengineCorvusEcma262( Options ),
+            ClassEnum.FuzzyRegex => new SubengineFuzzyRegex( Options ),
             _ => throw new InvalidOperationException( )
         };
     }

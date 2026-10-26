@@ -10,6 +10,7 @@ enum ClassEnum
     LokadUtf8Regex,
     GregsEx,
     CorvusEcma262,
+    FuzzyRegex,
 }
 
 enum ByteRegexEngineModeEnum
@@ -84,6 +85,22 @@ sealed class Options
     public bool UnicodeSets { get; set; }
     public bool Sticky { get; set; }
     public bool Quote { get; set; }
+
+    // FuzzyRegex
+
+    public bool Ascii { get; set; }
+    public bool Word { get; set; }
+    public bool BestMatch { get; set; }
+    public bool EnhanceMatch { get; set; }
+    public bool Posix { get; set; }
+    public bool FullCase { get; set; }
+    public bool Version0 { get; set; }
+    public bool Version1 { get; set; } = true;
+    public bool Overlapped { get; set; }
+    public bool Partial { get; set; }
+
+    public string? StepTimeoutMs { get; set; } = null;
+    public string? MaxCompiledNodes { get; set; } = null;
 
 
     public Options Clone( )

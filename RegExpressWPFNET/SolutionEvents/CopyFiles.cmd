@@ -55,6 +55,12 @@ xcopy /D /R /Y "%BasePath%\CorvusEcma262Worker\bin\%Configuration%\net10.0\Corvu
 xcopy /D /R /Y "%BasePath%\CorvusEcma262Worker\bin\%Configuration%\net10.0\CorvusEcma262Worker.deps.json" "%EnginesTargetPath%\DotNET\CorvusEcma262Worker\*"
 xcopy /D /R /Y "%BasePath%\CorvusEcma262Worker\bin\%Configuration%\net10.0\CorvusEcma262Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\CorvusEcma262Worker\*"
 
+xcopy /D /R /Y "%BasePath%\FuzzyRegexWorker\bin\%Configuration%\net10.0\*.dll" "%EnginesTargetPath%\DotNET\FuzzyRegexWorker\*"
+xcopy /D /R /Y "%BasePath%\FuzzyRegexWorker\bin\%Configuration%\net10.0\FuzzyRegexWorker.exe" "%EnginesTargetPath%\DotNET\FuzzyRegexWorker\*.bin"
+xcopy /D /R /Y "%BasePath%\FuzzyRegexWorker\bin\%Configuration%\net10.0\FuzzyRegexWorker.deps.json" "%EnginesTargetPath%\DotNET\FuzzyRegexWorker\*"
+xcopy /D /R /Y "%BasePath%\FuzzyRegexWorker\bin\%Configuration%\net10.0\FuzzyRegexWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\FuzzyRegexWorker\*"
+
+
 rem -- STD --
 
 set BasePath=%SolutionDir%\RegexEngines\Std

@@ -54,11 +54,13 @@ namespace DotNETPlugin
                 bool is_locad = @class == ClassEnum.LokadUtf8Regex;
                 bool is_gregsEx = @class == ClassEnum.GregsEx;
                 bool is_corvus = @class == ClassEnum.CorvusEcma262;
+                bool is_fuzzy_regex = @class == ClassEnum.FuzzyRegex;
 
                 pnlRegex.Display( is_dotnet | is_dotnet_framework | is_locad );
                 pnlReSharp.Display( is_resharp );
                 pnlScout.Display( is_scout );
                 pnlCorvusEcma262.Display( is_corvus );
+                pnlFuzzyRegex.Display( is_fuzzy_regex );
 
                 GregsExProfile.Display( is_gregsEx );
                 GregsExUnicodeVersion.Display( is_gregsEx );
