@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 
 namespace DotNETPlugin;
@@ -34,12 +35,13 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
 
     public class Rootobject
     {
-        public required Match[] matches { get; set; }
+        public required Match[] Matches { get; set; }
     }
 
     public class Match
     {
-        public required int[][] g { get; set; }
+        [JsonPropertyName( "g" )]
+        public required int[][] Groups { get; set; }
     }
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
@@ -95,15 +97,15 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
         SimpleTextGetter stg = new( text );
         IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
 
-        foreach( var m in root_object.matches )
+        foreach( var m in root_object.Matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
             SimpleMatch match;
 
             {
-                int native_start = m.g[0][0];
-                int native_length = m.g[0][1];
+                int native_start = m.Groups[0][0];
+                int native_length = m.Groups[0][1];
 
                 Debug.Assert( native_start >= 0 && native_length >= 0 );
 

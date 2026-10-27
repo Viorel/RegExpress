@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 
@@ -32,26 +33,43 @@ namespace DotNETWorker
             public long? Timeout { get; set; }
         }
 
+        sealed class WorkerMatches
+        {
+            public string[] Names { get; init; }
+            public List<WorkerMatch> Matches { get; } = [];
+        }
+
         sealed class WorkerMatch
         {
-            public int index { get; set; }
-            public int length { get; set; }
-            public List<WorkerGroup> groups { get; set; } = [];
+            [JsonPropertyName( "i" )]
+            public int Index { get; set; }
+
+            [JsonPropertyName( "l" )]
+            public int Length { get; set; }
+
+            [JsonPropertyName( "g" )]
+            public List<WorkerGroup> Groups { get; set; } = [];
         }
 
         sealed class WorkerGroup
         {
-            public bool success { get; set; }
-            public int index { get; set; }
-            public int length { get; set; }
-            public string? name { get; set; }
-            public List<WorkerCapture> captures { get; set; } = [];
+            [JsonPropertyName( "i" )]
+            public int Index { get; set; }
+
+            [JsonPropertyName( "l" )]
+            public int Length { get; set; }
+
+            [JsonPropertyName( "c" )]
+            public List<WorkerCapture> Captures { get; set; } = [];
         }
 
         sealed class WorkerCapture
         {
-            public int index { get; set; }
-            public int length { get; set; }
+            [JsonPropertyName( "i" )]
+            public int Index { get; set; }
+
+            [JsonPropertyName( "l" )]
+            public int Length { get; set; }
         }
 
 
@@ -115,7 +133,7 @@ namespace DotNETWorker
                 version += " (" + new Version( Environment.Version.Major, Environment.Version.Minor, Environment.Version.Build ) + ")";
             }
 
-            var response = new { version };
+            var response = new { Version = version };
             var response_string = JsonSerializer.Serialize( response );
 
             Console.Out.WriteLine( response_string );
@@ -130,31 +148,40 @@ namespace DotNETWorker
         {
             RegexOptions options = ConvertOptions( inputArgs.options );
 
-            Regex re = inputArgs.options?.Timeout == null ? 
-                new Regex( inputArgs.pattern ?? "", options ) : 
+            Regex re = inputArgs.options?.Timeout == null ?
+                new Regex( inputArgs.pattern ?? "", options ) :
                 new Regex( inputArgs.pattern ?? "", options, TimeSpan.FromMilliseconds( inputArgs.options.Timeout.Value ) );
 
-            var worker_matches = new List<WorkerMatch>( );
+            WorkerMatches worker_matches = new( ) { Names = re.GetGroupNames( ) };
 
             foreach( Match m in re.Matches( inputArgs.text ?? "" ) )
             {
                 Debug.Assert( m.Success );
 
-                var worker_match = new WorkerMatch { index = m.Index, length = m.Length };
+                var worker_match = new WorkerMatch { Index = m.Index, Length = m.Length };
 
                 foreach( Group g in m.Groups.Cast<Group>( ) )
                 {
-                    var worker_group = new WorkerGroup { success = g.Success, index = g.Index, length = g.Length, name = g.Name };
+                    WorkerGroup worker_group;
 
-                    foreach( Capture c in g.Captures )
+                    if( !g.Success )
                     {
-                        worker_group.captures.Add( new WorkerCapture { index = c.Index, length = c.Length } );
+                        worker_group = new WorkerGroup { Index = -1, Length = -1 };
+                    }
+                    else
+                    {
+                        worker_group = new WorkerGroup { Index = g.Index, Length = g.Length };
+
+                        foreach( Capture c in g.Captures )
+                        {
+                            worker_group.Captures.Add( new WorkerCapture { Index = c.Index, Length = c.Length } );
+                        }
                     }
 
-                    worker_match.groups.Add( worker_group );
+                    worker_match.Groups.Add( worker_group );
                 }
 
-                worker_matches.Add( worker_match );
+                worker_matches.Matches.Add( worker_match );
             }
 
             string ret_json = JsonSerializer.Serialize( worker_matches );

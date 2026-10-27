@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace GregsExWorker;
 
@@ -62,12 +63,13 @@ internal class Program
 
     sealed class Output
     {
-        public required OutputMatch[] matches { get; set; }
+        public required OutputMatch[] Matches { get; set; }
     }
 
     sealed class OutputMatch
     {
-        public required int[][] g { get; set; }
+        [JsonPropertyName( "g" )]
+        public required int[][] Groups { get; set; }
     }
 
     static GregsEx.UnicodeVersion ParseUnicodeVersion( string? unicodeVersion )
@@ -139,7 +141,7 @@ internal class Program
                     }
                 }
 
-                OutputMatch output_match = new( ) { g = [.. output_groups] };
+                OutputMatch output_match = new( ) { Groups = [.. output_groups] };
 
                 output_matches.Add( output_match );
             }
@@ -155,7 +157,7 @@ internal class Program
             }
         }
 
-        string output_json = JsonSerializer.Serialize( new Output { matches = [.. output_matches] } );
+        string output_json = JsonSerializer.Serialize( new Output { Matches = [.. output_matches] } );
 
         Console.Out.WriteLine( output_json );
     }
@@ -202,7 +204,7 @@ internal class Program
                     }
                 }
 
-                OutputMatch output_match = new( ) { g = [.. output_groups] };
+                OutputMatch output_match = new( ) { Groups = [.. output_groups] };
 
                 output_matches.Add( output_match );
             }
@@ -218,7 +220,7 @@ internal class Program
             }
         }
 
-        string output_json = JsonSerializer.Serialize( new Output { matches = [.. output_matches] } );
+        string output_json = JsonSerializer.Serialize( new Output { Matches = [.. output_matches] } );
 
         Console.Out.WriteLine( output_json );
     }
@@ -276,7 +278,7 @@ internal class Program
                     }
                 }
 
-                OutputMatch output_match = new( ) { g = [.. output_groups] };
+                OutputMatch output_match = new( ) { Groups = [.. output_groups] };
 
                 output_matches.Add( output_match );
             }
@@ -294,7 +296,7 @@ internal class Program
             break; // TODO: loop?
         }
 
-        string output_json = JsonSerializer.Serialize( new Output { matches = [.. output_matches] } );
+        string output_json = JsonSerializer.Serialize( new Output { Matches = [.. output_matches] } );
 
         Console.Out.WriteLine( output_json );
     }

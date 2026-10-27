@@ -38,43 +38,46 @@ internal partial class SubengineCorvusEcma262( Options options ) : RegexSubengin
         };
     }
 
+    sealed class WorkerMatches
+    {
+        //public required string[] Names { get; set; } -- only named groups are included; discrepancy from .NET RegExp
+        public required WorkerMatch[] Matches { get; set; }
+    }
+
     sealed class WorkerMatch
     {
         [JsonPropertyName( "i" )]
-        public int index { get; init; }
+        public required int Index { get; init; }
 
         [JsonPropertyName( "l" )]
-        public int length { get; init; }
+        public required int Length { get; init; }
 
         [JsonPropertyName( "g" )]
-        public required WorkerGroup[] groups { get; init; }
+        public required WorkerGroup[] Groups { get; init; }
     }
 
     sealed class WorkerGroup
     {
-        [JsonPropertyName( "s" )]
-        public bool success { get; init; }
-
         [JsonPropertyName( "i" )]
-        public int index { get; init; }
+        public required int Index { get; init; }
 
         [JsonPropertyName( "l" )]
-        public int length { get; init; }
+        public required int Length { get; init; }
 
         [JsonPropertyName( "n" )]
-        public string? name { get; init; }
+        public required string? Name { get; init; }
 
         [JsonPropertyName( "c" )]
-        public required WorkerCapture[] captures { get; init; }
+        public required WorkerCapture[] Captures { get; init; }
     }
 
     sealed class WorkerCapture
     {
         [JsonPropertyName( "i" )]
-        public int index { get; init; }
+        public required int Index { get; init; }
 
         [JsonPropertyName( "l" )]
-        public int length { get; init; }
+        public required int Length { get; init; }
     }
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
@@ -119,9 +122,9 @@ internal partial class SubengineCorvusEcma262( Options options ) : RegexSubengin
 #if DEBUG
         using StreamReader sr = new( ph.OutputStream );
         string output = sr.ReadToEnd( );
-        WorkerMatch[]? worker_matches = JsonSerializer.Deserialize<WorkerMatch[]>( output );
+        WorkerMatches? worker_matches = JsonSerializer.Deserialize<WorkerMatches>( output );
 #else
-        WorkerMatch[]? worker_matches = JsonSerializer.Deserialize<WorkerMatch[]>( ph.OutputStream );
+        WorkerMatches? worker_matches = JsonSerializer.Deserialize<WorkerMatches>( ph.OutputStream );
 #endif
 
         if( worker_matches == null ) throw new Exception( "Invalid response" );
@@ -130,15 +133,15 @@ internal partial class SubengineCorvusEcma262( Options options ) : RegexSubengin
         SimpleTextGetter stg = new( text );
         IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
 
-        foreach( WorkerMatch m in worker_matches )
+        foreach( WorkerMatch m in worker_matches.Matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
             SimpleMatch match;
 
             {
-                int native_start = m.index; // in UTF-16 code units
-                int native_length = m.length; // in UTF-16 code units
+                int native_start = m.Index; // in UTF-16 code units
+                int native_length = m.Length; // in UTF-16 code units
 
                 Debug.Assert( native_start >= 0 && native_length >= 0 );
 
@@ -151,18 +154,13 @@ internal partial class SubengineCorvusEcma262( Options options ) : RegexSubengin
                 match.AddDefaultGroup( );
             }
 
-            for( int i = 1; i < m.groups.Length; ++i ) // skip default group
+            for( int i = 1; i < m.Groups.Length; ++i ) // skip default group
             {
-                WorkerGroup g = m.groups[i];
+                WorkerGroup g = m.Groups[i];
 
-                int native_start = g.index;
-                int native_length = g.length;
+                bool success = g.Index >= 0 && g.Length >= 0;
 
-                bool success = g.success;
-
-                Debug.Assert( !success || ( native_start >= 0 && native_length >= 0 ) );
-
-                string? name = string.IsNullOrWhiteSpace( g.name ) ? i.ToString( CultureInfo.InvariantCulture ) : g.name;
+                string? name = string.IsNullOrWhiteSpace( g.Name ) ? i.ToString( CultureInfo.InvariantCulture ) : g.Name;
 
                 if( !success )
                 {
@@ -170,16 +168,19 @@ internal partial class SubengineCorvusEcma262( Options options ) : RegexSubengin
                 }
                 else
                 {
+                    int native_start = g.Index;
+                    int native_length = g.Length;
+
                     int native_end = native_start + native_length;
 
                     (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
                     SimpleGroup group = match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
 
-                    foreach( var c in g.captures )
+                    foreach( var c in g.Captures )
                     {
-                        int c_native_start = c.index;
-                        int c_native_length = c.length;
+                        int c_native_start = c.Index;
+                        int c_native_length = c.Length;
 
                         Debug.Assert( c_native_start >= 0 && c_native_length >= 0 );
 

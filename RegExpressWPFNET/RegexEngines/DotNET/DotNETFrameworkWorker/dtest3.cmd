@@ -1,0 +1,4 @@
+@rem LATIN SMALL LETTER I WITH CIRCUMFLEX (U+00EE), utf-8: C3 AE
+@echo { "cmd" : "m", "pattern" : ".", "text" : "x\u00EEy", "options" : { "Global" : true, "Unicode" : true } } | "bin\Debug\DotNETFrameworkWorker.exe"
+@rem PRETZEL (U+1F968), \uD83E\uDD68, utf-8: F0 9F A5 A8
+@echo { "cmd" : "m", "pattern" : ".", "text" : "x\uD83E\uDD68y", "options" : { "Global" : true, "Unicode" : true } } | "bin\Debug\DotNETFrameworkWorker.exe"

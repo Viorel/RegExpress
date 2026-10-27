@@ -1,6 +1,6 @@
-﻿using Resharp;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace RESharpWorker
 {
@@ -8,7 +8,6 @@ namespace RESharpWorker
     {
         sealed class InputArgs
         {
-            public string? command { get; set; }
             public string? pattern { get; set; }
             public string? text { get; set; }
             public Options? options { get; set; }
@@ -29,10 +28,18 @@ namespace RESharpWorker
             public int? DfaThreshold { get; set; }
         }
 
+        sealed class WorkerMatches
+        {
+            public required WorkerMatch[] Matches { get; init; }
+        }
+
         sealed class WorkerMatch
         {
-            public int index { get; set; }
-            public int length { get; set; }
+            [JsonPropertyName( "i" )]
+            public required int Index { get; init; }
+
+            [JsonPropertyName( "l" )]
+            public required int Length { get; init; }
         }
 
 
@@ -47,40 +54,29 @@ namespace RESharpWorker
 
                 InputArgs input_args = JsonSerializer.Deserialize<InputArgs>( input_string )!;
 
-                switch( input_args.command )
+                Resharp.ResharpOptions options = ConvertOptions( input_args.options );
+
+                Resharp.Regex re = new Resharp.Regex( input_args.pattern ?? "", options );
+                List<WorkerMatch> matches = [];
+
+                using var value_matches = re.ValueMatches( input_args.text ?? "" );
+
+                foreach( Resharp.Common.ValueMatch m in value_matches )
                 {
-                case "match":
-                    GetMatches( input_args );
-                    break;
-                default:
-                    throw new ArgumentException( $"Command not supported: '{input_args.command}'" );
+                    WorkerMatch worker_match = new( ) { Index = m.Index, Length = m.Length };
+
+                    matches.Add( worker_match );
                 }
+
+                WorkerMatches worker_matches = new( ) { Matches = [.. matches] };
+                string ret_json = JsonSerializer.Serialize( worker_matches );
+
+                Console.Out.WriteLine( ret_json );
             }
             catch( Exception exc )
             {
                 Console.Error.WriteLine( exc.Message );
             }
-        }
-
-        private static void GetMatches( InputArgs inputArgs )
-        {
-            Resharp.ResharpOptions options = ConvertOptions( inputArgs.options );
-
-            var re = new Resharp.Regex( inputArgs.pattern ?? "", options );
-            var worker_matches = new List<WorkerMatch>( );
-
-            using var value_matches = re.ValueMatches( inputArgs.text ?? "" );
-
-            foreach( Common.ValueMatch m in value_matches )
-            {
-                var worker_match = new WorkerMatch { index = m.Index, length = m.Length };
-
-                worker_matches.Add( worker_match );
-            }
-
-            string ret_json = JsonSerializer.Serialize( worker_matches );
-
-            Console.Out.WriteLine( ret_json );
         }
 
         private static Resharp.ResharpOptions ConvertOptions( Options? options )

@@ -11,6 +11,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 
@@ -36,12 +37,13 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
 
     public class Rootobject
     {
-        public required Match[] matches { get; set; }
+        public required Match[] Matches { get; set; }
     }
 
     public class Match
     {
-        public required int[][] g { get; set; }
+        [JsonPropertyName( "g" )]
+        public required int[][] Groups { get; set; }
     }
 
 
@@ -97,15 +99,15 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
         SimpleTextGetter stg = new( text );
         Utf8IndexConverter index_converter = new( text );
 
-        foreach( var m in root_object.matches )
+        foreach( var m in root_object.Matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
             SimpleMatch match;
 
             {
-                int native_start = m.g[0][0];
-                int native_end = m.g[0][1];
+                int native_start = m.Groups[0][0];
+                int native_end = m.Groups[0][1];
                 int native_length = native_end - native_start;
 
                 Debug.Assert( native_start >= 0 && native_end >= native_start );
@@ -117,9 +119,9 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
                 match.AddDefaultGroup( );
             }
 
-            for( int i = 1; i < m.g.Length; ++i ) // skip default group
+            for( int i = 1; i < m.Groups.Length; ++i ) // skip default group
             {
-                int[] g = m.g[i];
+                int[] g = m.Groups[i];
 
                 int native_start = g[0];
                 int native_end = g[1];

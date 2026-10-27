@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 
 namespace DotNETPlugin;
@@ -34,29 +35,46 @@ class SubengineDotNetFramework( Options options ) : RegexSubengine
 
     sealed class VersionResponse
     {
-        public required string version { get; init; }
+        public required string Version { get; init; }
+    }
+
+    sealed class WorkerMatches
+    {
+        public required string[] Names { get; set; }
+        public required WorkerMatch[] Matches { get; set; }
     }
 
     sealed class WorkerMatch
     {
-        public int index { get; init; }
-        public int length { get; init; }
-        public required WorkerGroup[] groups { get; init; }
+        [JsonPropertyName( "i" )]
+        public required int Index { get; init; }
+
+        [JsonPropertyName( "l" )]
+        public required int Length { get; init; }
+
+        [JsonPropertyName( "g" )]
+        public required WorkerGroup[] Groups { get; init; }
     }
 
     sealed class WorkerGroup
     {
-        public bool success { get; init; }
-        public int index { get; init; }
-        public int length { get; init; }
-        public string? name { get; init; }
-        public required WorkerCapture[] captures { get; init; }
+        [JsonPropertyName( "i" )]
+        public required int Index { get; init; }
+
+        [JsonPropertyName( "l" )]
+        public required int Length { get; init; }
+
+        [JsonPropertyName( "c" )]
+        public required WorkerCapture[] Captures { get; init; }
     }
 
     sealed class WorkerCapture
     {
-        public int index { get; init; }
-        public int length { get; init; }
+        [JsonPropertyName( "i" )]
+        public required int Index { get; init; }
+
+        [JsonPropertyName( "l" )]
+        public required int Length { get; init; }
     }
 
 
@@ -101,35 +119,36 @@ class SubengineDotNetFramework( Options options ) : RegexSubengine
 
         if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-        WorkerMatch[]? worker_matches = JsonSerializer.Deserialize<WorkerMatch[]>( ph.OutputStream );
+        WorkerMatches worker_matches = JsonSerializer.Deserialize<WorkerMatches>( ph.OutputStream ) ?? throw new Exception( "Invalid response." );
 
-        if( worker_matches == null ) throw new Exception( "Invalid response." );
-
-        SimpleMatch[] matches = new SimpleMatch[worker_matches.Length];
+        SimpleMatch[] matches = new SimpleMatch[worker_matches.Matches.Length];
         SimpleTextGetter text_getter = new( text );
 
-        for( int i = 0; i < worker_matches.Length; i++ )
+        for( int i = 0; i < worker_matches.Matches.Length; i++ )
         {
             if( cnc.IsCancellationRequested ) break;
 
-            WorkerMatch m = worker_matches[i];
-            SimpleMatch sm = SimpleMatch.Create( m.index, m.length, text_getter );
+            WorkerMatch m = worker_matches.Matches[i];
+            SimpleMatch sm = SimpleMatch.Create( m.Index, m.Length, text_getter );
 
-            foreach( var g in m.groups )
+            for( int gi = 0; gi < m.Groups.Length; gi++ )
             {
-                string name = g.name ?? sm.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
+                WorkerGroup? g = m.Groups[gi];
 
-                if( !g.success )
+                string name = worker_matches.Names[gi];
+                bool success = g.Index >= 0 && g.Length >= 0;
+
+                if( !success )
                 {
                     sm.AddFailedGroup( name );
                 }
                 else
                 {
-                    SimpleGroup sg = sm.AddSucceededGroup( g.index, g.length, name );
+                    SimpleGroup sg = sm.AddSucceededGroup( g.Index, g.Length, name );
 
-                    foreach( var c in g.captures )
+                    foreach( var c in g.Captures )
                     {
-                        sg.AddCapture( c.index, c.length );
+                        sg.AddCapture( c.Index, c.Length );
                     }
                 }
             }
@@ -156,7 +175,7 @@ class SubengineDotNetFramework( Options options ) : RegexSubengine
 
         VersionResponse? response = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream );
 
-        return response?.version;
+        return response?.Version;
     }
 
     static string GetWorkerExePath( )

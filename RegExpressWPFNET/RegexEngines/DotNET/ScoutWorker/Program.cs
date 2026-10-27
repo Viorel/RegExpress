@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ScoutWorker
 {
@@ -30,14 +31,15 @@ namespace ScoutWorker
 
         //
 
-        sealed class OutputMatch
-        {
-            public int[][]? g { get; set; }
-        }
-
         sealed class OutputMatches
         {
-            public OutputMatch[]? matches { get; set; }
+            public required OutputMatch[] Matches { get; init; }
+        }
+
+        sealed class OutputMatch
+        {
+            [JsonPropertyName( "g" )]
+            public required int[][] Groups { get; set; }
         }
 
 
@@ -110,12 +112,12 @@ namespace ScoutWorker
                         }
                     }
 
-                    OutputMatch one_match = new( ) { g = [.. groups] };
+                    OutputMatch match = new( ) { Groups = [.. groups] };
 
-                    matches.Add( one_match );
+                    matches.Add( match );
                 }
 
-                string ret_json = JsonSerializer.Serialize( new OutputMatches { matches = [.. matches] } );
+                string ret_json = JsonSerializer.Serialize( new OutputMatches { Matches = [.. matches] } );
 
                 Console.Out.WriteLine( ret_json );
             }

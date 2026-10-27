@@ -11,6 +11,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 
@@ -42,12 +43,13 @@ internal partial class SubengineGregsEx( Options options ) : RegexSubengine
 
     public class Rootobject
     {
-        public required Match[] matches { get; set; }
+        public required Match[] Matches { get; set; }
     }
 
     public class Match
     {
-        public required int[][] g { get; set; }
+        [JsonPropertyName( "g" )]
+        public required int[][] Groups { get; set; }
     }
 
 
@@ -108,7 +110,7 @@ internal partial class SubengineGregsEx( Options options ) : RegexSubengine
 
         if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( AdjustErrorMessage( ph.Error, pattern ) );
+        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
 #if DEBUG
         using StreamReader sr = new( ph.OutputStream );
@@ -124,15 +126,15 @@ internal partial class SubengineGregsEx( Options options ) : RegexSubengine
         SimpleTextGetter stg = new( text );
         IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
 
-        foreach( var m in root_object.matches )
+        foreach( var m in root_object.Matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
             SimpleMatch match;
 
             {
-                int native_start = m.g[0][0];
-                int native_length = m.g[0][1];
+                int native_start = m.Groups[0][0];
+                int native_length = m.Groups[0][1];
 
                 Debug.Assert( native_start >= 0 && native_length >= 0 );
 
@@ -145,9 +147,9 @@ internal partial class SubengineGregsEx( Options options ) : RegexSubengine
                 match.AddDefaultGroup( );
             }
 
-            for( int i = 1; i < m.g.Length; ++i ) // skip default group
+            for( int i = 1; i < m.Groups.Length; ++i ) // skip default group
             {
-                int[] g = m.g[i];
+                int[] g = m.Groups[i];
 
                 int native_start = g[0];
                 int native_length = g[1];
@@ -174,34 +176,6 @@ internal partial class SubengineGregsEx( Options options ) : RegexSubengine
         }
 
         return new RegexMatches( matches.Count, matches );
-    }
-
-    private static string? AdjustErrorMessage( string error, string pattern )
-    {
-        // try to show character offset based on byte offset, which appears in error messages
-
-        System.Text.RegularExpressions.Match m = RegexExtractByteOffset( ).Match( error );
-
-        if( m.Success && int.TryParse( m.Groups[1].Value, out int byte_offset ) )
-        {
-            try
-            {
-                byte[] utf8_bytes = Encoding.UTF8.GetBytes( pattern );
-                int char_offset = Encoding.UTF8.GetCharCount( utf8_bytes, 0, byte_offset );
-
-                string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character index {char_offset}";
-
-                return new_message;
-            }
-            catch
-            {
-                if( Debugger.IsAttached ) Debugger.Break( );
-
-                // ignore
-            }
-        }
-
-        return error;
     }
 
     static string GetWorkerExePath( )

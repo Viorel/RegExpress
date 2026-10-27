@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 
 namespace DotNETPlugin;
@@ -30,10 +31,18 @@ class SubengineReSharp( Options options ) : RegexSubengine
         };
     }
 
+    sealed class WorkerMatches
+    {
+        public required WorkerMatch[] Matches { get; init; }
+    }
+
     sealed class WorkerMatch
     {
-        public int index { get; init; }
-        public int length { get; init; }
+        [JsonPropertyName( "i" )]
+        public required int Index { get; init; }
+
+        [JsonPropertyName( "l" )]
+        public required int Length { get; init; }
     }
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
@@ -75,17 +84,17 @@ class SubengineReSharp( Options options ) : RegexSubengine
 
         if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-        WorkerMatch[]? worker_matches = JsonSerializer.Deserialize<WorkerMatch[]>( ph.OutputStream );
+        WorkerMatches worker_matches = JsonSerializer.Deserialize<WorkerMatches>( ph.OutputStream ) ?? throw new Exception( "Invalid response" );
 
-        SimpleMatch[] matches = new SimpleMatch[worker_matches!.Length];
+        SimpleMatch[] matches = new SimpleMatch[worker_matches.Matches.Length];
         SimpleTextGetter text_getter = new( text );
 
-        for( int i = 0; i < worker_matches.Length; i++ )
+        for( int i = 0; i < worker_matches.Matches.Length; i++ )
         {
             if( cnc.IsCancellationRequested ) break;
 
-            WorkerMatch m = worker_matches[i];
-            SimpleMatch sm = SimpleMatch.Create( m.index, m.length, text_getter );
+            WorkerMatch m = worker_matches.Matches[i];
+            SimpleMatch sm = SimpleMatch.Create( m.Index, m.Length, text_getter );
 
             sm.AddDefaultGroup( );
 

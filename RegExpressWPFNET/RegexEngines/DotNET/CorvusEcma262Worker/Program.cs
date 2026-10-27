@@ -28,43 +28,46 @@ internal class Program
         public long? Timeout { get; set; }
     }
 
+    sealed class Output
+    {
+        //public required string[] Names { get; init; } // 
+        public List<OutputMatch> Matches { get; } = [];
+    }
+
     sealed class OutputMatch
     {
-        [JsonPropertyName("i")]
-        public int index { get; set; }
+        [JsonPropertyName( "i" )]
+        public required int Index { get; set; }
 
         [JsonPropertyName( "l" )]
-        public int length { get; set; }
+        public required int Length { get; set; }
 
         [JsonPropertyName( "g" )]
-        public List<OutputGroup> groups { get; set; } = [];
+        public List<OutputGroup> Groups { get; set; } = [];
     }
 
     sealed class OutputGroup
     {
-        [JsonPropertyName( "s" )]
-        public bool success { get; set; }
-        
-        [JsonPropertyName("i")]
-        public int index { get; set; }
-        
-        [JsonPropertyName("l")]
-        public int length { get; set; }
-        
-        [JsonPropertyName("n")]
-        public string? name { get; set; }
-        
-        [JsonPropertyName("c")]
-        public List<OutputCapture> captures { get; set; } = [];
+        [JsonPropertyName( "i" )]
+        public required int Index { get; set; }
+
+        [JsonPropertyName( "l" )]
+        public required int Length { get; set; }
+
+        [JsonPropertyName( "n" )]
+        public required string Name { get; set; }
+
+        [JsonPropertyName( "c" )]
+        public List<OutputCapture> Captures { get; set; } = [];
     }
 
     sealed class OutputCapture
     {
         [JsonPropertyName( "i" )]
-        public int index { get; set; }
+        public required int Index { get; set; }
 
         [JsonPropertyName( "l" )]
-        public int length { get; set; }
+        public required int Length { get; set; }
     }
 
     static void Main( string[] args )
@@ -96,27 +99,36 @@ internal class Program
                     new( input.pattern, flags ) :
                     new( input.pattern, flags, TimeSpan.FromMilliseconds( input.options.Timeout.Value ) );
 
-            List<OutputMatch> output_matches = [];
+            Output output_matches = new( );// { Names = re.GetGroupNames( ) }; -- only named groups are included; discrepancy from .NET RegExp
 
             foreach( Corvus.Ecma262.RegularExpressions.Match match in re.Matches( input.text ) )
             {
                 Debug.Assert( match.Success );
 
-                OutputMatch output_match = new( ) { index = match.Index, length = match.Length };
+                OutputMatch output_match = new( ) { Index = match.Index, Length = match.Length };
 
                 foreach( Corvus.Ecma262.RegularExpressions.Group group in match.Groups )
                 {
-                    OutputGroup output_group = new( ) { success = group.Success, index = group.Index, length = group.Length, name = group.Name };
+                    OutputGroup output_group;
 
-                    foreach( Corvus.Ecma262.RegularExpressions.Capture capture in group.Captures )
+                    if( !group.Success )
                     {
-                        output_group.captures.Add( new OutputCapture { index = capture.Index, length = capture.Length } );
+                        output_group = new( ) { Index = -1, Length = -1, Name = group.Name };
+                    }
+                    else
+                    {
+                        output_group = new( ) { Index = group.Index, Length = group.Length, Name = group.Name };
+
+                        foreach( Corvus.Ecma262.RegularExpressions.Capture capture in group.Captures )
+                        {
+                            output_group.Captures.Add( new OutputCapture { Index = capture.Index, Length = capture.Length } );
+                        }
                     }
 
-                    output_match.groups.Add( output_group );
+                    output_match.Groups.Add( output_group );
                 }
 
-                output_matches.Add( output_match );
+                output_matches.Matches.Add( output_match );
             }
 
             string output_json = JsonSerializer.Serialize( output_matches );

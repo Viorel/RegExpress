@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace LokadUtf8RegexWorker
 {
@@ -29,14 +30,15 @@ namespace LokadUtf8RegexWorker
             public long? Timeout { get; set; }
         }
 
-        public sealed class OutputMatch
+        public sealed class Output
         {
-            public int[][]? g { get; set; } // UTF-16
+            public OutputMatch[]? Matches { get; set; }
         }
 
-        public sealed class OutputMatches
+        public sealed class OutputMatch
         {
-            public OutputMatch[]? matches { get; set; }
+            [JsonPropertyName( "g" )]
+            public int[][]? Groups { get; set; } // UTF-16
         }
 
         static void Main( string[] args )
@@ -79,14 +81,14 @@ namespace LokadUtf8RegexWorker
                 {
                     Debug.Assert( m.Success );
 
-                    OutputMatch output_match = new( ) { g = [[m.IndexInUtf16, m.LengthInUtf16]] }; // ('IndexInBytes', 'LengthInBytes' give error in case of surrogate pairs)
+                    OutputMatch output_match = new( ) { Groups = [[m.IndexInUtf16, m.LengthInUtf16]] }; // ('IndexInBytes', 'LengthInBytes' give error in case of surrogate pairs)
 
                     // Groups not available yet.
 
                     output_matches.Add( output_match );
                 }
 
-                string json = JsonSerializer.Serialize( new OutputMatches { matches = [.. output_matches] } );
+                string json = JsonSerializer.Serialize( new Output { Matches = [.. output_matches] } );
 
                 Console.Out.WriteLine( json );
             }
