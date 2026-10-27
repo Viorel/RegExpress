@@ -17,6 +17,7 @@ enum CrateEnum
     ferroni,
     rusty_expressions,
     derivre,
+    corvus_ecma262,
 }
 
 enum UnicodeModeEnum // ('resharp')
@@ -168,7 +169,17 @@ class Options
 
     // Derivre
 
-    //
+    // CorvusEcma262
+
+    public bool has_indices { get; set; }
+    public bool global { get; set; }
+    //public bool IgnoreCase { get { return case_insensitive; } set { case_insensitive = value; } }
+    //public bool Multiline { get { return multi_line; } set { multi_line = value; } }
+    //public bool DotAll { get { return dot_matches_new_line; } set { dot_matches_new_line = value; } }
+    //public bool Unicode { get { return unicode; } set { unicode = value; } }
+    //public bool UnicodeSets { get { return unicode_sets; } set { unicode_sets = value; } }
+    public bool sticky { get; set; }
+
 
     public Options Clone( )
     {

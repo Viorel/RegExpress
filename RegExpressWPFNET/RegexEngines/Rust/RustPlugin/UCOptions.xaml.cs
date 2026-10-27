@@ -121,6 +121,7 @@ namespace RustPlugin
                 bool is_ferroni = crate == CrateEnum.ferroni;
                 bool is_rusty_expressions = crate == CrateEnum.rusty_expressions;
                 bool is_derivre = crate == CrateEnum.derivre;
+                bool is_corvus = crate == CrateEnum.corvus_ecma262;
 
                 chbx_use_builder.Display( is_regex_or_regex_lite || is_fancy || is_real || is_regexr || is_ferroni );
 
@@ -135,6 +136,7 @@ namespace RustPlugin
                 pnlFerroniOptions.Display( is_ferroni );
                 pnlRustyExpressionsOptions.Display( is_rusty_expressions );
                 pnlDerivre.Display( is_derivre );
+                pnlCorvusEcma262.Display( is_corvus );
 
                 pnlRegexCrateLimits.Display( is_regex_or_regex_lite || is_real );
                 dsl.IsEnabled = is_regex || is_real;
@@ -190,28 +192,6 @@ namespace RustPlugin
             DataContext = Options;
 
             UpdateUI( );
-        }
-
-        internal string? GetSelectedCrateTitle( )
-        {
-            return Options.crate switch
-            {
-                CrateEnum.regex => "regex",
-                CrateEnum.regex_lite => "regex-lite",
-                CrateEnum.fancy_regex => "fancy",
-                CrateEnum.regress => "regress",
-                CrateEnum.resharp => "resharp",
-                CrateEnum.anre => "anre",
-                CrateEnum.real_regex => "real",
-                CrateEnum.java_regex => "java_regex",
-                CrateEnum.regexr => "regexr",
-                CrateEnum.rexile => "rexile",
-                CrateEnum.iregexp_rs => "iregexp-rs",
-                CrateEnum.ferroni => "ferroni",
-                CrateEnum.rusty_expressions => "rusty_expressions",
-                CrateEnum.derivre => "derivre",
-                _ => "unknown"
-            };
         }
     }
 }

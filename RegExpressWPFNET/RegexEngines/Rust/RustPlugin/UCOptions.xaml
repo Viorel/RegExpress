@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" d:DesignWidth="892.329" 
-             Loaded="UserControl_Loaded" d:DesignHeight="1838">
+             Loaded="UserControl_Loaded" d:DesignHeight="1898.625">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -46,6 +46,7 @@
                 <ui:ComboBoxItemWithVersion Tag ="ferroni"              Text="ferroni"              Version="{x:Static local:Versions.Ferroni}" />
                 <ui:ComboBoxItemWithVersion Tag ="rusty_expressions"    Text="rusty_expressions"    Version="{x:Static local:Versions.RustyExpressions}" />
                 <ui:ComboBoxItemWithVersion Tag ="derivre"              Text="derivre"              Version="{x:Static local:Versions.Derivre}" />
+                <ui:ComboBoxItemWithVersion Tag ="corvus_ecma262"       Text="corvus-regex-ecma262" Version="{x:Static local:Versions.CorvusEcma262}" />
             </ComboBox>
         </Grid>
 
@@ -454,6 +455,17 @@
 
         <StackPanel x:Name="pnlDerivre" Orientation="Vertical">
 
+        </StackPanel>
+
+        <StackPanel x:Name="pnlCorvusEcma262" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="has_indices" Text="has_indices" Note="`d`: accepted for completeness. The positions of the groups are always kept, so it changes nothing"/>
+            <ui:CheckboxWithNote Prop="global" Text="global" Note="`g` flag. Not used for matches."/>
+            <ui:CheckboxWithNote Prop="case_insensitive" Text="ignore_case" Note="`i`: case is ignored, by the Canonicalize of the mode in force"/>
+            <ui:CheckboxWithNote Prop="multi_line" Text="multiline" Note="`m`: `^` and `$` hold at line terminators."/>
+            <ui:CheckboxWithNote Prop="dot_matches_new_line" Text="dot_all" Note="`s`: the dot matches line terminators"/>
+            <ui:CheckboxWithNote Prop="unicode" Text="unicode" Note="`u`: the grammar of the u flag, and matching by code point"/>
+            <ui:CheckboxWithNote Prop="unicode_sets" Text="unicode_sets" Note="`v`: the grammar of the v flag (set notation and properties of strings), and matching by code point"/>
+            <ui:CheckboxWithNote Prop="sticky" Text="sticky" Note="`y`: a match only at the position the search starts from"/>
         </StackPanel>
 
     </StackPanel>

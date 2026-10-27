@@ -48,7 +48,25 @@ class Engine : RegexEngine
 
     public override string Name => "Rust";
 
-    public override string Subtitle => $"{Name} ({mOptionsControl.Value.GetSelectedCrateTitle( )})";
+    public override string Subtitle => $"{Name} ({Options.crate switch
+    {
+        CrateEnum.regex => "regex",
+        CrateEnum.regex_lite => "regex-lite",
+        CrateEnum.fancy_regex => "fancy",
+        CrateEnum.regress => "regress",
+        CrateEnum.resharp => "resharp",
+        CrateEnum.anre => "anre",
+        CrateEnum.real_regex => "real",
+        CrateEnum.java_regex => "java_regex",
+        CrateEnum.regexr => "regexr",
+        CrateEnum.rexile => "rexile",
+        CrateEnum.iregexp_rs => "iregexp-rs",
+        CrateEnum.ferroni => "ferroni",
+        CrateEnum.rusty_expressions => "rusty_expressions",
+        CrateEnum.derivre => "derivre",
+        CrateEnum.corvus_ecma262 => "corvus_ecma262",
+        _ => "unknown"
+    }})";
 
     public override string? NoteForCaptures => null;
 
@@ -105,24 +123,26 @@ class Engine : RegexEngine
         Engine engine_ferroni = new( ) { Options = new Options { crate = CrateEnum.ferroni, OnigSyntaxType = OnigSyntaxTypeEnum.OnigSyntaxOniguruma, CAPTURE_GROUP = true } };
         Engine engine_rusty_expressions = new( ) { Options = new Options { crate = CrateEnum.rusty_expressions, OnigSyntaxType = OnigSyntaxTypeEnum.OnigSyntaxOniguruma, CAPTURE_GROUP = true } };
         Engine engine_derivre = new( ) { Options = new Options { crate = CrateEnum.derivre } };
+        Engine engine_corvus = new( ) { Options = new Options { crate = CrateEnum.corvus_ecma262, has_indices = true, global = true, unicode = false, unicode_sets = true } };
 
         return
             [
-                new FeatureMatrixVariant("regex (“u” flag)", engine_regex),
+                new FeatureMatrixVariant("regex (“u”)", engine_regex),
                 new FeatureMatrixVariant("regex-lite", engine_lite),
-                new FeatureMatrixVariant("fancy-regex (“u” flag)", engine_fancy),
-                new FeatureMatrixVariant("regress (“uv” flags)", engine_regress_uv),
-                new FeatureMatrixVariant("resharp (“Full” mode)", engine_resharp),
+                new FeatureMatrixVariant("fancy-regex (“u”)", engine_fancy),
+                new FeatureMatrixVariant("regress (“uv”)", engine_regress_uv),
+                new FeatureMatrixVariant("resharp (“Full”)", engine_resharp),
                 new FeatureMatrixVariant("anre", engine_anre),
                 //new FeatureMatrixVariant("real-regex", engine_real),
-                new FeatureMatrixVariant("real-regex (“u” flag)", engine_real_u),
-                new FeatureMatrixVariant("java_regex (“uU” flags)", engine_java_regex_uU),
+                new FeatureMatrixVariant("real-regex (“u”)", engine_real_u),
+                new FeatureMatrixVariant("java_regex (“uU”)", engine_java_regex_uU),
                 new FeatureMatrixVariant("regexr", engine_regexr),
                 new FeatureMatrixVariant("rexile", engine_rexile),
                 new FeatureMatrixVariant("iregexp-rs", engine_iregexp_rs),
                 new FeatureMatrixVariant("ferroni", engine_ferroni),
                 new FeatureMatrixVariant("rusty_expressions", engine_rusty_expressions),
                 new FeatureMatrixVariant("derivre", engine_derivre),
+                new FeatureMatrixVariant("corvus_ecma262 (“v”)", engine_corvus),
             ];
     }
 
@@ -144,6 +164,8 @@ class Engine : RegexEngine
 
     public override void SetStickyMode( bool yes )
     {
+        Options.sticky = yes;
+        if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
     }
 
     public override RegexSubengine GetSubengine( )
@@ -164,6 +186,7 @@ class Engine : RegexEngine
             CrateEnum.ferroni => new SubengineFerroni( Options ),
             CrateEnum.rusty_expressions => new SubengineRustyExpressions( Options ),
             CrateEnum.derivre => new SubengineDerivre( Options ),
+            CrateEnum.corvus_ecma262 => new SubengineCorvusEcma262( Options ),
             _ => throw new InvalidOperationException( )
         };
     }

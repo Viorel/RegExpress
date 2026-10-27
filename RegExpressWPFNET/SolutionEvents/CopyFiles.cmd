@@ -172,6 +172,7 @@ xcopy /D /R /Y "%BasePath%\IRegexpRsWorker\target\release\IRegexpRsWorker.exe" "
 xcopy /D /R /Y "%BasePath%\FerroniWorker\target\release\FerroniWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
 xcopy /D /R /Y "%BasePath%\RustyExpressionsWorker\target\release\RustyExpressionsWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
 xcopy /D /R /Y "%BasePath%\DerivreWorker\target\release\DerivreWorker.exe" "%EnginesTargetPath%\Rust\*.bin"
+xcopy /D /R /Y "%BasePath%\CorvusEcma262Worker\target\release\CorvusEcma262Worker.exe" "%EnginesTargetPath%\Rust\*.bin"
 
 
 rem -- Java --
