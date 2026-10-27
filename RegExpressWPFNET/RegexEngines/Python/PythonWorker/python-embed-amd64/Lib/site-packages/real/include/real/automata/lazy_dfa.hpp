@@ -411,7 +411,7 @@ namespace real::detail {
           node.trans.emplace_back(utf8_byte_range {.lo = static_cast<std::uint8_t>(lo), .hi = static_cast<std::uint8_t>(hi)}, child);
         }
 
-        std::int32_t& head {memo_head[hash_trans(node.trans) % memo_head.size()]};
+        std::int32_t& head {memo_head[static_cast<std::size_t>(hash_trans(node.trans) % memo_head.size())]}; // below the size: fits
         for (std::int32_t existing = head; existing >= 0;
              existing = memo_next[static_cast<std::size_t>(existing)]) {
           if (trans_equal(nodes[static_cast<std::size_t>(existing)].trans, node.trans)) {

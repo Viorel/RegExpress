@@ -1,3 +1,6 @@
+If Python is required (not embeddable only), use Python Install Manager (or a command like "winget install XXX").
+Use "py list" to view the installed versions.
+
 To install the "regex" and other modules into embeddable Python:
 
    - https://stackoverflow.com/questions/49737721/adding-packages-to-python-embedded-installation-for-windows.
