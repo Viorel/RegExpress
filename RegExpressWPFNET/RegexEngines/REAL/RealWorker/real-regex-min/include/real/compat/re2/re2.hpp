@@ -813,7 +813,8 @@ namespace real::compat::re2 {
     {
       std::string result;
       result.reserve(unquoted.size() * 2);
-      for (const unsigned char c : unquoted) {
+      for (const char raw : unquoted) {
+        const auto c    {static_cast<unsigned char>(raw)};
         const bool safe {(c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
                          c == '_' || (c & 0x80U) != 0};
         if (safe) {

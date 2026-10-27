@@ -1023,6 +1023,18 @@ namespace real::detail {
                    || fail_slots(out_slots);
           }
         }
+        // An anchored match with no group to fill: the forward DFA's anchored walk from `start` gives its end,
+        // as a search's candidate walk does, where the VM paid a thread list per byte (a tokenizer's
+        // `match(text, pos)` loop). A quit and the no-empty-at-`start` rule leave the match to the VM, and so
+        // does a short subject, as for a search: building the DFAs costs a one-off match thousands of times over.
+        if (mode == run_mode::prefix && !std::is_constant_evaluated() && !lazy_dfa_route_disabled()
+            && sem_ == match_semantics::first && prog_.slot_count <= 2 && forbid_empty_until_ <= start
+            && text.size() - start >= lazy_dfa_min_input) {
+          const std::optional<bool> dfa_result {try_anchored_prefix_dfa(text, start, out_slots)};
+          if (dfa_result) {
+            return *dfa_result;
+          }
+        }
         if (!std::is_constant_evaluated() && !lazy_dfa_route_disabled() && mode == run_mode::search
             && sem_ == match_semantics::first // kFirstMatch forward pass; longest uses the general loop below
             && text.size() - start >= lazy_dfa_min_input) {
@@ -2004,6 +2016,11 @@ namespace real::detail {
       else {
         ensure_immutables(); // the DFAs still need the byte program and the shared alphabet
       }
+      // Neither program a byte DFA can carry (a lookaround): refused before the lease, which an anchored match a
+      // tokenizer makes at each position would otherwise take only to be declined (ensure_set_search_dfas).
+      if (!immut->byte_prog.eligible && !immut->look_prog.eligible) {
+        return false;
+      }
       const dfa_lease dfas {immut};
       shared_dfa_set& set {*dfas};
       ensure_set_search_dfas(*immut, set);
@@ -2052,6 +2069,52 @@ namespace real::detail {
     [[nodiscard]] static constexpr run_mode window_mode(run_mode mode) noexcept
     {
       return mode == run_mode::search ? run_mode::prefix : mode;
+    }
+
+    /*!
+     * \brief An anchored match of a pattern without groups by the forward DFA's anchored walk from \p start.
+     *        \c noinline, as \ref try_shared_lazy_dfa_search.
+     * \param[in]  text      Subject.
+     * \param[in]  start     Byte offset the match begins at.
+     * \param[out] out_slots The match's span, filled on a match.
+     * \return matched / no-match when the walk decided; empty when the VM must (no DFA, or the walk quit).
+     */
+    template <typename OutSlots>
+    REAL_NOINLINE
+    std::optional<bool> try_anchored_prefix_dfa(std::string_view text,
+                                                std::size_t      start,
+                                                OutSlots&        out_slots)
+    {
+      // No empty match is possible when the first bytes are valid, so a match at `start` begins with one of them:
+      // a byte outside them answers before the DFAs are leased (a tokenizer tries each rule at each position, and
+      // most rules fail on the first byte). The caller leaves 512 bytes ahead, so `text[start]` exists.
+      if (prog_.hints.first_bytes_valid && !prog_.hints.first_bytes.test(static_cast<std::uint8_t>(text[start]))) {
+        note(counter::prefix_first_byte_rejects);
+        return fail_slots(out_slots);
+      }
+      std::size_t end  {npos};
+      bool        quit {false};
+      const bool  ran  {with_search_dfas([&](lazy_dfa& fwd, reverse_dfa& /*rev*/) {
+                                           const auto walked {fwd.anchored_end(text, start)};
+                                           end  = walked.end;
+                                           quit = walked.quit;
+                                         })};
+      if (!ran) {
+        return std::nullopt;
+      }
+      if (quit) {
+        note(counter::dfa_quits);
+        return std::nullopt;
+      }
+      prof::tick_route(prof::route::lazy_dfa_anchored);
+      note(counter::prefix_dfa_walks);
+      if (end == npos) {
+        return fail_slots(out_slots);
+      }
+      out_slots.assign(2, npos);
+      out_slots[0] = start;
+      out_slots[1] = end;
+      return true;
     }
 
     /*!

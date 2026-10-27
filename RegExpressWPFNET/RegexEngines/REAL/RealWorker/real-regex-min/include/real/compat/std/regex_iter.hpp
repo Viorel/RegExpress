@@ -616,7 +616,7 @@ namespace real::compat {
      */
     void set_field()
     {
-      current_ = (subs_[n_] == -1) ? position_->prefix() : (*position_)[subs_[n_]];
+      current_ = (subs_[n_] == -1) ? position_->prefix() : (*position_)[static_cast<std::size_t>(subs_[n_])];
     }
 
     /*!
