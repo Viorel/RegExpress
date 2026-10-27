@@ -133,6 +133,10 @@ class Engine : RegexEngine
         if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
     }
 
+    public override void SetStickyMode( bool yes )
+    {
+    }
+
     public override RegexSubengine GetSubengine( )
     {
         return new Subengine( Options, this );

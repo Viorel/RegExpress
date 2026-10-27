@@ -346,6 +346,7 @@ partial class Subengine( Options options ) : RegexSubengine
             Anchor_Z = ecma ? FeatureMatrix.AnchorZModeEnum.None : FeatureMatrix.AnchorZModeEnum.Compatible,
             Anchor_z = true,
             Anchor_G = false,
+            Anchor_G_Option = false,
             Anchor_bB = true,
             Anchor_bg = false,
             Anchor_bBBrace = false,

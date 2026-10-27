@@ -114,6 +114,10 @@ class Engine : RegexEngine
     {
     }
 
+    public override void SetStickyMode( bool yes )
+    {
+    }
+
     public override RegexSubengine GetSubengine( )
     {
         return Options.Implementation switch

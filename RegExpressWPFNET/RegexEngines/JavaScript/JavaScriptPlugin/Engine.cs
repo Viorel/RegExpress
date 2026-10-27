@@ -155,6 +155,12 @@ class Engine : RegexEngine
         //if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
     }
 
+    public override void SetStickyMode( bool yes )
+    {
+        Options.y = yes;
+        if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+    }
+
     public override RegexSubengine GetSubengine( )
     {
         return Options.Runtime switch

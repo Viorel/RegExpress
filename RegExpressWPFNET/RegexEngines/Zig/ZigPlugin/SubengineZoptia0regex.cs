@@ -291,6 +291,7 @@ class SubengineZoptia0regex( Options options ) : RegexSubengine
             Anchor_Z = FeatureMatrix.AnchorZModeEnum.None,
             Anchor_z = !posix,
             Anchor_G = false,
+            Anchor_G_Option = false,
             Anchor_bB = !posix,
             Anchor_bg = false,
             Anchor_bBBrace = false,

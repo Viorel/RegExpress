@@ -260,6 +260,7 @@ class Subengine( Options options ) : RegexSubengine
             Anchor_Z = FeatureMatrix.AnchorZModeEnum.None,
             Anchor_z = !posix_syntax,
             Anchor_G = false,
+            Anchor_G_Option = false,
             Anchor_bB = !posix_syntax || word_boundary,
             Anchor_bg = false,
             Anchor_bBBrace = false,

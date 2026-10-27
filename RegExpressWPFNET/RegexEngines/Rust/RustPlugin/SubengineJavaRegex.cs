@@ -292,6 +292,7 @@ class SubengineJavaRegex( Options options ) : RegexSubengine
             Anchor_Z = FeatureMatrix.AnchorZModeEnum.Correct,
             Anchor_z = true,
             Anchor_G = true,
+            Anchor_G_Option = false,
             Anchor_bB = true,
             Anchor_bg = false,
             Anchor_bBBrace = false,

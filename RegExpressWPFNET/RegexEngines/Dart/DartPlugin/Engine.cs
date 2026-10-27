@@ -133,6 +133,10 @@ class Engine : RegexEngine
     {
     }
 
+    public override void SetStickyMode( bool yes )
+    {
+    }
+
     public override RegexSubengine GetSubengine( )
     {
         Options options = Options;

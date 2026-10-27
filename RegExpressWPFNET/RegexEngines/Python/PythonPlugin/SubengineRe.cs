@@ -323,6 +323,7 @@ partial class SubengineRe( Options options ) : RegexSubengine
             Anchor_Z = FeatureMatrix.AnchorZModeEnum.Compatible, // "the same as \z. For compatibility with old Python versions"
             Anchor_z = true,
             Anchor_G = false,
+            Anchor_G_Option = false,
             Anchor_bB = true,
             Anchor_bg = false,
             Anchor_bBBrace = false,

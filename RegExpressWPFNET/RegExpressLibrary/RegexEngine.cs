@@ -32,6 +32,7 @@ public abstract class RegexEngine
     public abstract void SetIgnoreCase( bool yes );
     public abstract void SetIgnorePatternWhitespace( bool yes );
     public abstract void SetCollectCaptures( bool yes );
+    public abstract void SetStickyMode( bool yes );
 
 
     public RegexEngineCapabilityEnum Capabilities => GetSubengine( ).GetCapabilities( );

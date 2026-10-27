@@ -356,6 +356,7 @@ class Subengine( Options options, Engine parentEngine ) : RegexSubengine
             Anchor_Z = details.ONIG_SYN_OP_ESC_AZ_BUF_ANCHOR ? FeatureMatrix.AnchorZModeEnum.Correct : FeatureMatrix.AnchorZModeEnum.None,
             Anchor_z = details.ONIG_SYN_OP_ESC_AZ_BUF_ANCHOR, // TODO: in Python syntax, it gives undefined operator (-213)
             Anchor_G = details.ONIG_SYN_OP_ESC_CAPITAL_G_BEGIN_ANCHOR,
+            Anchor_G_Option = false,
             Anchor_bB = details.ONIG_SYN_OP_ESC_B_WORD_BOUND,
             Anchor_bg = false,
             Anchor_bBBrace = false,

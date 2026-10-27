@@ -540,6 +540,48 @@ static class TreeData
 
             .Category( @"Miscellaneous" )
 
+                .Flag( @"Sticky", @"Support Sticky mode by “\G”, “(?y)” or an option", ( e, fm ) => fm.Anchor_G || fm.Anchor_G_Option )
+                    .Test( ( e, fm ) =>
+                    {
+                        e.SetStickyMode( true );
+
+                        try
+                        {
+                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"a", "aaba" );
+                            if( matches.Count == 2 ) return true;
+                        }
+                        catch
+                        {
+                            // ignore
+                        }
+                        finally
+                        {
+                            e.SetStickyMode( false );
+                        }
+
+                        try
+                        {
+                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"\Ga", "aaba" );
+                            if( matches.Count == 2 ) return true;
+                        }
+                        catch
+                        {
+                            // ignore
+                        }
+
+                        try
+                        {
+                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(?y)a", "aaba" );
+                            if( matches.Count == 2 ) return true;
+                        }
+                        catch
+                        {
+                            // ignore
+                        }
+
+                        return false;
+                    } )
+
                 .Flag( @"Captures", @"Get all captures matched by group", ( e, fm ) => !e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups ) && e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.HasCaptures ) )
                     .Test( ( e, fm ) =>
                     {
@@ -877,6 +919,7 @@ static class TreeData
                     } )
                 .Flag( @"“.” matches “\r”", "“.” matches “\\r” (0D) by default", ( e, fm ) => !fm.Ext_Ph3, isInfo: true )
                     .Test( @".", "\r", null, "\r" )
+
             ;
     }
 }

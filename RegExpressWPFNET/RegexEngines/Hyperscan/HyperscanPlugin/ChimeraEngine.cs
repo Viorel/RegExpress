@@ -108,6 +108,10 @@ class ChimeraEngine : RegexEngine
     {
     }
 
+    public override void SetStickyMode( bool yes )
+    {
+    }
+
     public override RegexSubengine GetSubengine( )
     {
         return new ChimeraSubengine( Options );

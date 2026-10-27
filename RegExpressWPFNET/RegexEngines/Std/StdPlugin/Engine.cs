@@ -167,6 +167,11 @@ class Engine : RegexEngine
         //if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
     }
 
+    public override void SetStickyMode( bool yes )
+    {
+        Options.match_continuous = yes;
+        if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+    }
 
     public override RegexSubengine GetSubengine( )
     {

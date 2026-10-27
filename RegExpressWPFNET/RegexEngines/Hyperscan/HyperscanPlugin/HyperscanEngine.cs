@@ -111,6 +111,10 @@ class HyperscanEngine : RegexEngine
     {
     }
 
+    public override void SetStickyMode( bool yes )
+    {
+    }
+
     public override RegexSubengine GetSubengine( )
     {
         return new HyperscanSubengine( Options );

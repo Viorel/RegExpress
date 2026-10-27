@@ -136,6 +136,12 @@ class Engine : RegexEngine
         //if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
     }
 
+    public override void SetStickyMode( bool yes )
+    {
+        Options.PCRE2_ANCHORED = yes;
+        if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
+    }
+
     public override RegexSubengine GetSubengine( )
     {
         return new Subengine( Options );

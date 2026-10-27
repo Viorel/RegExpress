@@ -88,7 +88,7 @@ internal class Program
             List<int[]> match = [];
             List<int> group_and_captures = [];
 
-            foreach( var m in re.EnumerateMatches( input.text, overlapped: overlapped, partial: partial, timeout: null ) )
+            foreach( var m in re.EnumerateMatches( input.text, overlapped: overlapped, partial: partial, timeout: step_timeout ) )
             {
                 match.Clear( );
 
@@ -123,6 +123,11 @@ internal class Program
 
             Console.Out.WriteLine( output_json );
 
+        }
+        catch( Fuzzy.Text.RegularExpressions.FuzzyRegexParseException exc )
+        {
+            Console.Error.WriteLine( exc.Message );
+            if( exc.Offset >= 0 ) Console.Error.WriteLine( $"at offset {exc.Offset}" );
         }
         catch( Exception exc )
         {

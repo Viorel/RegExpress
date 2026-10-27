@@ -280,7 +280,7 @@
 
                 <Label Grid.Row="2" Grid.Column="0" Target="{Binding ElementName=MaxCompiledNodes}" Content="MaxCompiledNodes:"/>
                 <TextBox x:Name="MaxCompiledNodes" Grid.Row="2" Grid.Column="1" Text="{Binding MaxCompiledNodes, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                <TextBlock Grid.Row="2" Grid.Column="2" Text="ms" FontStyle="Italic" />
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="" FontStyle="Italic" />
             </Grid>
         </StackPanel>
         

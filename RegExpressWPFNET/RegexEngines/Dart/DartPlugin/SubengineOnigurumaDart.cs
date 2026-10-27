@@ -357,6 +357,7 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             Anchor_Z = grp1 || is_gnu ? FeatureMatrix.AnchorZModeEnum.Correct : FeatureMatrix.AnchorZModeEnum.None,
             Anchor_z = grp0 || is_java || is_gnu,
             Anchor_G = grp1 || is_gnu,
+            Anchor_G_Option = false,
             Anchor_bB = grp1 || is_grep || is_gnu,
             Anchor_bg = false,
             Anchor_bBBrace = false,

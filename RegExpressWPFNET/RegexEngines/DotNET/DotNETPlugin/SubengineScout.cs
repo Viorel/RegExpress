@@ -315,6 +315,7 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
             Anchor_Z = FeatureMatrix.AnchorZModeEnum.None,
             Anchor_z = true,
             Anchor_G = false,
+            Anchor_G_Option = false,
             Anchor_bB = true,
             Anchor_bg = false,
             Anchor_bBBrace = true,
