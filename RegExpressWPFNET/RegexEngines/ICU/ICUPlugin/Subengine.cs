@@ -8,11 +8,12 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 
 namespace ICUPlugin;
 
-class Subengine( Options options ) : RegexSubengine
+partial class Subengine( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new Lazy<FeatureMatrix>( BuildFeatureMatrix );
 
@@ -78,7 +79,7 @@ class Subengine( Options options ) : RegexSubengine
 
         if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( AdjustErrorMessage( ph.Error, pattern ) );
 
         var br = ph.BinaryReader;
 
@@ -166,6 +167,37 @@ class Subengine( Options options ) : RegexSubengine
         if( br.ReadByte( ) != 'e' ) throw new Exception( "Invalid response E." );
 
         return new RegexMatches( matches.Count, matches );
+    }
+
+    private static string? AdjustErrorMessage( string error, string text )
+    {
+        // try to show character offset based on offset, which appears in error message
+
+        Match m = RegexExtractNativeOffset( ).Match( error );
+
+        if( m.Success && int.TryParse( m.Groups[1].Value, out int native_offset ) )
+        {
+            try
+            {
+                SurrogatePairsHelper sph = new( text );
+                int char_offset = sph.ToCharIndex( native_offset );
+
+                if( char_offset != native_offset )
+                {
+                    string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character index {char_offset}";
+
+                    return new_message;
+                }
+            }
+            catch
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                // ignore
+            }
+        }
+
+        return error;
     }
 
     static string GetWorkerExePath( )
@@ -401,4 +433,7 @@ class Subengine( Options options ) : RegexSubengine
             Ext_Ph3 = true,
         };
     }
+
+    [GeneratedRegex( @"^Invalid pattern at line (?:\d+), column (\d+)." )]
+    private static partial Regex RegexExtractNativeOffset( );
 }

@@ -9,11 +9,12 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 
 namespace JavaPlugin;
 
-partial class SubengineSafeRE( Options options ) : RegexSubengine
+class SubengineSafeRE( Options options ) : RegexSubengine
 {
     static readonly LazyData<(bool UNICODE_CASE, bool UNICODE_CHARACTER_CLASS), FeatureMatrix> LazyFeatureMatrix =
         new( d => BuildFeatureMatrix( d.UNICODE_CASE, d.UNICODE_CHARACTER_CLASS ) );

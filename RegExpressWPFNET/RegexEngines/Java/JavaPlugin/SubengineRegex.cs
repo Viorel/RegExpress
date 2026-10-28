@@ -11,6 +11,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 
@@ -117,7 +118,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
 
         if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( AdjustErrorMessage( ph.Error, pattern ) );
 
 #if DEBUG
         using StreamReader sr = new( ph.OutputStream );
@@ -237,6 +238,37 @@ partial class SubengineRegex( Options options ) : RegexSubengine
         }
 
         return new RegexMatches( matches.Count, matches );
+    }
+
+    private static string? AdjustErrorMessage( string error, string text )
+    {
+        // try to show character offset based on offset, which appears in error message
+
+        System.Text.RegularExpressions.Match m = RegexExtractNativeOffset( ).Match( error );
+
+        if( m.Success && int.TryParse( m.Groups[1].Value, out int native_offset ) )
+        {
+            try
+            {
+                SurrogatePairsHelper sph = new( text );
+                int char_offset = sph.ToCharIndex( native_offset );
+
+                if( char_offset != native_offset )
+                {
+                    string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character index {char_offset}";
+
+                    return new_message;
+                }
+            }
+            catch
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                // ignore
+            }
+        }
+
+        return error;
     }
 
     internal static (string? javaPath, string? workerDir) GetPaths( )
@@ -550,4 +582,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
             Ext_Ph3 = true,
         };
     }
+
+    [GeneratedRegex( @"^java\.util\.regex\..+: .+ near index (\d+)" )]
+    private static partial Regex RegexExtractNativeOffset( );
 }

@@ -180,7 +180,7 @@ static void DoMatch( BinaryWriterW& outbw, const std::wstring& pattern, const st
                 {
                     LPCSTR error_name = u_errorName( status );
 
-                    throw std::runtime_error( std::format( "Invalid pattern at line {}, column {}.\r\n\r\n({}, {})",
+                    throw std::runtime_error( std::format( "Invalid pattern at line {}, column {}.\r\n({}, {})",
                         parse_error.line, parse_error.offset, error_name, (unsigned)status ) );
                 }
 

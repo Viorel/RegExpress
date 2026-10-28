@@ -190,7 +190,7 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
     {
         // try to show character offset based on codepoint offset, which appears in error message
 
-        Match m = RegexExtractCodepointOffset( ).Match( error );
+        Match m = RegexExtractNativeOffset( ).Match( error );
 
         if( m.Success && int.TryParse( m.Groups[1].Value, out int codepoint_offset ) )
         {
@@ -471,5 +471,5 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
     private static partial Regex NMgRegex( );
 
     [GeneratedRegex( @" at position (\d+)" )]
-    private static partial Regex RegexExtractCodepointOffset( );
+    private static partial Regex RegexExtractNativeOffset( );
 }

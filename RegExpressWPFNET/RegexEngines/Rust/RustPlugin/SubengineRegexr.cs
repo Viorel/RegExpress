@@ -180,7 +180,7 @@ partial class SubengineRegexr( Options options ) : RegexSubengine
     {
         // try to show character offset based on byte offset, which appears in error message
 
-        System.Text.RegularExpressions.Match m = RegexExtractByteOffset( ).Match( error );
+        System.Text.RegularExpressions.Match m = RegexExtractNativeOffset( ).Match( error );
 
         if( m.Success && int.TryParse( m.Groups[1].Value, out int byte_offset ) )
         {
@@ -442,5 +442,5 @@ partial class SubengineRegexr( Options options ) : RegexSubengine
     }
 
     [GeneratedRegex( @" at position (\d+)" )]
-    private static partial Regex RegexExtractByteOffset( );
+    private static partial Regex RegexExtractNativeOffset( );
 }

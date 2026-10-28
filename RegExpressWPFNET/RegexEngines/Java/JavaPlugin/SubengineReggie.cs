@@ -13,7 +13,7 @@ using System.Text.Json;
 
 namespace JavaPlugin;
 
-partial class SubengineReggie( Options options ) : RegexSubengine
+class SubengineReggie( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 

@@ -155,7 +155,7 @@ partial class HyperscanSubengine( HyperscanOptions options ) : RegexSubengine
     {
         // try to show character offset based on byte offset, which appears in error message
 
-        System.Text.RegularExpressions.Match m = RegexExtractByteOffset( ).Match( error );
+        System.Text.RegularExpressions.Match m = RegexExtractNativeOffset( ).Match( error );
 
         if( m.Success && int.TryParse( m.Groups[1].Value, out int byte_offset ) )
         {
@@ -414,5 +414,5 @@ partial class HyperscanSubengine( HyperscanOptions options ) : RegexSubengine
     }
 
     [GeneratedRegex( @" at index (\d+)" )]
-    private static partial Regex RegexExtractByteOffset( );
+    private static partial Regex RegexExtractNativeOffset( );
 }

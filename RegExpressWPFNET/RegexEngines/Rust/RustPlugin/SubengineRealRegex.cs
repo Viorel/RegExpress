@@ -154,7 +154,7 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
         // try to show character offset based on byte offset, which appears in error message;
         // example of error message: "syntax error at 3: ..."
 
-        Match m = RegexExtractByteOffset( ).Match( error );
+        Match m = RegexExtractNativeOffset( ).Match( error );
 
         if( m.Success && int.TryParse( m.Groups[1].Value, out int byte_offset ) )
         {
@@ -418,5 +418,5 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
     }
 
     [GeneratedRegex( @"^syntax error at (\d+): " )]
-    private static partial Regex RegexExtractByteOffset( );
+    private static partial Regex RegexExtractNativeOffset( );
 }
