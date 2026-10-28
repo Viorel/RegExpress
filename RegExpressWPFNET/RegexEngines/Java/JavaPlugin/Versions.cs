@@ -7,5 +7,5 @@ static class Versions
     public static string Re2j { get; } = "1.8";
     public static string SafeRE { get; } = "1.0.0";
     public static string Reggie { get; } = "0.5.0";
-    public static string Joni { get; } = "2.2.7";
+    public static string Joni { get; } = "2.2.8";
 }
