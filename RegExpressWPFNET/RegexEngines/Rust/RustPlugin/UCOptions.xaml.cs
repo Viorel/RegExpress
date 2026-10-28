@@ -94,6 +94,11 @@ namespace RustPlugin
             Notify( preferImmediateReaction: true );
         }
 
+        private void cbxUnicodeVersion_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
         internal void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;

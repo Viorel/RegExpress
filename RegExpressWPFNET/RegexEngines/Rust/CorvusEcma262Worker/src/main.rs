@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use std::io::Read;
+use std::{io::Read, time::Duration};
 
 fn main() 
 {
@@ -60,7 +60,30 @@ fn main()
         //..Default::default() 
     };
 
-    let re = corvus_regex_ecma262::Regex::with_flags( pattern, flags);
+    let unicode_version_s = options["unicode_version"].as_str().unwrap_or("");
+    let unicode_version: corvus_regex_ecma262::UnicodeVersion =
+        match unicode_version_s
+        {
+            "Default" | "" => corvus_regex_ecma262::UnicodeVersion::Default,
+            "V13" => corvus_regex_ecma262::UnicodeVersion::V13,
+            "V17" => corvus_regex_ecma262::UnicodeVersion::V17,
+            "V18" => corvus_regex_ecma262::UnicodeVersion::V18,
+            "Latest" => corvus_regex_ecma262::UnicodeVersion::Latest,
+            _ => panic!("Unsupported Unicode Version: '{}'", unicode_version_s)
+        };
+
+    let mut timeout: Option<Duration> = None;
+    let n = options["timeout"].as_u64();
+    if let Some(n) = n
+    {
+        timeout = Some( std::time::Duration::from_millis( n));
+    } 
+
+    let re = corvus_regex_ecma262::RegexBuilder::new( pattern)
+        .with_flags(flags)
+        .unicode_version(unicode_version)
+        .match_timeout(timeout)
+        .build();
 
     if re.is_err()
     {

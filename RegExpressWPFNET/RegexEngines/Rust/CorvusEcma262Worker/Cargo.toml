@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-corvus-regex-ecma262 = "=0.2.2"
 json = "0.12.4"
+corvus-regex-ecma262 = "=0.2.3"

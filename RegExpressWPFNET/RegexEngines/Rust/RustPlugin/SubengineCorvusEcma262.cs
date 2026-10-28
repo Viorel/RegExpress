@@ -70,6 +70,10 @@ partial class SubengineCorvusEcma262( Options options ) : RegexSubengine
                 unicode = options.unicode,
                 unicode_sets = options.unicode_sets,
                 sticky = options.sticky,
+
+                unicode_version = Enum.GetName(options.unicode_version),
+
+                timeout = ValidationUtilities.ParseUInt64( "timeout", options.timeout ),
             }
         };
 

@@ -62,6 +62,16 @@ enum OnigSyntaxTypeEnum // ('ferroni')
     OnigSyntaxRuby,
 }
 
+enum UnicodeVersionEnum
+{
+    None,
+    Default,
+    V13,
+    V17,
+    V18,
+    Latest,
+}
+
 class Options
 {
     public CrateEnum @crate { get; set; } = CrateEnum.regex;
@@ -179,6 +189,7 @@ class Options
     //public bool Unicode { get { return unicode; } set { unicode = value; } }
     //public bool UnicodeSets { get { return unicode_sets; } set { unicode_sets = value; } }
     public bool sticky { get; set; }
+    public UnicodeVersionEnum unicode_version { get; set; } = UnicodeVersionEnum.Default;
 
 
     public Options Clone( )

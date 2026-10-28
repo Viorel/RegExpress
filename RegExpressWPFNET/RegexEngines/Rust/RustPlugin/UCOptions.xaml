@@ -80,7 +80,7 @@
                 <Grid x:Name="pnlRegexCrateLimits" Style="{StaticResource DetailsTable}" Visibility="Collapsed" d:Visibility="Visible">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="44"/>
+                        <ColumnDefinition MinWidth="77"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
@@ -105,7 +105,7 @@
                 <Grid x:Name="pnlFancyRegexCrateLimits" Style="{StaticResource DetailsTable}" Visibility="Collapsed" d:Visibility="Visible">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition MinWidth="77"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
@@ -166,7 +166,7 @@
             <Grid Style="{StaticResource DetailsTable}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition MinWidth="77"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
@@ -216,7 +216,7 @@
             <Grid Style="{StaticResource DetailsTable}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition MinWidth="77"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
@@ -279,7 +279,7 @@
             <Grid Style="{StaticResource DetailsTable}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition MinWidth="77"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
@@ -381,7 +381,7 @@
             <Grid Style="{StaticResource DetailsTable}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition MinWidth="77"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
@@ -466,6 +466,35 @@
             <ui:CheckboxWithNote Prop="unicode" Text="unicode" Note="`u`: the grammar of the u flag, and matching by code point"/>
             <ui:CheckboxWithNote Prop="unicode_sets" Text="unicode_sets" Note="`v`: the grammar of the v flag (set notation and properties of strings), and matching by code point"/>
             <ui:CheckboxWithNote Prop="sticky" Text="sticky" Note="`y`: a match only at the position the search starts from"/>
+
+            <Grid Style="{StaticResource DetailsTable}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition MinWidth="77"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=unicode_version}">Unicode:</Label>
+                <ComboBox x:Name="unicode_version" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding unicode_version, FallbackValue='Default'}" SelectionChanged="cbxUnicodeVersion_SelectionChanged" >
+                    <ComboBoxItem Tag="Default" Content="Default" IsSelected="True"/>
+                    <ComboBoxItem Tag="V13" Content="V13"/>
+                    <ComboBoxItem Tag="V17" Content="V17"/>
+                    <ComboBoxItem Tag="V18" Content="V18"/>
+                    <ComboBoxItem Tag="Latest" Content="Latest"/>
+                </ComboBox>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– the version of Unicode whose tables the pattern is read with" />
+
+
+                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=corvus_timeout}">timeout:</Label>
+                <TextBox x:Name="corvus_timeout" Grid.Column="1" Grid.Row="1" Text="{Binding timeout, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="ms" />
+
+            </Grid>
+
         </StackPanel>
 
     </StackPanel>

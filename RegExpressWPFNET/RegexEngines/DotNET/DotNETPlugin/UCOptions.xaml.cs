@@ -64,6 +64,7 @@ namespace DotNETPlugin
 
                 GregsExProfile.Display( is_gregsEx );
                 GregsExUnicodeVersion.Display( is_gregsEx );
+                CorvusUnicodeVersion.Display( is_corvus );
                 pnlGregsExEcmaScript.Display( is_gregsEx && Options.GregsExProfile == GregsExProfileEnum.EcmaScript );
                 pnlGregsExXsd.Display( is_gregsEx && Options.GregsExProfile == GregsExProfileEnum.Xsd );
                 pnlGregsExXPath.Display( is_gregsEx && Options.GregsExProfile == GregsExProfileEnum.XPath );
@@ -118,6 +119,11 @@ namespace DotNETPlugin
             Notify( preferImmediateReaction: true );
         }
 
+        private void cbxCorvusUnicodeVersion_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
         internal void SetOptions( Options options )
         {
             if( object.ReferenceEquals( options, Options ) ) DataContext = null;
@@ -126,6 +132,5 @@ namespace DotNETPlugin
 
             UpdateUI( );
         }
-
     }
 }

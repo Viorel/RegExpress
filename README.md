@@ -21,7 +21,7 @@ The following engines are included:
   * [_Scout_](https://www.nuget.org/packages/Scout) 0.8.0,
   * [_Lokad.Utf8Regex_](https://www.nuget.org/packages/Lokad.Utf8Regex) 0.3.0,
   * [_GregsEx_](https://www.nuget.org/packages/GregsEx) 0.4.3,
-  * [_Corvus.Regex.Ecma262_](https://www.nuget.org/packages/Corvus.Regex.Ecma262) 1.0.5,
+  * [_Corvus.Regex.Ecma262_](https://www.nuget.org/packages/Corvus.Regex.Ecma262) 1.0.7,
   * [_FuzzyRegex_](https://www.nuget.org/packages/FuzzyRegex) 1.1.0,
 * [**basic_regex**](https://docs.microsoft.com/en-us/cpp/standard-library/regex) class in C++:
   * MSVC _wregex_, 
@@ -62,7 +62,7 @@ The following engines are included:
   * [_ferroni_](https://crates.io/crates/ferroni) 2.5.2,
   * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.4,
   * [_derivre_](https://crates.io/crates/derivre) 0.3.13,
-  * [_corvus-regex-ecma262_](https://crates.io/crates/corvus-regex-ecma262) 0.2.2,
+  * [_corvus-regex-ecma262_](https://crates.io/crates/corvus-regex-ecma262) 0.2.3.
 * [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2.1:
   * _java.util.regex_,
   * [_RE2/J_](https://github.com/google/re2j) 1.8,

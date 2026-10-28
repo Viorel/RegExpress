@@ -25,6 +25,7 @@ internal class Program
         public bool UnicodeSets { get; set; }
         public bool Sticky { get; set; }
 
+        public string? UnicodeVersion { get; set; }
         public long? Timeout { get; set; }
     }
 
@@ -82,6 +83,8 @@ internal class Program
             Input input = JsonSerializer.Deserialize<Input>( input_json )!;
 
             Corvus.Ecma262.RegularExpressions.RegexFlags flags = Corvus.Ecma262.RegularExpressions.RegexFlags.None;
+            Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion unicode_version = Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.Default;
+
             if( input.options != null )
             {
                 if( input.options.HasIndices ) flags |= Corvus.Ecma262.RegularExpressions.RegexFlags.HasIndices;
@@ -92,12 +95,25 @@ internal class Program
                 if( input.options.Unicode ) flags |= Corvus.Ecma262.RegularExpressions.RegexFlags.Unicode;
                 if( input.options.UnicodeSets ) flags |= Corvus.Ecma262.RegularExpressions.RegexFlags.UnicodeSets;
                 if( input.options.Sticky ) flags |= Corvus.Ecma262.RegularExpressions.RegexFlags.Sticky;
+
+                unicode_version = input.options.UnicodeVersion switch
+                {
+                    "Default" or "" => Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.Default,
+                    "V13" => Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.V13,
+                    "V17" => Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.V17,
+                    "V18" => Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.V18,
+                    "Latest" => Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.Latest,
+                    _ => throw new InvalidOperationException( $"Unsupported Unicode Version: '{input.options.UnicodeVersion}'" )
+                };
             }
 
             Corvus.Ecma262.RegularExpressions.Regex re =
-                input.options?.Timeout == null ?
-                    new( input.pattern, flags ) :
-                    new( input.pattern, flags, TimeSpan.FromMilliseconds( input.options.Timeout.Value ) );
+                    new( input.pattern,
+                        flags,
+                        input.options?.Timeout == null ? Corvus.Ecma262.RegularExpressions.Regex.DefaultMatchTimeout : TimeSpan.FromMilliseconds( input.options.Timeout.Value ),
+                        Corvus.Ecma262.RegularExpressions.RegexEdition.Current,
+                        unicode_version
+                        );
 
             Output output_matches = new( );// { Names = re.GetGroupNames( ) }; -- only named groups are included; discrepancy from .NET RegExp
 

@@ -36,6 +36,16 @@ enum GregsExUnicodeVersionEnum
     Unicode17_0,
 }
 
+enum CorvusUnicodeVersionEnum
+{
+    None,
+    Default,
+    V13,
+    V17,
+    V18,
+    Latest,
+}
+
 sealed class Options
 {
     public ClassEnum Class { get; set; } = ClassEnum.RegexDotNet;
@@ -102,6 +112,9 @@ sealed class Options
     public string? StepTimeoutMs { get; set; } = null;
     public string? MaxCompiledNodes { get; set; } = null;
 
+    //
+
+    public CorvusUnicodeVersionEnum CorvusUnicodeVersion {  get; set; } = CorvusUnicodeVersionEnum.Default;
 
     public Options Clone( )
     {

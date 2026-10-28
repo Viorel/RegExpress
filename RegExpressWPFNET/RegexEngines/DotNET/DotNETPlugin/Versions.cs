@@ -15,6 +15,6 @@ static class Versions
     public static string? Scout { get; } = "0.8.0";
     public static string? LokadUtf8Regex { get; } = "0.3.0";
     public static string? GregsEx { get; } = "0.4.3";
-    public static string? CorvusEcma262 { get; } = "1.0.5";
+    public static string? CorvusEcma262 { get; } = "1.0.7";
     public static string? FuzzyRegex { get; } = "1.1.0";
 }

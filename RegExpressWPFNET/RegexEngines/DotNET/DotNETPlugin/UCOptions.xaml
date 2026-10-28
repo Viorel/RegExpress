@@ -33,6 +33,7 @@
                 <RowDefinition/>
                 <RowDefinition/>
                 <RowDefinition/>
+                <RowDefinition/>
             </Grid.RowDefinitions>
 
             <Label Grid.Row="0" Grid.Column="0" Content="Kind:" Target="{Binding ElementName=cbxClass}" />
@@ -66,7 +67,17 @@
                 <ComboBoxItem Tag="Unicode16_0" Content="Unicode16_0" IsSelected="True" />
                 <ComboBoxItem Tag="Unicode17_0" Content="Unicode17_0" />
             </ComboBox>
-            
+
+            <Label Grid.Row="3" Grid.Column="0" Content="Unicode:" Target="{Binding ElementName=CorvusUnicodeVersion}" Visibility="{Binding Visibility, ElementName=CorvusUnicodeVersion}" d:Visibility="Visible" />
+            <ComboBox x:Name="CorvusUnicodeVersion" Grid.Row="3" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding CorvusUnicodeVersion, FallbackValue='Default'}" SelectionChanged="cbxCorvusUnicodeVersion_SelectionChanged"
+                      Visibility="Collapsed" d:Visibility="Visible" >
+                <ComboBoxItem Tag="Default" Content="Default" IsSelected="True" />
+                <ComboBoxItem Tag="V13" Content="V13" />
+                <ComboBoxItem Tag="V17" Content="V17" />
+                <ComboBoxItem Tag="V18" Content="V18" />
+                <ComboBoxItem Tag="Latest" Content="Latest" />
+            </ComboBox>
+
         </Grid>
 
         <StackPanel x:Name="pnlRegex" Orientation="Vertical">

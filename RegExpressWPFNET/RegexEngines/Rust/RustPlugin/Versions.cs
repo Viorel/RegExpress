@@ -17,5 +17,5 @@ static class Versions
     public static string Ferroni { get; } = "2.5.2";
     public static string RustyExpressions { get; } = "0.2.4";
     public static string Derivre { get; } = "0.3.13";
-    public static string CorvusEcma262 { get; } = "0.2.2";
+    public static string CorvusEcma262 { get; } = "0.2.3";
 }
