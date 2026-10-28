@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) linear version 2026.03
+**  SRELL (std::regex-like library) linear version 2026.04
 **
 **  Copyright (c) 2026, Nozomu Katoo. All rights reserved.
 **
@@ -31,7 +31,7 @@
 */
 
 #ifndef SREL3_HPP_
-#define SREL3_HPP_ 202603
+#define SREL3_HPP_ 202604
 
 #define SRELL_LINEAR
 
@@ -16470,11 +16470,6 @@ struct re_state
 		return type == st_epsilon && char_num == epsilon_type::et_ccastrsk;
 	}
 
-	bool is_asterisk_or_plus_for_onelen_atom() const
-	{
-		return type == st_epsilon && ((next1 == 1 && next2 == 2) || (next1 == 2 && next2 == 1)) && quantifier.is_asterisk_or_plus();
-	}
-
 	bool is_same_character_or_charclass(const re_state &right) const
 	{
 		return type == right.type && char_num == right.char_num
@@ -17698,6 +17693,8 @@ private:
 			if (piecesize.atmost < branchsize.atmost)
 				piecesize.atmost = branchsize.atmost;
 
+			piecesize.is_greedy |= branchsize.is_greedy;
+
 			if (curpos != end && *curpos == meta_char::mc_bar)
 			{
 				bstate.next2 = static_cast<std::ptrdiff_t>(branch.size()) + 2;
@@ -17752,6 +17749,7 @@ private:
 		posdata_holder pos;
 
 		branchsize.reset(0);
+		branchsize.is_greedy = 0;
 
 		for (;;)
 		{
@@ -17973,8 +17971,16 @@ private:
 
 				quantifier.reset();
 
-				if (firststate.has_quantifier() && curpos != end)
+				if (firststate.has_quantifier())
 				{
+					if (firststate.is_ncgroup_open())
+						branchsize.is_greedy |= astate.quantifier.is_greedy;
+					else
+						branchsize.is_greedy = 1;
+
+					if (curpos == end)
+						goto AFTER_GREEDINESS_CHECK;
+
 					switch (*curpos)
 					{
 					case meta_char::mc_astrsk:	//  '*'
@@ -18031,13 +18037,15 @@ private:
 					AFTER_GREEDINESS_CHECK:;
 				}
 
-				if (piece.size() == 2 && firststate.is_ncgroup_open())
+				if (branchsize.is_greedy == 0 || (astate.quantifier.is_greedy == 0 && firststate.type == st_roundbracket_open))
 				{
-					//  (?:) alone or followed by a quantifier.
-//					piece_with_quantifier += piece;
-					;	//  Does nothing.
+					if (quantifier.atleast >= 2)
+						quantifier.atleast = quantifier.atmost = 1;
+					else if (quantifier.atmost >= 2)
+						quantifier.atmost = 1;
 				}
-				else if (!combine_piece_with_quantifier(piece_with_quantifier, piece, quantifier, astate.quantifier))
+
+				if (!combine_piece_with_quantifier(piece_with_quantifier, piece, quantifier, astate.quantifier))
 					return false;
 
 				astate.quantifier.multiply(quantifier);
@@ -18302,12 +18310,6 @@ private:
 		switch (rbstate.type)
 		{
 		case st_epsilon:
-			if (piece.size() == 2)	//  ':' + something.
-			{
-				piece.erase(0);
-				return true;
-			}
-
 			firststate.quantifier.is_greedy = piecesize.atleast != 0u;
 			rbstate.char_num = epsilon_type::et_ncgclose;
 			break;
@@ -18367,6 +18369,14 @@ private:
 			? epsilon_type::et_ccastrsk
 			: epsilon_type::et_dfastrsk);
 		qstate.quantifier = quantifier;
+
+		if (quantifier.is_default() && firststate.is_ncgroup_open())
+		{
+			piece.pop_back();
+			piece.erase(0);
+			if (piece.size() == 0)
+				return true;
+		}
 
 		state_size_type branchsize = piece.size();
 
@@ -21354,9 +21364,6 @@ bool operator!=(
 	namespace re_detail
 	{
 
-struct is_cont_iter { enum { is_ci = 1 }; };
-struct non_cont_iter { enum { is_ci = 0 }; };
-
 template <typename charT, typename traits>
 class re_object : public re_compiler<charT, traits>
 {
@@ -21460,37 +21467,6 @@ private:
 		return static_cast<const char8_t *>(std::memchr(ptr, static_cast<int>(ch), count));
 	}
 #endif
-
-	template <typename BidiIter, int N>
-	struct contiguous_checker
-	{
-		typedef non_cont_iter itype;
-	};
-
-#if defined(__cpp_concepts)
-
-	template <std::contiguous_iterator CI, int N>
-	struct contiguous_checker<CI, N>
-	{
-		typedef is_cont_iter itype;
-	};
-
-#else
-
-	template <int N>
-	struct contiguous_checker<const charT *, N>
-	{
-		typedef is_cont_iter itype;
-	};
-	template <int N>
-	struct contiguous_checker<typename std::basic_string<charT>::const_iterator, N>
-	{
-		typedef is_cont_iter itype;
-	};
-
-#endif
-
-	//  PREFILTERS.
 
 	template <typename rettype, typename char_type>
 	rettype select_accelfunc() const
@@ -21693,6 +21669,7 @@ SRELL_NO_VCWARNING_END
 		{
 			if (chargroup(lchar) == cc_newline)
 				return curq + cc_newline * eachsize;
+
 			if ((atypes ^= 2) == 0)
 				return curq;
 		}
@@ -21701,6 +21678,7 @@ SRELL_NO_VCWARNING_END
 		{
 			if (chargroup(lchar) == cc_word)
 				return curq + cc_word * eachsize;
+
 			if ((atypes ^= 4) == 0)
 				return curq;
 		}
@@ -21858,6 +21836,7 @@ SRELL_NO_VCWARNING_END
 					else
 					{
 						this->dcache_size_ += this->groupno_maxp1_;
+
 						if (this->dcache_size_ <= this->dcache_limit_)
 						{
 							const std::size_t addbyte = this->groupno_maxp1_ * sizeof (cached_value_type);
@@ -21902,6 +21881,7 @@ SRELL_NO_VCWARNING_END
 						else
 						{
 							this->dcache_size_ += this->groupno_maxp1_;
+
 							if (this->dcache_size_ <= this->dcache_limit_)
 							{
 								const std::size_t addbyte = this->groupno_maxp1_ * sizeof (cached_value_type);
@@ -21924,6 +21904,7 @@ SRELL_NO_VCWARNING_END
 					else
 					{
 						this->dcache_size_ += this->groupno_maxp1_ * 2;
+
 						if (this->dcache_size_ <= this->dcache_limit_)
 						{
 							const std::size_t addbyte = this->groupno_maxp1_ * 2 * sizeof (cached_value_type);

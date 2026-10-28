@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) version 2026.07
+**  SRELL (std::regex-like library) version 2026.08
 **
 **  Copyright (c) 2012-2026, Nozomu Katoo. All rights reserved.
 **
@@ -31,7 +31,7 @@
 */
 
 #ifndef SRELL_HPP_
-#define SRELL_HPP_ 202607
+#define SRELL_HPP_ 202608
 
 #include <climits>
 #include <cwchar>
@@ -16221,6 +16221,12 @@ struct re_state
 		quantifier.reset();
 	}
 
+	void set_nexts(const std::ptrdiff_t n1, const std::ptrdiff_t n2)
+	{
+		next1 = n1;
+		next2 = n2;
+	}
+
 	bool is_character_or_class() const
 	{
 		return type == st_character || type == st_character_class;
@@ -16262,11 +16268,6 @@ struct re_state
 	bool is_question_or_asterisk_before_corcc() const
 	{
 		return type == st_epsilon && char_num == epsilon_type::et_ccastrsk;
-	}
-
-	bool is_asterisk_or_plus_for_onelen_atom() const
-	{
-		return type == st_epsilon && ((next1 == 1 && next2 == 2) || (next1 == 2 && next2 == 1)) && quantifier.is_asterisk_or_plus();
 	}
 
 	bool is_same_character_or_charclass(const re_state &right) const
@@ -17893,6 +17894,8 @@ private:
 			if (piecesize.atmost < branchsize.atmost)
 				piecesize.atmost = branchsize.atmost;
 
+			piecesize.is_greedy |= branchsize.is_greedy;
+
 			if (curpos != end && *curpos == meta_char::mc_bar)
 			{
 				bstate.next2 = static_cast<std::ptrdiff_t>(branch.size()) + 2;
@@ -17947,6 +17950,7 @@ private:
 		posdata_holder pos;
 
 		branchsize.reset(0);
+		branchsize.is_greedy = 0;
 
 		for (;;)
 		{
@@ -18165,8 +18169,16 @@ private:
 
 				quantifier.reset();
 
-				if (firststate.has_quantifier() && curpos != end)
+				if (firststate.has_quantifier())
 				{
+					if (firststate.is_ncgroup_open())
+						branchsize.is_greedy |= astate.quantifier.is_greedy;
+					else
+						branchsize.is_greedy = 1;
+
+					if (curpos == end)
+						goto AFTER_GREEDINESS_CHECK;
+
 					switch (*curpos)
 					{
 					case meta_char::mc_astrsk:	//  '*'
@@ -18223,13 +18235,15 @@ private:
 					AFTER_GREEDINESS_CHECK:;
 				}
 
-				if (piece.size() == 2 && firststate.is_ncgroup_open())
+				if (branchsize.is_greedy == 0 || (astate.quantifier.is_greedy == 0 && firststate.type == st_roundbracket_open))
 				{
-					//  (?:) alone or followed by a quantifier.
-//					piece_with_quantifier += piece;
-					;	//  Does nothing.
+					if (quantifier.atleast >= 2)
+						quantifier.atleast = quantifier.atmost = 1;
+					else if (quantifier.atmost >= 2)
+						quantifier.atmost = 1;
 				}
-				else if (!combine_piece_with_quantifier(piece_with_quantifier, piece, quantifier, astate.quantifier))
+
+				if (!combine_piece_with_quantifier(piece_with_quantifier, piece, quantifier, astate.quantifier))
 					return false;
 
 				astate.quantifier.multiply(quantifier);
@@ -18494,12 +18508,6 @@ private:
 		switch (rbstate.type)
 		{
 		case st_epsilon:
-			if (piece.size() == 2)	//  ':' + something.
-			{
-				piece.erase(0);
-				return true;
-			}
-
 			firststate.quantifier.is_greedy = piecesize.atleast != 0u;
 			rbstate.char_num = epsilon_type::et_ncgclose;
 			break;
@@ -18557,6 +18565,9 @@ private:
 		{
 			if (quantifier.atleast == 0)
 			{
+				if (firststate.is_ncgroup_open() && piecesize.atleast == 0)
+					goto GROUP01;
+
 				qstate.next2 = static_cast<std::ptrdiff_t>(piece.size()) + 1;
 				if (!quantifier.is_greedy)
 				{
@@ -18621,6 +18632,7 @@ private:
 		}
 		else if (firststate.is_ncgroup_open() && (piecesize.atleast == 0 || firststate.quantifier.is_valid()))
 		{
+			GROUP01:
 			qstate.quantifier = firststate.quantifier;
 			ADD_CHECKER:
 
@@ -19751,14 +19763,48 @@ private:
 						REMOVE_BACKREF:
 						if (brs.next1 == -1)
 						{
-							state_type &prevstate = this->NFA_states[backrefpos + brs.next1];
+							state_type &prevstate = this->NFA_states[backrefpos - 1];
 
-							if (prevstate.is_asterisk_or_plus_for_onelen_atom())
+							brs.next1 = 1;
+							prevstate.set_nexts(1, 0);
+							prevstate.char_num = epsilon_type::et_fmrbckrf;
+
+							if (backrefpos >= 2)
 							{
-								brs.next1 = prevstate.farnext() + brs.next1;
-								prevstate.next1 = 1;
-								prevstate.next2 = 0;
+								state_type &prevprevstate = this->NFA_states[backrefpos - 2];
+
+								if (prevprevstate.type == st_epsilon && prevprevstate.char_num == epsilon_type::et_jmpinlp)
+								{
+									prevprevstate.set_nexts(1, 0);
+									prevprevstate.char_num = epsilon_type::et_fmrbckrf;
+								}
+							}
+						}
+						else if (brs.next1 == 1)
+						{
+							state_type &prevstate = this->NFA_states[backrefpos - 1];
+
+							if (prevstate.type == st_epsilon && prevstate.quantifier.is_question())
+							{
+								prevstate.set_nexts(1, 0);
 								prevstate.char_num = epsilon_type::et_fmrbckrf;
+							}
+						}
+						else if (brs.next1 == -3)
+						{
+							state_size_type srcpos = backrefpos - 3;
+
+							if (srcpos >= 2 && this->NFA_states[srcpos - 2].type == st_save_and_reset_counter)
+								srcpos -= 2;
+
+							brs.next1 = 1;
+							for (; srcpos < backrefpos; ++srcpos)
+							{
+								state_type &s = this->NFA_states[srcpos];
+
+								s.type = st_epsilon;
+								s.char_num = epsilon_type::et_fmrbckrf;
+								s.set_nexts(1, 0);
 							}
 						}
 
@@ -20258,7 +20304,7 @@ private:
 						state_type &rcstate = this->NFA_states[rcpos];
 
 						if (bstate.quantifier.atleast <= 4)
-						{
+						{	//  C{n,m} -> CCCCC{0,m-n}+ .
 							orgcur.next1 = 1;
 							orgcur.next2 = 0;
 							orgcur.quantifier.reset();
@@ -20279,7 +20325,7 @@ private:
 							bstate.quantifier.atmost -= bstate.quantifier.atleast;
 						}
 						else
-						{
+						{	//  C{n,m} -> C{n}C{0,m-n}+ .
 							additions.append(this->NFA_states, bpos, 4);
 
 							srstate.next1 = addpos - srpos;
@@ -20681,10 +20727,10 @@ private:
 						if (repend > send)
 							repend = send;
 
+						atomseq.clear();
+
 						if (repbgn >= repend)
 							return false;
-
-						atomseq.clear();
 
 						if (NFAs[repbgn].is_character_or_class())
 						{
@@ -20744,7 +20790,7 @@ private:
 
 			case st_save_and_reset_counter:
 			{
-				if (cur + 5 >= send)
+				if (cur + 5 > send)
 					return false;
 
 				const state_size_type ccpos = cur + 2;	//  state.next1;
@@ -20757,23 +20803,30 @@ private:
 				if (repend > send)
 					repend = send;
 
-				if (repbgn >= repend)
-					return false;
-
 				atomseq.clear();
+
+				if (repbgn >= repend)
+				{
+					if (cur < repend)
+						atomseq.append(repend - cur, epsilon);
+
+					goto AFTER_CSEQ_PACKED;
+				}
 
 				if (NFAs[repbgn].is_character_or_class())
 				{
 					atomseq.append(NFAs, cur, repend - cur);
-
-					state_type &s = atomseq[2];
-					if (!s.quantifier.is_greedy)
 					{
-						s.next2 = s.next1;
-						s.next1 = 1;
-						s.quantifier.is_greedy = 1;
+						state_type &s = atomseq[2];
+						if (!s.quantifier.is_greedy)
+						{
+							s.next2 = s.next1;
+							s.next1 = 1;
+							s.quantifier.is_greedy = 1;
+						}
 					}
 
+					AFTER_CSEQ_PACKED:
 					revNFAs.insert(0, atomseq);
 					cur = repend;
 					continue;
@@ -20822,30 +20875,37 @@ private:
 		const state_array &NFAs = this->NFA_states;
 		state_size_type betterpos = 0u;
 		ui_l32 bp_cunum = constants::invalid_u32value;
+		enum nr_masks
+		{
+			nr_final = 1,
+			nr_next = 2,
+			nr_nextnext = 4,
+			nr_afterngq = 8
+		};
 		int needs_rerun = 0;
-		int next_nr = 0;
 		state_size_type end = NFAs.size();
 		range_pairs nextcc;
 
 		for (; cur < end;)
 		{
 			const state_type &state = NFAs[cur];
+			state_size_type boundary = cur + 1;
 			int final = 0;
 
 			if (state.type == st_epsilon)
 			{
 				if (state.next2 != 0)
 				{
-					if ((next_nr & 2) == 0 && state.char_num != epsilon_type::et_alt)
+					if ((needs_rerun & nr_afterngq) == 0 && state.char_num != epsilon_type::et_alt)
 					{
 						const state_size_type repbgn = cur + state.nearnext();
 
 						if (NFAs[repbgn].is_character_or_class())
 						{
-							next_nr |= 1;
+							needs_rerun |= nr_next;
 							cur += state.farnext();
 							if (state.quantifier.is_greedy == 0)
-								next_nr |= 2;
+								needs_rerun |= nr_afterngq;
 							continue;
 						}
 					}
@@ -20856,18 +20916,26 @@ private:
 					if (state.char_num == epsilon_type::et_jmpinlp)
 					{
 						const state_size_type repbgn = cur + state.next1;
+						const state_size_type repend = cur + 1 + NFAs[cur + 1].farnext();
 
 						if (NFAs[repbgn].is_character_or_class())
-							next_nr |= 1;
+						{
+							needs_rerun |= nr_nextnext;
+							boundary = repend;
+						}
 						else
-							end = cur + 1 + NFAs[cur + 1].farnext();
-
-						cur = repbgn;
+						{
+							needs_rerun |= nr_next;
+							end = repend;
+							cur = repbgn;
+							continue;
+						}
 					}
 					else
+					{
 						++cur;
-
-					continue;
+						continue;
+					}
 				}
 			}
 			else if (state.type == st_save_and_reset_counter)
@@ -20883,23 +20951,29 @@ private:
 				{
 					if (!cc.quantifier.is_same())
 					{
-						next_nr |= 1;
-						if (next_nr & 2)
+						if (needs_rerun & nr_afterngq)
 						{
 							final = 1;
 							goto SKIP_CCHECK;
 						}
+						needs_rerun |= nr_nextnext;
 					}
 
 					if (cc.quantifier.is_greedy == 0)
-						next_nr |= 2;
+						needs_rerun |= nr_afterngq;
 
 					if (cc.quantifier.atleast == 0)
 					{
+						if (needs_rerun & nr_nextnext)
+						{
+							needs_rerun |= nr_next;
+							needs_rerun ^= nr_nextnext;
+						}
 						cur = repend;
 						continue;
 					}
 					cur = repbgn;
+					boundary = repend;
 					SKIP_CCHECK:;
 				}
 				else
@@ -20908,6 +20982,7 @@ private:
 						final = 1;
 					else
 					{
+						needs_rerun |= nr_next;
 						end = repend;
 						cur = repbgn;
 						continue;
@@ -20917,7 +20992,7 @@ private:
 			else if (state.type == st_roundbracket_open)
 			{
 				cur += state.next1;
-				next_nr |= 1;
+				needs_rerun |= nr_next;
 				continue;
 			}
 			else if (state.type == st_repeat_in_push || state.type == st_bol || state.type == st_eol || state.type == st_boundary)
@@ -20941,20 +21016,30 @@ private:
 
 			const ui_l32 cunum = nextcc.num_codeunits<utf_traits>();
 
+			if (cunum == 0)
+				break;
+
 			if (bp_cunum >= cunum)
 			{
 				betterpos = cur;
 				bp_cunum = cunum;
-				needs_rerun |= next_nr;
+				if (needs_rerun & nr_next)
+					needs_rerun |= nr_final;
+			}
+
+			if (needs_rerun & nr_nextnext)
+			{
+				needs_rerun |= nr_next;
+				needs_rerun ^= nr_nextnext;
 			}
 
 			if (final)
 				break;
 
-			++cur;
+			cur = boundary;
 		}
 
-		return create_rewinder(betterpos, needs_rerun, cvars);
+		return create_rewinder(betterpos, needs_rerun & nr_final, cvars);
 	}
 
 #endif	//  !defined(SRELLDBG_NO_MPREWINDER)

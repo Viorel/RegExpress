@@ -62,13 +62,16 @@ static void DoMatch( BinaryWriterA& outbw, const std::u8string& pattern, const s
 					outbw.WriteT<int64_t>( match.position( ) );
 					outbw.WriteT<int64_t>( match.length( ) );
 
-					int j = 0;
+					// unnamed groups
 
+					int j = 0;
 					for( auto k = match.cbegin( ); k != match.cend( ); ++k, ++j )
 					{
 						const srel3::u8csub_match& submatch = *k;
 
 						outbw.WriteT<char>( 'g' );
+
+						outbw.Write( std::u8string{} ); // name (not known)
 
 						if( !submatch.matched )
 						{
@@ -79,24 +82,29 @@ static void DoMatch( BinaryWriterA& outbw, const std::u8string& pattern, const s
 						{
 							outbw.WriteT<int64_t>( match.position( j ) );
 							outbw.WriteT<int64_t>( match.length( j ) );
+						}
+					}
 
-							// try to find the possible name
-							bool found = false;
-							for( const std::u8string& name : possible_names )
-							{
-								const auto& m = match.operator[]( name );
-								if( !m.matched ) continue; // name not found
+					// named groups
 
-								if( match.position( name ) == match.position( j ) && match.length( name ) == match.length( j ) )
-								{
-									outbw.Write( name );
+					for( const std::u8string& name : possible_names )
+					{
+						const srel3::u8csub_match& submatch = match[name];
 
-									found = true;
-									break;
-								}
-							}
+						if( !submatch.matched )
+						{
+							// name not found, or match failed
 
-							if( !found ) outbw.Write( std::u8string{} );
+							// TODO: distinguish 'name not found' and 'match failed'
+						}
+						else
+						{
+							// name found and match succeeded
+
+							outbw.WriteT<char>( 'g' );
+							outbw.Write( name );
+							outbw.WriteT<int64_t>( match.position( name ) );
+							outbw.WriteT<int64_t>( match.length( name ) );
 						}
 					}
 				}

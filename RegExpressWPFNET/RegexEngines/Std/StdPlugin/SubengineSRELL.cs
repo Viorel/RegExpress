@@ -114,12 +114,12 @@ class SubengineSRELL( Options options ) : RegexSubengine
             case (byte)'g':
             {
                 if( current_match == null ) throw new Exception( "Invalid response." );
+
+                string name = br.ReadString( );
                 int native_index = checked((int)br.ReadInt64( ));
                 int native_length = checked((int)br.ReadInt64( ));
-                bool success = native_index >= 0;
 
-                string? name = null;
-                if( success ) name = br.ReadString( );
+                bool success = native_index >= 0 && native_length >= 0;
 
                 if( string.IsNullOrWhiteSpace( name ) ) name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
 

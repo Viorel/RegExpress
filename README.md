@@ -25,9 +25,9 @@ The following engines are included:
   * [_FuzzyRegex_](https://www.nuget.org/packages/FuzzyRegex) 1.1.0,
 * [**basic_regex**](https://docs.microsoft.com/en-us/cpp/standard-library/regex) class in C++:
   * MSVC _wregex_, 
-  *  GCC _wregex_,
-  * [_SRELL_](https://www.akenotsuki.com/misc/srell/en/) _u8regex_ 2026.07.
-  * [_SRELL linear_](https://www.akenotsuki.com/misc/srell/en/#linear) _u8regex_ 2026.03.
+  * GCC _wregex_,
+  * [_SRELL_](https://www.akenotsuki.com/misc/srell/en/) _u8regex_ 2026.08,
+  * [_SRELL linear_](https://www.akenotsuki.com/misc/srell/en/#linear) _u8regex_ 2026.04.
 * [**Boost.Regex**](https://www.boost.org/doc/libs/1_89_0/libs/regex/doc/html/index.html) from Boost C++ Libraries 1.89.0.
 * [**PCRE2**](https://github.com/PCRE2Project/pcre2) Open Source Regex Library 10.49 (in C).
 * [**RE2**](https://github.com/google/re2) Library 2025-11-05 from Google (in C++).
