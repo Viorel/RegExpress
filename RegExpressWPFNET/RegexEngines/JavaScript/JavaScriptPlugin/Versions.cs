@@ -11,6 +11,6 @@ static class Versions
     public static string QuickJs { get; } = "2026-06-04";
     public static string SpiderMonkey { get; } = "C145.0";
     public static string Bun { get; } = "1.3.13";
-    public static string RE2JS { get; } = "2.9.0";
+    public static string RE2JS { get; } = "2.9.1";
     public static string RegexPlus { get; } = "6.1.0";
 }

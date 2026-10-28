@@ -1003,25 +1003,7 @@ export declare class RE2JS {
 	 */
 	equals(other: any): boolean;
 }
-/**
- * Creates an RE2JS regex directly from a template literal.
- * @overload
- * @param {TemplateStringsArray} stringsOrFlags - The raw string segments of the template literal.
- * @param {...any} values - The interpolated values.
- * @returns {RE2JS}
- */
-/**
- * Creates a template literal tag function with specific RE2JS flags.
- * @overload
- * @param {number} stringsOrFlags - The RE2JS flags to apply (e.g., RE2JS.CASE_INSENSITIVE).
- * @returns {(strings: TemplateStringsArray, ...tagValues: any[]) => RE2JS}
- */
-/**
- * Implementation signature
- * @param {TemplateStringsArray | number} stringsOrFlags
- * @param {...any} values
- * @returns {RE2JS | ((strings: TemplateStringsArray, ...tagValues: any[]) => RE2JS)}
- */
-export declare const re: (stringsOrFlags: TemplateStringsArray | number, ...values: any[]) => RE2JS | ((strings: TemplateStringsArray, ...tagValues: any[]) => RE2JS);
+export declare function re(stringsOrFlags: TemplateStringsArray, ...values: any): RE2JS;
+export declare function re(stringsOrFlags: number): (strings: TemplateStringsArray, ...tagValues: any[]) => RE2JS;
 
 export {};

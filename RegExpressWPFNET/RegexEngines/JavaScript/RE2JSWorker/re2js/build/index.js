@@ -2,7 +2,7 @@
 * re2js
 * RE2JS is the JavaScript port of RE2, a regular expression engine that provides linear time matching
 *
-* @version v2.9.0
+* @version v2.9.1
 * @author Oleksii Vasyliev
 * @homepage https://github.com/le0pard/re2js#readme
 * @repository [object Object]
@@ -6801,7 +6801,7 @@ var RE2JS = class RE2JS {
 * @param {...any} values
 * @returns {RE2JS | ((strings: TemplateStringsArray, ...tagValues: any[]) => RE2JS)}
 */
-const re = (stringsOrFlags, ...values) => {
+function re(stringsOrFlags, ...values) {
 	if (Array.isArray(stringsOrFlags) && "raw" in stringsOrFlags) {
 		const pattern = String.raw(stringsOrFlags, ...values);
 		return RE2JS.compile(pattern);
@@ -6811,6 +6811,6 @@ const re = (stringsOrFlags, ...values) => {
 		const pattern = String.raw(strings, ...tagValues);
 		return RE2JS.compile(pattern, flags);
 	};
-};
+}
 //#endregion
 export { Matcher, MatcherInput, MatcherInputBase, RE2JS, RE2JSCompileException, RE2JSException, RE2JSFlagsException, RE2JSGroupException, RE2JSInternalException, RE2JSSyntaxException, RE2Set, re };
