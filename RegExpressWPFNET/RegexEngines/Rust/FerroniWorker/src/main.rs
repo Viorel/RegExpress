@@ -55,9 +55,7 @@ fn main()
     }
     else
     {
-        let mut reb = ferroni::api::RegexBuilder::new( pattern);
-
-        reb = reb
+        let reb = ferroni::api::RegexBuilder::new( pattern)
             .case_insensitive( options["case_insensitive"].as_bool().unwrap_or( false))
             .dot_matches_newline( options["dot_matches_newline"].as_bool().unwrap_or( false))
             .multi_line_anchors( options["multi_line_anchors"].as_bool().unwrap_or( false))
@@ -81,7 +79,15 @@ fn main()
                 "OnigSyntaxPython" => &ferroni::regsyntax::OnigSyntaxPython,
                 "OnigSyntaxRuby" => &ferroni::regsyntax::OnigSyntaxRuby,
                 _ => panic!("Invalid syntax: '{}'", options["syntax"].as_str().unwrap_or( ""))
-            });
+            })
+            .acceleration(match options["acceleration"].as_str().unwrap_or( "")
+            {
+                "Off" => ferroni::AccelerationMode::Off,
+                "Auto" | "" => ferroni::AccelerationMode::Auto,
+                "Eager" => ferroni::AccelerationMode::Eager,
+                _ => panic!("Invalid acceleration: '{}'", options["acceleration"].as_str().unwrap_or( ""))
+            } )
+            ;
 
         let n = options["timeout"].as_u64();
         if let Some(n) = n

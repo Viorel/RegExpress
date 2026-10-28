@@ -117,7 +117,7 @@
                     </Grid.RowDefinitions>
 
                     <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=bm}">bytes__mode:</Label>
-                    <ComboBox x:Name="bm" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding bytes_mode, FallbackValue='Default'}" SelectionChanged="cbxBytesMode_SelectionChanged" >
+                    <ComboBox x:Name="bm" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding bytes_mode, FallbackValue='Default'}" SelectionChanged="cbx_SelectionChanged" >
                         <ComboBoxItem Tag ="Default"        Content="Default" IsSelected="True" />
                         <ComboBoxItem Tag ="Unicode"        Content="Unicode" />
                         <ComboBoxItem Tag ="Ascii"          Content="Ascii" />
@@ -176,7 +176,7 @@
                 </Grid.RowDefinitions>
 
                 <Label Content="Unicode mode:" Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=cbxUnicodeMode}" />
-                <ComboBox x:Name="cbxUnicodeMode" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding UnicodeMode, FallbackValue='Default'}" SelectionChanged="cbxUnicodeMode_SelectionChanged" MinWidth="77" >
+                <ComboBox x:Name="cbxUnicodeMode" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding UnicodeMode, FallbackValue='Default'}" SelectionChanged="cbx_SelectionChanged" MinWidth="77" >
                     <ComboBoxItem Tag ="Default" Content="Default" IsSelected="True" />
                     <ComboBoxItem Tag ="Ascii" Content="Ascii" />
                     <ComboBoxItem Tag ="Full" Content="Full" />
@@ -252,7 +252,7 @@
                 </Grid.RowDefinitions>
 
                 <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=mm}">MatchMode:</Label>
-                <ComboBox x:Name="mm" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding MatchMode, FallbackValue='Full'}" SelectionChanged="cbxMatchMode_SelectionChanged" >
+                <ComboBox x:Name="mm" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding MatchMode, FallbackValue='Full'}" SelectionChanged="cbx_SelectionChanged" >
                     <ComboBoxItem Tag ="Full" IsSelected="True">
                         <ui:TextAndNote Text="Full" Note="match complete string"/>
                     </ComboBoxItem>
@@ -288,10 +288,11 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=onigsyn}">syntax:</Label>
-                <ComboBox x:Name="onigsyn" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding OnigSyntaxType, FallbackValue='OnigSyntaxOniguruma'}" SelectionChanged="cbxOnigSyntaxType_SelectionChanged" >
+                <ComboBox x:Name="onigsyn" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding OnigSyntaxType, FallbackValue='OnigSyntaxOniguruma'}" SelectionChanged="cbx_SelectionChanged" >
                     <ComboBoxItem Tag="OnigSyntaxOniguruma" IsSelected="True">
                         <ui:TextAndNote Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Note=""/>
                     </ComboBoxItem>
@@ -347,6 +348,13 @@
                 <TextBox x:Name="match_stack_limit" Grid.Column="1" Grid.Row="4" Text="{Binding match_stack_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
                 <TextBlock Grid.Column="2" Grid.Row="4" Text="" />
 
+                <Label Grid.Column="0" Grid.Row="5" Target="{Binding ElementName=Acceleration}">acceleration:</Label>
+                <ComboBox x:Name="Acceleration" Grid.Column="1" Grid.Row="5" SelectedValuePath="Tag" SelectedValue="{Binding Acceleration, FallbackValue='Auto'}" SelectionChanged="cbx_SelectionChanged" >
+                    <ComboBoxItem Tag="Auto" Content="Auto" IsSelected="True"/>
+                    <ComboBoxItem Tag="Off" Content="Off"/>
+                    <ComboBoxItem Tag="Eager" Content="Eager"/>
+                </ComboBox>
+                <!--<TextBlock Grid.Column="2" Grid.Row="5" Text="– matching semantics" Style="{StaticResource note}" />-->
             </Grid>
 
         </StackPanel>
@@ -393,7 +401,7 @@
                 </Grid.RowDefinitions>
 
                 <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=rsonigsyn}">Syntax:</Label>
-                <ComboBox x:Name="rsonigsyn" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding OnigSyntaxType, FallbackValue='OnigSyntaxOniguruma'}" SelectionChanged="cbxOnigSyntaxType_SelectionChanged" >
+                <ComboBox x:Name="rsonigsyn" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding OnigSyntaxType, FallbackValue='OnigSyntaxOniguruma'}" SelectionChanged="cbx_SelectionChanged" >
                     <ComboBoxItem Tag="OnigSyntaxOniguruma" IsSelected="True">
                         <ui:TextAndNote Text="ONIGURUMA" Note=""/>
                     </ComboBoxItem>
@@ -479,7 +487,7 @@
                 </Grid.RowDefinitions>
 
                 <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=unicode_version}">Unicode:</Label>
-                <ComboBox x:Name="unicode_version" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding unicode_version, FallbackValue='Default'}" SelectionChanged="cbxUnicodeVersion_SelectionChanged" >
+                <ComboBox x:Name="unicode_version" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding unicode_version, FallbackValue='Default'}" SelectionChanged="cbx_SelectionChanged" >
                     <ComboBoxItem Tag="Default" Content="Default" IsSelected="True"/>
                     <ComboBoxItem Tag="V13" Content="V13"/>
                     <ComboBoxItem Tag="V17" Content="V17"/>

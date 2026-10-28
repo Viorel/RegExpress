@@ -59,7 +59,7 @@ The following engines are included:
   * [_regexr_](https://crates.io/crates/regexr) 0.6.1,
   * [_rexile_](https://crates.io/crates/rexile) 0.7.4,
   * [_iregexp-rs_](https://github.com/strefethen/iregexp-rs) 0.1.0 (RFC 9485),
-  * [_ferroni_](https://crates.io/crates/ferroni) 2.5.2,
+  * [_ferroni_](https://crates.io/crates/ferroni) 2.8.0,
   * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.4,
   * [_derivre_](https://crates.io/crates/derivre) 0.3.13,
   * [_corvus-regex-ecma262_](https://crates.io/crates/corvus-regex-ecma262) 0.2.3.

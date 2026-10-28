@@ -48,6 +48,16 @@ namespace RustPlugin
             Notify( preferImmediateReaction: false );
         }
 
+        private void cbx_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
+        private void tb_TextChanged( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
+
         private void cbxCrate_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             UpdateUI( );
@@ -62,40 +72,10 @@ namespace RustPlugin
             Notify( preferImmediateReaction: true );
         }
 
-        private void cbxBytesMode_SelectionChanged( object sender, SelectionChangedEventArgs e )
-        {
-            Notify( preferImmediateReaction: true );
-        }
-
-        private void tb_TextChanged( object sender, TextChangedEventArgs e )
-        {
-            Notify( preferImmediateReaction: false );
-        }
-
-        private void cbxUnicodeMode_SelectionChanged( object sender, SelectionChangedEventArgs e )
-        {
-            Notify( preferImmediateReaction: true );
-        }
-
-        private void cbxMatchMode_SelectionChanged( object sender, SelectionChangedEventArgs e )
-        {
-            Notify( preferImmediateReaction: true );
-        }
-
-        private void cbxOnigSyntaxType_SelectionChanged( object sender, SelectionChangedEventArgs e )
-        {
-            Notify( preferImmediateReaction: true );
-        }
-
         private void chbxOnigUseBuilder_Changed( object sender, RoutedEventArgs e )
         {
             UpdateUI( );
 
-            Notify( preferImmediateReaction: true );
-        }
-
-        private void cbxUnicodeVersion_SelectionChanged( object sender, SelectionChangedEventArgs e )
-        {
             Notify( preferImmediateReaction: true );
         }
 

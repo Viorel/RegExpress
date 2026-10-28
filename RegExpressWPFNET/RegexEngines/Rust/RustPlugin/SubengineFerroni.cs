@@ -77,6 +77,7 @@ class SubengineFerroni( Options options ) : RegexSubengine
                 dfa = options.dfa,
 
                 syntax = Enum.GetName( options.OnigSyntaxType ),
+                acceleration = Enum.GetName( options.Acceleration ),
 
                 timeout = use_builder ? ValidationUtilities.ParseUInt64( "timeout", options.timeout ) : null,
                 retry_limit_in_match = use_builder ? ValidationUtilities.ParseUInt64( "retry_limit_in_match", options.retry_limit_in_match ) : null,

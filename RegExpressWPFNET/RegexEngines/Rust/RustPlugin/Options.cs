@@ -72,6 +72,14 @@ enum UnicodeVersionEnum
     Latest,
 }
 
+enum AccelerationEnum
+{
+    None,
+    Off,
+    Auto,
+    Eager,
+}
+
 class Options
 {
     public CrateEnum @crate { get; set; } = CrateEnum.regex;
@@ -145,6 +153,7 @@ class Options
     // Ferroni
 
     public OnigSyntaxTypeEnum OnigSyntaxType { get; set; } = OnigSyntaxTypeEnum.OnigSyntaxOniguruma; // (also 'RustyExpressions')
+    public AccelerationEnum Acceleration { get; set; } = AccelerationEnum.Auto;
     public string? timeout { get; set; }
     public string? match_stack_limit { get; set; }
     public bool reject_backtracking_risks { get; set; }
