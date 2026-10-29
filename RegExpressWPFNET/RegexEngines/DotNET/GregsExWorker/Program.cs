@@ -332,17 +332,13 @@ internal class Program
         }
         catch( GregsEx.RegexParseException exc )
         {
-            Console.Error.WriteLine( exc.Message );
+            Console.Error.WriteLine( $"{exc.GetType( ).Name}: {exc.Message}" );
             Console.Error.WriteLine( $"Offset: {exc.Diagnostic.Offset}" );
             if( !string.IsNullOrWhiteSpace( exc.Diagnostic.Message ) ) Console.Error.WriteLine( exc.Diagnostic.Message );
         }
-        catch( GregsEx.RegexExecutionException exc )
-        {
-            Console.Error.WriteLine( exc.Message );
-        }
         catch( Exception exc )
         {
-            Console.Error.WriteLine( exc.Message );
+            Console.Error.WriteLine( $"{exc.GetType( ).Name}: {exc.Message}" );
         }
     }
 }

@@ -1,0 +1,16 @@
+{
+  "NOTE": "(should not have BOM)",
+  "pattern": "BAD PATTERN ( ",
+  "text": "a\uD83D\uDE0Eb",
+  "flags": {
+    "ASCII": false,
+    "DOTALL": false,
+    "IGNORECASE": false,
+    "LOCALE": false,
+    "MULTILINE": false,
+    "VERBOSE": true,
+    "UNICODE": true,
+    "fallback": false,
+    "fullmatch": false
+  }
+}

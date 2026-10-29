@@ -122,12 +122,10 @@ void main()
 
         stderr.writefln("Unsupported command: '%s'", command);
     }
-    catch (RegexException exc)
-    {
-        stderr.writeln(exc.message());
-    }
     catch (Exception exc)
     {
-        stderr.writeln(exc.message());
+        stderr.write( typeid(exc).toString());
+        stderr.write( ": ");
+        stderr.writeln( exc.message());
     }
 }

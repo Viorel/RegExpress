@@ -64,8 +64,8 @@ try:
             outputMatch( match)
 
 except:
-    ex_type, ex, tb = sys.exc_info()
+    exc_type, exc, tb = sys.exc_info()
 
-    print( ex, file = sys.stderr )
+    print( f"{exc_type.__name__}: {exc}", file = sys.stderr )
 
 

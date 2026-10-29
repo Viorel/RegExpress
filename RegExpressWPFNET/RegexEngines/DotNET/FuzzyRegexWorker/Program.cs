@@ -126,12 +126,12 @@ internal class Program
         }
         catch( Fuzzy.Text.RegularExpressions.FuzzyRegexParseException exc )
         {
-            Console.Error.WriteLine( exc.Message );
+            Console.Error.WriteLine( $"{exc.GetType( ).Name}: {exc.Message}" );
             if( exc.Offset >= 0 ) Console.Error.WriteLine( $"at offset {exc.Offset}" );
         }
         catch( Exception exc )
         {
-            Console.Error.WriteLine( exc.Message );
+            Console.Error.WriteLine( $"{exc.GetType( ).Name}: {exc.Message}" );
         }
     }
 }

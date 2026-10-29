@@ -101,7 +101,7 @@ namespace DotNETWorker
             }
             catch( Exception exc )
             {
-                Console.Error.WriteLine( exc.Message );
+                Console.Error.WriteLine( $"{exc.GetType( ).Name}: {exc.Message}" );
             }
         }
 
