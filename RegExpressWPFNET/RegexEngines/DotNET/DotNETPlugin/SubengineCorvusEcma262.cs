@@ -101,7 +101,9 @@ internal partial class SubengineCorvusEcma262( Options options ) : RegexSubengin
                 Sticky = options.Sticky,
 
                 UnicodeVersion = Enum.GetName( options.CorvusUnicodeVersion ),
-                Timeout = ValidationUtilities.ParseInt64( "Timeout", options.TimeoutMs )
+                Timeout = ValidationUtilities.ParseInt64( "Timeout", options.TimeoutMs ),
+
+                Eager = options.Eager,
             }
         };
 

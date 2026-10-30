@@ -27,6 +27,8 @@ internal class Program
 
         public string? UnicodeVersion { get; set; }
         public long? Timeout { get; set; }
+
+        public bool Eager { get; set; }
     }
 
     sealed class Output
@@ -84,6 +86,7 @@ internal class Program
 
             Corvus.Ecma262.RegularExpressions.RegexFlags flags = Corvus.Ecma262.RegularExpressions.RegexFlags.None;
             Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion unicode_version = Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.Default;
+            Corvus.Ecma262.RegularExpressions.RegexBuildOptions build_options = Corvus.Ecma262.RegularExpressions.RegexBuildOptions.None;
 
             if( input.options != null )
             {
@@ -105,6 +108,8 @@ internal class Program
                     "Latest" => Corvus.Ecma262.RegularExpressions.RegexUnicodeVersion.Latest,
                     _ => throw new InvalidOperationException( $"Unsupported Unicode Version: '{input.options.UnicodeVersion}'" )
                 };
+
+                if( input.options.Eager ) build_options |= Corvus.Ecma262.RegularExpressions.RegexBuildOptions.Eager;
             }
 
             Corvus.Ecma262.RegularExpressions.Regex re =
@@ -112,7 +117,8 @@ internal class Program
                         flags,
                         input.options?.Timeout == null ? Corvus.Ecma262.RegularExpressions.Regex.DefaultMatchTimeout : TimeSpan.FromMilliseconds( input.options.Timeout.Value ),
                         Corvus.Ecma262.RegularExpressions.RegexEdition.Current,
-                        unicode_version
+                        unicode_version,
+                        build_options
                         );
 
             Output output_matches = new( );// { Names = re.GetGroupNames( ) }; -- only named groups are included; discrepancy from .NET RegExp

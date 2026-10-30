@@ -115,6 +115,7 @@ sealed class Options
     //
 
     public CorvusUnicodeVersionEnum CorvusUnicodeVersion {  get; set; } = CorvusUnicodeVersionEnum.Default;
+    public bool Eager { get; set; }
 
     public Options Clone( )
     {

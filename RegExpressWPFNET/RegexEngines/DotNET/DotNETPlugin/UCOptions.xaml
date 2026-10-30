@@ -232,6 +232,7 @@
             <ui:CheckboxWithNote Prop="UseDotnetUnicode" Text="Unicode" Note="The “u” flag: the grammar of Unicode mode, matched by code point"/>
             <ui:CheckboxWithNote Prop="UnicodeSets" Text="UnicodeSets" Note="The “v” flag: set notation and properties of strings, matched by code point. It cannot be set with “u”"/>
             <ui:CheckboxWithNote Prop="Sticky" Text="Sticky" Note="The “y” flag: a match only at the position the search starts from"/>
+            <ui:CheckboxWithNote Prop="Eager" Text="Eager" Note="Everything is built when the regular expression is constructed"/>
 
             <Grid Style="{StaticResource DetailsTable}">
                 <Grid.ColumnDefinitions>
