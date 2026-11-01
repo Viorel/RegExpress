@@ -541,9 +541,9 @@ partial class SubengineMRegex( Options options ) : RegexSubengine
             EmptySet = true,
             EmptySetAny = true,
 
-            Unicode_Class_Dot = true,
+            Unicode_Class_Dot = false,
             Unicode_Class_wW = false,
-            InsideSets_Unicode = true,
+            InsideSets_Unicode = false,
             UnicodeCaseFolding = false,
             KeepSurrogatePairs = false,
             FuzzyMatchingParams = false,
