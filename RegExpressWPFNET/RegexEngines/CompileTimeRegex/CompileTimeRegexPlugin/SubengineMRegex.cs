@@ -20,6 +20,7 @@ partial class SubengineMRegex( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
+    static readonly Encoding StrictAsciiEncoding = Encoding.GetEncoding( "ASCII", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback );
     static readonly Lock Locker = new( );
     static readonly List<string> PathsToDeleteOnExit = [];
 
@@ -45,6 +46,24 @@ partial class SubengineMRegex( Options options ) : RegexSubengine
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
     {
         Debug.Assert( options.Kind == KindEnum.MRegex );
+
+        try
+        {
+            _ = StrictAsciiEncoding.GetBytes( pattern );
+        }
+        catch( EncoderFallbackException exc )
+        {
+            throw new Exception( $"MRegex only supports the ASCII character encoding.\r\nThe pattern contains an invalid character at position {exc.Index}." );
+        }
+
+        try
+        {
+            _ = StrictAsciiEncoding.GetBytes( text );
+        }
+        catch( EncoderFallbackException exc )
+        {
+            throw new Exception( $"MRegex only supports the ASCII character encoding.\r\nThe text contains an invalid character at position {exc.Index}." );
+        }
 
         string additional_CL_option_1 = "";
 
