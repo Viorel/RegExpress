@@ -1,4 +1,5 @@
-set ADDITIONAL_CL_OPTION_1=%~1
+set INCLUDE_DIRECTORY=%~1
+set ADDITIONAL_CL_OPTION_1=%~2
 
 cd /d "%~dp0"
 
@@ -19,8 +20,10 @@ goto exit
 
 :compile
 
+if "%INCLUDE_DIRECTORY%"=="" set "INCLUDE_DIRECTORY=.\compile-time-regular-expressions\single-header"
+
 call %bat_path%
-cl "CompileTimeRegexSample.cpp" /nologo /Od /permissive- /GS /W3 /Zc:wchar_t /fp:precise /D "_WINDOWS" /D "_UNICODE" /D "UNICODE" /WX- /Zc:forScope /RTC1 /Gd /MD /std:c++20 /EHsc /options:strict %ADDITIONAL_CL_OPTION_1%
+cl "CompileTimeRegexSample.cpp" /nologo /Od /permissive- /GS /W3 /Zc:wchar_t /fp:precise /D "_WINDOWS" /D "_UNICODE" /D "UNICODE" /I"%INCLUDE_DIRECTORY%" /WX- /Zc:forScope /RTC1 /Gd /MD /std:c++20 /EHsc /options:strict %ADDITIONAL_CL_OPTION_1%
 goto exit
 
 :exit

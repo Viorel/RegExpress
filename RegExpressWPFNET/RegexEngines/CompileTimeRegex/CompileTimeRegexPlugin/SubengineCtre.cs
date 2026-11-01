@@ -48,8 +48,6 @@ partial class SubengineCtre( Options options ) : RegexSubengine
 
         Int64? template_depth = ValidationUtilities.ParseInt64( "TemplateDepth", options.TemplateDepth );
 
-        string additional_CL_option_1 = template_depth == null ? "" : $"/templateDepth:{template_depth}";
-
         string[] possible_group_names =
             PossibleNamesRegex( )
                 .Matches( pattern )
@@ -66,16 +64,11 @@ partial class SubengineCtre( Options options ) : RegexSubengine
         {
             Directory.CreateDirectory( temp_dir );
 
-            string worker_dir = GetWorkerDirectory( );
+            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
 
             // copy files
 
-            CopyDirectory(
-                Path.Combine( worker_dir, "compile-time-regular-expressions" ),
-                Path.Combine( temp_dir, "compile-time-regular-expressions" ),
-                recursive: true );
-
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+            string worker_dir = GetWorkerDirectory( );
 
             string build_cmd_full_path = Path.Combine( temp_dir, "build.cmd" );
 
@@ -110,13 +103,17 @@ partial class SubengineCtre( Options options ) : RegexSubengine
 
             if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
 
+            string include_directory = Path.Combine( worker_dir, "compile-time-regular-expressions", "single-header" );
+
             // build executable
             string built_exe_full_path = Path.Combine( temp_dir, "CompileTimeRegexSample.exe" );
             {
+                string additional_CL_option_1 = template_depth == null ? "" : $"/templateDepth:{template_depth}";
+
                 ProcessHelper ph = new( build_cmd_full_path )
                 {
                     AllEncoding = EncodingEnum.ASCII,
-                    Arguments = [additional_CL_option_1],
+                    Arguments = [include_directory, additional_CL_option_1],
                 };
 
                 if( !ph.Start( cnc ) ) return RegexMatches.Empty;

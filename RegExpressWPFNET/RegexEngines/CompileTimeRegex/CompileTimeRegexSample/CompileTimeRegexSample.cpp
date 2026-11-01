@@ -1,7 +1,7 @@
 ﻿#include <iostream>
 #include <exception>
 
-#include ".\\compile-time-regular-expressions\\single-header\\ctre-unicode.hpp"
+#include "ctre-unicode.hpp"
 
 
 template <typename Iterator, typename... Captures>

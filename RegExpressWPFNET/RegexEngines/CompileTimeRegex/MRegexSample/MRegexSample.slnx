@@ -1,7 +1,6 @@
 <Solution>
   <Configurations>
     <Platform Name="x64" />
-    <Platform Name="x86" />
   </Configurations>
   <Project Path="MRegexSample.vcxproj" Id="a9a609de-1d7a-431a-a9c9-128c434da55b" />
 </Solution>

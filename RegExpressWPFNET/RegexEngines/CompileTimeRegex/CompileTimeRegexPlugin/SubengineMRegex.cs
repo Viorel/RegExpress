@@ -65,8 +65,6 @@ partial class SubengineMRegex( Options options ) : RegexSubengine
             throw new Exception( $"MRegex only supports the ASCII character encoding.\r\nThe text contains an invalid character at position {exc.Index}." );
         }
 
-        string additional_CL_option_1 = "";
-
         string temp_dir = Path.Combine( Path.GetTempPath( ), Path.GetRandomFileName( ) );
 
         lock( Locker ) PathsToDeleteOnExit.Add( temp_dir );
@@ -75,16 +73,11 @@ partial class SubengineMRegex( Options options ) : RegexSubengine
         {
             Directory.CreateDirectory( temp_dir );
 
-            string worker_dir = GetWorkerDirectory( );
+            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
 
             // copy files
 
-            CopyDirectory(
-                Path.Combine( worker_dir, "mregex-min" ),
-                Path.Combine( temp_dir, "mregex-min" ),
-                recursive: true );
-
-            if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
+            string worker_dir = GetWorkerDirectory( );
 
             string build_cmd_full_path = Path.Combine( temp_dir, "build.cmd" );
 
@@ -117,13 +110,15 @@ partial class SubengineMRegex( Options options ) : RegexSubengine
 
             if( cnc.IsCancellationRequested ) return RegexMatches.Empty;
 
+            string include_directory = Path.Combine( worker_dir, "mregex-min", "include" );
+
             // build executable
             string built_exe_full_path = Path.Combine( temp_dir, "MRegexSample.exe" );
             {
                 ProcessHelper ph = new( build_cmd_full_path )
                 {
                     AllEncoding = EncodingEnum.ASCII,
-                    Arguments = [additional_CL_option_1],
+                    Arguments = [include_directory],
                 };
 
                 if( !ph.Start( cnc ) ) return RegexMatches.Empty;
@@ -151,7 +146,7 @@ partial class SubengineMRegex( Options options ) : RegexSubengine
             {
                 ProcessHelper ph = new( built_exe_full_path )
                 {
-                    AllEncoding = EncodingEnum.ASCII
+                    AllEncoding = EncodingEnum.ASCII,
                 };
 
                 if( !ph.Start( cnc ) ) return RegexMatches.Empty;
