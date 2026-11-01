@@ -97,10 +97,10 @@ The following engines are included:
   * [_z-regex_](https://github.com/carlos-sweb/z-regex) 0.9.1.
 * **Go** 1.27.2:
   * [_regexp_](https://pkg.go.dev/regexp) 1.27.2,
-  * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.8.4,
+  * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.12.0,
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
   * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.30,
-  * [_onigmo go-regexp_](https://pkg.go.dev/github.com/go-regexp/engine) 0.3.0.
+  * [_onigmo go-regexp_](https://pkg.go.dev/github.com/go-regexp/engine) 0.3.2.
 * **Dart** 3.13.7:
   * [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html),
   * [_oniguruma\_dart_](https://pub.dev/packages/oniguruma_dart) 1.0.1,

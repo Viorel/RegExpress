@@ -1,5 +1,5 @@
 module OnigmoGoRegexpWorker
 
-go 1.27.2
+go 1.27.3
 
-require github.com/go-regexp/engine v0.3.0
+require github.com/go-regexp/engine v0.3.2
