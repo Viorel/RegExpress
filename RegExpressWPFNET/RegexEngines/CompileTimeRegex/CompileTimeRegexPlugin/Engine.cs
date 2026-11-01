@@ -44,11 +44,11 @@ class Engine : RegexEngine
 
     public override string Kind => "CTRE";
 
-    public override string Version => Versions.Ctre;
+    public override string Version => "";
 
     public override string Name => "CTRE";
 
-    public override string Subtitle => "CTRE";
+    public override string Subtitle => $"{Options.Kind switch { KindEnum.Ctre => "CTRE", KindEnum.MRegex => "CTRE (mregex)", _ => "CTRE (unknown)" }}";
 
     public override string? NoteForCaptures => null;
 
@@ -90,12 +90,15 @@ class Engine : RegexEngine
     {
         return
             [
-                new FeatureMatrixVariant( null, new Engine() )
+                new FeatureMatrixVariant( "c-t-r-e", new Engine { Options = new Options { Kind = KindEnum.Ctre } } ),
+                new FeatureMatrixVariant( "mregex", new Engine { Options = new Options { Kind = KindEnum.MRegex } } )
             ];
     }
 
     public override void SetIgnoreCase( bool yes )
     {
+        Options.case_insensitive = yes;
+        if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
     }
 
     public override void SetIgnorePatternWhitespace( bool yes )
@@ -112,7 +115,12 @@ class Engine : RegexEngine
 
     public override RegexSubengine GetSubengine( )
     {
-        return new Subengine( Options );
+        return Options.Kind switch
+        {
+            KindEnum.Ctre => new SubengineCtre( Options ),
+            KindEnum.MRegex => new SubengineMRegex( Options ),
+            _ => throw new NotImplementedException( )
+        };
     }
 
     #endregion

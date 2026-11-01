@@ -1,0 +1,11 @@
+PATCH
+------------
+
+    File: "static_string.h"
+    Line: 60
+
+    Original:
+        return std::string_view(std::cbegin(data), N);
+
+    Changed to:
+        return std::string_view(data.data(), N );
