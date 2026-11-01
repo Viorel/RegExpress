@@ -1,4 +1,5 @@
 ﻿using RegExpressLibrary;
+using RegExpressLibrary.UI;
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -29,6 +30,8 @@ namespace CompileTimeRegexPlugin
             if( IsFullyLoaded ) return;
 
             IsFullyLoaded = true;
+
+            UpdateUI( );
         }
 
         void UpdateUI( )
@@ -40,6 +43,11 @@ namespace CompileTimeRegexPlugin
             {
                 ++ChangeCounter;
 
+                bool is_ctre = Options.Kind == KindEnum.Ctre;
+                bool is_mregex = Options.Kind == KindEnum.MRegex;
+
+                pnlCtre.Display( is_ctre );
+                pnlMRegexp.Display( is_mregex );
             }
             finally
             {
@@ -53,6 +61,12 @@ namespace CompileTimeRegexPlugin
             if( ChangeCounter != 0 ) return;
 
             Changed?.Invoke( null, new RegexEngineOptionsChangedArgs { PreferImmediateReaction = preferImmediateReaction } );
+        }
+
+        private void cbxKind_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            UpdateUI( );
+            Notify( preferImmediateReaction: true );
         }
 
         private void CheckBox_Changed( object sender, RoutedEventArgs e )
@@ -73,5 +87,6 @@ namespace CompileTimeRegexPlugin
 
             UpdateUI( );
         }
+
     }
 }

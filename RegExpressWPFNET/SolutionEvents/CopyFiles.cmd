@@ -265,9 +265,14 @@ rem -- CTRE --
 
 set BasePath=%SolutionDir%\RegexEngines\CompileTimeRegex
 xcopy /D /R /Y "%BasePath%\CompileTimeRegexPlugin\bin\%Configuration%\%TargetDir%\CompileTimeRegexPlugin.dll" "%EnginesTargetPath%\CompileTimeRegex\*"
-xcopy /D /R /Y /E "%BasePath%\CompileTimeRegexSample\compile-time-regular-expressions\*" "%EnginesTargetPath%\CompileTimeRegex\compile-time-regular-expressions\*"
-xcopy /D /R /Y "%BasePath%\CompileTimeRegexSample\build.cmd" "%EnginesTargetPath%\CompileTimeRegex\*"
-xcopy /D /R /Y "%BasePath%\CompileTimeRegexSample\CompileTimeRegexSample.cpp" "%EnginesTargetPath%\CompileTimeRegex\*"
+
+xcopy /D /R /Y /E "%BasePath%\CompileTimeRegexSample\compile-time-regular-expressions\*" "%EnginesTargetPath%\CompileTimeRegex\CTRE\compile-time-regular-expressions\*"
+xcopy /D /R /Y "%BasePath%\CompileTimeRegexSample\build.cmd" "%EnginesTargetPath%\CompileTimeRegex\CTRE\*"
+xcopy /D /R /Y "%BasePath%\CompileTimeRegexSample\CompileTimeRegexSample.cpp" "%EnginesTargetPath%\CompileTimeRegex\CTRE\*"
+
+xcopy /D /R /Y /E "%BasePath%\MRegexSample\mregex-min\*" "%EnginesTargetPath%\CompileTimeRegex\MRegex\mregex-min\*"
+xcopy /D /R /Y "%BasePath%\MRegexSample\build.cmd" "%EnginesTargetPath%\CompileTimeRegex\MRegex\*"
+xcopy /D /R /Y "%BasePath%\MRegexSample\MRegexSample.cpp" "%EnginesTargetPath%\CompileTimeRegex\MRegex\*"
 
 
 rem -- GRETA --

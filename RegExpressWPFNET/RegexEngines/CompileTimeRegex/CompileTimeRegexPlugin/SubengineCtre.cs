@@ -16,14 +16,14 @@ using System.Threading;
 
 namespace CompileTimeRegexPlugin;
 
-partial class Subengine( Options options ) : RegexSubengine
+partial class SubengineCtre( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
     static readonly Lock Locker = new( );
     static readonly List<string> PathsToDeleteOnExit = [];
 
-    static Subengine( )
+    static SubengineCtre( )
     {
         AppDomain.CurrentDomain.ProcessExit += HandleExit;
     }
@@ -44,9 +44,11 @@ partial class Subengine( Options options ) : RegexSubengine
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
     {
+        Debug.Assert( options.Kind == KindEnum.Ctre );
+
         Int64? template_depth = ValidationUtilities.ParseInt64( "TemplateDepth", options.TemplateDepth );
 
-        string? additional_CL_option_1 = template_depth == null ? "" : $"/templateDepth:{template_depth}";
+        string additional_CL_option_1 = template_depth == null ? "" : $"/templateDepth:{template_depth}";
 
         string[] possible_group_names =
             PossibleNamesRegex( )
@@ -266,8 +268,9 @@ partial class Subengine( Options options ) : RegexSubengine
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
+        string worker_dir = Path.Combine( assembly_dir, "CTRE" );
 
-        return assembly_dir;
+        return worker_dir;
     }
 
     static void CopyDirectory( string sourceDir, string destinationDir, bool recursive )

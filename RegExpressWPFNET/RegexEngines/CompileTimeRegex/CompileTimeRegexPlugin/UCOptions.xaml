@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:CompileTimeRegexPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="131.466" d:DesignWidth="391.642" 
+             d:DesignHeight="217.378" d:DesignWidth="391.642" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -22,11 +22,31 @@
     </UserControl.Resources>
 
     <StackPanel Orientation="Vertical">
-        <ui:CheckboxWithNote Prop="case_insensitive"/>
-        <ui:CheckboxWithNote Prop="multiline"/>
-        <ui:CheckboxWithNote Prop="singleline"/>
 
-        <StackPanel x:Name="pnlCL" Orientation="Vertical">
+        <Grid Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <Label Grid.Row="0" Grid.Column="0" Content="Kind:" Target="{Binding ElementName=Kind}" />
+            <ComboBox x:Name="Kind" Grid.Row="0" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding Kind, FallbackValue='Ctre'}" SelectionChanged="cbxKind_SelectionChanged">
+                <ui:ComboBoxItemWithVersion Tag ="Ctre"     Text="compile-time-regular-expressions"     Version="{x:Static local:Versions.Ctre}" IsSelected="True" />
+                <ui:ComboBoxItemWithVersion Tag ="MRegex"   Text="mregex"                               Version="{x:Static local:Versions.MRegex}" />
+            </ComboBox>
+        </Grid>
+
+        <StackPanel x:Name="pnlCtre" Orientation="Vertical">
+
+            <ui:CheckboxWithNote Prop="case_insensitive"/>
+            <ui:CheckboxWithNote Prop="multiline"/>
+            <ui:CheckboxWithNote Prop="singleline"/>
 
             <Label Content="Compiler options" Style="{StaticResource SectionTitle}"/>
 
@@ -47,6 +67,16 @@
             </Grid>
 
         </StackPanel>
+
+        <StackPanel x:Name="pnlMRegexp" Orientation="Vertical">
+
+            <ui:CheckboxWithNote Prop="case_insensitive" Text="icase" Note="Makes matching case-insensitive"/>
+            <ui:CheckboxWithNote Prop="singleline" Text="dotall" Note="Makes wildcards (.) match line break characters"/>
+            <ui:CheckboxWithNote Prop="ungreedy" Text="ungreedy" Note="Swaps the behavior of lazy and greedy quantifiers"/>
+            <ui:CheckboxWithNote Prop="unroll" Text="unroll" Note="Enables the compiler to be more aggressive when unrolling repetition loops"/>
+
+        </StackPanel>
+
     </StackPanel>
 
 </UserControl>

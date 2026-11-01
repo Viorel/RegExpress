@@ -78,13 +78,15 @@ The following engines are included:
 * **Fortran** [**Forgex**](https://github.com/ShinobuAmasaki/forgex) v4.6 module (Intel® Fortran Compiler 2026.0.0).
 * [**TRE**](https://github.com/laurikari/tre) 0.9.0 (in C).
 * **tiny\-regex\-c** (in C):
-  * [kokke](https://github.com/kokke/tiny-regex-c) 2021-02-15 (original),
-  * [rurban](https://github.com/rurban/tiny-regex-c) 2022-06-21,
-  * [gyrovorbis](https://github.com/gyrovorbis/tiny-regex-c) 2026-09-22.
+  * [_kokke_](https://github.com/kokke/tiny-regex-c) 2021-02-15 (original),
+  * [_rurban_](https://github.com/rurban/tiny-regex-c) 2022-06-21,
+  * [_gyrovorbis_](https://github.com/gyrovorbis/tiny-regex-c) 2026-09-22.
 * **Ada GNAT.Regpat** 26.0.0.
 * [**TRegEx**](https://docwiki.embarcadero.com/Libraries/Florence/en/System.RegularExpressions) 29.0 (C++Builder, Delphi).
 * [**QRegularExpression**](https://doc.qt.io/qt-6/qregularexpression.html) class (based on PCRE2) from Qt 6.9.3 (in C++).
-* [**compile-time-regular-expressions (CTRE)**](https://github.com/hanickadot/compile-time-regular-expressions)[^2] 3.11.0  (in C++).
+* **Compile-time Regular Expressions (CTRE)**:
+  * [_compile-time-regular-expressions_](https://github.com/hanickadot/compile-time-regular-expressions)[^2] 3.11.0 (in C++),
+  * [_mregex_](https://github.com/iulian-rusu/mregex)[^2] 2026-10-29 (in C++).
 * **GRETA** 2.6.4 (in C++).
 * **Zig** 0.17.0:
   * [_zig-regex_](https://github.com/zig-utils/zig-regex) 0.2.1, 
@@ -170,7 +172,7 @@ There is a notable advancement from several perspectives:
 
 
 [^1]: The **Bun** engine requires a modern 64-bit processor.
-[^2]: The **CTRE** engine is available in selected environments only.
+[^2]: The **CTRE** engines are available in selected environments only and cannot run without Visual Studio.
 
 <br/>
 <br/>
