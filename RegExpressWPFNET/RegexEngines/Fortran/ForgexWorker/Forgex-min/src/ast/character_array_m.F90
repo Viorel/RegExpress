@@ -356,18 +356,21 @@ contains
       use :: iso_fortran_env, only: stderr => error_unit
       implicit none
       type(character_array_t), intent(in) :: list(:)
-      
-      character(:), allocatable :: fmt
-      integer :: i
 
-      fmt = "('|', a6, 1x, '|', l8, 1x, '|', l11 ,1x, '|', l9, 1x, '|', i7, 1x, '|')"
-      write(stderr, '(a)') '+=========== character_array_t output ==============' 
-      write(stderr, '(a)') '| chara | escaped | hyphenated | subtract |  size  |' 
-      do i = 1, size(list, dim=1)
-         write(stderr, fmt) list(i)%c, list(i)%is_escaped, list(i)%is_hyphenated, &
-            list(i)%is_subtract, list(i)%seg_size
-      end do
-      write(stderr, '(a)') '+=======+=========+============+==========+========+' 
+    ! COMMENTED BY ME. Undefined 'IMPURE' produces compilation problems in other parts.
+   
+      !
+      !character(:), allocatable :: fmt
+      !integer :: i
+      !
+      !fmt = "('|', a6, 1x, '|', l8, 1x, '|', l11 ,1x, '|', l9, 1x, '|', i7, 1x, '|')"
+      !write(stderr, '(a)') '+=========== character_array_t output ==============' 
+      !write(stderr, '(a)') '| chara | escaped | hyphenated | subtract |  size  |' 
+      !do i = 1, size(list, dim=1)
+      !   write(stderr, fmt) list(i)%c, list(i)%is_escaped, list(i)%is_hyphenated, &
+      !      list(i)%is_subtract, list(i)%seg_size
+      !end do
+      !write(stderr, '(a)') '+=======+=========+============+==========+========+' 
 
    end subroutine dump_character_array_t_list
 #endif
