@@ -33,12 +33,13 @@
 
             <Label Grid.Column="0" Grid.Row="0" Content="Library:" Target="{Binding ElementName=cbxLibrary}" />
             <ComboBox x:Name="cbxLibrary" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding Library, FallbackValue='ZigRegex'}" SelectionChanged="cbxLibrary_SelectionChanged">
-                <ui:ComboBoxItemWithVersion Tag="ZigRegex"      Text="zig-regex"    Version="{x:Static local:Versions.ZigRegex}" IsSelected="True" />
-                <ui:ComboBoxItemWithVersion Tag="Mvzr"          Text="mvzr"         Version="{x:Static local:Versions.Mvzr}" />
-                <ui:ComboBoxItemWithVersion Tag="Pzre"          Text="PZRE"         Version="{x:Static local:Versions.Pzre}" />
-                <ui:ComboBoxItemWithVersion Tag="EziGex"        Text="ezi-gex"      Version="{x:Static local:Versions.EziGex}" />
-                <ui:ComboBoxItemWithVersion Tag="Zoptia0regex"  Text="zoptia0regex" Version="{x:Static local:Versions.Zoptia0regex}" />
-                <ui:ComboBoxItemWithVersion Tag="Z_Regex"       Text="z-regex"      Version="{x:Static local:Versions.Z_Regex}" />
+                <ui:ComboBoxItemWithVersion Tag="ZigRegex"      Text="zig-regex"        Version="{x:Static local:Versions.ZigRegex}" IsSelected="True" />
+                <ui:ComboBoxItemWithVersion Tag="Mvzr"          Text="mvzr"             Version="{x:Static local:Versions.Mvzr}" />
+                <ui:ComboBoxItemWithVersion Tag="Pzre"          Text="PZRE"             Version="{x:Static local:Versions.Pzre}" />
+                <ui:ComboBoxItemWithVersion Tag="EziGex"        Text="ezi-gex"          Version="{x:Static local:Versions.EziGex}" />
+                <ui:ComboBoxItemWithVersion Tag="Zoptia0regex"  Text="zoptia0regex"     Version="{x:Static local:Versions.Zoptia0regex}" />
+                <ui:ComboBoxItemWithVersion Tag="Z_Regex"       Text="z-regex"          Version="{x:Static local:Versions.Z_Regex}" />
+                <ui:ComboBoxItemWithVersion Tag="ZRegex"        Text="zregex"           Version="{x:Static local:Versions.ZRegex}" />
             </ComboBox>
 
         </Grid>
@@ -131,6 +132,12 @@
             <ui:CheckboxWithNote Prop="unicode" Text="unicode" Note="Stricter escape-sequence syntax validation"/>
             <ui:CheckboxWithNote Prop="v" Text="v" Note="Unicode Sets mode"/>
             <ui:CheckboxWithNote Prop="possessive" Text="possessive" Note="`*+`, `++` and `?+` as possessive quantifiers (match greedily, never give back)"/>
+        </StackPanel>
+
+        <StackPanel x:Name="pnlZRegex" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="case_insensitive" Text="case_insensitive" Note="Case-insensitive matching, using Unicode simple case folding"/>
+            <ui:CheckboxWithNote Prop="multiline" Text="multiline" Note="`^`/`$` match at line boundaries in addition to text boundaries"/>
+            <ui:CheckboxWithNote Prop="dot_all" Text="dot_all" Note="`.` also matches `\n`"/>
         </StackPanel>
 
     </StackPanel>

@@ -9,4 +9,5 @@ static class Versions
     public static string EziGex { get; } = "0.8.0";
     public static string Zoptia0regex { get; } = "0.6.0";
     public static string Z_Regex { get; } = "0.9.1";
+    public static string ZRegex { get; } = "2026-10-05";
 }
