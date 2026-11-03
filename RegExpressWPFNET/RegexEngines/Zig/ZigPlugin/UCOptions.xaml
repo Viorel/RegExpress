@@ -38,7 +38,7 @@
                 <ui:ComboBoxItemWithVersion Tag="Pzre"          Text="PZRE"         Version="{x:Static local:Versions.Pzre}" />
                 <ui:ComboBoxItemWithVersion Tag="EziGex"        Text="ezi-gex"      Version="{x:Static local:Versions.EziGex}" />
                 <ui:ComboBoxItemWithVersion Tag="Zoptia0regex"  Text="zoptia0regex" Version="{x:Static local:Versions.Zoptia0regex}" />
-                <ui:ComboBoxItemWithVersion Tag="ZRegex"        Text="z-regex"      Version="{x:Static local:Versions.ZRegex}" />
+                <ui:ComboBoxItemWithVersion Tag="Z_Regex"       Text="z-regex"      Version="{x:Static local:Versions.Z_Regex}" />
             </ComboBox>
 
         </Grid>
@@ -123,7 +123,7 @@
             <ui:CheckboxWithNote Prop="literal" Note="interpret pattern as literal, not regexp"/>
         </StackPanel>
 
-        <StackPanel x:Name="pnlZRegex" Orientation="Vertical">
+        <StackPanel x:Name="pnlZ_Regex" Orientation="Vertical">
             <ui:CheckboxWithNote Prop="case_insensitive" Text="case_insensitive" Note="Case insensitive matching"/>
             <ui:CheckboxWithNote Prop="multiline" Text="multiline" Note="^ and $ match line boundaries"/>
             <ui:CheckboxWithNote Prop="dot_all" Text="dot_all" Note="Dot matches newline"/>

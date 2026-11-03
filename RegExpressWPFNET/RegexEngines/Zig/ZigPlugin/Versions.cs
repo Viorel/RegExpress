@@ -8,5 +8,5 @@ static class Versions
     public static string Pzre { get; } = "0.2.3";
     public static string EziGex { get; } = "0.8.0";
     public static string Zoptia0regex { get; } = "0.6.0";
-    public static string ZRegex { get; } = "0.9.1";
+    public static string Z_Regex { get; } = "0.9.1";
 }

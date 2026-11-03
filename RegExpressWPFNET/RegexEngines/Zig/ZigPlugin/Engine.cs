@@ -55,7 +55,7 @@ class Engine : RegexEngine
         RegexLibraryEnum.Pzre => "PZRE",
         RegexLibraryEnum.EziGex => "ezi-gex",
         RegexLibraryEnum.Zoptia0regex => "zoptia0regex",
-        RegexLibraryEnum.ZRegex => "z-regex",
+        RegexLibraryEnum.Z_Regex => "z-regex",
         _ => "Unknown"
     }})";
 
@@ -116,13 +116,13 @@ class Engine : RegexEngine
         engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Zoptia0regex, posix = false, longest = false } };
         variants.Add( new FeatureMatrixVariant( "zoptia0regex", engine ) );
 
-        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZRegex, unicode = false, v = false } };
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Z_Regex, unicode = false, v = false } };
         //variants.Add( new FeatureMatrixVariant( "z-regex (no “uv” flags)", engine ) );
 
-        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZRegex, unicode = true, v = false } };
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Z_Regex, unicode = true, v = false } };
         //variants.Add( new FeatureMatrixVariant( "z-regex (“u” flag)", engine ) );
 
-        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZRegex, unicode = false, v = true, possessive = true } };
+        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Z_Regex, unicode = false, v = true, possessive = true } };
         variants.Add( new FeatureMatrixVariant( "z-regex (“v” flag)", engine ) );
 
         return variants;
@@ -157,7 +157,7 @@ class Engine : RegexEngine
             RegexLibraryEnum.Pzre => new SubenginePzre( Options ),
             RegexLibraryEnum.EziGex => new SubengineEziGex( Options ),
             RegexLibraryEnum.Zoptia0regex => new SubengineZoptia0regex( Options ),
-            RegexLibraryEnum.ZRegex => new SubengineZRegex( Options ),
+            RegexLibraryEnum.Z_Regex => new SubengineZ_Regex( Options ),
             _ => throw new InvalidOperationException( ),
         };
     }

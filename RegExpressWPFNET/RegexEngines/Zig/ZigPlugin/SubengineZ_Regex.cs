@@ -15,7 +15,7 @@ using System.Windows.Markup.Localizer;
 
 namespace ZigPlugin;
 
-class SubengineZRegex( Options options ) : RegexSubengine
+class SubengineZ_Regex( Options options ) : RegexSubengine
 {
     static readonly LazyData<(bool unicode, bool v, bool possessive), FeatureMatrix> LazyFeatureMatrix = new( d => BuildFeatureMatrix( d.unicode, d.v, d.possessive ) );
 
@@ -43,7 +43,7 @@ class SubengineZRegex( Options options ) : RegexSubengine
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
     {
-        Debug.Assert( options.Library == RegexLibraryEnum.ZRegex );
+        Debug.Assert( options.Library == RegexLibraryEnum.Z_Regex );
 
         var json_object = new
         {
@@ -151,7 +151,7 @@ class SubengineZRegex( Options options ) : RegexSubengine
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_exe = Path.Combine( assembly_dir, @"ZRegexWorker.bin" );
+        string worker_exe = Path.Combine( assembly_dir, @"Z_RegexWorker.bin" );
 
         return worker_exe;
     }

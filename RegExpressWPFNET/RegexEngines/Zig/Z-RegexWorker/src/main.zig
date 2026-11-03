@@ -2,8 +2,8 @@ const std = @import("std");
 const Io = std.Io;
 const json = std.json;
 
-//const ZRegexWorker = @import("ZRegexWorker");
-const zregex = @import("zregex");
+//const Z_RegexWorker = @import("Z_RegexWorker");
+const z_regex = @import("z_regex");
 
 const OPTIONS_TYPE = struct {
     case_insensitive: bool = false,
@@ -59,7 +59,7 @@ pub fn main1(init: std.process.Init) !void {
     const text = input_object.text;
     const options = input_object.options;
 
-    var compile_options: zregex.CompileOptions = .{};
+    var compile_options: z_regex.CompileOptions = .{};
 
     compile_options.case_insensitive = options.case_insensitive;
     compile_options.multiline = options.multiline;
@@ -69,7 +69,7 @@ pub fn main1(init: std.process.Init) !void {
     compile_options.v = options.v;
     compile_options.possessive = options.possessive;
 
-    const re = try zregex.Regex.compileWithOptions(allocator, pattern, compile_options);
+    const re = try z_regex.Regex.compileWithOptions(allocator, pattern, compile_options);
 
     const matches = try re.findAll(text);
 

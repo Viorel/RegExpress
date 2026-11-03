@@ -8,7 +8,7 @@ enum RegexLibraryEnum
     Pzre,
     EziGex,
     Zoptia0regex,
-    ZRegex,
+    Z_Regex,
 }
 
 enum CaseFoldEnum

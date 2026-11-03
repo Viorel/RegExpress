@@ -12,7 +12,7 @@ static class TreeData
         Tree
 
             .Category( @"General" )
-#if false
+
                 .Flag( @"(…)", @"Grouping constructs", ( e, fm ) => fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal )
                     .Test( @"(x)", "x", null, "x" )
                 .Flag( @"\(…\)", @"Grouping constructs", ( e, fm ) => fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed )
@@ -762,7 +762,6 @@ static class TreeData
                     .Test( @"x[]?", "x", null, "x" )
                 .Flag( @"[^]", @"Any character, even newline", ( e, fm ) => fm.EmptySetAny )
                     .Test( @"a[^][^][^]b", "ax\r\nb", "ab", "ax\r\nb" )
-#endif
                 .Flag( @"Unicode “.”", @"“.” matches Unicode characters, not just ASCII", ( e, fm ) => fm.Unicode_Class_Dot )
                     .Test( @"ș.ș", "șșș", "?ș", "șșș" ) // (Here and bellow 'ș' can be interpreted as '?' if Unicode not supported)
                 .Flag( @"Unicode “\w”", @"“\w” matches Unicode characters, not just ASCII", ( e, fm ) => fm.Unicode_Class_wW )
