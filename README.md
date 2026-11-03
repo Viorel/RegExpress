@@ -94,7 +94,8 @@ The following engines are included:
   * _PZRE_ 0.2.3,
   * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.8.0,
   * [_zoptia0regex_](https://github.com/zoptia/zoptia0regex) 0.6.0,
-  * [_z-regex_](https://github.com/carlos-sweb/z-regex) 0.9.1.
+  * [_z-regex_](https://github.com/carlos-sweb/z-regex) 0.9.1,
+  * [_zregex_](https://github.com/jcollie/zregex) 2026.10.05.
 * **Go** 1.27.2:
   * [_regexp_](https://pkg.go.dev/regexp) 1.27.2,
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.12.0,

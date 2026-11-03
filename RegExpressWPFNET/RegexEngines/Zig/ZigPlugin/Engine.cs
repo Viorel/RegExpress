@@ -56,6 +56,7 @@ class Engine : RegexEngine
         RegexLibraryEnum.EziGex => "ezi-gex",
         RegexLibraryEnum.Zoptia0regex => "zoptia0regex",
         RegexLibraryEnum.Z_Regex => "z-regex",
+        RegexLibraryEnum.ZRegex => "zregex",
         _ => "Unknown"
     }})";
 
@@ -125,6 +126,9 @@ class Engine : RegexEngine
         engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Z_Regex, unicode = false, v = true, possessive = true } };
         variants.Add( new FeatureMatrixVariant( "z-regex (“v” flag)", engine ) );
 
+        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZRegex } };
+        variants.Add( new FeatureMatrixVariant( "zregex", engine ) );
+
         return variants;
     }
 
@@ -158,6 +162,7 @@ class Engine : RegexEngine
             RegexLibraryEnum.EziGex => new SubengineEziGex( Options ),
             RegexLibraryEnum.Zoptia0regex => new SubengineZoptia0regex( Options ),
             RegexLibraryEnum.Z_Regex => new SubengineZ_Regex( Options ),
+            RegexLibraryEnum.ZRegex => new SubengineZRegex( Options ),
             _ => throw new InvalidOperationException( ),
         };
     }
