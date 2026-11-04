@@ -69,13 +69,13 @@ pub fn main1(init: std.process.Init) !void {
         compile_options.ungreedy = options.?.ungreedy;
         compile_options.ascii = options.?.ascii;
 
-        if (options.?.maxPatternLength != null) compile_options.limits.maxPatternLength = options.?.maxPatternLength.?;
-        if (options.?.maxNestingDepth != null) compile_options.limits.maxPatternLength = options.?.maxNestingDepth.?;
-        if (options.?.maxProgramSize != null) compile_options.limits.maxPatternLength = options.?.maxProgramSize.?;
-        if (options.?.maxCaptures != null) compile_options.limits.maxPatternLength = options.?.maxCaptures.?;
-        if (options.?.maxRepetition != null) compile_options.limits.maxPatternLength = options.?.maxRepetition.?;
+        if (options.?.maxPatternLength) |v| compile_options.limits.maxPatternLength = v;
+        if (options.?.maxNestingDepth) |v| compile_options.limits.maxNestingDepth = v;
+        if (options.?.maxProgramSize) |v| compile_options.limits.maxProgramSize = v;
+        if (options.?.maxCaptures) |v| compile_options.limits.maxCaptures = v;
+        if (options.?.maxRepetition) |v| compile_options.limits.maxRepetition = v;
 
-        if (options.?.startOffset != null) iterate_options.startOffset = options.?.startOffset.?;
+        if (options.?.startOffset) |v| iterate_options.startOffset = v;
     }
 
     var re = try regex_zig.compile(allocator, pattern, compile_options);

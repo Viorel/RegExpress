@@ -160,6 +160,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=maxPatternLength}" Content="maxPatternLength:"/>
@@ -181,6 +182,10 @@
                 <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=maxRepetition}" Content="maxRepetition:"/>
                 <TextBox x:Name="maxRepetition" Grid.Column="1" Grid.Row="4" Text="{Binding maxRepetition, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
                 <TextBlock Grid.Column="2" Grid.Row="4" Text="– Maximum repetition count in bounded repetitions {min,max}" />
+
+                <Label Grid.Column="0" Grid.Row="5" Target="{Binding ElementName=startOffset}" Content="startOffset:"/>
+                <TextBox x:Name="startOffset" Grid.Column="1" Grid.Row="5" Text="{Binding startOffset, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="5" Text="" />
             </Grid>
 
         </StackPanel>

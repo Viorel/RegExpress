@@ -69,6 +69,7 @@ class Options
     public string? maxProgramSize { get; set; }
     public string? maxCaptures { get; set; }
     public string? maxRepetition { get; set; }
+    public string? startOffset { get; set; }
 
 
     public Options Clone( )

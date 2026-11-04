@@ -62,6 +62,8 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
                 maxProgramSize = ValidationUtilities.ParseUInt64( "maxProgramSize", options.maxProgramSize ),
                 maxCaptures = ValidationUtilities.ParseUInt64( "maxCaptures", options.maxCaptures ),
                 maxRepetition = ValidationUtilities.ParseUInt64( "maxRepetition", options.maxRepetition ),
+
+                startOffset = ValidationUtilities.ParseUInt64( "startOffset", options.startOffset ),
             },
         };
 
