@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) linear version 2026.04
+**  SRELL (std::regex-like library) linear version 2026.05
 **
 **  Copyright (c) 2026, Nozomu Katoo. All rights reserved.
 **
@@ -31,7 +31,7 @@
 */
 
 #ifndef SREL3_HPP_
-#define SREL3_HPP_ 202604
+#define SREL3_HPP_ 202605
 
 #define SRELL_LINEAR
 
@@ -687,6 +687,17 @@ public:
 	{
 		return static_cast<ui_l32>(maxcpvalue + 1);
 	}
+
+	template <typename BidirectionalIterator>
+	static bool is_pairedlowsurrogate(BidirectionalIterator, const BidirectionalIterator)
+	{
+		return false;
+	}
+
+	template <typename BidirectionalIterator>
+	static void adjust_if_pairedlowsurrogate(BidirectionalIterator &, const BidirectionalIterator)
+	{
+	}
 };
 //  utf_traits_core
 
@@ -966,6 +977,19 @@ public:
 	static ui_l32 nextlengthchange(const ui_l32 cp)
 	{
 		return (cp < 0x10000) ? 0x10000 : 0x110000;
+	}
+
+	template <typename BidirectionalIterator>
+	static bool is_pairedlowsurrogate(BidirectionalIterator cur, const BidirectionalIterator begin)
+	{
+		return (*cur & 0xfc00) == 0xdc00 && cur != begin && (*--cur & 0xfc00) == 0xd800;
+	}
+
+	template <typename BidirectionalIterator>
+	static void adjust_if_pairedlowsurrogate(BidirectionalIterator &begin, const BidirectionalIterator lblim)
+	{
+		if (begin != lblim && (*begin & 0xfc00) == 0xdc00 && (*--begin & 0xfc00) != 0xd800)
+			++begin;
 	}
 };
 //  utf16_traits
@@ -17211,7 +17235,9 @@ protected:
 	ui_l32 max_states_;
 
 #if defined(SRELL_HAS_SSE42)
+SRELL_NO_VCWARNING(4324)
 	__m128i simdranges;
+SRELL_NO_VCWARNING_END
 #endif
 
 public:
@@ -17693,8 +17719,6 @@ private:
 			if (piecesize.atmost < branchsize.atmost)
 				piecesize.atmost = branchsize.atmost;
 
-			piecesize.is_greedy |= branchsize.is_greedy;
-
 			if (curpos != end && *curpos == meta_char::mc_bar)
 			{
 				bstate.next2 = static_cast<std::ptrdiff_t>(branch.size()) + 2;
@@ -17749,7 +17773,6 @@ private:
 		posdata_holder pos;
 
 		branchsize.reset(0);
-		branchsize.is_greedy = 0;
 
 		for (;;)
 		{
@@ -17971,16 +17994,8 @@ private:
 
 				quantifier.reset();
 
-				if (firststate.has_quantifier())
+				if (firststate.has_quantifier() && curpos != end)
 				{
-					if (firststate.is_ncgroup_open())
-						branchsize.is_greedy |= astate.quantifier.is_greedy;
-					else
-						branchsize.is_greedy = 1;
-
-					if (curpos == end)
-						goto AFTER_GREEDINESS_CHECK;
-
 					switch (*curpos)
 					{
 					case meta_char::mc_astrsk:	//  '*'
@@ -18037,7 +18052,7 @@ private:
 					AFTER_GREEDINESS_CHECK:;
 				}
 
-				if (branchsize.is_greedy == 0 || (astate.quantifier.is_greedy == 0 && firststate.type == st_roundbracket_open))
+				if (astate.quantifier.atmost == 0)
 				{
 					if (quantifier.atleast >= 2)
 						quantifier.atleast = quantifier.atmost = 1;
@@ -19445,10 +19460,12 @@ private:
 			}
 		}
 
+#if !defined(SRELLDBG_NO_SCFINDER) || defined(SRELL_HAS_SSE42)
 		if (entrycu < constants::max_u32value)
 			++entrycu;
 		else
 			entrycu = 0;
+#endif
 
 #if defined(SRELL_HAS_SSE42)
 #if defined(SRELL_OMIT_CPUCHECK)
@@ -21376,32 +21393,34 @@ public:
 #endif
 	bool search
 	(
-		const ContiguousIterator ibegin,
+		ContiguousIterator ibegin,
 		const ContiguousIterator iend,
 		const ContiguousIterator ilookbehind_limit,
 		match_results<ContiguousIterator, Allocator> &results,
 		const regex_constants::match_flag_type flags
 	) const
 	{
-		typedef typename std::iterator_traits<ContiguousIterator>::value_type char_type;
-		const char_type *const begin = &*ibegin;
-		const char_type *const end = &*iend;
-		const char_type *const lookbehind_limit = &*ilookbehind_limit;
-
 		ui_l32 reason = 0;
 
 		results.clear_();
 
 		if (this->NFA_states.size())
 		{
+			typedef typename std::iterator_traits<ContiguousIterator>::value_type char_type;
 			re_search_state<const char_type *> &sstate = results.sstate_;
+
+			utf_traits::adjust_if_pairedlowsurrogate(ibegin, ilookbehind_limit);
+
+			const char_type *const begin = &*ibegin;
+			const char_type *const end = &*iend;
+			const char_type *const lookbehind_limit = &*ilookbehind_limit;
 
 			sstate.init(begin, end, lookbehind_limit, flags | static_cast<regex_constants::match_flag_type>(this->soflags & regex_constants::sticky)
 				, this->number_of_brackets
 				, this->number_of_repeats
 				, static_cast<ui_l32>(this->NFA_states.size()));
 
-			typedef const char_type * (re_object::*search_nextpos_type)(const char_type *, const char_type *) const;
+			typedef const char_type * (re_object::*search_nextpos_type)(const char_type *, const char_type *, const char_type *) const;
 			const search_nextpos_type snfunc = select_accelfunc<search_nextpos_type, char_type>();
 
 			reason = snfunc ? do_search<true, search_nextpos_type, false>(sstate, snfunc) : do_search<false, search_nextpos_type, false>(sstate, snfunc);
@@ -21497,7 +21516,7 @@ SRELL_NO_VCWARNING_END
 	}
 
 	template <typename char_type>
-	const char_type *search_nextpos1(const char_type *srchcurpos, const char_type *const srchend) const
+	const char_type *search_nextpos1(const char_type *srchcurpos, const char_type *const srchend, const char_type *const srchbgn) const
 	{
 		const char_type ec = static_cast<char_type>(this->NFA_states[0].char_num & static_cast<ui_l32>(utf_traits::ecmask)) - 1;
 		const bool ismcul = utf_traits::is_mculeading(ec);
@@ -21510,6 +21529,12 @@ SRELL_NO_VCWARNING_END
 
 			if (bgnpos)
 			{
+				if (utf_traits::is_pairedlowsurrogate(bgnpos, srchbgn))
+				{
+					srchcurpos = bgnpos + 1;
+					continue;
+				}
+
 SRELL_NO_VCWARNING(4127)
 				if (utf_traits::maxseqlen > 1 && ismcul)
 SRELL_NO_VCWARNING_END
@@ -21534,7 +21559,7 @@ SRELL_NO_VCWARNING_END
 #if defined(SRELL_HAS_SSE42)
 	template <typename char_type>
 	SRELL_AT_SSE42
-	const char_type *search_nextposs(const char_type *srchcurpos, const char_type *const srchend) const
+	const char_type *search_nextposs(const char_type *srchcurpos, const char_type *const srchend, const char_type *const) const
 	{
 		const int numofranges = static_cast<int>(this->NFA_states[0].char_num >> 16) & 0x1e;
 
@@ -21754,7 +21779,7 @@ SRELL_NO_VCWARNING_END
 SRELL_NO_VCWARNING(4127)
 			if (has_accel && curq == &this->dcache_start_[0] && srchcurpos != srchend)
 SRELL_NO_VCWARNING_END
-				srchcurpos = (this->*snfunc)(srchcurpos, srchend);
+				srchcurpos = (this->*snfunc)(srchcurpos, srchend, srchbegin);
 
 			jmpentry = curq;
 			prevpos = srchcurpos;

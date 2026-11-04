@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) version 2026.08
+**  SRELL (std::regex-like library) version 2026.09
 **
 **  Copyright (c) 2012-2026, Nozomu Katoo. All rights reserved.
 **
@@ -31,7 +31,7 @@
 */
 
 #ifndef SRELL_HPP_
-#define SRELL_HPP_ 202608
+#define SRELL_HPP_ 202609
 
 #include <climits>
 #include <cwchar>
@@ -384,8 +384,10 @@ namespace srell
 
 			st_success,                 //  0x15
 
+			st_check_surrogate,         //  0x16
+
 #if defined(SRELLTEST_NEXTPOS_OPT)
-			st_move_nextpos,            //  0x16
+			st_move_nextpos,            //  0x17
 #endif
 
 			st_lookaround_close    = st_success,
@@ -663,6 +665,22 @@ public:
 	{
 		return static_cast<ui_l32>(maxcpvalue + 1);
 	}
+
+	template <typename ForwardIterator>
+	static bool is_pairedhighsurrogate(ForwardIterator, const ForwardIterator)
+	{
+		return false;
+	}
+	template <typename BidirectionalIterator>
+	static bool is_pairedlowsurrogate(BidirectionalIterator, const BidirectionalIterator)
+	{
+		return false;
+	}
+
+	template <typename BidirectionalIterator>
+	static void adjust_if_pairedlowsurrogate(BidirectionalIterator &, const BidirectionalIterator)
+	{
+	}
 };
 //  utf_traits_core
 
@@ -918,6 +936,24 @@ public:
 	static ui_l32 nextlengthchange(const ui_l32 cp)
 	{
 		return (cp < 0x10000) ? 0x10000 : 0x110000;
+	}
+
+	template <typename ForwardIterator>
+	static bool is_pairedhighsurrogate(ForwardIterator cur, const ForwardIterator end)
+	{
+		return (*cur & 0xfc00) == 0xd800 && ++cur != end && (*cur & 0xfc00) == 0xdc00;
+	}
+	template <typename BidirectionalIterator>
+	static bool is_pairedlowsurrogate(BidirectionalIterator cur, const BidirectionalIterator begin)
+	{
+		return (*cur & 0xfc00) == 0xdc00 && cur != begin && (*--cur & 0xfc00) == 0xd800;
+	}
+
+	template <typename BidirectionalIterator>
+	static void adjust_if_pairedlowsurrogate(BidirectionalIterator &begin, const BidirectionalIterator lblim)
+	{
+		if (begin != lblim && (*begin & 0xfc00) == 0xdc00 && (*--begin & 0xfc00) != 0xd800)
+			++begin;
 	}
 };
 //  utf16_traits
@@ -16831,7 +16867,12 @@ public:
 				for (; *re == *--tail;)
 				{
 					if (++re == repseqend)
+					{
+						if (utf_traits::is_pairedlowsurrogate(tail, sstate.reallblim) || utf_traits::is_pairedhighsurrogate(begin, end))
+							break;
+
 						return sstate.set_bracket0(tail, ++begin);
+					}
 				}
 			}
 			offset = bmtable_[*begin & 0xff];
@@ -16861,7 +16902,12 @@ public:
 				for (; *re == *--tail;)
 				{
 					if (++re == repseqend)
+					{
+						if (utf_traits::is_pairedlowsurrogate(tail, sstate.reallblim) || utf_traits::is_pairedhighsurrogate(begin, end))
+							break;
+
 						return sstate.set_bracket0(tail, ++begin);
+					}
 				}
 			}
 			offset = bmtable_[*begin & 0xff];
@@ -17894,8 +17940,6 @@ private:
 			if (piecesize.atmost < branchsize.atmost)
 				piecesize.atmost = branchsize.atmost;
 
-			piecesize.is_greedy |= branchsize.is_greedy;
-
 			if (curpos != end && *curpos == meta_char::mc_bar)
 			{
 				bstate.next2 = static_cast<std::ptrdiff_t>(branch.size()) + 2;
@@ -17950,7 +17994,6 @@ private:
 		posdata_holder pos;
 
 		branchsize.reset(0);
-		branchsize.is_greedy = 0;
 
 		for (;;)
 		{
@@ -18169,16 +18212,8 @@ private:
 
 				quantifier.reset();
 
-				if (firststate.has_quantifier())
+				if (firststate.has_quantifier() && curpos != end)
 				{
-					if (firststate.is_ncgroup_open())
-						branchsize.is_greedy |= astate.quantifier.is_greedy;
-					else
-						branchsize.is_greedy = 1;
-
-					if (curpos == end)
-						goto AFTER_GREEDINESS_CHECK;
-
 					switch (*curpos)
 					{
 					case meta_char::mc_astrsk:	//  '*'
@@ -18235,7 +18270,7 @@ private:
 					AFTER_GREEDINESS_CHECK:;
 				}
 
-				if (branchsize.is_greedy == 0 || (astate.quantifier.is_greedy == 0 && firststate.type == st_roundbracket_open))
+				if (astate.quantifier.atmost == 0)
 				{
 					if (quantifier.atleast >= 2)
 						quantifier.atleast = quantifier.atmost = 1;
@@ -19847,6 +19882,7 @@ private:
 		int curnum = 0;
 #endif
 		ui_l32 cu2 = 0;
+		bool lowsurrogate_found = false;
 
 		for (typename range_pairs::size_type i = 0; i < fcc.size(); ++i)
 		{
@@ -19872,6 +19908,12 @@ private:
 #if !defined(SRELLDBG_NO_BITSET)
 				for (ui_l32 cu = cu1; cu <= cu2; ++cu)
 					this->firstchar_class_bs.set(cu);
+
+//				if (!(cu1 >= 0xe000 || cu2 <= 0xdbff))
+SRELL_NO_VCWARNING(4127)
+				if (utf_traits::maxseqlen == 2 && (cu1 < 0xe000 && cu2 >= 0xdc00))
+SRELL_NO_VCWARNING_END
+					lowsurrogate_found = true;
 #endif
 #if !defined(SRELLDBG_NO_SCFINDER)
 				if (entrycu != constants::invalid_u32value)
@@ -19906,10 +19948,12 @@ private:
 			}
 		}
 
+#if !defined(SRELLDBG_NO_SCFINDER) || defined(SRELL_HAS_SSE42)
 		if (entrycu < constants::max_u32value)
 			++entrycu;
 		else
 			entrycu = 0;
+#endif
 
 #if defined(SRELL_HAS_SSE42)
 #if defined(SRELL_OMIT_CPUCHECK)
@@ -19929,6 +19973,17 @@ private:
 #if !defined(SRELLDBG_NO_SCFINDER) || defined(SRELL_HAS_SSE42)
 		this->NFA_states[0].char_num = entrycu;
 #endif
+
+SRELL_NO_VCWARNING(4127)
+		if (utf_traits::maxseqlen == 2 && lowsurrogate_found)
+SRELL_NO_VCWARNING_END
+		{
+			state_type scstate;
+
+			scstate.reset(st_check_surrogate);
+			this->NFA_states.insert(1, scstate);
+			++this->NFA_states[0].next2;
+		}
 	}
 #endif	//  !defined(SRELLDBG_NO_1STCHRCLS)
 
@@ -19987,17 +20042,8 @@ private:
 			case st_eol:
 			case st_bol:
 			case st_boundary:
-				if (subsequent)
-					nextcharclass.set_solerange(range_pair_helper(0, constants::unicode_max_codepoint));
-
-				break;
-
 			case st_lookaround_open:
-				if (!state.flags && state.quantifier.is_greedy == 0)	//  !is_not.
-				{
-					gather_nextchars(nextcharclass, pos + 2, checked, 0u, subsequent);
-				}
-				else if (subsequent)
+				if (subsequent)
 					nextcharclass.set_solerange(range_pair_helper(0, constants::unicode_max_codepoint));
 
 				break;
@@ -22091,7 +22137,7 @@ public:
 	template <typename BidirectionalIterator, typename Allocator>
 	bool search
 	(
-		const BidirectionalIterator begin,
+		BidirectionalIterator begin,
 		const BidirectionalIterator end,
 		const BidirectionalIterator lookbehind_limit,
 		match_results<BidirectionalIterator, Allocator> &results,
@@ -22112,6 +22158,8 @@ public:
 			typedef non_cont_iter simd_ac;
 #endif
 			re_search_state<BidirectionalIterator> &sstate = results.sstate_;
+
+			utf_traits::adjust_if_pairedlowsurrogate(begin, lookbehind_limit);
 
 			sstate.init(begin, end, lookbehind_limit, flags | static_cast<regex_constants::match_flag_type>(this->soflags & regex_constants::sticky));
 
@@ -23232,6 +23280,14 @@ SRELL_NO_VCWARNING_END
 					return 1;
 
 				goto NOT_MATCHED0;
+
+			case st_check_surrogate:
+				if (!utf_traits::is_pairedlowsurrogate(sstate.ssc.iter, sstate.reallblim))
+				{
+					sstate.ssc.state = sstate.ssc.state->next_state1;
+					continue;
+				}
+				return 0;
 
 #if defined(SRELLTEST_NEXTPOS_OPT)
 			case st_move_nextpos:

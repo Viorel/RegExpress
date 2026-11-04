@@ -26,8 +26,8 @@ The following engines are included:
 * [**basic_regex**](https://docs.microsoft.com/en-us/cpp/standard-library/regex) class in C++:
   * MSVC _wregex_, 
   * GCC _wregex_,
-  * [_SRELL_](https://www.akenotsuki.com/misc/srell/en/) _u8regex_ 2026.08,
-  * [_SRELL linear_](https://www.akenotsuki.com/misc/srell/en/#linear) _u8regex_ 2026.04.
+  * [_SRELL_](https://www.akenotsuki.com/misc/srell/en/) _u8regex_ 2026.09,
+  * [_SRELL linear_](https://www.akenotsuki.com/misc/srell/en/#linear) _u8regex_ 2026.05.
 * [**Boost.Regex**](https://www.boost.org/doc/libs/1_89_0/libs/regex/doc/html/index.html) from Boost C++ Libraries 1.89.0.
 * [**PCRE2**](https://github.com/PCRE2Project/pcre2) Open Source Regex Library 10.49 (in C).
 * [**RE2**](https://github.com/google/re2) Library 2025-11-05 from Google (in C++).
@@ -63,8 +63,8 @@ The following engines are included:
   * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.4,
   * [_derivre_](https://crates.io/crates/derivre) 0.3.13,
   * [_corvus-regex-ecma262_](https://crates.io/crates/corvus-regex-ecma262) 0.2.5.
-* [**Java**](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html) 26.0.2.1:
-  * _java.util.regex_,
+* **Java** 26.0.2.1:
+  * [_java.util.regex_](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html),
   * [_RE2/J_](https://github.com/google/re2j) 1.8,
   * [_SafeRE_](https://github.com/eaftan/safere) 1.1.0,
   * [_Reggie_](https://github.com/DataDog/java-reggie) 0.5.0,
@@ -82,7 +82,7 @@ The following engines are included:
   * [_rurban_](https://github.com/rurban/tiny-regex-c) 2022-06-21,
   * [_gyrovorbis_](https://github.com/gyrovorbis/tiny-regex-c) 2026-09-22.
 * **Ada GNAT.Regpat** 26.0.0.
-* [**TRegEx**](https://docwiki.embarcadero.com/Libraries/Florence/en/System.RegularExpressions) 29.0 (C++Builder, Delphi).
+* [**TRegEx**](https://docwiki.embarcadero.com/Libraries/Florence/en/System.RegularExpressions) type (based on PCRE2) 29.0 (C++Builder, Delphi).
 * [**QRegularExpression**](https://doc.qt.io/qt-6/qregularexpression.html) class (based on PCRE2) from Qt 6.9.3 (in C++).
 * **Compile-time Regular Expressions (CTRE)**:
   * [_compile-time-regular-expressions_](https://github.com/hanickadot/compile-time-regular-expressions)[^2] 3.11.0 (in C++),
