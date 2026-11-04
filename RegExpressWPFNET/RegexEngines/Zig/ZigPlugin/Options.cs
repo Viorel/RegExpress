@@ -10,6 +10,7 @@ enum RegexLibraryEnum
     Zoptia0regex,
     Z_Regex, // "z-regex"
     ZRegex,
+    Regex_Zig, // "regex.zig"
 }
 
 enum CaseFoldEnum
@@ -59,6 +60,15 @@ class Options
     public bool sticky { get; set; }
     public bool v { get; set; } = true;
     public bool possessive { get; set; }
+
+    public bool ungreedy { get; set; }
+    public bool ascii { get; set; }
+
+    public string? maxPatternLength { get; set; }
+    public string? maxNestingDepth { get; set; }
+    public string? maxProgramSize { get; set; }
+    public string? maxCaptures { get; set; }
+    public string? maxRepetition { get; set; }
 
 
     public Options Clone( )

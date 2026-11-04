@@ -83,6 +83,7 @@ namespace ZigPlugin
                 bool is_Zoptia0regex = Options.Library == RegexLibraryEnum.Zoptia0regex;
                 bool is_z_regex = Options.Library == RegexLibraryEnum.Z_Regex;
                 bool is_zregex = Options.Library == RegexLibraryEnum.ZRegex;
+                bool is_regex_zig = Options.Library == RegexLibraryEnum.Regex_Zig;
 
                 pnlZigRegexOptions.Display( is_ZigRegex );
                 pnlMvzrOptions.Display( is_Mvzr );
@@ -91,6 +92,7 @@ namespace ZigPlugin
                 pnlZoptia0regex.Display( is_Zoptia0regex );
                 pnlZ_Regex.Display( is_z_regex );
                 pnlZRegex.Display( is_zregex );
+                pnlRegex_Zig.Display( is_regex_zig );
             }
             finally
             {

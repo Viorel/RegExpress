@@ -27,7 +27,7 @@ The following engines are included:
   * MSVC _wregex_, 
   * GCC _wregex_,
   * [_SRELL_](https://www.akenotsuki.com/misc/srell/en/) _u8regex_ 2026.09,
-  * [_SRELL linear_](https://www.akenotsuki.com/misc/srell/en/#linear) _u8regex_ 2026.05.
+  	* [_SRELL linear_](https://www.akenotsuki.com/misc/srell/en/#linear) _u8regex_ 2026.05.
 * [**Boost.Regex**](https://www.boost.org/doc/libs/1_89_0/libs/regex/doc/html/index.html) from Boost C++ Libraries 1.89.0.
 * [**PCRE2**](https://github.com/PCRE2Project/pcre2) Open Source Regex Library 10.49 (in C).
 * [**RE2**](https://github.com/google/re2) Library 2025-11-05 from Google (in C++).
@@ -95,7 +95,8 @@ The following engines are included:
   * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.8.0,
   * [_zoptia0regex_](https://github.com/zoptia/zoptia0regex) 0.6.0,
   * [_z-regex_](https://github.com/carlos-sweb/z-regex) 0.9.1,
-  * [_zregex_](https://github.com/jcollie/zregex) 2026.10.05.
+  * [_zregex_](https://github.com/jcollie/zregex) 2026.10.05,
+  * [_regex.zig_](https://github.com/muhammad-fiaz/regex.zig) 0.0.1.
 * **Go** 1.27.2:
   * [_regexp_](https://pkg.go.dev/regexp) 1.27.2,
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.12.0,
