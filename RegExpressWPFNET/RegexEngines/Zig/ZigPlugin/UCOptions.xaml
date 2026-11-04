@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:ZigPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="300.7" d:DesignWidth="402.442" 
+             d:DesignHeight="520.789" d:DesignWidth="460.336" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -40,6 +40,7 @@
                 <ui:ComboBoxItemWithVersion Tag="Zoptia0regex"  Text="zoptia0regex"     Version="{x:Static local:Versions.Zoptia0regex}" />
                 <ui:ComboBoxItemWithVersion Tag="Z_Regex"       Text="z-regex"          Version="{x:Static local:Versions.Z_Regex}" />
                 <ui:ComboBoxItemWithVersion Tag="ZRegex"        Text="zregex"           Version="{x:Static local:Versions.ZRegex}" />
+                <ui:ComboBoxItemWithVersion Tag="Regex_Zig"     Text="regex.zig"        Version="{x:Static local:Versions.Regex_Zig}" />
             </ComboBox>
 
         </Grid>
@@ -138,6 +139,50 @@
             <ui:CheckboxWithNote Prop="case_insensitive" Text="case_insensitive" Note="Case-insensitive matching, using Unicode simple case folding"/>
             <ui:CheckboxWithNote Prop="multiline" Text="multiline" Note="`^`/`$` match at line boundaries in addition to text boundaries"/>
             <ui:CheckboxWithNote Prop="dot_all" Text="dot_all" Note="`.` also matches `\n`"/>
+        </StackPanel>
+
+        <StackPanel x:Name="pnlRegex_Zig" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="case_insensitive" Text="caseInsensitive" Note="Case-insensitive matching ('i' flag)"/>
+            <ui:CheckboxWithNote Prop="multiline" Text="multiline" Note="Multiline mode ('m' flag): '^' and '$' match at line boundaries ('\n')"/>
+            <ui:CheckboxWithNote Prop="dot_all" Text="dotAll" Note="Dot-all mode ('s' flag): '.' matches any character including newline '\n'"/>
+            <ui:CheckboxWithNote Prop="ungreedy" Text="ungreedy" Note="Inverts the greediness of quantifiers ('U' flag)"/>
+            <ui:CheckboxWithNote Prop="ascii" Text="ascii" Note="Restrict shorthand classes (\d, \w, \s) and boundaries to ASCII"/>
+
+            <Grid Style="{StaticResource DetailsTable}" >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto" MinWidth="55"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=maxPatternLength}" Content="maxPatternLength:"/>
+                <TextBox x:Name="maxPatternLength" Grid.Column="1" Grid.Row="0" Text="{Binding maxPatternLength, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– Maximum allowed pattern length in bytes" />
+
+                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=maxNestingDepth}" Content="maxNestingDepth:"/>
+                <TextBox x:Name="maxNestingDepth" Grid.Column="1" Grid.Row="1" Text="{Binding maxNestingDepth, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="1" Text="– Maximum group/parenthesis nesting depth during parsing" />
+
+                <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=maxProgramSize}" Content="maxProgramSize:"/>
+                <TextBox x:Name="maxProgramSize" Grid.Column="1" Grid.Row="2" Text="{Binding maxProgramSize, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="2" Text="– Maximum compiled instruction count in the bytecode program" />
+
+                <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=maxCaptures}" Content="maxCaptures:"/>
+                <TextBox x:Name="maxCaptures" Grid.Column="1" Grid.Row="3" Text="{Binding maxCaptures, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="3" Text="– Maximum number of capturing groups allowed in a pattern" />
+
+                <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=maxRepetition}" Content="maxRepetition:"/>
+                <TextBox x:Name="maxRepetition" Grid.Column="1" Grid.Row="4" Text="{Binding maxRepetition, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="4" Text="– Maximum repetition count in bounded repetitions {min,max}" />
+            </Grid>
+
         </StackPanel>
 
     </StackPanel>

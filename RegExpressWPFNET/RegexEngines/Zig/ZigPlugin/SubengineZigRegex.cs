@@ -135,6 +135,7 @@ class RelaxedJsonConverter : System.Text.Json.Serialization.JsonConverter<string
 class SubengineZigRegex( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+    static readonly JsonSerializerOptions JsonOptions = new( ) { Converters = { new RelaxedJsonConverter( ) }, };
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
@@ -204,17 +205,12 @@ class SubengineZigRegex( Options options ) : RegexSubengine
 
         if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-        JsonSerializerOptions json_options = new( )
-        {
-            Converters = { new RelaxedJsonConverter( ) },
-        };
-
 #if DEBUG
         using StreamReader sr = new( ph.OutputStream );
         string output = sr.ReadToEnd( );
-        RootObject? response = JsonSerializer.Deserialize<RootObject>( output, json_options );
+        RootObject? response = JsonSerializer.Deserialize<RootObject>( output, JsonOptions );
 #else
-        RootObject? response = JsonSerializer.Deserialize<RootObject>( ph.OutputStream, json_options );
+        RootObject? response = JsonSerializer.Deserialize<RootObject>( ph.OutputStream, JsonOptions );
 #endif
 
         if( response == null ) throw new Exception( "Null response" );

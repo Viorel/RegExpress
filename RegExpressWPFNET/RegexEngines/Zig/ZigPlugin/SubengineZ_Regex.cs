@@ -76,17 +76,12 @@ class SubengineZ_Regex( Options options ) : RegexSubengine
 
         if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-        JsonSerializerOptions json_options = new( )
-        {
-            Converters = { new RelaxedJsonConverter( ) },
-        };
-
 #if DEBUG
         using StreamReader sr = new( ph.OutputStream );
         string output = sr.ReadToEnd( );
-        RootObject? response = JsonSerializer.Deserialize<RootObject>( output, json_options );
+        RootObject? response = JsonSerializer.Deserialize<RootObject>( output );
 #else
-        RootObject? response = JsonSerializer.Deserialize<RootObject>( ph.OutputStream, json_options );
+        RootObject? response = JsonSerializer.Deserialize<RootObject>( ph.OutputStream );
 #endif
 
         if( response == null || response.matches == null ) throw new Exception( "Null response" );
