@@ -27,7 +27,7 @@ The following engines are included:
   * MSVC _wregex_, 
   * GCC _wregex_,
   * [_SRELL_](https://www.akenotsuki.com/misc/srell/en/) _u8regex_ 2026.09,
-  	* [_SRELL linear_](https://www.akenotsuki.com/misc/srell/en/#linear) _u8regex_ 2026.05.
+  * [_SRELL linear_](https://www.akenotsuki.com/misc/srell/en/#linear) _u8regex_ 2026.05.
 * [**Boost.Regex**](https://www.boost.org/doc/libs/1_89_0/libs/regex/doc/html/index.html) from Boost C++ Libraries 1.89.0.
 * [**PCRE2**](https://github.com/PCRE2Project/pcre2) Open Source Regex Library 10.49 (in C).
 * [**RE2**](https://github.com/google/re2) Library 2025-11-05 from Google (in C++).
@@ -102,7 +102,7 @@ The following engines are included:
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.12.0,
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
   * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.30,
-  * [_onigmo go-regexp_](https://pkg.go.dev/github.com/go-regexp/engine) 0.3.2.
+  * [_onigmo go-regexp_](https://pkg.go.dev/github.com/go-regexp/engine) 0.4.0.
 * **Dart** 3.13.7:
   * [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html),
   * [_oniguruma\_dart_](https://pub.dev/packages/oniguruma_dart) 1.0.1,
