@@ -152,7 +152,7 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
             InsideSets_XModeComments = false,
 
             Flags = true,
-            ScopedFlags = false,
+            ScopedFlags = true,
             CircumflexFlags = false,
             ScopedCircumflexFlags = false,
             XFlag = true,
@@ -349,7 +349,7 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
             Unicode_Class_wW = true,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
-            KeepSurrogatePairs = false,
+            KeepSurrogatePairs = true,
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = false,

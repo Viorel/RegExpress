@@ -13,8 +13,8 @@ static class Versions
     public static string? DotNetFramework { get; } = LazyVersionDotNetFramework.Value;
     public static string? ReSharp { get; } = "1.0.6";
     public static string? Scout { get; } = "0.8.0";
-    public static string? LokadUtf8Regex { get; } = "0.3.0";
-    public static string? GregsEx { get; } = "0.5.5";
-    public static string? CorvusEcma262 { get; } = "1.0.10";
-    public static string? FuzzyRegex { get; } = "1.1.0";
+    public static string? LokadUtf8Regex { get; } = "0.4.0";
+    public static string? GregsEx { get; } = "0.5.7";
+    public static string? CorvusEcma262 { get; } = "1.0.13";
+    public static string? FuzzyRegex { get; } = "1.2.0";
 }

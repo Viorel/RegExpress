@@ -7,5 +7,5 @@ static class Versions
     public static string Regexp2 { get; } = "2.12.0";
     public static string Rexa { get; } = "0.1.0";
     public static string Coregex { get; } = "0.12.30";
-    public static string OnigmoGoRegexp { get; } = "0.3.2";
+    public static string OnigmoGoRegexp { get; } = "0.4.0";
 }
