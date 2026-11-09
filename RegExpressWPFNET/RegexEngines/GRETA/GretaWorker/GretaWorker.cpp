@@ -1,6 +1,12 @@
 // GretaWorker.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+
+#include <Windows.h>
+#include <strsafe.h>
+
 #include <exception>
 #include <cassert>
 #include <iostream>
@@ -13,6 +19,51 @@ namespace
 {
 	// Copied from 'RegExpressCppLibrary' and simplified for C++14.
 	// The 'RegExpressCppLibrary' cannot be referenced because GRETA imposes specific options and limitations.
+
+	unsigned long SEHFilter( unsigned long code, char* errorText, size_t errorTextSize )
+	{
+		const char* text = nullptr;
+
+		switch( code )
+		{
+
+#define E(e) case e: text = #e; break;
+
+			E( EXCEPTION_ACCESS_VIOLATION )
+				E( EXCEPTION_DATATYPE_MISALIGNMENT )
+				E( EXCEPTION_BREAKPOINT )
+				E( EXCEPTION_SINGLE_STEP )
+				E( EXCEPTION_ARRAY_BOUNDS_EXCEEDED )
+				E( EXCEPTION_FLT_DENORMAL_OPERAND )
+				E( EXCEPTION_FLT_DIVIDE_BY_ZERO )
+				E( EXCEPTION_FLT_INEXACT_RESULT )
+				E( EXCEPTION_FLT_INVALID_OPERATION )
+				E( EXCEPTION_FLT_OVERFLOW )
+				E( EXCEPTION_FLT_STACK_CHECK )
+				E( EXCEPTION_FLT_UNDERFLOW )
+				E( EXCEPTION_INT_DIVIDE_BY_ZERO )
+				E( EXCEPTION_INT_OVERFLOW )
+				E( EXCEPTION_PRIV_INSTRUCTION )
+				E( EXCEPTION_IN_PAGE_ERROR )
+				E( EXCEPTION_ILLEGAL_INSTRUCTION )
+				E( EXCEPTION_NONCONTINUABLE_EXCEPTION )
+				E( EXCEPTION_STACK_OVERFLOW )
+				E( EXCEPTION_INVALID_DISPOSITION )
+				E( EXCEPTION_GUARD_PAGE )
+				E( EXCEPTION_INVALID_HANDLE )
+				//?E( EXCEPTION_POSSIBLE_DEADLOCK )
+
+#undef E
+
+		default:
+			return EXCEPTION_CONTINUE_SEARCH; // also covers code E06D7363, probably associated with 'throw std::exception'
+		}
+
+		StringCchCopyA( errorText, errorTextSize, "SEH Error: " );
+		StringCchCatA( errorText, errorTextSize, text != nullptr ? text : "(unknown)" );
+
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
 
 	bool ParseString( std::string* destination, const char* source )
 	{
@@ -163,123 +214,142 @@ namespace
 
 		return out;
 	}
-}
 
+	int main2( )
+	{
+		DWORD code;
+		char error_text[128] = "";
+
+		__try
+		{
+			[]( )
+				{
+					using namespace regex;
+
+					std::wstring pattern;
+					std::wstring text;
+					std::string flags;
+
+					std::string patternS;
+					std::string textS;
+					std::string flagsS;
+
+					std::getline( std::cin, patternS );
+					std::getline( std::cin, textS );
+					std::getline( std::cin, flagsS );
+
+					std::string patternA;
+					std::string textA;
+
+					if( !ParseString( &patternA, patternS.c_str( ) ) ) throw std::runtime_error( "cannot read pattern: '" + patternS + '\'' );
+					if( !ParseString( &textA, textS.c_str( ) ) ) throw std::runtime_error( "cannot read text: '" + textS + '\'' );
+					if( !ParseString( &flags, flagsS.c_str( ) ) ) throw std::runtime_error( "cannot read flags: '" + flagsS + '\'' );
+
+					pattern = UTF8_to_wchar( patternA.c_str( ) );
+					text = UTF8_to_wchar( textA.c_str( ) );
+
+					REGEX_FLAGS patflags = NOFLAGS;
+					REGEX_MODE mode = REGEX_MODE::MODE_DEFAULT;
+
+					for( auto const f : flags )
+					{
+						switch( f )
+						{
+						case ' ': break; // ignore
+
+						case 'i': patflags |= NOCASE; break;
+						case 'g': patflags |= GLOBAL; break;
+						case 'm': patflags |= MULTILINE; break;
+						case 's': patflags |= SINGLELINE; break;
+						case 'x': patflags |= EXTENDED; break;
+						case 'R': patflags |= RIGHTMOST; break;
+						case 'A': patflags |= ALLBACKREFS; break;
+						case '1': patflags |= FIRSTBACKREFS; break;
+						case 'N': patflags |= NORMALIZE; break;
+
+						case 'F': mode = REGEX_MODE::MODE_FAST; break;
+						case 'S': mode = REGEX_MODE::MODE_SAFE; break;
+						case 'M': mode = REGEX_MODE::MODE_MIXED; break;
+
+						default: throw std::runtime_error( std::string( "Invalid flag: " ) + f );
+						}
+					}
+
+					rpattern pat( pattern, patflags, mode );
+
+					match_results results;
+
+					match_results::backref_type br = pat.match( text, results );
+
+					if( br.matched )
+					{
+						assert( pat.cgroups( ) > 0 );
+
+						auto number_of_groups = pat.cgroups( );
+						auto number_of_backrefs = results.cbackrefs( );
+
+						auto number_of_matches =
+							( patflags & GLOBAL ) ?
+							( ( patflags & FIRSTBACKREFS ) ? number_of_backrefs :
+								( patflags & ALLBACKREFS ) ? number_of_backrefs / number_of_groups :
+								1
+								) :
+							1;
+
+						using CT = decltype( number_of_matches );
+
+						for( CT i_match = 0; i_match < number_of_matches; ++i_match )
+						{
+							CT j = i_match * ( ( patflags & FIRSTBACKREFS ) ? 1 : number_of_groups );
+
+							{
+								// match (group 0)
+
+								const auto& br = results.backref( j );
+
+								assert( br.matched );
+
+								std::cout << "M " << std::distance( text.cbegin( ), br.begin( ) ) << " " << std::distance( br.begin( ), br.end( ) ) << std::endl;
+							}
+
+							if( ( patflags & ALLBACKREFS ) && !( patflags & FIRSTBACKREFS ) )
+							{
+								// groups
+
+								for( CT k = j + 1; k < j + number_of_groups; ++k )
+								{
+									const auto& br = results.backref( k );
+
+									if( !br.matched )
+									{
+										std::cout << "g -1 -1" << std::endl;
+									}
+									else
+									{
+										std::cout << "g " << std::distance( text.cbegin( ), br.begin( ) ) << " " << std::distance( br.begin( ), br.end( ) ) << std::endl;
+									}
+								}
+							}
+						}
+					}
+				}( );
+
+			return 0;
+		}
+		__except( code = GetExceptionCode( ), SEHFilter( code, error_text, _countof( error_text ) ) )
+		{
+			// things done in filter
+		}
+
+		throw std::runtime_error( error_text );
+	}
+}
 
 int main( )
 {
-	using namespace regex;
-
 	try
 	{
-		std::wstring pattern;
-		std::wstring text;
-		std::string flags;
-
-		std::string patternS;
-		std::string textS;
-		std::string flagsS;
-
-		std::getline( std::cin, patternS );
-		std::getline( std::cin, textS );
-		std::getline( std::cin, flagsS );
-
-		std::string patternA;
-		std::string textA;
-
-		if( !ParseString( &patternA, patternS.c_str( ) ) ) throw std::runtime_error( "cannot read pattern: '" + patternS + '\'' );
-		if( !ParseString( &textA, textS.c_str( ) ) ) throw std::runtime_error( "cannot read text: '" + textS + '\'' );
-		if( !ParseString( &flags, flagsS.c_str( ) ) ) throw std::runtime_error( "cannot read flags: '" + flagsS + '\'' );
-
-		pattern = UTF8_to_wchar( patternA.c_str( ) );
-		text = UTF8_to_wchar( textA.c_str( ) );
-
-		REGEX_FLAGS patflags = NOFLAGS;
-		REGEX_MODE mode = REGEX_MODE::MODE_DEFAULT;
-
-		for( auto const f : flags )
-		{
-			switch( f )
-			{
-			case ' ': break; // ignore
-
-			case 'i': patflags |= NOCASE; break;
-			case 'g': patflags |= GLOBAL; break;
-			case 'm': patflags |= MULTILINE; break;
-			case 's': patflags |= SINGLELINE; break;
-			case 'x': patflags |= EXTENDED; break;
-			case 'R': patflags |= RIGHTMOST; break;
-			case 'A': patflags |= ALLBACKREFS; break;
-			case '1': patflags |= FIRSTBACKREFS; break;
-			case 'N': patflags |= NORMALIZE; break;
-
-			case 'F': mode = REGEX_MODE::MODE_FAST; break;
-			case 'S': mode = REGEX_MODE::MODE_SAFE; break;
-			case 'M': mode = REGEX_MODE::MODE_MIXED; break;
-
-			default: throw std::runtime_error( std::string( "Invalid flag: " ) + f );
-			}
-		}
-
-		rpattern pat( pattern, patflags, mode );
-
-		match_results results;
-
-		match_results::backref_type br = pat.match( text, results );
-
-		if( br.matched )
-		{
-			assert( pat.cgroups( ) > 0 );
-
-			auto number_of_groups = pat.cgroups( );
-			auto number_of_backrefs = results.cbackrefs( );
-
-			auto number_of_matches =
-				( patflags & GLOBAL ) ?
-				( ( patflags & FIRSTBACKREFS ) ? number_of_backrefs :
-					( patflags & ALLBACKREFS ) ? number_of_backrefs / number_of_groups :
-					1
-					) :
-				1;
-
-			using CT = decltype( number_of_matches );
-
-			for( CT i_match = 0; i_match < number_of_matches; ++i_match )
-			{
-				CT j = i_match * ( ( patflags & FIRSTBACKREFS ) ? 1 : number_of_groups );
-
-				{
-					// match (group 0)
-
-					const auto& br = results.backref( j );
-
-					assert( br.matched );
-
-					std::cout << "M " << std::distance( text.cbegin( ), br.begin( ) ) << " " << std::distance( br.begin( ), br.end( ) ) << std::endl;
-				}
-
-				if( ( patflags & ALLBACKREFS ) && !( patflags & FIRSTBACKREFS ) )
-				{
-					// groups
-
-					for( CT k = j + 1; k < j + number_of_groups; ++k )
-					{
-						const auto& br = results.backref( k );
-
-						if( !br.matched )
-						{
-							std::cout << "g -1 -1" << std::endl;
-						}
-						else
-						{
-							std::cout << "g " << std::distance( text.cbegin( ), br.begin( ) ) << " " << std::distance( br.begin( ), br.end( ) ) << std::endl;
-						}
-					}
-				}
-			}
-		}
-
-		return 0;
+		return main2( );
 	}
 	catch( const std::exception& exc ) // including 'regex::bad_regexpr'
 	{
