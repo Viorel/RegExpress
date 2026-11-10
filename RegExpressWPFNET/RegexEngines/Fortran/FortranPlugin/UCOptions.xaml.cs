@@ -1,4 +1,5 @@
 ﻿using RegExpressLibrary;
+using RegExpressLibrary.UI;
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -62,6 +63,14 @@ namespace FortranPlugin
             {
                 ++ChangeCounter;
 
+                bool is_forgex = Options.Module == ModuleEnum.Forgex;
+                bool is_jeyemhex = Options.Module == ModuleEnum.RegexJeyemhex;
+                bool is_perazz = Options.Module == ModuleEnum.RegexPerazz;
+                bool is_fregex = Options.Module == ModuleEnum.Fregex;
+
+                pnlFregex.Display( is_fregex );
+
+                cbxMatchAll.Display( is_forgex || is_jeyemhex || is_perazz );
             }
             finally
             {
@@ -76,17 +85,6 @@ namespace FortranPlugin
             DataContext = Options;
 
             UpdateUI( );
-        }
-
-        internal string? GetSelectedModuleTitle( )
-        {
-            return Options.Module switch
-            {
-                ModuleEnum.Forgex => "Forgex",
-                ModuleEnum.RegexPerazz => "Perazz",
-                ModuleEnum.RegexJeyemhex => "Jeyemhex",
-                _ => "Unknown"
-            };
         }
     }
 }

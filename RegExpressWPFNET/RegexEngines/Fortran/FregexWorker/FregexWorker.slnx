@@ -1,0 +1,9 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="FregexWorker.vfproj" Type="6989167d-11e4-40fe-8c1a-2192a86a7e90">
+    <Platform Solution="*|x86" Project="Win32" />
+  </Project>
+</Solution>

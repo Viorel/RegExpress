@@ -48,7 +48,14 @@ class Engine : RegexEngine
 
     public override string Name => "Fortran (IFX)";
 
-    public override string Subtitle => $"Fortran ({mOptionsControl.Value.GetSelectedModuleTitle( )})";
+    public override string Subtitle => $"Fortran ({Options.Module switch
+    {
+        ModuleEnum.Forgex => "Forgex",
+        ModuleEnum.RegexPerazz => "Perazz",
+        ModuleEnum.RegexJeyemhex => "Jeyemhex",
+        ModuleEnum.Fregex => "Fregex",
+        _ => "Unknown"
+    }})";
 
     public override string? NoteForCaptures => null;
 
@@ -88,20 +95,19 @@ class Engine : RegexEngine
 
     public override IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
     {
-        Engine engine_forgex = new( ) { Options = new Options { Module = ModuleEnum.Forgex } };
-        Engine engine_perazz = new( ) { Options = new Options { Module = ModuleEnum.RegexPerazz } };
-        Engine engine_jayemhex = new( ) { Options = new Options { Module = ModuleEnum.RegexJeyemhex } };
-
         return
             [
-                new FeatureMatrixVariant("Forgex", engine_forgex),
-                new FeatureMatrixVariant("Regex (Perazz)", engine_perazz),
-                new FeatureMatrixVariant("Regex (Jeyemhex)", engine_jayemhex),
+                new FeatureMatrixVariant("Forgex", new Engine( ) { Options = new Options { Module = ModuleEnum.Forgex, MatchAll = true } } ),
+                new FeatureMatrixVariant("Regex (Perazz)", new Engine( ) { Options = new Options { Module = ModuleEnum.RegexPerazz, MatchAll = true } }),
+                new FeatureMatrixVariant("Regex (Jeyemhex)", new Engine( ) { Options = new Options { Module = ModuleEnum.RegexJeyemhex, MatchAll = true } }),
+                new FeatureMatrixVariant("Fregex", new Engine( ) { Options = new Options { Module = ModuleEnum.Fregex } }),
             ];
     }
 
     public override void SetIgnoreCase( bool yes )
     {
+        Options.ignorecase = yes;
+        if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( Options );
     }
 
     public override void SetIgnorePatternWhitespace( bool yes )
@@ -123,6 +129,7 @@ class Engine : RegexEngine
             ModuleEnum.Forgex => new SubengineForgex( Options ),
             ModuleEnum.RegexPerazz => new SubengineRegexPerazz( Options ),
             ModuleEnum.RegexJeyemhex => new SubengineRegexJeyemhex( Options ),
+            ModuleEnum.Fregex => new SubengineFregex( Options ),
             _ => throw new NotImplementedException( ),
         };
     }

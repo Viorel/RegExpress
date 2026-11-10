@@ -43,8 +43,6 @@ namespace DotNETPlugin
             {
                 ++ChangeCounter;
 
-                var ttt = Options.Class.ToString( );
-
                 ClassEnum @class = Options.Class;
 
                 bool is_dotnet = @class == ClassEnum.RegexDotNet;
