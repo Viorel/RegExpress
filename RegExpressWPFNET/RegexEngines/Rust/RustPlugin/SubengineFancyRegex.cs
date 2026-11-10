@@ -64,6 +64,7 @@ internal partial class SubengineFancyRegex( Options options ) : RegexSubengine
                 options.unicode,
                 options.oniguruma_mode,
                 options.find_not_empty,
+                options.optimize,
                 options.ignore_numbered_groups_when_named_groups_exist,
                 options.seek,
                 options.disallow_empty_match_at_eof_after_newline,
@@ -72,6 +73,7 @@ internal partial class SubengineFancyRegex( Options options ) : RegexSubengine
                 options.start_text,
                 options.end_text,
                 options.leftmost_longest,
+                options.build_delegate_prefilter,
 
                 bytes_mode = Enum.GetName( options.bytes_mode ),
 

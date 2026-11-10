@@ -65,11 +65,13 @@
             <ui:CheckboxWithNote x:Name="chbx_octal" Prop="octal" Note="support octal syntax"/>
             <ui:CheckboxWithNote x:Name="chbx_oniguruma_mode" Prop="oniguruma_mode" Note="do not treat “\&lt;” and “\&gt;” as left and right word-bounds"/>
             <ui:CheckboxWithNote x:Name="chbx_find_not_empty" Prop="find_not_empty" Note="require that matches are non-empty"/>
+            <ui:CheckboxWithNote x:Name="chbx_optimize" Prop="optimize" Note="Enable the expression-tree optimization pass"/>
             <ui:CheckboxWithNote x:Name="chbx_ignore_numbered_groups_when_named_groups_exist" Prop="ignore_numbered_groups_when_named_groups_exist" Note="treat unnamed capture groups as non-capturing when named groups exist"/>
             <ui:CheckboxWithNote x:Name="chbx_seek" Prop="seek" Note="(experimental) enable the Seek pre-filter optimization for hard (backtracking) patterns"/>
             <ui:CheckboxWithNote x:Name="chbx_disallow_empty_match_at_eof_after_newline" Prop="disallow_empty_match_at_eof_after_newline" Note="reject empty matches at the end of the haystack following a trailing newline"/>
             <ui:CheckboxWithNote x:Name="chbx_allow_input_assertion_overrides" Prop="allow_input_assertion_overrides" Note="allow RegexInput assertion suppression overrides at runtime"/>
             <ui:CheckboxWithNote x:Name="chbx_delegate_dfa_skip_cache_capacity_check" Prop="delegate_dfa_skip_cache_capacity_check" Note="whether the reverse lazy DFA built for a variable-length lookbehind may exceed the limit set by `delegate_dfa_size_limit` (or the default)"/>
+            <ui:CheckboxWithNote x:Name="chbx_build_delegate_prefilter" Prop="build_delegate_prefilter" Note="build a prefilter for this Regex"/>
             <ui:CheckboxWithNote x:Name="chbx_start_text" Prop="start_text" Note="preserves the ^ and \A assertions (if allow_input_assertion_overrides)"/>
             <ui:CheckboxWithNote x:Name="chbx_end_text" Prop="end_text" Note="preserves the $ and \z assertions (if allow_input_assertion_overrides)"/>
             <ui:CheckboxWithNote x:Name="chbx_leftmost_longest" Prop="leftmost_longest" Note="return the longest match"/>

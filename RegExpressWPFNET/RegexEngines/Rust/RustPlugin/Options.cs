@@ -95,14 +95,6 @@ class Options
     public bool crlf { get; set; } // ('regex', 'regex-lite', 'fancy-regex' ((?R) flag))
     public bool no_opt { get; set; } // ('regress')
     public bool unicode_sets { get; set; } // ('regress', 'java_regex')
-    public bool oniguruma_mode { get; set; } // ('fancy-regex')
-    public bool find_not_empty { get; set; } // ('fancy-regex')
-    public bool ignore_numbered_groups_when_named_groups_exist { get; set; } // ('fancy-regex')
-    public bool seek { get; set; } // ('fancy-regex')
-    public bool disallow_empty_match_at_eof_after_newline { get; set; } // ('fancy-regex')
-    public bool allow_input_assertion_overrides { get; set; } // ('fancy-regex')
-    public bool start_text { get; set; } // ('fancy-regex')
-    public bool end_text { get; set; } // ('fancy-regex')
     public bool hardened { get; set; } // ('resharp')
     public bool unbounded_size { get; set; } // ('resharp')
     public UnicodeModeEnum UnicodeMode { get; set; } = UnicodeModeEnum.Default; // ('resharp')
@@ -115,12 +107,22 @@ class Options
 
     // Fancy-regex
 
+    public bool oniguruma_mode { get; set; } // ('fancy-regex')
+    public bool find_not_empty { get; set; } // ('fancy-regex')
+    public bool ignore_numbered_groups_when_named_groups_exist { get; set; } // ('fancy-regex')
+    public bool seek { get; set; } // ('fancy-regex')
+    public bool disallow_empty_match_at_eof_after_newline { get; set; } // ('fancy-regex')
+    public bool allow_input_assertion_overrides { get; set; } // ('fancy-regex')
+    public bool start_text { get; set; } // ('fancy-regex')
+    public bool end_text { get; set; } // ('fancy-regex')
     public bool leftmost_longest { get; set; }
+    public bool optimize { get; set; } = true;
     public BytesModeEnum bytes_mode { get; set; } = BytesModeEnum.Default;
     public string? backtrack_limit { get; set; } // also for 'regexr'
     public string? delegate_size_limit { get; set; }
     public string? delegate_dfa_size_limit { get; set; }
     public string? max_prog_size { get; set; }
+    public bool build_delegate_prefilter { get; set; }
     public bool delegate_dfa_skip_cache_capacity_check { get; set; }
 
     // Resharp

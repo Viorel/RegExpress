@@ -68,23 +68,25 @@ fn main()
     }
     else 
     {
-        let mut reb = fancy_regex::RegexBuilder::new( pattern);
+        let mut reb = fancy_regex::RegexOptionsBuilder::new( );
 
         reb.case_insensitive( options["case_insensitive"].as_bool().unwrap_or( false));
         reb.multi_line( options["multi_line"].as_bool().unwrap_or( false));
         reb.ignore_whitespace( options["ignore_whitespace"].as_bool().unwrap_or( false));
         reb.dot_matches_new_line( options["dot_matches_new_line"].as_bool().unwrap_or( false));
+        reb.crlf( options["crlf"].as_bool().unwrap_or( false));
         //reb.verbose_mode -- The same as 'ignore_whitespace'
         reb.unicode_mode( options["unicode"].as_bool().unwrap_or(  false));
-        reb.oniguruma_mode( options["oniguruma_mode"].as_bool().unwrap_or( false));
-        reb.crlf( options["crlf"].as_bool().unwrap_or( false));
+        reb.delegate_dfa_skip_cache_capacity_check( options["delegate_dfa_skip_cache_capacity_check"].as_bool().unwrap_or( false));
         reb.find_not_empty( options["find_not_empty"].as_bool().unwrap_or( false));
+        reb.optimize( options["optimize"].as_bool().unwrap_or( false));
         reb.leftmost_longest( options["leftmost_longest"].as_bool().unwrap_or( false));
         reb.ignore_numbered_groups_when_named_groups_exist( options["ignore_numbered_groups_when_named_groups_exist"].as_bool().unwrap_or( false));
         reb.seek( options["seek"].as_bool().unwrap_or( false));
+        reb.oniguruma_mode( options["oniguruma_mode"].as_bool().unwrap_or( false));
         reb.disallow_empty_match_at_eof_after_newline( options["disallow_empty_match_at_eof_after_newline"].as_bool().unwrap_or( false));
         reb.allow_input_assertion_overrides( options["allow_input_assertion_overrides"].as_bool().unwrap_or( false));
-        reb.delegate_dfa_skip_cache_capacity_check( options["delegate_dfa_skip_cache_capacity_check"].as_bool().unwrap_or( false));
+        reb.build_delegate_prefilter( options["build_delegate_prefilter"].as_bool().unwrap_or( false));
 
         let n = options["backtrack_limit"].as_usize();
         if n.is_some()
@@ -122,7 +124,7 @@ fn main()
             });
         }
 
-        re = reb.build();
+        re = reb.build( pattern.to_string());
     }
 
     if re.is_err()

@@ -50,7 +50,7 @@ The following engines are included:
 * **Rust** 1.99.1:
   * [_regex_](https://crates.io/crates/regex) 1.13.1,
   * [_regex-lite_](https://crates.io/crates/regex-lite) 0.1.9,
-  * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.20.0, 
+  * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.20.1, 
   * [_regress_](https://crates.io/crates/regress) 0.12.0,
   * [_resharp_](https://crates.io/crates/resharp) 0.7.6,
   * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
