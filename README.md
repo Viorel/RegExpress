@@ -76,8 +76,8 @@ The following engines are included:
 * [**D**](https://dlang.org/phobos/std_regex.html) 2.113.0 (*std.regex* module).
 * [**Perl**](https://perldoc.perl.org/perlreref) 5.40.2 (Strawberry Perl).
 * **Fortran** (Intel® Fortran Compiler 2026.2.0):
-  * [**Forgex**](https://github.com/ShinobuAmasaki/forgex) 4.6,
-  * [**Fregex**](https://github.com/jacobwilliams/fregex) 0.3.0. 
+  * [_Forgex_](https://github.com/ShinobuAmasaki/forgex) 4.6,
+  * [_Fregex_](https://github.com/jacobwilliams/fregex) 0.3.0. 
 * [**TRE**](https://github.com/laurikari/tre) 0.9.0 (in C).
 * **tiny\-regex\-c** (in C):
   * [_kokke_](https://github.com/kokke/tiny-regex-c) 2021-02-15 (original),

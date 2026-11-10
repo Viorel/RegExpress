@@ -51,20 +51,18 @@
 		</Configuration>
 	</Configurations>
 	<Files>
-		<Filter Name="Header Files" Filter="fi;fd"/>
 		<Filter Name="Fregex-min">
-			<File RelativePath=".\Fregex-min\fregex.f90">
-			</File>
-			<File RelativePath=".\Fregex-min\fregex_charset.f90"/>
-			<File RelativePath=".\Fregex-min\fregex_compiler.f90"/>
-			<File RelativePath=".\Fregex-min\fregex_match.f90">
-			</File>
-			<File RelativePath=".\Fregex-min\fregex_parser.f90"/>
-			<File RelativePath=".\Fregex-min\fregex_program.f90"/>
-			<File RelativePath=".\Fregex-min\fregex_string.f90"/>
-			<File RelativePath=".\Fregex-min\fregex_template.f90"/>
-			<File RelativePath=".\Fregex-min\fregex_vm.f90"/>
+			<File RelativePath=".\Fregex-min\src\fregex.f90"/>
+			<File RelativePath=".\Fregex-min\src\fregex_charset.f90"/>
+			<File RelativePath=".\Fregex-min\src\fregex_compiler.f90"/>
+			<File RelativePath=".\Fregex-min\src\fregex_match.f90"/>
+			<File RelativePath=".\Fregex-min\src\fregex_parser.f90"/>
+			<File RelativePath=".\Fregex-min\src\fregex_program.f90"/>
+			<File RelativePath=".\Fregex-min\src\fregex_string.f90"/>
+			<File RelativePath=".\Fregex-min\src\fregex_template.f90"/>
+			<File RelativePath=".\Fregex-min\src\fregex_vm.f90"/>
 		</Filter>
+		<Filter Name="Header Files" Filter="fi;fd"/>
 		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 			<File RelativePath=".\FregexWorker.f90"/>
