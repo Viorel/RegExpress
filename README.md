@@ -56,7 +56,7 @@ The following engines are included:
   * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
   * [_real-regex_](https://crates.io/crates/real-regex) 2026.10.19,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0,
-  * [_regexr_](https://crates.io/crates/regexr) 0.6.1,
+  * [_regexr_](https://crates.io/crates/regexr) 0.6.2,
   * [_rexile_](https://crates.io/crates/rexile) 0.7.4,
   * [_iregexp-rs_](https://github.com/strefethen/iregexp-rs) 0.1.0 (RFC 9485),
   * [_ferroni_](https://crates.io/crates/ferroni) 2.8.0,
