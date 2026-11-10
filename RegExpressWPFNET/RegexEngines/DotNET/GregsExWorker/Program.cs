@@ -332,13 +332,22 @@ internal class Program
         }
         catch( GregsEx.RegexParseException exc )
         {
-            Console.Error.WriteLine( $"{exc.GetType( ).Name}: {exc.Message}" );
+            string exception_name = exc.GetType( ).Name;
+            Console.Error.WriteLine( $"{exception_name}: {exc.Message}" );
             Console.Error.WriteLine( $"Offset: {exc.Diagnostic.Offset}" );
             if( !string.IsNullOrWhiteSpace( exc.Diagnostic.Message ) ) Console.Error.WriteLine( exc.Diagnostic.Message );
         }
         catch( Exception exc )
         {
-            Console.Error.WriteLine( $"{exc.GetType( ).Name}: {exc.Message}" );
+            string exception_name = exc.GetType( ).Name;
+            if( exception_name != "Exception" )
+            {
+                Console.Error.WriteLine( $"{exception_name}: {exc.Message}" );
+            }
+            else
+            {
+                Console.Error.WriteLine( $"{exc.Message}" );
+            }
         }
     }
 }

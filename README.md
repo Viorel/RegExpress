@@ -20,7 +20,7 @@ The following engines are included:
   * [_RE#_](https://www.nuget.org/packages/Resharp) 1.0.6,
   * [_Scout_](https://www.nuget.org/packages/Scout) 0.8.0,
   * [_Lokad.Utf8Regex_](https://www.nuget.org/packages/Lokad.Utf8Regex) 0.4.0,
-  * [_GregsEx_](https://www.nuget.org/packages/GregsEx) 0.5.8,
+  * [_GregsEx_](https://www.nuget.org/packages/GregsEx) 0.7.0,
   * [_Corvus.Regex.Ecma262_](https://www.nuget.org/packages/Corvus.Regex.Ecma262) 1.0.15,
   * [_FuzzyRegex_](https://www.nuget.org/packages/FuzzyRegex) 1.2.0,
 * [**basic_regex**](https://docs.microsoft.com/en-us/cpp/standard-library/regex) class in C++:
