@@ -2,14 +2,14 @@
 * re2js
 * RE2JS is the JavaScript port of RE2, a regular expression engine that provides linear time matching
 *
-* @version v2.9.1
+* @version v2.10.0
 * @author Oleksii Vasyliev
 * @homepage https://github.com/le0pard/re2js#readme
 * @repository [object Object]
 * @license MIT
 */
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
-//#region src/RE2Flags.js
+// src/RE2Flags.js
 var RE2Flags = class RE2Flags {
 	static FOLD_CASE = 1;
 	static LITERAL = 2;
@@ -28,8 +28,7 @@ var RE2Flags = class RE2Flags {
 	static ANCHOR_START = 1;
 	static ANCHOR_BOTH = 2;
 };
-//#endregion
-//#region src/PublicFlags.js
+// src/PublicFlags.js
 /**
 * Public flags for RE2JS and RE2Set compilation.
 */
@@ -41,8 +40,7 @@ const PublicFlags = {
 	LONGEST_MATCH: 16,
 	LOOKBEHINDS: 512
 };
-//#endregion
-//#region src/Codepoint.js
+// src/Codepoint.js
 /**
 * Various constants and helper for unicode codepoints.
 */
@@ -141,8 +139,7 @@ var Codepoint = class {
 		return s.codePointAt(0);
 	}
 };
-//#endregion
-//#region src/UnicodeRangeTable.js
+// src/UnicodeRangeTable.js
 var UnicodeRangeTable = class {
 	/**
 	* @param {Uint32Array | number[]} data
@@ -166,8 +163,7 @@ var UnicodeRangeTable = class {
 		return this.data.length / this.SIZE;
 	}
 };
-//#endregion
-//#region src/UnicodeTables.js
+// src/UnicodeTables.js
 const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-";
 const B64_MAP = /* @__PURE__ */ new Uint8Array(256);
 for (let i = 0; i < 64; i++) B64_MAP[B64.charCodeAt(i)] = i;
@@ -219,12 +215,11 @@ var LazyMap = class {
 		this.cache = /* @__PURE__ */ new Map();
 	}
 	has(key) {
-		return key in this.initializer;
+		return Object.hasOwn(this.initializer, key);
 	}
 	get(key) {
 		if (this.cache.has(key)) return this.cache.get(key);
-		const fn = this.initializer[key];
-		const val = fn ? fn() : null;
+		const val = this.has(key) ? this.initializer[key]() : null;
 		this.cache.set(key, val);
 		return val;
 	}
@@ -493,8 +488,7 @@ var UnicodeTables = class {
 		Inherited: () => new UnicodeRangeTable(decodeRanges("5cgBgBlgHAB", false))
 	});
 };
-//#endregion
-//#region src/Unicode.js
+// src/Unicode.js
 /**
 * Utilities for dealing with Unicode better than JS does.
 */
@@ -567,8 +561,89 @@ var Unicode = class Unicode {
 		return false;
 	}
 };
-//#endregion
-//#region src/Utils.js
+// src/exceptions.js
+var RE2JSException = class extends Error {
+	/** @param {string} message */
+	constructor(message) {
+		super(message);
+		this.name = "RE2JSException";
+	}
+};
+/**
+* An exception thrown by the parser if the pattern was invalid.
+*/
+var RE2JSSyntaxException = class extends RE2JSException {
+	/**
+	* @param {string} error
+	* @param {string|null} [input=null]
+	*/
+	constructor(error, input = null) {
+		let message = `error parsing regexp: ${error}`;
+		if (input) message += `: \`${input}\``;
+		super(message);
+		this.name = "RE2JSSyntaxException";
+		this.message = message;
+		/** @type {string} */
+		this.error = error;
+		/** @type {string|null} */
+		this.input = input;
+	}
+	/**
+	* Retrieves the description of the error.
+	* @returns {string}
+	*/
+	getDescription() {
+		return this.error;
+	}
+	/**
+	* Retrieves the erroneous regular-expression pattern.
+	* @returns {string|null}
+	*/
+	getPattern() {
+		return this.input;
+	}
+};
+/**
+* An exception thrown by the compiler
+*/
+var RE2JSCompileException = class extends RE2JSException {
+	/** @param {string} message */
+	constructor(message) {
+		super(message);
+		this.name = "RE2JSCompileException";
+	}
+};
+/**
+* An exception thrown by using groups
+*/
+var RE2JSGroupException = class extends RE2JSException {
+	/** @param {string} message */
+	constructor(message) {
+		super(message);
+		this.name = "RE2JSGroupException";
+	}
+};
+/**
+* An exception thrown by flags
+*/
+var RE2JSFlagsException = class extends RE2JSException {
+	/** @param {string} message */
+	constructor(message) {
+		super(message);
+		this.name = "RE2JSFlagsException";
+	}
+};
+/**
+* An exception thrown for internal engine errors, such as corrupted bytecodes.
+*/
+var RE2JSInternalException = class extends RE2JSException {
+	/** @param {string} message */
+	constructor(message) {
+		super(message);
+		this.name = "RE2JSInternalException";
+	}
+};
+// src/Utils.js
 /**
 * Size of the precomputed single-byte lookup table.
 * Covers standard ASCII and Latin-1 characters for fast-path execution.
@@ -599,6 +674,23 @@ var Utils = class Utils {
 	static EMPTY_ALL = -1;
 	static emptyInts() {
 		return [];
+	}
+	static isString(value) {
+		return typeof value === "string" || Object.prototype.toString.call(value) === "[object String]";
+	}
+	static typeName(value) {
+		if (value === null || typeof value !== "object" && typeof value !== "function") return value === null ? "null" : typeof value;
+		return Object.prototype.toString.call(value).slice(8, -1);
+	}
+	static checkPattern(pattern) {
+		if (!Utils.isString(pattern)) throw new TypeError(`The pattern must be a string, not ${Utils.typeName(pattern)} (RE2JS.translateRegExp() converts a RegExp)`);
+	}
+	static checkInput(input) {
+		if (!Utils.isString(input) && !Utils.isByteArray(input)) throw new TypeError(`The input must be a string or a byte array (Uint8Array or number[]), not ${Utils.typeName(input)}`);
+	}
+	static checkFlags(flags) {
+		const known = PublicFlags.MULTILINE | PublicFlags.DOTALL | PublicFlags.CASE_INSENSITIVE | PublicFlags.DISABLE_UNICODE_GROUPS | PublicFlags.LONGEST_MATCH | PublicFlags.LOOKBEHINDS;
+		if (!Number.isInteger(flags) || (flags & ~known) !== 0) throw new RE2JSFlagsException("Flags should only be a combination of MULTILINE, DOTALL, CASE_INSENSITIVE, DISABLE_UNICODE_GROUPS, LONGEST_MATCH, LOOKBEHINDS");
 	}
 	static isByteArray(input) {
 		return Array.isArray(input) || Object.prototype.toString.call(input) === "[object Uint8Array]";
@@ -761,8 +853,7 @@ var Utils = class Utils {
 		}
 	}
 };
-//#endregion
-//#region src/helpers.js
+// src/helpers.js
 const createEnum = (values = [], initNum = 0) => {
 	const enumObject = Object.create(null);
 	for (let i = 0; i < values.length; i++) {
@@ -773,8 +864,7 @@ const createEnum = (values = [], initNum = 0) => {
 	}
 	return Object.freeze(enumObject);
 };
-//#endregion
-//#region src/MatcherInput.js
+// src/MatcherInput.js
 /**
 * Abstract the representations of input text supplied to Matcher.
 */
@@ -878,6 +968,7 @@ var MatcherInput = class {
 	* @returns {Utf16MatcherInput}
 	*/
 	static utf16(charSequence) {
+		Utils.checkInput(charSequence);
 		return new Utf16MatcherInput(charSequence);
 	}
 	/**
@@ -889,8 +980,7 @@ var MatcherInput = class {
 		return new Utf8MatcherInput(Utils.stringToUtf8ByteArray(input));
 	}
 };
-//#endregion
-//#region src/MachineInput.js
+// src/MachineInput.js
 /**
 * MachineInput abstracts different representations of the input text supplied to the Machine. It
 * provides one-character lookahead.
@@ -1070,95 +1160,12 @@ var MachineInput = class {
 	static fromUTF8(bytes, start = 0, end = bytes.length) {
 		return new MachineUTF8Input(bytes, start, end);
 	}
-	static fromUTF16(charSequence, start = 0, end = charSequence.length) {
-		return new MachineUTF16Input(charSequence, start, end);
+	static fromUTF16(charSequence, start = 0, end = void 0) {
+		Utils.checkInput(charSequence);
+		return new MachineUTF16Input(charSequence, start, end ?? charSequence.length);
 	}
 };
-//#endregion
-//#region src/exceptions.js
-var RE2JSException = class extends Error {
-	/** @param {string} message */
-	constructor(message) {
-		super(message);
-		this.name = "RE2JSException";
-	}
-};
-/**
-* An exception thrown by the parser if the pattern was invalid.
-*/
-var RE2JSSyntaxException = class extends RE2JSException {
-	/**
-	* @param {string} error
-	* @param {string|null} [input=null]
-	*/
-	constructor(error, input = null) {
-		let message = `error parsing regexp: ${error}`;
-		if (input) message += `: \`${input}\``;
-		super(message);
-		this.name = "RE2JSSyntaxException";
-		this.message = message;
-		/** @type {string} */
-		this.error = error;
-		/** @type {string|null} */
-		this.input = input;
-	}
-	/**
-	* Retrieves the description of the error.
-	* @returns {string}
-	*/
-	getDescription() {
-		return this.error;
-	}
-	/**
-	* Retrieves the erroneous regular-expression pattern.
-	* @returns {string|null}
-	*/
-	getPattern() {
-		return this.input;
-	}
-};
-/**
-* An exception thrown by the compiler
-*/
-var RE2JSCompileException = class extends RE2JSException {
-	/** @param {string} message */
-	constructor(message) {
-		super(message);
-		this.name = "RE2JSCompileException";
-	}
-};
-/**
-* An exception thrown by using groups
-*/
-var RE2JSGroupException = class extends RE2JSException {
-	/** @param {string} message */
-	constructor(message) {
-		super(message);
-		this.name = "RE2JSGroupException";
-	}
-};
-/**
-* An exception thrown by flags
-*/
-var RE2JSFlagsException = class extends RE2JSException {
-	/** @param {string} message */
-	constructor(message) {
-		super(message);
-		this.name = "RE2JSFlagsException";
-	}
-};
-/**
-* An exception thrown for internal engine errors, such as corrupted bytecodes.
-*/
-var RE2JSInternalException = class extends RE2JSException {
-	/** @param {string} message */
-	constructor(message) {
-		super(message);
-		this.name = "RE2JSInternalException";
-	}
-};
-//#endregion
-//#region src/Matcher.js
+// src/Matcher.js
 /**
 * A stateful iterator that interprets a regex {@code RE2JS} on a specific input.
 *
@@ -1585,7 +1592,7 @@ var Matcher = class Matcher {
 					i += 2;
 				} else {
 					const name = replacement.substring(i + 2, gt);
-					if (Object.prototype.hasOwnProperty.call(this.namedGroups, name)) {
+					if (Object.hasOwn(this.namedGroups, name)) {
 						const group = this.group(name);
 						if (group !== null) res += group;
 					}
@@ -1703,8 +1710,7 @@ var Matcher = class Matcher {
 		return result;
 	}
 };
-//#endregion
-//#region src/Inst.js
+// src/Inst.js
 /**
 * A single instruction in the regular expression virtual machine.
 *
@@ -1825,8 +1831,7 @@ var Inst = class Inst {
 		}
 	}
 };
-//#endregion
-//#region src/Machine.js
+// src/Machine.js
 var Queue = class Queue {
 	constructor(numInst) {
 		this.sparse = new Int32Array(numInst);
@@ -2203,8 +2208,7 @@ var Machine = class Machine {
 		}
 	}
 };
-//#endregion
-//#region src/DFA.js
+// src/DFA.js
 const hashState = (pcs, flag, ids) => {
 	let h = -2128831035;
 	for (let i = 0; i < pcs.length; i++) {
@@ -2523,8 +2527,7 @@ var DFA = class DFA {
 		return Array.from(matches).sort((a, b) => a - b);
 	}
 };
-//#endregion
-//#region src/Backtracker.js
+// src/Backtracker.js
 const VISITED_BITS = 32;
 const MAX_BACKTRACK_PROG = 500;
 const INITIAL_JOB_CAPACITY = 256;
@@ -2737,8 +2740,7 @@ var Backtracker = class Backtracker {
 		return result;
 	}
 };
-//#endregion
-//#region src/OnePass.js
+// src/OnePass.js
 var QueueOnePass = class {
 	constructor(size) {
 		this.sparse = new Uint32Array(size);
@@ -3103,8 +3105,7 @@ var OnePass = class OnePass {
 		return ncap === 0 ? [] : Utils.toArray(matchcap);
 	}
 };
-//#endregion
-//#region src/Regexp.js
+// src/Regexp.js
 /**
 * Regular expression abstract syntax tree. Produced by parser, used by compiler. NB, this
 * corresponds to {@code syntax.regexp} in the Go implementation; Go's {@code regexp} is called
@@ -3360,8 +3361,7 @@ var Regexp = class Regexp {
 		return true;
 	}
 };
-//#endregion
-//#region src/RegexpWalker.js
+// src/RegexpWalker.js
 /**
 * Walks a Regexp tree without recursion, visiting nodes in the same order a recursive walk
 * would (RE2: re2/walker-inl.h, "Helper class for traversing Regexps without recursion").
@@ -3413,8 +3413,7 @@ var RegexpWalker = class {
 		}
 	}
 };
-//#endregion
-//#region src/Prefilter.js
+// src/Prefilter.js
 var AhoCorasick = class {
 	constructor(words, alphabetSize) {
 		const edges = /* @__PURE__ */ new Map();
@@ -3674,8 +3673,7 @@ var PrefilterTree = class PrefilterTree {
 		return pf;
 	}
 };
-//#endregion
-//#region src/Prog.js
+// src/Prog.js
 /**
 * A list of instruction pointers waiting to be patched.
 * Tracks both `head` and `tail` to allow O(1) appending during compilation.
@@ -3812,8 +3810,7 @@ var Prog = class {
 		return out;
 	}
 };
-//#endregion
-//#region src/Compiler.js
+// src/Compiler.js
 const ANY_RUNE_NOT_NL = new Int32Array([
 	0,
 	Codepoint.CODES["\n"] - 1,
@@ -4071,8 +4068,7 @@ var Compiler = class Compiler {
 		}
 	}
 };
-//#endregion
-//#region src/Simplify.js
+// src/Simplify.js
 var Simplify = class Simplify {
 	static simplify(re) {
 		if (re === null) return null;
@@ -4234,8 +4230,7 @@ var Simplify = class Simplify {
 		return nre;
 	}
 };
-//#endregion
-//#region src/CharGroup.js
+// src/CharGroup.js
 var CharGroup = class {
 	constructor(sign, cls) {
 		this.sign = sign;
@@ -4365,8 +4360,7 @@ const POSIX_GROUPS = /* @__PURE__ */ new Map([
 	["[:xdigit:]", new CharGroup(1, code17)],
 	["[:^xdigit:]", new CharGroup(-1, code17)]
 ]);
-//#endregion
-//#region src/CharClass.js
+// src/CharClass.js
 /**
 * A "builder"-style helper class for manipulating character classes represented as an array of
 * pairs of runes [lo, hi], each denoting an inclusive interval.
@@ -4556,8 +4550,7 @@ var CharClass = class CharClass {
 		return CharClass.charClassToString(this.r, this.len);
 	}
 };
-//#endregion
-//#region src/Parser.js
+// src/Parser.js
 var StringIterator = class {
 	constructor(str) {
 		this.str = str;
@@ -5660,8 +5653,7 @@ var Parser = class Parser {
 		this.push(re);
 	}
 };
-//#endregion
-//#region src/RE2.js
+// src/RE2.js
 /**
 * An RE2 class instance is a compiled representation of an RE2 regular expression, independent of
 * the public Java-like Pattern/Matcher API.
@@ -6167,8 +6159,7 @@ var RE2 = class RE2 {
 		return result;
 	}
 };
-//#endregion
-//#region src/Set.js
+// src/Set.js
 var RE2Set = class RE2Set {
 	/** @type {number} */
 	static UNANCHORED = RE2Flags.UNANCHORED;
@@ -6183,6 +6174,12 @@ var RE2Set = class RE2Set {
 	* @param {number} [maxMem=8388608] - The maximum memory in bytes to use for the DFA (default 8MB).
 	*/
 	constructor(anchor = RE2Set.UNANCHORED, flags = 0, maxMem = 8388608) {
+		if (![
+			RE2Set.UNANCHORED,
+			RE2Set.ANCHOR_START,
+			RE2Set.ANCHOR_BOTH
+		].includes(anchor)) throw new RE2JSFlagsException("The anchor should be RE2Set.UNANCHORED, RE2Set.ANCHOR_START or RE2Set.ANCHOR_BOTH");
+		Utils.checkFlags(flags);
 		this.anchor = anchor;
 		this.jsFlags = flags;
 		this.maxMem = maxMem;
@@ -6204,6 +6201,7 @@ var RE2Set = class RE2Set {
 	*/
 	add(pattern) {
 		if (this.prog) throw new RE2JSCompileException("Cannot add patterns after compile");
+		Utils.checkPattern(pattern);
 		let fregex = pattern;
 		if ((this.jsFlags & PublicFlags.CASE_INSENSITIVE) !== 0) fregex = `(?i)${fregex}`;
 		if ((this.jsFlags & PublicFlags.DOTALL) !== 0) fregex = `(?s)${fregex}`;
@@ -6249,8 +6247,7 @@ var RE2Set = class RE2Set {
 		return machine.matchSet(machineInput, 0, internalAnchor);
 	}
 };
-//#endregion
-//#region src/TranslateRegExpString.js
+// src/TranslateRegExpString.js
 /**
 * Transform JS regex string to RE2 regex string
 */
@@ -6260,7 +6257,7 @@ var TranslateRegExpString = class TranslateRegExpString {
 	}
 	static translate(data) {
 		let prefixFlags = "";
-		if (data instanceof RegExp) {
+		if (Object.prototype.toString.call(data) === "[object RegExp]") {
 			if (data.ignoreCase) prefixFlags += "i";
 			if (data.multiline) prefixFlags += "m";
 			if (data.dotAll) prefixFlags += "s";
@@ -6457,8 +6454,7 @@ var TranslateRegExpString = class TranslateRegExpString {
 		return finalResult;
 	}
 };
-//#endregion
-//#region src/index.js
+// src/index.js
 const execResult = (m, input) => {
 	const result = m.matchArray();
 	result.index = m.start(0);
@@ -6550,11 +6546,12 @@ var RE2JS = class RE2JS {
 	* @returns {RE2JS}
 	*/
 	static compile(regex, flags = 0) {
+		Utils.checkPattern(regex);
+		Utils.checkFlags(flags);
 		let fregex = regex;
 		if ((flags & RE2JS.CASE_INSENSITIVE) !== 0) fregex = `(?i)${fregex}`;
 		if ((flags & RE2JS.DOTALL) !== 0) fregex = `(?s)${fregex}`;
 		if ((flags & RE2JS.MULTILINE) !== 0) fregex = `(?m)${fregex}`;
-		if ((flags & ~(RE2JS.MULTILINE | RE2JS.DOTALL | RE2JS.CASE_INSENSITIVE | RE2JS.DISABLE_UNICODE_GROUPS | RE2JS.LONGEST_MATCH | RE2JS.LOOKBEHINDS)) !== 0) throw new RE2JSFlagsException("Flags should only be a combination of MULTILINE, DOTALL, CASE_INSENSITIVE, DISABLE_UNICODE_GROUPS, LONGEST_MATCH, LOOKBEHINDS");
 		let re2Flags = RE2Flags.PERL;
 		if ((flags & RE2JS.DISABLE_UNICODE_GROUPS) !== 0) re2Flags &= ~RE2Flags.UNICODE_GROUPS;
 		if ((flags & RE2JS.LOOKBEHINDS) !== 0) re2Flags |= RE2Flags.LOOKBEHIND;
@@ -6813,7 +6810,6 @@ function re(stringsOrFlags, ...values) {
 		return RE2JS.compile(pattern, flags);
 	};
 }
-//#endregion
 exports.Matcher = Matcher;
 exports.MatcherInput = MatcherInput;
 exports.MatcherInputBase = MatcherInputBase;
