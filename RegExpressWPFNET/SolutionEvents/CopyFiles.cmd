@@ -220,6 +220,7 @@ xcopy /D /R /Y "%BasePath%\FortranPlugin\bin\%Configuration%\%TargetDir%\Fortran
 xcopy /D /R /Y "%BasePath%\ForgexWorker\x64\Release\FortranForgexWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
 xcopy /D /R /Y "%BasePath%\RegexJeyemhexWorker\x64\Release\FortranRegexJeyemhexWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
 xcopy /D /R /Y "%BasePath%\RegexPerazzWorker\x64\Release\FortranRegexPerazzWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
+xcopy /D /R /Y "%BasePath%\FregexWorker\x64\Release\FregexWorker.exe" "%EnginesTargetPath%\Fortran\*.bin"
 
 
 rem -- TRE --

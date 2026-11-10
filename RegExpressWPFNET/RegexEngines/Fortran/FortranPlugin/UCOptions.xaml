@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:FortranPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="62.968" d:DesignWidth="223.813" 
+             d:DesignHeight="113.697" d:DesignWidth="325.992" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -36,10 +36,17 @@
                 <ui:ComboBoxItemWithVersion Tag="Forgex"        Text="Forgex"           Version="{x:Static local:Versions.Forgex}" IsSelected="True" />
                 <ui:ComboBoxItemWithVersion Tag="RegexPerazz"   Text="Regex (Perazz)"   Version="{x:Static local:Versions.RegexPerazz}" />
                 <ui:ComboBoxItemWithVersion Tag="RegexJeyemhex" Text="Regex (Jeyemhex)" Version="{x:Static local:Versions.RegexJeyemhex}"/>
+                <ui:ComboBoxItemWithVersion Tag="Fregex"        Text="Fregex"           Version="{x:Static local:Versions.Fregex}"/>
             </ComboBox>
         </Grid>
 
-        <ui:CheckboxWithNote Prop="MatchAll" Text="Find all" Note="find all occurrences" />
+        <StackPanel x:Name="pnlFregex" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="ignorecase" Text="RE_IGNORECASE" Note="case-insensitive matching (ASCII)" />
+            <ui:CheckboxWithNote Prop="multiline" Text="RE_MULTILINE" Note="`^` and `$` also match at line breaks" />
+            <ui:CheckboxWithNote Prop="dotall" Text="RE_DOTALL" Note="`.` also matches a newline" />
+        </StackPanel>
+
+        <ui:CheckboxWithNote x:Name="cbxMatchAll" Prop="MatchAll" Text="Find all" Note="find all occurrences" />
     </StackPanel>
 
 </UserControl>
