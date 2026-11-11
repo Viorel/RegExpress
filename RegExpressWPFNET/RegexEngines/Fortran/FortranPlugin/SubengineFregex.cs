@@ -10,6 +10,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 
 
@@ -45,6 +46,9 @@ partial class SubengineFregex( Options options ) : RegexSubengine
         if( options.multiline ) flags += "m";
         if( options.dotall ) flags += "s";
 
+        Int64? step_limit = ValidationUtilities.ParseInt64( "step_limit", options.step_limit );
+        string step_limit_s = step_limit == null ? "" : step_limit.Value.ToString( CultureInfo.InvariantCulture );
+
         using ProcessHelper ph = new( GetWorkerExePath( ) );
 
         ph.AllEncoding = EncodingEnum.UTF8;
@@ -54,15 +58,18 @@ partial class SubengineFregex( Options options ) : RegexSubengine
             sw.WriteLine( adjusted_pattern );
             sw.WriteLine( adjusted_text );
             sw.WriteLine( flags );
+            sw.WriteLine( step_limit_s );
         };
 
         if( !ph.Start( cnc ) ) return RegexMatches.Empty;
 
-        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( AdjustErrorMessage( ph.Error, pattern ) );
 
         List<SimpleMatch> matches = [];
         SimpleTextGetter text_getter = new( text );
+        Utf8IndexConverter? index_converter_for_names = null;
         Utf8IndexConverter index_converter = new( text );
+        Dictionary<int, string> names = [];
         string? line;
 
         while( ( line = ph.StreamReader.ReadLine( ) ) != null )
@@ -73,6 +80,22 @@ partial class SubengineFregex( Options options ) : RegexSubengine
 
             if( line.Length == 0 ) continue;
             if( line.StartsWith( "d " ) ) continue; // (for debugging)
+
+            {
+                Match m = ParseNameRegex( ).Match( line );
+                if( m.Success )
+                {
+                    int group_index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
+                    int native_start = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture ) - 1;
+                    int native_end = int.Parse( m.Groups[3].Value, CultureInfo.InvariantCulture );
+                    index_converter_for_names ??= new( pattern );
+                    (int char_start, int char_length) = index_converter_for_names.Convert( native_start, native_end );
+                    string name = pattern.Substring( char_start, char_length );
+                    names[group_index] = name;
+
+                    continue;
+                }
+            }
 
             {
                 Match m = ParseMatchRegex( ).Match( line );
@@ -106,7 +129,9 @@ partial class SubengineFregex( Options options ) : RegexSubengine
 
                     SimpleMatch match = matches.Last( );
                     int group_index = match.Groups.Count( );
+
                     string? name = null;
+                    if( names.TryGetValue( group_index, out string? name0 ) ) name = name0;
                     name ??= group_index.ToString( CultureInfo.InvariantCulture );
 
                     if( !success )
@@ -138,6 +163,37 @@ partial class SubengineFregex( Options options ) : RegexSubengine
         }
 
         return new RegexMatches( matches.Count, matches );
+    }
+
+    static string? AdjustErrorMessage( string error, string pattern )
+    {
+        // try to show character offset based on byte offset, which appears in error message
+
+        System.Text.RegularExpressions.Match m = ExtractNativeOffsetRegex( ).Match( error );
+
+        if( m.Success && int.TryParse( m.Groups[1].Value, out int byte_offset ) )
+        {
+            try
+            {
+                byte[] utf8_bytes = Encoding.UTF8.GetBytes( pattern );
+                int char_offset = Encoding.UTF8.GetCharCount( utf8_bytes, 0, byte_offset - 1 ); // it was 1-based
+
+                if( char_offset != byte_offset )
+                {
+                    string new_message = $"{error.TrimEnd( )}{Environment.NewLine}at character index {char_offset}";
+
+                    return new_message;
+                }
+            }
+            catch
+            {
+                if( Debugger.IsAttached ) Debugger.Break( );
+
+                // ignore
+            }
+        }
+
+        return error;
     }
 
     static string GetWorkerExePath( )
@@ -371,6 +427,12 @@ partial class SubengineFregex( Options options ) : RegexSubengine
 
         };
     }
+
+    [GeneratedRegex( @" at position (\d+)\s*$" )]
+    private static partial Regex ExtractNativeOffsetRegex( );
+
+    [GeneratedRegex( @"(?x)^\s* n \s+ (\d+) \s+ (\d+) \s+ (\d+)" )]
+    private static partial Regex ParseNameRegex( );
 
     [GeneratedRegex( @"(?x)^\s* m \s+ (\d+) \s+ (\d+)" )]
     private static partial Regex ParseMatchRegex( );

@@ -44,6 +44,21 @@
             <ui:CheckboxWithNote Prop="ignorecase" Text="RE_IGNORECASE" Note="case-insensitive matching (ASCII)" />
             <ui:CheckboxWithNote Prop="multiline" Text="RE_MULTILINE" Note="`^` and `$` also match at line breaks" />
             <ui:CheckboxWithNote Prop="dotall" Text="RE_DOTALL" Note="`.` also matches a newline" />
+
+            <Grid Style="{StaticResource DetailsTable}" >
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto" MinWidth="77"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=step_limit}" Content="step__limit:"/>
+                <TextBox x:Name="step_limit" Grid.Column="1" Grid.Row="0" Text="{Binding step_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="0" Text="– Limit the work done by one search" />
+            </Grid>
         </StackPanel>
 
         <ui:CheckboxWithNote x:Name="cbxMatchAll" Prop="MatchAll" Text="Find all" Note="find all occurrences" />

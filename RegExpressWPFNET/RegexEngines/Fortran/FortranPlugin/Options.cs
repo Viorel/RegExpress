@@ -16,6 +16,7 @@ class Options
     public bool ignorecase { get; set; }
     public bool multiline { get; set; }
     public bool dotall { get; set; }
+    public string? step_limit { get; set; } = null;
 
     public bool MatchAll { get; set; } = false;
 

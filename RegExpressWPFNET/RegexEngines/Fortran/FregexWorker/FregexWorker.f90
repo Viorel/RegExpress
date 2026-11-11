@@ -15,7 +15,7 @@
     program FregexWorker
 
     use, intrinsic :: iso_fortran_env, &
-        only: stdin => input_unit, &
+        only: int64, stdin => input_unit, &
         stdout => output_unit, &
         stderr => error_unit
     
@@ -25,10 +25,11 @@
    
         use fregex
 
-        character (:), allocatable :: pattern, text, flags, result
+        character (:), allocatable :: pattern, text, flags_s, step_limit_s, result
         character (256) err_msg
 
-        integer :: re_flags = 0
+        integer :: flags = 0
+        integer(int64) :: step_limit
         type(regex_t) :: re
         type(match_t) :: match
         type(match_t), allocatable :: matches(:)
@@ -38,7 +39,8 @@
 
         call read_line( stdin, pattern)
         call read_line( stdin, text)
-        call read_line( stdin, flags)
+        call read_line( stdin, flags_s)
+        call read_line( stdin, step_limit_s)
 
         pattern = replace_all( pattern, CHAR(27) // "r", CHAR(13))
         pattern = replace_all( pattern, CHAR(27) // "n", CHAR(10))
@@ -48,18 +50,45 @@
 
         !print *, pattern
         !print *, text
-        !print *, flags
+        !print *, flags_s
+        !print *, step_limit_s
         
-        if( index( flags, "i") > 0) re_flags = IOR( re_flags, RE_IGNORECASE)
-        if( index( flags, "m") > 0) re_flags = IOR( re_flags, RE_MULTILINE)
-        if( index( flags, "s") > 0) re_flags = IOR( re_flags, RE_DOTALL)
+        if( index( flags_s, "i") > 0) flags = IOR( flags, RE_IGNORECASE)
+        if( index( flags_s, "m") > 0) flags = IOR( flags, RE_MULTILINE)
+        if( index( flags_s, "s") > 0) flags = IOR( flags, RE_DOTALL)
         
-        re = regex( pattern, re_flags, stat, errmsg)
+        step_limit_s = TRIM( step_limit_s)
+
+        re = regex( pattern, flags, stat, errmsg)
+        
+        if( len( step_limit_s) > 0) then
+            read( step_limit_s, *, iostat = stat) step_limit
+            if( stat == 0) call re%set_step_limit( step_limit)
+        end if
         
         if( stat /= RE_OK) then 
             write( stderr, "('Error #', i0, ': ', at)") stat, errmsg        
             stop
         end if 
+        
+        block
+            ! possible names
+        
+            type(regex_t) :: re_names
+            character (:), allocatable :: possible_name
+            integer :: group_index
+        
+            re_names = regex( "\(\?P?<(.*?)>")
+            matches = re_names%find_all( pattern)
+            do i = 1, size( matches)
+                match = matches( i)
+                possible_name = match%group( 1)
+                group_index = re%group_index( possible_name)
+                if( group_index > 0 ) write( stdout, "('n ', i0, ' ', i0, ' ', i0)") group_index, match%start(1), match%end(1)
+            end do
+	    end block
+
+        ! find matches
         
         matches = re%find_all( text, stat, errmsg)
        
@@ -77,8 +106,6 @@
                 write( stdout, "('g ', i0, ' ', i0)") match%start(k), match%end(k)
             end do
         end do
-        
-        ! TODO: group names
         
     end block
     

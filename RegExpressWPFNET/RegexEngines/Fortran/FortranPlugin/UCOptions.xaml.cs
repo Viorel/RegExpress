@@ -54,6 +54,11 @@ namespace FortranPlugin
             Notify( preferImmediateReaction: false );
         }
 
+        private void tb_TextChanged( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
+
         void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;

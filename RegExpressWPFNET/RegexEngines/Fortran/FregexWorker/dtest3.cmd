@@ -1,0 +1,1 @@
+type data3.txt | "x64\Debug\FregexWorker.exe"
