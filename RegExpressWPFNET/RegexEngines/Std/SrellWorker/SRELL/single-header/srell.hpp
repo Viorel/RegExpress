@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) version 2026.09
+**  SRELL (std::regex-like library) version 2026.10
 **
 **  Copyright (c) 2012-2026, Nozomu Katoo. All rights reserved.
 **
@@ -31,7 +31,7 @@
 */
 
 #ifndef SRELL_HPP_
-#define SRELL_HPP_ 202609
+#define SRELL_HPP_ 202610
 
 #include <climits>
 #include <cwchar>
@@ -18013,8 +18013,6 @@ private:
 				goto AFTER_PIECE_SET;
 
 			case meta_char::mc_sbraop:	//  '['
-				pos.clear();
-
 				if (!parse_unicharset(pos, curpos, end, cvars))
 					return false;
 
@@ -18833,6 +18831,8 @@ private:
 		//  \ ClassSetReservedPunctuator
 		//  \ b
 
+		basepos.clear();
+
 		for (;;)
 		{
 			if (curpos == end)
@@ -18927,6 +18927,7 @@ private:
 				++curpos;
 				if (!parse_unicharset(newpos, curpos, end, cvars))
 					return false;
+				castate.type = st_character_class;
 				--cvars.depth;
 			}
 			else if (!get_classatom(newpos, castate, curpos, end, cvars, false))
@@ -18964,6 +18965,8 @@ private:
 								otype = op_subtraction;
 								++curpos;
 								basepos.ranges.join(code_range);
+								if (cvars.is_icase())
+									basepos.ranges.make_caseunfoldedcharset();
 								goto AFTER_OPERATOR;
 							}
 

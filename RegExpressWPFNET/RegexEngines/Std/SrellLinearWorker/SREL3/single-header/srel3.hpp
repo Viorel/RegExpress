@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) linear version 2026.05
+**  SRELL (std::regex-like library) linear version 2026.06
 **
 **  Copyright (c) 2026, Nozomu Katoo. All rights reserved.
 **
@@ -31,7 +31,7 @@
 */
 
 #ifndef SREL3_HPP_
-#define SREL3_HPP_ 202605
+#define SREL3_HPP_ 202606
 
 #define SRELL_LINEAR
 
@@ -17227,12 +17227,12 @@ protected:
 	ui_l32 number_of_repeats;
 	ui_l32 soflags;
 
+	ui_l32 max_states_;
+
 #if !defined(SRELL_NO_NAMEDCAPTURE)
 	groupname_mapper<charT> namedcaptures;
 	typedef typename groupname_mapper<charT>::gname_string gname_string;
 #endif
-
-	ui_l32 max_states_;
 
 #if defined(SRELL_HAS_SSE42)
 SRELL_NO_VCWARNING(4324)
@@ -17792,8 +17792,6 @@ private:
 				goto AFTER_PIECE_SET;
 
 			case meta_char::mc_sbraop:	//  '['
-				pos.clear();
-
 				if (!parse_unicharset(pos, curpos, end, cvars))
 					return false;
 
@@ -18491,6 +18489,8 @@ private:
 		//  \ ClassSetReservedPunctuator
 		//  \ b
 
+		basepos.clear();
+
 		for (;;)
 		{
 			if (curpos == end)
@@ -18585,6 +18585,7 @@ private:
 				++curpos;
 				if (!parse_unicharset(newpos, curpos, end, cvars))
 					return false;
+				castate.type = st_character_class;
 				--cvars.depth;
 			}
 			else if (!get_classatom(newpos, castate, curpos, end, cvars, false))
@@ -18622,6 +18623,8 @@ private:
 								otype = op_subtraction;
 								++curpos;
 								basepos.ranges.join(code_range);
+								if (cvars.is_icase())
+									basepos.ranges.make_caseunfoldedcharset();
 								goto AFTER_OPERATOR;
 							}
 
