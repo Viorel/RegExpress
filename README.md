@@ -50,10 +50,10 @@ The following engines are included:
 * **Rust** 1.99.1:
   * [_regex_](https://crates.io/crates/regex) 1.13.1,
   * [_regex-lite_](https://crates.io/crates/regex-lite) 0.1.9,
-  * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.20.1, 
+  * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.20.2, 
   * [_regress_](https://crates.io/crates/regress) 0.12.0,
-  * [_resharp_](https://crates.io/crates/resharp) 0.7.6,
-  * [_regex-anre_](https://crates.io/crates/regex-anre) 2.1.2,
+  * [_resharp_](https://crates.io/crates/resharp) 0.7.7,
+  * [_anre_](https://crates.io/crates/regex-anre) 3.0.0,
   * [_real-regex_](https://crates.io/crates/real-regex) 2026.10.19,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0,
   * [_regexr_](https://crates.io/crates/regexr) 0.6.2,
@@ -62,7 +62,7 @@ The following engines are included:
   * [_ferroni_](https://crates.io/crates/ferroni) 2.8.0,
   * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.4,
   * [_derivre_](https://crates.io/crates/derivre) 0.3.13,
-  * [_corvus-regex-ecma262_](https://crates.io/crates/corvus-regex-ecma262) 0.2.5.
+  * [_corvus-regex-ecma262_](https://crates.io/crates/corvus-regex-ecma262) 0.2.7.
 * **Java** 26.0.2.1:
   * [_java.util.regex_](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html),
   * [_RE2/J_](https://github.com/google/re2j) 1.8,

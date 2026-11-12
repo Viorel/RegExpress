@@ -21,7 +21,7 @@ class SubengineAnre( Options options ) : RegexSubengine
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
-        return RegexEngineCapabilityEnum.NoGroupSuccessFlag;
+        return RegexEngineCapabilityEnum.None;
     }
 
     public override SyntaxOptions GetSyntaxOptions( )
@@ -39,16 +39,16 @@ class SubengineAnre( Options options ) : RegexSubengine
     sealed class GroupResponse
     {
         [JsonPropertyName( "n" )]
-        public string? name { get; set; }
+        required public string? name { get; set; }
 
         [JsonPropertyName( "r" )]
-        public int[]? range { get; set; } // start, end
+        required public int[]? range { get; set; } // start, end
     }
 
     sealed class MatchesResponse
     {
         [JsonPropertyName( "matches" )]
-        public GroupResponse[][]? matches { get; set; }
+        required public GroupResponse[][]? matches { get; set; }
     }
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
@@ -96,34 +96,35 @@ class SubengineAnre( Options options ) : RegexSubengine
         {
             if( cnc.IsCancellationRequested ) break;
 
-            SimpleMatch? match = null;
+            SimpleMatch match;
 
-            for( int group_index = 0; group_index < m.Length; group_index++ )
             {
-                GroupResponse g = m[group_index];
-
-                // (Currently there is no difference between failed match and succeeded empty group; failed groups are returned as [0, 0]).
+                GroupResponse g = m[0];
 
                 int native_start = g.range![0];
                 int native_end = g.range![1];
+
+                Debug.Assert( native_start >= 0 && native_end >= native_start );
+
                 int native_length = native_end - native_start;
 
                 (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
-                if( group_index == 0 )
-                {
-                    Debug.Assert( match == null );
-                    Debug.Assert( char_start >= 0 );
+                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match.AddDefaultGroup( );
+            }
 
-                    match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
-                }
+            for( int group_index = 1; group_index < m.Length; group_index++ )
+            {
+                GroupResponse g = m[group_index];
 
-                Debug.Assert( match != null );
-
-                bool success = char_length > 0;
+                int native_start = g.range![0];
+                int native_end = g.range![1];
 
                 string? name = g.name;
                 if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
+
+                bool success = native_start >= 0 && native_end >= 0;
 
                 if( !success )
                 {
@@ -131,6 +132,10 @@ class SubengineAnre( Options options ) : RegexSubengine
                 }
                 else
                 {
+                    int native_length = native_end - native_start;
+
+                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
                     match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
                 }
             }

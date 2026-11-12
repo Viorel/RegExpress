@@ -37,7 +37,7 @@
                 <ui:ComboBoxItemWithVersion Tag ="fancy_regex"          Text="fancy-regex"          Version="{x:Static local:Versions.FancyRegex}" />
                 <ui:ComboBoxItemWithVersion Tag ="regress"              Text="regress"              Version="{x:Static local:Versions.Regress}" />
                 <ui:ComboBoxItemWithVersion Tag ="resharp"              Text="resharp"              Version="{x:Static local:Versions.Resharp}" />
-                <ui:ComboBoxItemWithVersion Tag ="anre"                 Text="regex-anre"           Version="{x:Static local:Versions.Anre}" />
+                <ui:ComboBoxItemWithVersion Tag ="anre"                 Text="anre"                 Version="{x:Static local:Versions.Anre}" />
                 <ui:ComboBoxItemWithVersion Tag ="real_regex"           Text="real-regex"           Version="{x:Static local:Versions.RealRegex}" />
                 <ui:ComboBoxItemWithVersion Tag ="java_regex"           Text="java_regex"           Version="{x:Static local:Versions.JavaRegex}" />
                 <ui:ComboBoxItemWithVersion Tag ="regexr"               Text="regexr"               Version="{x:Static local:Versions.Regexr}" />
