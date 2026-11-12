@@ -4,7 +4,6 @@ import std.stdio;
 import std.json;
 import std.regex;
 import std.range;
-//import std.algorithm;
 
 
 void main()
@@ -21,20 +20,20 @@ void main()
         }
 
         string s;
-        stdin.readf("%s", s);
+        stdin.readf( "%s", s);
 
-        JSONValue json_value = parseJSON(s);
+        JSONValue json_value = parseJSON( s);
 
         const(JSONValue*) command_j = "c" in json_value;
         const string command = command_j == null ? "" : command_j.str;
 
         if( command == "v")
         {
-            string v = format("%s.%03s", version_major, version_minor);
+            string v = format( "%s.%03s", version_major, version_minor);
 
-            JSONValue result = JSONValue(["version" : v]);
+            JSONValue result = JSONValue( ["version" : v]);
 
-            writeln(result.toString());
+            writeln( result.toString());
 
             return;
         }
@@ -46,68 +45,67 @@ void main()
             const(JSONValue*) flags_j = "f" in json_value;
             const string flags = flags_j == null ? "" : flags_j.str;
 
-            auto re = regex(pattern, flags);
+            auto re = regex( pattern, flags);
 
             JSONValue[] names;
 
-            foreach(name; re.namedCaptures)
+            foreach( name; re.namedCaptures)
             {
-                names ~= JSONValue(name);
+                names ~= JSONValue( name);
             }
 
             JSONValue[] matches;
-            JSONValue[] empty_array0;
-            JSONValue empty_array = JSONValue(empty_array0);
 
-            foreach(match; std.regex.matchAll(text, re))
+            foreach(match; std.regex.matchAll( text, re))
             {
                 // ('match' is 'std.regex.Captures')
 
-                if( match.empty) continue;
-
                 JSONValue[] groups;
+
+                groups ~= JSONValue( match.hit.ptr - text.ptr);
+                groups ~= JSONValue( match.hit.length);
 
                 foreach( capture; match) // "groups"
                 {
                     // ( 'capture' is 'string')
 
-                    if( capture == null) // failed?
+                    if( capture == null) // failed (also if match is empty)
                     {
-                        groups ~= empty_array;
+                        groups ~= JSONValue( -1);
+                        groups ~= JSONValue( -1);
                     }
                     else
                     {
                         // See: https://forum.dlang.org/post/xdvjbcgvnnoxbryekawn@forum.dlang.org
 
-                        groups ~= JSONValue([capture.ptr - text.ptr, capture.length]);
+                        groups ~= JSONValue( capture.ptr - text.ptr);
+                        groups ~= JSONValue( capture.length);
                     }
                 }
 
                 JSONValue[] named_groups;
 
-                foreach(name; re.namedCaptures)
+                foreach( name; re.namedCaptures)
                 {
-                    auto val = match[name];
+                    auto value = match[name];
 
-                    if( val.empty) 
+                    if( value == null ) // failed (also if match is empty)
                     {
-                        named_groups ~= JSONValue([ -1, 0 ]);
+                        named_groups ~= JSONValue( -1);
+                        named_groups ~= JSONValue( -1);
                     }
                     else
                     {
-                        named_groups ~= JSONValue([ val.ptr - text.ptr, val.length ]);
+                        named_groups ~= JSONValue( value.ptr - text.ptr);
+                        named_groups ~= JSONValue( value.length);
                     }
                 }
 
-                auto const i = match.hit.ptr - text.ptr;
-
-                JSONValue one = [ 
-                    "i": JSONValue(i),
-                    "g": JSONValue(groups),
-                    "n": JSONValue(named_groups)
-                ];
-
-                matches ~= one;
+                matches ~= JSONValue( 
+                [
+                    "g"  : groups,
+                    "ng" : named_groups
+                ]);
             }
 
             JSONValue result = [
@@ -115,12 +113,12 @@ void main()
                 "matches": matches
             ];
 
-            writeln(toJSON(result, /*pretty:=*/ is_debug ));
+            writeln(toJSON( result, /*pretty:=*/ is_debug ));
 
             return;
         }
 
-        stderr.writefln("Unsupported command: '%s'", command);
+        stderr.writefln( "Unsupported command: '%s'", command);
     }
     catch (Exception exc)
     {

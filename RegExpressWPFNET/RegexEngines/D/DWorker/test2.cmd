@@ -1,1 +1,1 @@
-@echo {"p":"(?P<AB>(?P<A>a)b)", "t":"abc"} | DWorker.exe
+@echo {"p" : ".", "t" : "abc"} | DWorker.exe

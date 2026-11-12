@@ -35,29 +35,22 @@ class Subengine( Options options ) : RegexSubengine
         };
     }
 
-    class VersionResponse
+    sealed class VersionResponse
     {
-        public string? version { get; set; }
+        public required string version { get; set; }
     }
 
 
-    public class MatchesResponse
+    sealed class MatchesResponse
     {
-        public string[]? names { get; set; }
-        public OneMatchResponse[]? matches { get; set; }
+        public required string[] names { get; set; }
+        public required OneMatchResponse[] matches { get; set; }
     }
 
-
-    public class OneMatchResponse
+    sealed class OneMatchResponse
     {
-        [JsonPropertyName( "i" )]
-        public int index { get; set; } // byte-index of the whole match
-
-        [JsonPropertyName( "g" )]
-        public int[][]? groups { get; set; } // [byte-index, byte-length], or [-1, 0] if failed
-
-        [JsonPropertyName( "n" )]
-        public int[][]? named_groups { get; set; } // [byte-index, byte-length], or [-1, 0] if failed
+        public required int[] g { get; set; }
+        public required int[] ng { get; set; }
     }
 
 
@@ -101,64 +94,38 @@ class Subengine( Options options ) : RegexSubengine
         Utf8IndexConverter index_converter = new( text );
         SimpleTextGetter stg = new( text );
 
-        foreach( var m in response.matches! )
+        foreach( var m in response.matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
-            SimpleMatch? match = null;
+            SimpleMatch? match;
 
-            for( int group_index = 0; group_index < m.groups!.Length; group_index++ )
             {
-                int[] g = m.groups[group_index];
-                bool success = g.Length == 2;
+                // if pattern is "()", which matches any position, 'std.regex' does not return captures, 
+                // even the main (first) one (all are null); however the match object contains the valid index;
+                // the workaround is to use the information from the match instead of first capture
 
-                if( group_index == 0 && !success )
-                {
-                    // if pattern is "()", which matches any position, 'std.regex' does not return captures, 
-                    // even the main one (all are null); however the match object contains the valid index;
-                    // this is a workaround:
+                int native_start = m.g[0]; // utf-8
+                int native_length = m.g[1];
 
-                    success = true;
-                    g = [m.index, 0];
-                }
+                Debug.Assert( native_start >= 0 && native_length >= 0 );
 
-                int native_start = success ? g[0] : 0; // utf-8
-                int native_length = success ? g[1] : 0;
                 int native_end = native_start + native_length;
-
                 (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
-                if( group_index == 0 )
-                {
-                    Debug.Assert( match == null );
-                    Debug.Assert( success );
+                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match.AddDefaultGroup( );
+            }
 
-                    match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
-                }
+            for( int i = 4; i < m.g.Length; i += 2 )
+            {
+                int group_index = ( i - 2 ) / 2;
+                string name = group_index.ToString( CultureInfo.InvariantCulture );
 
-                Debug.Assert( match != null );
+                int native_start = m.g[i]; // utf-8
+                int native_length = m.g[i + 1];
 
-                // try to identify the named group by index and length;
-                // cannot be done univocally in situations like "(?P<name1>(?P<name2>(.))", because index and length are the same
-
-                string? name;
-
-                var np = m.named_groups!
-                    .Where( _ => group_index != 0 )
-                    .Select( ( ng, j ) => new { ng, j } )
-                    .Where( p => p.ng[0] >= 0 )
-                    .FirstOrDefault( z => z.ng[0] == native_start && z.ng[1] == native_length && !match.Groups.Any( q => q.Name == response.names![z.j] ) );
-
-                if( np == null )
-                {
-                    name = null;
-                }
-                else
-                {
-                    name = response.names![np.j];
-                }
-
-                if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
+                bool success = native_start >= 0 && native_length >= 0;
 
                 if( !success )
                 {
@@ -166,6 +133,31 @@ class Subengine( Options options ) : RegexSubengine
                 }
                 else
                 {
+                    int native_end = native_start + native_length;
+                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                }
+            }
+
+            for( int i = 0; i < m.ng.Length; i += 2 )
+            {
+                string name = response.names[i / 2];
+
+                int native_start = m.ng[i]; // utf-8
+                int native_length = m.ng[i + 1];
+
+                bool success = native_start >= 0 && native_length >= 0;
+
+                if( !success )
+                {
+                    match.AddFailedGroup( name );
+                }
+                else
+                {
+                    int native_end = native_start + native_length;
+                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
                     match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
                 }
             }

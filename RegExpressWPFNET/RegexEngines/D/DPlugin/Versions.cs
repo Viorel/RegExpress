@@ -2,5 +2,5 @@
 
 static class Versions
 {
-    public static string Dmd { get; } = "2.113";
+    public static string Dmd { get; } = "2.114";
 }
