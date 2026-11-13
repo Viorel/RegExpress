@@ -82,6 +82,8 @@ partial class SubengineFregex( Options options ) : RegexSubengine
             if( line.StartsWith( "d " ) ) continue; // (for debugging)
 
             {
+                // name
+
                 Match m = ParseNameRegex( ).Match( line );
                 if( m.Success )
                 {
@@ -98,6 +100,8 @@ partial class SubengineFregex( Options options ) : RegexSubengine
             }
 
             {
+                // match
+
                 Match m = ParseMatchRegex( ).Match( line );
                 if( m.Success )
                 {
@@ -119,13 +123,15 @@ partial class SubengineFregex( Options options ) : RegexSubengine
             }
 
             {
+                // group
+
                 Match m = ParseGroupRegex( ).Match( line );
                 if( m.Success )
                 {
                     int native_start = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..), UTF-8
                     int native_end = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture ); // (inclusive, 1..)
 
-                    bool success = native_start > 0 && native_end > 0;
+                    bool success = native_start > 0 && native_end >= 0;
 
                     SimpleMatch match = matches.Last( );
                     int group_index = match.Groups.Count( );
