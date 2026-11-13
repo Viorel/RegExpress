@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:ZigPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="520.789" d:DesignWidth="460.336" 
+             d:DesignHeight="730.447" d:DesignWidth="460.336" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -29,6 +29,7 @@
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition/>
+                <RowDefinition/>
             </Grid.RowDefinitions>
 
             <Label Grid.Column="0" Grid.Row="0" Content="Library:" Target="{Binding ElementName=cbxLibrary}" />
@@ -41,6 +42,13 @@
                 <ui:ComboBoxItemWithVersion Tag="Z_Regex"       Text="z-regex"          Version="{x:Static local:Versions.Z_Regex}" />
                 <ui:ComboBoxItemWithVersion Tag="ZRegex"        Text="zregex"           Version="{x:Static local:Versions.ZRegex}" />
                 <ui:ComboBoxItemWithVersion Tag="Regex_Zig"     Text="regex.zig"        Version="{x:Static local:Versions.Regex_Zig}" />
+                <ui:ComboBoxItemWithVersion Tag="Spectra"       Text="Spectra"          Version="{x:Static local:Versions.Spectra}" />
+            </ComboBox>
+
+            <Label x:Name="lblDialect" Grid.Column="0" Grid.Row="1" Content="Dialect:" Target="{Binding ElementName=cbxDialect}" />
+            <ComboBox x:Name="cbxDialect" Grid.Column="1" Grid.Row="1" SelectedValuePath="Tag" SelectedValue="{Binding Dialect, FallbackValue='rust'}" SelectionChanged="cbxDialect_SelectionChanged">
+                <ComboBoxItem Tag="rust"            Content="rust" />
+                <ComboBoxItem Tag="ecmascript"      Content="ecmascript" />
             </ComboBox>
 
         </Grid>
@@ -187,6 +195,19 @@
                 <TextBox x:Name="startOffset" Grid.Column="1" Grid.Row="5" Text="{Binding startOffset, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
                 <TextBlock Grid.Column="2" Grid.Row="5" Text="" />
             </Grid>
+
+        </StackPanel>
+
+        <StackPanel x:Name="pnlSpectra" Orientation="Vertical">
+
+            <ui:CheckboxWithNote Prop="unicode" Text="unicode" Note="Classes and `.` over code points, and Unicode classes and case folding; false: ASCII's"/>
+            <ui:CheckboxWithNote Prop="case_insensitive" Text="case_insensitive" Note=""/>
+            <ui:CheckboxWithNote Prop="multiline" Text="multi_line" Note="`^` and `$` at line ends too"/>
+            <ui:CheckboxWithNote Prop="dot_all" Text="dot_matches_new_line" Note="`.` takes `\n` too"/>
+            <ui:CheckboxWithNote Prop="ungreedy" Text="swap_greed" Note="Greedy repetitions lazy, and lazy ones greedy"/>
+            <ui:CheckboxWithNote Prop="extended" Text="ignore_whitespace" Note="Whitespace and `#` comments in the pattern are ignored"/>
+            <ui:CheckboxWithNote Prop="unicode_sets" Text="unicode_sets" Note="ECMAScript's `v`: class set expressions (`&quot;&quot;`, `--`, nested classes, `\q{...}`) and properties of strings"/>
+            <ui:CheckboxWithNote Prop="utf8" Text="utf8" Note="The haystack is UTF-8 and a match never splits a code point; false: any bytes, `.` takes one"/>
 
         </StackPanel>
 

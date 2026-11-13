@@ -98,7 +98,8 @@ The following engines are included:
   * [_zoptia0regex_](https://github.com/zoptia/zoptia0regex) 0.6.0,
   * [_z-regex_](https://github.com/carlos-sweb/z-regex) 0.9.1,
   * [_zregex_](https://github.com/jcollie/zregex) 2026.10.05,
-  * [_regex.zig_](https://github.com/muhammad-fiaz/regex.zig) 0.0.1.
+  * [_regex.zig_](https://github.com/muhammad-fiaz/regex.zig) 0.0.1,
+  * [_spectra_](https://github.com/pedronaugusto/spectra) 2026-11-12.
 * **Go** 1.27.2:
   * [_regexp_](https://pkg.go.dev/regexp) 1.27.2,
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.12.0,
