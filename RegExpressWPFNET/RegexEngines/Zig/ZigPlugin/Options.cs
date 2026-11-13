@@ -11,6 +11,7 @@ enum RegexLibraryEnum
     Z_Regex, // "z-regex"
     ZRegex,
     Regex_Zig, // "regex.zig"
+    Spectra,
 }
 
 enum CaseFoldEnum
@@ -36,6 +37,13 @@ enum SimdModeEnum
     off,
 }
 
+enum DialectEnum
+{
+    None,
+    rust,
+    ecmascript,
+}
+
 class Options
 {
     public RegexLibraryEnum Library { get; set; } = RegexLibraryEnum.ZigRegex;
@@ -44,7 +52,7 @@ class Options
     public bool multiline { get; set; }
     public bool dot_all { get; set; }
     public bool extended { get; set; }
-    public bool unicode { get; set; }
+    public bool unicode { get; set; } = true;
 
     public CaseFoldEnum case_fold { get; set; } = CaseFoldEnum.None;
     public string? max_repetition { get; set; }
@@ -71,6 +79,9 @@ class Options
     public string? maxRepetition { get; set; }
     public string? startOffset { get; set; }
 
+    public DialectEnum Dialect { get; set; } = DialectEnum.rust;
+    public bool unicode_sets { get; set; }
+    public bool utf8 { get; set; } = true;
 
     public Options Clone( )
     {

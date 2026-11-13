@@ -84,6 +84,10 @@ namespace ZigPlugin
                 bool is_z_regex = Options.Library == RegexLibraryEnum.Z_Regex;
                 bool is_zregex = Options.Library == RegexLibraryEnum.ZRegex;
                 bool is_regex_zig = Options.Library == RegexLibraryEnum.Regex_Zig;
+                bool is_spectra = Options.Library == RegexLibraryEnum.Spectra;
+
+                lblDialect.Display( is_spectra );
+                cbxDialect.Display( is_spectra );
 
                 pnlZigRegexOptions.Display( is_ZigRegex );
                 pnlMvzrOptions.Display( is_Mvzr );
@@ -93,6 +97,7 @@ namespace ZigPlugin
                 pnlZ_Regex.Display( is_z_regex );
                 pnlZRegex.Display( is_zregex );
                 pnlRegex_Zig.Display( is_regex_zig );
+                pnlSpectra.Display( is_spectra );
             }
             finally
             {
@@ -122,6 +127,11 @@ namespace ZigPlugin
         }
 
         private void opt_level_SelectionChanged( object sender, SelectionChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: true );
+        }
+
+        private void cbxDialect_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             Notify( preferImmediateReaction: true );
         }

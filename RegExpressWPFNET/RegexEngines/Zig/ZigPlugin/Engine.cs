@@ -58,6 +58,7 @@ class Engine : RegexEngine
         RegexLibraryEnum.Z_Regex => "z-regex",
         RegexLibraryEnum.ZRegex => "zregex",
         RegexLibraryEnum.Regex_Zig => "regex.zig",
+        RegexLibraryEnum.Spectra => "spectra",
         _ => "Unknown"
     }})";
 
@@ -125,7 +126,7 @@ class Engine : RegexEngine
         //variants.Add( new FeatureMatrixVariant( "z-regex (“u” flag)", engine ) );
 
         engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Z_Regex, unicode = false, v = true, possessive = true } };
-        variants.Add( new FeatureMatrixVariant( "z-regex (“v” flag)", engine ) );
+        variants.Add( new FeatureMatrixVariant( "z-regex (“v”)", engine ) );
 
         engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZRegex } };
         variants.Add( new FeatureMatrixVariant( "zregex", engine ) );
@@ -135,6 +136,25 @@ class Engine : RegexEngine
 
         engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Regex_Zig, ascii = false } };
         variants.Add( new FeatureMatrixVariant( "regex.zig", engine ) );
+
+
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Spectra, Dialect = DialectEnum.rust, unicode = false, unicode_sets = false, utf8 = false } }; // ('unicode_sets' cannot be true)
+        //variants.Add( new FeatureMatrixVariant( "spectra (rust)", engine ) );
+
+        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Spectra, Dialect = DialectEnum.rust, unicode = true, unicode_sets = false, utf8 = true } }; // ('unicode_sets' cannot be true)
+        variants.Add( new FeatureMatrixVariant( "spectra (rust, “u”)", engine ) );
+
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Spectra, Dialect = DialectEnum.ecmascript, unicode = false, unicode_sets = false, utf8 = true } }; // ('utf8' cannot be false)
+        //variants.Add( new FeatureMatrixVariant( "spectra (ecma)", engine ) );
+
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Spectra, Dialect = DialectEnum.ecmascript, unicode = true, unicode_sets = false, utf8 = true } }; // ('utf8' cannot be false)
+        //variants.Add( new FeatureMatrixVariant( "spectra (ecma u)", engine ) );
+
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Spectra, Dialect = DialectEnum.ecmascript, unicode = false, unicode_sets = true, utf8 = true } }; // ('utf8' cannot be false)
+        //variants.Add( new FeatureMatrixVariant( "spectra (ecma v)", engine ) );
+
+        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Spectra, Dialect = DialectEnum.ecmascript, unicode = true, unicode_sets = true, utf8 = true } }; // ('utf8' cannot be false)
+        variants.Add( new FeatureMatrixVariant( "spectra (ecma, “uv”)", engine ) );
 
         return variants;
     }
@@ -171,6 +191,7 @@ class Engine : RegexEngine
             RegexLibraryEnum.Z_Regex => new SubengineZ_Regex( Options ),
             RegexLibraryEnum.ZRegex => new SubengineZRegex( Options ),
             RegexLibraryEnum.Regex_Zig => new SubengineRegex_Zig( Options ),
+            RegexLibraryEnum.Spectra => new SubengineSpectra( Options ),
             _ => throw new InvalidOperationException( ),
         };
     }

@@ -120,22 +120,22 @@ class Engine : RegexEngine
         return
             [
                 new ("V8", njs_engine_no_uv),
-                //new ("V8, “u” flag", njs_engine_u),
-                new ("V8 (“v” flag)", njs_engine_v),
+                //new ("V8, “u”", njs_engine_u),
+                new ("V8 (“v”)", njs_engine_v),
 
                 //new ("Qjs", qjs_engine_no_u),
-                new ("Qjs (“u” flag)", qjs_engine_u),
+                new ("Qjs (“u”)", qjs_engine_u),
 
                 //new ("SM", LazyFeatureMatrix_SpiderMonkey.GetValue( false), sm_engine_no_u),
-                new ("SM (“u” flag)", sm_engine_u),
+                new ("SM (“u”)", sm_engine_u),
 
                 //new ("Bun", LazyFeatureMatrix_Bun.GetValue( false), bun_engine_no_u),
-                new ("Bun (“u” flag)", bun_engine_u),
+                new ("Bun (“u”)", bun_engine_u),
 
                 new ("RE2JS", re2js_engine),
 
-                //new ("Regex+ (“x” flag)", regexPlus_engineNoV), //...
-                new ("Regex+ (“vx” flags)", regexPlus_engine),
+                //new ("Regex+ (“x”)", regexPlus_engineNoV), //...
+                new ("Regex+ (“vx”)", regexPlus_engine),
             ];
     }
 
