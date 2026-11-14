@@ -212,9 +212,9 @@
                                                     <ColumnDefinition />
                                                     <ColumnDefinition />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="1 0 0 0"/>
+                                                <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="2 0 0 0"/>
                                                 <TextBlock Grid.Column="1" Text="{Binding Version, TargetNullValue='Unknown version', FallbackValue='Unknown version'}" VerticalAlignment="Center" HorizontalAlignment="Left" 
-                                                           Margin="6 0 1 0">
+                                                           Margin="6 0 2 0">
                                                 </TextBlock>
                                             </Grid>
                                         </DataTemplate>

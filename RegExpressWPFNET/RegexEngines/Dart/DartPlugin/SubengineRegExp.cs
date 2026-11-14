@@ -85,7 +85,7 @@ class SubengineRegExp( Options options ) : RegexSubengine
             options = new
             {
                 options.multiLine,
-                options.caseSensitive,
+                caseSensitive = !options.caseInsensitive,
                 options.unicode,
                 options.dotAll,
             }

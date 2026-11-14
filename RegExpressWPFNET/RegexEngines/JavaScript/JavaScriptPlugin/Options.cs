@@ -24,37 +24,14 @@ enum FunctionEnum
     Exec
 }
 
-class Options : INotifyPropertyChanged
+class Options 
 {
-    private bool m_i, m_s, m_m;
-
     public RuntimeEnum Runtime { get; set; } = RuntimeEnum.WebView2;
     public FunctionEnum Function { get; set; } = FunctionEnum.MatchAll;
 
-    public bool i
-    {
-        get => m_i;
-        set
-        {
-            if( m_i != value ) { m_i = value; NotifyPropertyChanged( ); }
-        }
-    }
-    public bool m
-    {
-        get => m_m;
-        set
-        {
-            if( m_m != value ) { m_m = value; NotifyPropertyChanged( ); }
-        }
-    }
-    public bool s
-    {
-        get => m_s;
-        set
-        {
-            if( m_s != value ) { m_s = value; NotifyPropertyChanged( ); }
-        }
-    }
+    public bool i { get; set; }
+    public bool m { get; set; }
+    public bool s { get; set; }
     public bool u { get; set; }
     public bool y { get; set; }
     public bool g { get; set; } = true;
@@ -87,15 +64,4 @@ class Options : INotifyPropertyChanged
     {
         return (Options)MemberwiseClone( );
     }
-
-    void NotifyPropertyChanged( [CallerMemberName] string? propertyName = null )
-    {
-        PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
-    }
-
-    #region INotifyPropertyChanged
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    #endregion
 }

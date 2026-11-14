@@ -48,7 +48,7 @@ class SubengineIRegexp( Options options ) : RegexSubengine
             text,
             options = new
             {
-                matchesSubstring = options.matchesSubstring,
+                matchesSubstring = !options.matchWholeString,
             }
         };
         string json = JsonSerializer.Serialize( data );
@@ -81,7 +81,7 @@ class SubengineIRegexp( Options options ) : RegexSubengine
             return RegexMatches.Empty;
         }
 
-        if( !options.matchesSubstring)
+        if( options.matchWholeString)
         {
             List<IMatch> matches = [];
 

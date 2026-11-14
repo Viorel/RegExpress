@@ -100,7 +100,7 @@ class Engine : RegexEngine
                 new FeatureMatrixVariant( "RegExp", new Engine { Options = new Options { package = PackageEnum.RegExp, unicode = false }} ),
                 new FeatureMatrixVariant( "RegExp (unicode)", new Engine { Options = new Options { package = PackageEnum.RegExp, unicode = true }} ),
                 new FeatureMatrixVariant( "OnigRegex", new Engine { Options = new Options { package = PackageEnum.OnigurumaDart, OnigurumaSyntax = OnigurumaSyntaxEnum.onigSyntaxOniguruma }} ),
-                new FeatureMatrixVariant( "IRegexp", new Engine { Options = new Options { package = PackageEnum.IRegexp, matchesSubstring = false }} ),
+                new FeatureMatrixVariant( "IRegexp", new Engine { Options = new Options { package = PackageEnum.IRegexp, matchWholeString = true }} ),
             ];
         return matrices;
 #else

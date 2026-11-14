@@ -61,16 +61,16 @@
 
         <StackPanel x:Name="pnlRegExp" Orientation="Vertical">
             <ui:CheckboxWithNote Prop="multiLine" Note="^ and $ will match the beginning and end of a line, as well as matching beginning and end of the input"/>
-            <ui:CheckboxWithNote Prop="caseSensitive" Note="do not ignore the case of letters when matching"/>
+            <ui:CheckboxWithNote Prop="caseInsensitive" Text="caseSensitive" IsInverted="True" Note="do not ignore the case of letters when matching"/>
             <ui:CheckboxWithNote Prop="unicode" Note="treat the pattern as a Unicode pattern per the ECMAScript standard"/>
             <ui:CheckboxWithNote Prop="dotAll" Note="the . pattern will match all characters, including line terminators"/>
         </StackPanel>
 
         <StackPanel x:Name="pnlOnigurumaDart" Orientation="Vertical">
-            <ui:CheckboxWithNote Prop="ignoreCase" Note=""/>
+            <ui:CheckboxWithNote Prop="caseInsensitive" Text="ignoreCase" Note=""/>
             <ui:CheckboxWithNote Prop="extend" Note=""/>
             <ui:CheckboxWithNote Prop="multiLine" Note=""/>
-            <ui:CheckboxWithNote Prop="singleLine" Note=""/>
+            <ui:CheckboxWithNote Prop="dotAll" Text="singleLine" Note=""/>
             <ui:CheckboxWithNote Prop="findLongest" Note=""/>
             <ui:CheckboxWithNote Prop="findNotEmpty" Note=""/>
             <ui:CheckboxWithNote Prop="negateSingleLine" Note=""/>
@@ -95,7 +95,7 @@
         </StackPanel>
 
         <StackPanel x:Name="pnlIRegexp" Orientation="Vertical">
-            <ui:CheckboxWithNote Prop="matchesSubstring" Text="Matches a substring" Note=""/>
+            <ui:CheckboxWithNote Prop="matchWholeString" Text="matchesSubstring" IsInverted="True" Note="Matches a substring"/>
         </StackPanel>
 
     </StackPanel>

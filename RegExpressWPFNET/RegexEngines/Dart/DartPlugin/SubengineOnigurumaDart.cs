@@ -70,10 +70,10 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             text,
             options = new
             {
-                options.ignoreCase,
+                ignoreCase = options.caseInsensitive,
                 options.extend,
                 options.multiLine,
-                options.singleLine,
+                singleLine = options.dotAll,
                 options.findLongest,
                 options.findNotEmpty,
                 options.negateSingleLine,

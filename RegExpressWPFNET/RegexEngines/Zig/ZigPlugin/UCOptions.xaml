@@ -42,7 +42,7 @@
                 <ui:ComboBoxItemWithVersion Tag="Z_Regex"       Text="z-regex"          Version="{x:Static local:Versions.Z_Regex}" />
                 <ui:ComboBoxItemWithVersion Tag="ZRegex"        Text="zregex"           Version="{x:Static local:Versions.ZRegex}" />
                 <ui:ComboBoxItemWithVersion Tag="Regex_Zig"     Text="regex.zig"        Version="{x:Static local:Versions.Regex_Zig}" />
-                <ui:ComboBoxItemWithVersion Tag="Spectra"       Text="Spectra"          Version="{x:Static local:Versions.Spectra}" />
+                <ui:ComboBoxItemWithVersion Tag="Spectra"       Text="spectra"          Version="{x:Static local:Versions.Spectra}" />
             </ComboBox>
 
             <Label x:Name="lblDialect" Grid.Column="0" Grid.Row="1" Content="Dialect:" Target="{Binding ElementName=cbxDialect}" />
