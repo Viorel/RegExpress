@@ -105,7 +105,8 @@ The following engines are included:
   * [_regexp2_](https://pkg.go.dev/github.com/dlclark/regexp2/v2) 2.13.0,
   * [_rexa_](https://pkg.go.dev/github.com/himclix/rexa) 0.1.0,
   * [_coregex_](https://pkg.go.dev/github.com/coregx/coregex) 0.12.30,
-  * [_onigmo go-regexp_](https://pkg.go.dev/github.com/go-regexp/engine) 0.4.2.
+  * [_onigmo go-regexp_](https://pkg.go.dev/github.com/go-regexp/engine) 0.4.2,
+  * [_tre_](https://pkg.go.dev/github.com/go-embedded-r/tre) 0.1.3,
 * **Dart** 3.13.7:
   * [_RegExp_](https://api.dart.dev/dart-core/RegExp-class.html),
   * [_oniguruma\_dart_](https://pub.dev/packages/oniguruma_dart) 1.0.1,

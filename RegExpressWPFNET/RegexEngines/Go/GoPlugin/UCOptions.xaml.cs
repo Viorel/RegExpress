@@ -70,11 +70,13 @@ namespace GoPlugin
                 bool is_rexa = Options.Package == PackageEnum.rexa;
                 bool is_coregex = Options.Package == PackageEnum.coregex;
                 bool is_onigmo = Options.Package == PackageEnum.onigmo;
+                bool is_tre = Options.Package == PackageEnum.tre;
 
                 pnlRegexp2Flags.Display( is_regexp2 );
                 pnlRexaFlags.Display( is_rexa );
                 pnlCoregex.Display( is_coregex );
                 pnlOnigmo.Display( is_onigmo );
+                pnlTre.Display( is_tre );
 
                 cbxPosix.Display( is_regexp );
                 cbxLongest.Display( is_regexp || is_rexa || is_coregex );

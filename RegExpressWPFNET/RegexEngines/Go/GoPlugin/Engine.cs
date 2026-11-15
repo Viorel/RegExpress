@@ -97,6 +97,11 @@ class Engine : RegexEngine
                 new FeatureMatrixVariant( "coregex", new Engine { Options = new Options { Package = PackageEnum.coregex, posix = false }} ),
                 //new FeatureMatrixVariant( "coregex (posix)", new Engine { Options = new Options { Package = PackageEnum.coregex, posix = true }} ),
                 new FeatureMatrixVariant( "onigmo", new Engine { Options = new Options { Package = PackageEnum.onigmo }} ),
+
+                //new FeatureMatrixVariant( "tre", new Engine { Options = new Options { Package = PackageEnum.tre, TreExtended = false, Ungreedy = false }} ),
+                //new FeatureMatrixVariant( "tre u", new Engine { Options = new Options { Package = PackageEnum.tre, TreExtended = false, Ungreedy = true }} ),
+                new FeatureMatrixVariant( "tre (extended)", new Engine { Options = new Options { Package = PackageEnum.tre, TreExtended = true, Ungreedy = false }} ),
+                //new FeatureMatrixVariant( "tre (extended u)", new Engine { Options = new Options { Package = PackageEnum.tre, TreExtended = true, Ungreedy = true }} ),
             ];
     }
 
@@ -131,6 +136,7 @@ class Engine : RegexEngine
             PackageEnum.rexa => new SubengineRexa( Options ),
             PackageEnum.coregex => new SubengineCoregex( Options ),
             PackageEnum.onigmo => new SubengineOnigmoGoRegexp( Options ),
+            PackageEnum.tre => new SubengineTre( Options ),
             _ => throw new NotImplementedException( )
         };
     }

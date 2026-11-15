@@ -8,6 +8,7 @@ enum PackageEnum
     rexa,
     coregex,
     onigmo,
+    tre,
 }
 
 class Options
@@ -47,6 +48,15 @@ class Options
 
     public string? TimeoutNs { get; set; }
     public string? StackLimit { get; set; }
+
+    public bool TreExtended { get; set; } = true;
+    public bool Newline { get; set; }
+    public bool NoSub { get; set; }
+    public bool RightAssoc { get; set; }
+    public bool NotBOL { get; set; }
+    public bool NotEOL { get; set; }
+    public bool BacktrackingMatcher { get; set; }
+
 
     public bool FindAll { get; set; } = true;
 
