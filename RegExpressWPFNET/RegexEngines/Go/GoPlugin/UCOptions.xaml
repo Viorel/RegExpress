@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:GoPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="652.547" d:DesignWidth="705.436" 
+             d:DesignHeight="776.689" d:DesignWidth="705.436" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -39,6 +39,7 @@
                 <ui:ComboBoxItemWithVersion Tag ="rexa"     Text="rexa"     Version="{x:Static local:Versions.Rexa}"/>
                 <ui:ComboBoxItemWithVersion Tag ="coregex"  Text="coregex"  Version="{x:Static local:Versions.Coregex}"/>
                 <ui:ComboBoxItemWithVersion Tag ="onigmo"   Text="onigmo"   Version="{x:Static local:Versions.OnigmoGoRegexp}"/>
+                <ui:ComboBoxItemWithVersion Tag ="tre"      Text="tre"      Version="{x:Static local:Versions.Tre}"/>
             </ComboBox>
         </Grid>
 
@@ -156,6 +157,23 @@
                 <TextBlock Grid.Column="2" Grid.Row="1" Text=""/>
 
             </Grid>
+        </StackPanel>
+
+        <!-- tre -->
+        <StackPanel x:Name="pnlTre" Orientation="Vertical">
+            <ui:CheckboxWithNote Prop="TreExtended" Text="Extended" Note=""/>
+            <ui:CheckboxWithNote Prop="IgnoreCase" Text="ICase" Note=""/>
+            <ui:CheckboxWithNote Prop="Newline" Text="Newline" Note=""/>
+            <ui:CheckboxWithNote Prop="NoSub" Text="NoSub" Note=""/>
+            <ui:CheckboxWithNote Prop="literal" Text="Literal" Note=""/>
+            <ui:CheckboxWithNote Prop="RightAssoc" Text="RightAssoc" Note=""/>
+            <ui:CheckboxWithNote Prop="Ungreedy" Text="Ungreedy" Note=""/>
+            <Separator Visibility="Hidden"/>
+            <ui:CheckboxWithNote Prop="NotBOL" Text="NotBOL" Note=""/>
+            <ui:CheckboxWithNote Prop="NotEOL" Text="NotEOL" Note=""/>
+            <ui:CheckboxWithNote Prop="BacktrackingMatcher" Text="BacktrackingMatcher" Note=""/>
+            <Separator Visibility="Hidden"/>
+            <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
         </StackPanel>
 
         <ui:CheckboxWithNote x:Name="cbxPosix" Prop="posix" Text="posix" Note="restrict pattern to POSIX egrep syntax"/>
