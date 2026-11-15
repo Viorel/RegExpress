@@ -386,6 +386,7 @@ class Subengine( Options options, Engine parentEngine ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = details.ONIG_SYN_OP2_QMARK_TILDE_ABSENT_GROUP,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = syntax == SyntaxEnum.ONIG_SYNTAX_ONIGURUMA || syntax == SyntaxEnum.ONIG_SYNTAX_EMACS || syntax == SyntaxEnum.ONIG_SYNTAX_JAVA || syntax == SyntaxEnum.ONIG_SYNTAX_PERL || syntax == SyntaxEnum.ONIG_SYNTAX_PERL_NG || syntax == SyntaxEnum.ONIG_SYNTAX_RUBY || syntax == SyntaxEnum.ONIG_SYNTAX_PYTHON,
 
             Backref_Num = details.ONIG_SYN_OP_DECIMAL_BACKREF ? FeatureMatrix.BackrefEnum.Any : FeatureMatrix.BackrefEnum.None,
             Backref_kApos = details.ONIG_SYN_OP2_ESC_K_NAMED_BACKREF,

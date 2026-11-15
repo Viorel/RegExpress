@@ -387,6 +387,7 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = grp0,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = true,
 
             Backref_Num = FeatureMatrix.BackrefEnum.Any,
             Backref_kApos = is_oniguruma || is_ruby || is_perl_ng,

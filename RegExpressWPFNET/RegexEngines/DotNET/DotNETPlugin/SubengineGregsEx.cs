@@ -356,6 +356,7 @@ internal partial class SubengineGregsEx( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = true,
 
             Backref_Num = FeatureMatrix.BackrefEnum.Any,
             Backref_kApos = false,
@@ -582,6 +583,7 @@ internal partial class SubengineGregsEx( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = false,
 
             Backref_Num = FeatureMatrix.BackrefEnum.None,
             Backref_kApos = false,
@@ -806,6 +808,7 @@ internal partial class SubengineGregsEx( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = false,
 
             Backref_Num = FeatureMatrix.BackrefEnum.Any,
             Backref_kApos = false,

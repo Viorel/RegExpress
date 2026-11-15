@@ -354,6 +354,7 @@ partial class SubengineJavaRegex( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = true,
+            CapturingLookaroundGroups = true,
 
             Backref_Num = FeatureMatrix.BackrefEnum.Any,
             Backref_kApos = false,

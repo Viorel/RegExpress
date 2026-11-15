@@ -429,6 +429,7 @@ partial class SubengineRustyExpressions( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = grp0,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = false,
 
             Backref_Num = FeatureMatrix.BackrefEnum.Any,
             Backref_kApos = is_oniguruma || is_ruby || is_perl_ng,

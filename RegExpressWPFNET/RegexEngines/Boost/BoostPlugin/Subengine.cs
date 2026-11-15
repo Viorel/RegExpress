@@ -379,6 +379,7 @@ partial class Subengine( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = is_perl || is_emacs,
 
             Backref_Num = is_perl || is_POSIX_basic ? FeatureMatrix.BackrefEnum.OneDigit : FeatureMatrix.BackrefEnum.None,
             Backref_kApos = is_perl,

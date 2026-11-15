@@ -321,6 +321,7 @@ partial class SubengineGCC( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = false,
 
             Backref_Num = grammar == GrammarEnum.basic || grammar == GrammarEnum.grep ? FeatureMatrix.BackrefEnum.OneDigit :
                           grammar == GrammarEnum.ECMAScript ? FeatureMatrix.BackrefEnum.Any : FeatureMatrix.BackrefEnum.None,

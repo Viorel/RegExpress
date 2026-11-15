@@ -314,6 +314,7 @@ class SubengineRegex( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = true,
+            CapturingLookaroundGroups = false,
 
             Backref_Num = FeatureMatrix.BackrefEnum.None,
             Backref_kApos = false,

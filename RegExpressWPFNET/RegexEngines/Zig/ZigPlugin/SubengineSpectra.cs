@@ -346,6 +346,7 @@ partial class SubengineSpectra( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = true,
+            CapturingLookaroundGroups = is_ecma,
 
             Backref_Num = FeatureMatrix.BackrefEnum.None,
             Backref_kApos = false,

@@ -216,6 +216,7 @@
         public bool NonatomicPositiveLookbehind { get; init; }              // (?<*...)
         public bool AbsentOperator { get; init; }                           // (?~...)
         public bool AllowSpacesInGroups { get; init; }                      // allow spaces like '( ? < name >...)' when whitespaces are enabled by options
+        public bool CapturingLookaroundGroups { get; init; }                // Return the value of groups, such as "(?<=(.+))", "(?<=(.{1,10}))", "(?<=(.{3}))" (some engines return just the last character)
 
         public BackrefEnum Backref_Num { get; init; }                       // ex.: \1, \20, \100
         public bool Backref_kApos { get; init; }                            // \k'name'

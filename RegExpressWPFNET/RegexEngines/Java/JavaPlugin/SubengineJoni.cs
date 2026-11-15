@@ -366,6 +366,7 @@ class SubengineJoni( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = true,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = true,
 
             Backref_Num = FeatureMatrix.BackrefEnum.Any,
             Backref_kApos = true,

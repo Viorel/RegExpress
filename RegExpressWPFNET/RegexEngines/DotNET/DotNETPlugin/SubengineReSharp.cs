@@ -262,6 +262,7 @@ class SubengineReSharp( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = false,
 
             Backref_Num = FeatureMatrix.BackrefEnum.None,
             Backref_kApos = false,

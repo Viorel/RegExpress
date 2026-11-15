@@ -366,6 +366,7 @@ internal partial class SubengineFancyRegex( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = true,
             AllowSpacesInGroups = true,
+            CapturingLookaroundGroups = true,
 
             Backref_Num = FeatureMatrix.BackrefEnum.Any,
             Backref_kApos = true,

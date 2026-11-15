@@ -533,9 +533,9 @@ namespace RegExpressWPFNET
                 bool no_group_success_flag = engine_capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupSuccessFlag );
                 bool no_group_index = engine_capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupIndex );
 
-                int min_text_index = ordered_groups.Select( g => g.Success && !no_group_success_flag ? g.CharIndex : match.CharIndex ).Append( match.CharIndex ).Min( );
-                int max_text_index = ordered_groups.Select( g => g.Success && !no_group_success_flag ? g.CharIndex + g.CharLength : match.CharIndex + match.CharLength ).Append( match.CharIndex + match.CharLength ).Max( );
-                if( show_captures && !no_group_success_flag )
+                int min_text_index = ordered_groups.Select( g => g.Success && !no_group_index ? g.CharIndex : match.CharIndex ).Append( match.CharIndex ).Min( );
+                int max_text_index = ordered_groups.Select( g => g.Success && !no_group_index ? g.CharIndex + g.CharLength : match.CharIndex + match.CharLength ).Append( match.CharIndex + match.CharLength ).Max( );
+                if( show_captures && !no_group_index )
                 {
                     min_text_index = ordered_groups.SelectMany( g => g.Captures ).Select( c => c.CharIndex ).Append( min_text_index ).Min( );
                     max_text_index = ordered_groups.SelectMany( g => g.Captures ).Select( c => c.CharIndex + c.CharLength ).Append( max_text_index ).Max( );

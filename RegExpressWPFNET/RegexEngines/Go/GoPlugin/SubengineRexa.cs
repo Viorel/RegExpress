@@ -356,6 +356,7 @@ partial class SubengineRexa( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = false,
 
             Backref_Num = FeatureMatrix.BackrefEnum.OneDigit,
             Backref_kApos = false,

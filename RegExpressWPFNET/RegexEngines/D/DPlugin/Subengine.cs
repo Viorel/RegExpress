@@ -337,6 +337,7 @@ class Subengine( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = true,
+            CapturingLookaroundGroups = true,
 
             Backref_Num = FeatureMatrix.BackrefEnum.Any, // TODO: it seems that a reference like '\12' works even when there is a single group
             Backref_kApos = false,

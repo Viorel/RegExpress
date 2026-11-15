@@ -512,7 +512,7 @@ internal partial class ExcelBuilder
     // If the cell already exists, returns it. 
     Cell InsertCellInWorksheet( string columnName, uint rowIndex )
     {
-        Worksheet worksheet = WorksheetPart!.Worksheet;
+        Worksheet worksheet = WorksheetPart!.Worksheet!;
         SheetData sheetData = worksheet.GetFirstChild<SheetData>( )!;
         string cellReference = columnName + rowIndex;
 
@@ -558,7 +558,7 @@ internal partial class ExcelBuilder
 
     void SetColumnWidth( uint columnIndexMin, uint columnIndexMax, double width )
     {
-        Worksheet worksheet = WorksheetPart!.Worksheet;
+        Worksheet worksheet = WorksheetPart!.Worksheet!;
         SheetData sheetData = worksheet.GetFirstChild<SheetData>( )!;
 
         Columns? columns = worksheet.GetFirstChild<Columns>( );
@@ -593,7 +593,7 @@ internal partial class ExcelBuilder
 
     void MergeExistingCells( string cell1Name, string cell2Name )
     {
-        Worksheet worksheet = WorksheetPart!.Worksheet;
+        Worksheet worksheet = WorksheetPart!.Worksheet!;
 
         MergeCells? mergeCells = worksheet.Elements<MergeCells>( ).FirstOrDefault( );
 
@@ -627,7 +627,7 @@ internal partial class ExcelBuilder
 
     Row GetRow( uint rowIndex )
     {
-        Worksheet worksheet = WorksheetPart!.Worksheet;
+        Worksheet worksheet = WorksheetPart!.Worksheet!;
         SheetData? sheetData = worksheet.GetFirstChild<SheetData>( );
 
         Row? row = sheetData!.Elements<Row>( ).Where( r => r.RowIndex is not null && r.RowIndex == rowIndex ).FirstOrDefault( );

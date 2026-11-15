@@ -348,6 +348,7 @@ partial class Subengine( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = false,
 
             Backref_Num = FeatureMatrix.BackrefEnum.Any, // ("Although the depth of parenthesis is not limited in the regexp, only the first 9 substrings can be retrieved")
             Backref_kApos = false,

@@ -1,4 +1,5 @@
 ﻿using RegExpressLibrary;
+using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
 
 namespace ExportFeatureMatrix.Fluency;
@@ -361,8 +362,11 @@ static class TreeData
                 .Flag( @"\K", @"Keep the stuff left of the \K", ( e, fm ) => fm.Anchor_K )
                     .Test( @"a\Kb", "ab", "aKb", "b" )
 
-            .Category( @"Named groups, subroutines and backreferences" )
+            .Category( @"Groups, subroutines and backreferences" )
 
+                .Flag( @"(?:…)", @"Non-capturing group", ( e, fm ) => fm.NoncapturingGroup )
+                    .Test( @"a(?:x)y", "axy", null, "axy" )
+                    .Test( @"a\(?:x\)y", "axy", null, "axy" )
                 .Flag( @"(?'name'…)", @"Named group", ( e, fm ) => fm.NamedGroup_Apos )
                     .Test( @"a(?'n'x)b", "axb", null, "axb" )
                     .Test( @"a\(?'n'x\)b", "axb", null, "axb" )
@@ -377,17 +381,17 @@ static class TreeData
                     {
                         try
                         {
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(?<left>left).*(?<right-left>right)", "leftXYZright" );
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, @"(?<left>left).*(?<right-left>right)", "leftXYZright" );
                             if( matches.Count != 1 ) return false;
 
-                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First( );
+                            IMatch match = matches.Matches.First( );
                             if( !match.Success ) return false;
 
-                            RegExpressLibrary.Matches.IGroup? g1 = match.Groups.Skip( 1 ).FirstOrDefault( );
+                            IGroup? g1 = match.Groups.Skip( 1 ).FirstOrDefault( );
                             if( g1 == null ) return false;
                             if( g1.Success ) return false;
 
-                            RegExpressLibrary.Matches.IGroup? g2 = match.Groups.Skip( 2 ).FirstOrDefault( );
+                            IGroup? g2 = match.Groups.Skip( 2 ).FirstOrDefault( );
                             if( g2 == null ) return false;
                             if( !g2.Success ) return false;
 
@@ -444,35 +448,32 @@ static class TreeData
                     .Test( @"(?P<n>.)(?P=n)", "aa", "ab", "aa" )
             //.Flag( @"\k< … >, \g< … >", @"Allow spaces like '\k < name >'", (e, fm) => fm.AllowSpacesInBackref ) // TODO
 
-            .Category( @"Grouping and Lookaround" )
+            .Category( @"Lookaround" )
 
-                .Flag( @"(?:…)", @"Non-capturing group", ( e, fm ) => fm.NoncapturingGroup )
-                    .Test( @"a(?:x)y", "axy", null, "axy" )
-                    .Test( @"a\(?:x\)y", "axy", null, "axy" )
                 .Flag( @"(?=…)", @"Positive lookahead ", ( e, fm ) => fm.PositiveLookahead )
                     .Test( @"a(?=xz).z", "axz", "atz", "axz" )
                     .Test( @"a\(?=xz\).z", "axz", "atz", "axz" )
                 .Flag( @"(?!…)", @"Negative lookahead ", ( e, fm ) => fm.NegativeLookahead )
                     .Test( @"a(?!x).y", "azy", @"axy", "azy" )
                     .Test( @"a\(?!x\).y", "azy", @"axy", "azy" )
-                .Flag( @"(?<=…)", @"Positive lookbehind, fixed-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                .Flag( @"(?<=.{n})", @"Positive lookbehind, fixed-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @"x.(?<=xy)a", "xya", "xta", "xya" )
                     .Test( @"x.\(?<=xy\)a", "xya", "xta", "xya" )
-                .Flag( @"(?<=…)", @"Positive lookbehind, bounded-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                .Flag( @"(?<=.{n,m})", @"Positive lookbehind, bounded-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @"x..(?<=x{2,3}y)a", "xxya", "xtta", "xxya" )
                     .Test( @"x..\(?<=x{2,3}y\)a", "xxya", "xtta", "xxya" )
                     .Test( @"x..\(?<=xx?x?y\)a", "xxya", "xtta", "xxya" )
-                .Flag( @"(?<=…)", @"Positive lookbehind, variable-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                .Flag( @"(?<=.+)", @"Positive lookbehind, variable-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @"x.(?<=x+y)a", "xxxxya", "xta", "xya" )
                     .Test( @"x.\(?<=x+y\)a", "xxxxya", "xta", "xya" )
-                .Flag( @"(?<!…)", @"Negative lookbehind, fixed-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                .Flag( @"(?<!.{n})", @"Negative lookbehind, fixed-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @".(?<!xy)a", "ya", "xya", "ya" )
                     .Test( @".\(?<!xy\)a", "ya", "xya", "ya" )
-                .Flag( @"(?<!…)", @"Negative lookbehind, bounded-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                .Flag( @"(?<!.{n,m})", @"Negative lookbehind, bounded-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @".(?<!x{2,7})a", "xa", "xxa", "xa" )
                     .Test( @"\(?<!x{2,7}\)a", "xa", "xxa", "xa" )
                     .Test( @"\(?<!xxx?x?\)a", "xa", "xxa", "xa" )
-                .Flag( @"(?<!…)", @"Negative lookbehind, variable-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                .Flag( @"(?<!.+)", @"Negative lookbehind, variable-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
                     .Test( @".(?<!x.*)a", "ya", "xa", "ya" )
                     .Test( @"\(?<!x.*\)a", "ya", "xa", "ya" )
                 .Flag( @"(?=…(?=…))", @"Nested lookarounds", ( e, fm ) => ( fm.PositiveLookahead || fm.NegativeLookahead || fm.PositiveLookbehind != FeatureMatrix.LookModeEnum.None || fm.NegativeLookbehind != FeatureMatrix.LookModeEnum.None ) && fm.NestedLookaround )
@@ -492,7 +493,106 @@ static class TreeData
                     .Test( @"(?<*x)a", "xa", "ta", "a" )
                 .Flag( @"(?~…)", @"Absent operator", ( e, fm ) => fm.AbsentOperator )
                     .Test( @"/\*(?~\*\/)\*\/", "/* abc */", null, "/* abc */" )
-            //.Flag( @"( ? … )", @"Allow spaces like '( ? < name >…)'", (e, fm) => fm.AllowSpacesInGroups ) // TODO
+                //.Flag( @"( ? … )", @"Allow spaces like '( ? < name >…)'", (e, fm) => fm.AllowSpacesInGroups ) // TODO
+
+                .Flag( @"(?<=(.+))", "Capture lookaround groups (fixed-, bounded- or variable-length)", ( e, fm ) => fm.CapturingLookaroundGroups )
+                    .Test( ( e, fm ) =>
+                    {
+                        try
+                        {
+                            string pattern =
+                                fm.Parentheses switch
+                                {
+                                    FeatureMatrix.PunctuationEnum.Normal => @"(?<=(.+))c",
+                                    FeatureMatrix.PunctuationEnum.Backslashed => @"\(?<=\(.+\)\)c",
+                                    _ => throw new NotSupportedException( )
+                                };
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, pattern, "abc" );
+                            if( matches.Count > 0 )
+                            {
+                                IGroup? g = matches.Matches.First( ).Groups.ElementAtOrDefault( 1 );
+                                if( g != null && g.Success )
+                                {
+                                    if( g.Value == "ab" ) return true;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                        }
+
+                        try
+                        {
+                            string pattern =
+                                fm.Parentheses switch
+                                {
+                                    FeatureMatrix.PunctuationEnum.Normal =>
+                                        fm.Quantifier_Braces switch
+                                        {
+                                            FeatureMatrix.PunctuationEnum.Normal => @"(?<=(.{1,2}))c",
+                                            FeatureMatrix.PunctuationEnum.Backslashed => @"(?<=(.\{1,2\}))c",
+                                            _ => throw new NotSupportedException( )
+                                        },
+                                    FeatureMatrix.PunctuationEnum.Backslashed =>
+                                        fm.Quantifier_Braces switch
+                                        {
+                                            FeatureMatrix.PunctuationEnum.Normal => @"\(?<=\(.{1,2}\)\)c",
+                                            FeatureMatrix.PunctuationEnum.Backslashed => @"\(?<=\(.\{1,2\}\)\)c",
+                                            _ => throw new NotSupportedException( )
+                                        },
+                                    _ => throw new NotSupportedException( )
+                                };
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, pattern, "abc" );
+                            if( matches.Count > 0 )
+                            {
+                                IGroup? g = matches.Matches.First( ).Groups.ElementAtOrDefault( 1 );
+                                if( g != null && g.Success )
+                                {
+                                    if( g.Value == "ab" ) return true;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                        }
+
+                        try
+                        {
+                            string pattern =
+                                fm.Parentheses switch
+                                {
+                                    FeatureMatrix.PunctuationEnum.Normal =>
+                                        fm.Quantifier_Braces switch
+                                        {
+                                            FeatureMatrix.PunctuationEnum.Normal => @"(?<=(.{2}))c",
+                                            FeatureMatrix.PunctuationEnum.Backslashed => @"(?<=(.\{2\}))c",
+                                            _ => throw new NotSupportedException( )
+                                        },
+                                    FeatureMatrix.PunctuationEnum.Backslashed =>
+                                        fm.Quantifier_Braces switch
+                                        {
+                                            FeatureMatrix.PunctuationEnum.Normal => @"\(?<=\(.{2}\)\)c",
+                                            FeatureMatrix.PunctuationEnum.Backslashed => @"\(?<=\(.\{2\}\)\)c",
+                                            _ => throw new NotSupportedException( )
+                                        },
+                                    _ => throw new NotSupportedException( )
+                                };
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, pattern, "abc" );
+                            if( matches.Count > 0 )
+                            {
+                                IGroup? g = matches.Matches.First( ).Groups.ElementAtOrDefault( 1 );
+                                if( g != null && g.Success )
+                                {
+                                    if( g.Value == "ab" ) return true;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                        }
+
+                        return false;
+                    } )
 
             .Category( @"Recursive patterns" )
 
@@ -547,7 +647,7 @@ static class TreeData
 
                         try
                         {
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"a", "aaba" );
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, @"a", "aaba" );
                             if( matches.Count == 2 ) return true;
                         }
                         catch
@@ -561,7 +661,7 @@ static class TreeData
 
                         try
                         {
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"\Ga", "aaba" );
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, @"\Ga", "aaba" );
                             if( matches.Count == 2 ) return true;
                         }
                         catch
@@ -571,7 +671,7 @@ static class TreeData
 
                         try
                         {
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(?y)a", "aaba" );
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, @"(?y)a", "aaba" );
                             if( matches.Count == 2 ) return true;
                         }
                         catch
@@ -582,23 +682,23 @@ static class TreeData
                         return false;
                     } )
 
-                .Flag( @"Captures", @"Get all captures matched by group", ( e, fm ) => !e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups ) && e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.HasCaptures ) )
+                .Flag( @"Captures", @"Get all captures matched by group", ( e, fm ) => !e.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups ) && e.Capabilities.HasFlag( RegexEngineCapabilityEnum.HasCaptures ) )
                     .Test( ( e, fm ) =>
                     {
                         e.SetCollectCaptures( true );
 
                         try
                         {
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(.)+", "ab" );
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, @"(.)+", "ab" );
                             if( matches.Count != 1 ) return false;
 
-                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First( );
+                            IMatch match = matches.Matches.First( );
                             if( !match.Success ) return false;
 
                             var groups = match.Groups.ToArray( );
                             if( groups.Length != 2 ) return false; // including default group
 
-                            RegExpressLibrary.Matches.IGroup group = groups[1];
+                            IGroup group = groups[1];
                             if( !group.Success ) return false;
 
                             var captures = group.Captures.ToArray( );
@@ -624,16 +724,16 @@ static class TreeData
 
                         try
                         {
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"\(.\)+", "ab" );
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, @"\(.\)+", "ab" );
                             if( matches.Count != 1 ) return false;
 
-                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First( );
+                            IMatch match = matches.Matches.First( );
                             if( !match.Success ) return false;
 
                             var groups = match.Groups.ToArray( );
                             if( groups.Length != 2 ) return false; // including default group
 
-                            RegExpressLibrary.Matches.IGroup group = groups[1];
+                            IGroup group = groups[1];
                             if( !group.Success ) return false;
 
                             var captures = group.Captures.ToArray( );
@@ -661,16 +761,16 @@ static class TreeData
                         {
                             // Oniguruma's way 
 
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(?@.)+", "ab" );
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, @"(?@.)+", "ab" );
                             if( matches.Count != 1 ) return false;
 
-                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First( );
+                            IMatch match = matches.Matches.First( );
                             if( !match.Success ) return false;
 
                             var groups = match.Groups.ToArray( );
                             if( groups.Length != 2 ) return false; // including default group
 
-                            RegExpressLibrary.Matches.IGroup group = groups[1];
+                            IGroup group = groups[1];
                             if( !group.Success ) return false;
 
                             var captures = group.Captures.ToArray( );
@@ -690,22 +790,22 @@ static class TreeData
                             e.SetCollectCaptures( false );
                         }
                     } )
-                .Flag( @"Empty≠Failed", @"Differentiate between empty groups and failed groups", ( e, fm ) => !e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroups ) && !e.Capabilities.HasFlag( RegExpressLibrary.RegexEngineCapabilityEnum.NoGroupSuccessFlag ) )
+                .Flag( @"Empty≠Failed", @"Differentiate between empty groups and failed groups", ( e, fm ) => !e.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroups ) && !e.Capabilities.HasFlag( RegexEngineCapabilityEnum.NoGroupSuccessFlag ) )
                     .Test( ( e, fm ) =>
                     {
                         try
                         {
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"(a)(b*)(c)*(d)", "ad" );
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, @"(a)(b*)(c)*(d)", "ad" );
                             // "()" in "(a)" to fix an issue of tiny-regex-c);
                             // "(d)" to ensure that previous groups are returned;
                             // "*" instead of "?" because some engines do not support "?"
 
                             if( matches.Count != 1 ) return false;
 
-                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First( );
+                            IMatch match = matches.Matches.First( );
                             if( !match.Success ) return false;
 
-                            RegExpressLibrary.Matches.IGroup[] groups = match.Groups.ToArray( );
+                            IGroup[] groups = match.Groups.ToArray( );
                             if( groups.Length != 5 ) return false; // including default group
 
                             if( !groups[1].Success ) return false;
@@ -724,13 +824,13 @@ static class TreeData
                     {
                         try
                         {
-                            RegExpressLibrary.Matches.RegexMatches matches = e.GetMatches( RegExpressLibrary.ICancellable.NonCancellable, @"\(a\)\(b*\)\(c\)*\(d\)", "ad" );
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, @"\(a\)\(b*\)\(c\)*\(d\)", "ad" );
                             if( matches.Count != 1 ) return false;
 
-                            RegExpressLibrary.Matches.IMatch match = matches.Matches.First( );
+                            IMatch match = matches.Matches.First( );
                             if( !match.Success ) return false;
 
-                            RegExpressLibrary.Matches.IGroup[] groups = match.Groups.ToArray( );
+                            IGroup[] groups = match.Groups.ToArray( );
                             if( groups.Length != 5 ) return false; // including default group
 
                             if( !groups[1].Success ) return false;
@@ -873,8 +973,8 @@ static class TreeData
                     .Test( ( e, fm ) =>
                     {
                         return
-                            fm.Parentheses == RegExpressLibrary.SyntaxColouring.FeatureMatrix.PunctuationEnum.Normal && Check( @"(a*)*", "a", "a" ) ||
-                            fm.Parentheses == RegExpressLibrary.SyntaxColouring.FeatureMatrix.PunctuationEnum.Backslashed && Check( @"\(a*\)*", "a", "a" );
+                            fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && Check( @"(a*)*", "a", "a" ) ||
+                            fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && Check( @"\(a*\)*", "a", "a" );
 
                         bool Check( string pattern, string text, string g1 )
                         {

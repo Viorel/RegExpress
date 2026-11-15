@@ -2,6 +2,7 @@
 using RegExpressLibrary.SyntaxColouring;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Windows.Controls;
 
 
@@ -37,7 +38,7 @@ public abstract class RegexEngine
 
     public RegexEngineCapabilityEnum Capabilities => GetSubengine( ).GetCapabilities( );
     public SyntaxOptions GetSyntaxOptions( ) => GetSubengine( ).GetSyntaxOptions( );
-    public RegexMatches GetMatches( ICancellable cnc, string pattern, string text ) => GetSubengine( ).GetMatches( cnc, pattern, text );
+    public RegexMatches GetMatches( ICancellable cnc, [StringSyntax( StringSyntaxAttribute.Regex )] string pattern, string text ) => GetSubengine( ).GetMatches( cnc, pattern, text );
 
 
     protected void InvokeOptionsChanged( RegexEngineOptionsChangedArgs args )

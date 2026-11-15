@@ -369,6 +369,7 @@ internal partial class SubengineCorvusEcma262( Options options ) : RegexSubengin
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = true,
 
             Backref_Num = FeatureMatrix.BackrefEnum.Any,
             Backref_kApos = false,

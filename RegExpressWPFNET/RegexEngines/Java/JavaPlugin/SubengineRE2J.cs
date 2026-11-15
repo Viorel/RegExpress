@@ -376,6 +376,7 @@ class SubengineRE2J( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = false,
+            CapturingLookaroundGroups = false,
 
             Backref_Num = FeatureMatrix.BackrefEnum.None, // (if no group, digits are drop until a group is found)
             Backref_kApos = false,
