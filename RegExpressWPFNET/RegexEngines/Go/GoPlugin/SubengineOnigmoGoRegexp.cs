@@ -51,6 +51,7 @@ class SubengineOnigmoGoRegexp( Options options ) : RegexSubengine
 
             options.FindAll,
             TimeoutNs = ValidationUtilities.ParseInt64( "Timeout", options.TimeoutNs ),
+            StackLimit = ValidationUtilities.ParseInt32( "StackLimit", options.StackLimit ),
         };
 
         string json = JsonSerializer.Serialize( data );

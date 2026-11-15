@@ -46,6 +46,7 @@ class Options
     public string? MaxRecursionDepth { get; set; }
 
     public string? TimeoutNs { get; set; }
+    public string? StackLimit { get; set; }
 
     public bool FindAll { get; set; } = true;
 

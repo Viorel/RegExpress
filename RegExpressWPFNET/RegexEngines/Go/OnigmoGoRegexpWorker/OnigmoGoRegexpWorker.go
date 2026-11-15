@@ -17,8 +17,9 @@ type inputStruct struct {
 	Pattern string
 	Text    string
 
-	FindAll   bool
-	TimeoutNs *int64
+	FindAll    bool
+	TimeoutNs  *int64
+	StackLimit *int
 }
 
 type outputStruct struct {
@@ -63,6 +64,10 @@ func main() {
 
 	if input.TimeoutNs != nil {
 		re = re.WithTimeout(time.Duration(*input.TimeoutNs))
+	}
+
+	if input.StackLimit != nil {
+		re = re.WithStackLimit(*input.StackLimit)
 	}
 
 	names := re.SubexpNames() // []string

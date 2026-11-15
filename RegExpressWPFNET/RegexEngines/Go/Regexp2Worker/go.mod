@@ -1,5 +1,5 @@
 module Regexp2Worker
 
-go 1.27.3
+go 1.27.4
 
-require github.com/dlclark/regexp2/v2 v2.12.0
+require github.com/dlclark/regexp2/v2 v2.13.0
