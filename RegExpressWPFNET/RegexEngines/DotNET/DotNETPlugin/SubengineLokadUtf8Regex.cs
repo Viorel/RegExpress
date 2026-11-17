@@ -6,6 +6,7 @@ using RegExpressLibrary.SyntaxColouring;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
@@ -20,7 +21,7 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
-        return RegexEngineCapabilityEnum.NoGroups;
+        return RegexEngineCapabilityEnum.HasCaptures;
     }
 
     public override SyntaxOptions GetSyntaxOptions( )
@@ -35,13 +36,8 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
 
     public class Rootobject
     {
-        public required Match[] Matches { get; set; }
-    }
-
-    public class Match
-    {
-        [JsonPropertyName( "g" )]
-        public required int[][] Groups { get; set; }
+        public required string[] Names { get; init; }
+        public required int[][][] Matches { get; init; }
     }
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
@@ -97,15 +93,18 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
         SimpleTextGetter stg = new( text );
         IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
 
-        foreach( var m in root_object.Matches )
+        foreach( int[][] m in root_object.Matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
             SimpleMatch match;
 
+
             {
-                int native_start = m.Groups[0][0];
-                int native_length = m.Groups[0][1];
+                // match and default group
+
+                int native_start = m[0][0];
+                int native_length = m[0][1];
 
                 Debug.Assert( native_start >= 0 && native_length >= 0 );
 
@@ -114,11 +113,62 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
                 (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
                 match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
-
                 match.AddDefaultGroup( );
             }
 
-            // Groups are not available.
+            {
+                // other groups and captures
+
+                for( int group_index = 1; group_index < m.Length; group_index++ )
+                {
+                    string? name = group_index >= root_object.Names.Length ? null : root_object.Names[group_index];
+                    if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
+
+                    int[] captures = m[group_index];
+
+                    if( captures.Length == 0 )
+                    {
+                        match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        SimpleGroup group;
+
+                        {
+                            // group
+
+                            int native_start = captures[0];
+                            int native_length = captures[1];
+
+                            Debug.Assert( native_start >= 0 && native_length >= 0 );
+
+                            int native_end = native_start + native_length;
+
+                            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                            group = match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                        }
+
+                        {
+                            // captures
+
+                            for( int k = 0; k < captures.Length; k += 2 )
+                            {
+                                int native_start = captures[k];
+                                int native_length = captures[k + 1];
+
+                                Debug.Assert( native_start >= 0 && native_length >= 0 );
+
+                                int native_end = native_start + native_length;
+
+                                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                                group.AddCapture( native_start, native_length, char_start, char_length );
+                            }
+                        }
+                    }
+                }
+            }
 
             matches.Add( match );
         }
@@ -277,7 +327,7 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
             NamedGroup_Apos = true,
             NamedGroup_LtGt = true,
             NamedGroup_PLtGt = false,
-            BalancingGroup = false,
+            BalancingGroup = true,
             CapturingGroup = false,
             DuplicateGroupName = true,
 
@@ -293,7 +343,7 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
             NonatomicPositiveLookbehind = false,
             AbsentOperator = false,
             AllowSpacesInGroups = false,
-            CapturingLookaroundGroups = false,
+            CapturingLookaroundGroups = true,
 
             Backref_Num = FeatureMatrix.BackrefEnum.Any,
             Backref_kApos = true,
@@ -355,6 +405,8 @@ class SubengineLokadUtf8Regex( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = false,
             ßSS = false,
+
+            Ext_Ph2 = true,
         };
     }
 }

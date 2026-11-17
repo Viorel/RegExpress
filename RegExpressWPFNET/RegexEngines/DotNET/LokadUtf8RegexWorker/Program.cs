@@ -32,13 +32,8 @@ namespace LokadUtf8RegexWorker
 
         public sealed class Output
         {
-            public OutputMatch[]? Matches { get; set; }
-        }
-
-        public sealed class OutputMatch
-        {
-            [JsonPropertyName( "g" )]
-            public int[][]? Groups { get; set; } // UTF-16
+            public required string[] Names { get; init; }
+            public required List<List<List<int>>> Matches { get; init; }
         }
 
         static void Main( string[] args )
@@ -75,20 +70,63 @@ namespace LokadUtf8RegexWorker
 
                 byte[] text_bytes = Encoding.UTF8.GetBytes( text );
 
-                List<OutputMatch> output_matches = [];
+                List<List<List<int>>> output_matches = [];
 
-                foreach( Lokad.Utf8Regex.Utf8ValueMatch m in Lokad.Utf8Regex.Utf8Regex.EnumerateMatches( text_bytes, pattern, options, timeout ) )
+                Lokad.Utf8Regex.Utf8Regex regex = new( pattern, options, timeout );
+
+                for( int start = 0; start <= text.Length; )
                 {
-                    Debug.Assert( m.Success );
+                    Lokad.Utf8Regex.Utf8MatchContext match = regex.MatchDetailedFromUtf16Offset( text_bytes, start );
 
-                    OutputMatch output_match = new( ) { Groups = [[m.IndexInUtf16, m.LengthInUtf16]] }; // ('IndexInBytes', 'LengthInBytes' give error in case of surrogate pairs)
+                    if( !match.Success ) break;
 
-                    // Groups not available yet.
+                    // ('IndexInBytes', 'LengthInBytes' give error in case of surrogate pairs)
 
-                    output_matches.Add( output_match );
+                    List<List<int>> groups = [];
+
+                    for( int group_index = 0; group_index < match.GroupCount; ++group_index )
+                    {
+                        Lokad.Utf8Regex.Utf8GroupContext group = match.GetGroup( group_index );
+
+                        List<int> captures = [];
+
+                        for( int capture_index = 0; capture_index < group.CaptureCount; ++capture_index )
+                        {
+                            Lokad.Utf8Regex.Utf8CaptureContext capture = group.GetCapture( capture_index );
+
+                            captures.Add( capture.IndexInUtf16 );
+                            captures.Add( capture.LengthInUtf16 );
+                        }
+
+                        groups.Add( captures );
+                    }
+
+                    output_matches.Add( groups );
+
+                    // next start
+
+                    if( match.LengthInUtf16 == 0 ) // empty match
+                    {
+                        start = match.IndexInUtf16;
+
+                        if( start < text.Length && char.IsHighSurrogate( text[start] ) )
+                        {
+                            start += 2;
+                        }
+                        else
+                        {
+                            ++start;
+                        }
+                    }
+                    else
+                    {
+                        Debug.Assert( start < match.IndexInUtf16 + match.LengthInUtf16 );
+
+                        start = match.IndexInUtf16 + match.LengthInUtf16;
+                    }
                 }
 
-                string json = JsonSerializer.Serialize( new Output { Matches = [.. output_matches] } );
+                string json = JsonSerializer.Serialize( new Output { Names = regex.GetGroupNames( ), Matches = [.. output_matches] } );
 
                 Console.Out.WriteLine( json );
             }

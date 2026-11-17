@@ -101,7 +101,8 @@ class Engine : RegexEngine
     {
         return
             [
-                // ".NET Framework" not included
+                // (".NET Framework" not included)
+
                 new FeatureMatrixVariant( "Regex", new Engine{ Options = new Options { Class = ClassEnum.RegexDotNet } } ),
                 new FeatureMatrixVariant( "RE#", new Engine{ Options = new Options { Class = ClassEnum.ReSharp } } ),
                 new FeatureMatrixVariant( "Scout (Unicode)", new Engine{ Options = new Options { Class = ClassEnum.Scout, UnicodeClasses = true } } ),
