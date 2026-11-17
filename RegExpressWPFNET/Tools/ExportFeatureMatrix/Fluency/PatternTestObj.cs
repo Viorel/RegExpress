@@ -21,6 +21,11 @@ class PatternTestObj : BoolStep
 
     public override bool Exec( RegexEngine engine, FeatureMatrix fm, ExecContext execContext )
     {
+        return Try( engine, fm/*, execContext*/, pattern, textMatch, textNoMatch, expected );
+    }
+
+    public static bool Try( RegexEngine engine, FeatureMatrix fm/*, ExecContext execContext*/, string pattern, string? textMatch, string? textNoMatch, string? expected )
+    {
         bool match_satisfied = false;
         bool nomatch_satisfied = false;
 
@@ -73,4 +78,5 @@ class PatternTestObj : BoolStep
 
         return false;
     }
+
 }

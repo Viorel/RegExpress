@@ -187,13 +187,15 @@ internal partial class ExcelBuilder
                     cell1 = SetCell( ColumnNameFromIndex( START_TABLE_COLUMN + 1 ), row_index, indicator.Desc ?? "" );
                     cell1.StyleIndex = STYLE_ID_DESCRIPTION;
 
+                    FeatureMatrixVariant[] all_variants = [.. engines_data.SelectMany( d => d.Matrices ).Select( p => p.variant )];
+
                     for( int engine_index = 0; engine_index < engines_data.Length; engine_index++ )
                     {
                         EngineData engine_data = engines_data[engine_index];
 
                         foreach( (uint index, FeatureMatrixVariant variant) m in engine_data.Matrices )
                         {
-                            progressOnEngines?.Invoke( $"{engine_data.Engine.Name} {m.variant.Name}", engine_index, engines_data.Length );
+                            progressOnEngines?.Invoke( $"{engine_data.Engine.Name} {m.variant.Name}", all_variants.IndexOf( m.variant ), all_variants.Length );
 
                             IndicatorData? result = indicator.Exec( verify, m.variant.RegexEngine!, m.variant.FeatureMatrix );
 

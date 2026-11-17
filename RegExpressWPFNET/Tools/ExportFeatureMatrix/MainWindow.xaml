@@ -57,11 +57,11 @@
             <Button x:Name="buttonClose" Content="Exit" Click="buttonClose_Click"/>
         </StackPanel>
 
-        <TextBlock x:Name="textBlockFeature" HorizontalAlignment="Left" Margin="0,157,0,0" TextWrapping="Wrap" d:Text="Feature" VerticalAlignment="Top" Visibility="Hidden" d:Visibility="Visible" />
-        <ProgressBar x:Name="progressOnFeatures" HorizontalAlignment="Left" Height="10" Margin="0,177,0,0" VerticalAlignment="Top" Width="392" Visibility="Hidden" d:Visibility="Visible" />
+        <TextBlock x:Name="textBlockEngine" HorizontalAlignment="Left" Margin="0,157,0,0" TextWrapping="Wrap" d:Text="Engine" VerticalAlignment="Top" Visibility="Hidden" d:Visibility="Visible" />
+        <ProgressBar x:Name="progressOnEngines" HorizontalAlignment="Left" Height="10" Margin="0,177,0,0" VerticalAlignment="Top" Width="392" Visibility="Hidden" d:Visibility="Visible" />
 
-        <TextBlock x:Name="textBlockEngine" HorizontalAlignment="Left" Margin="0,194,0,0" TextWrapping="Wrap" d:Text="Engine" VerticalAlignment="Top" Visibility="Hidden" d:Visibility="Visible" />
-        <ProgressBar x:Name="progressOnEngines" HorizontalAlignment="Left" Height="10" Margin="0,214,0,0" VerticalAlignment="Top" Width="392" Visibility="Hidden" d:Visibility="Visible" />
+        <TextBlock x:Name="textBlockFeature" HorizontalAlignment="Left" Margin="0,194,0,0" TextWrapping="Wrap" d:Text="Feature" VerticalAlignment="Top" Visibility="Hidden" d:Visibility="Visible" />
+        <ProgressBar x:Name="progressOnFeatures" HorizontalAlignment="Left" Height="10" Margin="0,214,0,0" VerticalAlignment="Top" Width="392" Visibility="Hidden" d:Visibility="Visible" />
 
     </Grid>
 </Window>

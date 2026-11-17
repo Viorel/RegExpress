@@ -1,6 +1,7 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
 using RegExpressLibrary.SyntaxColouring;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace ExportFeatureMatrix.Fluency;
 
@@ -376,34 +377,6 @@ static class TreeData
                 .Flag( @"(?P<name>…)", @"Named group", ( e, fm ) => fm.NamedGroup_PLtGt )
                     .Test( @"a(?P<n>x)b", "axb", null, "axb" )
                     .Test( @"a\(?P<n>x\)b", "x", null, "axb" )
-                .Flag( @"(?<name2-name1>…)", @"Balancing group", ( e, fm ) => ( fm.NamedGroup_Apos || fm.NamedGroup_LtGt || fm.NamedGroup_PLtGt ) && fm.BalancingGroup )
-                    .Test( ( e, fm ) =>
-                    {
-                        try
-                        {
-                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, @"(?<left>left).*(?<right-left>right)", "leftXYZright" );
-                            if( matches.Count != 1 ) return false;
-
-                            IMatch match = matches.Matches.First( );
-                            if( !match.Success ) return false;
-
-                            IGroup? g1 = match.Groups.Skip( 1 ).FirstOrDefault( );
-                            if( g1 == null ) return false;
-                            if( g1.Success ) return false;
-
-                            IGroup? g2 = match.Groups.Skip( 2 ).FirstOrDefault( );
-                            if( g2 == null ) return false;
-                            if( !g2.Success ) return false;
-
-                            if( g2.Value != "XYZ" ) return false;
-
-                            return true;
-                        }
-                        catch
-                        {
-                            return false;
-                        }
-                    } )
                 .Flag( @"Duplicate names", @"Allow duplicate group names", ( e, fm ) => fm.DuplicateGroupName )
                     .Test( @"(?<a>x)|(?<a>y)", "y", "z", "y" )
                     .Test( @"\(?<a>x\)|\(?<a>y\)", "y", "z", "y" )
@@ -456,26 +429,95 @@ static class TreeData
                 .Flag( @"(?!…)", @"Negative lookahead ", ( e, fm ) => fm.NegativeLookahead )
                     .Test( @"a(?!x).y", "azy", @"axy", "azy" )
                     .Test( @"a\(?!x\).y", "azy", @"axy", "azy" )
-                .Flag( @"(?<=.{n})", @"Positive lookbehind, fixed-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @"x.(?<=xy)a", "xya", "xta", "xya" )
-                    .Test( @"x.\(?<=xy\)a", "xya", "xta", "xya" )
-                .Flag( @"(?<=.{n,m})", @"Positive lookbehind, bounded-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @"x..(?<=x{2,3}y)a", "xxya", "xtta", "xxya" )
-                    .Test( @"x..\(?<=x{2,3}y\)a", "xxya", "xtta", "xxya" )
-                    .Test( @"x..\(?<=xx?x?y\)a", "xxya", "xtta", "xxya" )
-                .Flag( @"(?<=.+)", @"Positive lookbehind, variable-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @"x.(?<=x+y)a", "xxxxya", "xta", "xya" )
-                    .Test( @"x.\(?<=x+y\)a", "xxxxya", "xta", "xya" )
-                .Flag( @"(?<!.{n})", @"Negative lookbehind, fixed-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @".(?<!xy)a", "ya", "xya", "ya" )
-                    .Test( @".\(?<!xy\)a", "ya", "xya", "ya" )
-                .Flag( @"(?<!.{n,m})", @"Negative lookbehind, bounded-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @".(?<!x{2,7})a", "xa", "xxa", "xa" )
-                    .Test( @"\(?<!x{2,7}\)a", "xa", "xxa", "xa" )
-                    .Test( @"\(?<!xxx?x?\)a", "xa", "xxa", "xa" )
-                .Flag( @"(?<!.+)", @"Negative lookbehind, variable-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
-                    .Test( @".(?<!x.*)a", "ya", "xa", "ya" )
-                    .Test( @"\(?<!x.*\)a", "ya", "xa", "ya" )
+
+                //.Flag( @"(?<=.{n})", @"Positive lookbehind, fixed-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                //    .Test( @"x.(?<=xy)a", "xya", "xta", "xya" )
+                //    .Test( @"x.\(?<=xy\)a", "xya", "xta", "xya" )
+                //.Flag( @"(?<=.{n,m})", @"Positive lookbehind, bounded-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                //    .Test( @"x..(?<=x{2,3}y)a", "xxya", "xtta", "xxya" )
+                //    .Test( @"x..\(?<=x{2,3}y\)a", "xxya", "xtta", "xxya" )
+                //    .Test( @"x..\(?<=xx?x?y\)a", "xxya", "xtta", "xxya" )
+                //.Flag( @"(?<=.+)", @"Positive lookbehind, variable-length", ( e, fm ) => fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                //    .Test( @"x.(?<=x+y)a", "xxxxya", "xta", "xya" )
+                //    .Test( @"x.\(?<=x+y\)a", "xxxxya", "xta", "xya" )
+
+                .Direct( @"(?<=.{n})", "Positive lookbehind (“F”\u200A—\u200Afixed, “B”\u200A—\u200Abounded, “+”\u200A—\u200Aany)", ( validate, e, fm ) =>
+                {
+                    if( !validate )
+                    {
+                        return fm.PositiveLookbehind switch
+                        {
+                            FeatureMatrix.LookModeEnum.None => null,
+                            FeatureMatrix.LookModeEnum.FixedLength => new IndicatorData( ColourEnum.Green, "F" ),
+                            FeatureMatrix.LookModeEnum.BoundedLength => new IndicatorData( ColourEnum.Green, "B" ),
+                            FeatureMatrix.LookModeEnum.AnyLength => new IndicatorData( ColourEnum.Green, "+" ),
+                            _ => throw new NotSupportedException( )
+                        };
+                    }
+
+                    string t = fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength ? "+" : "+???";
+
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @"x.(?<=x+y)a", "xxxxya", "xta", "xya" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x.\(?<=x+y\)a", "xxxxya", "xta", "xya" ) ) return new IndicatorData( ColourEnum.Green, t );
+
+                    t = fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength ? "B" : "B???";
+
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @"x..(?<=x{2,3}y)a", "xxya", "xtta", "xxya" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x..\(?<=x{2,3}y\)a", "xxya", "xtta", "xxya" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x..\(?<=xx?x?y\)a", "xxya", "xtta", "xxya" ) ) return new IndicatorData( ColourEnum.Green, t );
+
+                    t = fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength ? "F" : "F???";
+
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @"x.(?<=xy)a", "xya", "xta", "xya" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x.\(?<=xy\)a", "xya", "xta", "xya" ) ) return new IndicatorData( ColourEnum.Green, t );
+
+                    return null;
+                } )
+
+                //.Flag( @"(?<!.{n})", @"Negative lookbehind, fixed-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                //    .Test( @".(?<!xy)a", "ya", "xya", "ya" )
+                //    .Test( @".\(?<!xy\)a", "ya", "xya", "ya" )
+                //.Flag( @"(?<!.{n,m})", @"Negative lookbehind, bounded-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength || fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                //    .Test( @".(?<!x{2,7})a", "xa", "xxa", "xa" )
+                //    .Test( @"\(?<!x{2,7}\)a", "xa", "xxa", "xa" )
+                //    .Test( @"\(?<!xxx?x?\)a", "xa", "xxa", "xa" )
+                //.Flag( @"(?<!.+)", @"Negative lookbehind, variable-length", ( e, fm ) => fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength )
+                //    .Test( @".(?<!x.*)a", "ya", "xa", "ya" )
+                //    .Test( @"\(?<!x.*\)a", "ya", "xa", "ya" )
+
+                .Direct( @"(?<!.{n})", "Negative lookbehind (“F”\u200A—\u200Afixed, “B”\u200A—\u200Abounded, “+”\u200A—\u200Aany)", ( validate, e, fm ) =>
+                {
+                    if( !validate )
+                    {
+                        return fm.NegativeLookbehind switch
+                        {
+                            FeatureMatrix.LookModeEnum.None => null,
+                            FeatureMatrix.LookModeEnum.FixedLength => new IndicatorData( ColourEnum.Green, "F" ),
+                            FeatureMatrix.LookModeEnum.BoundedLength => new IndicatorData( ColourEnum.Green, "B" ),
+                            FeatureMatrix.LookModeEnum.AnyLength => new IndicatorData( ColourEnum.Green, "+" ),
+                            _ => throw new NotSupportedException( )
+                        };
+                    }
+
+                    string t = fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength ? "+" : "+???";
+
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @".(?<!x.*)a", "ya", "xa", "ya" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"\(?<!x.*\)a", "ya", "xa", "ya" ) ) return new IndicatorData( ColourEnum.Green, t );
+
+                    t = fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength ? "B" : "B???";
+
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @".(?<!x{2,7})a", "xa", "xxa", "xa" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"\(?<!x{2,7}\)a", "xa", "xxa", "xa" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"\(?<!xxx?x?\)a", "xa", "xxa", "xa" ) ) return new IndicatorData( ColourEnum.Green, t );
+
+                    t = fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength ? "F" : "F???";
+
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @".(?<!xy)a", "ya", "xya", "ya" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @".\(?<!xy\)a", "ya", "xya", "ya" ) ) return new IndicatorData( ColourEnum.Green, t );
+
+                    return null;
+                } )
+
                 .Flag( @"(?=…(?=…))", @"Nested lookarounds", ( e, fm ) => ( fm.PositiveLookahead || fm.NegativeLookahead || fm.PositiveLookbehind != FeatureMatrix.LookModeEnum.None || fm.NegativeLookbehind != FeatureMatrix.LookModeEnum.None ) && fm.NestedLookaround )
                     .Test( @"a(?=b(?=c))bc", "abc", null, "abc" )
                     .Test( @"a\(?=b\(?=c\)\)bc", "abc", null, "abc" )
@@ -498,6 +540,8 @@ static class TreeData
                 .Flag( @"(?<=(.+))", "Capture lookaround groups (fixed-, bounded- or variable-length)", ( e, fm ) => fm.CapturingLookaroundGroups )
                     .Test( ( e, fm ) =>
                     {
+                        if( fm.Parentheses == FeatureMatrix.PunctuationEnum.None ) return false;
+
                         try
                         {
                             string pattern =
@@ -848,8 +892,8 @@ static class TreeData
                 .Flag( @"(*verb)", @"Control verbs: (*verb) (*verb:…) (*:name)", ( e, fm ) => fm.ControlVerbs )
                     .Test( @"x(*ACCEPT)|y(*FAIL)", "x", "y", "x" )
                     .Test( @"(*UCP)^a", "a", "", "a" )
-                    .Test( @"x(*SKIP)y", "xy", "xSKIPy", "xy" )
-                    .Test( @"a(*FAIL)|b", "b", "a", "b" )
+                    .Test( @"x(*SKIP)y", "xy", "xSKIPyx*SKIPy", "xy" )
+                    .Test( @"a(*FAIL)|ab", "ab", "aFAILba*FAILb", "ab" )
                 .Flag( @"(*…:…)", @"Script runs, such as (*atomic:…)", ( e, fm ) => fm.ScriptRuns )
                     .Test( @"(*atomic:x)", "x", "", "x" )
 
@@ -937,7 +981,36 @@ static class TreeData
                         }
                     } )
 
-            .Category( @"Specific extensions" )
+            .Category( @"Extensions" )
+
+                .Flag( @"(?<name2-name1>…)", @"Balancing group", ( e, fm ) => ( fm.NamedGroup_Apos || fm.NamedGroup_LtGt || fm.NamedGroup_PLtGt ) && fm.BalancingGroup )
+                    .Test( ( e, fm ) =>
+                    {
+                        try
+                        {
+                            RegexMatches matches = e.GetMatches( ICancellable.NonCancellable, @"(?<left>left).*(?<right-left>right)", "leftXYZright" );
+                            if( matches.Count != 1 ) return false;
+
+                            IMatch match = matches.Matches.First( );
+                            if( !match.Success ) return false;
+
+                            IGroup? g1 = match.Groups.Skip( 1 ).FirstOrDefault( );
+                            if( g1 == null ) return false;
+                            if( g1.Success ) return false;
+
+                            IGroup? g2 = match.Groups.Skip( 2 ).FirstOrDefault( );
+                            if( g2 == null ) return false;
+                            if( !g2.Success ) return false;
+
+                            if( g2.Value != "XYZ" ) return false;
+
+                            return true;
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+                    } )
 
                 .Flag( @"Fuzzy matching", @"Approximate matching using special patterns or parameters", ( e, fm ) => fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Normal || fm.Quantifier_Braces_FreeForm == FeatureMatrix.PunctuationEnum.Backslashed || fm.FuzzyMatchingParams )
                     .Test( @"(test){i}", "teXst", null, "teXst" )
