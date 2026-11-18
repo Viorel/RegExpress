@@ -582,6 +582,10 @@ namespace RegExpressWPFNET
         {
             try
             {
+                App app = (App)App.Current;
+
+                if( app.IsAbandoned ) return; // do not alter data (if second instance is closed, for example)
+
                 var all_data = new AllTabData( );
                 var main_controls = EnumerateMainTabs( ).Select( t => new { t.Header, uc_main = (UCMain)t.Content } );
 

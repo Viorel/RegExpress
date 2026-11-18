@@ -39,6 +39,7 @@
             <Label Grid.Row="0" Grid.Column="0" Content="Kind:" Target="{Binding ElementName=cbxClass}" />
             <ComboBox x:Name="cbxClass" Grid.Row="0" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding Class, FallbackValue='RegexDotNet'}" SelectionChanged="cbxClass_SelectionChanged">
                 <ui:ComboBoxItemWithVersion Tag ="RegexDotNet"          Text="Regex .NET"           Version="{x:Static local:Versions.DotNet}"          d:Version="###" IsSelected="True" />
+                <ui:ComboBoxItemWithVersion Tag ="DotNet11"             Text="Regex .NET"           Version="{x:Static local:Versions.DotNet11}"        d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="RegexDotNetFramework" Text="Regex .NET Framework" Version="{x:Static local:Versions.DotNetFramework}" d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="ReSharp"              Text="RE#"                  Version="{x:Static local:Versions.ReSharp}"         d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="Scout"                Text="Scout"                Version="{x:Static local:Versions.Scout}"           d:Version="###" />
@@ -89,9 +90,11 @@
             <ui:CheckboxWithNote Prop="IgnorePatternWhitespace" Note="exclude white spaces, enable #-comments (?x)"/>
             <ui:CheckboxWithNote Prop="Multiline" Note="“^” and “$” match the beginning and end of lines (?m)"/>
             <ui:CheckboxWithNote x:Name="NonBacktracking" Prop="NonBacktracking" Note="avoid backtracking, guarantee linear-time processing"/>
-            <ui:CheckboxWithNote x:Name="NonBacktrackingDisabled" Prop="" Text="NonBacktracking" Note="avoid backtracking, guarantee linear-time processing" IsEnabled="False"/>
+            <ui:CheckboxWithNote x:Name="NonBacktrackingDisabled" IsEnabled="False" Prop="" Text="NonBacktracking" Note="{Binding Note, ElementName=NonBacktracking}"/>
             <ui:CheckboxWithNote Prop="RightToLeft" Note="search from right to left"/>
             <ui:CheckboxWithNote Prop="Singleline" Note="“.” matches “\n” too (?s)"/>
+            <ui:CheckboxWithNote x:Name="AnyNewLine" Prop="AnyNewLine" Note="make “^”, “$”, “\Z”, and “.” recognize all common newline sequences instead of only “\n”"/>
+            <ui:CheckboxWithNote x:Name="AnyNewLineDisabled" IsEnabled="False" Prop="" Text="AnyNewLine" Note="{Binding Note, ElementName=AnyNewLine}"/>
 
             <Grid Style="{StaticResource DetailsTable}">
                 <Grid.ColumnDefinitions>
@@ -295,7 +298,7 @@
                 <TextBlock Grid.Row="2" Grid.Column="2" Text="" FontStyle="Italic" />
             </Grid>
         </StackPanel>
-        
+
     </StackPanel>
 
 </UserControl>

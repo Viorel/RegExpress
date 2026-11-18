@@ -46,6 +46,7 @@ namespace DotNETPlugin
                 ClassEnum @class = Options.Class;
 
                 bool is_dotnet = @class == ClassEnum.RegexDotNet;
+                bool is_dotnet11 = @class == ClassEnum.DotNet11;
                 bool is_dotnet_framework = @class == ClassEnum.RegexDotNetFramework;
                 bool is_resharp = @class == ClassEnum.ReSharp;
                 bool is_scout = @class == ClassEnum.Scout;
@@ -54,7 +55,7 @@ namespace DotNETPlugin
                 bool is_corvus = @class == ClassEnum.CorvusEcma262;
                 bool is_fuzzy_regex = @class == ClassEnum.FuzzyRegex;
 
-                pnlRegex.Display( is_dotnet | is_dotnet_framework | is_locad );
+                pnlRegex.Display( is_dotnet | is_dotnet11 | is_dotnet_framework | is_locad );
                 pnlReSharp.Display( is_resharp );
                 pnlScout.Display( is_scout );
                 pnlCorvusEcma262.Display( is_corvus );
@@ -67,8 +68,11 @@ namespace DotNETPlugin
                 pnlGregsExXsd.Display( is_gregsEx && Options.GregsExProfile == GregsExProfileEnum.Xsd );
                 pnlGregsExXPath.Display( is_gregsEx && Options.GregsExProfile == GregsExProfileEnum.XPath );
 
-                NonBacktracking.Display( is_dotnet | is_locad );
-                NonBacktrackingDisabled.Display( !( is_dotnet | is_locad ) );
+                NonBacktracking.Display( is_dotnet | is_dotnet11 | is_locad );
+                NonBacktrackingDisabled.Display( is_dotnet_framework );
+
+                AnyNewLine.Display( is_dotnet11 );
+                AnyNewLineDisabled.Display( is_dotnet | is_dotnet_framework | is_locad );
             }
             finally
             {

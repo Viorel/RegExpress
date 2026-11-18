@@ -11,6 +11,7 @@ enum ClassEnum
     GregsEx,
     CorvusEcma262,
     FuzzyRegex,
+    DotNet11,
 }
 
 enum ByteRegexEngineModeEnum
@@ -60,6 +61,7 @@ sealed class Options
     public bool NonBacktracking { get; set; } // not in .NET Framework 4.8
     public bool RightToLeft { get; set; }
     public bool Singleline { get; set; }
+    public bool AnyNewLine { get; set; } // new in .NET 11
 
     public string? TimeoutMs { get; set; } = null;
 

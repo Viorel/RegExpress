@@ -7,6 +7,7 @@ namespace DotNETPlugin;
 static class Versions
 {
     static readonly Lazy<string?> LazyVersionDotNet = new( SubengineDotNet.GetVersion( ICancellable.NonCancellable ) );
+    static readonly Lazy<string?> LazyVersionDotNet11 = new( SubengineDotNet11.GetVersion( ICancellable.NonCancellable ) );
     static readonly Lazy<string?> LazyVersionDotNetFramework = new( SubengineDotNetFramework.GetVersion( ICancellable.NonCancellable ) );
 
     public static string? DotNet { get; } = LazyVersionDotNet.Value;
@@ -17,4 +18,5 @@ static class Versions
     public static string? GregsEx { get; } = "0.7.0";
     public static string? CorvusEcma262 { get; } = "1.0.15";
     public static string? FuzzyRegex { get; } = "1.2.0";
+    public static string? DotNet11 { get; } = LazyVersionDotNet11.Value;
 }

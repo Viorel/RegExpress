@@ -161,21 +161,28 @@ class SubengineDotNetFramework( Options options ) : RegexSubengine
 
     public static string? GetVersion( ICancellable cnc )
     {
-        using ProcessHelper ph = new( GetWorkerExePath( ) );
-
-        ph.AllEncoding = EncodingEnum.UTF8;
-        ph.StreamWriter = sw =>
+        try
         {
-            sw.Write( @"{""cmd"":""v""}" );
-        };
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
-        if( !ph.Start( cnc ) ) return null;
+            ph.AllEncoding = EncodingEnum.UTF8;
+            ph.StreamWriter = sw =>
+            {
+                sw.Write( @"{""cmd"":""v""}" );
+            };
 
-        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+            if( !ph.Start( cnc ) ) return null;
 
-        VersionResponse? response = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream );
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-        return response?.Version;
+            VersionResponse? response = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream );
+
+            return response?.Version;
+        }
+        catch
+        {
+            return "(unavailable)";
+        }
     }
 
     static string GetWorkerExePath( )

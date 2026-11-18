@@ -50,14 +50,15 @@ class Engine : RegexEngine
 
     public override string Subtitle => $"{Options.Class switch
     {
-        ClassEnum.RegexDotNet => ".NET",
-        ClassEnum.RegexDotNetFramework => ".NET Framework",
+        ClassEnum.RegexDotNet => ".NET 10",
+        ClassEnum.RegexDotNetFramework => ".NET Framework 4.8",
         ClassEnum.ReSharp => "RE#",
         ClassEnum.Scout => "Scout",
         ClassEnum.LokadUtf8Regex => "Lokad",
         ClassEnum.GregsEx => "GregsEx",
         ClassEnum.CorvusEcma262 => "CorvusEcma262",
         ClassEnum.FuzzyRegex => "FuzzyRegex",
+        ClassEnum.DotNet11 => ".NET 11",
         _ => "unknown"
     }}";
 
@@ -103,7 +104,9 @@ class Engine : RegexEngine
             [
                 // (".NET Framework" not included)
 
-                new FeatureMatrixVariant( "Regex", new Engine{ Options = new Options { Class = ClassEnum.RegexDotNet } } ),
+                new FeatureMatrixVariant( "Regex .NET 11", new Engine{ Options = new Options { Class = ClassEnum.DotNet11 } } ),
+                new FeatureMatrixVariant( "Regex .NET 10", new Engine{ Options = new Options { Class = ClassEnum.RegexDotNet } } ),
+
                 new FeatureMatrixVariant( "RE#", new Engine{ Options = new Options { Class = ClassEnum.ReSharp } } ),
                 new FeatureMatrixVariant( "Scout (Unicode)", new Engine{ Options = new Options { Class = ClassEnum.Scout, UnicodeClasses = true } } ),
                 new FeatureMatrixVariant( "Lokad Utf8Regex", new Engine{ Options = new Options { Class = ClassEnum.LokadUtf8Regex, CultureInvariant = true } } ),
@@ -160,6 +163,7 @@ class Engine : RegexEngine
             ClassEnum.GregsEx => new SubengineGregsEx( Options ),
             ClassEnum.CorvusEcma262 => new SubengineCorvusEcma262( Options ),
             ClassEnum.FuzzyRegex => new SubengineFuzzyRegex( Options ),
+            ClassEnum.DotNet11 => new SubengineDotNet11( Options ),
             _ => throw new InvalidOperationException( )
         };
     }

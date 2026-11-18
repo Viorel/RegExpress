@@ -60,6 +60,11 @@ xcopy /D /R /Y "%BasePath%\FuzzyRegexWorker\bin\%Configuration%\net10.0\FuzzyReg
 xcopy /D /R /Y "%BasePath%\FuzzyRegexWorker\bin\%Configuration%\net10.0\FuzzyRegexWorker.deps.json" "%EnginesTargetPath%\DotNET\FuzzyRegexWorker\*"
 xcopy /D /R /Y "%BasePath%\FuzzyRegexWorker\bin\%Configuration%\net10.0\FuzzyRegexWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\FuzzyRegexWorker\*"
 
+xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\%Configuration%\net11.0\DotNET11Worker.exe" "%EnginesTargetPath%\DotNET\DotNET11\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\%Configuration%\net11.0\DotNET11Worker.dll" "%EnginesTargetPath%\DotNET\DotNET11\*"
+xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\%Configuration%\net11.0\DotNET11Worker.deps.json" "%EnginesTargetPath%\DotNET\DotNET11\*"
+xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\%Configuration%\net11.0\DotNET11Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\DotNET11\*"
+
 
 rem -- STD --
 

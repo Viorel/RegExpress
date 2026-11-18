@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v11.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v11.0": {
+      "DotNET11Worker/1.0.0": {
+        "runtime": {
+          "DotNET11Worker.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "DotNET11Worker/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

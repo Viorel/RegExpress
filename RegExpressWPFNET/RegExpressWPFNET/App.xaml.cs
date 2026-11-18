@@ -24,6 +24,7 @@ namespace RegExpressWPFNET
         [DllImport( "user32" )]
         static extern bool SetForegroundWindow( IntPtr hWnd );
 
+        public bool IsAbandoned { get; private set; } = false;
 
         public App( )
         {
@@ -45,6 +46,7 @@ namespace RegExpressWPFNET
 
                 SetForegroundWindow( other_process.MainWindowHandle );
 
+                IsAbandoned = true;
                 Shutdown( );
 
                 return;
@@ -54,6 +56,7 @@ namespace RegExpressWPFNET
 
             if( other_process != null )
             {
+                IsAbandoned = true;
                 Shutdown( );
 
                 return;
