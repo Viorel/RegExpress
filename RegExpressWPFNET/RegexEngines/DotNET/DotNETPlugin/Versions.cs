@@ -6,11 +6,11 @@ namespace DotNETPlugin;
 
 static class Versions
 {
-    static readonly Lazy<string?> LazyVersionDotNet = new( SubengineDotNet.GetVersion( ICancellable.NonCancellable ) );
+    static readonly Lazy<string?> LazyVersionDotNet10 = new( SubengineDotNet10.GetVersion( ICancellable.NonCancellable ) );
     static readonly Lazy<string?> LazyVersionDotNet11 = new( SubengineDotNet11.GetVersion( ICancellable.NonCancellable ) );
     static readonly Lazy<string?> LazyVersionDotNetFramework = new( SubengineDotNetFramework.GetVersion( ICancellable.NonCancellable ) );
 
-    public static string? DotNet { get; } = LazyVersionDotNet.Value;
+    public static string? DotNet10 { get; } = LazyVersionDotNet10.Value;
     public static string? DotNetFramework { get; } = LazyVersionDotNetFramework.Value;
     public static string? ReSharp { get; } = "1.0.6";
     public static string? Scout { get; } = "0.8.0";

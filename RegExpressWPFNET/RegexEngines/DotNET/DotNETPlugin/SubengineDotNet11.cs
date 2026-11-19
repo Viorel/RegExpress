@@ -190,7 +190,7 @@ class SubengineDotNet11( Options options ) : RegexSubengine
             ph.AllEncoding = EncodingEnum.UTF8;
             ph.Arguments = ["v"];
 
-            if( !ph.Start( cnc ) ) return null;
+            if( !ph.Start( cnc ) ) return "11 (unavailable)";
 
             if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
@@ -208,7 +208,7 @@ class SubengineDotNet11( Options options ) : RegexSubengine
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_exe = Path.Combine( assembly_dir, "DotNET11", @"DotNET11Worker.bin" );
+        string worker_exe = Path.Combine( assembly_dir, "DotNET11Worker", @"DotNET11Worker.bin" );
 
         return worker_exe;
     }

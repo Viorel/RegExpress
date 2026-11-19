@@ -41,6 +41,9 @@ internal class Program
     {
         try
         {
+            Console.InputEncoding = Encoding.UTF8;
+            Console.OutputEncoding = Encoding.UTF8;
+
             if( args.Length > 0 )
             {
                 if( args.Length == 1 )
@@ -57,11 +60,8 @@ internal class Program
                     }
                 }
 
-                throw new NotSupportedException( "Not supported arguments" );
+                throw new NotSupportedException( "Incorrect arguments" );
             }
-
-            Console.InputEncoding = Encoding.UTF8;
-            Console.OutputEncoding = Encoding.UTF8;
 
             string input_string = Console.In.ReadToEnd( );
 

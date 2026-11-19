@@ -50,8 +50,8 @@ class Engine : RegexEngine
 
     public override string Subtitle => $"{Options.Class switch
     {
-        ClassEnum.RegexDotNet => ".NET 10",
-        ClassEnum.RegexDotNetFramework => ".NET Framework 4.8",
+        ClassEnum.DotNet10 => ".NET 10",
+        ClassEnum.DotNetFramework => ".NET Framework 4.8",
         ClassEnum.ReSharp => "RE#",
         ClassEnum.Scout => "Scout",
         ClassEnum.LokadUtf8Regex => "Lokad",
@@ -105,7 +105,7 @@ class Engine : RegexEngine
                 // (".NET Framework" not included)
 
                 new FeatureMatrixVariant( "Regex .NET 11", new Engine{ Options = new Options { Class = ClassEnum.DotNet11 } } ),
-                new FeatureMatrixVariant( "Regex .NET 10", new Engine{ Options = new Options { Class = ClassEnum.RegexDotNet } } ),
+                new FeatureMatrixVariant( "Regex .NET 10", new Engine{ Options = new Options { Class = ClassEnum.DotNet10 } } ),
 
                 new FeatureMatrixVariant( "RE#", new Engine{ Options = new Options { Class = ClassEnum.ReSharp } } ),
                 new FeatureMatrixVariant( "Scout (Unicode)", new Engine{ Options = new Options { Class = ClassEnum.Scout, UnicodeClasses = true } } ),
@@ -155,8 +155,8 @@ class Engine : RegexEngine
     {
         return Options.Class switch
         {
-            ClassEnum.RegexDotNet => new SubengineDotNet( Options ),
-            ClassEnum.RegexDotNetFramework => new SubengineDotNetFramework( Options ),
+            ClassEnum.DotNet10 => new SubengineDotNet10( Options ),
+            ClassEnum.DotNetFramework => new SubengineDotNetFramework( Options ),
             ClassEnum.ReSharp => new SubengineReSharp( Options ),
             ClassEnum.Scout => new SubengineScout( Options ),
             ClassEnum.LokadUtf8Regex => new SubengineLokadUtf8Regex( Options ),

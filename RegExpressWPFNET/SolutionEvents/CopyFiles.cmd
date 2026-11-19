@@ -21,10 +21,10 @@ rem -- .NET --
 set BasePath=%SolutionDir%\RegexEngines\DotNET
 xcopy /D /R /Y "%BasePath%\DotNETPlugin\bin\%Configuration%\%TargetDir%\DotNETPlugin.dll" "%EnginesTargetPath%\DotNET\*"
 
-xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.exe" "%EnginesTargetPath%\DotNET\Worker\*.bin"
-xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.dll" "%EnginesTargetPath%\DotNET\Worker\*"
-xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.deps.json" "%EnginesTargetPath%\DotNET\Worker\*"
-xcopy /D /R /Y "%BasePath%\DotNETWorker\bin\%Configuration%\net10.0-windows7.0\DotNETWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET10Worker\bin\%Configuration%\net10.0-windows7.0\DotNET10Worker.exe" "%EnginesTargetPath%\DotNET\DotNET10Worker\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNET10Worker\bin\%Configuration%\net10.0-windows7.0\DotNET10Worker.dll" "%EnginesTargetPath%\DotNET\DotNET10Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET10Worker\bin\%Configuration%\net10.0-windows7.0\DotNET10Worker.deps.json" "%EnginesTargetPath%\DotNET\DotNET10Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET10Worker\bin\%Configuration%\net10.0-windows7.0\DotNET10Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\DotNET10Worker\*"
 
 xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe" "%EnginesTargetPath%\DotNET\FrameworkWorker\*.bin"
 xcopy /D /R /Y "%BasePath%\DotNETFrameworkWorker\bin\%Configuration%\DotNETFrameworkWorker.exe.config" "%EnginesTargetPath%\DotNET\FrameworkWorker\*"
@@ -60,10 +60,10 @@ xcopy /D /R /Y "%BasePath%\FuzzyRegexWorker\bin\%Configuration%\net10.0\FuzzyReg
 xcopy /D /R /Y "%BasePath%\FuzzyRegexWorker\bin\%Configuration%\net10.0\FuzzyRegexWorker.deps.json" "%EnginesTargetPath%\DotNET\FuzzyRegexWorker\*"
 xcopy /D /R /Y "%BasePath%\FuzzyRegexWorker\bin\%Configuration%\net10.0\FuzzyRegexWorker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\FuzzyRegexWorker\*"
 
-xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\%Configuration%\net11.0\DotNET11Worker.exe" "%EnginesTargetPath%\DotNET\DotNET11\*.bin"
-xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\%Configuration%\net11.0\DotNET11Worker.dll" "%EnginesTargetPath%\DotNET\DotNET11\*"
-xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\%Configuration%\net11.0\DotNET11Worker.deps.json" "%EnginesTargetPath%\DotNET\DotNET11\*"
-xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\%Configuration%\net11.0\DotNET11Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\DotNET11\*"
+xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\Release\net11.0\DotNET11Worker.exe" "%EnginesTargetPath%\DotNET\DotNET11Worker\*.bin"
+xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\Release\net11.0\DotNET11Worker.dll" "%EnginesTargetPath%\DotNET\DotNET11Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\Release\net11.0\DotNET11Worker.deps.json" "%EnginesTargetPath%\DotNET\DotNET11Worker\*"
+xcopy /D /R /Y "%BasePath%\DotNET11Worker\bin\Release\net11.0\DotNET11Worker.runtimeconfig.json" "%EnginesTargetPath%\DotNET\DotNET11Worker\*"
 
 
 rem -- STD --

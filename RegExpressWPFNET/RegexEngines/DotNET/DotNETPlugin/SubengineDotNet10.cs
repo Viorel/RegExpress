@@ -1,8 +1,10 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -14,7 +16,7 @@ using System.Text.Json.Serialization;
 
 namespace DotNETPlugin;
 
-class SubengineDotNet( Options options ) : RegexSubengine
+class SubengineDotNet10( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
@@ -38,49 +40,15 @@ class SubengineDotNet( Options options ) : RegexSubengine
         public required string Version { get; init; }
     }
 
-    sealed class WorkerMatches
+    public class Rootobject
     {
-        public required string[] Names { get; set; }
-        public required WorkerMatch[] Matches { get; set; }
+        public required string[] Names { get; init; }
+        public required int[][][] Matches { get; init; }
     }
-
-    sealed class WorkerMatch
-    {
-        [JsonPropertyName( "i" )]
-        public required int Index { get; init; }
-
-        [JsonPropertyName( "l" )]
-        public required int Length { get; init; }
-
-        [JsonPropertyName( "g" )]
-        public required WorkerGroup[] Groups { get; init; }
-    }
-
-    sealed class WorkerGroup
-    {
-        [JsonPropertyName( "i" )]
-        public required int Index { get; init; }
-
-        [JsonPropertyName( "l" )]
-        public required int Length { get; init; }
-
-        [JsonPropertyName( "c" )]
-        public required WorkerCapture[] Captures { get; init; }
-    }
-
-    sealed class WorkerCapture
-    {
-        [JsonPropertyName( "i" )]
-        public required int Index { get; init; }
-
-        [JsonPropertyName( "l" )]
-        public required int Length { get; init; }
-    }
-
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
     {
-        Debug.Assert( options.Class == ClassEnum.RegexDotNet );
+        Debug.Assert( options.Class == ClassEnum.DotNet10 );
 
         var data = new
         {
@@ -119,70 +87,130 @@ class SubengineDotNet( Options options ) : RegexSubengine
 
         if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-        WorkerMatches worker_matches = JsonSerializer.Deserialize<WorkerMatches>( ph.OutputStream ) ?? throw new Exception( "Invalid response." );
+#if DEBUG
+        using StreamReader sr = new( ph.OutputStream );
+        string output = sr.ReadToEnd( );
+        Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( output );
+#else
+        Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( ph.OutputStream );
+#endif
 
-        SimpleMatch[] matches = new SimpleMatch[worker_matches.Matches.Length];
-        SimpleTextGetter text_getter = new( text );
+        if( root_object == null ) throw new Exception( "Invalid response" );
 
-        for( int i = 0; i < worker_matches.Matches.Length; i++ )
+        List<SimpleMatch> matches = [];
+        SimpleTextGetter stg = new( text );
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
+
+        foreach( int[][] m in root_object.Matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
-            WorkerMatch m = worker_matches.Matches[i];
-            SimpleMatch sm = SimpleMatch.Create( m.Index, m.Length, text_getter );
+            SimpleMatch match;
 
-            for( int gi = 0; gi < m.Groups.Length; gi++ )
             {
-                WorkerGroup? g = m.Groups[gi];
+                // match and default group
 
-                string name = worker_matches.Names[gi];
-                bool success = g.Index >= 0 && g.Length >= 0;
+                int native_start = m[0][0];
+                int native_length = m[0][1];
 
-                if( !success )
+                Debug.Assert( native_start >= 0 && native_length >= 0 );
+
+                int native_end = native_start + native_length;
+
+                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match.AddDefaultGroup( );
+            }
+
+            {
+                // other groups and captures
+
+                for( int group_index = 1; group_index < m.Length; group_index++ )
                 {
-                    sm.AddFailedGroup( name );
-                }
-                else
-                {
-                    SimpleGroup sg = sm.AddSucceededGroup( g.Index, g.Length, name );
+                    string? name = group_index >= root_object.Names.Length ? null : root_object.Names[group_index];
+                    if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
 
-                    foreach( var c in g.Captures )
+                    int[] captures = m[group_index];
+
+                    if( captures.Length == 0 )
                     {
-                        sg.AddCapture( c.Index, c.Length );
+                        match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        SimpleGroup group;
+
+                        {
+                            // group
+
+                            int native_start = captures[0];
+                            int native_length = captures[1];
+
+                            Debug.Assert( native_start >= 0 && native_length >= 0 );
+
+                            int native_end = native_start + native_length;
+
+                            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                            group = match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                        }
+
+                        {
+                            // captures
+
+                            for( int k = 0; k < captures.Length; k += 2 )
+                            {
+                                int native_start = captures[k];
+                                int native_length = captures[k + 1];
+
+                                Debug.Assert( native_start >= 0 && native_length >= 0 );
+
+                                int native_end = native_start + native_length;
+
+                                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                                group.AddCapture( native_start, native_length, char_start, char_length );
+                            }
+                        }
                     }
                 }
             }
 
-            matches[i] = sm;
+            matches.Add( match );
         }
 
-        return new RegexMatches( matches.Length, matches );
+        return new RegexMatches( matches.Count, matches );
     }
 
     public static string? GetVersion( ICancellable cnc )
     {
-        using ProcessHelper ph = new( GetWorkerExePath( ) );
-
-        ph.AllEncoding = EncodingEnum.UTF8;
-        ph.StreamWriter = sw =>
+        try
         {
-            sw.Write( @"{""cmd"":""v""}" );
-        };
+            using ProcessHelper ph = new( GetWorkerExePath( ) );
 
-        if( !ph.Start( cnc ) ) return null;
+            ph.AllEncoding = EncodingEnum.UTF8;
+            ph.Arguments = ["v"];
 
-        if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
+            if( !ph.Start( cnc ) ) return "10 (unavailable)";
 
-        VersionResponse? response = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream );
+            if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-        return response?.Version;
+            VersionResponse? response = JsonSerializer.Deserialize<VersionResponse>( ph.OutputStream );
+
+            return response?.Version;
+        }
+        catch
+        {
+            return "10 (unavailable)";
+        }
     }
 
     static string GetWorkerExePath( )
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_exe = Path.Combine( assembly_dir, "Worker", @"DotNETWorker.bin" );
+        string worker_exe = Path.Combine( assembly_dir, "DotNET10Worker", @"DotNET10Worker.bin" );
 
         return worker_exe;
     }

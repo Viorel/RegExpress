@@ -14,7 +14,7 @@ namespace DotNETFrameworkConsole
 {
     internal class Program
     {
-        sealed class InputArgs
+        sealed class Input
         {
             public string cmd { get; set; }
             public string pattern { get; set; }
@@ -37,43 +37,10 @@ namespace DotNETFrameworkConsole
             public long? Timeout { get; set; }
         }
 
-        sealed class WorkerMatches
+        public sealed class Output
         {
             public string[] Names { get; set; }
-            public List<WorkerMatch> Matches { get; set; } = new List<WorkerMatch>( );
-        }
-
-        sealed class WorkerMatch
-        {
-            [JsonPropertyName( "i" )]
-            public int Index { get; set; }
-
-            [JsonPropertyName( "l" )]
-            public int Length { get; set; }
-
-            [JsonPropertyName( "g" )]
-            public List<WorkerGroup> groups { get; set; } = new List<WorkerGroup>( );
-        }
-
-        sealed class WorkerGroup
-        {
-            [JsonPropertyName( "i" )]
-            public int Index { get; set; }
-
-            [JsonPropertyName( "l" )]
-            public int Length { get; set; }
-
-            [JsonPropertyName( "c" )]
-            public List<WorkerCapture> Captures { get; set; } = new List<WorkerCapture>( );
-        }
-
-        sealed class WorkerCapture
-        {
-            [JsonPropertyName( "i" )]
-            public int Index { get; set; }
-
-            [JsonPropertyName( "l" )]
-            public int Length { get; set; }
+            public List<List<List<int>>> Matches { get; set; }
         }
 
 
@@ -84,24 +51,80 @@ namespace DotNETFrameworkConsole
                 Console.InputEncoding = Encoding.UTF8;
                 Console.OutputEncoding = Encoding.UTF8;
 
+                if( args.Length > 0 )
+                {
+                    if( args.Length == 1 )
+                    {
+                        if( args[0] == "v" )
+                        {
+                            GetVersion( );
+
+                            return;
+                        }
+                    }
+
+                    throw new NotSupportedException( "Incorrect arguments" );
+                }
+
                 string input_string = Console.In.ReadToEnd( );
 
-                InputArgs input_args = JsonSerializer.Deserialize<InputArgs>( input_string );
+                Input input = JsonSerializer.Deserialize<Input>( input_string );
 
-                switch( input_args.cmd )
+                RegexOptions options = RegexOptions.None;
+                if( input.options != null )
                 {
-                case "v":
-                    GetVersion( );
-                    break;
-                case "t":
-                    GetTextBackTest( input_args );
-                    break;
-                case "m":
-                    GetMatches( input_args );
-                    break;
-                default:
-                    throw new ArgumentException( $"Command not supported: '{input_args.cmd}'" );
+                    Options o = input.options;
+
+                    if( o.IgnoreCase ) options |= RegexOptions.IgnoreCase;
+                    if( o.Multiline ) options |= RegexOptions.Multiline;
+                    if( o.ExplicitCapture ) options |= RegexOptions.ExplicitCapture;
+                    if( o.Compiled ) options |= RegexOptions.Compiled;
+                    if( o.Singleline ) options |= RegexOptions.Singleline;
+                    if( o.IgnorePatternWhitespace ) options |= RegexOptions.IgnorePatternWhitespace;
+                    if( o.RightToLeft ) options |= RegexOptions.RightToLeft;
+                    if( o.ECMAScript ) options |= RegexOptions.ECMAScript;
+                    if( o.CultureInvariant ) options |= RegexOptions.CultureInvariant;
                 }
+
+                Regex regex = input.options?.Timeout == null ?
+                    new Regex( input.pattern, options ) :
+                    new Regex( input.pattern, options, TimeSpan.FromMilliseconds( input.options.Timeout.Value ) );
+
+                List<List<List<int>>> output_matches = new List<List<List<int>>>( );
+
+                foreach( Match match in regex.Matches( input.text ) )
+                {
+                    Debug.Assert( match.Success );
+                    if( !match.Success ) break;
+
+                    List<List<int>> groups = new List<List<int>>( );
+
+                    foreach( Group group in match.Groups.Cast<Group>( ) )
+                    {
+                        List<int> captures = new List<int>( );
+
+                        if( !group.Success )
+                        {
+                            // nothing added
+                        }
+                        else
+                        {
+                            foreach( Capture capture in group.Captures )
+                            {
+                                captures.Add( capture.Index );
+                                captures.Add( capture.Length );
+                            }
+                        }
+
+                        groups.Add( captures );
+                    }
+
+                    output_matches.Add( groups );
+                }
+
+                string json = JsonSerializer.Serialize( new Output { Names = regex.GetGroupNames( ), Matches = output_matches } );
+
+                Console.Out.WriteLine( json );
             }
             catch( Exception exc )
             {
@@ -120,7 +143,7 @@ namespace DotNETFrameworkConsole
 
             if( targetFrameworkAttribute != null )
             {
-                Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+)?)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );
+                Match m = Regex.Match( targetFrameworkAttribute.FrameworkName, @"Version\s*=\s*v?(?<version>\d+(\.\d+){0,2})", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture );
 
                 if( m.Success )
                 {
@@ -143,76 +166,5 @@ namespace DotNETFrameworkConsole
             Console.Out.WriteLine( response_string );
         }
 
-        private static void GetTextBackTest( InputArgs inputArgs )
-        {
-            Console.Out.WriteLine( inputArgs.text );
-        }
-
-        private static void GetMatches( InputArgs inputArgs )
-        {
-            RegexOptions options = ConvertOptions( inputArgs.options );
-
-            Regex re = inputArgs.options?.Timeout == null ?
-                new Regex( inputArgs.pattern, options ) :
-                new Regex( inputArgs.pattern, options, TimeSpan.FromMilliseconds( inputArgs.options.Timeout.Value ) );
-
-            var worker_matches = new WorkerMatches( );
-
-            worker_matches.Names = re.GetGroupNames( );
-
-            foreach( Match m in re.Matches( inputArgs.text ) )
-            {
-                Debug.Assert( m.Success );
-
-                var worker_match = new WorkerMatch { Index = m.Index, Length = m.Length };
-
-                foreach( Group g in m.Groups )
-                {
-                    WorkerGroup worker_group;
-
-                    if( !g.Success )
-                    {
-                        worker_group = new WorkerGroup { Index = -1, Length = -1 };
-                    }
-                    else
-                    {
-                        worker_group = new WorkerGroup { Index = g.Index, Length = g.Length };
-
-                        foreach( Capture c in g.Captures )
-                        {
-                            worker_group.Captures.Add( new WorkerCapture { Index = c.Index, Length = c.Length } );
-                        }
-                    }
-
-                    worker_match.groups.Add( worker_group );
-                }
-
-                worker_matches.Matches.Add( worker_match );
-            }
-
-            string ret_json = JsonSerializer.Serialize( worker_matches );
-
-            Console.Out.WriteLine( ret_json );
-        }
-
-        private static RegexOptions ConvertOptions( Options options )
-        {
-            RegexOptions o = RegexOptions.None;
-
-            if( options != null )
-            {
-                if( options.IgnoreCase ) o |= RegexOptions.IgnoreCase;
-                if( options.Multiline ) o |= RegexOptions.Multiline;
-                if( options.ExplicitCapture ) o |= RegexOptions.ExplicitCapture;
-                if( options.Compiled ) o |= RegexOptions.Compiled;
-                if( options.Singleline ) o |= RegexOptions.Singleline;
-                if( options.IgnorePatternWhitespace ) o |= RegexOptions.IgnorePatternWhitespace;
-                if( options.RightToLeft ) o |= RegexOptions.RightToLeft;
-                if( options.ECMAScript ) o |= RegexOptions.ECMAScript;
-                if( options.CultureInvariant ) o |= RegexOptions.CultureInvariant;
-            }
-
-            return o;
-        }
     }
 }

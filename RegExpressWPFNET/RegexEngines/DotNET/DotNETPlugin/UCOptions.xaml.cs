@@ -45,9 +45,9 @@ namespace DotNETPlugin
 
                 ClassEnum @class = Options.Class;
 
-                bool is_dotnet = @class == ClassEnum.RegexDotNet;
+                bool is_dotnet = @class == ClassEnum.DotNet10;
                 bool is_dotnet11 = @class == ClassEnum.DotNet11;
-                bool is_dotnet_framework = @class == ClassEnum.RegexDotNetFramework;
+                bool is_dotnet_framework = @class == ClassEnum.DotNetFramework;
                 bool is_resharp = @class == ClassEnum.ReSharp;
                 bool is_scout = @class == ClassEnum.Scout;
                 bool is_locad = @class == ClassEnum.LokadUtf8Regex;

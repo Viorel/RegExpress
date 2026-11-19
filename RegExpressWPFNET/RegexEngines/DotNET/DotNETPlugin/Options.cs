@@ -3,8 +3,8 @@
 enum ClassEnum
 {
     None,
-    RegexDotNet,
-    RegexDotNetFramework,
+    DotNet10,
+    DotNetFramework,
     ReSharp,
     Scout,
     LokadUtf8Regex,
@@ -49,7 +49,7 @@ enum CorvusUnicodeVersionEnum
 
 sealed class Options
 {
-    public ClassEnum Class { get; set; } = ClassEnum.RegexDotNet;
+    public ClassEnum Class { get; set; } = ClassEnum.DotNet10;
 
     public bool Compiled { get; set; }
     public bool CultureInvariant { get; set; }

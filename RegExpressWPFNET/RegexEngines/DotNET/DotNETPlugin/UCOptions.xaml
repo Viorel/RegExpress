@@ -38,9 +38,9 @@
 
             <Label Grid.Row="0" Grid.Column="0" Content="Kind:" Target="{Binding ElementName=cbxClass}" />
             <ComboBox x:Name="cbxClass" Grid.Row="0" Grid.Column="1" SelectedValuePath="Tag" SelectedValue="{Binding Class, FallbackValue='RegexDotNet'}" SelectionChanged="cbxClass_SelectionChanged">
-                <ui:ComboBoxItemWithVersion Tag ="RegexDotNet"          Text="Regex .NET"           Version="{x:Static local:Versions.DotNet}"          d:Version="###" IsSelected="True" />
                 <ui:ComboBoxItemWithVersion Tag ="DotNet11"             Text="Regex .NET"           Version="{x:Static local:Versions.DotNet11}"        d:Version="###" />
-                <ui:ComboBoxItemWithVersion Tag ="RegexDotNetFramework" Text="Regex .NET Framework" Version="{x:Static local:Versions.DotNetFramework}" d:Version="###" />
+                <ui:ComboBoxItemWithVersion Tag ="DotNet10"             Text="Regex .NET"           Version="{x:Static local:Versions.DotNet10}"        d:Version="###" IsSelected="True" />
+                <ui:ComboBoxItemWithVersion Tag ="DotNetFramework"      Text="Regex .NET Framework" Version="{x:Static local:Versions.DotNetFramework}" d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="ReSharp"              Text="RE#"                  Version="{x:Static local:Versions.ReSharp}"         d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="Scout"                Text="Scout"                Version="{x:Static local:Versions.Scout}"           d:Version="###" />
                 <ui:ComboBoxItemWithVersion Tag ="LokadUtf8Regex"       Text="Lokad.Utf8Regex"      Version="{x:Static local:Versions.LokadUtf8Regex}"  d:Version="###" />
