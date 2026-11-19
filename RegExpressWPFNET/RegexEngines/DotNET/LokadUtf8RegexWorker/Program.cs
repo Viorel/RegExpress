@@ -70,7 +70,7 @@ namespace LokadUtf8RegexWorker
 
                 byte[] text_bytes = Encoding.UTF8.GetBytes( text );
 
-                List<List<List<int>>> output_matches = [];
+                List<List<List<int>>> matches = [];
 
                 Lokad.Utf8Regex.Utf8Regex regex = new( pattern, options, timeout );
 
@@ -82,26 +82,36 @@ namespace LokadUtf8RegexWorker
 
                     // ('IndexInBytes', 'LengthInBytes' give error in case of surrogate pairs)
 
-                    List<List<int>> groups = [];
+                    List<List<int>> groups = [[match.IndexInUtf16, match.LengthInUtf16]];
 
-                    for( int group_index = 0; group_index < match.GroupCount; ++group_index )
+                    for( int group_index = 1; group_index < match.GroupCount; ++group_index ) // skip default group, already added
                     {
                         Lokad.Utf8Regex.Utf8GroupContext group = match.GetGroup( group_index );
 
                         List<int> captures = [];
 
-                        for( int capture_index = 0; capture_index < group.CaptureCount; ++capture_index )
+                        if( !group.Success )
                         {
-                            Lokad.Utf8Regex.Utf8CaptureContext capture = group.GetCapture( capture_index );
+                            // nothing added
+                        }
+                        else
+                        {
+                            captures.Add( group.IndexInUtf16 );
+                            captures.Add( group.LengthInUtf16 );
 
-                            captures.Add( capture.IndexInUtf16 );
-                            captures.Add( capture.LengthInUtf16 );
+                            for( int capture_index = 0; capture_index < group.CaptureCount; ++capture_index )
+                            {
+                                Lokad.Utf8Regex.Utf8CaptureContext capture = group.GetCapture( capture_index );
+
+                                captures.Add( capture.IndexInUtf16 );
+                                captures.Add( capture.LengthInUtf16 );
+                            }
                         }
 
                         groups.Add( captures );
                     }
 
-                    output_matches.Add( groups );
+                    matches.Add( groups );
 
                     // next start
 
@@ -126,7 +136,12 @@ namespace LokadUtf8RegexWorker
                     }
                 }
 
-                string json = JsonSerializer.Serialize( new Output { Names = regex.GetGroupNames( ), Matches = [.. output_matches] } );
+                Output output = new( )
+                {
+                    Names = regex.GetGroupNames( ),
+                    Matches = matches
+                };
+                string json = JsonSerializer.Serialize( output );
 
                 Console.Out.WriteLine( json );
             }

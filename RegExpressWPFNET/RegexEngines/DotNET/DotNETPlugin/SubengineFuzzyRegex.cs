@@ -36,8 +36,8 @@ internal partial class SubengineFuzzyRegex( Options options ) : RegexSubengine
 
     public class Rootobject
     {
-        public required string[] Names { get; set; }
-        public required int[][][] Matches { get; set; }
+        public required string[] Names { get; init; }
+        public required int[][][] Matches { get; init; }
     }
 
 
@@ -109,54 +109,71 @@ internal partial class SubengineFuzzyRegex( Options options ) : RegexSubengine
             SimpleMatch match;
 
             {
+                // match and default group
+
                 int native_start = m[0][0];
                 int native_length = m[0][1];
-                int native_end = native_start + native_length;
 
-                Debug.Assert( native_start >= 0 && native_end >= native_start );
+                Debug.Assert( native_start >= 0 && native_length >= 0 );
+
+                int native_end = native_start + native_length;
 
                 (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
                 match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
-
                 match.AddDefaultGroup( );
             }
 
-            for( int i = 1; i < m.Length; ++i ) // skip default group
             {
-                int[] g = m[i];
+                // other groups and captures
 
-                string name = root_object.Names[i];
-
-                bool success = g.Length > 0;
-
-                if( !success )
+                for( int group_index = 1; group_index < m.Length; group_index++ )
                 {
-                    match.AddFailedGroup( name );
-                }
-                else
-                {
-                    int native_start = g[0];
-                    int native_length = g[1];
-                    int native_end = native_start + native_length;
+                    string? name = group_index >= root_object.Names.Length ? null : root_object.Names[group_index];
+                    if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
 
-                    Debug.Assert( native_start >= 0 && native_end >= native_start );
+                    int[] captures = m[group_index];
 
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    var group = match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
-
-                    for( int j = 2; j < g.Length; j += 2 )
+                    if( captures.Length == 0 )
                     {
-                        int c_native_start = g[j];
-                        int c_native_length = g[j + 1];
-                        int c_native_end = c_native_start + c_native_length;
+                        match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        SimpleGroup group;
 
-                        Debug.Assert( c_native_start >= 0 && c_native_end >= c_native_start );
+                        {
+                            // group
 
-                        (int c_char_start, int c_char_length) = index_converter.Convert( c_native_start, c_native_end );
+                            int native_start = captures[0];
+                            int native_length = captures[1];
 
-                        group.AddCapture( c_native_start, c_native_length, c_char_start, c_char_length );
+                            Debug.Assert( native_start >= 0 && native_length >= 0 );
+
+                            int native_end = native_start + native_length;
+
+                            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                            group = match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                        }
+
+                        {
+                            // captures
+
+                            for( int k = 2; k < captures.Length; k += 2 ) // skip group, already added
+                            {
+                                int native_start = captures[k];
+                                int native_length = captures[k + 1];
+
+                                Debug.Assert( native_start >= 0 && native_length >= 0 );
+
+                                int native_end = native_start + native_length;
+
+                                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                                group.AddCapture( native_start, native_length, char_start, char_length );
+                            }
+                        }
                     }
                 }
             }
@@ -397,7 +414,7 @@ internal partial class SubengineFuzzyRegex( Options options ) : RegexSubengine
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = true,
-            ßSS = Version1 || (Version0 && FullCase),
+            ßSS = Version1 || ( Version0 && FullCase ),
         };
     }
 

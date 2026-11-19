@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 
 namespace FuzzyRegexWorker;
@@ -39,7 +40,7 @@ internal class Program
     sealed class Output
     {
         public required string[] Names { get; set; }
-        public required int[][][] Matches { get; set; }
+        public required List<List<List<int>>> Matches { get; init; }
     }
 
     static void Main( string[] args )
@@ -82,42 +83,47 @@ internal class Program
                 partial = input.options.Partial;
             }
 
-            Fuzzy.Text.RegularExpressions.FuzzyRegex re = new( input.pattern, options, timeout, maxCompiledNodes: max_compiled_nodes );
+            Fuzzy.Text.RegularExpressions.FuzzyRegex regex = new( input.pattern, options, timeout, maxCompiledNodes: max_compiled_nodes );
 
-            List<int[][]> matches = [];
-            List<int[]> match = [];
-            List<int> group_and_captures = [];
+            List<List<List<int>>> matches = [];
 
-            foreach( var m in re.EnumerateMatches( input.text, overlapped: overlapped, partial: partial, timeout: step_timeout ) )
+            foreach( Fuzzy.Text.RegularExpressions.Match match in regex.EnumerateMatches( input.text, overlapped: overlapped, partial: partial, timeout: step_timeout ) )
             {
-                match.Clear( );
+                Debug.Assert( match.Success );
+                if( !match.Success ) break;
 
-                foreach( var g in m.Groups )
+                List<List<int>> groups = [[match.Index, match.Length]];
+
+                foreach( Fuzzy.Text.RegularExpressions.Group group in match.Groups.Cast<Fuzzy.Text.RegularExpressions.Group>( ).Skip( 1 ) ) // skip default group, already added
                 {
-                    group_and_captures.Clear( );
+                    List<int> captures = [];
 
-                    if( g.Success )
+                    if( !group.Success )
                     {
-                        group_and_captures.Add( g.Index );
-                        group_and_captures.Add( g.Length );
+                        // nothing added
+                    }
+                    else
+                    {
+                        captures.Add( group.Index );
+                        captures.Add( group.Length );
 
-                        foreach( var c in g.Captures )
+                        foreach( Fuzzy.Text.RegularExpressions.Capture capture in group.Captures )
                         {
-                            group_and_captures.Add( c.Index );
-                            group_and_captures.Add( c.Length );
+                            captures.Add( capture.Index );
+                            captures.Add( capture.Length );
                         }
                     }
 
-                    match.Add( [.. group_and_captures] );
+                    groups.Add( captures );
                 }
 
-                matches.Add( [.. match] );
+                matches.Add( groups );
             }
 
             Output output = new( )
             {
-                Names = [.. re.GroupNames],
-                Matches = [.. matches]
+                Names = [.. regex.GroupNames],
+                Matches = matches
             };
             string output_json = JsonSerializer.Serialize( output );
 

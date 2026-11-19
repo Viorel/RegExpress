@@ -90,18 +90,18 @@ namespace DotNETFrameworkConsole
                     new Regex( input.pattern, options ) :
                     new Regex( input.pattern, options, TimeSpan.FromMilliseconds( input.options.Timeout.Value ) );
 
-                List<List<List<int>>> output_matches = new List<List<List<int>>>( );
+                List<List<List<int>>> matches = new List<List<List<int>>>( );
 
                 foreach( Match match in regex.Matches( input.text ) )
                 {
                     Debug.Assert( match.Success );
                     if( !match.Success ) break;
 
-                    List<List<int>> groups = new List<List<int>>( );
+                    List<List<int>> groups = new List<List<int>> { new List<int>( ) { match.Index, match.Length } };
 
-                    foreach( Group group in match.Groups.Cast<Group>( ) )
+                    foreach( Group group in match.Groups.Cast<Group>( ).Skip( 1 ) ) // skip default group, already added
                     {
-                        List<int> captures = new List<int>( );
+                        List<int> captures = new List<int>();
 
                         if( !group.Success )
                         {
@@ -109,6 +109,9 @@ namespace DotNETFrameworkConsole
                         }
                         else
                         {
+                            captures.Add( group.Index );
+                            captures.Add( group.Length );
+
                             foreach( Capture capture in group.Captures )
                             {
                                 captures.Add( capture.Index );
@@ -119,10 +122,15 @@ namespace DotNETFrameworkConsole
                         groups.Add( captures );
                     }
 
-                    output_matches.Add( groups );
+                    matches.Add( groups );
                 }
 
-                string json = JsonSerializer.Serialize( new Output { Names = regex.GetGroupNames( ), Matches = output_matches } );
+                Output output = new Output( )
+                {
+                    Names = regex.GetGroupNames( ),
+                    Matches = matches
+                };
+                string json = JsonSerializer.Serialize( output );
 
                 Console.Out.WriteLine( json );
             }

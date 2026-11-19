@@ -157,7 +157,7 @@ class SubengineDotNet11( Options options ) : RegexSubengine
                         {
                             // captures
 
-                            for( int k = 0; k < captures.Length; k += 2 )
+                            for( int k = 2; k < captures.Length; k += 2 ) // skip group, already added
                             {
                                 int native_start = captures[k];
                                 int native_length = captures[k + 1];
@@ -433,8 +433,6 @@ class SubengineDotNet11( Options options ) : RegexSubengine
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = false,
             ßSS = false,
-
-            Ext_Ph2 = true,
         };
     }
 }
