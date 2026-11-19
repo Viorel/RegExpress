@@ -171,6 +171,7 @@
         public bool InsideSets_Operator_Plus { get; init; }                 // [[...] + [...]]
         public bool InsideSets_Operator_VerticalLine { get; init; }         // [[...] | [...]]
         public bool InsideSets_Operator_Minus { get; init; }                // [[...] - [...]]
+        public bool InsideSets_Operator_MinusBased { get; init; }           // [... - [...]]; ex: [a-d-[b]], which is [acd]
         public bool InsideSets_Operator_Circumflex { get; init; }           // [[...] ^ [...]]
         public bool InsideSets_Operator_Exclamation { get; init; }          // [![...] ...]
         public bool InsideSets_Operator_DoubleAmpersand { get; init; }      // [[...] && [...]]

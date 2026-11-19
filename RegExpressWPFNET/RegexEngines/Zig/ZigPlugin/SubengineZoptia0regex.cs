@@ -278,6 +278,7 @@ class SubengineZoptia0regex( Options options ) : RegexSubengine
             InsideSets_Operator_Plus = false,
             InsideSets_Operator_VerticalLine = false,
             InsideSets_Operator_Minus = false,
+            InsideSets_Operator_MinusBased = false,
             InsideSets_Operator_Circumflex = false,
             InsideSets_Operator_Exclamation = false,
             InsideSets_Operator_DoubleAmpersand = false,

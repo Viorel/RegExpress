@@ -300,6 +300,7 @@ partial class Subengine( Options options ) : RegexSubengine
             InsideSets_Operator_Plus = true,
             InsideSets_Operator_VerticalLine = true,
             InsideSets_Operator_Minus = true,
+            InsideSets_Operator_MinusBased = false,
             InsideSets_Operator_Circumflex = true,
             InsideSets_Operator_Exclamation = true,
             InsideSets_Operator_DoubleAmpersand = false,

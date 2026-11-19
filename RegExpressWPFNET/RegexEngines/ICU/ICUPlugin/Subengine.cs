@@ -324,6 +324,7 @@ partial class Subengine( Options options ) : RegexSubengine
             InsideSets_Operator_Plus = false,
             InsideSets_Operator_VerticalLine = false,
             InsideSets_Operator_Minus = true, // TODO: not documented
+            InsideSets_Operator_MinusBased = false,
             InsideSets_Operator_Circumflex = false,
             InsideSets_Operator_Exclamation = false,
             InsideSets_Operator_DoubleAmpersand = true,

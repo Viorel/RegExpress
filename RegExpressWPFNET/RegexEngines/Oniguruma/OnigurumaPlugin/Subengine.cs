@@ -343,6 +343,7 @@ class Subengine( Options options, Engine parentEngine ) : RegexSubengine
             InsideSets_Operator_Plus = false,
             InsideSets_Operator_VerticalLine = false,
             InsideSets_Operator_Minus = false,
+            InsideSets_Operator_MinusBased = false,
             InsideSets_Operator_Circumflex = false,
             InsideSets_Operator_Exclamation = false,
             InsideSets_Operator_DoubleAmpersand = details.ONIG_SYN_OP2_CCLASS_SET_OP,
