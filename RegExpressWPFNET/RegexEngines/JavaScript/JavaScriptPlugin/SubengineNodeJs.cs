@@ -19,7 +19,7 @@ namespace JavaScriptPlugin;
 
 partial class SubengineNodeJs( Options options ) : RegexSubengine
 {
-    static readonly LazyData<(bool uFlag, bool vFlag), FeatureMatrix> LazyFeatureMatrix = new( d => BuildFeatureMatrix_V8( d.uFlag, d.vFlag ) );
+    static readonly LazyData<(bool uFlag, bool vFlag), FeatureMatrix> LazyFeatureMatrix = new( d => BuildFeatureMatrix( d.uFlag, d.vFlag ) );
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
@@ -230,7 +230,7 @@ partial class SubengineNodeJs( Options options ) : RegexSubengine
         }
     }
 
-    static FeatureMatrix BuildFeatureMatrix_V8( bool uFlag, bool vFlag )
+    static FeatureMatrix BuildFeatureMatrix( bool uFlag, bool vFlag )
     {
         return new FeatureMatrix
         {

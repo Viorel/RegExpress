@@ -44,6 +44,7 @@
                 <ui:ComboBoxItemWithVersion Tag ="Bun"          Text="JavaScriptCore (Bun)" Version="{x:Static local:Versions.Bun}" />
                 <ui:ComboBoxItemWithVersion Tag ="RE2JS"        Text="RE2JS"                Version="{x:Static local:Versions.RE2JS}" />
                 <ui:ComboBoxItemWithVersion Tag ="RegexPlus"    Text="Regex+"               Version="{x:Static local:Versions.RegexPlus}" />
+                <ui:ComboBoxItemWithVersion Tag ="Jint"         Text="Jint"                 Version="{x:Static local:Versions.Jint}" />
             </ComboBox>
 
             <Label Grid.Row="1" Grid.Column="0" Content="Function:" Target="{Binding ElementName=cbxFunction}" />
@@ -84,6 +85,22 @@
             <ui:CheckboxWithNote x:Name="checkboxEnableDuplicateNames" Prop="EnableDuplicateNames" Text="--enable-regexp-duplicate-named-groups" Note="enable duplicate named capture groups"/>
             <ui:CheckboxWithNote x:Name="checkboxEnableRegexpModifiers" Prop="EnableRegexpModifiers" Text="--enable-regexp-modifiers" Note="enable pattern modifiers"/>
         </StackPanel>
+
+
+        <Grid x:Name="pnlLimits" Style="{StaticResource DetailsTable}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition MinWidth="55"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <Label Grid.Row="0" Grid.Column="0" Content="Timeout:" Target="{Binding ElementName=Timeout}"/>
+            <TextBox x:Name="Timeout" Grid.Row="0" Grid.Column="1" Text="{Binding timeoutMs, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+            <TextBlock Grid.Row="0" Grid.Column="2" Text="ms" FontStyle="Italic" />
+        </Grid>
 
     </StackPanel>
 

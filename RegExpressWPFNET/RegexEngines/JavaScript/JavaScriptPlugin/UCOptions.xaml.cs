@@ -62,6 +62,11 @@ namespace JavaScriptPlugin
             Notify( preferImmediateReaction: false );
         }
 
+        private void tb_TextChanged( object sender, TextChangedEventArgs e )
+        {
+            Notify( preferImmediateReaction: false );
+        }
+
         void UpdateUI( )
         {
             if( !IsFullyLoaded ) return;
@@ -76,19 +81,22 @@ namespace JavaScriptPlugin
                 bool is_QuickJs = Options.Runtime == RuntimeEnum.QuickJs;
                 bool is_RE2JS = Options.Runtime == RuntimeEnum.RE2JS;
                 bool is_RegexPlus = Options.Runtime == RuntimeEnum.RegexPlus;
+                bool is_jint = Options.Runtime == RuntimeEnum.Jint;
 
-                cbxFunction.Display( !is_RE2JS );
+                cbxFunction.Display( is_V8 || is_SM || is_QuickJs || is_RegexPlus || is_jint );
                 cbxFunctionRE2JS.Display( is_RE2JS );
 
-                pnlCommon.Display( !is_RE2JS );
+                pnlCommon.Display( is_V8 || is_SM || is_QuickJs || is_RegexPlus || is_jint );
                 pnlRE2JS.Display( is_RE2JS );
                 pnlSM.Display( is_SM );
 
-                checkboxU.Display( !is_RegexPlus );
-                checkboxV.Display( is_V8 || is_QuickJs || is_RegexPlus );
+                checkboxU.Display( is_V8 || is_SM || is_QuickJs || is_RegexPlus || is_RE2JS || is_jint );
+                checkboxV.Display( is_V8 || is_QuickJs || is_RegexPlus || is_jint );
                 checkboxX.Display( is_RegexPlus );
                 checkboxN.Display( is_RegexPlus );
                 checkboxSubclass.Display( is_RegexPlus );
+
+                pnlLimits.Display( is_jint );
             }
             finally
             {
@@ -116,5 +124,6 @@ namespace JavaScriptPlugin
                 cbi.Content = $"WebView2 {version}";
             } );
         }
+
     }
 }

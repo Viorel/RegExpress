@@ -39,7 +39,8 @@ The following engines are included:
   * [_SpiderMonkey_](https://spidermonkey.dev/) C145.0,
   * _JavaScriptCore_ (via [Bun 1.3.13](https://bun.sh/)[^1]),
   * [_RE2JS_](https://github.com/le0pard/re2js) 2.10.0,
-  * [_Regex+_](https://github.com/slevithan/regex) 6.1.0.
+  * [_Regex+_](https://github.com/slevithan/regex) 6.1.0,
+  * [_Jint_](https://github.com/sebastienros/jint) 4.18.0.
 * **VB RegExp**:
   * [**RegExp**](https://learn.microsoft.com/en-us/previous-versions/yab2dx62(v=vs.85)) object used in Publisher, Word, Excel, Access, VBScript,
   * [**tbRegExp**](https://github.com/GCuser99/tbRegExp) 1.7.0.0 for **twinBASIC**.

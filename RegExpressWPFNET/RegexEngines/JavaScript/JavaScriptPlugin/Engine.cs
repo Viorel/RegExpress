@@ -61,6 +61,7 @@ class Engine : RegexEngine
                 RuntimeEnum.Bun => "JavaScriptCore (Bun)",
                 RuntimeEnum.RE2JS => "JavaScript (RE2JS)",
                 RuntimeEnum.RegexPlus => "JavaScript (Regex+)",
+                RuntimeEnum.Jint => "JavaScript (Jint)",
                 _ => "Unknown"
             };
         }
@@ -104,38 +105,29 @@ class Engine : RegexEngine
 
     public override IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
     {
-        Engine njs_engine_no_uv = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = false } };
-        //Engine njs_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } };
-        Engine njs_engine_v = new( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = true } };
-        //Engine qjs_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.QuickJs, u = false, v = false } };
-        Engine qjs_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.QuickJs, u = true, v = false } };
-        Engine sm_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.SpiderMonkey, u = false, v = false } };
-        Engine sm_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.SpiderMonkey, u = true, v = false } };
-        Engine bun_engine_no_u = new( ) { Options = new Options { Runtime = RuntimeEnum.Bun, u = false, v = false } };
-        Engine bun_engine_u = new( ) { Options = new Options { Runtime = RuntimeEnum.Bun, u = true, v = false } };
-        Engine re2js_engine = new( ) { Options = new Options { Runtime = RuntimeEnum.RE2JS, LOOKBEHINDS = true } };
-        //Engine regexPlus_engineNoV = new( ) { Options = new Options { Runtime = RuntimeEnum.RegexPlus, v = false, x = true, n = false } }; //...
-        Engine regexPlus_engine = new( ) { Options = new Options { Runtime = RuntimeEnum.RegexPlus, v = true, x = true, n = false } };
-
         return
             [
-                new ("V8", njs_engine_no_uv),
-                //new ("V8, “u”", njs_engine_u),
-                new ("V8 (“v”)", njs_engine_v),
+                new ("V8", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = false } }),
+                //new ("V8, “u”", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = true, v = false } }),
+                new ("V8 (“v”)", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.NodeJs, u = false, v = true } }),
 
-                //new ("Qjs", qjs_engine_no_u),
-                new ("Qjs (“u”)", qjs_engine_u),
+                //new ("Qjs", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.QuickJs, u = false, v = false } }),
+                new ("Qjs (“u”)", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.QuickJs, u = true, v = false } }),
 
-                //new ("SM", LazyFeatureMatrix_SpiderMonkey.GetValue( false), sm_engine_no_u),
-                new ("SM (“u”)", sm_engine_u),
+                //new ("SM", LazyFeatureMatrix_SpiderMonkey.GetValue( false), new Engine( ) { Options = new Options { Runtime = RuntimeEnum.SpiderMonkey, u = false, v = false } }),
+                new ("SM (“u”)", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.SpiderMonkey, u = true, v = false } }),
 
-                //new ("Bun", LazyFeatureMatrix_Bun.GetValue( false), bun_engine_no_u),
-                new ("Bun (“u”)", bun_engine_u),
+                //new ("Bun", LazyFeatureMatrix_Bun.GetValue( false), new Engine( ) { Options = new Options { Runtime = RuntimeEnum.Bun, u = false, v = false } }),
+                new ("Bun (“u”)", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.Bun, u = true, v = false } }),
 
-                new ("RE2JS", re2js_engine),
+                new ("RE2JS", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.RE2JS, LOOKBEHINDS = true } }),
 
-                //new ("Regex+ (“x”)", regexPlus_engineNoV), //...
-                new ("Regex+ (“vx”)", regexPlus_engine),
+                //new ("Regex+ (“x”)", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.RegexPlus, v = false, x = true, n = false } }), //...
+                new ("Regex+ (“vx”)", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.RegexPlus, v = true, x = true, n = false } }),
+
+                //new ("Jint", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.Jint, u = false, v = false} }),
+                //new ("Jint (“u”)", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.Jint, u = true, v = false} }),
+                new ("Jint (“v”)", new Engine( ) { Options = new Options { Runtime = RuntimeEnum.Jint, u = false, v = true } }),
             ];
     }
 
@@ -147,6 +139,8 @@ class Engine : RegexEngine
 
     public override void SetIgnorePatternWhitespace( bool yes )
     {
+        Options.x = yes;
+        if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
     }
 
     public override void SetCollectCaptures( bool yes )
@@ -172,6 +166,7 @@ class Engine : RegexEngine
             RuntimeEnum.Bun => new SubengineBun( Options ),
             RuntimeEnum.RE2JS => new SubengineRE2JS( Options ),
             RuntimeEnum.RegexPlus => new SubengineRegexPlus( Options ),
+            RuntimeEnum.Jint => new SubengineJint( Options ),
             _ => throw new NotSupportedException( ),
         };
     }

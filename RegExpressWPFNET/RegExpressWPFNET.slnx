@@ -27,18 +27,18 @@
   </Folder>
   <Folder Name="/RegexEngines/DotNET/">
     <Project Path="RegexEngines/DotNET/CorvusEcma262Worker/CorvusEcma262Worker.csproj" Id="bc840e2e-33a8-4bea-aaa4-6006626b5952" />
+    <Project Path="RegexEngines/DotNET/DotNET10Worker/DotNET10Worker.csproj" />
     <Project Path="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" Id="4129f02d-f0ea-4235-a8e7-ddd591dae7f6" />
     <Project Path="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj">
       <BuildDependency Project="RegexEngines/DotNET/CorvusEcma262Worker/CorvusEcma262Worker.csproj" />
-      <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/DotNET10Worker/DotNET10Worker.csproj" />
+      <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/FuzzyRegexWorker/FuzzyRegexWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/GregsExWorker/GregsExWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/RESharpWorker/RESharpWorker.csproj" />
       <BuildDependency Project="RegexEngines/DotNET/ScoutWorker/ScoutWorker.csproj" />
     </Project>
-    <Project Path="RegexEngines/DotNET/DotNET10Worker/DotNET10Worker.csproj" />
     <Project Path="RegexEngines/DotNET/FuzzyRegexWorker/FuzzyRegexWorker.csproj" Id="3eaeaa13-977b-4d12-8317-ded94cb09fa1" />
     <Project Path="RegexEngines/DotNET/GregsExWorker/GregsExWorker.csproj" Id="b14803d2-9525-4a77-bb2c-abcd434d8f21" />
     <Project Path="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" Id="d102e3c3-2f20-4876-8aec-e2df4f5f9762" />
@@ -74,8 +74,10 @@
   </Folder>
   <Folder Name="/RegexEngines/JavaScript/">
     <Project Path="RegexEngines/JavaScript/JavaScriptPlugin/JavaScriptPlugin.csproj">
+      <BuildDependency Project="RegexEngines/JavaScript/JintWorker/JintWorker.csproj" />
       <BuildDependency Project="RegexEngines/JavaScript/WebView2Worker/WebView2Worker.vcxproj" />
     </Project>
+    <Project Path="RegexEngines/JavaScript/JintWorker/JintWorker.csproj" Id="c90e2b1e-56fd-4141-b015-ca068bb9e5bf" />
     <Project Path="RegexEngines/JavaScript/WebView2Worker/WebView2Worker.vcxproj" Id="2d0502b5-8f7b-4fcc-864a-49bcf350b986" />
   </Folder>
   <Folder Name="/RegexEngines/Oniguruma/">
@@ -119,7 +121,7 @@
   </Folder>
   <Folder Name="/RegexEngines/Std/">
     <Project Path="RegexEngines/Std/SrellLinearWorker/SrellLinearWorker.vcxproj" Id="72a54535-e998-41fb-88b2-9b928b5fb620" />
-    <Project Path="RegexEngines/Std/SrellWorker/SrellWorker.vcxproj" />
+    <Project Path="RegexEngines/Std/SrellWorker/SrellWorker.vcxproj" Id="0a1b89a3-5695-3f21-7743-75cc5d4529ce" />
     <Project Path="RegexEngines/Std/StdPlugin/StdPlugin.csproj">
       <BuildDependency Project="RegexEngines/Std/SrellLinearWorker/SrellLinearWorker.vcxproj" />
       <BuildDependency Project="RegexEngines/Std/SrellWorker/SrellWorker.vcxproj" />
@@ -162,7 +164,7 @@
   </Folder>
   <Project Path="RegExpressCppLibrary/RegExpressCppLibrary.vcxproj" Id="0a96a479-5737-4d64-8f1a-2cc87ca675e2" />
   <Project Path="RegExpressLibrary/RegExpressLibrary.csproj" />
-  <Project Path="RegExpressWPFNET/RegExpressWPFNET.csproj">
+  <Project Path="RegExpressWPFNET/RegExpressWPFNET.csproj" DefaultStartup="true">
     <BuildDependency Project="SolutionEvents/SolutionEvents.vcxproj" />
   </Project>
   <Project Path="SolutionEvents/SolutionEvents.vcxproj" Id="886c3f35-3ef7-4cc7-9274-244d45a1ba5a">
@@ -174,9 +176,9 @@
     <BuildDependency Project="RegexEngines/D/DPlugin/DPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Dart/DartPlugin/DartPlugin.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/CorvusEcma262Worker/CorvusEcma262Worker.csproj" />
+    <BuildDependency Project="RegexEngines/DotNET/DotNET10Worker/DotNET10Worker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETFrameworkWorker/DotNETFrameworkWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/DotNETPlugin/DotNETPlugin.csproj" />
-    <BuildDependency Project="RegexEngines/DotNET/DotNET10Worker/DotNET10Worker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/FuzzyRegexWorker/FuzzyRegexWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/GregsExWorker/GregsExWorker.csproj" />
     <BuildDependency Project="RegexEngines/DotNET/LokadUtf8RegexWorker/LokadUtf8RegexWorker.csproj" />
@@ -192,6 +194,7 @@
     <BuildDependency Project="RegexEngines/ICU/ICUWorker/ICUWorker.vcxproj" />
     <BuildDependency Project="RegexEngines/Java/JavaPlugin/JavaPlugin.csproj" />
     <BuildDependency Project="RegexEngines/JavaScript/JavaScriptPlugin/JavaScriptPlugin.csproj" />
+    <BuildDependency Project="RegexEngines/JavaScript/JintWorker/JintWorker.csproj" />
     <BuildDependency Project="RegexEngines/JavaScript/WebView2Worker/WebView2Worker.vcxproj" />
     <BuildDependency Project="RegexEngines/Oniguruma/OnigurumaPlugin/OnigurumaPlugin.csproj" />
     <BuildDependency Project="RegexEngines/Oniguruma/OnigurumaWorker/OnigurumaWorker.vcxproj" />

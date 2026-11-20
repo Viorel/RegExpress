@@ -15,6 +15,7 @@ enum RuntimeEnum
     Bun,
     RE2JS,
     RegexPlus,
+    Jint,
 }
 
 enum FunctionEnum
@@ -55,6 +56,9 @@ class Options
     public bool n { get; set; } = true;
     public bool subclass { get; set; }
 
+    // Jint
+
+    public string ? timeoutMs { get; set; }
 
     [JsonIgnore]
     public bool d { get; set; } = true; // to avoid binding errors and to show the checkbox in checked state

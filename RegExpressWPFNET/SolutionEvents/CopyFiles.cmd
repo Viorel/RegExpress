@@ -136,6 +136,11 @@ xcopy /D /R /Y "%BasePath%\BunWorker\BunWorker.js" "%EnginesTargetPath%\JavaScri
 xcopy /D /R /Y /E "%BasePath%\RegexPlusWorker\regex-min\*.*" "%EnginesTargetPath%\JavaScript\RegexPlusWorker\regex-min\*"
 xcopy /D /R /Y "%BasePath%\RegexPlusWorker\RegexPlusWorker.js" "%EnginesTargetPath%\JavaScript\RegexPlusWorker\*"
 
+xcopy /D /R /Y "%BasePath%\JintWorker\bin\%Configuration%\net10.0\JintWorker.exe" "%EnginesTargetPath%\JavaScript\Jint\*.bin"
+xcopy /D /R /Y "%BasePath%\JintWorker\bin\%Configuration%\net10.0\*.dll" "%EnginesTargetPath%\JavaScript\Jint\*"
+xcopy /D /R /Y "%BasePath%\JintWorker\bin\%Configuration%\net10.0\JintWorker.deps.json" "%EnginesTargetPath%\JavaScript\Jint\*"
+xcopy /D /R /Y "%BasePath%\JintWorker\bin\%Configuration%\net10.0\JintWorker.runtimeconfig.json" "%EnginesTargetPath%\JavaScript\Jint\*"
+
 rem -- VBScript --
 
 set BasePath=%SolutionDir%\RegexEngines\VBScript
