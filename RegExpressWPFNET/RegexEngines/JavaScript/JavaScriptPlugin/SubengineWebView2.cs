@@ -43,18 +43,9 @@ partial class SubengineWebView2( Options options ) : RegexSubengine
         public string? Version { get; set; }
     }
 
-    public class ResponseMatch
+    public class Rootobject
     {
-        [JsonPropertyName( "g" )]
-        public Dictionary<string, int[]>? Groups { get; set; }
-
-        [JsonPropertyName( "i" )]
-        public List<int[]>? Indices { get; set; }
-    }
-
-    public class ResponseMatches
-    {
-        public List<ResponseMatch>? Matches { get; set; }
+        public OutputMatch[]? Matches { get; set; }
 
         public string? Error { get; set; }
     }
@@ -95,71 +86,13 @@ partial class SubengineWebView2( Options options ) : RegexSubengine
         if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
         using StreamReader sr = new( ph.OutputStream, Encoding.Unicode );
-        string output_contents = sr.ReadToEnd( );
+        string output = sr.ReadToEnd( );
+        Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( output );
 
-        ResponseMatches? client_response = JsonSerializer.Deserialize<ResponseMatches>( output_contents );
+        if( root_object == null ) throw new Exception( "JavaScript failed." );
+        if( !string.IsNullOrWhiteSpace( root_object.Error ) ) throw new Exception( root_object.Error );
 
-        if( client_response == null ) throw new Exception( "JavaScript failed." );
-        if( !string.IsNullOrWhiteSpace( client_response.Error ) ) throw new Exception( client_response.Error );
-
-        List<IMatch> matches = new( );
-        SimpleTextGetter stg = new( text );
-
-        foreach( var cm in client_response.Matches! )
-        {
-            if( cnc.IsCancellationRequested ) break;
-
-            if( cm.Indices!.Any( ) )
-            {
-                int native_start = cm.Indices![0][0];
-                int native_end = cm.Indices[0][1];
-                int native_length = native_end - native_start;
-
-                SimpleMatch sm = SimpleMatch.Create( native_start, native_length, stg );
-
-                sm.AddDefaultGroup( );
-
-                HashSet<string> used_names = [];
-
-                for( int i = 1; i < cm.Indices.Count; ++i )
-                {
-                    // figure out the name
-                    string? n = cm.Groups?.FirstOrDefault( g => cm.Indices[i] != null && (g.Value[0], g.Value[1]) == (cm.Indices[i][0], cm.Indices[i][1]) && !used_names.Contains( g.Key ) ).Key;
-                    n ??= cm.Groups?.FirstOrDefault( g => cm.Indices[i] != null && (g.Value[0], g.Value[1]) == (cm.Indices[i][0], cm.Indices[i][1]) ).Key;
-
-                    string name;
-
-                    if( n != null )
-                    {
-                        name = n;
-                        used_names.Add( n );
-                    }
-                    else
-                    {
-                        name = i.ToString( CultureInfo.InvariantCulture );
-                    }
-
-                    int[] g = cm.Indices[i];
-
-                    if( g == null )
-                    {
-                        sm.AddFailedGroup( name );
-                    }
-                    else
-                    {
-                        native_start = cm.Indices[i][0];
-                        native_end = cm.Indices[i][1];
-                        native_length = native_end - native_start;
-
-                        sm.AddSucceededGroup( native_start, native_length, name );
-                    }
-                }
-
-                matches.Add( sm );
-            }
-        }
-
-        return new RegexMatches( matches.Count, matches );
+        return CommonUtilities.ProcessResponse( cnc, text, root_object.Matches );
     }
 
     public static string? GetVersion( ICancellable cnc )

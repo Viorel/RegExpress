@@ -36,21 +36,35 @@ internal class Program
             string script = input?.func switch
             {
                 "exec" => """
+                    "use strict";
+
                     function Script( pattern, text, flags)
                     {
                         const re = new RegExp( pattern, flags);
                         const matches = [ ]; 
                         let match; 
                         let lastIndex = -2;
+
                         while( ( match = re.exec( text)) !== null)
                         {
-                            if( lastIndex == match.index ) 
-                            {
-                                if( flags.includes( "g")) throw new Error( "No advance");
-                                break;
-                            }
+                            if( lastIndex == match.index) throw new Error( "No advance");
                             lastIndex = match.index;
+
                             matches.push( { i: match.indices, g: match.indices.groups });
+
+                            if( ! re.global) break;
+                    
+                            if( re.lastIndex == match.index) 
+                            {
+                                if( text.codePointAt( match.index) > 0xFFFF)
+                                {
+                                    re.lastIndex += 2;
+                                }
+                                else
+                                {
+                                    ++re.lastIndex;
+                                }
+                            }
                         } 
                 
                         return JSON.stringify( { Matches: matches });
@@ -58,15 +72,19 @@ internal class Program
                     """,
 
                 "matchAll" => """
+                    "use strict";
+
                     function Script( pattern, text, flags)
                     {
                         const re = new RegExp( pattern, flags);
                         const matches = [ ];
                         let lastIndex = -2;
+
                         for( const match of text.matchAll( re))
                         {
                             if( lastIndex == match.index) throw new Error( "No advance");
                             lastIndex = match.index;
+
                             matches.push( { i: match.indices, g: match.indices.groups });
                         }
                 

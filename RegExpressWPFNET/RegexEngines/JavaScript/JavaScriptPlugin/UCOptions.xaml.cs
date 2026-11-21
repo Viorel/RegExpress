@@ -77,20 +77,21 @@ namespace JavaScriptPlugin
                 ++ChangeCounter;
 
                 bool is_V8 = Options.Runtime == RuntimeEnum.WebView2 || Options.Runtime == RuntimeEnum.NodeJs;
+                bool is_bun = Options.Runtime == RuntimeEnum.Bun;
                 bool is_SM = Options.Runtime == RuntimeEnum.SpiderMonkey;
                 bool is_QuickJs = Options.Runtime == RuntimeEnum.QuickJs;
                 bool is_RE2JS = Options.Runtime == RuntimeEnum.RE2JS;
                 bool is_RegexPlus = Options.Runtime == RuntimeEnum.RegexPlus;
                 bool is_jint = Options.Runtime == RuntimeEnum.Jint;
 
-                cbxFunction.Display( is_V8 || is_SM || is_QuickJs || is_RegexPlus || is_jint );
+                cbxFunction.Display( is_V8 || is_bun || is_SM || is_QuickJs || is_RegexPlus || is_jint );
                 cbxFunctionRE2JS.Display( is_RE2JS );
 
-                pnlCommon.Display( is_V8 || is_SM || is_QuickJs || is_RegexPlus || is_jint );
+                pnlCommon.Display( is_V8 || is_bun || is_SM || is_QuickJs || is_RegexPlus || is_jint );
                 pnlRE2JS.Display( is_RE2JS );
                 pnlSM.Display( is_SM );
 
-                checkboxU.Display( is_V8 || is_SM || is_QuickJs || is_RegexPlus || is_RE2JS || is_jint );
+                checkboxU.Display( is_V8 || is_bun || is_SM || is_QuickJs || is_RegexPlus || is_RE2JS || is_jint );
                 checkboxV.Display( is_V8 || is_QuickJs || is_RegexPlus || is_jint );
                 checkboxX.Display( is_RegexPlus );
                 checkboxN.Display( is_RegexPlus );

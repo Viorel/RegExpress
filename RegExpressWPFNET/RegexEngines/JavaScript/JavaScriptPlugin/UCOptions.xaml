@@ -59,15 +59,15 @@
 
         <StackPanel x:Name="pnlCommon" Orientation="Vertical" >
             <ui:CheckboxWithNote Prop="i" Note="ignore case"/>
-            <ui:CheckboxWithNote Prop="m" Note="allows ‘^’ and ‘$’ to match newline characters"/>
-            <ui:CheckboxWithNote Prop="s" Note="allows ‘.’ to match newline characters"/>
-            <ui:CheckboxWithNote x:Name="checkboxU" Prop="u" Note="treats pattern as a sequence of Unicode code points"/>
+            <ui:CheckboxWithNote Prop="m" Note="allow ‘^’ and ‘$’ to match newline characters"/>
+            <ui:CheckboxWithNote Prop="s" Note="allow ‘.’ to match newline characters"/>
+            <ui:CheckboxWithNote x:Name="checkboxU" Prop="u" Note="treat pattern as a sequence of Unicode code points"/>
             <ui:CheckboxWithNote x:Name="checkboxV" Prop="v" Note="more Unicode features"/>
-            <ui:CheckboxWithNote x:Name="checkboxX" Prop="x" Note="makes whitespace insignificant and adds support for line comments starting with #"/>
+            <ui:CheckboxWithNote x:Name="checkboxX" Prop="x" Note="make whitespace insignificant and adds support for line comments starting with #"/>
             <ui:CheckboxWithNote x:Name="checkboxN" Prop="n" Note="named capture only"/>
             <ui:CheckboxWithNote Prop="y" Note="“sticky” search"/>
             <ui:CheckboxWithNote Prop="g" Note="global search"/>
-            <ui:CheckboxWithNote Prop="d" Note="generates indices for matches" IsEnabled="False" IsChecked="True"/>
+            <ui:CheckboxWithNote Prop="d" Note="generate indices for matches" IsEnabled="False" IsChecked="True"/>
             <ui:CheckboxWithNote x:Name="checkboxSubclass" Prop="subclass" Note="using a RegExp subclass to avoid issues with numbered backreferences" />
         </StackPanel>
 
@@ -76,7 +76,7 @@
             <ui:CheckboxWithNote Prop="s" Text="RE2JS.DOTALL" Note="dot (.) matches all characters, including newline"/>
             <ui:CheckboxWithNote Prop="m" Text="RE2JS.MULTILINE" Note="multiline matching: ^ and $ match at beginning and end of line, not just beginning and end of input"/>
             <ui:CheckboxWithNote Prop="DISABLE_UNICODE_GROUPS" Text="RE2JS.DISABLE_UNICODE_GROUPS" Note="Unicode groups (e.g. \p{Greek}) will be syntax errors"/>
-            <ui:CheckboxWithNote Prop="LONGEST_MATCH" Text="RE2JS.LONGEST_MATCH" Note="matches longest possible string (changes the match semantics to leftmost-longest)"/>
+            <ui:CheckboxWithNote Prop="LONGEST_MATCH" Text="RE2JS.LONGEST_MATCH" Note="matche longest possible string (changes the match semantics to leftmost-longest)"/>
             <ui:CheckboxWithNote Prop="LOOKBEHINDS" Text="RE2JS.LOOKBEHINDS" Note="enable linear-time captureless lookbehinds"/>
         </StackPanel>
 

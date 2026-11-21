@@ -391,20 +391,34 @@ int DoMatch( StreamWriterW& outwr, StreamWriterW& errwr, HINSTANCE hInstance, LP
 
                             script =
                                 std::wstring( ) +
+                                L"\"use strict\";" EOL
                                 L"( function() " EOL
                                 L"{ " EOL
                                 L" try " EOL
                                 L" { " EOL
-                                L"  let pattern = \"" + patternJs + L"\";" EOL
-                                L"  let text = \"" + textJs + L"\";" EOL
-                                L"  let re = new RegExp(pattern, \"" + flags_adjusted + L"\"); " EOL
-                                L"  let r = [ ]; let m; let l = -2;" EOL
-                                L"  while( (m = re.exec(text)) !== null) " EOL
+                                L"  const pattern = \"" + patternJs + L"\";" EOL
+                                L"  const text = \"" + textJs + L"\";" EOL
+                                L"  const re = new RegExp(pattern, \"" + flags_adjusted + L"\"); " EOL
+                                L"  const matches = [ ]; let match; let lastIndex = -2;;" EOL
+                                L"  while( (match = re.exec(text)) !== null) " EOL
                                 L"  { " EOL
-                                L"   if( l == re.lastIndex ) break; else l = re.lastIndex; " EOL
-                                L"   r.push( { i: m.indices, g: m.indices.groups } );" EOL
+                                L"   if( lastIndex == match.index) throw new Error( \"No advance\"); " EOL
+                                L"   lastIndex = match.index; " EOL
+                                L"   matches.push( { i: match.indices, g: match.indices.groups } );" EOL
+                                L"   if( ! re.global) break;" EOL
+                                L"   if( re.lastIndex == match.index) " EOL
+                                L"   { " EOL
+                                L"    if( text.codePointAt( match.index) > 0xFFFF) " EOL
+                                L"    { " EOL
+                                L"     re.lastIndex += 2; " EOL
+                                L"    } " EOL
+                                L"    else " EOL
+                                L"    { " EOL
+                                L"     ++re.lastIndex; " EOL
+                                L"    } " EOL
+                                L"   } " EOL
                                 L"  } " EOL
-                                L"  return { \"Matches\": r }; " EOL
+                                L"  return { \"Matches\": matches }; " EOL
                                 L" } " EOL
                                 L" catch( err ) " EOL
                                 L" { " EOL
@@ -418,19 +432,20 @@ int DoMatch( StreamWriterW& outwr, StreamWriterW& errwr, HINSTANCE hInstance, LP
 
                             script =
                                 std::wstring( ) +
+                                L"\"use strict\";" EOL
                                 L"( function() " EOL
                                 L"{ " EOL
                                 L" try " EOL
                                 L" { " EOL
-                                L"  let pattern = \"" + patternJs + L"\";" EOL
-                                L"  let text = \"" + textJs + L"\";" EOL
-                                L"  let re = new RegExp(pattern, \"" + flags_adjusted + L"\"); " EOL
-                                L"  let r = [ ]; " EOL
-                                L"  for( const m of text.matchAll( re ) ) " EOL
+                                L"  const pattern = \"" + patternJs + L"\";" EOL
+                                L"  const text = \"" + textJs + L"\";" EOL
+                                L"  const re = new RegExp(pattern, \"" + flags_adjusted + L"\"); " EOL
+                                L"  const matches = [ ]; " EOL
+                                L"  for( const match of text.matchAll( re ) ) " EOL
                                 L"  { " EOL
-                                L"   r.push( { i: m.indices, g: m.indices.groups } );" EOL
+                                L"   matches.push( { i: match.indices, g: match.indices.groups } );" EOL
                                 L"  } " EOL
-                                L"  return { \"Matches\": r }; " EOL
+                                L"  return { \"Matches\": matches }; " EOL
                                 L" } " EOL
                                 L" catch( err ) " EOL
                                 L" { " EOL

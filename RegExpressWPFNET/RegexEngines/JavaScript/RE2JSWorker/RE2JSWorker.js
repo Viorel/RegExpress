@@ -1,4 +1,7 @@
 import * as std from "std";
+
+"use strict";
+
 import { RE2JS } from './re2js/build/index.js'
 
 try
@@ -21,11 +24,15 @@ try
   const compiled_pattern = RE2JS.compile( pattern, flags_number );
   const matcher = compiled_pattern.matcher( text );
 
-  let result = [ ];
+  const result = [ ];
+  let lastIndex = -2;
 
   while( matcher.find( )) 
   {
-    let all_groups = [ ];
+    if( lastIndex == matcher.start(0)) throw new Error( "No advance");
+    lastIndex = matcher.start(0);
+
+    const all_groups = [ ];
 
     all_groups.push( [ matcher.start(0), matcher.end(0) ] );
 
@@ -41,17 +48,17 @@ try
       }    
     } 
 
-    let named_groups = [ ];
+    const named_groups = [ ];
 
     for( let n in compiled_pattern.namedGroups( ))
     {
       if( matcher.start(n) < 0)
       {
-        named_groups.push( { n : n, s : -1, e : -1 }  );
+        named_groups.push( { n : n, r : [-1, -1] }  );
       }
       else
       {
-        named_groups.push( { n : n, s : matcher.start(n), e : matcher.end(n) } );
+        named_groups.push( { n : n, r : [matcher.start(n), matcher.end(n) ] } );
       }
     }
 

@@ -41,17 +41,7 @@ partial class SubengineJint( Options options ) : RegexSubengine
 
     public class Rootobject
     {
-        public required OutputMatch[] Matches { get; set; }
-    }
-
-    public class OutputMatch
-    {
-        [JsonPropertyName( "i" )]
-        public required int[][] UnnamedGroups { get; set; }
-
-        [JsonPropertyName( "g" )]
-        public IReadOnlyDictionary<string, int[]>? NamedGroups { get; set; }
-
+        public OutputMatch[]? Matches { get; set; }
     }
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
@@ -103,98 +93,7 @@ partial class SubengineJint( Options options ) : RegexSubengine
 
         if( root_object == null ) throw new Exception( "JavaScript failed." );
 
-
-        List<IMatch> matches = [];
-        SimpleTextGetter stg = new( text );
-        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
-
-        foreach( var native_match in root_object.Matches )
-        {
-            if( cnc.IsCancellationRequested ) break;
-
-            if( native_match.UnnamedGroups!.Any( ) )
-            {
-                SimpleMatch match;
-
-                {
-                    // match and default group
-
-                    int[] g = native_match.UnnamedGroups[0];
-                    Debug.Assert( g.Length == 2 );
-
-                    int native_start = g[0];
-                    int native_end = g[1];
-
-                    Debug.Assert( native_start >= 0 && native_end >= native_start );
-
-                    int native_length = native_end - native_start;
-
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
-                    match.AddDefaultGroup( );
-                }
-
-                {
-                    // other unnamed groups
-
-                    for( int group_index = 1; group_index < native_match.UnnamedGroups.Length; group_index++ )
-                    {
-                        string name = group_index.ToString( CultureInfo.InvariantCulture );
-
-                        int[] g = native_match.UnnamedGroups[group_index];
-                        Debug.Assert( g == null || g.Length == 0 || g.Length == 2 );
-
-                        if( g == null || g.Length == 0 )
-                        {
-                            match.AddFailedGroup( name );
-                        }
-                        else
-                        {
-                            int native_start = g[0];
-                            int native_end = g[1];
-
-                            Debug.Assert( native_start >= 0 && native_end >= native_start );
-                            int native_length = native_end - native_start;
-
-                            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                            match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
-                        }
-                    }
-                }
-
-                {
-                    // named groups
-
-                    if( native_match.NamedGroups != null )
-                    {
-                        foreach( var kvp in native_match.NamedGroups )
-                        {
-                            string name = kvp.Key;
-                            int[] g = kvp.Value;
-
-                            Debug.Assert( g.Length == 2 );
-
-                            int native_start = g[0];
-                            int native_end = g[1];
-
-                            Debug.Assert( native_start >= 0 && native_end >= native_start );
-
-                            int native_length = native_end - native_start;
-
-                            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                            match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
-                        }
-                    }
-                }
-
-                matches.Add( match );
-            }
-        }
-
-        return new RegexMatches( matches.Count, matches );
+        return CommonUtilities.ProcessResponse( cnc, text, root_object.Matches );
     }
 
     static string GetWorkerExePath( )

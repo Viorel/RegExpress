@@ -1,4 +1,7 @@
 import * as std from "std";
+
+"use strict";
+
 //import * as Regex from "regex/dist/esm/regex.js"; // Ok, using 'Regex.' prefix
 //import * as Plus from 'regex/dist/regex.min.js'; // Errors
 
@@ -49,27 +52,48 @@ try
   
   if( func === "exec")
   {
-    let r = [ ]; 
-    let m; 
-    let l = -2;
-    while( (m = re.exec(text)) !== null)
+    const matches = [ ]; 
+    let match; 
+    let lastIndex = -2;
+
+    while( ( match = re.exec( text)) !== null)
     {
-      if( l == re.lastIndex ) break; 
-      l = re.lastIndex;
-      r.push( { i: m.indices, g: m.indices.groups } );
+      if( lastIndex == match.index) throw new Error( "No advance");
+      lastIndex = match.index;
+
+      matches.push( { i: match.indices, g: match.indices.groups });
+
+      if( ! re.global) break;
+
+      if( re.lastIndex == match.index) 
+      {
+        if( text.codePointAt( match.index) >= 0xFFFF)
+        {
+            re.lastIndex += 2;
+        }
+        else
+        {
+            ++re.lastIndex;
+        }
+      }
     } 
     
-    console.log( JSON.stringify( { Matches: r } ) );
+    console.log( JSON.stringify( { Matches: matches } ) );
   }
   else if( func === "matchAll")
   {
-    let r = [ ];
-    for( const m of text.matchAll( re ) )
+    const matches = [ ];
+    let lastIndex = -2;
+
+    for( const match of text.matchAll( re))
     {
-      r.push( { i: m.indices, g: m.indices.groups } );
+      if( lastIndex == match.index) throw new Error( "No advance");
+      lastIndex = match.index;
+
+      matches.push( { i: match.indices, g: match.indices.groups });
     }
 
-    console.log( JSON.stringify( { Matches: r } ) );
+    console.log( JSON.stringify( { Matches: matches } ) );
   }
   else
   {

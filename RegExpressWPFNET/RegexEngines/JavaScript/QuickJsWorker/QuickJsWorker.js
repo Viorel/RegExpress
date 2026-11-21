@@ -1,14 +1,16 @@
 import * as std from "std";
 
+"use strict";
+
 try
 {
-  let input_text = std.in.readAsString();
-  let input_object = JSON.parse(input_text);
+  const input_text = std.in.readAsString();
+  const input_object = JSON.parse(input_text);
 
-  let pattern = input_object.pattern;
-  let text = input_object.text;
+  const pattern = input_object.pattern;
+  const text = input_object.text;
   let flags = input_object.flags;
-  let func = input_object.func;
+  const func = input_object.func;
 
   //console.log(``);
   //console.log(`pattern is "${pattern}"`);
@@ -20,29 +22,50 @@ try
 
   if( func === "exec")
   {
-    let re = new RegExp(pattern, flags);
-    let r = [ ]; 
-    let m; 
-    let l = -2;
-    while( (m = re.exec(text)) !== null)
+    const re = new RegExp( pattern, flags);
+    const matches = [ ]; 
+    let match; 
+    let lastIndex = -2;
+
+    while( ( match = re.exec( text)) !== null)
     {
-      if( l == re.lastIndex ) break; 
-      l = re.lastIndex;
-      r.push( { i: m.indices, g: m.indices.groups } );
+      if( lastIndex == match.index) throw new Error( "No advance");
+      lastIndex = match.index;
+
+      matches.push( { i: match.indices, g: match.indices.groups });
+
+      if( ! re.global) break;
+
+      if( re.lastIndex == match.index) 
+      {
+        if( text.codePointAt( match.index) >= 0xFFFF)
+        {
+            re.lastIndex += 2;
+        }
+        else
+        {
+            ++re.lastIndex;
+        }
+      }
     } 
     
-    console.log( JSON.stringify( { Matches: r } ) );
+    console.log( JSON.stringify( { Matches: matches } ) );
   }
   else if( func === "matchAll")
   {
-    let re = new RegExp(pattern, flags);
-    let r = [ ];
-    for( const m of text.matchAll( re ) )
+    const re = new RegExp( pattern, flags);
+    const matches = [ ];
+    let lastIndex = -2;
+
+    for( const match of text.matchAll( re))
     {
-      r.push( { i: m.indices, g: m.indices.groups } );
+      if( lastIndex == match.index) throw new Error( "No advance");
+      lastIndex = match.index;
+
+      matches.push( { i: match.indices, g: match.indices.groups });
     }
 
-    console.log( JSON.stringify( { Matches: r } ) );
+    console.log( JSON.stringify( { Matches: matches } ) );
   }
   else
   {

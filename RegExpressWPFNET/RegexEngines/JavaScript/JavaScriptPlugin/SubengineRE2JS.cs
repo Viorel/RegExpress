@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -35,23 +36,22 @@ partial class SubengineRE2JS( Options options ) : RegexSubengine
     }
 
 
-    public class Response
+    public class Rootobject
     {
-        public Match[]? Matches { get; set; }
+        public OutputMatch[]? Matches { get; set; }
         public string? Error { get; set; }
     }
 
-    public class Match
+    public class OutputMatch
     {
-        public int[][]? ag { get; set; }
-        public Ng[]? ng { get; set; }
+        public required int[][] ag { get; set; }
+        public required NamedGroup[] ng { get; set; }
     }
 
-    public class Ng
+    public class NamedGroup
     {
-        public string? n { get; set; }
-        public int? s { get; set; }
-        public int? e { get; set; }
+        public required string n { get; set; }
+        public required int[] r { get; set; }
     }
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
@@ -85,71 +85,105 @@ partial class SubengineRE2JS( Options options ) : RegexSubengine
 
         if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-        Response? response = JsonSerializer.Deserialize<Response>( ph.OutputStream );
+#if DEBUG
+        using StreamReader sr = new( ph.OutputStream );
+        string output = sr.ReadToEnd( );
+        Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( output );
+#else
+        Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( ph.OutputStream );
+#endif
 
-        if( response == null ) throw new Exception( "JavaScript failed." );
-        if( !string.IsNullOrWhiteSpace( response.Error ) ) throw new Exception( response.Error );
-        if( response.Matches == null ) throw new Exception( "Invalid null response." );
+        if( root_object == null ) throw new Exception( "JavaScript failed." );
+        if( !string.IsNullOrWhiteSpace( root_object.Error ) ) throw new Exception( root_object.Error );
+        if( root_object.Matches == null ) throw new Exception( "Invalid null response." );
 
         List<IMatch> matches = [];
         SimpleTextGetter stg = new( text );
-        SimpleMatch? current_match = null;
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
 
-        foreach( Match response_match in response.Matches )
+        foreach( OutputMatch native_match in root_object.Matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
-            /*
-                 * Example:
-                 * {"Matches":[{"ag":[[0,3],[1,2],[2,3],[-1,-1]],"ng":[["n",2,3],["x",-1,-1]]},{"ag":[[4,7],[5,6],[6,7],[-1,-1]],"ng":[["n",6,7],["x",-1,-1]]}]}
-                 */
+            SimpleMatch match;
 
-            HashSet<string> used_names = [];
-
-            for( int i = 0; i < response_match.ag!.Length; i++ )
             {
-                int[] g = response_match.ag[i];
+                // match and default group
+
+                int[] g = native_match.ag[0];
+                Debug.Assert( g.Length == 2 );
 
                 int native_start = g[0];
                 int native_end = g[1];
+
+                Debug.Assert( native_start >= 0 && native_end >= native_start );
+
                 int native_length = native_end - native_start;
 
-                if( i == 0 )
+                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match.AddDefaultGroup( );
+            }
+
+            {
+                // other groups (including named groups)
+
+                for( int group_index = 1; group_index < native_match.ag.Length; group_index++ )
                 {
-                    Debug.Assert( native_start >= 0 );
-                    Debug.Assert( native_start <= native_end );
+                    string name = group_index.ToString( CultureInfo.InvariantCulture );
 
-                    SimpleMatch sm = SimpleMatch.Create( native_start, native_length, stg );
+                    int[] g = native_match.ag[group_index];
+                    Debug.Assert( g == null || g.Length == 0 || g.Length == 2 );
 
-                    sm.AddDefaultGroup( );
-
-                    matches.Add( sm );
-
-                    current_match = sm;
-                }
-                else
-                {
-                    if( current_match == null ) throw new ApplicationException( );
-
-                    if( native_start < 0 )
+                    if( g == null || g.Length == 0 || g[0] < 0 || g[1] < 0 )
                     {
-                        string name = i.ToString( CultureInfo.InvariantCulture );
-
-                        current_match.AddFailedGroup( name );
+                        match.AddFailedGroup( name );
                     }
                     else
                     {
-                        // find name
-                        string? name;
-                        name = response_match.ng!.FirstOrDefault( g => g.s >= 0 && g.s == native_start && g.e == native_end && !used_names.Contains( g.n! ) )?.n;
-                        if( name != null ) used_names.Add( name );
-                        name ??= response_match.ng!.FirstOrDefault( g => g.s >= 0 && g.s == native_start && g.e == native_end )?.n;
-                        name ??= i.ToString( CultureInfo.InvariantCulture );
+                        int native_start = g[0];
+                        int native_end = g[1];
 
-                        current_match.AddSucceededGroup( native_start, native_length, name );
+                        Debug.Assert( native_start >= 0 && native_end >= native_start );
+                        int native_length = native_end - native_start;
+
+                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                        match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
                     }
                 }
             }
+
+            {
+                // named groups
+
+                foreach( var ng in native_match.ng )
+                {
+                    string name = ng.n;
+                    int[] range = ng.r;
+                    Debug.Assert( range.Length == 0 || range.Length == 2 );
+
+                    if( range.Length == 0 || range[0] < 0 || range[1] < 0 )
+                    {
+                        match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        int native_start = range[0];
+                        int native_end = range[1];
+                        Debug.Assert( native_start >= 0 && native_end >= native_start );
+
+                        int native_length = native_end - native_start;
+
+                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                        match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    }
+                }
+            }
+
+            matches.Add( match );
         }
 
         return new RegexMatches( matches.Count, matches );
