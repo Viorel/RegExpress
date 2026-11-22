@@ -42,14 +42,15 @@ class Options
     //
     public bool NOTBOL { get; set; }
     public bool NOTEOL { get; set; }
-    /* Does not seem to be implemented
-    public bool NEWLINE_CRLF { get; set; }
-    public bool NOTBOS { get; set; }
-    public bool NOTEOS { get; set; }
-    */
+    public bool POSIX_REGION { get; set; }
+    //
     public bool ASCII_RANGE { get; set; }
     public bool POSIX_BRACKET_ALL_RANGE { get; set; }
     public bool WORD_BOUND_ALL_RANGE { get; set; }
+    //
+    public bool NEWLINE_CRLF { get; set; }
+    public bool NOTBOS { get; set; }
+    public bool NOTEOS { get; set; }
     public bool CR_7_BIT { get; set; }
 
     public bool FindAll { get; set; } = true;

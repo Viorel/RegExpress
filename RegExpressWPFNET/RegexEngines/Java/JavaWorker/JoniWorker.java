@@ -41,12 +41,15 @@ class JoniWorker
 
             if( GetBoolean( input_options, "NOTBOL")) options |= org.joni.Option.NOTBOL;
             if( GetBoolean( input_options, "NOTEOL")) options |= org.joni.Option.NOTEOL;
-            if( GetBoolean( input_options, "NEWLINE_CRLF")) options |= org.joni.Option.NEWLINE_CRLF;
-            if( GetBoolean( input_options, "NOTBOS")) options |= org.joni.Option.NOTBOS;
-            if( GetBoolean( input_options, "NOTEOS")) options |= org.joni.Option.NOTEOS;
+            if( GetBoolean( input_options, "POSIX_REGION")) options |= org.joni.Option.POSIX_REGION;
+
             if( GetBoolean( input_options, "ASCII_RANGE")) options |= org.joni.Option.ASCII_RANGE;
             if( GetBoolean( input_options, "POSIX_BRACKET_ALL_RANGE")) options |= org.joni.Option.POSIX_BRACKET_ALL_RANGE;
             if( GetBoolean( input_options, "WORD_BOUND_ALL_RANGE")) options |= org.joni.Option.WORD_BOUND_ALL_RANGE;
+
+            if( GetBoolean( input_options, "NEWLINE_CRLF")) options |= org.joni.Option.NEWLINE_CRLF;
+            if( GetBoolean( input_options, "NOTBOS")) options |= org.joni.Option.NOTBOS;
+            if( GetBoolean( input_options, "NOTEOS")) options |= org.joni.Option.NOTEOS;
             if( GetBoolean( input_options, "CR_7_BIT")) options |= org.joni.Option.CR_7_BIT;
 
             boolean find_all =  GetBoolean( input_options, "FindAll");

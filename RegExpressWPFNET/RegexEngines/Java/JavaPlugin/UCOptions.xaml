@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:JavaPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" 
-             d:DesignHeight="603.784" d:DesignWidth="739.461" 
+             d:DesignHeight="670.459" d:DesignWidth="739.461" 
              Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
@@ -71,17 +71,20 @@
             <ui:CheckboxWithNote Prop="NEGATE_SINGLELINE"       Text="NEGATE_SINGLELINE" Note=""/>
             <ui:CheckboxWithNote Prop="DONT_CAPTURE_GROUP"      Text="DONT_CAPTURE_GROUP" Note=""/>
             <ui:CheckboxWithNote Prop="CAPTURE_GROUP"           Text="CAPTURE_GROUP" Note=""/>
+            
             <ui:CheckboxWithNote Prop="NOTBOL"                  Text="NOTBOL" Note="" />
             <ui:CheckboxWithNote Prop="NOTEOL"                  Text="NOTEOL" Note=""/>
-            <!--
-                Does not seem to be implemented
-                <ui:CheckboxWithNote Prop="NEWLINE_CRLF"            Text="NEWLINE_CRLF" Note=""/>
-                <ui:CheckboxWithNote Prop="NOTBOS"                  Text="NOTBOS" Note=""/>
-                <ui:CheckboxWithNote Prop="NOTEOS"                  Text="NOTEOS" Note=""/>-->
+            <ui:CheckboxWithNote Prop="POSIX_REGION"            Text="POSIX_REGION" Note=""/>
+
             <ui:CheckboxWithNote Prop="ASCII_RANGE"             Text="ASCII_RANGE" Note=""/>
             <ui:CheckboxWithNote Prop="POSIX_BRACKET_ALL_RANGE" Text="POSIX_BRACKET_ALL_RANGE" Note=""/>
             <ui:CheckboxWithNote Prop="WORD_BOUND_ALL_RANGE"    Text="WORD_BOUND_ALL_RANGE" Note=""/>
+
+            <ui:CheckboxWithNote Prop="NEWLINE_CRLF"            Text="NEWLINE_CRLF" Note=""/>
+            <ui:CheckboxWithNote Prop="NOTBOS"                  Text="NOTBOS" Note=""/>
+            <ui:CheckboxWithNote Prop="NOTEOS"                  Text="NOTEOS" Note=""/>
             <ui:CheckboxWithNote Prop="CR_7_BIT"                Text="CR_7_BIT" Note=""/>
+            
             <ui:CheckboxWithNote Prop="FindAll" Text="Find all" Note="find all occurrences"/>
 
         </StackPanel>

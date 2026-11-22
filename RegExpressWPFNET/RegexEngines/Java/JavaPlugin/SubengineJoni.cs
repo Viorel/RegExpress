@@ -88,17 +88,20 @@ class SubengineJoni( Options options ) : RegexSubengine
                 NEGATE_SINGLELINE = options.NEGATE_SINGLELINE,
                 DONT_CAPTURE_GROUP = options.DONT_CAPTURE_GROUP,
                 CAPTURE_GROUP = options.CAPTURE_GROUP,
+                //
                 NOTBOL = options.NOTBOL,
                 NOTEOL = options.NOTEOL,
-                /* Does not seem to be implemented
-                NEWLINE_CRLF = options.NEWLINE_CRLF,
-                NOTBOS = options.NOTBOS,
-                NOTEOS = options.NOTEOS,
-                */
+                POSIX_REGION = options.POSIX_REGION,
+                //
                 ASCII_RANGE = options.ASCII_RANGE,
                 POSIX_BRACKET_ALL_RANGE = options.POSIX_BRACKET_ALL_RANGE,
                 WORD_BOUND_ALL_RANGE = options.WORD_BOUND_ALL_RANGE,
+                //
+                NEWLINE_CRLF = options.NEWLINE_CRLF,
+                NOTBOS = options.NOTBOS,
+                NOTEOS= options.NOTEOS,
                 CR_7_BIT = options.CR_7_BIT,
+                //
                 FindAll = options.FindAll,
 #if DEBUG
                 debug = true,
