@@ -1,1 +1,0 @@
-echo { "pattern": "(?<first>\\d)(\\d*)(?<last>QQQ)?", "text": "a1b23c456", "flags": { } } | zig-out\bin\RegexWorker.exe

@@ -1,1 +1,0 @@
-@echo { "pattern": "(.)(.)", "text": "ab", "flags": { } } | zig-out\bin\RegexWorker.exe

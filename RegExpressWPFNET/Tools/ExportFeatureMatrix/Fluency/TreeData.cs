@@ -53,7 +53,8 @@ static class TreeData
                     .Test( "(?x)a[b#comment\nz]y", "azy", "acy", "azy" )
                     .Test( "(?xx)a[b#comment\nz]y", "azy", "acy", "azy" )
 
-                .Flag( @"(?flags)", @"Inline options", ( e, fm ) => fm.Flags ).IgnoreCase( false )
+                .Flag( @"(?flags)", @"Inline options", ( e, fm ) => fm.Flags )
+                    .IgnoreCase( false )
                     .Test( @"(?i)x", "X", null, "X" )
                 .Flag( @"(?flags:…)", @"Inline scoped options", ( e, fm ) => fm.ScopedFlags )
                     .IgnoreCase( false )
@@ -927,6 +928,7 @@ static class TreeData
                     .Test( @"(?i)XéY", "XÉY", "Y", "XÉY" )
                     .Test( @"(?i:XéY)", "XÉY", "Y", "XÉY" )
                 .Flag( @"é=e+´", @"Canonical equivalence of characters", ( e, fm ) => fm.Ext_Canon_Eq )
+                    .IgnoreCase( false ) //
                     .Test( "ș\u00E9", "șe\u0301", null )
                 .Flag( "Σσς", "Match multiple uppercase and lowercase variants", ( e, fm ) => fm.Σσς )
                     .IgnoreCase( )
@@ -969,7 +971,11 @@ static class TreeData
                         }
                         else
                         {
+                            e.SetIgnoreCase( true ); // (for example, 'zig-regex' depends on this)
+
                             var r = SimpleReDosChecker.CheckCatastrophicPattern( e, fm );
+
+                            e.SetIgnoreCase( false );
 
                             return fm.TreatmentOfCatastrophicPatterns switch
                             {

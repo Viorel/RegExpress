@@ -54,11 +54,13 @@
         </Grid>
 
         <StackPanel x:Name="pnlZigRegexOptions" Orientation="Vertical">
-            <ui:CheckboxWithNote Prop="case_insensitive" Note="Matches both uppercase and lowercase letters"/>
-            <ui:CheckboxWithNote Prop="multiline" Note="Not yet implemented"/>
-            <ui:CheckboxWithNote Prop="dot_all" Note="Not yet implemented"/>
-            <ui:CheckboxWithNote Prop="extended" Note="Not yet implemented"/>
-            <ui:CheckboxWithNote Prop="unicode" Note="Not yet implemented"/>
+            <ui:CheckboxWithNote Prop="case_insensitive" Note=""/>
+            <ui:CheckboxWithNote Prop="multiline" Note=""/>
+            <ui:CheckboxWithNote Prop="dot_all" Note=""/>
+            <ui:CheckboxWithNote Prop="extended" Note=""/>
+            <ui:CheckboxWithNote Prop="unicode" Note=""/>
+            <ui:CheckboxWithNote Prop="unicode_sets" Note=""/>
+            <ui:CheckboxWithNote Prop="ecmascript" Note=""/>
         </StackPanel>
 
         <StackPanel x:Name="pnlMvzrOptions" Orientation="Vertical">

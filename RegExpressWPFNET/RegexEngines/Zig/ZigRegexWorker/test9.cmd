@@ -1,0 +1,4 @@
+@echo { "pattern": "(a*)*b", "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac", "flags": { "unicode" : false, "unicode_sets" : false, "ecmascript" : true } } | zig-out\bin\ZigRegexWorker.exe
+@echo { "pattern": "(a*)*b", "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac", "flags": { "unicode" : true, "unicode_sets" : true, "ecmascript" : true } } | zig-out\bin\ZigRegexWorker.exe
+@echo { "pattern": "(a+)+b", "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac", "flags": { "unicode" : false, "unicode_sets" : false, "ecmascript" : true } } | zig-out\bin\ZigRegexWorker.exe
+@echo { "pattern": "(a+)+b", "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaac", "flags": { "unicode" : true, "unicode_sets" : true, "ecmascript" : true } } | zig-out\bin\ZigRegexWorker.exe

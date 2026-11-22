@@ -1,1 +1,0 @@
-@echo { "pattern": ".", "text": "\u0176", "flags": { } } | zig-out\bin\RegexWorker.exe

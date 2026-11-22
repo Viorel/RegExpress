@@ -4,7 +4,7 @@ const std = @import("std");
 const Io = std.Io;
 const json = std.json;
 
-const Regex0 = @import("regex");
+const Regex0 = @import("zig_regex");
 const Regex = Regex0.Regex;
 const RegexCommon = Regex0.common;
 
@@ -16,17 +16,21 @@ const FLAG_TYPE = struct {
     dot_all: bool = false,
     extended: bool = false,
     unicode: bool = false,
+    unicode_sets: bool = false,
+    ecmascript: bool = false,
+    //bytes: bool = false, not supported here
     is_debug: bool = false,
 };
 
 const INPUT_TYPE = struct {
-    pattern: []u8,
-    text: []u8,
+    pattern: []const u8,
+    text: []const u8,
     flags: FLAG_TYPE = .{},
 };
 
 const GROUP = struct {
     value: ?[]const u8,
+    span: ?[2]usize,
 };
 
 const MATCH = struct {
@@ -76,6 +80,9 @@ pub fn main1(init: std.process.Init) !void {
             .dot_all = input_flags.dot_all,
             .extended = input_flags.extended,
             .unicode = input_flags.unicode,
+            .unicode_sets = input_flags.unicode_sets,
+            .ecmascript = input_flags.ecmascript,
+            //.bytes = input_flags.bytes, not supported here
         };
 
     var regex = try Regex.compileWithFlags(allocator, input_object.pattern, flags);
@@ -103,10 +110,23 @@ pub fn main1(init: std.process.Init) !void {
     for (matches) |*m| {
         var groups_arr: std.ArrayList(GROUP) = .empty;
 
-        for (m.captures) |c| { // (no default group)
+        // std.debug.print("LenC {any}\n", .{m.captures.len});
+        // std.debug.print("LenP {any}\n", .{m.captures_present.len});
+        // std.debug.print("LenS {any}\n", .{m.capture_spans.len});
 
-            try groups_arr.append(allocator, GROUP{ .value = c });
+        for (m.captures) |value| { // (no default group)
+            //std.debug.print(" index {any} {any}\n", .{ group_index, 0 });
+            try groups_arr.append(allocator, GROUP{ .value = value, .span = null });
         }
+
+        // for (m.captures_present, 0..) |is_present, group_index| { // (no default group)
+
+        //     if (!is_present) {
+        //         try groups_arr.append(allocator, GROUP{ .value = null, .span = null });
+        //     } else {
+        //         try groups_arr.append(allocator, GROUP{ .value = m.captures[group_index], .span = m.capture_spans[group_index] });
+        //     }
+        // }
 
         try matches_arr.append(allocator, MATCH{ .start = m.start, .length = m.end - m.start, .groups = groups_arr.items });
     }

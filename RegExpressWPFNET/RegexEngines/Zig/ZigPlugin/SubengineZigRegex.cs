@@ -15,76 +15,8 @@ using System.Text.Json;
 
 namespace ZigPlugin;
 
-/*
-
-Example of input:
-
-{ "pattern": "(?<first>\\d)(\\d*)(?<last>QQQ)?", "text": "a1b23c456", "flags": { } }
-
-Example of result:
-
-{
-"names": [
-"first",
-null,
-"last"
-],
-"matches": [
-{
-  "start": 1,
-  "length": 1,
-  "groups": [
-    {
-      "value": "1"
-    },
-    {
-      "value": ""
-    },
-    {
-      "value": null
-    }
-  ]
-},
-{
-  "start": 3,
-  "length": 2,
-  "groups": [
-    {
-      "value": "2"
-    },
-    {
-      "value": "3"
-    },
-    {
-      "value": null
-    }
-  ]
-}
-]
-}
-
-*/
-
 class RelaxedJsonConverter : System.Text.Json.Serialization.JsonConverter<string>
 {
-    public class RootObject
-    {
-        public string[]? names { get; set; }
-        public Match[]? matches { get; set; }
-    }
-
-    public class Match
-    {
-        public int start { get; set; }
-        public int length { get; set; }
-        public Group[]? groups { get; set; }
-    }
-
-    public class Group
-    {
-        public string? value { get; set; }
-    }
-
     public override string? Read( ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options )
     {
         switch( reader.TokenType )
@@ -134,7 +66,7 @@ class RelaxedJsonConverter : System.Text.Json.Serialization.JsonConverter<string
 
 class SubengineZigRegex( Options options ) : RegexSubengine
 {
-    static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+    static readonly LazyData<(bool unicode, bool unicode_sets, bool ecmascript), FeatureMatrix> LazyFeatureMatrix = new( d => BuildFeatureMatrix( d.unicode, d.unicode_sets, d.ecmascript ) );
     static readonly JsonSerializerOptions JsonOptions = new( ) { Converters = { new RelaxedJsonConverter( ) }, };
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
@@ -144,7 +76,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
 
     public override SyntaxOptions GetSyntaxOptions( )
     {
-        FeatureMatrix fm = LazyFeatureMatrix.Value;
+        FeatureMatrix fm = LazyFeatureMatrix.GetValue( (options.unicode, options.unicode_sets, options.ecmascript) );
 
         return new SyntaxOptions
         {
@@ -187,6 +119,8 @@ class SubengineZigRegex( Options options ) : RegexSubengine
                 options.dot_all,
                 options.extended,
                 options.unicode,
+                options.unicode_sets,
+                options.ecmascript,
             }
         };
 
@@ -264,12 +198,12 @@ class SubengineZigRegex( Options options ) : RegexSubengine
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_exe = Path.Combine( assembly_dir, @"RegexWorker.bin" );
+        string worker_exe = Path.Combine( assembly_dir, @"ZigRegexWorker.bin" );
 
         return worker_exe;
     }
 
-    private static FeatureMatrix BuildFeatureMatrix( )
+    private static FeatureMatrix BuildFeatureMatrix( bool unicode, bool unicode_sets, bool ecmascript )
     {
         return new FeatureMatrix
         {
@@ -285,16 +219,16 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             XModeComments = true,
             InsideSets_XModeComments = false,
 
-            Flags = true,
+            Flags = !ecmascript,
             ScopedFlags = true,
             CircumflexFlags = false,
             ScopedCircumflexFlags = false,
-            XFlag = true,
+            XFlag = !ecmascript,
             XXFlag = false,
 
             Literal_QE = false,
             InsideSets_Literal_QE = false,
-            InsideSets_Literal_qBrace = false,
+            InsideSets_Literal_qBrace = unicode_sets,
 
             Esc_a = false,
             Esc_b = false,
@@ -304,20 +238,20 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             Esc_r = true,
             Esc_t = true,
             Esc_v = true,
-            Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
+            Esc_Octal = !( unicode || unicode_sets ) ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
             Esc_Octal0_1_3 = false,
             Esc_oBrace = false,
             Esc_x2 = true,
             Esc_xBrace = false,
             Esc_u4 = true,
             Esc_U8 = false,
-            Esc_uBrace = false,
+            Esc_uBrace = unicode || unicode_sets,
             Esc_UBrace = false,
             Esc_c1 = true,
             Esc_C1 = false,
             Esc_CMinus = false,
             Esc_NBrace = false,
-            GenericEscape = true,
+            GenericEscape = !( unicode || unicode_sets ),
 
             InsideSets_Esc_a = false,
             InsideSets_Esc_b = true,
@@ -327,7 +261,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             InsideSets_Esc_r = true,
             InsideSets_Esc_t = true,
             InsideSets_Esc_v = true,
-            InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.Octal_1_3,
+            InsideSets_Esc_Octal = !( unicode || unicode_sets ) ? FeatureMatrix.OctalEnum.Octal_1_3 : FeatureMatrix.OctalEnum.None,
             InsideSets_Esc_Octal0_1_3 = false,
             InsideSets_Esc_oBrace = false,
             InsideSets_Esc_x2 = true,
@@ -340,7 +274,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             InsideSets_Esc_C1 = false,
             InsideSets_Esc_CMinus = false,
             InsideSets_Esc_NBrace = false,
-            InsideSets_GenericEscape = true,
+            InsideSets_GenericEscape = !( unicode || unicode_sets ),
 
             Class_Dot = true,
             Class_Cbyte = false,
@@ -374,11 +308,11 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             InsideSets_Class_X = false,
             InsideSets_Class_pP = false,
             InsideSets_Class_pPBrace = true,
-            InsideSets_Class_Name = true,
+            InsideSets_Class_Name = !unicode_sets,
             InsideSets_Equivalence = false,
             InsideSets_Collating = false,
 
-            InsideSets_Operators = false,
+            InsideSets_Operators = unicode_sets,
             InsideSets_OperatorsExtended = false,
             InsideSets_Operator_Ampersand = false,
             InsideSets_Operator_Plus = false,
@@ -387,16 +321,16 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             InsideSets_Operator_MinusBased = false,
             InsideSets_Operator_Circumflex = false,
             InsideSets_Operator_Exclamation = false,
-            InsideSets_Operator_DoubleAmpersand = false,
+            InsideSets_Operator_DoubleAmpersand = unicode_sets,
             InsideSets_Operator_DoubleVerticalLine = false,
-            InsideSets_Operator_DoubleMinus = false,
+            InsideSets_Operator_DoubleMinus = unicode_sets,
             InsideSets_Operator_DoubleTilde = false,
 
             Anchor_Circumflex = true,
             Anchor_Dollar = true,
-            Anchor_A = true,
-            Anchor_Z = FeatureMatrix.AnchorZModeEnum.Compatible,
-            Anchor_z = true,
+            Anchor_A = !( unicode || unicode_sets ),
+            Anchor_Z = !( unicode || unicode_sets ) ? FeatureMatrix.AnchorZModeEnum.Compatible : FeatureMatrix.AnchorZModeEnum.None,
+            Anchor_z = !( unicode || unicode_sets ),
             Anchor_G = false,
             Anchor_G_Option = false,
             Anchor_bB = true,
@@ -411,7 +345,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
 
             NamedGroup_Apos = false,
             NamedGroup_LtGt = true,
-            NamedGroup_PLtGt = true,
+            NamedGroup_PLtGt = !ecmascript,
             BalancingGroup = false,
             CapturingGroup = false,
             DuplicateGroupName = true,
@@ -422,7 +356,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             PositiveLookbehind = FeatureMatrix.LookModeEnum.AnyLength,
             NegativeLookbehind = FeatureMatrix.LookModeEnum.AnyLength, // (has defects)
             NestedLookaround = true,
-            AtomicGroup = false,
+            AtomicGroup = !ecmascript,
             BranchReset = false,
             NonatomicPositiveLookahead = false,
             NonatomicPositiveLookbehind = false,
@@ -441,7 +375,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             Backref_gNum = FeatureMatrix.BackrefModeEnum.None,
             Backref_gNegNum = FeatureMatrix.BackrefModeEnum.None,
             Backref_gBrace = FeatureMatrix.BackrefModeEnum.None,
-            Backref_PEqName = false,
+            Backref_PEqName = !ecmascript,
             AllowSpacesInBackref = false,
 
             Recursive_Num = false,
@@ -457,7 +391,7 @@ class SubengineZigRegex( Options options ) : RegexSubengine
             Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
-            Quantifier_LowAbbrev = false,
+            Quantifier_LowAbbrev = !ecmascript,
             Quantifier_Lazy = true,
             Quantifier_Possessive = false,
 
@@ -478,19 +412,22 @@ class SubengineZigRegex( Options options ) : RegexSubengine
 
             EmptyConstruct = false,
             EmptyConstructX = false,
-            EmptySet = true,
-            EmptySetAny = true,
+            EmptySet = !unicode_sets,
+            EmptySetAny = !unicode_sets,
 
-            Unicode_Class_Dot = true, // ('unicode' flag not yet implemented)
+            Unicode_Class_Dot = true,
             Unicode_Class_wW = false,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
-            KeepSurrogatePairs = false, // ('unicode' flag not yet implemented)
+            KeepSurrogatePairs = unicode,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
+            // ReDoS protection also depends on IgnoreCase
+            TreatmentOfCatastrophicPatterns = ( ecmascript && !( unicode || unicode_sets ) ) ? FeatureMatrix.CatastrophicBacktrackingEnum.Accept : FeatureMatrix.CatastrophicBacktrackingEnum.Reject,
             Σσς = true,
             ßSS = false,
 
+            Ext_Ph1 = ecmascript,
+            Ext_Ph2 = ecmascript,
             Ext_Ph3 = true,
         };
     }

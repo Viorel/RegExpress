@@ -104,8 +104,29 @@ class Engine : RegexEngine
 
         Engine engine;
 
-        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex, unicode = false } };
-        variants.Add( new FeatureMatrixVariant( "zig-regex", engine ) );
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex, unicode = false, unicode_sets = false, ecmascript = false } };
+        //variants.Add( new FeatureMatrixVariant( "zig-regex", engine ) );
+
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex, unicode = true, unicode_sets = false, ecmascript = false } };
+        //variants.Add( new FeatureMatrixVariant( "zig-regex (“u”)", engine ) );
+
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex, unicode = false, unicode_sets = true, ecmascript = false } };
+        //variants.Add( new FeatureMatrixVariant( "zig-regex (“v”)", engine ) );
+
+        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex, unicode = true, unicode_sets = true, ecmascript = false } };
+        variants.Add( new FeatureMatrixVariant( "zig-regex (“uv”)", engine ) );
+
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex, unicode = false, unicode_sets = false, ecmascript = true } };
+        //variants.Add( new FeatureMatrixVariant( "zig-regex (ecma)", engine ) );
+
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex, unicode = true, unicode_sets = false, ecmascript = true } };
+        //variants.Add( new FeatureMatrixVariant( "zig-regex (ecma, “u”)", engine ) );
+
+        //engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex, unicode = false, unicode_sets = true, ecmascript = true } };
+        //variants.Add( new FeatureMatrixVariant( "zig-regex (ecma, “v”)", engine ) );
+
+        engine = new( ) { Options = new Options { Library = RegexLibraryEnum.ZigRegex, unicode = true, unicode_sets = true, ecmascript = true } };
+        variants.Add( new FeatureMatrixVariant( "zig-regex (ecma, “uv”)", engine ) );
 
         engine = new( ) { Options = new Options { Library = RegexLibraryEnum.Mvzr } };
         variants.Add( new FeatureMatrixVariant( "mvzr", engine ) );
@@ -167,6 +188,8 @@ class Engine : RegexEngine
 
     public override void SetIgnorePatternWhitespace( bool yes )
     {
+        Options.extended = yes;
+        if( mOptionsControl.IsValueCreated ) mOptionsControl.Value.SetOptions( mOptions );
     }
 
     public override void SetCollectCaptures( bool yes )
@@ -196,7 +219,7 @@ class Engine : RegexEngine
         };
     }
 
-    #endregion
+#endregion
 
     private void OptionsControl_Changed( object? sender, RegexEngineOptionsChangedArgs args )
     {

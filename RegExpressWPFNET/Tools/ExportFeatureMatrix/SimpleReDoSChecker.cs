@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.SyntaxColouring;
+using System.IO;
 
 namespace ExportFeatureMatrix;
 
@@ -59,6 +60,8 @@ internal static class SimpleReDosChecker
                 {
                     _ = exc;
                     // ...
+
+                    File.AppendAllText( @"T:\log1.log", exc.Message + Environment.NewLine ); //................
 
                     result = CatastrophicBacktrackingResultEnum.Error;
 

@@ -13,7 +13,7 @@ pub fn build(b: *std.Build) void {
     // for restricting supported target set are available.
     const target = b.standardTargetOptions(.{});
     // Standard optimization options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
+    // between debug, safe, fast, and small. Here we do not
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
     // It's also possible to define more custom flags to toggle optional features
@@ -28,7 +28,7 @@ pub fn build(b: *std.Build) void {
     // to our consumers. We must give it a name because a Zig package can expose
     // multiple modules and consumers will need to be able to specify which
     // module they want to access.
-    const mod = b.addModule("RegexWorker", .{
+    const mod = b.addModule("ZigRegexWorker", .{
         // The root source file is the "entry point" of this module. Users of
         // this module will only be able to access public declarations contained
         // in this file, which means that if you have declarations that you
@@ -58,7 +58,7 @@ pub fn build(b: *std.Build) void {
     // If neither case applies to you, feel free to delete the declaration you
     // don't need and to put everything under a single module.
     const exe = b.addExecutable(.{
-        .name = "RegexWorker",
+        .name = "ZigRegexWorker",
         .root_module = b.createModule(.{
             // b.createModule defines a new module just like b.addModule but,
             // unlike b.addModule, it does not expose the module to consumers of
@@ -73,18 +73,18 @@ pub fn build(b: *std.Build) void {
             // List of modules available for import in source files part of the
             // root module.
             .imports = &.{
-                // Here "RegexWorker" is the name you will use in your source code to
-                // import this module (e.g. `@import("RegexWorker")`). The name is
+                // Here "ZigRegexWorker" is the name you will use in your source code to
+                // import this module (e.g. `@import("ZigRegexWorker")`). The name is
                 // repeated because you are allowed to rename your imports, which
                 // can be extremely useful in case of collisions (which can happen
                 // importing modules from different packages).
-                .{ .name = "RegexWorker", .module = mod },
+                .{ .name = "ZigRegexWorker", .module = mod },
             },
         }),
     });
 
-    const regex = b.dependency("regex", .{ .target = target, .optimize = optimize });
-    exe.root_module.addImport("regex", regex.module("regex"));
+    const zig_regex = b.dependency("zig_regex", .{ .target = target, .optimize = optimize });
+    exe.root_module.addImport("zig_regex", zig_regex.module("regex"));
 
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default

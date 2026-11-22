@@ -91,7 +91,7 @@ The following engines are included:
   * [_mregex_](https://github.com/iulian-rusu/mregex)[^2] 2026-10-29 (in C++).
 * **GRETA** 2.6.4 (in C++).
 * **Zig** 0.17.0:
-  * [_zig-regex_](https://github.com/zig-utils/zig-regex) 0.2.1, 
+  * [_zig-regex_](https://github.com/zig-utils/zig-regex) 0.5.0, 
   * [_mvzr_](https://github.com/mnemnion/mvzr) 0.3.12,
   * _PZRE_ 0.2.3,
   * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.8.0,
