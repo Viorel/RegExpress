@@ -22,10 +22,10 @@
     // original project's identity. Thus it is recommended to leave the comment
     // on the following line intact, so that it shows up in code reviews that
     // modify the field.
-    .fingerprint = 0x2584e80edf4ae549, // Changing this has security and trust implications.
+    .fingerprint = 0x2584e80e2abe6dcd, // Changing this has security and trust implications.
     // Tracks the earliest Zig version that the package considers to be a
     // supported use case.
-    .minimum_zig_version = "0.17.0",
+    .minimum_zig_version = "0.17.1",
     // This field is optional.
     // Each dependency must either provide a `url` and `hash`, or a `path`.
     // `zig build --fetch` can be used to fetch all dependencies of a package, recursively.
@@ -61,8 +61,8 @@
         //},
 
         .zoptia0regex = .{
-            .url = "https://github.com/zoptia/zoptia0regex/archive/refs/tags/v0.6.0.tar.gz",
-            .hash = "zoptia0regex-0.6.0-DssccfPacwBkqgdanAGXeJ_hDMYFU8oIaF4hSgO4rMNg",
+            .url = "https://github.com/zoptia/zoptia0regex/archive/refs/tags/v0.8.1.tar.gz",
+            .hash = "zoptia0regex-0.8.1-Dssccb2zDACaEgMD2bN04c0Z3GBcACrQBxFn_oZnbl6K",
         },
     
     },

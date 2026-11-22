@@ -95,7 +95,7 @@ The following engines are included:
   * [_mvzr_](https://github.com/mnemnion/mvzr) 0.3.12,
   * _PZRE_ 0.2.3,
   * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.8.0,
-  * [_zoptia0regex_](https://github.com/zoptia/zoptia0regex) 0.6.0,
+  * [_zoptia0regex_](https://github.com/zoptia/zoptia0regex) 0.8.1,
   * [_z-regex_](https://github.com/carlos-sweb/z-regex) 0.9.1,
   * [_zregex_](https://github.com/jcollie/zregex) 2026.10.05,
   * [_regex.zig_](https://github.com/muhammad-fiaz/regex.zig) 0.0.1,
