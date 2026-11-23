@@ -38,7 +38,7 @@ class SubengineSRELL( Options options ) : RegexSubengine
     {
         Debug.Assert( options.Compiler == CompilerEnum.SRELL );
 
-        UInt64? limit_counter = ValidationUtilities.ParseUInt64( "limit_counter", options.limit_counter );
+        UInt64? backtrack_limit = ValidationUtilities.ParseUInt64( "backtrack_limit", options.backtrack_limit );
 
         using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
 
@@ -73,7 +73,7 @@ class SubengineSRELL( Options options ) : RegexSubengine
             bw.Write( Convert.ToByte( options.match_continuous ) );
             bw.Write( Convert.ToByte( options.match_prev_avail ) );
 
-            bw.WriteOptional( limit_counter );
+            bw.WriteOptional( backtrack_limit );
 
             bw.Write( (byte)'e' );
         };

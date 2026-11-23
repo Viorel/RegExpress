@@ -1,6 +1,6 @@
 /*****************************************************************************
 **
-**  SRELL (std::regex-like library) linear version 2026.06
+**  SRELL (std::regex-like library) linear version 2026.07
 **
 **  Copyright (c) 2026, Nozomu Katoo. All rights reserved.
 **
@@ -31,7 +31,7 @@
 */
 
 #ifndef SREL3_HPP_
-#define SREL3_HPP_ 202606
+#define SREL3_HPP_ 202607
 
 #define SRELL_LINEAR
 
@@ -161,12 +161,12 @@ namespace srel3
 	{
 
 #if defined(__cpp_unicode_characters)
-		typedef char32_t ui_l32;	//  uint_least32.
+typedef char32_t ui_l32;	//  uint_least32.
 #else
-		typedef unsigned int ui_l32;
+typedef unsigned int ui_l32;
 #endif
 
-		typedef std::size_t cntr_type;
+typedef std::size_t cntr_type;
 
 	}	//  namespace re_detail
 
@@ -175,379 +175,367 @@ namespace srel3
 
 	namespace regex_constants
 	{
-		enum syntax_option_type
-		{
-			icase = 1 << 1,
-			nosubs = 1 << 2,
-			optimize = 1 << 3,
-			collate = 0,
-			ECMAScript = 1 << 0,
-			multiline = 1 << 4,
-			basic = 0,
-			extended = 0,
-			awk = 0,
-			grep = 0,
-			egrep = 0,
 
-			//  SRELL's extensions.
-			sticky = 1 << 5,	//  == match_continuous below.
-			dotall = 1 << 6,	//  singleline.
-			unicodesets = 1 << 7,
-			vmode = unicodesets,
-			quiet = 1 << 8,
+enum syntax_option_type
+{
+	icase = 1 << 1,
+	nosubs = 1 << 2,
+	optimize = 1 << 3,
+	collate = 0,
+	ECMAScript = 1 << 0,
+	multiline = 1 << 4,
+	basic = 0,
+	extended = 0,
+	awk = 0,
+	grep = 0,
+	egrep = 0,
 
-			//  For internal use.
-			back_ = 1 << 9,
-			pflagsmask_ = (1 << 9) - 1
-		};
+	//  SRELL's extensions.
+	sticky = 1 << 5,	//  == match_continuous below.
+	dotall = 1 << 6,	//  singleline.
+	unicodesets = 1 << 7,
+	vmode = unicodesets,
+	quiet = 1 << 8,
 
-		inline syntax_option_type operator&(const syntax_option_type left, const syntax_option_type right)
-		{
-			return static_cast<syntax_option_type>(static_cast<int>(left) & static_cast<int>(right));
-		}
-		inline syntax_option_type operator|(const syntax_option_type left, const syntax_option_type right)
-		{
-			return static_cast<syntax_option_type>(static_cast<int>(left) | static_cast<int>(right));
-		}
-		inline syntax_option_type operator^(const syntax_option_type left, const syntax_option_type right)
-		{
-			return static_cast<syntax_option_type>(static_cast<int>(left) ^ static_cast<int>(right));
-		}
-		inline syntax_option_type operator~(const syntax_option_type b)
-		{
-			return static_cast<syntax_option_type>(~static_cast<int>(b));
-		}
-		inline syntax_option_type &operator&=(syntax_option_type &left, const syntax_option_type right)
-		{
-			left = left & right;
-			return left;
-		}
-		inline syntax_option_type &operator|=(syntax_option_type &left, const syntax_option_type right)
-		{
-			left = left | right;
-			return left;
-		}
-		inline syntax_option_type &operator^=(syntax_option_type &left, const syntax_option_type right)
-		{
-			left = left ^ right;
-			return left;
-		}
-	}
-	//  namespace regex_constants
+	//  For internal use.
+	back_ = 1 << 9,
+	pflagsmask_ = (1 << 9) - 1
+};
 
-	namespace regex_constants
-	{
-		enum match_flag_type
-		{
-			match_default = 0,
-			match_not_bol = 1 << 0,
-			match_not_eol = 1 << 1,
-			match_not_bow = 1 << 2,
-			match_not_eow = 1 << 3,
-			match_any = 0,
-			match_not_null = 1 << 4,
-			match_continuous = 1 << 5,	//  == sticky above.
-			match_prev_avail = 1 << 6,
+inline syntax_option_type operator&(const syntax_option_type left, const syntax_option_type right)
+{
+	return static_cast<syntax_option_type>(static_cast<int>(left) & static_cast<int>(right));
+}
+inline syntax_option_type operator|(const syntax_option_type left, const syntax_option_type right)
+{
+	return static_cast<syntax_option_type>(static_cast<int>(left) | static_cast<int>(right));
+}
+inline syntax_option_type operator^(const syntax_option_type left, const syntax_option_type right)
+{
+	return static_cast<syntax_option_type>(static_cast<int>(left) ^ static_cast<int>(right));
+}
+inline syntax_option_type operator~(const syntax_option_type b)
+{
+	return static_cast<syntax_option_type>(~static_cast<int>(b));
+}
+inline syntax_option_type &operator&=(syntax_option_type &left, const syntax_option_type right)
+{
+	left = left & right;
+	return left;
+}
+inline syntax_option_type &operator|=(syntax_option_type &left, const syntax_option_type right)
+{
+	left = left | right;
+	return left;
+}
+inline syntax_option_type &operator^=(syntax_option_type &left, const syntax_option_type right)
+{
+	left = left ^ right;
+	return left;
+}
 
-			format_default = 0,
-			format_sed = 0,
-			format_no_copy = 1 << 7,
-			format_first_only = 1 << 8,
+enum match_flag_type
+{
+	match_default = 0,
+	match_not_bol = 1 << 0,
+	match_not_eol = 1 << 1,
+	match_not_bow = 1 << 2,
+	match_not_eow = 1 << 3,
+	match_any = 0,
+	match_not_null = 1 << 4,
+	match_continuous = 1 << 5,	//  == sticky above.
+	match_prev_avail = 1 << 6,
 
-			//  For internal use.
-			match_match_ = 1 << 9
-		};
+	format_default = 0,
+	format_sed = 0,
+	format_no_copy = 1 << 7,
+	format_first_only = 1 << 8,
 
-		inline match_flag_type operator&(const match_flag_type left, const match_flag_type right)
-		{
-			return static_cast<match_flag_type>(static_cast<int>(left) & static_cast<int>(right));
-		}
-		inline match_flag_type operator|(const match_flag_type left, const match_flag_type right)
-		{
-			return static_cast<match_flag_type>(static_cast<int>(left) | static_cast<int>(right));
-		}
-		inline match_flag_type operator^(const match_flag_type left, const match_flag_type right)
-		{
-			return static_cast<match_flag_type>(static_cast<int>(left) ^ static_cast<int>(right));
-		}
-		inline match_flag_type operator~(const match_flag_type b)
-		{
-			return static_cast<match_flag_type>(~static_cast<int>(b));
-		}
-		inline match_flag_type &operator&=(match_flag_type &left, const match_flag_type right)
-		{
-			left = left & right;
-			return left;
-		}
-		inline match_flag_type &operator|=(match_flag_type &left, const match_flag_type right)
-		{
-			left = left | right;
-			return left;
-		}
-		inline match_flag_type &operator^=(match_flag_type &left, const match_flag_type right)
-		{
-			left = left ^ right;
-			return left;
-		}
-	}
-	//  namespace regex_constants
+	//  For internal use.
+	match_match_ = 1 << 9
+};
 
-	namespace regex_constants
-	{
-		typedef unsigned int error_type;
+inline match_flag_type operator&(const match_flag_type left, const match_flag_type right)
+{
+	return static_cast<match_flag_type>(static_cast<int>(left) & static_cast<int>(right));
+}
+inline match_flag_type operator|(const match_flag_type left, const match_flag_type right)
+{
+	return static_cast<match_flag_type>(static_cast<int>(left) | static_cast<int>(right));
+}
+inline match_flag_type operator^(const match_flag_type left, const match_flag_type right)
+{
+	return static_cast<match_flag_type>(static_cast<int>(left) ^ static_cast<int>(right));
+}
+inline match_flag_type operator~(const match_flag_type b)
+{
+	return static_cast<match_flag_type>(~static_cast<int>(b));
+}
+inline match_flag_type &operator&=(match_flag_type &left, const match_flag_type right)
+{
+	left = left & right;
+	return left;
+}
+inline match_flag_type &operator|=(match_flag_type &left, const match_flag_type right)
+{
+	left = left | right;
+	return left;
+}
+inline match_flag_type &operator^=(match_flag_type &left, const match_flag_type right)
+{
+	left = left ^ right;
+	return left;
+}
+
+typedef unsigned int error_type;
 
 #define SRELLTMP_ET(n,v) SRELL_STACON error_type n = v;
 
-		SRELLTMP_ET(error_collate, 100)
-		SRELLTMP_ET(error_ctype, 101)
-		SRELLTMP_ET(error_escape, 102)
-		SRELLTMP_ET(error_backref, 103)
-		SRELLTMP_ET(error_brack, 104)
-		SRELLTMP_ET(error_paren, 105)
-		SRELLTMP_ET(error_brace, 106)
-		SRELLTMP_ET(error_badbrace, 107)
-		SRELLTMP_ET(error_range, 108)
-		SRELLTMP_ET(error_space, 109)
-		SRELLTMP_ET(error_badrepeat, 110)
-		SRELLTMP_ET(error_complexity, 111)
-		SRELLTMP_ET(error_stack, 112)
+SRELLTMP_ET(error_collate, 100)
+SRELLTMP_ET(error_ctype, 101)
+SRELLTMP_ET(error_escape, 102)
+SRELLTMP_ET(error_backref, 103)
+SRELLTMP_ET(error_brack, 104)
+SRELLTMP_ET(error_paren, 105)
+SRELLTMP_ET(error_brace, 106)
+SRELLTMP_ET(error_badbrace, 107)
+SRELLTMP_ET(error_range, 108)
+SRELLTMP_ET(error_space, 109)
+SRELLTMP_ET(error_badrepeat, 110)
+SRELLTMP_ET(error_complexity, 111)
+SRELLTMP_ET(error_stack, 112)
 
-		//  SRELL's extensions.
-		SRELLTMP_ET(error_utf8, 113)
-			//  The expression contained an invalid UTF-8 sequence.
+//  SRELL's extensions.
+SRELLTMP_ET(error_utf8, 113)
+	//  The expression contained an invalid UTF-8 sequence.
 
-		SRELLTMP_ET(error_property, 114)
-			//  The expression contained an invalid Unicode property name or value.
+SRELLTMP_ET(error_property, 114)
+	//  The expression contained an invalid Unicode property name or value.
 
-		SRELLTMP_ET(error_noescape, 115)
-			//  (Only in v-mode) ( ) [ ] { } / - \ | need to be escaped in a character class.
+SRELLTMP_ET(error_noescape, 115)
+	//  (Only in v-mode) ( ) [ ] { } / - \ | need to be escaped in a character class.
 
-		SRELLTMP_ET(error_operator, 116)
-			//  (Only in v-mode) A character class contained a reserved double punctuation
-			//  operator or different types of operators at the same level, such as [ab--cd].
+SRELLTMP_ET(error_operator, 116)
+	//  (Only in v-mode) A character class contained a reserved double punctuation
+	//  operator or different types of operators at the same level, such as [ab--cd].
 
-		SRELLTMP_ET(error_complement, 117)
-			//  (Only in v-mode) \P or a negated character class contained a property of strings.
+SRELLTMP_ET(error_complement, 117)
+	//  (Only in v-mode) \P or a negated character class contained a property of strings.
 
-		SRELLTMP_ET(error_modifier, 118)
-			//  A specific flag modifier appeared more then once, or the un-bounded form
-			//  ((?ism-ism)) appeared at a position other than the beginning of the expression.
+SRELLTMP_ET(error_modifier, 118)
+	//  A specific flag modifier appeared more then once, or the un-bounded form
+	//  ((?ism-ism)) appeared at a position other than the beginning of the expression.
 
-		SRELLTMP_ET(error_backtrack, 119)
-			//  A backtracking engine specific feature was used.
+SRELLTMP_ET(error_backtrack, 119)
+	//  A backtracking engine specific feature was used.
 
-		SRELLTMP_ET(error_dfacache, 120)
-			//  DFA cache full.
+SRELLTMP_ET(error_dfacache, 120)
+	//  DFA cache full.
 
-		SRELLTMP_ET(error_manystates, 121)
-			//  Too many states.
+SRELLTMP_ET(error_manystates, 121)
+	//  Too many states.
 
-		SRELLTMP_ET(error_first_, error_collate)
-		SRELLTMP_ET(error_last_, error_manystates)
+SRELLTMP_ET(error_first_, error_collate)
+SRELLTMP_ET(error_last_, error_manystates)
 
 #if defined(SRELL_FIXEDWIDTHLOOKBEHIND)
-		SRELLTMP_ET(error_lookbehind, 200)
+SRELLTMP_ET(error_lookbehind, 200)
 #endif
 
-		SRELLTMP_ET(error_internal, 999)
+SRELLTMP_ET(error_internal, 999)
 
 #undef SRELLTMP_ET
 
-	}
-	//  namespace regex_constants
+	}	//  namespace regex_constants
 
 //  ... "regex_constants.h"]
 //  ["rei_constants.h" ...
 
 	namespace re_detail
 	{
-		enum re_state_type
-		{
-			st_character,               //  0x00
-			st_characteri,              //  0x01
-			st_character_class,         //  0x02
 
-			st_epsilon,                 //  0x03
+enum re_state_type
+{
+	st_character,               //  0x00
+	st_characteri,              //  0x01
+	st_character_class,         //  0x02
 
-//			st_check_counter,           //  0x04
-//			st_increment_counter,       //  0x05
-//			st_decrement_counter,       //  0x06
-//			st_save_and_reset_counter,  //  0x07
-//			st_restore_counter,         //  0x08
+	st_epsilon,                 //  0x03
 
-			st_roundbracket_open,       //  0x09
-//			st_roundbracket_pop,        //  0x0a
-			st_roundbracket_close,      //  0x0b
+//	st_check_counter,
+//	st_increment_counter,
+//	st_decrement_counter,
+//	st_save_and_reset_counter,
+//	st_restore_counter,
 
-			st_repeat_in_push,          //  0x0c
-//			st_repeat_in_pop,           //  0x0d
-			st_check_0_width_repeat,    //  0x0e
+	st_roundbracket_open,       //  0x04
+//	st_roundbracket_pop,
+	st_roundbracket_close,      //  0x05
 
-//			st_backreference,           //  0x0f
+	st_repeat_in_push,          //  0x06
+//	st_repeat_in_pop,
+	st_check_0_width_repeat,    //  0x07
 
-			st_lookaround_open,         //  0x10
+//	st_backreference,
 
-			st_lookaround_pop,          //  0x11
+	st_lookaround_open,         //  0x08
+	st_lookaround_pop,          //  0x09
 
-			st_bol,                     //  0x12
-			st_eol,                     //  0x13
-			st_boundary,                //  0x14
+	st_bol,                     //  0x0a
+	st_eol,                     //  0x0b
+	st_boundary,                //  0x0c
 
-			st_success,                 //  0x15
+	st_success,                 //  0x0d
 
-#if defined(SRELLTEST_NEXTPOS_OPT)
-			st_move_nextpos,            //  0x16
-#endif
-
-			st_lookaround_close    = st_success,
-			st_zero_width_boundary = st_lookaround_open
-		};
-		//  re_state_type
+	st_lookaround_close    = st_success,
+	st_zero_width_boundary = st_lookaround_open
+};
+//  re_state_type
 
 #define SRELLTMP_UIL32(n,v) SRELL_STACON ui_l32 n = v;
 
 		namespace constants
 		{
-			SRELLTMP_UIL32(unicode_max_codepoint, 0x10ffff)
-			SRELLTMP_UIL32(invalid_utf8, 0x1fffff)
-			SRELLTMP_UIL32(invalid_u32value, static_cast<ui_l32>(-1))
-			SRELLTMP_UIL32(max_u32value, static_cast<ui_l32>(-2))
-			SRELLTMP_UIL32(textendchar, static_cast<ui_l32>(-1))
-			SRELLTMP_UIL32(ccstr_empty, static_cast<ui_l32>(-1))
-			SRELLTMP_UIL32(infinity, static_cast<ui_l32>(-1))
-			SRELLTMP_UIL32(errshift, 24)
+SRELLTMP_UIL32(unicode_max_codepoint, 0x10ffff)
+SRELLTMP_UIL32(invalid_utf8, 0x1fffff)
+SRELLTMP_UIL32(invalid_u32value, static_cast<ui_l32>(-1))
+SRELLTMP_UIL32(max_u32value, static_cast<ui_l32>(-2))
+SRELLTMP_UIL32(textendchar, static_cast<ui_l32>(-1))
+SRELLTMP_UIL32(ccstr_empty, static_cast<ui_l32>(-1))
+SRELLTMP_UIL32(infinity, static_cast<ui_l32>(-1))
+SRELLTMP_UIL32(errshift, 24)
 		}
 		//  constants
 
 		namespace masks
 		{
-			SRELLTMP_UIL32(asc_icase, 0x20)
-			SRELLTMP_UIL32(cfolded, 0x200000)	//  1 << 21.
-			SRELLTMP_UIL32(cf_char, 0x1fffff)
-			SRELLTMP_UIL32(errmask, 0xff000000)
-			SRELLTMP_UIL32(somask, 0xffffff)
+SRELLTMP_UIL32(asc_icase, 0x20)
+SRELLTMP_UIL32(cfolded, 0x200000)	//  1 << 21.
+SRELLTMP_UIL32(cf_char, 0x1fffff)
+SRELLTMP_UIL32(errmask, 0xff000000)
+SRELLTMP_UIL32(somask, 0xffffff)
 
-			SRELLTMP_UIL32(has_lookaround, 0x100)
+SRELLTMP_UIL32(has_lookaround, 0x100)
 		}
 		//  masks
 
 		namespace sflags
 		{
-			SRELLTMP_UIL32(is_not, 1)
-			SRELLTMP_UIL32(icase, 1)
-			SRELLTMP_UIL32(multiline, 1)
-			SRELLTMP_UIL32(backrefno_unresolved, 1 << 1)
-			SRELLTMP_UIL32(hooking, 1 << 2)
-			SRELLTMP_UIL32(hookedlast, 1 << 3)
-			SRELLTMP_UIL32(byn2, 1 << 4)
-			SRELLTMP_UIL32(clrn2, 1 << 5)
+SRELLTMP_UIL32(is_not, 1)
+SRELLTMP_UIL32(icase, 1)
+SRELLTMP_UIL32(multiline, 1)
+SRELLTMP_UIL32(backrefno_unresolved, 1 << 1)
+SRELLTMP_UIL32(hooking, 1 << 2)
+SRELLTMP_UIL32(hookedlast, 1 << 3)
+SRELLTMP_UIL32(byn2, 1 << 4)
+SRELLTMP_UIL32(clrn2, 1 << 5)
 		}
 		//  sflags
 
 		namespace meta_char
 		{
-			SRELLTMP_UIL32(mc_exclam, 0x21)	//  '!'
-			SRELLTMP_UIL32(mc_sharp , 0x23)	//  '#'
-			SRELLTMP_UIL32(mc_dollar, 0x24)	//  '$'
-			SRELLTMP_UIL32(mc_rbraop, 0x28)	//  '('
-			SRELLTMP_UIL32(mc_rbracl, 0x29)	//  ')'
-			SRELLTMP_UIL32(mc_astrsk, 0x2a)	//  '*'
-			SRELLTMP_UIL32(mc_plus  , 0x2b)	//  '+'
-			SRELLTMP_UIL32(mc_comma , 0x2c)	//  ','
-			SRELLTMP_UIL32(mc_minus , 0x2d)	//  '-'
-			SRELLTMP_UIL32(mc_period, 0x2e)	//  '.'
-			SRELLTMP_UIL32(mc_colon , 0x3a)	//  ':'
-			SRELLTMP_UIL32(mc_lt, 0x3c)		//  '<'
-			SRELLTMP_UIL32(mc_eq, 0x3d)		//  '='
-			SRELLTMP_UIL32(mc_gt, 0x3e)		//  '>'
-			SRELLTMP_UIL32(mc_query , 0x3f)	//  '?'
-			SRELLTMP_UIL32(mc_sbraop, 0x5b)	//  '['
-			SRELLTMP_UIL32(mc_escape, 0x5c)	//  '\\'
-			SRELLTMP_UIL32(mc_sbracl, 0x5d)	//  ']'
-			SRELLTMP_UIL32(mc_caret , 0x5e)	//  '^'
-			SRELLTMP_UIL32(mc_cbraop, 0x7b)	//  '{'
-			SRELLTMP_UIL32(mc_bar   , 0x7c)	//  '|'
-			SRELLTMP_UIL32(mc_cbracl, 0x7d)	//  '}'
+SRELLTMP_UIL32(mc_exclam, 0x21)	//  '!'
+SRELLTMP_UIL32(mc_sharp , 0x23)	//  '#'
+SRELLTMP_UIL32(mc_dollar, 0x24)	//  '$'
+SRELLTMP_UIL32(mc_rbraop, 0x28)	//  '('
+SRELLTMP_UIL32(mc_rbracl, 0x29)	//  ')'
+SRELLTMP_UIL32(mc_astrsk, 0x2a)	//  '*'
+SRELLTMP_UIL32(mc_plus  , 0x2b)	//  '+'
+SRELLTMP_UIL32(mc_comma , 0x2c)	//  ','
+SRELLTMP_UIL32(mc_minus , 0x2d)	//  '-'
+SRELLTMP_UIL32(mc_period, 0x2e)	//  '.'
+SRELLTMP_UIL32(mc_colon , 0x3a)	//  ':'
+SRELLTMP_UIL32(mc_lt, 0x3c)		//  '<'
+SRELLTMP_UIL32(mc_eq, 0x3d)		//  '='
+SRELLTMP_UIL32(mc_gt, 0x3e)		//  '>'
+SRELLTMP_UIL32(mc_query , 0x3f)	//  '?'
+SRELLTMP_UIL32(mc_sbraop, 0x5b)	//  '['
+SRELLTMP_UIL32(mc_escape, 0x5c)	//  '\\'
+SRELLTMP_UIL32(mc_sbracl, 0x5d)	//  ']'
+SRELLTMP_UIL32(mc_caret , 0x5e)	//  '^'
+SRELLTMP_UIL32(mc_cbraop, 0x7b)	//  '{'
+SRELLTMP_UIL32(mc_bar   , 0x7c)	//  '|'
+SRELLTMP_UIL32(mc_cbracl, 0x7d)	//  '}'
 		}
 		//  meta_char
 
 		namespace char_ctrl
 		{
-			SRELLTMP_UIL32(cc_nul , 0x00)	//  '\0'	//0x00:NUL
-			SRELLTMP_UIL32(cc_bs  , 0x08)	//  '\b'	//0x08:BS
-			SRELLTMP_UIL32(cc_htab, 0x09)	//  '\t'	//0x09:HT
-			SRELLTMP_UIL32(cc_nl  , 0x0a)	//  '\n'	//0x0a:LF
-			SRELLTMP_UIL32(cc_vtab, 0x0b)	//  '\v'	//0x0b:VT
-			SRELLTMP_UIL32(cc_ff  , 0x0c)	//  '\f'	//0x0c:FF
-			SRELLTMP_UIL32(cc_cr  , 0x0d)	//  '\r'	//0x0d:CR
+SRELLTMP_UIL32(cc_nul , 0x00)	//  '\0'	//0x00:NUL
+SRELLTMP_UIL32(cc_bs  , 0x08)	//  '\b'	//0x08:BS
+SRELLTMP_UIL32(cc_htab, 0x09)	//  '\t'	//0x09:HT
+SRELLTMP_UIL32(cc_nl  , 0x0a)	//  '\n'	//0x0a:LF
+SRELLTMP_UIL32(cc_vtab, 0x0b)	//  '\v'	//0x0b:VT
+SRELLTMP_UIL32(cc_ff  , 0x0c)	//  '\f'	//0x0c:FF
+SRELLTMP_UIL32(cc_cr  , 0x0d)	//  '\r'	//0x0d:CR
 		}
 		//  char_ctrl
 
 		namespace char_alnum
 		{
-			SRELLTMP_UIL32(ch_0, 0x30)	//  '0'
-			SRELLTMP_UIL32(ch_1, 0x31)	//  '1'
-			SRELLTMP_UIL32(ch_9, 0x39)	//  '9'
-			SRELLTMP_UIL32(ch_A, 0x41)	//  'A'
-			SRELLTMP_UIL32(ch_B, 0x42)	//  'B'
-			SRELLTMP_UIL32(ch_D, 0x44)	//  'D'
-			SRELLTMP_UIL32(ch_P, 0x50)	//  'P'
-			SRELLTMP_UIL32(ch_S, 0x53)	//  'S'
-			SRELLTMP_UIL32(ch_W, 0x57)	//  'W'
-			SRELLTMP_UIL32(ch_Z, 0x5a)	//  'Z'
-			SRELLTMP_UIL32(ch_a, 0x61)	//  'a'
-			SRELLTMP_UIL32(ch_b, 0x62)	//  'b'
-			SRELLTMP_UIL32(ch_c, 0x63)	//  'c'
-			SRELLTMP_UIL32(ch_d, 0x64)	//  'd'
-			SRELLTMP_UIL32(ch_f, 0x66)	//  'f'
-			SRELLTMP_UIL32(ch_i, 0x69)	//  'i'
-			SRELLTMP_UIL32(ch_k, 0x6b)	//  'k'
-			SRELLTMP_UIL32(ch_m, 0x6d)	//  'm'
-			SRELLTMP_UIL32(ch_n, 0x6e)	//  'n'
-			SRELLTMP_UIL32(ch_p, 0x70)	//  'p'
-			SRELLTMP_UIL32(ch_q, 0x71)	//  'q'
-			SRELLTMP_UIL32(ch_r, 0x72)	//  'r'
-			SRELLTMP_UIL32(ch_s, 0x73)	//  's'
-			SRELLTMP_UIL32(ch_t, 0x74)	//  't'
-			SRELLTMP_UIL32(ch_u, 0x75)	//  'u'
-			SRELLTMP_UIL32(ch_v, 0x76)	//  'v'
-			SRELLTMP_UIL32(ch_w, 0x77)	//  'w'
-			SRELLTMP_UIL32(ch_x, 0x78)	//  'x'
-			SRELLTMP_UIL32(ch_y, 0x79)	//  'y'
-			SRELLTMP_UIL32(ch_z, 0x7a)	//  'z'
+SRELLTMP_UIL32(ch_0, 0x30)	//  '0'
+SRELLTMP_UIL32(ch_1, 0x31)	//  '1'
+SRELLTMP_UIL32(ch_9, 0x39)	//  '9'
+SRELLTMP_UIL32(ch_A, 0x41)	//  'A'
+SRELLTMP_UIL32(ch_B, 0x42)	//  'B'
+SRELLTMP_UIL32(ch_D, 0x44)	//  'D'
+SRELLTMP_UIL32(ch_P, 0x50)	//  'P'
+SRELLTMP_UIL32(ch_S, 0x53)	//  'S'
+SRELLTMP_UIL32(ch_W, 0x57)	//  'W'
+SRELLTMP_UIL32(ch_Z, 0x5a)	//  'Z'
+SRELLTMP_UIL32(ch_a, 0x61)	//  'a'
+SRELLTMP_UIL32(ch_b, 0x62)	//  'b'
+SRELLTMP_UIL32(ch_c, 0x63)	//  'c'
+SRELLTMP_UIL32(ch_d, 0x64)	//  'd'
+SRELLTMP_UIL32(ch_f, 0x66)	//  'f'
+SRELLTMP_UIL32(ch_i, 0x69)	//  'i'
+SRELLTMP_UIL32(ch_k, 0x6b)	//  'k'
+SRELLTMP_UIL32(ch_m, 0x6d)	//  'm'
+SRELLTMP_UIL32(ch_n, 0x6e)	//  'n'
+SRELLTMP_UIL32(ch_p, 0x70)	//  'p'
+SRELLTMP_UIL32(ch_q, 0x71)	//  'q'
+SRELLTMP_UIL32(ch_r, 0x72)	//  'r'
+SRELLTMP_UIL32(ch_s, 0x73)	//  's'
+SRELLTMP_UIL32(ch_t, 0x74)	//  't'
+SRELLTMP_UIL32(ch_u, 0x75)	//  'u'
+SRELLTMP_UIL32(ch_v, 0x76)	//  'v'
+SRELLTMP_UIL32(ch_w, 0x77)	//  'w'
+SRELLTMP_UIL32(ch_x, 0x78)	//  'x'
+SRELLTMP_UIL32(ch_y, 0x79)	//  'y'
+SRELLTMP_UIL32(ch_z, 0x7a)	//  'z'
 		}
 		//  char_alnum
 
 		namespace char_other
 		{
-			SRELLTMP_UIL32(co_perc , 0x25)	//  '%'
-			SRELLTMP_UIL32(co_amp  , 0x26)	//  '&'
-			SRELLTMP_UIL32(co_apos , 0x27)	//  '\''
-			SRELLTMP_UIL32(co_slash, 0x2f)	//  '/'
-			SRELLTMP_UIL32(co_smcln, 0x3b)	//  ';'
-			SRELLTMP_UIL32(co_atmrk, 0x40)	//  '@'
-			SRELLTMP_UIL32(co_ll   , 0x5f)	//  '_'
-			SRELLTMP_UIL32(co_grav , 0x60)	//  '`'
-			SRELLTMP_UIL32(co_tilde, 0x7e)	//  '~'
+SRELLTMP_UIL32(co_perc , 0x25)	//  '%'
+SRELLTMP_UIL32(co_amp  , 0x26)	//  '&'
+SRELLTMP_UIL32(co_apos , 0x27)	//  '\''
+SRELLTMP_UIL32(co_slash, 0x2f)	//  '/'
+SRELLTMP_UIL32(co_smcln, 0x3b)	//  ';'
+SRELLTMP_UIL32(co_atmrk, 0x40)	//  '@'
+SRELLTMP_UIL32(co_ll   , 0x5f)	//  '_'
+SRELLTMP_UIL32(co_grav , 0x60)	//  '`'
+SRELLTMP_UIL32(co_tilde, 0x7e)	//  '~'
 		}
 		//  char_other
 
 		namespace epsilon_type	//  Used only in the pattern compiler.
 		{
-			SRELLTMP_UIL32(et_dfastrsk, 0x40)	//  '@'
-			SRELLTMP_UIL32(et_ccastrsk, 0x2a)	//  '*'
-			SRELLTMP_UIL32(et_alt     , 0x7c)	//  '|'
-			SRELLTMP_UIL32(et_ncgopen , 0x3a)	//  ':'
-			SRELLTMP_UIL32(et_ncgclose, 0x3b)	//  ';'
-			SRELLTMP_UIL32(et_jmpinlp , 0x2b)	//  '+'
-			SRELLTMP_UIL32(et_brnchend, 0x2f)	//  '/'
-			SRELLTMP_UIL32(et_fmrbckrf, 0x5c)	//  '\\'
-			SRELLTMP_UIL32(et_bo1fmrbr, 0x31)	//  '1'
-			SRELLTMP_UIL32(et_bo2fmrbr, 0x32)	//  '2'
-			SRELLTMP_UIL32(et_bo2skpd , 0x21)	//  '!'
-			SRELLTMP_UIL32(et_rvfmrcg , 0x28)	//  '('
-			SRELLTMP_UIL32(et_mfrfmrcg, 0x29)	//  ')'
-			SRELLTMP_UIL32(et_aofmrast, 0x78)	//  'x'
+SRELLTMP_UIL32(et_dfastrsk, 0x40)	//  '@'
+SRELLTMP_UIL32(et_ccastrsk, 0x2a)	//  '*'
+SRELLTMP_UIL32(et_alt     , 0x7c)	//  '|'
+SRELLTMP_UIL32(et_ncgopen , 0x3a)	//  ':'
+SRELLTMP_UIL32(et_ncgclose, 0x3b)	//  ';'
+SRELLTMP_UIL32(et_jmpinlp , 0x2b)	//  '+'
+SRELLTMP_UIL32(et_brnchend, 0x2f)	//  '/'
+SRELLTMP_UIL32(et_fmrbckrf, 0x5c)	//  '\\'
+SRELLTMP_UIL32(et_bo1fmrbr, 0x31)	//  '1'
+SRELLTMP_UIL32(et_bo2fmrbr, 0x32)	//  '2'
+SRELLTMP_UIL32(et_bo2skpd , 0x21)	//  '!'
+SRELLTMP_UIL32(et_rvfmrcg , 0x28)	//  '('
+SRELLTMP_UIL32(et_mfrfmrcg, 0x29)	//  ')'
+SRELLTMP_UIL32(et_aofmrast, 0x78)	//  'x'
 		}
 		//  epsilon_type
 
@@ -4583,13 +4571,15 @@ typedef ucf_constants::unicode_casefolding<ui_l32, ui_l32> ucfdata;
 
 		namespace ucf_constants
 		{
+
 #if !defined(SRELL_NO_UNICODE_ICASE)
-			static const ui_l32 rev_maxset = ucf_internal::ucfdata::rev_maxset;
-			static const ui_l32 rev_maxcp = ucf_internal::ucfdata::rev_maxcodepoint;
+static const ui_l32 rev_maxset = ucf_internal::ucfdata::rev_maxset;
+static const ui_l32 rev_maxcp = ucf_internal::ucfdata::rev_maxcodepoint;
 #else
-			static const ui_l32 rev_maxset = 2;
-			static const ui_l32 rev_maxcp = char_alnum::ch_z;
+static const ui_l32 rev_maxset = 2;
+static const ui_l32 rev_maxcp = char_alnum::ch_z;
 #endif
+
 		}	//  namespace ucf_constants
 
 class unicode_case_folding
@@ -14941,33 +14931,9 @@ const T3 unicode_property_data<T1, T2, T3>::rangetable[] =
 #define SRELL_UPDATA_VERSION 301
 //  ... "srell_updata3.h"]
 
-			SRELL_STACON ui_l32 error_property = static_cast<ui_l32>(-1);
+SRELL_STACON ui_l32 error_property = static_cast<ui_l32>(-1);
+
 		}	//  namespace up_constants
-
-		namespace up_internal
-		{
-			typedef int up_type;
-			typedef const char *pname_type;
-
-			struct pnameno_map_type
-			{
-				pname_type name;
-				up_type pno;
-			};
-
-			struct posinfo
-			{
-				ui_l32 offset;
-				ui_l32 numofpairs;
-			};
-
-			typedef up_constants::unicode_property_data<
-				pnameno_map_type,
-				posinfo,
-				ui_l32
-				> updata;
-
-		}	//  namespace up_internal
 
 class unicode_property
 {
@@ -15018,11 +14984,22 @@ public:
 
 private:
 
-	typedef up_internal::up_type up_type;
-	typedef up_internal::pname_type pname_type;
-	typedef up_internal::pnameno_map_type pnameno_map_type;
-	typedef up_internal::posinfo posinfo;
-	typedef up_internal::updata updata;
+	typedef int up_type;
+	typedef const char *pname_type;
+
+	struct pnameno_map_type
+	{
+		pname_type name;
+		up_type pno;
+	};
+
+	struct posinfo
+	{
+		ui_l32 offset;
+		ui_l32 numofpairs;
+	};
+
+	typedef up_constants::unicode_property_data<pnameno_map_type, posinfo, ui_l32> updata;
 
 	static up_type lookup_property_name(const u32view name)
 	{
@@ -15444,8 +15421,8 @@ public:
 				else	//  r1 <= r2 < l1
 					return;
 			}
-			//else	//  l1 < r1
-			else if (right.first <= left.second)	//  l1 < r1 <= l2.
+			else	//  l1 < r1
+			if (right.first <= left.second)	//  l1 < r1 <= l2.
 			{
 				if (left.second <= right.second)	//  l1 < r1 <= l2 <= r2.
 				{
@@ -15553,8 +15530,8 @@ public:
 							left.second = right.first - 1;
 						}
 					}
-					//else	//  r1 <= l1.
-					else if (right.second < left.second)	//  r1 <= l1 <= r2 < l2.
+					else	//  r1 <= l1.
+					if (right.second < left.second)	//  r1 <= l1 <= r2 < l2.
 					{
 						removed.join(range_pair_helper(left.first, right.second));
 						left.first = right.second + 1;
@@ -16520,6 +16497,9 @@ struct re_compiler_state
 	ui_l32 depth;
 
 	ui_l32 lookarounds;
+		//  Bit0: ^ $
+		//  Bit1: \b \B
+		//  Bit2: (?i:\b\B) -- (?:\b\B)
 
 #if !defined(SRELL_NO_NAMEDCAPTURE)
 	groupname_mapper<charT> unresolved_gnames;
@@ -16724,6 +16704,8 @@ public:
 			pos_size_ = 16;
 			pos_tracker.resize(pos_size_ * num_of_positions);
 		}
+
+		empty_elems_.clear();
 
 		lstack.resize(num_of_states);
 		nextq_pushed.resize(num_of_states);
@@ -17338,8 +17320,8 @@ protected:
 			this->namedcaptures = that.namedcaptures;
 #endif
 
-			eqclass_.reset();
-			groupno_maxp1_ = 0;
+			eqclass_ = that.eqclass_;
+			groupno_maxp1_ = that.groupno_maxp1_;
 
 			dcache_limit_ = that.dcache_limit_;
 			init_dfacache_();
@@ -17374,7 +17356,7 @@ protected:
 			this->namedcaptures = std::move(that.namedcaptures);
 #endif
 
-			eqclass_.reset();
+			eqclass_ = std::move(that.eqclass_);
 			groupno_maxp1_ = that.groupno_maxp1_;
 
 			dcache_mb_ = std::move(that.dcache_mb_);
@@ -18385,9 +18367,7 @@ private:
 
 		if (quantifier.is_default() && firststate.is_ncgroup_open())
 		{
-			piece.pop_back();
-			piece.erase(0);
-			if (piece.size() == 0)
+			if (piece.size() == 2)
 				return true;
 		}
 
@@ -19798,6 +19778,24 @@ SRELL_NO_VCWARNING_END
 			seen.reset();
 			seenc.reset();
 
+			if (cvars.lookarounds & 1)
+			{
+				this->character_class.copy_to(cc, static_cast<ui_l32>(re_character_class::newline));
+				split_ranges(cc);
+				seenc[re_character_class::newline] = 1;
+			}
+			if (cvars.lookarounds & 2)
+			{
+				this->character_class.copy_to(cc, static_cast<ui_l32>(re_character_class::word));
+				split_ranges(cc);
+				seenc[re_character_class::word] = 1;
+			}
+			if (cvars.lookarounds & 4)
+			{
+				this->character_class.copy_to(cc, static_cast<ui_l32>(re_character_class::ionly_word));
+				split_ranges(cc);
+				seenc[re_character_class::ionly_word] = 1;
+			}
 			if (cvars.lookarounds)
 				this->NFA_states[0].flags = masks::has_lookaround;
 
@@ -21493,6 +21491,9 @@ private:
 	template <typename rettype, typename char_type>
 	rettype select_accelfunc() const
 	{
+		if (this->NFA_states[0].flags & 0xff)
+			return NULL;
+
 		if (this->NFA_states[0].char_num & static_cast<ui_l32>(utf_traits::ecmask))
 		{
 			const rettype p = &re_object::search_nextpos1;
@@ -22607,7 +22608,7 @@ SRELL_NO_VCWARNING_END
 				continue;
 
 			case st_eol:
-				if (prevpos == matchend)
+				if (prevpos == sstate.srchend)
 				{
 					if ((sstate.flags & regex_constants::match_not_eol) == 0)
 					{
@@ -22617,7 +22618,8 @@ SRELL_NO_VCWARNING_END
 				}
 				else if (sscstate->flags)	//  multiline.
 				{
-					const ui_l32 rchar = curchar;
+					const char_type *la(prevpos);
+					const ui_l32 rchar = utf_traits::codepoint_inc(la, sstate.srchend);
 
 #if !defined(SRELLDBG_NO_CCPOS)
 					if (this->character_class.is_included(sscstate->quantifier.atleast, sscstate->quantifier.atmost, rchar))
@@ -22640,12 +22642,13 @@ SRELL_NO_VCWARNING_END
 				{
 					ui_l32 is_matched = 0;
 
-					if (prevpos == matchend)
+					if (prevpos == sstate.srchend)
 					{
 					}
 					else
 					{
-						const ui_l32 rchar = curchar;
+						const char_type *la(prevpos);
+						const ui_l32 rchar = utf_traits::codepoint_inc(la, sstate.srchend);
 
 #if !defined(SRELLDBG_NO_CCPOS)
 						if (this->character_class.is_included(sscstate->quantifier.atleast, sscstate->quantifier.atmost, rchar))
@@ -22656,8 +22659,6 @@ SRELL_NO_VCWARNING_END
 							is_matched = 1;
 						}
 					}
-
-					//  Second, if the actual previous character is \w, flip is_matched.
 
 					if (prevpos == sstate.lblim)
 					{

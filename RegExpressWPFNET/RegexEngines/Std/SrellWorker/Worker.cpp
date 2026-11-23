@@ -29,7 +29,7 @@ static void FindPossibleNames( std::unordered_set<std::u8string>* set, const std
 
 static void DoMatch( BinaryWriterA& outbw, const std::u8string& pattern, const std::u8string& text, const std::u8string& localeName,
 	srell::u8regex::flag_type regexFlags, srell::regex_constants::match_flag_type matchFlags,
-	std::optional<uint64_t> limit_counter )
+	std::optional<uint64_t> backtrack_limit )
 {
 	ULONG ss = 1024 * 10;
 	SetThreadStackGuarantee( &ss );
@@ -46,9 +46,9 @@ static void DoMatch( BinaryWriterA& outbw, const std::u8string& pattern, const s
 
 				srell::u8regex regex( pattern, regexFlags );
 
-				if( limit_counter.has_value( ) )
+				if( backtrack_limit.has_value( ) )
 				{
-					regex.limit_counter = limit_counter.value( );
+					regex.backtrack_limit = backtrack_limit.value( );
 				}
 
 				srell::u8cregex_iterator results_begin( text.c_str( ), text.c_str( ) + text.length( ), regex, matchFlags );
@@ -233,11 +233,11 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 			if( inbr.ReadByte( ) ) match_flags |= srell::regex_constants::match_flag_type::match_continuous;
 			if( inbr.ReadByte( ) ) match_flags |= srell::regex_constants::match_flag_type::match_prev_avail;
 
-			auto limit_counter = inbr.ReadOptional<uint64_t>( );
+			auto backtrack_limit = inbr.ReadOptional<uint64_t>( );
 
 			if( inbr.ReadByte( ) != 'e' ) throw std::runtime_error( "Invalid data [2]." );
 
-			DoMatch( outbw, pattern, text, locale_s, regex_flags, match_flags, limit_counter );
+			DoMatch( outbw, pattern, text, locale_s, regex_flags, match_flags, backtrack_limit );
 
 			return 0;
 		}

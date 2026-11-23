@@ -96,9 +96,9 @@ namespace StdPlugin
                 chkMultiline.Display( is_MSVC || is_GCC || is_SRELL || is_SRELL_LINEAR );
                 chkPolynomial.Display( is_GCC );
                 new FrameworkElement[] { chkDotall, chkUnicodesets, chkVMode, pnlSRELLConstants }.Display( is_SRELL || is_SRELL_LINEAR );
-                lbl_limit_counter.IsEnabled = tb_limit_counter.IsEnabled = is_SRELL;
-                tb_limit_counter.Display( is_SRELL );
-                tb_limit_counter_DISABLED.Display( is_SRELL_LINEAR );
+                lbl_backtrack_limit.IsEnabled = tb_backtrack_limit.IsEnabled = is_SRELL;
+                tb_backtrack_limit.Display( is_SRELL );
+                tb_backtrack_limit_DISABLED.Display( is_SRELL_LINEAR );
             }
             finally
             {
