@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'dart:io';
 import 'dart:convert';
 
@@ -20,7 +22,7 @@ void main() async
     //print( "Text: '$text'");
 
     final RegExp re = RegExp( pattern, 
-      multiLine: options?["multiline"] == true, 
+      multiLine: options?["multiLine"] == true, 
       caseSensitive: options?["caseSensitive"] == true, 
       unicode: options?["unicode"] == true, 
       dotAll: options?["dotAll"] == true);
@@ -31,10 +33,9 @@ void main() async
 
     for( final m in matches) 
     {
-      final Map<String, dynamic> one_match = Map<String, dynamic>();
-      one_match["s"] = m.start;
-      one_match["e"] = m.end;
-
+      final Map<String, dynamic> one_match = <String, dynamic>{};
+      one_match["r"] = [m.start, m.end];
+      
       final List<String?> all_groups = [ ];
 
       for( int i = 1; i <= m.groupCount; ++i)
@@ -44,15 +45,11 @@ void main() async
 
       one_match["g"] = all_groups;
 
-      final List<Map<String, dynamic>> all_named_groups = [ ];
+      final List<String?> all_named_groups = [ ];
 
       for( final name in m.groupNames)
       {
-        final Map<String, dynamic> one_named_group = Map<String, dynamic>();
-        one_named_group["n"] = name;
-        one_named_group["v"] = m.namedGroup(name);
-
-        all_named_groups.add( one_named_group);
+        all_named_groups.addAll( [name, m.namedGroup(name)]);
       }
 
       one_match["ng"] = all_named_groups;
@@ -60,7 +57,7 @@ void main() async
       output_matches.add(one_match);
     }
 
-    final Map<String, dynamic> output_object = Map<String, dynamic>();
+    final Map<String, dynamic> output_object = <String, dynamic>{};
 
     output_object["Matches"] = output_matches;
 

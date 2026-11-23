@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -19,7 +20,7 @@ class SubengineRegExp( Options options ) : RegexSubengine
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
-        return RegexEngineCapabilityEnum.None;
+        return RegexEngineCapabilityEnum.NoGroupIndex;
     }
 
     public override SyntaxOptions GetSyntaxOptions( )
@@ -33,23 +34,16 @@ class SubengineRegExp( Options options ) : RegexSubengine
         };
     }
 
-    public class RootObject
+    public sealed class RootObject
     {
-        public Match[]? Matches { get; set; }
+        public required Match[] Matches { get; set; }
     }
 
-    public class Match
+    public sealed class Match
     {
-        public int s { get; set; }
-        public int e { get; set; }
-        public string?[]? g { get; set; }
-        public Ng[]? ng { get; set; }
-    }
-
-    public class Ng
-    {
-        public string? n { get; set; }
-        public string? v { get; set; }
+        public required int[] r { get; set; }
+        public required string?[] g { get; set; }
+        public required string?[] ng { get; set; }
     }
 
     public class RelaxedJsonConverter : System.Text.Json.Serialization.JsonConverter<string>
@@ -84,15 +78,15 @@ class SubengineRegExp( Options options ) : RegexSubengine
             text,
             options = new
             {
-                options.multiLine,
+                multiLine = options.multiLine,
                 caseSensitive = !options.caseInsensitive,
-                options.unicode,
-                options.dotAll,
+                unicode = options.unicode,
+                dotAll = options.dotAll,
             }
         };
         string json = JsonSerializer.Serialize( data );
 
-        using ProcessHelper ph = new ProcessHelper( GetWorkerExePath( ) );
+        using ProcessHelper ph = new( GetWorkerExePath( ) );
 
         ph.AllEncoding = EncodingEnum.UTF8;
 
@@ -121,81 +115,77 @@ class SubengineRegExp( Options options ) : RegexSubengine
         if( root_object == null ) throw new Exception( "Invalid response." );
 
         List<IMatch> matches = [];
+        SimpleTextGetter stg = new( text );
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
 
-        if( root_object.Matches != null )
+        foreach( Match m in root_object.Matches )
         {
-            SimpleTextGetter stg = new( text );
+            if( cnc.IsCancellationRequested ) break;
 
-            foreach( Match m in root_object.Matches )
+            SimpleMatch match;
+
             {
-                if( cnc.IsCancellationRequested ) break;
+                int native_start = m.r[0];
+                int native_end = m.r[1];
+                Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                SimpleMatch match;
+                int native_length = native_end - native_start;
 
-                {
-                    int native_start = m.s;
-                    int native_end = m.e;
-                    Debug.Assert( native_end >= native_start );
-                    int native_length = native_end - native_start;
+                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
-                    match = SimpleMatch.Create( native_start, native_length, stg );
-
-                    match.AddDefaultGroup( );
-                }
-
-                {
-                    // unnamed groups
-
-                    for( int i = 0; i < m.g!.Length; ++i )
-                    {
-                        int group_index = i + 1;
-                        string? name = null; // try to determine the name?
-                        if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
-
-                        var g = m.g[i];
-                        bool success = g != null;
-
-                        if( !success )
-                        {
-                            match.AddFailedGroup( name );
-                        }
-                        else
-                        {
-                            // no details
-
-                            match.AddSucceededNoDetailsGroup( name, g! );
-                        }
-                    }
-                }
-
-                {
-                    // named groups (also presented in unnamed groups)
-
-                    for( int i = 0; i < m.ng!.Length; ++i )
-                    {
-                        var ng = m.ng[i];
-
-                        int group_index = i + 1;
-                        string name = ng.n!;
-
-                        bool success = ng.v != null;
-
-                        if( !success )
-                        {
-                            match.AddFailedGroup( name );
-                        }
-                        else
-                        {
-                            // no details
-
-                            match.AddSucceededNoDetailsGroup( name, ng.v! );
-
-                        }
-                    }
-                }
-
-                matches.Add( match );
+                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match.AddDefaultGroup( );
             }
+
+            {
+                // unnamed groups
+
+                for( int i = 0; i < m.g.Length; ++i )
+                {
+                    int group_index = i + 1;
+                    string? name = null; // try to determine the name?
+                    if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
+
+                    string? g = m.g[i];
+                    bool success = g != null;
+
+                    if( !success )
+                    {
+                        match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        // no details
+
+                        match.AddSucceededNoDetailsGroup( name, g! );
+                    }
+                }
+            }
+
+            {
+                // named groups (also presented in unnamed groups)
+
+                for( int i = 0; i < m.ng.Length; i += 2 )
+                {
+                    string name = m.ng[i]!;
+                    string? value = m.ng[i + 1];
+
+                    bool success = value != null;
+
+                    if( !success )
+                    {
+                        match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        // no details
+
+                        match.AddSucceededNoDetailsGroup( name, value! );
+                    }
+                }
+            }
+
+            matches.Add( match );
         }
 
         return new RegexMatches( matches.Count, matches );

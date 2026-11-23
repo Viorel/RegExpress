@@ -20,7 +20,7 @@ class SubengineResharp( Options options ) : RegexSubengine
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
-        return RegexEngineCapabilityEnum.NoGroups;
+        return RegexEngineCapabilityEnum.None;
     }
 
     public override SyntaxOptions GetSyntaxOptions( )

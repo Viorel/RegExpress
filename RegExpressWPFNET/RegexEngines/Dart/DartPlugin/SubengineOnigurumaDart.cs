@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -36,27 +37,14 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
 
     public class RootObject
     {
-        public Match[]? Matches { get; set; }
+        public required Match[] Matches { get; set; }
     }
 
     public class Match
     {
-        public int s { get; set; }
-        public int e { get; set; }
-        public G[]? g { get; set; }
-        public NV[]? nv { get; set; }
-    }
-
-    public class G
-    {
-        public int s { get; set; }
-        public int e { get; set; }
-    }
-
-    public class NV
-    {
-        public required string n { get; set; }
-        public required string v { get; set; }
+        public required int[] r { get; set; }
+        public required int[] g { get; set; }
+        public required string[] ng { get; set; }
     }
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
@@ -66,35 +54,35 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
         var data = new
         {
             syntax = Enum.GetName( options.OnigurumaSyntax ),
-            pattern,
-            text,
+            pattern = pattern,
+            text = text,
             options = new
             {
                 ignoreCase = options.caseInsensitive,
-                options.extend,
-                options.multiLine,
+                extend = options.extend,
+                multiLine = options.multiLine,
                 singleLine = options.dotAll,
-                options.findLongest,
-                options.findNotEmpty,
-                options.negateSingleLine,
-                options.dontCaptureGroup,
-                options.captureGroup,
-                options.notBol,
-                options.notEol,
-                options.posixRegion,
-                options.checkValidityOfString,
-                options.ignoreCaseIsAscii,
-                options.wordIsAscii,
-                options.digitIsAscii,
-                options.spaceIsAscii,
-                options.posixIsAscii,
-                options.textSegmentExtendedGraphemeCluster,
-                options.textSegmentWord,
-                options.notBeginString,
-                options.notEndString,
-                options.notBeginPosition,
-                options.callbackEachMatch,
-                options.matchWholeString,
+                findLongest = options.findLongest,
+                findNotEmpty = options.findNotEmpty,
+                negateSingleLine = options.negateSingleLine,
+                dontCaptureGroup = options.dontCaptureGroup,
+                captureGroup = options.captureGroup,
+                notBol = options.notBol,
+                notEol = options.notEol,
+                posixRegion = options.posixRegion,
+                checkValidityOfString = options.checkValidityOfString,
+                ignoreCaseIsAscii = options.ignoreCaseIsAscii,
+                wordIsAscii = options.wordIsAscii,
+                digitIsAscii = options.digitIsAscii,
+                spaceIsAscii = options.spaceIsAscii,
+                posixIsAscii = options.posixIsAscii,
+                textSegmentExtendedGraphemeCluster = options.textSegmentExtendedGraphemeCluster,
+                textSegmentWord = options.textSegmentWord,
+                notBeginString = options.notBeginString,
+                notEndString = options.notEndString,
+                notBeginPosition = options.notBeginPosition,
+                callbackEachMatch = options.callbackEachMatch,
+                matchWholeString = options.matchWholeString,
             }
         };
         string json = JsonSerializer.Serialize( data );
@@ -123,66 +111,73 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
         if( root_object == null ) throw new Exception( "Invalid response." );
 
         List<IMatch> matches = [];
+        SimpleTextGetter stg = new( text );
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
 
-        if( root_object.Matches != null )
+        foreach( Match m in root_object.Matches )
         {
-            SimpleTextGetter stg = new( text );
+            if( cnc.IsCancellationRequested ) break;
 
-            foreach( Match m in root_object.Matches )
+            SimpleMatch match;
+
             {
-                if( cnc.IsCancellationRequested ) break;
+                int native_start = m.r[0];
+                int native_end = m.r[1];
+                Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                SimpleMatch match;
+                int native_length = native_end - native_start;
 
-                {
-                    int native_start = m.s;
-                    int native_end = m.e;
-                    Debug.Assert( native_end >= native_start );
-                    int native_length = native_end - native_start;
+                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
-                    match = SimpleMatch.Create( native_start, native_length, stg );
-
-                    match.AddDefaultGroup( );
-                }
-
-                {
-                    // groups
-
-                    for( int i = 0; i < m.g!.Length; ++i )
-                    {
-                        int group_index = i + 1;
-                        //..................
-                        string? name = null; // try to determine the name?
-                        if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
-
-                        var g = m.g[i];
-                        bool success = g.s >= 0 && g.e >= 0;
-
-                        if( !success )
-                        {
-                            match.AddFailedGroup( name );
-                        }
-                        else
-                        {
-                            int native_start = g.s;
-                            int native_end = g.e;
-                            Debug.Assert( native_end >= native_start );
-                            int native_length = native_end - native_start;
-
-                            match.AddSucceededGroup( native_start, native_length, name );
-                        }
-                    }
-
-                    // named values
-
-                    foreach( var nv in m.nv! )
-                    {
-                        match.AddSucceededNoDetailsGroup( nv.n, nv.v );
-                    }
-                }
-
-                matches.Add( match );
+                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match.AddDefaultGroup( );
             }
+
+            {
+                // unnamed groups
+
+                for( int i = 0; i < m.g.Length; i += 2 )
+                {
+                    int group_index = i / 2 + 1;
+
+                    string? name = null; // try to determine the name?
+                    if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
+
+                    int native_start = m.g[i];
+                    int native_end = m.g[i + 1];
+
+                    bool success = native_start >= 0 && native_end >= 0;
+
+                    if( !success )
+                    {
+                        match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        Debug.Assert( native_start >= 0 && native_end >= native_start );
+
+                        int native_length = native_end - native_start;
+
+                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                        match.AddSucceededGroup( native_start, native_length, name );
+                    }
+                }
+            }
+
+            {
+                // named values
+
+                for( int i = 0; i < m.ng.Length; i += 2 )
+                {
+                    string name = m.ng[i];
+                    string value = m.ng[i + 1];
+
+                    match.AddSucceededNoDetailsGroup( name, value );
+                }
+            }
+
+            matches.Add( match );
         }
 
         return new RegexMatches( matches.Count, matches );
@@ -447,7 +442,7 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = true,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None, // 'Accept' if not 'ignoreCase'
             Σσς = true, // if not 'ignoreCaseIsAscii'
             ßSS = true, // if not 'ignoreCaseIsAscii'
         };

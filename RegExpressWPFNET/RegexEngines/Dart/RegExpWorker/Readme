@@ -15,6 +15,9 @@ HOW IT'S MADE
 
     > dart pub upgrade
 
+- The "pubspec.yaml" anyway mast be updated using "dart pub add <package>" and "dart pub add <dev-package> --dev". 
+  The Dart version can be edited manually.
+
 - If required, edit "RegExpWorker.dart".
 
 - Run

@@ -75,8 +75,7 @@ void main() async
         (options?["notEndString"] == true ? OnigOption.notEndString : 0) |
         (options?["notBeginPosition"] == true ? OnigOption.notBeginPosition : 0) |
         (options?["callbackEachMatch"] == true ? OnigOption.callbackEachMatch : 0) |
-        (options?["matchWholeString"] == true ? OnigOption.matchWholeString : 0) |
-        0
+        (options?["matchWholeString"] == true ? OnigOption.matchWholeString : 0)
        );
 
     final Iterable<OnigMatch> all_matches = re.allMatches(text);
@@ -86,26 +85,20 @@ void main() async
     for( final OnigMatch m in all_matches) 
     {
       final Map<String, dynamic> one_match = <String, dynamic>{};
-      one_match["s"] = m.start;
-      one_match["e"] = m.end;
+      one_match["r"] = [m.start, m.end];
 
-      final List<dynamic> all_groups = [ ];
+      final List<int> all_groups = [ ];
 
       for( int i = 1; i <= m.groupCount; ++i)
       {
-        final Map<String, dynamic> one_group = <String, dynamic>{};
-        one_group["s"] = m.startOf(i);
-        one_group["e"] = m.endOf(i);
-
         // TODO: get name
-        //m.
 
-        all_groups.add( one_group);
+        all_groups.addAll( [m.startOf(i), m.endOf(i)]);
       }
 
       one_match["g"] = all_groups;
 
-      final List<Map<String, String>> named_values = [];
+      final List<String> named_values = [];
 
       for( final String possible_name in possible_names)
       {
@@ -113,16 +106,11 @@ void main() async
 
         if( value != null)
         {
-          final Map<String, String> p = <String, String>{};
-
-          p["n"] = possible_name;
-          p["v"] = value;
-
-          named_values.add(p);
+          named_values.addAll([possible_name, value]);
         }
       }
 
-      one_match["nv"] = named_values;
+      one_match["ng"] = named_values;
 
       output_matches.add(one_match);
     }
