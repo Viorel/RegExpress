@@ -421,8 +421,8 @@ partial class SubengineRustyExpressions( Options options ) : RegexSubengine
             NoncapturingGroup = grp1 || is_emacs,
             PositiveLookahead = grp1 || is_emacs,
             NegativeLookahead = grp1 || is_emacs,
-            PositiveLookbehind = grp1 || is_emacs ? FeatureMatrix.LookModeEnum.AnyLength : FeatureMatrix.LookModeEnum.None,
-            NegativeLookbehind = grp1 || is_emacs ? FeatureMatrix.LookModeEnum.AnyLength : FeatureMatrix.LookModeEnum.None,
+            PositiveLookbehind = FeatureMatrix.LookModeEnum.None, // defective; grp1 || is_emacs ? FeatureMatrix.LookModeEnum.AnyLength : FeatureMatrix.LookModeEnum.None,
+            NegativeLookbehind = FeatureMatrix.LookModeEnum.None, // defective; grp1 || is_emacs ? FeatureMatrix.LookModeEnum.AnyLength : FeatureMatrix.LookModeEnum.None,
             NestedLookaround = true,
             AtomicGroup = grp1 || is_emacs,
             BranchReset = is_grep, //?

@@ -124,6 +124,7 @@ namespace RustPlugin
                 pnlCorvusEcma262.Display( is_corvus );
 
                 pnlRegexCrateLimits.Display( is_regex_or_regex_lite || is_real );
+                line_terminator.IsEnabled = is_regex;
                 dsl.IsEnabled = is_regex || is_real;
                 nl.IsEnabled = is_regex_or_regex_lite;
 

@@ -459,21 +459,39 @@ static class TreeData
                         };
                     }
 
-                    string t = fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength ? "+" : "+???";
+                    string? declared = fm.PositiveLookbehind switch
+                    {
+                        FeatureMatrix.LookModeEnum.None => null,
+                        FeatureMatrix.LookModeEnum.FixedLength => "F",
+                        FeatureMatrix.LookModeEnum.BoundedLength => "B",
+                        FeatureMatrix.LookModeEnum.AnyLength => "+",
+                        _ => throw new NotSupportedException( )
+                    };
 
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @"x.(?<=x+y)a", "xxxxya", "xta", "xya" ) ) return new IndicatorData( ColourEnum.Green, t );
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x.\(?<=x+y\)a", "xxxxya", "xta", "xya" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    ColourEnum col = fm.PositiveLookbehind switch
+                    {
+                        FeatureMatrix.LookModeEnum.None => ColourEnum.Info,
+                        FeatureMatrix.LookModeEnum.FixedLength => ColourEnum.Green,
+                        FeatureMatrix.LookModeEnum.BoundedLength => ColourEnum.Green,
+                        FeatureMatrix.LookModeEnum.AnyLength => ColourEnum.Green,
+                        _ => throw new NotSupportedException( )
+                    };
 
-                    t = fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength ? "B" : "B???";
+                    string t = fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.AnyLength ? "+" : declared + "???+";
 
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @"x..(?<=x{2,3}y)a", "xxya", "xtta", "xxya" ) ) return new IndicatorData( ColourEnum.Green, t );
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x..\(?<=x{2,3}y\)a", "xxya", "xtta", "xxya" ) ) return new IndicatorData( ColourEnum.Green, t );
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x..\(?<=xx?x?y\)a", "xxya", "xtta", "xxya" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @"x.(?<=x+y)a", "xxxxya", "xta", "xya" ) ) return new IndicatorData( col, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x.\(?<=x+y\)a", "xxxxya", "xta", "xya" ) ) return new IndicatorData( col, t );
 
-                    t = fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength ? "F" : "F???";
+                    t = fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.BoundedLength ? "B" : declared + "???B";
 
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @"x.(?<=xy)a", "xya", "xta", "xya" ) ) return new IndicatorData( ColourEnum.Green, t );
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x.\(?<=xy\)a", "xya", "xta", "xya" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @"x..(?<=x{2,3}y)a", "xxya", "xtta", "xxya" ) ) return new IndicatorData( col, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x..\(?<=x{2,3}y\)a", "xxya", "xtta", "xxya" ) ) return new IndicatorData( col, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x..\(?<=xx?x?y\)a", "xxya", "xtta", "xxya" ) ) return new IndicatorData( col, t );
+
+                    t = fm.PositiveLookbehind == FeatureMatrix.LookModeEnum.FixedLength ? "F" : declared + "???F";
+
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @"x.(?<=xy)a", "xya", "xta", "xya" ) ) return new IndicatorData( col, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"x.\(?<=xy\)a", "xya", "xta", "xya" ) ) return new IndicatorData( col, t );
 
                     return null;
                 } )
@@ -503,21 +521,39 @@ static class TreeData
                         };
                     }
 
-                    string t = fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength ? "+" : "+???";
+                    string? declared = fm.NegativeLookbehind switch
+                    {
+                        FeatureMatrix.LookModeEnum.None => null,
+                        FeatureMatrix.LookModeEnum.FixedLength => "F",
+                        FeatureMatrix.LookModeEnum.BoundedLength => "B",
+                        FeatureMatrix.LookModeEnum.AnyLength => "+",
+                        _ => throw new NotSupportedException( )
+                    };
 
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @".(?<!x.*)a", "ya", "xa", "ya" ) ) return new IndicatorData( ColourEnum.Green, t );
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"\(?<!x.*\)a", "ya", "xa", "ya" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    ColourEnum col = fm.NegativeLookbehind switch
+                    {
+                        FeatureMatrix.LookModeEnum.None => ColourEnum.Info,
+                        FeatureMatrix.LookModeEnum.FixedLength => ColourEnum.Green,
+                        FeatureMatrix.LookModeEnum.BoundedLength => ColourEnum.Green,
+                        FeatureMatrix.LookModeEnum.AnyLength => ColourEnum.Green,
+                        _ => throw new NotSupportedException( )
+                    };
 
-                    t = fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength ? "B" : "B???";
+                    string t = fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.AnyLength ? "+" : declared + "???+";
 
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @".(?<!x{2,7})a", "xa", "xxa", "xa" ) ) return new IndicatorData( ColourEnum.Green, t );
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"\(?<!x{2,7}\)a", "xa", "xxa", "xa" ) ) return new IndicatorData( ColourEnum.Green, t );
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"\(?<!xxx?x?\)a", "xa", "xxa", "xa" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @".(?<!x.*)a", "ya", "xa", "ya" ) ) return new IndicatorData( col, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"\(?<!x.*\)a", "ya", "xa", "ya" ) ) return new IndicatorData( col, t );
 
-                    t = fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength ? "F" : "F???";
+                    t = fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.BoundedLength ? "B" : declared + "???B";
 
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @".(?<!xy)a", "ya", "xya", "ya" ) ) return new IndicatorData( ColourEnum.Green, t );
-                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @".\(?<!xy\)a", "ya", "xya", "ya" ) ) return new IndicatorData( ColourEnum.Green, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @".(?<!x{2,7})a", "xa", "xxa", "xa" ) ) return new IndicatorData( col, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"\(?<!x{2,7}\)a", "xa", "xxa", "xa" ) ) return new IndicatorData( col, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @"\(?<!xxx?x?\)a", "xa", "xxa", "xa" ) ) return new IndicatorData( col, t );
+
+                    t = fm.NegativeLookbehind == FeatureMatrix.LookModeEnum.FixedLength ? "F" : declared + "???F";
+
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Normal && PatternTestObj.Try( e, fm, @".(?<!xy)a", "ya", "xya", "ya" ) ) return new IndicatorData( col, t );
+                    if( fm.Parentheses == FeatureMatrix.PunctuationEnum.Backslashed && PatternTestObj.Try( e, fm, @".\(?<!xy\)a", "ya", "xya", "ya" ) ) return new IndicatorData( col, t );
 
                     return null;
                 } )

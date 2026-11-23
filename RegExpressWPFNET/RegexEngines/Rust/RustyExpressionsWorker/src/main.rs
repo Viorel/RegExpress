@@ -79,7 +79,7 @@ fn main()
             "OnigSyntaxGnuRegex" => rusty_expressions::Syntax::gnu_regex(),
             "OnigSyntaxGrep" => rusty_expressions::Syntax::grep(),
             "OnigSyntaxJava" => rusty_expressions::Syntax::java(),
-            "OnigSyntaxOniguruma" | "" => rusty_expressions::Syntax::ONIGURUMA,
+            "OnigSyntaxOniguruma" | "" => rusty_expressions::Syntax::oniguruma(),
             "OnigSyntaxPerl" => rusty_expressions::Syntax::perl(),
             "OnigSyntaxPerl_NG" => rusty_expressions::Syntax::perl_ng(),
             "OnigSyntaxPosixBasic" => rusty_expressions::Syntax::posix_basic(),
@@ -89,30 +89,30 @@ fn main()
             _ => panic!("Invalid syntax: '{}'", input_options["syntax"].as_str().unwrap_or( ""))
         };
 
-    let mut mp = rusty_expressions::MatchParam::default();
+    let mut match_param = rusty_expressions::MatchParam::default();
 
     let n = input_options["stack_limit"].as_u32();
     if let Some(n) = n
     {
-        mp.stack_limit = n;
+        match_param.stack_limit = n;
     } 
 
     let n = input_options["retry_limit_in_match"].as_u64();
     if let Some(n) = n
     {
-        mp.retry_limit_in_match = n;
+        match_param.retry_limit_in_match = n;
     } 
 
     let n = input_options["retry_limit_in_search"].as_u64();
     if let Some(n) = n
     {
-        mp.retry_limit_in_search = n;
+        match_param.retry_limit_in_search = n;
     } 
 
     let n = input_options["subexp_call_limit"].as_u32();
     if let Some(n) = n
     {
-        mp.subexp_call_limit = n;
+        match_param.subexp_call_limit = n;
     } 
 
     let re = rusty_expressions::Regex::new( 
@@ -139,7 +139,7 @@ fn main()
 
     while start <= text_bytes.len()
     {
-        let native_match = re.search_range_param( text_bytes, start, text_bytes.len(), &mp);
+        let native_match = re.search_range_param( text_bytes, start, text_bytes.len(), &match_param);
 
         if let Err( err) = native_match
         {

@@ -6,6 +6,7 @@ using RegExpressLibrary.SyntaxColouring;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
@@ -33,9 +34,10 @@ class SubengineResharp( Options options ) : RegexSubengine
         };
     }
 
-    class MatchesResponse
+    sealed class Rootobject
     {
-        public int[][]? matches { get; set; }
+        public required string?[] names { get; set; }
+        public required int[][] matches { get; set; }
     }
 
 
@@ -43,24 +45,25 @@ class SubengineResharp( Options options ) : RegexSubengine
     {
         Debug.Assert( options.crate == CrateEnum.resharp );
 
-        UInt64? max_dfa_capacity = ValidationUtilities.ParseUInt64( "max_dfa_capacity", options.max_dfa_capacity );
-        UInt64? lookahead_context_max = ValidationUtilities.ParseUInt64( "lookahead_context_max", options.lookahead_context_max );
-
         var obj = new
         {
             pattern = pattern,
             text = text,
             options = new
             {
-                options.case_insensitive,
-                options.dot_matches_new_line,
-                options.multi_line,
-                options.ignore_whitespace,
-                options.hardened,
-                options.unbounded_size,
+                case_insensitive = options.case_insensitive,
+                dot_matches_new_line = options.dot_matches_new_line,
+                multi_line = options.multi_line,
+                ignore_whitespace = options.ignore_whitespace,
+                unbounded_size = options.unbounded_size,
+                implicit_captures = options.implicit_captures,
+
                 unicode_mode = options.UnicodeMode switch { UnicodeModeEnum.Ascii => "Ascii", UnicodeModeEnum.Full => "Full", UnicodeModeEnum.Javascript => "Javascript", _ => null },
-                max_dfa_capacity = max_dfa_capacity,
-                lookahead_context_max = lookahead_context_max,
+                hardening = options.HardeningMode switch { HardeningModeEnum.Off => "Off", HardeningModeEnum.Auto => "Auto", HardeningModeEnum.Always => "Always", _ => null },
+
+                max_dfa_capacity = ValidationUtilities.ParseUInt64( "max_dfa_capacity", options.max_dfa_capacity ),
+                max_node_capacity = ValidationUtilities.ParseUInt64( "max_node_capacity", options.max_node_capacity ),
+                lookahead_context_max = ValidationUtilities.ParseUInt64( "lookahead_context_max", options.lookahead_context_max ),
             }
         };
 
@@ -83,27 +86,73 @@ class SubengineResharp( Options options ) : RegexSubengine
 
         if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-        MatchesResponse? response = JsonSerializer.Deserialize<MatchesResponse>( ph.OutputStream );
+#if DEBUG
+        using StreamReader sr = new( ph.OutputStream );
+        string output = sr.ReadToEnd( );
+        Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( output );
+#else
+        Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( ph.OutputStream );
+#endif
 
-        if( response == null || response.matches == null ) throw new Exception( "Null response" );
+
+        if( root_object == null ) throw new Exception( "Null response" );
 
         List<IMatch> matches = [];
         SimpleTextGetter? stg = new( text );
         Utf8IndexConverter index_converter = new( text );
 
-        foreach( var m in response.matches )
+        foreach( int[] native_match in root_object.matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
-            int native_start = m[0];
-            int native_end = m[1];
-            int native_length = native_end - native_start;
+            SimpleMatch match;
 
-            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+            {
+                // match and default group
 
-            SimpleMatch? match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                int native_start = native_match[0];
+                int native_end = native_match[1];
+                Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-            match.AddDefaultGroup( );
+                int native_length = native_end - native_start;
+
+                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match.AddDefaultGroup( );
+            }
+
+            {
+                // other groups
+
+                for( int i = 2; i < native_match.Length; i += 2 )
+                {
+                    int group_index = i / 2;
+
+                    string? name = root_object.names[group_index];
+                    if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
+
+                    int native_start = native_match[i];
+                    int native_end = native_match[i + 1];
+
+                    bool success = native_start >= 0 && native_end >= 0;
+
+                    if( !success )
+                    {
+                        match.AddFailedGroup( name );
+                    }
+                    else
+                    {
+                        Debug.Assert( native_start >= 0 && native_end >= native_start );
+
+                        int native_length = native_end - native_start;
+
+                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
+
+                        match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    }
+                }
+            }
 
             matches.Add( match );
         }
@@ -340,7 +389,7 @@ class SubengineResharp( Options options ) : RegexSubengine
             UnicodeCaseFolding = true,
             KeepSurrogatePairs = is_unicode,
             FuzzyMatchingParams = false,
-            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
+            TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject, // if not 'implicit_capture', then FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
             Σσς = true,
             ßSS = false,
 

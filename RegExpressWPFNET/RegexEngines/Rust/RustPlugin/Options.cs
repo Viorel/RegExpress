@@ -29,6 +29,14 @@ enum UnicodeModeEnum // ('resharp')
     Javascript,
 }
 
+enum HardeningModeEnum // ('resharp')
+{
+    None,
+    Off,
+    Auto,
+    Always,
+}
+
 enum BytesModeEnum // ('fancy')
 {
     None,
@@ -95,12 +103,13 @@ class Options
     public bool crlf { get; set; } // ('regex', 'regex-lite', 'fancy-regex' ((?R) flag))
     public bool no_opt { get; set; } // ('regress')
     public bool unicode_sets { get; set; } // ('regress', 'java_regex')
-    public bool hardened { get; set; } // ('resharp')
     public bool unbounded_size { get; set; } // ('resharp')
     public UnicodeModeEnum UnicodeMode { get; set; } = UnicodeModeEnum.Default; // ('resharp')
+    public HardeningModeEnum HardeningMode { get; set; } = HardeningModeEnum.Auto; // ('resharp')
 
     // Regex and Regex-lite
 
+    public string? line_terminator { get; set; } // not in 'regex_lite'
     public string? size_limit { get; set; } // also for 'regexr' and 'real'
     public string? dfa_size_limit { get; set; } // not in 'regex_lite', also for 'real'
     public string? nest_limit { get; set; } // also for 'regexr'
@@ -127,7 +136,9 @@ class Options
 
     // Resharp
 
+    public bool implicit_captures { get; set; } = true;
     public string? max_dfa_capacity { get; set; }
+    public string? max_node_capacity { get; set; }
     public string? lookahead_context_max { get; set; }
 
     // Regex-anre

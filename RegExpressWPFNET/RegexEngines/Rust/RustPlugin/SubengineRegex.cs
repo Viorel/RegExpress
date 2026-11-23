@@ -63,9 +63,11 @@ class SubengineRegex( Options options ) : RegexSubengine
                 options.ignore_whitespace,
                 options.unicode,
                 options.octal,
-                sl = use_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null,
-                dsl = use_builder ? ValidationUtilities.ParseUInt32( "dfa_size_limit", options.dfa_size_limit ) : null,
-                nl = use_builder ? ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ) : null,
+
+                line_terminator = use_builder ? ValidationUtilities.ParseByte( "line_terminator", options.line_terminator ) : null,
+                size_limit = use_builder ? ValidationUtilities.ParseUInt32( "size_limit", options.size_limit ) : null,
+                dfa_size_limit = use_builder ? ValidationUtilities.ParseUInt32( "dfa_size_limit", options.dfa_size_limit ) : null,
+                nest_limit = use_builder ? ValidationUtilities.ParseUInt32( "nest_limit", options.nest_limit ) : null,
             }
         };
 

@@ -47,20 +47,20 @@ The following engines are included:
 * [**Hyperscan**](https://github.com/intel/hyperscan) 5.4.2 from Intel (in C).
 * [**Chimera**](http://intel.github.io/hyperscan/dev-reference/chimera.html), a hybrid of Hyperscan and PCRE 8.41 (in C).
 * [**ICU Regular Expressions**](https://icu.unicode.org/) 79.1 (in C++).
-* **Rust** 1.99.1:
-  * [_regex_](https://crates.io/crates/regex) 1.13.1,
+* **Rust** 1.100.0:
+  * [_regex_](https://crates.io/crates/regex) 1.13.2,
   * [_regex-lite_](https://crates.io/crates/regex-lite) 0.1.9,
   * [_fancy-regex_](https://crates.io/crates/fancy-regex) 0.20.2, 
   * [_regress_](https://crates.io/crates/regress) 0.12.0,
-  * [_resharp_](https://crates.io/crates/resharp) 0.7.7,
+  * [_resharp_](https://crates.io/crates/resharp) 0.8.0,
   * [_anre_](https://crates.io/crates/regex-anre) 3.0.0,
   * [_real-regex_](https://crates.io/crates/real-regex) 2026.10.19,
   * [_java_regex_](https://crates.io/crates/java_regex) 0.1.0,
   * [_regexr_](https://crates.io/crates/regexr) 0.6.2,
   * [_rexile_](https://crates.io/crates/rexile) 0.7.4,
   * [_iregexp-rs_](https://github.com/strefethen/iregexp-rs) 0.1.0 (RFC 9485),
-  * [_ferroni_](https://crates.io/crates/ferroni) 2.8.0,
-  * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.4,
+  * [_ferroni_](https://crates.io/crates/ferroni) 2.9.0,
+  * [_rusty\_expressions_](https://crates.io/crates/rusty_expressions) 0.2.5,
   * [_derivre_](https://crates.io/crates/derivre) 0.3.13,
   * [_corvus-regex-ecma262_](https://crates.io/crates/corvus-regex-ecma262) 0.2.7.
 * **Java** 26.0.2.1:

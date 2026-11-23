@@ -112,7 +112,7 @@ class Engine : RegexEngine
         Engine engine_lite = new( ) { Options = new Options { crate = CrateEnum.regex_lite, UseBuilder = true } };
         Engine engine_fancy = new( ) { Options = new Options { crate = CrateEnum.fancy_regex, UseBuilder = true, unicode = true, oniguruma_mode = false, optimize = true } };
         Engine engine_regress_uv = new( ) { Options = new Options { crate = CrateEnum.regress, unicode = true, unicode_sets = true } }; // currently 'ignore_whitespace' not supported
-        Engine engine_resharp = new( ) { Options = new Options { crate = CrateEnum.resharp, UnicodeMode = UnicodeModeEnum.Full } };
+        Engine engine_resharp = new( ) { Options = new Options { crate = CrateEnum.resharp, implicit_captures = true, UnicodeMode = UnicodeModeEnum.Full } };
         Engine engine_anre = new( ) { Options = new Options { crate = CrateEnum.anre } };
         //Engine engine_real = new( ) { Options = new Options { crate = CrateEnum.real_regex, UseRegexBuilder = true, unicode = false } };
         Engine engine_real_u = new( ) { Options = new Options { crate = CrateEnum.real_regex, UseBuilder = true, unicode = true } };

@@ -102,19 +102,25 @@ fn main()
         reb.unicode(options["unicode"].as_bool().unwrap_or(false));
         reb.octal(options["octal"].as_bool().unwrap_or(false));
 
-        let n = options["sl"].as_usize();
+        let n = options["line_terminator"].as_u8();
+        if n.is_some()
+        {
+            reb.line_terminator( n.unwrap());
+        } 
+
+        let n = options["size_limit"].as_usize();
         if n.is_some()
         {
             reb.size_limit( n.unwrap());
         } 
 
-        let n = options["dsl"].as_usize();
+        let n = options["dfa_size_limit"].as_usize();
         if n.is_some()
         {
             reb.dfa_size_limit( n.unwrap());
         } 
 
-        let n = options["nl"].as_u32();
+        let n = options["nest_limit"].as_u32();
         if n.is_some()
         {
             reb.nest_limit( n.unwrap());

@@ -10,5 +10,5 @@ strip = true
 
 [dependencies]
 json = "0.12.4"
-resharp = "=0.7.7"
+resharp = { version = "=0.8.0", features = [ "experimental_capture_groups" ] }
 

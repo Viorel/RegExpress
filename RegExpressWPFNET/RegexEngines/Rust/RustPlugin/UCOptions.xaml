@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:RustPlugin"
              xmlns:ui="clr-namespace:RegExpressLibrary.UI;assembly=RegExpressLibrary"
              mc:Ignorable="d" d:DesignWidth="892.329" 
-             Loaded="UserControl_Loaded" d:DesignHeight="1898.625">
+             Loaded="UserControl_Loaded" d:DesignHeight="1985.825">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -89,19 +89,24 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=sl}">size__limit:</Label>
-                    <TextBox x:Name="sl" Grid.Column="1" Grid.Row="0" Text="{Binding size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– byte size limit of compiled regular expression" />
+                    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=line_terminator}">line__terminator:</Label>
+                    <TextBox x:Name="line_terminator" Grid.Column="1" Grid.Row="0" Text="{Binding line_terminator, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="0" Text="– (decimal)" />
 
-                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=dsl}">dfa__size__limit:</Label>
-                    <TextBox x:Name="dsl" Grid.Column="1" Grid.Row="1" Text="{Binding dfa_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– byte size of DFA cache" />
+                    <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=sl}">size__limit:</Label>
+                    <TextBox x:Name="sl" Grid.Column="1" Grid.Row="1" Text="{Binding size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="– byte size limit of compiled regular expression" />
 
-                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=nl}">nest__limit:</Label>
-                    <TextBox x:Name="nl" Grid.Column="1" Grid.Row="2" Text="{Binding nest_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– nest depth" />
+                    <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=dsl}">dfa__size__limit:</Label>
+                    <TextBox x:Name="dsl" Grid.Column="1" Grid.Row="2" Text="{Binding dfa_size_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="– byte size of DFA cache" />
+
+                    <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=nl}">nest__limit:</Label>
+                    <TextBox x:Name="nl" Grid.Column="1" Grid.Row="3" Text="{Binding nest_limit, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                    <TextBlock Grid.Column="2" Grid.Row="3" Text="– nest depth" />
                 </Grid>
 
                 <Grid x:Name="pnlFancyRegexCrateLimits" Style="{StaticResource DetailsTable}" Visibility="Collapsed" d:Visibility="Visible">
@@ -162,8 +167,8 @@
             <ui:CheckboxWithNote Prop="dot_matches_new_line" Text="dot_matches_new_line" Note="(s) `.` matches `\n`; `_` always matches any byte"/>
             <ui:CheckboxWithNote Prop="multi_line" Text="multiline" Note="(m) `^` and `$` match at line boundaries (`\n`) in addition to text boundaries"/>
             <ui:CheckboxWithNote Prop="ignore_whitespace" Text="ignore_whitespace" Note="(x) allow whitespace and `#` comments in the pattern"/>
-            <ui:CheckboxWithNote Prop="hardened" Text="hardened" Note="slower, but prevents O(n^2) all-matches blowup on adversarial combinations"/>
             <ui:CheckboxWithNote Prop="unbounded_size" Text="unbounded_size" Note="remove the default pattern size limit for very large regexes"/>
+            <ui:CheckboxWithNote Prop="implicit_captures" Text="implicit_captures" Note="experimental; capture unnamed groups"/>
 
             <Grid Style="{StaticResource DetailsTable}">
                 <Grid.ColumnDefinitions>
@@ -175,9 +180,11 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Label Content="Unicode mode:" Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=cbxUnicodeMode}" />
+                <Label Content="UnicodeMode:" Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=cbxUnicodeMode}" />
                 <ComboBox x:Name="cbxUnicodeMode" Grid.Column="1" Grid.Row="0" SelectedValuePath="Tag" SelectedValue="{Binding UnicodeMode, FallbackValue='Default'}" SelectionChanged="cbx_SelectionChanged" MinWidth="77" >
                     <ComboBoxItem Tag ="Default" Content="Default" IsSelected="True" />
                     <ComboBoxItem Tag ="Ascii" Content="Ascii" />
@@ -185,13 +192,24 @@
                     <ComboBoxItem Tag ="Javascript" Content="Javascript" />
                 </ComboBox>
 
-                <Label Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=mxdc}" Content="max__dfa__capacity:"/>
-                <TextBox x:Name="mxdc" Grid.Column="1" Grid.Row="1" Text="{Binding max_dfa_capacity, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                <TextBlock Grid.Column="2" Grid.Row="1" Text="– max cached DFA states" />
+                <Label Content="HardeningMode:" Grid.Column="0" Grid.Row="1" Target="{Binding ElementName=cbxHardeningMode}" />
+                <ComboBox x:Name="cbxHardeningMode" Grid.Column="1" Grid.Row="1" SelectedValuePath="Tag" SelectedValue="{Binding HardeningMode, FallbackValue='Auto'}" SelectionChanged="cbx_SelectionChanged" MinWidth="77" >
+                    <ComboBoxItem Tag ="Off" Content="Off" />
+                    <ComboBoxItem Tag ="Auto" Content="Auto" IsSelected="True" />
+                    <ComboBoxItem Tag ="Always" Content="Always" />
+                </ComboBox>
 
-                <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=lcmx}" Content="lookahead__context__max:"/>
-                <TextBox x:Name="lcmx" Grid.Column="1" Grid.Row="2" Text="{Binding lookahead_context_max, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
-                <TextBlock Grid.Column="2" Grid.Row="2" Text="– max lookahead context distance" />
+                <Label Grid.Column="0" Grid.Row="2" Target="{Binding ElementName=max_dfa_capacity}" Content="max__dfa__capacity:"/>
+                <TextBox x:Name="max_dfa_capacity" Grid.Column="1" Grid.Row="2" Text="{Binding max_dfa_capacity, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="2" Text="– max cached DFA states" />
+
+                <Label Grid.Column="0" Grid.Row="3" Target="{Binding ElementName=max_node_capacity}" Content="max__node__capacity:"/>
+                <TextBox x:Name="max_node_capacity" Grid.Column="1" Grid.Row="3" Text="{Binding max_node_capacity, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="3" Text="– max AST nodes" />
+
+                <Label Grid.Column="0" Grid.Row="4" Target="{Binding ElementName=lookahead_context_max}" Content="lookahead__context__max:"/>
+                <TextBox x:Name="lookahead_context_max" Grid.Column="1" Grid.Row="4" Text="{Binding lookahead_context_max, UpdateSourceTrigger=PropertyChanged}" TextChanged="tb_TextChanged"/>
+                <TextBlock Grid.Column="2" Grid.Row="4" Text="– max lookahead context distance" />
 
             </Grid>
         </StackPanel>
