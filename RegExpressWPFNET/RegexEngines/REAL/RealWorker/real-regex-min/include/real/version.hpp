@@ -24,9 +24,9 @@
 /*! \brief Major version (the calendar year). */
 #define REAL_VERSION_MAJOR 2026
 /*! \brief Minor version (the calendar month). */
-#define REAL_VERSION_MINOR 10
+#define REAL_VERSION_MINOR 11
 /*! \brief Patch version (the release count within the month). */
-#define REAL_VERSION_PATCH 19
+#define REAL_VERSION_PATCH 0
 // NOLINTEND(cppcoreguidelines-macro-to-enum,modernize-macro-to-enum,cppcoreguidelines-macro-usage)
 
 // Stringization is preprocessor-only, hence the NOLINT.
