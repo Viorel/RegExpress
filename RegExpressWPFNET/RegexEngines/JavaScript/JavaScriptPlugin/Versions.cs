@@ -13,5 +13,5 @@ static class Versions
     public static string Bun { get; } = "1.3.13";
     public static string RE2JS { get; } = "2.10.0";
     public static string RegexPlus { get; } = "6.1.0";
-    public static string Jint { get; } = "4.18.0";
+    public static string Jint { get; } = "4.18.1";
 }
