@@ -11,6 +11,7 @@ const OPTIONS_TYPE = struct {
     dotAll: bool = false,
     ungreedy: bool = false,
     ascii: bool = false,
+    extended: bool = false,
     //
     maxPatternLength: ?usize = null,
     maxNestingDepth: ?usize = null,
@@ -68,6 +69,7 @@ pub fn main1(init: std.process.Init) !void {
         compile_options.dotAll = options.?.dotAll;
         compile_options.ungreedy = options.?.ungreedy;
         compile_options.ascii = options.?.ascii;
+        compile_options.extended = options.?.extended;
 
         if (options.?.maxPatternLength) |v| compile_options.limits.maxPatternLength = v;
         if (options.?.maxNestingDepth) |v| compile_options.limits.maxNestingDepth = v;

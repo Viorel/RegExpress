@@ -10,6 +10,6 @@ static class Versions
     public static string Zoptia0regex { get; } = "0.8.1";
     public static string Z_Regex { get; } = "0.9.1";
     public static string ZRegex { get; } = "2026-10-05";
-    public static string Regex_Zig { get; } = "0.0.1";
+    public static string Regex_Zig { get; } = "0.0.2";
     public static string Spectra { get; } = "2026-11-12";
 }

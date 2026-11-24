@@ -56,6 +56,7 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
                 dotAll = options.dot_all,
                 ungreedy = options.ungreedy,
                 ascii = options.ascii,
+                extended = options.extended,
 
                 maxPatternLength = ValidationUtilities.ParseUInt64( "maxPatternLength", options.maxPatternLength ),
                 maxNestingDepth = ValidationUtilities.ParseUInt64( "maxNestingDepth", options.maxNestingDepth ),
@@ -107,6 +108,7 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
             {
                 int native_start = m[0];
                 int native_end = m[1];
+                Debug.Assert( native_start >= 0 && native_end >= native_start );
                 int native_length = native_end - native_start;
 
                 (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
@@ -133,6 +135,7 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
                 }
                 else
                 {
+                    Debug.Assert( native_start >= 0 && native_end >= native_start );
                     int native_length = native_end - native_start;
 
                     (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
@@ -168,19 +171,19 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
             VerticalLine = FeatureMatrix.PunctuationEnum.Normal,
             AlternationOnSeparateLines = false,
 
-            InlineComments = false,
-            XModeComments = false,
+            InlineComments = true,
+            XModeComments = true,
             InsideSets_XModeComments = false,
 
-            Flags = false,
-            ScopedFlags = false,
+            Flags = true,
+            ScopedFlags = true,
             CircumflexFlags = false,
             ScopedCircumflexFlags = false,
-            XFlag = false,
+            XFlag = true,
             XXFlag = false,
 
-            Literal_QE = false,
-            InsideSets_Literal_QE = false,
+            Literal_QE = true,
+            InsideSets_Literal_QE = true,
             InsideSets_Literal_qBrace = false,
 
             Esc_a = true,
@@ -193,14 +196,14 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
             Esc_v = true,
             Esc_Octal = FeatureMatrix.OctalEnum.None,
             Esc_Octal0_1_3 = false,
-            Esc_oBrace = false,
+            Esc_oBrace = true,
             Esc_x2 = true,
-            Esc_xBrace = false,
-            Esc_u4 = false,
+            Esc_xBrace = true,
+            Esc_u4 = true,
             Esc_U8 = false,
             Esc_uBrace = true,
             Esc_UBrace = false,
-            Esc_c1 = false,
+            Esc_c1 = true,
             Esc_C1 = false,
             Esc_CMinus = false,
             Esc_NBrace = false,
@@ -216,14 +219,14 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
             InsideSets_Esc_v = true,
             InsideSets_Esc_Octal = FeatureMatrix.OctalEnum.None,
             InsideSets_Esc_Octal0_1_3 = false,
-            InsideSets_Esc_oBrace = false,
+            InsideSets_Esc_oBrace = true,
             InsideSets_Esc_x2 = true,
-            InsideSets_Esc_xBrace = false,
-            InsideSets_Esc_u4 = false,
+            InsideSets_Esc_xBrace = true,
+            InsideSets_Esc_u4 = true,
             InsideSets_Esc_U8 = false,
             InsideSets_Esc_uBrace = true,
             InsideSets_Esc_UBrace = false,
-            InsideSets_Esc_c1 = false,
+            InsideSets_Esc_c1 = true,
             InsideSets_Esc_C1 = false,
             InsideSets_Esc_CMinus = false,
             InsideSets_Esc_NBrace = false,
@@ -245,8 +248,8 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
             Class_vV = false,
             Class_wW = true,
             Class_X = false,
-            Class_pP = false,
-            Class_pPBrace = false,
+            Class_pP = true,
+            Class_pPBrace = true,
 
             InsideSets_Class_dD = true,
             InsideSets_Class_hHhexa = false,
@@ -259,8 +262,8 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
             InsideSets_Class_vV = false,
             InsideSets_Class_wW = true,
             InsideSets_Class_X = false,
-            InsideSets_Class_pP = false,
-            InsideSets_Class_pPBrace = false,
+            InsideSets_Class_pP = true,
+            InsideSets_Class_pPBrace = true,
             InsideSets_Class_Name = true,
             InsideSets_Equivalence = false,
             InsideSets_Collating = false,
@@ -282,7 +285,7 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
             Anchor_Circumflex = true,
             Anchor_Dollar = true,
             Anchor_A = true,
-            Anchor_Z = FeatureMatrix.AnchorZModeEnum.None,
+            Anchor_Z = FeatureMatrix.AnchorZModeEnum.Correct,
             Anchor_z = true,
             Anchor_G = false,
             Anchor_G_Option = false,
@@ -363,19 +366,19 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
             ScriptRuns = false,
             Callouts = false,
 
-            EmptyConstruct = true,
+            EmptyConstruct = false,
             EmptyConstructX = false,
             EmptySet = false,
             EmptySetAny = false,
 
-            Unicode_Class_Dot = false,
-            Unicode_Class_wW = false,
-            InsideSets_Unicode = false,
+            Unicode_Class_Dot = true,
+            Unicode_Class_wW = !ascii,
+            InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
-            KeepSurrogatePairs = false,
+            KeepSurrogatePairs = true,
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Accept,
-            Σσς = false,
+            Σσς = true,
             ßSS = false,
 
             Ext_Ph2 = true,

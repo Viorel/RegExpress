@@ -157,6 +157,7 @@
             <ui:CheckboxWithNote Prop="dot_all" Text="dotAll" Note="Dot-all mode ('s' flag): '.' matches any character including newline '\n'"/>
             <ui:CheckboxWithNote Prop="ungreedy" Text="ungreedy" Note="Inverts the greediness of quantifiers ('U' flag)"/>
             <ui:CheckboxWithNote Prop="ascii" Text="ascii" Note="Restrict shorthand classes (\d, \w, \s) and boundaries to ASCII"/>
+            <ui:CheckboxWithNote Prop="extended" Text="extended" Note="Extended (verbose) mode ('x' flag): ignores unescaped ASCII whitespace and `#` line comments between tokens. Whitespace inside bracket expressions and inside `\Q…\E` quotes remains significant"/>
 
             <Grid Style="{StaticResource DetailsTable}" >
                 <Grid.ColumnDefinitions>
