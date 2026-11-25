@@ -12,10 +12,10 @@ class IgnorePatternWhitespaceObj : BoolStep
         this.yes = yes;
     }
 
-    public override bool Exec( ExecContext context )
+    public override bool? Exec( ExecContext context )
     {
         context.Engine.SetIgnorePatternWhitespace( yes );
 
-        return false;
+        return null;
     }
 }

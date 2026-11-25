@@ -96,20 +96,15 @@ class Engine : RegexEngine
 
     public override IReadOnlyList<FeatureMatrixVariant> GetFeatureMatrices( )
     {
-        Engine engine_regex = new( ) { Options = new Options { Package = PackageEnum.regex, CANON_EQ = true, UNICODE_CASE = true, UNICODE_CHARACTER_CLASS = true } };
-        Engine engine_re2j = new( ) { Options = new Options { Package = PackageEnum.re2j } };
-        Engine engine_safere = new( ) { Options = new Options { Package = PackageEnum.safere, UNICODE_CASE = true, UNICODE_CHARACTER_CLASS = true } };
-        Engine engine_reggie = new( ) { Options = new Options { Package = PackageEnum.reggie } };
-        Engine engine_joni = new( ) { Options = new Options { Package = PackageEnum.joni, CAPTURE_GROUP = true } };
-
         return
-            [
-                new FeatureMatrixVariant("regex", engine_regex),
-                new FeatureMatrixVariant("RE2/J", engine_re2j),
-                new FeatureMatrixVariant("SafeRE", engine_safere),
-                new FeatureMatrixVariant("Reggie", engine_reggie),
-                new FeatureMatrixVariant("Joni", engine_joni),
-            ];
+        [
+            new FeatureMatrixVariant("regex",  new Engine( ) { Options = new Options { Package = PackageEnum.regex, CANON_EQ = true, UNICODE_CASE = true, UNICODE_CHARACTER_CLASS = true } }),
+            new FeatureMatrixVariant("RE2/J",  new Engine( ) { Options = new Options { Package = PackageEnum.re2j } }),
+            new FeatureMatrixVariant("SafeRE", new Engine( ) { Options = new Options { Package = PackageEnum.safere, UNICODE_CASE = true, UNICODE_CHARACTER_CLASS = true } }),
+            //new FeatureMatrixVariant("Reggie", new Engine( ) { Options = new Options { Package = PackageEnum.reggie, UNICODE_CHARACTER_CLASS = false } }),
+            new FeatureMatrixVariant("Reggie (“U”)", new Engine( ) { Options = new Options { Package = PackageEnum.reggie, UNICODE_CHARACTER_CLASS = true } }),
+            new FeatureMatrixVariant("Joni",   new Engine( ) { Options = new Options { Package = PackageEnum.joni, CAPTURE_GROUP = true } }),
+        ];
     }
 
     public override void SetIgnoreCase( bool yes )

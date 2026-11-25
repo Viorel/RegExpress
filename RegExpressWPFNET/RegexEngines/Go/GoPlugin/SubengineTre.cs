@@ -364,6 +364,7 @@ class SubengineTre( Options options ) : RegexSubengine
             Quantifier_Braces = extended ? FeatureMatrix.PunctuationEnum.Normal : FeatureMatrix.PunctuationEnum.Backslashed,
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+            Quantifier_Braces_BadIsError = false,
             Quantifier_LowAbbrev = !ungreedy,
             Quantifier_Lazy = extended && !ungreedy,
             Quantifier_Possessive = false,

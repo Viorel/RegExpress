@@ -412,6 +412,7 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
             Quantifier_Braces = grp1 || grp3 ? FeatureMatrix.PunctuationEnum.Normal : FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+            Quantifier_Braces_BadIsError = false,
             Quantifier_LowAbbrev = grp1 || grp3,
             Quantifier_Lazy = grp1,
             Quantifier_Possessive = grp0 || is_java,

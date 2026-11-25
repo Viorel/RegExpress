@@ -416,6 +416,7 @@ class Subengine( Options options, Engine parentEngine ) : RegexSubengine
             Quantifier_Braces = details.ONIG_SYN_OP_BRACE_INTERVAL ? FeatureMatrix.PunctuationEnum.Normal : details.ONIG_SYN_OP_ESC_BRACE_INTERVAL ? FeatureMatrix.PunctuationEnum.Backslashed : FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+            Quantifier_Braces_BadIsError = syntax == SyntaxEnum.ONIG_SYNTAX_POSIX_BASIC || syntax == SyntaxEnum.ONIG_SYNTAX_POSIX_EXTENDED || syntax == SyntaxEnum.ONIG_SYNTAX_EMACS || syntax == SyntaxEnum.ONIG_SYNTAX_GREP,
             Quantifier_LowAbbrev = details.ONIG_SYN_ALLOW_INTERVAL_LOW_ABBREV,
             Quantifier_Lazy = details.ONIG_SYN_OP_QMARK_NON_GREEDY,
             Quantifier_Possessive = details.ONIG_SYN_OP2_PLUS_POSSESSIVE_REPEAT,

@@ -330,6 +330,7 @@ class Subengine( Options options ) : RegexSubengine
             Quantifier_Braces = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+            Quantifier_Braces_BadIsError = false,
             Quantifier_LowAbbrev = false,
             Quantifier_Lazy = false,
             Quantifier_Possessive = false,

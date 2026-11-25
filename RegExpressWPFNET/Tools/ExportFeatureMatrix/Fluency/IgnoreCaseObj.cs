@@ -12,10 +12,10 @@ class IgnoreCaseObj : BoolStep
         this.yes = yes;
     }
 
-    public override bool Exec( ExecContext context )
+    public override bool? Exec( ExecContext context )
     {
         context.Engine.SetIgnoreCase( yes );
 
-        return false;
+        return null;
     }
 }

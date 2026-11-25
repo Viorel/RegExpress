@@ -73,6 +73,14 @@ class FlagObj : Indicator
         return this;
     }
 
+    public AndObj And( )
+    {
+        AndObj and = new( this );
+        boolSteps.Add( and );
+
+        return and;
+    }
+
     public FlagObj Flag( string shortDesc, string desc, Func<ExecContext, bool> flagGetter, bool isInfo = false )
     {
         return CategoryObj.Flag( shortDesc, desc, flagGetter, isInfo );
@@ -90,6 +98,12 @@ class FlagObj : Indicator
 
     public override IndicatorData? Exec( ExecContext context )
     {
+        // reset engine
+        context.Engine.SetIgnoreCase( false );
+        context.Engine.SetIgnorePatternWhitespace( false );
+        context.Engine.SetCollectCaptures( false );
+        context.Engine.SetStickyMode( false );
+
         bool fm_value = flagGetter( context );
         bool? exec_value = null;
 

@@ -21,9 +21,9 @@ class PatternTestObj : BoolStep
         this.expected = expected;
     }
 
-    public override bool Exec( ExecContext context )
+    public override bool? Exec( ExecContext context )
     {
-        if( precondition != null && !precondition( context ) ) return false;
+        if( precondition != null && !precondition( context ) ) return null;
 
         return Try( context, pattern, textMatch, textNoMatch, expected );
     }
@@ -85,5 +85,4 @@ class PatternTestObj : BoolStep
 
         return false;
     }
-
 }

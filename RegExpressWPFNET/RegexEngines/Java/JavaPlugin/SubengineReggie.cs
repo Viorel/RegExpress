@@ -15,7 +15,7 @@ namespace JavaPlugin;
 
 class SubengineReggie( Options options ) : RegexSubengine
 {
-    static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+    static readonly LazyData<bool /*UNICODE_CHARACTER_CLASS*/, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
@@ -24,7 +24,7 @@ class SubengineReggie( Options options ) : RegexSubengine
 
     public override SyntaxOptions GetSyntaxOptions( )
     {
-        FeatureMatrix fm = LazyFeatureMatrix.Value;
+        FeatureMatrix fm = LazyFeatureMatrix.GetValue( options.UNICODE_CHARACTER_CLASS );
 
         return new SyntaxOptions
         {
@@ -222,7 +222,7 @@ class SubengineReggie( Options options ) : RegexSubengine
         return new RegexMatches( matches.Count, matches );
     }
 
-    static FeatureMatrix BuildFeatureMatrix( )
+    static FeatureMatrix BuildFeatureMatrix( bool UNICODE_CHARACTER_CLASS )
     {
         return new FeatureMatrix
         {
@@ -238,8 +238,8 @@ class SubengineReggie( Options options ) : RegexSubengine
             XModeComments = true,
             InsideSets_XModeComments = false,
 
-            Flags = true,
-            ScopedFlags = true,
+            Flags = !UNICODE_CHARACTER_CLASS,
+            ScopedFlags = !UNICODE_CHARACTER_CLASS,
             CircumflexFlags = false,
             ScopedCircumflexFlags = false,
             XFlag = true,
@@ -352,7 +352,7 @@ class SubengineReggie( Options options ) : RegexSubengine
             Anchor_z = true,
             Anchor_G = false,
             Anchor_G_Option = false,
-            Anchor_bB = true,
+            Anchor_bB = !UNICODE_CHARACTER_CLASS,
             Anchor_bg = false,
             Anchor_bBBrace = false,
             Anchor_PosixWB = false,
@@ -410,6 +410,7 @@ class SubengineReggie( Options options ) : RegexSubengine
             Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+            Quantifier_Braces_BadIsError = !UNICODE_CHARACTER_CLASS,
             Quantifier_LowAbbrev = false,
             Quantifier_Lazy = true,
             Quantifier_Possessive = true,
@@ -435,9 +436,9 @@ class SubengineReggie( Options options ) : RegexSubengine
             EmptySetAny = true,
 
             Unicode_Class_Dot = true,
-            Unicode_Class_wW = false,
+            Unicode_Class_wW = UNICODE_CHARACTER_CLASS,
             InsideSets_Unicode = true,
-            UnicodeCaseFolding = true,
+            UnicodeCaseFolding = !UNICODE_CHARACTER_CLASS,
             KeepSurrogatePairs = false,
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.Reject,

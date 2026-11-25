@@ -411,6 +411,7 @@ partial class Subengine( Options options ) : RegexSubengine
                                 FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.Both,
+            Quantifier_Braces_BadIsError = is_POSIX_extended || is_POSIX_basic,
             Quantifier_LowAbbrev = false,
             Quantifier_Lazy = is_perl || is_emacs,
             Quantifier_Possessive = is_perl,

@@ -247,6 +247,7 @@
         public PunctuationEnum Quantifier_Braces_FreeForm { get; init; }    // {expr} or \{expr\}, where 'expr' is an expression (not parsed by this colourer),
                                                                             // usually related to Approximate Matching (example: "abcd{+1#2})". (See also 'FuzzyMatchingParams')
         public SpaceUsageEnum Quantifier_Braces_Spaces { get; init; }       // enable spaces like { n }, { n , m }
+        public bool Quantifier_Braces_BadIsError { get; set; }              // "{}", "{n}", "{text}" are errors, not literals
         public bool Quantifier_LowAbbrev { get; init; }                     // also allow {,m} if Quantifier_Braces is set
         public bool Quantifier_Lazy { get; init; }                          // also allow ungreedy *?, +?, ??, {n,m}?
         public bool Quantifier_Possessive { get; init; }                    // also allow possessive *+, ++, ?+, {n,m}+

@@ -5,5 +5,5 @@ namespace ExportFeatureMatrix.Fluency;
 
 abstract class BoolStep
 {
-    public abstract bool Exec( ExecContext context );
+    public abstract bool? Exec( ExecContext context );
 }

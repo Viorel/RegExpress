@@ -387,6 +387,7 @@ partial class SubengineTbRegExp( Options options ) : RegexSubengine
             Quantifier_Question = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+            Quantifier_Braces_BadIsError = true,
             Quantifier_LowAbbrev = true,
             Quantifier_Lazy = true,
             Quantifier_Possessive = false,

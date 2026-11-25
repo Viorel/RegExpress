@@ -16,7 +16,7 @@ namespace DartPlugin;
 
 class SubengineRegExp( Options options ) : RegexSubengine
 {
-    static readonly LazyData<bool /*isUnicode*/, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
+    static readonly LazyData<bool /*unicode*/, FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
 
     public override RegexEngineCapabilityEnum GetCapabilities( )
     {
@@ -200,7 +200,7 @@ class SubengineRegExp( Options options ) : RegexSubengine
         return worker_exe;
     }
 
-    static FeatureMatrix BuildFeatureMatrix( bool isUnicode )
+    static FeatureMatrix BuildFeatureMatrix( bool unicode )
     {
         return new FeatureMatrix
         {
@@ -235,20 +235,20 @@ class SubengineRegExp( Options options ) : RegexSubengine
             Esc_r = true,
             Esc_t = true,
             Esc_v = true,
-            Esc_Octal = isUnicode ? FeatureMatrix.OctalEnum.None : FeatureMatrix.OctalEnum.Octal_1_3,
+            Esc_Octal = unicode ? FeatureMatrix.OctalEnum.None : FeatureMatrix.OctalEnum.Octal_1_3,
             Esc_Octal0_1_3 = false,
             Esc_oBrace = false,
             Esc_x2 = true,
             Esc_xBrace = false,
             Esc_u4 = true,
             Esc_U8 = false,
-            Esc_uBrace = isUnicode,
+            Esc_uBrace = unicode,
             Esc_UBrace = false,
             Esc_c1 = true,
             Esc_C1 = false,
             Esc_CMinus = false,
             Esc_NBrace = false,
-            GenericEscape = !isUnicode,
+            GenericEscape = !unicode,
 
             InsideSets_Esc_a = false,
             InsideSets_Esc_b = true,
@@ -258,20 +258,20 @@ class SubengineRegExp( Options options ) : RegexSubengine
             InsideSets_Esc_r = true,
             InsideSets_Esc_t = true,
             InsideSets_Esc_v = true,
-            InsideSets_Esc_Octal = isUnicode ? FeatureMatrix.OctalEnum.None : FeatureMatrix.OctalEnum.Octal_1_3,
+            InsideSets_Esc_Octal = unicode ? FeatureMatrix.OctalEnum.None : FeatureMatrix.OctalEnum.Octal_1_3,
             InsideSets_Esc_Octal0_1_3 = false,
             InsideSets_Esc_oBrace = false,
             InsideSets_Esc_x2 = true,
             InsideSets_Esc_xBrace = false,
             InsideSets_Esc_u4 = true,
             InsideSets_Esc_U8 = false,
-            InsideSets_Esc_uBrace = isUnicode,
+            InsideSets_Esc_uBrace = unicode,
             InsideSets_Esc_UBrace = false,
             InsideSets_Esc_c1 = true,
             InsideSets_Esc_C1 = false,
             InsideSets_Esc_CMinus = false,
             InsideSets_Esc_NBrace = false,
-            InsideSets_GenericEscape = !isUnicode,
+            InsideSets_GenericEscape = !unicode,
 
             Class_Dot = true,
             Class_Cbyte = false,
@@ -290,7 +290,7 @@ class SubengineRegExp( Options options ) : RegexSubengine
             Class_wW = true,
             Class_X = false,
             Class_pP = false,
-            Class_pPBrace = isUnicode,
+            Class_pPBrace = unicode,
 
             InsideSets_Class_dD = true,
             InsideSets_Class_hHhexa = false,
@@ -304,7 +304,7 @@ class SubengineRegExp( Options options ) : RegexSubengine
             InsideSets_Class_wW = true,
             InsideSets_Class_X = false,
             InsideSets_Class_pP = false,
-            InsideSets_Class_pPBrace = isUnicode,
+            InsideSets_Class_pPBrace = unicode,
             InsideSets_Class_Name = false,
             InsideSets_Equivalence = false,
             InsideSets_Collating = false,
@@ -388,6 +388,7 @@ class SubengineRegExp( Options options ) : RegexSubengine
             Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+            Quantifier_Braces_BadIsError = unicode,
             Quantifier_LowAbbrev = false,
             Quantifier_Lazy = true,
             Quantifier_Possessive = false,
@@ -416,7 +417,7 @@ class SubengineRegExp( Options options ) : RegexSubengine
             Unicode_Class_wW = false,
             InsideSets_Unicode = true,
             UnicodeCaseFolding = true,
-            KeepSurrogatePairs = isUnicode,
+            KeepSurrogatePairs = unicode,
             FuzzyMatchingParams = false,
             TreatmentOfCatastrophicPatterns = FeatureMatrix.CatastrophicBacktrackingEnum.None,
             Σσς = true,

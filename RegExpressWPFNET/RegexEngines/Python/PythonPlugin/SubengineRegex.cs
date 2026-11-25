@@ -448,6 +448,7 @@ partial class SubengineRegex( Options options ) : RegexSubengine
             Quantifier_Braces = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.Normal,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+            Quantifier_Braces_BadIsError = false,
             Quantifier_LowAbbrev = true,
             Quantifier_Lazy = !POSIX,
             Quantifier_Possessive = true,

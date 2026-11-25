@@ -352,6 +352,7 @@ class SubengineMSVC( Options options ) : RegexSubengine
                                             : FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_FreeForm = FeatureMatrix.PunctuationEnum.None,
             Quantifier_Braces_Spaces = FeatureMatrix.SpaceUsageEnum.None,
+            Quantifier_Braces_BadIsError = true,
             Quantifier_LowAbbrev = false,
             Quantifier_Lazy = grammar == GrammarEnum.ECMAScript,
             Quantifier_Possessive = false,

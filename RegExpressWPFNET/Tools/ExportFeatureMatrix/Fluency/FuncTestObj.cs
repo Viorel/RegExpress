@@ -12,7 +12,7 @@ class FuncTestObj : BoolStep
         this.func = func;
     }
 
-    public override bool Exec( ExecContext context )
+    public override bool? Exec( ExecContext context )
     {
         return func( context );
     }
