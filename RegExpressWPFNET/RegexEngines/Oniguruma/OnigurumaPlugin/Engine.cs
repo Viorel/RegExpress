@@ -171,7 +171,7 @@ class Engine : RegexEngine
     }
 
     static readonly Dictionary<FeatureMatrixKey, Task<FeatureMatrix>> smFeatureMatrices = [];
-    FeatureMatrix mLastFeatureMatrix = default;
+    FeatureMatrix mLastFeatureMatrix = new();
 
     internal FeatureMatrix TryGetFeatureMatrix( FeatureMatrixKey key )
     {
@@ -233,7 +233,7 @@ class Engine : RegexEngine
 
             if( Debugger.IsAttached ) Debugger.Break( );
 
-            return default;
+            return new FeatureMatrix();
         }
     }
 }

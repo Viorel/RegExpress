@@ -12,9 +12,9 @@ class IgnoreCaseObj : BoolStep
         this.yes = yes;
     }
 
-    public override bool Exec( RegexEngine engine, FeatureMatrix fm, ExecContext execContext )
+    public override bool Exec( ExecContext context )
     {
-        engine.SetIgnoreCase( yes );
+        context.Engine.SetIgnoreCase( yes );
 
         return false;
     }

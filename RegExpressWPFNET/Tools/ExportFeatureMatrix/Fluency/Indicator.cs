@@ -16,5 +16,5 @@ abstract class Indicator
         Desc = desc;
     }
 
-    public abstract IndicatorData? Exec( bool validate, RegexEngine engine, FeatureMatrix fm );
+    public abstract IndicatorData? Exec( ExecContext context );
 }

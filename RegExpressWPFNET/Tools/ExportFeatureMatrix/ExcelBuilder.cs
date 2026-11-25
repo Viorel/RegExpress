@@ -197,7 +197,9 @@ internal partial class ExcelBuilder
                         {
                             progressOnEngines?.Invoke( $"{engine_data.Engine.Name} {m.variant.Name}", all_variants.IndexOf( m.variant ), all_variants.Length );
 
-                            IndicatorData? result = indicator.Exec( verify, m.variant.RegexEngine!, m.variant.FeatureMatrix );
+                            ExecContext context = new( verify, m.variant.RegexEngine!, m.variant.FeatureMatrix );
+
+                            IndicatorData? result = indicator.Exec( context );
 
                             if( result != null && ( result.Colour != ColourEnum.None || !string.IsNullOrWhiteSpace( result.Text ) ) )
                             {

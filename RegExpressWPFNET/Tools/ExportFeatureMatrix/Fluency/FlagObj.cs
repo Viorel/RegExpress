@@ -7,10 +7,10 @@ namespace ExportFeatureMatrix.Fluency;
 class FlagObj : Indicator
 {
     readonly List<BoolStep> boolSteps = [];
-    readonly Func<RegexEngine, FeatureMatrix, bool> flagGetter;
+    readonly Func<ExecContext, bool> flagGetter;
     readonly bool isInfo;
 
-    public FlagObj( CategoryObj categoryObj, string shortDesc, string desc, Func<RegexEngine, FeatureMatrix, bool> flagGetter, bool isInfo )
+    public FlagObj( CategoryObj categoryObj, string shortDesc, string desc, Func<ExecContext, bool> flagGetter, bool isInfo )
         : base( categoryObj, shortDesc, desc )
     {
         this.flagGetter = flagGetter;
@@ -33,9 +33,17 @@ class FlagObj : Indicator
         return this;
     }
 
+    public FlagObj Test( Func<ExecContext, bool>? precondition, [StringSyntax( StringSyntaxAttribute.Regex )] string pattern, string? textMatch, string? textNoMatch, string? expected )
+    {
+        PatternTestObj item = new( precondition, pattern, textMatch, textNoMatch, expected );
+        boolSteps.Add( item );
+
+        return this;
+    }
+
     public FlagObj Test( [StringSyntax( StringSyntaxAttribute.Regex )] string pattern, string? textMatch, string? textNoMatch, string? expected )
     {
-        PatternTestObj item = new( pattern, textMatch, textNoMatch, expected );
+        PatternTestObj item = new( null, pattern, textMatch, textNoMatch, expected );
         boolSteps.Add( item );
 
         return this;
@@ -43,7 +51,7 @@ class FlagObj : Indicator
 
     public FlagObj Test( [StringSyntax( StringSyntaxAttribute.Regex )] string pattern, string? textMatch, string? textNoMatch )
     {
-        PatternTestObj item = new( pattern, textMatch, textNoMatch, null );
+        PatternTestObj item = new( null, pattern, textMatch, textNoMatch, null );
         boolSteps.Add( item );
 
         return this;
@@ -51,13 +59,13 @@ class FlagObj : Indicator
 
     public FlagObj Test( [StringSyntax( StringSyntaxAttribute.Regex )] string pattern, string textMatch )
     {
-        PatternTestObj item = new( pattern, textMatch, null, null );
+        PatternTestObj item = new( null, pattern, textMatch, null, null );
         boolSteps.Add( item );
 
         return this;
     }
 
-    public FlagObj Test( Func<RegexEngine, FeatureMatrix, bool> func )
+    public FlagObj Test( Func<ExecContext, bool> func )
     {
         FuncTestObj item = new( func );
         boolSteps.Add( item );
@@ -65,12 +73,12 @@ class FlagObj : Indicator
         return this;
     }
 
-    public FlagObj Flag( string shortDesc, string desc, Func<RegexEngine, FeatureMatrix, bool> flagGetter, bool isInfo = false )
+    public FlagObj Flag( string shortDesc, string desc, Func<ExecContext, bool> flagGetter, bool isInfo = false )
     {
         return CategoryObj.Flag( shortDesc, desc, flagGetter, isInfo );
     }
 
-    public CategoryObj Direct( string shortDesc, string desc, Func<bool, RegexEngine, FeatureMatrix, IndicatorData?> func )
+    public CategoryObj Direct( string shortDesc, string desc, Func<ExecContext, IndicatorData?> func )
     {
         return CategoryObj.Direct( shortDesc, desc, func );
     }
@@ -80,13 +88,12 @@ class FlagObj : Indicator
         return CategoryObj.Category( name );
     }
 
-    public override IndicatorData? Exec( bool validate, RegexEngine engine, FeatureMatrix fm )
+    public override IndicatorData? Exec( ExecContext context )
     {
-        bool fm_value = flagGetter( engine, fm );
+        bool fm_value = flagGetter( context );
         bool? exec_value = null;
-        ExecContext exec_context = new( );
 
-        if( validate )
+        if( context.Validate )
         {
             if( boolSteps.Count != 0 )
             {
@@ -94,17 +101,17 @@ class FlagObj : Indicator
 
                 foreach( BoolStep step in boolSteps )
                 {
-                    exec_value = step.Exec( engine, fm, exec_context );
+                    exec_value = step.Exec( context );
 
                     if( exec_value == true ) break;
                 }
             }
         }
 
-        return GetIndicatorData( validate, fm_value, exec_value, exec_context );
+        return GetIndicatorData( context.Validate, fm_value, exec_value );
     }
 
-    IndicatorData GetIndicatorData( bool validate, bool fm_value, bool? exec_value, ExecContext exec_context )
+    IndicatorData GetIndicatorData( bool validate, bool fm_value, bool? exec_value )
     {
         ColourEnum colour = isInfo ? ColourEnum.Info : ColourEnum.Green;
 

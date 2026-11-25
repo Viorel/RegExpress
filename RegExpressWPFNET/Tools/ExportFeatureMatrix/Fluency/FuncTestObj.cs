@@ -5,15 +5,15 @@ namespace ExportFeatureMatrix.Fluency;
 
 class FuncTestObj : BoolStep
 {
-    readonly Func<RegexEngine, FeatureMatrix, bool> func;
+    readonly Func<ExecContext, bool> func;
 
-    public FuncTestObj( Func<RegexEngine, FeatureMatrix, bool> func )
+    public FuncTestObj( Func<ExecContext, bool> func )
     {
         this.func = func;
     }
 
-    public override bool Exec( RegexEngine engine, FeatureMatrix fm, ExecContext execContext )
+    public override bool Exec( ExecContext context )
     {
-        return func( engine, fm );
+        return func( context );
     }
 }

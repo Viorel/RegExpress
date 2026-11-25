@@ -17,7 +17,7 @@ class CategoryObj
         Name = name;
     }
 
-    public FlagObj Flag( string shortDesc, string desc, Func<RegexEngine, FeatureMatrix, bool> flagGetter, bool isInfo = false )
+    public FlagObj Flag( string shortDesc, string desc, Func<ExecContext, bool> flagGetter, bool isInfo = false )
     {
         FlagObj flag = new( this, shortDesc, desc, flagGetter, isInfo );
         indicators.Add( flag );
@@ -25,7 +25,7 @@ class CategoryObj
         return flag;
     }
 
-    public CategoryObj Direct( string shortDesc, string desc, Func<bool, RegexEngine, FeatureMatrix, IndicatorData?> func )
+    public CategoryObj Direct( string shortDesc, string desc, Func<ExecContext, IndicatorData?> func )
     {
         DirectObj direct = new( this, shortDesc, desc, func );
         indicators.Add( direct );

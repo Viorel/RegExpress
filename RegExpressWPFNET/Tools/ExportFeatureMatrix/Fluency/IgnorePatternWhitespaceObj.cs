@@ -12,9 +12,9 @@ class IgnorePatternWhitespaceObj : BoolStep
         this.yes = yes;
     }
 
-    public override bool Exec( RegexEngine engine, FeatureMatrix fm, ExecContext execContext )
+    public override bool Exec( ExecContext context )
     {
-        engine.SetIgnorePatternWhitespace( yes );
+        context.Engine.SetIgnorePatternWhitespace( yes );
 
         return false;
     }

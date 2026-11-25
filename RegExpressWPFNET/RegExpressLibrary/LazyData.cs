@@ -4,31 +4,33 @@ using System.Collections.Generic;
 
 namespace RegExpressLibrary
 {
-    public sealed class LazyData<A1, T> where A1 : struct
+    public sealed class LazyData<K, T>
+        where K : struct
+        where T : class
     {
-        readonly Func<A1, T?> mInit;
-        readonly Lazy<Dictionary<A1, T?>> mCache = new( );
+        readonly Func<K, T> mInit;
+        readonly Lazy<Dictionary<K, T>> mCache = new( );
 
 
-        public LazyData( Func<A1, T?> init )
+        public LazyData( Func<K, T> init )
         {
             mInit = init;
         }
 
-        public T? GetValue( A1 a1 )
+        public T GetValue( K k )
         {
             lock( this )
             {
                 var cache = mCache.Value;
 
                 T? value;
-                if( cache.TryGetValue( a1, out value ) )
+                if( cache.TryGetValue( k, out value ) )
                 {
                     return value;
                 }
 
-                value = mInit( a1 );
-                cache.Add( a1, value );
+                value = mInit( k );
+                cache.Add( k, value );
 
                 return value;
             }

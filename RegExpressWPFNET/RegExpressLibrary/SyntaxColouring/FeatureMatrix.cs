@@ -1,7 +1,6 @@
 ﻿namespace RegExpressLibrary.SyntaxColouring
 {
-    public readonly struct FeatureMatrix
-    // ('struct', to simplify the calculation of hash code)
+    public class FeatureMatrix
     {
         public enum PunctuationEnum
         {

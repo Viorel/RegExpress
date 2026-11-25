@@ -42,7 +42,7 @@ class Subengine( Options options, Engine parentEngine ) : RegexSubengine
         {
             Literal = is_literal,
             XLevel = options.ONIG_OPTION_EXTEND ? XLevelEnum.x : XLevelEnum.none,
-            FeatureMatrix = is_literal ? default( FeatureMatrix ) : parentEngine.TryGetFeatureMatrix( new Engine.FeatureMatrixKey( options ) )
+            FeatureMatrix = is_literal ? new FeatureMatrix( ) : parentEngine.TryGetFeatureMatrix( new Engine.FeatureMatrixKey( options ) )
         };
     }
 

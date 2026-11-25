@@ -5,15 +5,15 @@ namespace ExportFeatureMatrix.Fluency;
 
 class DirectObj : Indicator
 {
-    readonly Func<bool, RegexEngine, FeatureMatrix, IndicatorData?> func;
+    readonly Func<ExecContext, IndicatorData?> func;
 
-    public DirectObj( CategoryObj categoryObj, string shortDesc, string desc, Func<bool, RegexEngine, FeatureMatrix, IndicatorData?> func ) : base( categoryObj, shortDesc, desc )
+    public DirectObj( CategoryObj categoryObj, string shortDesc, string desc, Func<ExecContext, IndicatorData?> func ) : base( categoryObj, shortDesc, desc )
     {
         this.func = func;
     }
 
-    public override IndicatorData? Exec( bool validate, RegexEngine engine, FeatureMatrix fm )
+    public override IndicatorData? Exec( ExecContext context )
     {
-        return func( validate, engine, fm );
+        return func( context );
     }
 }

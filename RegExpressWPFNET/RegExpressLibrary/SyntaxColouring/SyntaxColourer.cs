@@ -10,16 +10,11 @@ namespace RegExpressLibrary.SyntaxColouring
     {
         struct Key
         {
-            internal FeatureMatrix fm; // ('struct', to simplify the calculation of hash code)
+            internal FeatureMatrix fm; 
             internal XLevelEnum xlevel;
-
-            static Key( )
-            {
-                Debug.Assert( typeof( FeatureMatrix ).IsValueType );
-            }
         }
 
-        readonly static Dictionary<Key, Regex> CachedRegexes = new( );
+        readonly static Dictionary<Key, Regex> CachedRegexes = [];
 
         sealed class ScopeInfo
         {
@@ -54,7 +49,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 if( cnc.IsCancellationRequested ) return;
 
                 var scope = scope_stack.Peek( );
-                var regex = GetCachedRegex( fm, scope.XLevel );
+                var regex = GetCachedRegex( scope.XLevel, fm );
 
                 var m = regex.Match( pattern, index );
                 if( !m.Success ) break;
@@ -188,7 +183,7 @@ namespace RegExpressLibrary.SyntaxColouring
                 if( cnc.IsCancellationRequested ) return;
 
                 var scope = scope_stack.Peek( );
-                var regex = GetCachedRegex( fm, scope.XLevel );
+                var regex = GetCachedRegex( scope.XLevel, fm );
 
                 var m = regex.Match( pattern, index );
                 if( !m.Success ) break;
@@ -274,7 +269,7 @@ namespace RegExpressLibrary.SyntaxColouring
         }
 
 
-        static Regex GetCachedRegex( FeatureMatrix fm, XLevelEnum xlevel )
+        static Regex GetCachedRegex( XLevelEnum xlevel, FeatureMatrix fm )
         {
             Regex? re = null;
             lock( CachedRegexes )
@@ -283,7 +278,7 @@ namespace RegExpressLibrary.SyntaxColouring
 
                 if( !CachedRegexes.TryGetValue( key, out re ) )
                 {
-                    re = BuildRegex( fm, xlevel );
+                    re = BuildRegex( xlevel, fm );
                     CachedRegexes.Add( key, re );
                 }
             }
@@ -292,7 +287,7 @@ namespace RegExpressLibrary.SyntaxColouring
         }
 
 
-        static Regex BuildRegex( FeatureMatrix fm, XLevelEnum xlevel )
+        static Regex BuildRegex( XLevelEnum xlevel, FeatureMatrix fm )
         {
             bool is_xmode = xlevel == XLevelEnum.x || xlevel == XLevelEnum.xx;
 

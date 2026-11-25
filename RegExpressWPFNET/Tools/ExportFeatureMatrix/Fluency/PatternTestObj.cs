@@ -6,26 +6,33 @@ namespace ExportFeatureMatrix.Fluency;
 
 class PatternTestObj : BoolStep
 {
+    readonly Func<ExecContext, bool>? precondition;
     readonly string pattern;
     readonly string? textMatch;
     readonly string? textNoMatch;
     readonly string? expected;
 
-    public PatternTestObj( string pattern, string? textMatch, string? textNoMatch, string? expected )
+    public PatternTestObj( Func<ExecContext, bool>? precondition, string pattern, string? textMatch, string? textNoMatch, string? expected )
     {
+        this.precondition = precondition;
         this.pattern = pattern;
         this.textMatch = textMatch;
         this.textNoMatch = textNoMatch;
         this.expected = expected;
     }
 
-    public override bool Exec( RegexEngine engine, FeatureMatrix fm, ExecContext execContext )
+    public override bool Exec( ExecContext context )
     {
-        return Try( engine, fm/*, execContext*/, pattern, textMatch, textNoMatch, expected );
+        if( precondition != null && !precondition( context ) ) return false;
+
+        return Try( context, pattern, textMatch, textNoMatch, expected );
     }
 
-    public static bool Try( RegexEngine engine, FeatureMatrix fm/*, ExecContext execContext*/, string pattern, string? textMatch, string? textNoMatch, string? expected )
+    public static bool Try( ExecContext context, string pattern, string? textMatch, string? textNoMatch, string? expected )
     {
+        RegexEngine engine = context.Engine;
+        FeatureMatrix fm = context.Fm;
+
         bool match_satisfied = false;
         bool nomatch_satisfied = false;
 
