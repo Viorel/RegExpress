@@ -13,31 +13,6 @@ using System.Text.Json;
 
 namespace ZigPlugin;
 
-/*
- * 
- * 
-Example of input:
-
-{ "pattern": "(?<first>\\d)(\\d*)(?<last>QQQ)?", "text": "a1b23c456", "flags": "" }
-
-Example of result:
-
-{
-"matches": [
-{
-  "start": 1,
-  "length": 1
-},
-{
-  "start": 3,
-  "length": 2
-}
-]
-}
-
-*/
-
-
 class SubengineMvzr( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
@@ -60,13 +35,7 @@ class SubengineMvzr( Options options ) : RegexSubengine
 
     public class RootObject
     {
-        public Match[]? matches { get; set; }
-    }
-
-    public class Match
-    {
-        public int start { get; set; }
-        public int length { get; set; }
+        public required int[][] matches { get; set; }
     }
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
@@ -102,21 +71,22 @@ class SubengineMvzr( Options options ) : RegexSubengine
         SimpleTextGetter? stg = new( text );
         Utf8IndexConverter index_converter = new( text );
 
-        foreach( var m in response.matches! )
+        foreach( int[] m in response.matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
-            SimpleMatch? match = null;
+            Debug.Assert( m.Length == 2 );
 
-            int native_start = m.start;
-            int native_length = m.length;
-            int native_end = m.start + native_length;
+            int native_start = m[0];
+            int native_end = m[1];
+
+            Debug.Assert( native_start >= 0 && native_end >= native_start );
 
             (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
-            Debug.Assert( match == null );
+            int native_length = native_end - native_start;
 
-            match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+            SimpleMatch match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
             match.AddDefaultGroup( );
 
             matches.Add( match );
@@ -129,7 +99,7 @@ class SubengineMvzr( Options options ) : RegexSubengine
     {
         string assembly_location = Assembly.GetExecutingAssembly( ).Location;
         string assembly_dir = Path.GetDirectoryName( assembly_location )!;
-        string worker_exe = Path.Combine( assembly_dir, @"ZigMvzrWorker.bin" );
+        string worker_exe = Path.Combine( assembly_dir, @"MvzrWorker.bin" );
 
         return worker_exe;
     }

@@ -1,10 +1,9 @@
-// https://github.com/zig-utils/zig-regex
-
 const std = @import("std");
 const Io = std.Io;
 const json = std.json;
 
-const mvzr = @import("mvzr/src/mvzr.zig");
+//const MvzrWorker = @import("MvzrWorker");
+const mvzr = @import("mvzr");
 
 // NOTE. 'defer' is not always used; memory will be freed automatically at the end.
 
@@ -18,13 +17,8 @@ const INPUT_TYPE = struct {
     flags: FLAG_TYPE = .{},
 };
 
-const MATCH = struct {
-    start: usize,
-    length: usize,
-};
-
 const OUTPUT = struct {
-    matches: ?[]MATCH,
+    matches: ?[][]i32,
 };
 
 pub fn main1(init: std.process.Init) !void {
@@ -62,7 +56,7 @@ pub fn main1(init: std.process.Init) !void {
 
     var iter = regex.?.iterator(input_object.text);
 
-    var matches_arr: std.ArrayList(MATCH) = .empty;
+    var matches_arr: std.ArrayList([]i32) = .empty;
 
     var previous_start: ?usize = null;
 
@@ -71,13 +65,21 @@ pub fn main1(init: std.process.Init) !void {
 
         previous_start = m.start;
 
-        try matches_arr.append(allocator, MATCH{ .start = m.start, .length = m.end - m.start });
+        var groups_arr: std.ArrayList(i32) = .empty;
+
+        // main group
+        try groups_arr.append(allocator, @intCast(m.start));
+        try groups_arr.append(allocator, @intCast(m.end));
+
+        // TODO: other groups
+        // TODO: named groups
+
+        try matches_arr.append(allocator, groups_arr.items);
     }
 
     const output_object: OUTPUT = .{ .matches = matches_arr.items };
 
-    const json_options: std.json.Stringify.Options = .{ .whitespace = if (is_debug) .indent_2 else .minified };
-
+    const json_options: std.json.Stringify.Options = .{ .whitespace = if (is_debug) .indent_2 else .minified, .escape_unicode = true };
     const output_json = try std.fmt.allocPrint(allocator, "{f}\n", .{std.json.fmt(output_object, json_options)});
 
     try stdout.writeStreamingAll(init.io, output_json);

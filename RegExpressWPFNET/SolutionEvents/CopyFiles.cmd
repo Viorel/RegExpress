@@ -299,7 +299,7 @@ rem -- Zig --
 set BasePath=%SolutionDir%\RegexEngines\Zig
 call :cpy "%BasePath%\ZigPlugin\bin\%Configuration%\%TargetDir%\ZigPlugin.dll" "%EnginesTargetPath%\Zig\*"
 call :cpy "%BasePath%\ZigRegexWorker\zig-out\bin\ZigRegexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
-call :cpy "%BasePath%\MvzrWorker\ZigMvzrWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
+call :cpy "%BasePath%\MvzrWorker\zig-out\bin\MvzrWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 call :cpy "%BasePath%\PzreWorker\zig-out\bin\ZigPzreWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 call :cpy "%BasePath%\EziGexWorker\zig-out\bin\EziGexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"
 call :cpy "%BasePath%\Zoptia0regexWorker\zig-out\bin\Zoptia0regexWorker.exe" "%EnginesTargetPath%\Zig\*.bin"

@@ -92,7 +92,7 @@ The following engines are included:
 * **GRETA** 2.6.4 (in C++).
 * **Zig** 0.17.0:
   * [_zig-regex_](https://github.com/zig-utils/zig-regex) 0.5.0, 
-  * [_mvzr_](https://github.com/mnemnion/mvzr) 0.3.12,
+  * [_mvzr_](https://github.com/mnemnion/mvzr) 0.3.13,
   * _PZRE_ 0.2.3,
   * [_ezi-gex_](https://github.com/shaik-abdul-thouhid/ezi-gex) 0.8.0,
   * [_zoptia0regex_](https://github.com/zoptia/zoptia0regex) 0.8.1,

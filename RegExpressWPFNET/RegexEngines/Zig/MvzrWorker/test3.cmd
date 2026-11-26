@@ -1,2 +1,2 @@
-echo BAD | ZigMvzrWorker.exe
-echo { "pattern": "(BAD", "text": "abc", "flags": { } } | ZigMvzrWorker.exe
+echo BAD | "zig-out\bin\MvzrWorker.exe"
+echo { "pattern": "(BAD", "text": "abc", "flags": { } } | "zig-out\bin\MvzrWorker.exe"
