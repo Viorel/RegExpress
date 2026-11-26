@@ -69,7 +69,7 @@ class SubengineJoni( Options options ) : RegexSubengine
         ph.Arguments =
         [
             "-cp",
-            $"{workerDir};{Path.Combine( workerDir, $"joni-{Versions.Joni}.jar" )};{Path.Combine( workerDir, "json-simple-1.1.1.jar" )};{Path.Combine( workerDir, "jcodings-1.0.64.jar" )}",
+            $"{workerDir};{Path.Combine( workerDir, $"joni-{Versions.Joni}.jar" )};{Path.Combine( workerDir, "json-simple-1.1.1.jar" )};{Path.Combine( workerDir, "jcodings-1.0.67.jar" )}",
             "JoniWorker"
         ];
 
