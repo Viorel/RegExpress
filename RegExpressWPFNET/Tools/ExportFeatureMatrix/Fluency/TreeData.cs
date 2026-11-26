@@ -958,7 +958,6 @@ static class TreeData
                         }
                         finally
                         {
-                            e.SetCollectCaptures( false );
                         }
                     } )
                     .Test( context =>
@@ -996,7 +995,6 @@ static class TreeData
                         }
                         finally
                         {
-                            e.SetCollectCaptures( false );
                         }
                     } )
                     .Test( context =>
@@ -1036,7 +1034,6 @@ static class TreeData
                         }
                         finally
                         {
-                            e.SetCollectCaptures( false );
                         }
                     } )
 

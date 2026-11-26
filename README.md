@@ -65,7 +65,7 @@ The following engines are included:
   * [_corvus-regex-ecma262_](https://crates.io/crates/corvus-regex-ecma262) 0.2.7.
 * **Java** 26.0.2.1:
   * [_java.util.regex_](https://docs.oracle.com/en/java/javase/26/docs/api/java.base/java/util/regex/package-summary.html),
-  * [_RE2/J_](https://github.com/google/re2j) 1.9,
+  * [_RE2/J_](https://github.com/google/re2j) 1.9 ,
   * [_SafeRE_](https://github.com/eaftan/safere) 1.1.0,
   * [_Reggie_](https://github.com/DataDog/java-reggie) 0.5.0,
   * [_Joni_](https://github.com/jruby/joni) 2.2.12.

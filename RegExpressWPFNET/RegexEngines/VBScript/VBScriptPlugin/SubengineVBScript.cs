@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -64,7 +65,6 @@ partial class SubengineVBScript( Options options ) : RegexSubengine
             //  <path>\VBScriptWorker.vbs(31, 1) Microsoft VBScript runtime error: <text of error>
             //  <path>\VBScriptWorker.vbs(50, 9) Microsoft VBScript compilation error: <text of error>
 
-
             var m = ErrorRegex( ).Match( ph.Error );
             if( m.Success )
             {
@@ -75,6 +75,7 @@ partial class SubengineVBScript( Options options ) : RegexSubengine
         }
 
         List<SimpleMatch> matches = [];
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
         SimpleTextGetter stg = new( text );
         SimpleMatch? current_match = null;
 
@@ -87,8 +88,10 @@ partial class SubengineVBScript( Options options ) : RegexSubengine
             var m = MatchRegex( ).Match( line );
             if( m.Success )
             {
-                current_match = SimpleMatch.Create( int.Parse( m.Groups[1].Value ), int.Parse( m.Groups[2].Value ), stg );
+                int native_index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
+                int native_length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
 
+                current_match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
                 current_match.AddDefaultGroup( );
 
                 matches.Add( current_match );

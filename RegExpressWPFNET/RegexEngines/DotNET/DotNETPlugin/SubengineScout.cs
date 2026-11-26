@@ -37,15 +37,8 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
 
     public class Rootobject
     {
-        public required Match[] Matches { get; set; }
+        public required int[][] Matches { get; set; }
     }
-
-    public class Match
-    {
-        [JsonPropertyName( "g" )]
-        public required int[][] Groups { get; set; }
-    }
-
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
     {
@@ -99,36 +92,31 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
         SimpleTextGetter stg = new( text );
         Utf8IndexConverter index_converter = new( text );
 
-        foreach( var m in root_object.Matches )
+        foreach( int[] m in root_object.Matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
             SimpleMatch match;
 
             {
-                int native_start = m.Groups[0][0];
-                int native_end = m.Groups[0][1];
-                int native_length = native_end - native_start;
+                int native_start = m[0];
+                int native_end = m[1];
 
                 Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
-
+                match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
                 match.AddDefaultGroup( );
             }
 
-            for( int i = 1; i < m.Groups.Length; ++i ) // skip default group
+            for( int i = 2; i < m.Length; i += 2 ) // skip default group
             {
-                int[] g = m.Groups[i];
+                int group_index = i / 2;
 
-                int native_start = g[0];
-                int native_end = g[1];
+                int native_start = m[i];
+                int native_end = m[i + 1];
 
                 bool success = native_start >= 0 && native_end >= 0;
-
-                string name = i.ToString( CultureInfo.InvariantCulture );
+                string name = group_index.ToString( CultureInfo.InvariantCulture );
 
                 if( !success )
                 {
@@ -136,13 +124,9 @@ internal partial class SubengineScout( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_length = native_end - native_start;
-
                     Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                 }
             }
 

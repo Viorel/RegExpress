@@ -1,14 +1,13 @@
-﻿namespace RegExpressLibrary.Matches.IndexConverters
+﻿namespace RegExpressLibrary.Matches.IndexConverters;
+
+public sealed class CodepointIndexConverter( string text ) : IndexConverter
 {
-    public sealed class CodepointIndexConverter( string text ) : IIndexConverter
+    readonly SurrogatePairsHelper Sph = new( text );
+
+    public override Coordinates ConvertIndexLength( int nativeIndex, int nativeLength )
     {
-        readonly SurrogatePairsHelper Sph = new( text );
+        (int charIndex, int charLength) = Sph.ToCharIndexAndLength( nativeIndex, nativeLength );
 
-        public (int index, int length) Convert( int nativeStart, int nativeEnd )
-        {
-            int native_length = nativeEnd - nativeStart;
-
-            return Sph.ToCharIndexAndLength( nativeStart, native_length );
-        }
+        return new Coordinates( nativeIndex, nativeLength, charIndex, charLength );
     }
 }

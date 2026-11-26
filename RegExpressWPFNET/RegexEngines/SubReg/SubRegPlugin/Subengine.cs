@@ -87,8 +87,8 @@ class Subengine( Options options ) : RegexSubengine
         var br = ph.BinaryReader;
 
         List<IMatch> matches = [];
-        SimpleTextGetter stg = new( text );
         Utf8IndexConverter index_converter = new( text ); // (actually only ASCII is supported, therefore it works like an identity converter)
+        SimpleTextGetter stg = new( text );
         SimpleMatch? current_match = null;
 
         if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response." );
@@ -105,9 +105,10 @@ class Subengine( Options options ) : RegexSubengine
             {
                 Int64 native_index = br.ReadInt64( );
                 Int64 native_length = br.ReadInt64( );
-                Int64 native_end = native_index + native_length;
-                (int char_start, int char_length) = index_converter.Convert( (int)native_index, (int)native_end );
-                current_match = SimpleMatch.Create( (int)native_index, (int)native_length, char_start, char_length, stg );
+                checked
+                {
+                    current_match = SimpleMatch.Create( index_converter.ConvertIndexLength( (int)native_index, (int)native_length ), stg );
+                }
                 matches.Add( current_match );
             }
             break;
@@ -116,10 +117,11 @@ class Subengine( Options options ) : RegexSubengine
                 if( current_match == null ) throw new Exception( "Invalid response." );
                 Int64 native_index = br.ReadInt64( );
                 Int64 native_length = br.ReadInt64( );
-                Int64 native_end = native_index + native_length;
-                (int char_start, int char_length) = index_converter.Convert( (int)native_index, (int)native_end );
                 string name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
-                current_match.AddSucceededGroup( (int)native_index, (int)native_length, char_start, char_length, name );
+                checked
+                {
+                    current_match.AddSucceededGroup( index_converter.ConvertIndexLength( (int)native_index, (int)native_length ), name );
+                }
             }
             break;
             case (byte)'e':

@@ -125,11 +125,7 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
                 int native_end = m.r[1];
                 Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                int native_length = native_end - native_start;
-
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
                 match.AddDefaultGroup( );
             }
 
@@ -156,11 +152,7 @@ class SubengineOnigurumaDart( Options options ) : RegexSubengine
                     {
                         Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                        int native_length = native_end - native_start;
-
-                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                        match.AddSucceededGroup( native_start, native_length, name );
+                        match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                     }
                 }
             }

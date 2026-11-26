@@ -61,15 +61,9 @@ internal class Program
         public bool Quote { get; set; }
     }
 
-    sealed class Output
+    sealed class OutputMatches
     {
-        public required OutputMatch[] Matches { get; set; }
-    }
-
-    sealed class OutputMatch
-    {
-        [JsonPropertyName( "g" )]
-        public required int[][] Groups { get; set; }
+        public required List<List<int>> Matches { get; init; }
     }
 
     static GregsEx.UnicodeVersion ParseUnicodeVersion( string? unicodeVersion )
@@ -113,7 +107,7 @@ internal class Program
         using GregsEx.EcmaScriptMatcher matcher = GregsEx.EcmaScriptMatcher.Bind( pattern );
 
         GregsEx.RegexCapture[] groups = new GregsEx.RegexCapture[pattern.GroupCount];
-        List<OutputMatch> output_matches = [];
+        List<List<int>> output_matches = [];
 
         for(; ; )
         {
@@ -125,7 +119,7 @@ internal class Program
             {
             case GregsEx.RegexSearchStatus.Match:
             {
-                List<int[]> output_groups = [];
+                List<int> output_groups = [];
 
                 for( int i = 0; i < pattern.GroupCount; ++i ) // including main group
                 {
@@ -133,17 +127,15 @@ internal class Program
 
                     if( !g.Participated )
                     {
-                        output_groups.Add( [-1, -1] );
+                        output_groups.AddRange( -1, -1 );
                     }
                     else
                     {
-                        output_groups.Add( [g.Index, g.Length] );
+                        output_groups.AddRange( g.Index, g.Length );
                     }
                 }
 
-                OutputMatch output_match = new( ) { Groups = [.. output_groups] };
-
-                output_matches.Add( output_match );
+                output_matches.Add( output_groups );
             }
             break;
             case GregsEx.RegexSearchStatus.InvalidInput:
@@ -157,7 +149,7 @@ internal class Program
             }
         }
 
-        string output_json = JsonSerializer.Serialize( new Output { Matches = [.. output_matches] } );
+        string output_json = JsonSerializer.Serialize( new OutputMatches { Matches = [.. output_matches] } );
 
         Console.Out.WriteLine( output_json );
     }
@@ -177,18 +169,17 @@ internal class Program
         GregsEx.RegexWorkspace workspace = pattern.CreateWorkspace( workspace_options );
 
         GregsEx.RegexCapture[] groups = new GregsEx.RegexCapture[pattern.GroupCount];
-        List<OutputMatch> output_matches = [];
+        List<List<int>> output_matches = [];
 
         GregsEx.RegexSearchStatus status = workspace.FindCaptures( input.text, 0, groups, out GregsEx.RegexMatchRange _, match_options );
 
         if( status != GregsEx.RegexSearchStatus.NoMatch )
         {
-
             switch( status )
             {
             case GregsEx.RegexSearchStatus.Match:
             {
-                List<int[]> output_groups = [];
+                List<int> output_groups = [];
 
                 for( int i = 0; i < pattern.GroupCount; ++i ) // including main group
                 {
@@ -196,17 +187,15 @@ internal class Program
 
                     if( !g.Participated )
                     {
-                        output_groups.Add( [-1, -1] );
+                        output_groups.AddRange( -1, -1 );
                     }
                     else
                     {
-                        output_groups.Add( [g.Index, g.Length] );
+                        output_groups.AddRange( g.Index, g.Length );
                     }
                 }
 
-                OutputMatch output_match = new( ) { Groups = [.. output_groups] };
-
-                output_matches.Add( output_match );
+                output_matches.Add( output_groups );
             }
             break;
             case GregsEx.RegexSearchStatus.InvalidInput:
@@ -220,7 +209,7 @@ internal class Program
             }
         }
 
-        string output_json = JsonSerializer.Serialize( new Output { Matches = [.. output_matches] } );
+        string output_json = JsonSerializer.Serialize( new OutputMatches { Matches = [.. output_matches] } );
 
         Console.Out.WriteLine( output_json );
     }
@@ -250,7 +239,7 @@ internal class Program
         GregsEx.RegexWorkspace workspace = pattern.CreateWorkspace( workspace_options );
 
         GregsEx.RegexCapture[] groups = new GregsEx.RegexCapture[pattern.GroupCount];
-        List<OutputMatch> output_matches = [];
+        List<List<int>> output_matches = [];
 
         for(; ; )
         {
@@ -262,7 +251,7 @@ internal class Program
             {
             case GregsEx.RegexSearchStatus.Match:
             {
-                List<int[]> output_groups = [];
+                List<int> output_groups = [];
 
                 for( int i = 0; i < pattern.GroupCount; ++i ) // including main group
                 {
@@ -270,17 +259,15 @@ internal class Program
 
                     if( !g.Participated )
                     {
-                        output_groups.Add( [-1, -1] );
+                        output_groups.AddRange( -1, -1 );
                     }
                     else
                     {
-                        output_groups.Add( [g.Index, g.Length] );
+                        output_groups.AddRange( g.Index, g.Length );
                     }
                 }
 
-                OutputMatch output_match = new( ) { Groups = [.. output_groups] };
-
-                output_matches.Add( output_match );
+                output_matches.Add( output_groups );
             }
             break;
             case GregsEx.RegexSearchStatus.InvalidInput:
@@ -296,7 +283,7 @@ internal class Program
             break; // TODO: loop?
         }
 
-        string output_json = JsonSerializer.Serialize( new Output { Matches = [.. output_matches] } );
+        string output_json = JsonSerializer.Serialize( new OutputMatches { Matches = [.. output_matches] } );
 
         Console.Out.WriteLine( output_json );
     }

@@ -33,13 +33,7 @@ namespace ScoutWorker
 
         sealed class OutputMatches
         {
-            public required OutputMatch[] Matches { get; init; }
-        }
-
-        sealed class OutputMatch
-        {
-            [JsonPropertyName( "g" )]
-            public required int[][] Groups { get; set; }
+            public required List<List<int>> Matches { get; init; }
         }
 
 
@@ -92,11 +86,11 @@ namespace ScoutWorker
 
                 Scout.Text.Regex.ByteRegex re = Scout.Text.Regex.ByteRegex.Compile( pattern_bytes, options );
 
-                List<OutputMatch> matches = [];
+                List<List<int>> matches = [];
 
                 foreach( Scout.Text.Regex.ByteRegexCaptures scout_match in re.EnumerateCaptures( text_bytes ) )
                 {
-                    List<int[]> groups = [];
+                    List<int> groups = [];
 
                     for( int i = 0; i < scout_match.GroupCount; ++i )
                     {
@@ -104,17 +98,15 @@ namespace ScoutWorker
 
                         if( scout_group == null )
                         {
-                            groups.Add( [-1, -1] );
+                            groups.AddRange( -1, -1 );
                         }
                         else
                         {
-                            groups.Add( [scout_group.Value.Start, scout_group.Value.End] );
+                            groups.AddRange( scout_group.Value.Start, scout_group.Value.End );
                         }
                     }
 
-                    OutputMatch match = new( ) { Groups = [.. groups] };
-
-                    matches.Add( match );
+                    matches.Add( groups );
                 }
 
                 string ret_json = JsonSerializer.Serialize( new OutputMatches { Matches = [.. matches] } );

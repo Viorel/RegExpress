@@ -143,16 +143,12 @@ internal partial class SubengineCorvusEcma262( Options options ) : RegexSubengin
             SimpleMatch match;
 
             {
-                int native_start = m.Index; // in UTF-16 code units
+                int native_index = m.Index; // in UTF-16 code units
                 int native_length = m.Length; // in UTF-16 code units
 
-                Debug.Assert( native_start >= 0 && native_length >= 0 );
+                Debug.Assert( native_index >= 0 && native_length >= 0 );
 
-                int native_end = native_start + native_length;
-
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
 
                 match.AddDefaultGroup( );
             }
@@ -171,27 +167,19 @@ internal partial class SubengineCorvusEcma262( Options options ) : RegexSubengin
                 }
                 else
                 {
-                    int native_start = g.Index;
+                    int native_index = g.Index;
                     int native_length = g.Length;
 
-                    int native_end = native_start + native_length;
-
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    SimpleGroup group = match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    SimpleGroup group = match.AddSucceededGroup( index_converter.ConvertIndexLength( native_index, native_length ), name );
 
                     foreach( var c in g.Captures )
                     {
-                        int c_native_start = c.Index;
+                        int c_native_index = c.Index;
                         int c_native_length = c.Length;
 
-                        Debug.Assert( c_native_start >= 0 && c_native_length >= 0 );
+                        Debug.Assert( c_native_index >= 0 && c_native_length >= 0 );
 
-                        int c_native_end = c_native_start + c_native_length;
-
-                        (int c_char_start, int c_char_length) = index_converter.Convert( c_native_start, c_native_end );
-
-                        group.AddCapture( c_native_start, c_native_length, c_char_start, c_char_length );
+                        group.AddCapture( index_converter.ConvertIndexLength( c_native_index, c_native_length ) );
                     }
                 }
             }

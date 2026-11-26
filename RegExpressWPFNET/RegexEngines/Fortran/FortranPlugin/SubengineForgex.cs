@@ -87,9 +87,7 @@ partial class SubengineForgex( Options options ) : RegexSubengine
 
                         --native_start; // (but keep 'native_end')
 
-                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                        match = SimpleMatch.Create( native_start, native_end - native_start, char_start, char_length, text_getter );
+                        match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), text_getter );
                         match.AddDefaultGroup( );
 
                         matches.Add( match );

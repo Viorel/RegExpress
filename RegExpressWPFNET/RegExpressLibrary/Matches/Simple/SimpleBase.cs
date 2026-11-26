@@ -2,32 +2,20 @@
 using System.Diagnostics;
 
 
-namespace RegExpressLibrary.Matches.Simple
+namespace RegExpressLibrary.Matches.Simple;
+
+public abstract class SimpleBase
 {
-    public abstract class SimpleBase
+    public Coordinates Coordinates { get; }
+    protected readonly ISimpleTextGetter TextGetter;
+
+    protected SimpleBase( Coordinates coordinates, ISimpleTextGetter textGetter )
     {
-        protected readonly ISimpleTextGetter TextGetter;
+        Debug.Assert( textGetter != null );
 
-        protected SimpleBase( int nativeIndex, int nativeLength, int charIndex, int charLength, ISimpleTextGetter textGetter )
-        {
-            Debug.Assert( textGetter != null );
-
-            NativeIndex = nativeIndex;
-            NativeLength = nativeLength;
-            CharIndex = charIndex;
-            CharLength = charLength;
-            TextGetter = textGetter;
-        }
-
-
-        public int NativeIndex { get; }
-
-        public int NativeLength { get; }
-
-        public int CharIndex { get; }
-
-        public int CharLength { get; }
-
-        public string Value => CharIndex < 0 ? String.Empty : TextGetter.GetText( CharIndex, CharLength );
+        this.Coordinates = coordinates;
+        this.TextGetter = textGetter;
     }
+
+    public string Value => Coordinates.CharIndex < 0 ? String.Empty : TextGetter.GetText( Coordinates.CharIndex, Coordinates.CharLength );
 }

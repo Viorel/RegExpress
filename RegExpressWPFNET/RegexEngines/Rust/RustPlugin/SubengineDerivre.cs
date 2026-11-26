@@ -94,16 +94,13 @@ partial class SubengineDerivre( Options options ) : RegexSubengine
         else
         {
             List<IMatch> matches = [];
-            SimpleTextGetter stg = new( text );
             Utf8IndexConverter index_converter = new( text );
+            SimpleTextGetter stg = new( text );
 
             int native_start = 0;
             int native_end = root_object.A_len - root_object.B_len;
-            int native_length = native_end - native_start;
 
-            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-            SimpleMatch match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+            SimpleMatch match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
             match.AddDefaultGroup( );
 
             matches.Add( match );

@@ -25,12 +25,12 @@ namespace RegExpressLibrary
             return codepointIndex + i;
         }
 
-        public (int textIndex, int textLength) ToCharIndexAndLength( int codepointIndex, int codepointLength )
+        public (int charIndex, int textLength) ToCharIndexAndLength( int codepointIndex, int codepointLength )
         {
-            var text_index = ToCharIndex( codepointIndex );
-            var text_length = ToCharIndex( codepointIndex + codepointLength ) - text_index;
+            var char_index = ToCharIndex( codepointIndex );
+            var char_length = ToCharIndex( codepointIndex + codepointLength ) - char_index;
 
-            return (text_index, text_length);
+            return (char_index, char_length);
         }
 
         public int ToCodepointIndex( int charIndex )

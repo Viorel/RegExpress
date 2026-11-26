@@ -1,10 +1,9 @@
 ﻿using System.Collections.Generic;
 
 
-namespace RegExpressLibrary.Matches
+namespace RegExpressLibrary.Matches;
+
+public interface IMatch : IGroup // TODO: reconsider the inheritance
 {
-    public interface IMatch : IGroup // TODO: reconsider the inheritance
-    {
-        IEnumerable<IGroup> Groups { get; }
-    }
+    IEnumerable<IGroup> Groups { get; }
 }

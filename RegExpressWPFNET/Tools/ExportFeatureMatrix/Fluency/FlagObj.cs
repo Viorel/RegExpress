@@ -101,7 +101,7 @@ class FlagObj : Indicator
         // reset engine
         context.Engine.SetIgnoreCase( false );
         context.Engine.SetIgnorePatternWhitespace( false );
-        context.Engine.SetCollectCaptures( false );
+        context.Engine.SetCollectCaptures( true );
         context.Engine.SetStickyMode( false );
 
         bool fm_value = flagGetter( context );

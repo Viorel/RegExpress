@@ -28,20 +28,10 @@ namespace RESharpWorker
             public int? DfaThreshold { get; set; }
         }
 
-        sealed class WorkerMatches
+        sealed class OutputMatches
         {
-            public required WorkerMatch[] Matches { get; init; }
+            public required List<List<int>> Matches { get; init; }
         }
-
-        sealed class WorkerMatch
-        {
-            [JsonPropertyName( "i" )]
-            public required int Index { get; init; }
-
-            [JsonPropertyName( "l" )]
-            public required int Length { get; init; }
-        }
-
 
         static void Main( string[] args )
         {
@@ -55,23 +45,20 @@ namespace RESharpWorker
                 InputArgs input_args = JsonSerializer.Deserialize<InputArgs>( input_string )!;
 
                 Resharp.ResharpOptions options = ConvertOptions( input_args.options );
+                Resharp.Regex re = new( input_args.pattern ?? "", options );
 
-                Resharp.Regex re = new Resharp.Regex( input_args.pattern ?? "", options );
-                List<WorkerMatch> matches = [];
+                List<List<int>> output_matches = [];
 
                 using var value_matches = re.ValueMatches( input_args.text ?? "" );
 
                 foreach( Resharp.Common.ValueMatch m in value_matches )
                 {
-                    WorkerMatch worker_match = new( ) { Index = m.Index, Length = m.Length };
-
-                    matches.Add( worker_match );
+                    output_matches.Add( [m.Index, m.Length] );
                 }
 
-                WorkerMatches worker_matches = new( ) { Matches = [.. matches] };
-                string ret_json = JsonSerializer.Serialize( worker_matches );
+                string output_json = JsonSerializer.Serialize( new OutputMatches { Matches = [.. output_matches] } );
 
-                Console.Out.WriteLine( ret_json );
+                Console.Out.WriteLine( output_json );
             }
             catch( Exception exc )
             {

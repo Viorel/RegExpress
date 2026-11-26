@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -109,6 +110,7 @@ class SubengineRE2J( Options options ) : RegexSubengine
         if( root_object == null ) throw new Exception( "Invalid response." );
 
         List<SimpleMatch> matches = [];
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
         SimpleTextGetter stg = new( text );
 
         foreach( Match m in root_object.matches )
@@ -120,12 +122,10 @@ class SubengineRE2J( Options options ) : RegexSubengine
             {
                 int native_start = m.s;
                 int native_end = m.e;
-                int native_length = native_end - native_start;
 
                 Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                match = SimpleMatch.Create( native_start, native_length, stg );
-
+                match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
                 match.AddDefaultGroup( );
             }
 
@@ -146,9 +146,7 @@ class SubengineRE2J( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_length = native_end - native_start;
-
-                    match.AddSucceededGroup( native_start, native_length, name );
+                    match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                 }
             }
 
@@ -186,17 +184,16 @@ class SubengineRE2J( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_length = native_end - native_start;
-
                     try
                     {
-                        SimpleGroup? sg = (SimpleGroup?)match.Groups.Skip( 1 ).SingleOrDefault( g => g.Success && g.NativeIndex == native_start && g.NativeLength == native_length );
+                        int native_length = native_end - native_start;
+                        SimpleGroup? sg = (SimpleGroup?)match.Groups.Skip( 1 ).SingleOrDefault( g => g.Success && g.Coordinates.NativeIndex == native_start && g.Coordinates.NativeLength == native_length );
 
                         if( sg == null )
                         {
                             Debug.Fail( "Orphan named group" );
 
-                            match.AddSucceededGroup( native_start, native_length, name );
+                            match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                         }
                         else
                         {
@@ -207,7 +204,7 @@ class SubengineRE2J( Options options ) : RegexSubengine
                     {
                         // more than one
 
-                        match.AddSucceededGroup( native_start, native_length, name );
+                        match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                     }
                 }
             }

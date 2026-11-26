@@ -122,12 +122,9 @@ partial class Subengine( Options options ) : RegexSubengine
                         --native_start;
                     }
 
-                    int native_length = native_end - native_start;
-
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    current_match = SimpleMatch.Create( native_start, native_length, char_start, char_length, text_getter );
+                    current_match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), text_getter );
                     current_match.AddDefaultGroup( );
+
                     matches.Add( current_match );
 
                     continue;
@@ -166,11 +163,9 @@ partial class Subengine( Options options ) : RegexSubengine
 
                         Debug.Assert( native_end >= native_start );
 
-                        int native_length = native_end - native_start;
+                        Coordinates coordinates = index_converter.ConvertStartEnd( native_start, native_end );
 
-                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                        SimpleGroup group = current_match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                        SimpleGroup group = current_match.AddSucceededGroup( coordinates, name );
                     }
 
                     continue;

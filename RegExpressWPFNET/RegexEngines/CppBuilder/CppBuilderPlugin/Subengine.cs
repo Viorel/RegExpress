@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -67,6 +68,7 @@ partial class Subengine( Options options ) : RegexSubengine
 
         List<IMatch> matches = [];
         SimpleTextGetter stg = new( text );
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
         SimpleMatch? current_match = null;
         string? line;
 
@@ -91,7 +93,7 @@ partial class Subengine( Options options ) : RegexSubengine
                         --native_index; // make it starting at 0
                         int native_length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
 
-                        current_match = SimpleMatch.Create( native_index, native_length, stg );
+                        current_match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
                         current_match.AddDefaultGroup( );
 
                         matches.Add( current_match );
@@ -135,7 +137,7 @@ partial class Subengine( Options options ) : RegexSubengine
                         }
                         else
                         {
-                            current_match.AddSucceededGroup( native_index - 1, native_length, name );
+                            current_match.AddSucceededGroup( index_converter.ConvertIndexLength( native_index - 1, native_length ), name );
                         }
 
                         continue;

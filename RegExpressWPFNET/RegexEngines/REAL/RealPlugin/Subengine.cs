@@ -131,11 +131,8 @@ partial class Subengine( Options options ) : RegexSubengine
             {
                 int native_start = checked((int)br.ReadUInt64( )); // (UTF-8 index)
                 int native_end = checked((int)br.ReadUInt64( )); // (UTF-8 index)
-                int native_length = native_end - native_start;
 
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                current_match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                current_match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
 
                 current_match.AddDefaultGroup( );
 
@@ -150,7 +147,6 @@ partial class Subengine( Options options ) : RegexSubengine
 
                 UInt64 native_start = br.ReadUInt64( ); // (UTF-8 index)
                 UInt64 native_end = br.ReadUInt64( ); // (UTF-8 index)
-                UInt64 native_length = native_end - native_start;
 
                 bool success = native_start < UInt64.MaxValue;
 
@@ -163,9 +159,10 @@ partial class Subengine( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    (int char_start, int char_length) = index_converter.Convert( (int)native_start, (int)native_end );
-
-                    current_match.AddSucceededGroup( (int)native_start, (int)native_length, char_start, char_length, name );
+                    checked
+                    {
+                        current_match.AddSucceededGroup( index_converter.ConvertStartEnd( (int)native_start, (int)native_end ), name );
+                    }
                 }
             }
             break;

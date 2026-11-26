@@ -105,8 +105,8 @@ partial class SubengineCorvusEcma262( Options options ) : RegexSubengine
 #endif
 
         List<IMatch> matches = [];
-        SimpleTextGetter? stg = new( text );
         Utf8IndexConverter index_converter = new( text );
+        SimpleTextGetter? stg = new( text );
 
         foreach( WorkerMatch m in worker_matches.Matches )
         {
@@ -119,11 +119,7 @@ partial class SubengineCorvusEcma262( Options options ) : RegexSubengine
 
                 Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                int native_length = native_end - native_start;
-
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
                 match.AddDefaultGroup( );
             }
 
@@ -144,11 +140,7 @@ partial class SubengineCorvusEcma262( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_length = native_end - native_start;
-
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                 }
             }
 
@@ -168,11 +160,7 @@ partial class SubengineCorvusEcma262( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_length = native_end - native_start;
-
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                 }
             }
 

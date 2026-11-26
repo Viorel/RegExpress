@@ -94,8 +94,8 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
         if( response == null || response.matches == null ) throw new Exception( "Null response" );
 
         List<IMatch> matches = [];
-        SimpleTextGetter? stg = new( text );
         Utf8IndexConverter index_converter = new( text );
+        SimpleTextGetter? stg = new( text );
 
         foreach( var m in response.matches )
         {
@@ -109,13 +109,10 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
                 int native_start = m[0];
                 int native_end = m[1];
                 Debug.Assert( native_start >= 0 && native_end >= native_start );
-                int native_length = native_end - native_start;
-
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
                 Debug.Assert( match == null );
 
-                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
                 match.AddDefaultGroup( );
             }
 
@@ -136,11 +133,8 @@ class SubengineRegex_Zig( Options options ) : RegexSubengine
                 else
                 {
                     Debug.Assert( native_start >= 0 && native_end >= native_start );
-                    int native_length = native_end - native_start;
 
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                 }
             }
 

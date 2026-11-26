@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -61,6 +62,7 @@ partial class SubengineTbRegExp( Options options ) : RegexSubengine
         if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
         List<SimpleMatch> matches = [];
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
         SimpleTextGetter stg = new( text );
         SimpleMatch? current_match = null;
 
@@ -73,15 +75,17 @@ partial class SubengineTbRegExp( Options options ) : RegexSubengine
             var m = MatchRegex( ).Match( line );
             if( m.Success )
             {
-                current_match = SimpleMatch.Create( int.Parse( m.Groups[1].Value ), int.Parse( m.Groups[2].Value ), stg );
+                int native_index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
+                int native_length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
 
+                current_match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
                 current_match.AddDefaultGroup( );
 
                 matches.Add( current_match );
 
                 continue;
             }
-           
+
             var sm = SubmatchRegex( ).Match( line );
             if( sm.Success )
             {
@@ -97,8 +101,8 @@ partial class SubengineTbRegExp( Options options ) : RegexSubengine
                 value = UCodeRegex( ).Replace( value, m => ( (char)Convert.ToUInt16( m.Groups[1].Value, 16 ) ).ToString( ) );
 
                 current_match.AddSucceededNoDetailsGroup( current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture ), value );
-                
-                continue;    
+
+                continue;
             }
 
             sm = NamedSubmatchRegex( ).Match( line );

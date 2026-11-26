@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -102,6 +103,7 @@ partial class Subengine( Options options ) : RegexSubengine
         // read matches
 
         List<IMatch> matches = [];
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
         SimpleTextGetter? stg = new( text );
 
         for(; ; )
@@ -118,17 +120,14 @@ partial class Subengine( Options options ) : RegexSubengine
                 int native_start = br.ReadInt32( );
                 bool success = native_start >= 0;
                 int native_end;
-                int native_length;
 
                 if( !success )
                 {
                     native_end = 0;
-                    native_length = 0;
                 }
                 else
                 {
                     native_end = br.ReadInt32( );
-                    native_length = native_end - native_start;
                 }
 
                 if( i == 0 )
@@ -136,7 +135,7 @@ partial class Subengine( Options options ) : RegexSubengine
                     Debug.Assert( success );
                     Debug.Assert( match == null );
 
-                    match = SimpleMatch.Create( native_start, native_length, stg );
+                    match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
                     match.AddDefaultGroup( );
                 }
                 else
@@ -154,7 +153,7 @@ partial class Subengine( Options options ) : RegexSubengine
                     }
                     else
                     {
-                        match.AddSucceededGroup( native_start, native_length, name );
+                        match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                     }
                 }
             }

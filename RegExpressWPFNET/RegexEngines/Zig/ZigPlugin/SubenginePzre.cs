@@ -13,29 +13,6 @@ using System.Text.Json;
 
 namespace ZigPlugin;
 
-/*
- 
-Example of input:
-
-{ "pattern": "(?<first>\\d)(\\d*)(?<last>QQQ)?", "text": "a1b23c456", "flags": "" }
-
-Example of result:
-
-{
-"matches": [
-{
-  "start": 1,
-  "length": 1
-},
-{
-  "start": 3,
-  "length": 2
-}
-]
-}
-
-*/
-
 class SubenginePzre( Options options ) : RegexSubengine
 {
     static readonly Lazy<FeatureMatrix> LazyFeatureMatrix = new( BuildFeatureMatrix );
@@ -97,8 +74,8 @@ class SubenginePzre( Options options ) : RegexSubengine
         if( response == null ) throw new Exception( "Null response" );
 
         List<IMatch> matches = [];
-        SimpleTextGetter? stg = new( text );
         Utf8IndexConverter index_converter = new( text );
+        SimpleTextGetter? stg = new( text );
 
         foreach( var m in response.matches! )
         {
@@ -106,15 +83,12 @@ class SubenginePzre( Options options ) : RegexSubengine
 
             SimpleMatch? match = null;
 
-            int native_start = m.start;
+            int native_index = m.start;
             int native_length = m.length;
-            int native_end = m.start + native_length;
-
-            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
             Debug.Assert( match == null );
 
-            match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+            match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
             match.AddDefaultGroup( );
 
             matches.Add( match );

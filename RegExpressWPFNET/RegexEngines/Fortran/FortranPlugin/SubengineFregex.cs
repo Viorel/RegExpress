@@ -91,8 +91,8 @@ partial class SubengineFregex( Options options ) : RegexSubengine
                     int native_start = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture ) - 1;
                     int native_end = int.Parse( m.Groups[3].Value, CultureInfo.InvariantCulture );
                     index_converter_for_names ??= new( pattern );
-                    (int char_start, int char_length) = index_converter_for_names.Convert( native_start, native_end );
-                    string name = pattern.Substring( char_start, char_length );
+                    Coordinates coordinates = index_converter_for_names.ConvertStartEnd( native_start, native_end );
+                    string name = pattern.Substring( coordinates.CharIndex, coordinates.CharLength );
                     names[group_index] = name;
 
                     continue;
@@ -111,9 +111,7 @@ partial class SubengineFregex( Options options ) : RegexSubengine
 
                     --native_start; // (but keep 'native_end')
 
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    SimpleMatch match = SimpleMatch.Create( native_start, native_end - native_start, char_start, char_length, text_getter );
+                    SimpleMatch match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), text_getter );
                     match.AddDefaultGroup( );
 
                     matches.Add( match );
@@ -150,9 +148,7 @@ partial class SubengineFregex( Options options ) : RegexSubengine
 
                         --native_start; // (but keep 'native_end')
 
-                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                        match.AddSucceededGroup( native_start, native_end - native_start, char_start, char_length, name );
+                        match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                     }
 
                     continue;

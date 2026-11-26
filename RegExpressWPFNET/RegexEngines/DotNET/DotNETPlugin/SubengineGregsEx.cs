@@ -43,15 +43,8 @@ internal partial class SubengineGregsEx( Options options ) : RegexSubengine
 
     public class Rootobject
     {
-        public required Match[] Matches { get; set; }
+        public required int[][] Matches { get; set; }
     }
-
-    public class Match
-    {
-        [JsonPropertyName( "g" )]
-        public required int[][] Groups { get; set; }
-    }
-
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
     {
@@ -126,37 +119,32 @@ internal partial class SubengineGregsEx( Options options ) : RegexSubengine
         SimpleTextGetter stg = new( text );
         IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
 
-        foreach( var m in root_object.Matches )
+        foreach( int[] m in root_object.Matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
             SimpleMatch match;
 
             {
-                int native_start = m.Groups[0][0];
-                int native_length = m.Groups[0][1];
+                int native_index = m[0];
+                int native_length = m[1];
 
-                Debug.Assert( native_start >= 0 && native_length >= 0 );
+                Debug.Assert( native_index >= 0 && native_length >= 0 );
 
-                int native_end = native_start + native_length;
-
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
 
                 match.AddDefaultGroup( );
             }
 
-            for( int i = 1; i < m.Groups.Length; ++i ) // skip default group
+            for( int i = 2; i < m.Length; i += 2 ) // skip default group
             {
-                int[] g = m.Groups[i];
+                int group_index = i / 2;
 
-                int native_start = g[0];
-                int native_length = g[1];
+                int native_index = m[i];
+                int native_length = m[i + 1];
 
-                bool success = native_start >= 0 && native_length >= 0;
-
-                string name = i.ToString( CultureInfo.InvariantCulture );
+                bool success = native_index >= 0 && native_length >= 0;
+                string name = group_index.ToString( CultureInfo.InvariantCulture );
 
                 if( !success )
                 {
@@ -164,11 +152,7 @@ internal partial class SubengineGregsEx( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_end = native_start + native_length;
-
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    match.AddSucceededGroup( index_converter.ConvertIndexLength( native_index, native_length ), name );
                 }
             }
 

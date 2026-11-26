@@ -78,20 +78,16 @@ partial class SubengineRegexJeyemhex( Options options ) : RegexSubengine
                 Match m = ParseMatchRegex( ).Match( line );
                 if( m.Success )
                 {
-                    int native_start = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..)
+                    int native_index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture ); // (1..)
 
-                    if( native_start > 0 )
+                    if( native_index > 0 )
                     {
                         int native_length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
                         if( native_length < 0 ) native_length = 0; // empty match
 
-                        --native_start;
+                        --native_index;
 
-                        int native_end = native_start + native_length;
-
-                        (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                        match = SimpleMatch.Create( native_start, native_length, char_start, char_length, text_getter );
+                        match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), text_getter );
                         match.AddDefaultGroup( );
 
                         matches.Add( match );

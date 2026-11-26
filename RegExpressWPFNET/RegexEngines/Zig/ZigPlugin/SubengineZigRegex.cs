@@ -150,8 +150,8 @@ class SubengineZigRegex( Options options ) : RegexSubengine
         if( response == null ) throw new Exception( "Null response" );
 
         List<IMatch> matches = [];
-        SimpleTextGetter? stg = new( text );
         Utf8IndexConverter index_converter = new( text );
+        SimpleTextGetter? stg = new( text );
 
         foreach( var m in response.matches! )
         {
@@ -159,15 +159,12 @@ class SubengineZigRegex( Options options ) : RegexSubengine
 
             SimpleMatch? match = null;
 
-            int native_start = m.start;
+            int native_index = m.start;
             int native_length = m.length;
-            int native_end = m.start + native_length;
-
-            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
             Debug.Assert( match == null );
 
-            match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+            match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
             match.AddDefaultGroup( );
 
             for( int group_index = 0; group_index < m.groups!.Length; group_index++ )

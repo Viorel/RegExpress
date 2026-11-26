@@ -127,8 +127,8 @@ partial class SubengineRustyExpressions( Options options ) : RegexSubengine
         if( root_object == null || root_object.matches == null ) throw new Exception( "Null response" );
 
         List<IMatch> matches = [];
-        SimpleTextGetter? stg = new( text );
         Utf8IndexConverter index_converter = new( text );
+        SimpleTextGetter? stg = new( text );
 
         foreach( Match[] m in root_object.matches )
         {
@@ -139,11 +139,8 @@ partial class SubengineRustyExpressions( Options options ) : RegexSubengine
             {
                 int native_start = m[0].g[0];
                 int native_end = m[0].g[1];
-                int native_length = native_end - native_start;
 
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
                 match.AddDefaultGroup( );
             }
 
@@ -163,14 +160,9 @@ partial class SubengineRustyExpressions( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_length = native_end - native_start;
-                    Debug.Assert( native_length >= 0 );
-
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
                     Debug.Assert( match != null );
 
-                    SimpleGroup added_group = match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    SimpleGroup added_group = match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
 
                     // Captures
 
@@ -180,13 +172,9 @@ partial class SubengineRustyExpressions( Options options ) : RegexSubengine
                     {
                         int c_native_start = m[group_index].c[i];
                         int c_native_end = m[group_index].c[i + 1];
+                        Debug.Assert( c_native_start >= 0 && c_native_end >= c_native_start );
 
-                        int c_native_length = c_native_end - c_native_start;
-                        Debug.Assert( c_native_length >= 0 );
-
-                        (int c_char_start, int c_char_length) = index_converter.Convert( c_native_start, c_native_end );
-
-                        added_group.AddCapture( c_native_start, c_native_length, c_char_start, c_char_length );
+                        added_group.AddCapture( index_converter.ConvertStartEnd( c_native_start, c_native_end ) );
                     }
                 }
             }

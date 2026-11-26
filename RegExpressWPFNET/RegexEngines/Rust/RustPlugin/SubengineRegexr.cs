@@ -106,8 +106,8 @@ partial class SubengineRegexr( Options options ) : RegexSubengine
         if( root_object == null || root_object.matches == null || root_object.names == null ) throw new Exception( "Null response" );
 
         List<IMatch> matches = [];
-        SimpleTextGetter? stg = new( text );
         Utf8IndexConverter index_converter = new( text );
+        SimpleTextGetter? stg = new( text );
 
         foreach( var m in root_object.matches )
         {
@@ -122,16 +122,13 @@ partial class SubengineRegexr( Options options ) : RegexSubengine
 
                 int native_start = success ? g[0] : 0;
                 int native_end = success ? g[1] : 0;
-                int native_length = native_end - native_start;
-
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
 
                 if( group_index == 0 )
                 {
                     Debug.Assert( match == null );
                     Debug.Assert( success );
 
-                    match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                    match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
                 }
 
                 Debug.Assert( match != null );
@@ -144,7 +141,7 @@ partial class SubengineRegexr( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                 }
             }
 
@@ -162,11 +159,8 @@ partial class SubengineRegexr( Options options ) : RegexSubengine
                 {
                     int native_start = ng.g[0];
                     int native_end = ng.g[1];
-                    int native_length = native_end - native_start;
 
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, ng.n );
+                    match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), ng.n );
                 }
             }
 

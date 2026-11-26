@@ -39,12 +39,6 @@ class SubengineDotNet11( Options options ) : RegexSubengine
         public required string Version { get; init; }
     }
 
-    public class Rootobject
-    {
-        public required string[] Names { get; init; }
-        public required int[][][] Matches { get; init; }
-    }
-
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
     {
         Debug.Assert( options.Class == ClassEnum.DotNet11 );
@@ -95,90 +89,7 @@ class SubengineDotNet11( Options options ) : RegexSubengine
 
         if( root_object == null ) throw new Exception( "Invalid response" );
 
-        List<SimpleMatch> matches = [];
-        SimpleTextGetter stg = new( text );
-        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
-
-        foreach( int[][] m in root_object.Matches )
-        {
-            if( cnc.IsCancellationRequested ) break;
-
-            SimpleMatch match;
-
-            {
-                // match and default group
-
-                int native_start = m[0][0];
-                int native_length = m[0][1];
-
-                Debug.Assert( native_start >= 0 && native_length >= 0 );
-
-                int native_end = native_start + native_length;
-
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
-                match.AddDefaultGroup( );
-            }
-
-            {
-                // other groups and captures
-
-                for( int group_index = 1; group_index < m.Length; group_index++ )
-                {
-                    string? name = group_index >= root_object.Names.Length ? null : root_object.Names[group_index];
-                    if( string.IsNullOrWhiteSpace( name ) ) name = group_index.ToString( CultureInfo.InvariantCulture );
-
-                    int[] captures = m[group_index];
-
-                    if( captures.Length == 0 )
-                    {
-                        match.AddFailedGroup( name );
-                    }
-                    else
-                    {
-                        SimpleGroup group;
-
-                        {
-                            // group
-
-                            int native_start = captures[0];
-                            int native_length = captures[1];
-
-                            Debug.Assert( native_start >= 0 && native_length >= 0 );
-
-                            int native_end = native_start + native_length;
-
-                            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                            group = match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
-                        }
-
-                        {
-                            // captures
-
-                            for( int k = 2; k < captures.Length; k += 2 ) // skip group, already added
-                            {
-                                int native_start = captures[k];
-                                int native_length = captures[k + 1];
-
-                                Debug.Assert( native_start >= 0 && native_length >= 0 );
-
-                                int native_end = native_start + native_length;
-
-                                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                                group.AddCapture( native_start, native_length, char_start, char_length );
-                            }
-                        }
-                    }
-                }
-            }
-
-            matches.Add( match );
-        }
-
-        return new RegexMatches( matches.Count, matches );
+        return CommonUtilities.ProcessResponse( cnc, text, root_object );
     }
 
     public static string? GetVersion( ICancellable cnc )

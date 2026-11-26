@@ -1,18 +1,11 @@
-﻿namespace RegExpressLibrary.Matches
+﻿namespace RegExpressLibrary.Matches;
+
+public interface ICapture
 {
-    public interface ICapture
-    {
-        int NativeIndex { get; }
+    Coordinates Coordinates { get; }
 
-        int NativeLength { get; }
+    public int CharIndex => Coordinates.CharIndex;
+    public int CharLength => Coordinates.CharLength;
 
-
-        int CharIndex { get; }
-
-        int CharLength { get; }
-
-
-        string Value { get; }
-    }
-
+    string Value { get; }
 }

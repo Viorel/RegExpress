@@ -96,10 +96,10 @@ partial class SubengineIRegexpRs( Options options ) : RegexSubengine
         case MatchModeEnum.Full:
         {
             List<IMatch> matches = [];
-
+            IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
             SimpleTextGetter? stg = new( text );
 
-            SimpleMatch match = SimpleMatch.Create( 0, text.Length, stg );
+            SimpleMatch match = SimpleMatch.Create( index_converter.ConvertIndexLength( 0, text.Length ), stg );
             match.AddDefaultGroup( );
 
             matches.Add( match );

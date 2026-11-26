@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -81,13 +82,14 @@ class SubengineIRegexp( Options options ) : RegexSubengine
             return RegexMatches.Empty;
         }
 
-        if( options.matchWholeString)
+        if( options.matchWholeString )
         {
             List<IMatch> matches = [];
 
             SimpleTextGetter? stg = new( text );
+            IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
 
-            SimpleMatch match = SimpleMatch.Create( 0, text.Length, stg );
+            SimpleMatch match = SimpleMatch.Create( index_converter.ConvertIndexLength( 0, text.Length ), stg );
             match.AddDefaultGroup( );
 
             matches.Add( match );

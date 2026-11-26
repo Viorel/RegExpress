@@ -132,11 +132,8 @@ class ChimeraSubengine( ChimeraOptions options ) : RegexSubengine
 
                 int native_index = checked((int)br.ReadUInt64( ));
                 int native_length = checked((int)br.ReadUInt64( ));
-                int native_end = native_index + native_length;
 
-                (int char_index, int char_length) = index_converter.Convert( native_index, native_end );
-
-                SimpleMatch m = SimpleMatch.Create( char_index, char_length, stg );
+                SimpleMatch m = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
 
                 int group_count = checked((int)br.ReadUInt64( ));
 
@@ -154,7 +151,6 @@ class ChimeraSubengine( ChimeraOptions options ) : RegexSubengine
 
                         native_index = checked((int)br.ReadUInt64( ));
                         native_length = checked((int)br.ReadUInt64( ));
-                        native_end = native_index + native_length;
 
                         string name = k.ToString( CultureInfo.InvariantCulture );
 
@@ -164,9 +160,7 @@ class ChimeraSubengine( ChimeraOptions options ) : RegexSubengine
                         }
                         else
                         {
-                            (char_index, char_length) = index_converter.Convert( native_index, native_end );
-
-                            m.AddSucceededGroup( native_index, native_length, char_index, char_length, name );
+                            m.AddSucceededGroup( index_converter.ConvertIndexLength( native_index, native_length ), name );
                         }
                     }
                 }

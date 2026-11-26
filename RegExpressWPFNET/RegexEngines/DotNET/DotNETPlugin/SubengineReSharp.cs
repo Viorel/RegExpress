@@ -1,8 +1,10 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -31,18 +33,9 @@ class SubengineReSharp( Options options ) : RegexSubengine
         };
     }
 
-    sealed class WorkerMatches
+    public class Rootobject
     {
-        public required WorkerMatch[] Matches { get; init; }
-    }
-
-    sealed class WorkerMatch
-    {
-        [JsonPropertyName( "i" )]
-        public required int Index { get; init; }
-
-        [JsonPropertyName( "l" )]
-        public required int Length { get; init; }
+        public required int[][] Matches { get; set; }
     }
 
     public override RegexMatches GetMatches( ICancellable cnc, string pattern, string text )
@@ -84,24 +77,34 @@ class SubengineReSharp( Options options ) : RegexSubengine
 
         if( !string.IsNullOrWhiteSpace( ph.Error ) ) throw new Exception( ph.Error );
 
-        WorkerMatches worker_matches = JsonSerializer.Deserialize<WorkerMatches>( ph.OutputStream ) ?? throw new Exception( "Invalid response" );
+#if DEBUG
+        using StreamReader sr = new( ph.OutputStream );
+        string output = sr.ReadToEnd( );
+        Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( output );
+#else
+        Rootobject? root_object = JsonSerializer.Deserialize<Rootobject>( ph.OutputStream );
+#endif
 
-        SimpleMatch[] matches = new SimpleMatch[worker_matches.Matches.Length];
+        if( root_object == null ) throw new Exception( "Invalid response" );
+
+        List<SimpleMatch> matches = [];
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
         SimpleTextGetter text_getter = new( text );
 
-        for( int i = 0; i < worker_matches.Matches.Length; i++ )
+        foreach( int[] m in root_object.Matches )
         {
             if( cnc.IsCancellationRequested ) break;
 
-            WorkerMatch m = worker_matches.Matches[i];
-            SimpleMatch sm = SimpleMatch.Create( m.Index, m.Length, text_getter );
+            int native_index = m[0];
+            int native_length = m[1];
 
-            sm.AddDefaultGroup( );
+            SimpleMatch match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), text_getter );
+            match.AddDefaultGroup( );
 
-            matches[i] = sm;
+            matches.Add( match );
         }
 
-        return new RegexMatches( matches.Length, matches );
+        return new RegexMatches( matches.Count, matches );
     }
 
     static FeatureMatrix BuildFeatureMatrix( )

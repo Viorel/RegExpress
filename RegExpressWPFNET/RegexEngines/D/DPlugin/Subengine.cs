@@ -105,15 +105,12 @@ class Subengine( Options options ) : RegexSubengine
                 // even the main (first) one (all are null); however the match object contains the valid index;
                 // the workaround is to use the information from the match instead of first capture
 
-                int native_start = m.g[0]; // utf-8
+                int native_index = m.g[0]; // utf-8
                 int native_length = m.g[1];
 
-                Debug.Assert( native_start >= 0 && native_length >= 0 );
+                Debug.Assert( native_index >= 0 && native_length >= 0 );
 
-                int native_end = native_start + native_length;
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
                 match.AddDefaultGroup( );
             }
 
@@ -122,10 +119,10 @@ class Subengine( Options options ) : RegexSubengine
                 int group_index = ( i - 2 ) / 2;
                 string name = group_index.ToString( CultureInfo.InvariantCulture );
 
-                int native_start = m.g[i]; // utf-8
+                int native_index = m.g[i]; // utf-8
                 int native_length = m.g[i + 1];
 
-                bool success = native_start >= 0 && native_length >= 0;
+                bool success = native_index >= 0 && native_length >= 0;
 
                 if( !success )
                 {
@@ -133,10 +130,7 @@ class Subengine( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_end = native_start + native_length;
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    match.AddSucceededGroup( index_converter.ConvertIndexLength( native_index, native_length ), name );
                 }
             }
 
@@ -144,10 +138,10 @@ class Subengine( Options options ) : RegexSubengine
             {
                 string name = response.names[i / 2];
 
-                int native_start = m.ng[i]; // utf-8
+                int native_index = m.ng[i]; // utf-8
                 int native_length = m.ng[i + 1];
 
-                bool success = native_start >= 0 && native_length >= 0;
+                bool success = native_index >= 0 && native_length >= 0;
 
                 if( !success )
                 {
@@ -155,10 +149,7 @@ class Subengine( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_end = native_start + native_length;
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    match.AddSucceededGroup( index_converter.ConvertIndexLength( native_index, native_length ), name );
                 }
             }
 

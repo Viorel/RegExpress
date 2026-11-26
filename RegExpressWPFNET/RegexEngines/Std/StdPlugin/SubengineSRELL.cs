@@ -85,8 +85,8 @@ class SubengineSRELL( Options options ) : RegexSubengine
         var br = ph.BinaryReader;
 
         List<IMatch> matches = [];
-        SimpleTextGetter stg = new( text );
         Utf8IndexConverter index_converter = new( text );
+        SimpleTextGetter stg = new( text );
         SimpleMatch? current_match = null;
 
         if( br.ReadByte( ) != 'b' ) throw new Exception( "Invalid response." );
@@ -103,11 +103,8 @@ class SubengineSRELL( Options options ) : RegexSubengine
             {
                 int native_index = checked((int)br.ReadInt64( ));
                 int native_length = checked((int)br.ReadInt64( ));
-                int native_end = native_index + native_length;
 
-                (int char_start, int char_length) = index_converter.Convert( native_index, native_end );
-
-                current_match = SimpleMatch.Create( native_index, native_length, char_start, char_length, stg );
+                current_match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
                 matches.Add( current_match );
             }
             break;
@@ -129,11 +126,7 @@ class SubengineSRELL( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_end = native_index + native_length;
-
-                    (int char_start, int char_length) = index_converter.Convert( native_index, native_end );
-
-                    current_match.AddSucceededGroup( native_index, native_length, char_start, char_length, name );
+                    current_match.AddSucceededGroup( index_converter.ConvertIndexLength( native_index, native_length ), name );
                 }
             }
             break;

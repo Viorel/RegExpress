@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -126,6 +127,7 @@ partial class Subengine( Options options ) : RegexSubengine
 
         List<IMatch> matches = [];
         SimpleTextGetter stg = new( text );
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
         SimpleMatch? current_match = null;
         SimpleGroup? current_group = null;
 
@@ -143,7 +145,7 @@ partial class Subengine( Options options ) : RegexSubengine
             {
                 Int32 native_index = br.ReadInt32( );
                 Int32 native_length = br.ReadInt32( );
-                current_match = SimpleMatch.Create( native_index, native_length, stg );
+                current_match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
                 matches.Add( current_match );
                 current_group = null;
             }
@@ -163,7 +165,7 @@ partial class Subengine( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    current_group = current_match.AddSucceededGroup( native_index, native_length, name );
+                    current_group = current_match.AddSucceededGroup( index_converter.ConvertIndexLength( native_index, native_length ), name );
                 }
             }
             break;
@@ -172,7 +174,7 @@ partial class Subengine( Options options ) : RegexSubengine
                 if( current_group == null ) throw new Exception( "Invalid response [3]." );
                 Int32 native_index = br.ReadInt32( );
                 Int32 native_length = br.ReadInt32( );
-                current_group.AddCapture( native_index, native_length );
+                current_group.AddCapture( index_converter.ConvertIndexLength( native_index, native_length ) );
             }
             break;
             case (byte)'e':

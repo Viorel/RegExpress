@@ -99,7 +99,7 @@ class SubengineJoni( Options options ) : RegexSubengine
                 //
                 NEWLINE_CRLF = options.NEWLINE_CRLF,
                 NOTBOS = options.NOTBOS,
-                NOTEOS= options.NOTEOS,
+                NOTEOS = options.NOTEOS,
                 CR_7_BIT = options.CR_7_BIT,
                 //
                 FindAll = options.FindAll,
@@ -142,14 +142,10 @@ class SubengineJoni( Options options ) : RegexSubengine
             {
                 int native_start = m.g[0][0];
                 int native_end = m.g[0][1];
-                int native_length = native_end - native_start;
 
                 Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
-
+                match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
                 match.AddDefaultGroup( );
             }
 
@@ -170,13 +166,9 @@ class SubengineJoni( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_length = native_end - native_start;
-
                     Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                 }
             }
 
@@ -194,13 +186,9 @@ class SubengineJoni( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    int native_length = native_end - native_start;
-
                     Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                    match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                 }
             }
 

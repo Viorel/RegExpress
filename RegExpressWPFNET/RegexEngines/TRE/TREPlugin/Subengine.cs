@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -71,6 +72,7 @@ class Subengine( Options options ) : RegexSubengine
         var br = ph.BinaryReader;
 
         List<IMatch> matches = [];
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
         SimpleTextGetter stg = new( text );
         SimpleMatch? current_match = null;
 
@@ -97,8 +99,10 @@ class Subengine( Options options ) : RegexSubengine
                     throw new Exception( "Match found, but details are not reported due to REG_NOSUB option." );
                 }
 
-                int native_length = native_end - native_start;
-                current_match = SimpleMatch.Create( (int)native_start, (int)native_length, stg );
+                checked
+                {
+                    current_match = SimpleMatch.Create( index_converter.ConvertStartEnd( (int)native_start, (int)native_end ), stg );
+                }
                 current_match.AddDefaultGroup( );
                 matches.Add( current_match );
             }
@@ -108,7 +112,6 @@ class Subengine( Options options ) : RegexSubengine
                 if( current_match == null ) throw new Exception( "Invalid response." );
                 Int32 native_start = br.ReadInt32( );
                 Int32 native_end = br.ReadInt32( );
-                int native_length = native_end - native_start;
                 bool success = native_start >= 0;
                 string name = current_match.Groups.Count( ).ToString( CultureInfo.InvariantCulture );
                 if( !success )
@@ -117,7 +120,10 @@ class Subengine( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    current_match.AddSucceededGroup( native_start, native_length, name );
+                    checked
+                    {
+                        current_match.AddSucceededGroup( index_converter.ConvertStartEnd( (int)native_start, (int)native_end ), name );
+                    }
                 }
             }
             break;

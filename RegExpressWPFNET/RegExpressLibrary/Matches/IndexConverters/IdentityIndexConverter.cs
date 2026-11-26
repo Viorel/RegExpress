@@ -1,16 +1,15 @@
-﻿namespace RegExpressLibrary.Matches.IndexConverters
+﻿namespace RegExpressLibrary.Matches.IndexConverters;
+
+public sealed class IdentityIndexConverter : IndexConverter
 {
-    public sealed class IdentityIndexConverter : IIndexConverter
+    public static IdentityIndexConverter Instance { get; } = new IdentityIndexConverter( );
+
+    private IdentityIndexConverter( )
     {
-        public static IdentityIndexConverter Instance { get; } = new IdentityIndexConverter( );
+    }
 
-        private IdentityIndexConverter( )
-        {
-        }
-
-        public (int index, int length) Convert( int nativeStart, int nativeEnd )
-        {
-            return (nativeStart, nativeEnd - nativeStart);
-        }
+    public override Coordinates ConvertIndexLength( int nativeStart, int nativeLength )
+    {
+        return new Coordinates( nativeStart, nativeLength, nativeStart, nativeLength );
     }
 }

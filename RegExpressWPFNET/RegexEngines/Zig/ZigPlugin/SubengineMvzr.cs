@@ -68,8 +68,8 @@ class SubengineMvzr( Options options ) : RegexSubengine
         if( response == null ) throw new Exception( "Null response" );
 
         List<IMatch> matches = [];
-        SimpleTextGetter? stg = new( text );
         Utf8IndexConverter index_converter = new( text );
+        SimpleTextGetter? stg = new( text );
 
         foreach( int[] m in response.matches )
         {
@@ -82,11 +82,7 @@ class SubengineMvzr( Options options ) : RegexSubengine
 
             Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-            int native_length = native_end - native_start;
-
-            SimpleMatch match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+            SimpleMatch match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
             match.AddDefaultGroup( );
 
             matches.Add( match );

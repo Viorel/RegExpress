@@ -86,9 +86,8 @@ class SubengineZoptia0regex( Options options ) : RegexSubengine
 
         if( response.matches != null )
         {
-
-            SimpleTextGetter stg = new( text );
             Utf8IndexConverter index_converter = new( text );
+            SimpleTextGetter stg = new( text );
 
             foreach( int[] m in response.matches )
             {
@@ -103,14 +102,10 @@ class SubengineZoptia0regex( Options options ) : RegexSubengine
 
                     int native_start = m[0];
                     int native_end = m[1];
-                    int native_length = native_end - native_start;
 
-                    Debug.Assert( native_start >= 0 );
-                    Debug.Assert( native_end >= native_start );
+                    Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                    (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match = SimpleMatch.Create( native_start, native_length, char_start, char_length, stg );
+                    match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
 
                     match.AddDefaultGroup( );
                 }
@@ -135,14 +130,10 @@ class SubengineZoptia0regex( Options options ) : RegexSubengine
                         {
                             int native_start = m[i];
                             int native_end = m[i + 1];
-                            int native_length = native_end - native_start;
 
-                            Debug.Assert( native_start >= 0 );
-                            Debug.Assert( native_end >= native_start );
+                            Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                            (int char_start, int char_length) = index_converter.Convert( native_start, native_end );
-
-                            match.AddSucceededGroup( native_start, native_length, char_start, char_length, name );
+                            match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                         }
                     }
                 }

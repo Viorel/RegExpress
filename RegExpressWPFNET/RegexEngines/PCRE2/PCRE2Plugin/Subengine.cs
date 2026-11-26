@@ -1,5 +1,6 @@
 ﻿using RegExpressLibrary;
 using RegExpressLibrary.Matches;
+using RegExpressLibrary.Matches.IndexConverters;
 using RegExpressLibrary.Matches.Simple;
 using RegExpressLibrary.SyntaxColouring;
 using System;
@@ -160,6 +161,7 @@ class Subengine( Options options ) : RegexSubengine
         var br = ph.BinaryReader;
 
         List<IMatch> matches = [];
+        IdentityIndexConverter index_converter = IdentityIndexConverter.Instance;
         SimpleTextGetter stg = new( text );
         SimpleMatch? current_match = null;
 
@@ -177,7 +179,7 @@ class Subengine( Options options ) : RegexSubengine
             {
                 Int32 native_index = br.ReadInt32( );
                 Int32 native_length = br.ReadInt32( );
-                current_match = SimpleMatch.Create( native_index, native_length, stg );
+                current_match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
                 matches.Add( current_match );
             }
             break;
@@ -195,7 +197,7 @@ class Subengine( Options options ) : RegexSubengine
                 }
                 else
                 {
-                    current_match.AddSucceededGroup( native_index, native_length, name );
+                    current_match.AddSucceededGroup( index_converter.ConvertIndexLength( native_index, native_length ), name );
                 }
             }
             break;

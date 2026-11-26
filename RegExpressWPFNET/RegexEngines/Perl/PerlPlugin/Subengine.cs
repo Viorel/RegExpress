@@ -127,7 +127,6 @@ partial class Subengine( Options options ) : RegexSubengine
                 {
                     int native_index = int.Parse( m.Groups[1].Value, CultureInfo.InvariantCulture );
                     int native_length = int.Parse( m.Groups[2].Value, CultureInfo.InvariantCulture );
-                    int native_end = native_index + native_length;
 
                     int group_index = match == null ? 0 : match.Groups.Count( );
                     string? group_name = group_index < numbered_names.Count ? numbered_names[group_index] : null;
@@ -145,15 +144,13 @@ partial class Subengine( Options options ) : RegexSubengine
                     }
                     else
                     {
-                        (int char_index, int char_length) = index_converter.Convert( native_index, native_end );
-
                         if( match == null )
                         {
-                            match = SimpleMatch.Create( native_index, native_length, char_index, char_length, stg );
+                            match = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
                             matches.Add( match );
                         }
 
-                        match.AddSucceededGroup( native_index, native_length, char_index, char_length, group_name );
+                        match.AddSucceededGroup( index_converter.ConvertIndexLength( native_index, native_length ), group_name );
                     }
                 }
                 else

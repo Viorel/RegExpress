@@ -138,11 +138,8 @@ partial class HyperscanSubengine( HyperscanOptions options ) : RegexSubengine
 
             int native_index = checked((int)br.ReadUInt64( ));
             int native_length = checked((int)br.ReadUInt64( ));
-            int native_end = native_index + native_length;
 
-            (int char_index, int char_length) = index_converter.Convert( native_index, native_end );
-
-            SimpleMatch m = SimpleMatch.Create( native_index, native_length, char_index, char_length, stg );
+            SimpleMatch m = SimpleMatch.Create( index_converter.ConvertIndexLength( native_index, native_length ), stg );
             m.AddDefaultGroup( );
 
             matches.Add( m );

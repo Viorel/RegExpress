@@ -138,8 +138,8 @@ namespace RegExpressWPFNET
 
             if( last_matches != null )
             {
-                var old_groups = last_matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.NativeIndex, g.NativeLength, g.Value) );
-                var new_groups = matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.NativeIndex, g.NativeLength, g.Value) );
+                var old_groups = last_matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Coordinates.NativeIndex, g.Coordinates.NativeLength, g.Value) );
+                var new_groups = matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Coordinates.NativeIndex, g.Coordinates.NativeLength, g.Value) );
 
                 if( string.Equals( text, last_text ) &&
                     showCaptures == last_show_captures &&

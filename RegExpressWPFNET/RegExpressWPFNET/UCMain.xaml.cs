@@ -930,7 +930,7 @@ namespace RegExpressWPFNET
 
                             if( cnc.IsCancellationRequested ) return;
 
-                            var new_seg = new Segment( m.NativeIndex, m.NativeLength );
+                            var new_seg = new Segment( m.Coordinates.NativeIndex, m.Coordinates.NativeLength );
 
                             if( segments.Any( s => s.Intersects( new_seg ) ) ) // TODO: make cancellable?
                             {

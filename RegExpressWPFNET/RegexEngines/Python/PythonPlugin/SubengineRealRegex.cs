@@ -137,13 +137,10 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
                 {
                     int native_start = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
                     int native_end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
-                    int native_length = native_end - native_start;
 
                     Debug.Assert( native_start >= 0 && native_end >= native_start );
 
-                    (int char_index, int char_length) = index_converter.Convert( native_start, native_end );
-
-                    match = SimpleMatch.Create( native_start, native_length, char_index, char_length, stg );
+                    match = SimpleMatch.Create( index_converter.ConvertStartEnd( native_start, native_end ), stg );
                     matches.Add( match );
                 }
                 break;
@@ -151,7 +148,7 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
                 {
                     int native_start = int.Parse( m.Groups["s"].Value, CultureInfo.InvariantCulture );
                     int native_end = int.Parse( m.Groups["e"].Value, CultureInfo.InvariantCulture );
-                    int native_length = native_end - native_start;
+
                     bool success = native_start >= 0;
 
                     Debug.Assert( match != null );
@@ -167,9 +164,7 @@ partial class SubengineRealRegex( Options options ) : RegexSubengine
                     }
                     else
                     {
-                        (int char_index, int char_length) = index_converter.Convert( native_start, native_end );
-
-                        match.AddSucceededGroup( native_start, native_length, char_index, char_length, name );
+                        match.AddSucceededGroup( index_converter.ConvertStartEnd( native_start, native_end ), name );
                     }
 
                     ++group_i;

@@ -210,8 +210,8 @@ namespace RegExpressWPFNET
                 if( LastMatches != null )
                 {
                     var is_matched_but_no_results = matches.IsMatchedButNoResults;
-                    var old_groups = LastMatches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Success, g.NativeIndex, g.NativeLength, g.Value, g.Name) );
-                    var new_groups = matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Success, g.NativeIndex, g.NativeLength, g.Value, g.Name) );
+                    var old_groups = LastMatches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Success, g.Coordinates.NativeIndex, g.Coordinates.NativeLength, g.Value, g.Name) );
+                    var new_groups = matches.Matches.SelectMany( m => m.Groups ).Select( g => (g.Success, g.Coordinates.NativeIndex, g.Coordinates.NativeLength, g.Value, g.Name) );
 
                     var old_captures = LastMatches.Matches.SelectMany( m => m.Groups ).SelectMany( g => g.Captures ).Select( c => c.Value );
                     var new_captures = matches.Matches.SelectMany( m => m.Groups ).SelectMany( g => g.Captures ).Select( c => c.Value );
